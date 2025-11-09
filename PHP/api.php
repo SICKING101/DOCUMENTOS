@@ -428,7 +428,7 @@ function deleteDocument($db, $upload_dir) {
         }
     }
 
-    // Marcar como inactivo en la BD
+    // Marcar como inactivo en la Base de Datos
     $query = "UPDATE documentos SET activo = 0 WHERE id = ?";
     $stmt = $db->prepare($query);
 
