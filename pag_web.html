@@ -1,170 +1,182 @@
 <!DOCTYPE html>
-<html>
-  <!--
-  To-Do's
-  Hacer la app "Responsive" (Adaptable a moviles)
-  Agregar funcionalidad a los botones (Subir, Descargar, Buscar)
-  -->
+<html lang="es">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Portal de Archivos Docentes</title>
     <style>
-      /* Cambiar fondo de pagina a color negro */
-      body {
-        background-color: #121212;
-        color: #fff;
-        margin: 0;
+      /* Variables globales */
+      :root {
+        --bg-main: #121212;
+        --bg-card: #1E1E1E;
+        --text-primary: #fff;
+        --text-secondary: #ccc;
+        --text-muted: rgba(255, 255, 255, 0.6);
+        --border-color: #2A2A2A;
+        --accent: #50E3C2;
+        --button-bg: #A0A0A0;
+        --input-bg: #121212;
+        --card-shadow: 0 8px 24px var(--accent);
+        --spacing-sm: 0.5rem;
+        --spacing-md: 1rem;
+        --spacing-lg: 1.5rem;
+        --spacing-xl: 2rem;
+        --radius-sm: 8px;
+        --radius-lg: 16px;
+      }
+
+      /* BEM Blocks */
+      .page {
+        background-color: var(--bg-main);
+        color: var(--text-primary);
         min-height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+
+      /* Header Block */
+      .header {
+        max-width: 980px;
+        margin: var(--spacing-lg) auto;
+        padding: 0 var(--spacing-md);
+      }
+
+      .header__title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: var(--spacing-lg) 0;
         text-align: center;
       }
 
-      /* Ajustes de title */
-      .title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 1.5rem 0;
+      .header__nav {
+        display: flex;
+        justify-content: center;
+        gap: var(--spacing-sm);
       }
-      
-      button {
-        background-color: #A0A0A0;
-        color: white;
-        text-decoration-color: #E0E0E0;
-        padding: 0.75rem 1.25rem;
+
+      .header__button {
+        background-color: var(--button-bg);
+        color: var(--text-primary);
+        padding: 0.6rem 0.9rem;
         font-size: 1.1rem;
         border: none;
-        border-radius: 6px;
-        margin: 0.5rem;
-        min-width: 140px;
+        border-radius: var(--radius-sm);
         cursor: pointer;
+        transition: background 0.2s;
       }
 
-      .button-row {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        justify-content: center;
+      .header__button:hover {
+        background-color: var(--accent);
       }
 
+      .header__link {
+        text-decoration: none;
+      }
+
+      /* Card Block */
       .card {
         width: min(900px, 95%);
-        margin: 3rem auto;
-        background: #1E1E1E;
-        border: 1px solid #2A2A2A;
-        border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 8px 24px #50E3C2;
+        margin: var(--spacing-xl) auto;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        box-shadow: var(--card-shadow);
+      }
+
+      /* Recent Files Block */
+      .files {
+        margin-top: var(--spacing-lg);
+      }
+
+      .files__title {
+        font-size: 1.5rem;
+        margin-bottom: var(--spacing-lg);
+        color: var(--text-primary);
+        text-align: left;
+      }
+
+      .files__list {
         display: flex;
         flex-direction: column;
-        align-items: left;
-        gap: 1rem;
+        gap: var(--spacing-md);
+        list-style: none;
+        padding: 0;
       }
 
-      .card-input {
-        width: 300px;
-        padding: 0.5rem 0.75rem;
-        border-radius: 8px;
-        border: 1px solid #333;
-        background: #121212;
-        color: #fff;
-        outline: none;
-        font-size: large;
-      }
-      .card-input::placeholder { color: rgba(255,255,255,0.6); }
-
-      /* Agregar contenedor para la barra de búsqueda y el dropdown */
-      .search-row {
+      .files__item {
         display: flex;
-        gap: 1rem;
-        align-items: center;
-      }
-
-      /* Estilos para el dropdown */
-      .card-select {
-        padding: 0.5rem 0.75rem;
-        border-radius: 8px;
-        border: 1px solid #333;
-        background: #121212;
-        color: #fff;
-        outline: none;
-        font-size: large;
-        cursor: pointer;
-      }
-
-      /* Estilos para la sección de datos */
-      .datos {
-        display: flex;
-        flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem;
+        padding: var(--spacing-md);
+        background: rgba(255,255,255,0.03);
+        border-radius: var(--radius-sm);
+        transition: background 0.2s;
       }
 
-      .datos-headers {
+      .files__item:hover {
+        background: rgba(80,227,194,0.1);
+      }
+
+      .files__info {
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+        gap: var(--spacing-sm);
+        text-align: left;
       }
 
-      .datos h3 {
-        margin: 0;
-        font-size: 1rem;
+      .files__name {
+        font-weight: 600;
+        color: var(--text-primary);
       }
 
-      /* Estilo para el contenedor del logo */
-      .logo-container {
-        position: absolute;
-        top: 1rem;
-        left: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-      }
-
-      .logo-container img {
-        width: 60px;
-        height: 60px;
-        object-fit: contain;
+      .files__meta {
+        font-size: 0.85rem;
+        color: var(--text-muted);
       }
     </style>
   </head>
-  <body>
-    <!-- Agregar el logo -->
-    <section class="logo-container">
-      <img src="cbtis_logo.png" alt="Logo CBTIS">
-    </section>
+  <body class="page">
+    <header class="header">
+      <h1 class="header__title">Portal de Archivos Docentes</h1>
+      
+      <nav class="header__nav">
+        <a href="pag_web.html" class="header__link">
+          <button class="header__button">Dashboard</button>
+        </a>
+        <a href="personas.html" class="header__link">
+          <button class="header__button">Personas</button>
+        </a>
+      </nav>
+    </header>
 
-    <h1 class="title">Portal de Archivos Docentes</h1>
-
-    <!-- Botones: el de Personas abre la página personas.html -->
-    <section class="button-row" role="navigation" aria-label="acciones">
-      <button>Dashboard</button>
-
-      <!-- Enlace simple hacia la pagina de personas -->
-      <a href="personas.html" style="text-decoration:none;">
-        <button>Personas</button>
-      </a>
-    </section>
-
-
-    <!-- main card -->
-    <main class="card" role="main">
-      <section class="search-row">
-        <input class="card-input" type="text" placeholder="Buscar Docente..." aria-label="Buscar Docente">
+    <main class="card">
+      <article class="files">
+        <h2 class="files__title">Archivos Recientes</h2>
         
-        <select class="card-select" aria-label="Filtrar por">
-          <option value="nombre">Nombre</option>
-          <option value="materia">Materia</option>
-          <option value="fecha">Fecha</option>
-        </select>
-      </section>
-
-      <article class="card datos" role="article">
-        <section class="datos-headers">
-          <h3>Nombre:</h3>
-          <h3>Area:</h3>
-          <h3>No Control:</h3>
-        </section>
-        <button aria-label="Botón de descarga">Descargar</button>
+        <ul class="files__list">
+          <li class="files__item">
+            <div class="files__info">
+              <span class="files__name">Planeación Semestral.pdf</span>
+              <span class="files__meta">Modificado: Hoy, 14:30 · 2.1 MB</span>
+            </div>
+            <button class="header__button">Abrir</button>
+          </li>
+          <li class="files__item">
+            <div class="files__info">
+              <span class="files__name">Lista de Asistencia.xlsx</span>
+              <span class="files__meta">Modificado: Ayer · 145 KB</span>
+            </div>
+            <button class="header__button">Abrir</button>
+          </li>
+          <li class="files__item">
+            <div class="files__info">
+              <span class="files__name">Evaluación Bimestral.docx</span>
+              <span class="files__meta">Modificado: 2 días atrás · 890 KB</span>
+            </div>
+            <button class="header__button">Abrir</button>
+          </li>
+        </ul>
       </article>
     </main>
   </body>
