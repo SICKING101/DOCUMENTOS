@@ -63,6 +63,7 @@
         border-radius: var(--radius-sm);
         cursor: pointer;
         transition: background 0.2s;
+        min-width: 8rem;
       }
 
       .header__button:hover {
@@ -72,6 +73,30 @@
       .header__link {
         text-decoration: none;
       }
+
+
+      .header__button--active {
+        background-color: #2A2A2A;
+      }
+
+      .header__button--active:hover {
+        background-color: #2A2A2A;
+      }
+
+      .header__logoCBTIS {
+      width: 6rem;
+      height: 6rem;
+      object-fit: contain;
+      position: fixed;
+      top: 0.5rem;
+      left: 0.5rem;
+      margin: 0;
+      padding: 0;
+      z-index: 1000;
+    }
+
+
+
 
       /* Search Block */
       .search {
@@ -180,31 +205,34 @@
       }
     </style>
   </head>
+
   <body class="page">
     <header class="header">
+      <!-- logo cbtis superior izqyuierda-->
+      <img class="header__logoCBTIS" src="PHP/uploads/Cbtis_logo.jpg" alt="Logo CBTIS">
+
       <h1 class="header__title">Portal de Archivos Docentes</h1>
       
-      <nav class="header__nav">
-        <a href="pag_web.html" class="header__link">
-          <button class="header__button">Dashboard</button>
-        </a>
-        <a href="personas.html" class="header__link">
-          <button class="header__button">Personas</button>
-        </a>
+      <nav class="header__nav" aria-label="Navegación principal"> <!-- Se cambio <a><button> por <button> para semantica -->
+          <button class="header__button" onclick="location.href='pag_web.html'" type="button">Dashboard</button>
+          <button class="header__button header__button--active" aria-current="page" type="button">Personas</button>
       </nav>
     </header>
 
     <main class="card">
-      <form class="search" role="search">
+      <form class="search" role="search" onsubmit="return false;">
+        <label for="searchInput" class="visually-hidden">Buscar Docente</label>
         <input 
           class="search__input" 
-          type="text" 
+          type="search" 
           placeholder="Buscar Docente..." 
           aria-label="Buscar Docente"
           id="searchInput"
+          autocomplete="off"
         >
         
-        <select class="search__select" aria-label="Filtrar por" id="filterSelect">
+        <label for="filterSelect" class="visually-hidden">Filtrar por área</label>
+        <select class="search__select" aria-label="Filtrar por área" id="filterSelect">
           <option value="todos">Todos</option>
           <option value="matematicas">Matemáticas</option>
           <option value="fisica">Física</option>
@@ -212,30 +240,30 @@
         </select>
       </form>
 
-      <section class="teachers">
-        <ul class="teachers__list" id="teachersList">
-          <li class="teachers__item">
+      <section class="teachers" aria-label="Lista de docentes">
+        <ul class="teachers__list" id="teachersList" role="list">
+          <li class="teachers__item" data-area="matematicas">
             <div class="teachers__info">
               <span class="teachers__name">María González</span>
               <span class="teachers__meta">Área: Matemáticas · No. Control: M2023</span>
             </div>
-            <button class="header__button">Ver Detalles</button>
+            <button class="header__button" type="button" aria-label="Ver detalles de María González">Ver Detalles</button>
           </li>
 
-          <li class="teachers__item">
+          <li class="teachers__item" data-area="fisica">
             <div class="teachers__info">
               <span class="teachers__name">Juan Pérez</span>
               <span class="teachers__meta">Área: Física · No. Control: F2023</span>
             </div>
-            <button class="header__button">Ver Detalles</button>
+            <button class="header__button" type="button" aria-label="Ver detalles de Juan Pérez">Ver Detalles</button>
           </li>
 
-          <li class="teachers__item">
+          <li class="teachers__item" data-area="quimica">
             <div class="teachers__info">
               <span class="teachers__name">Ana Ramírez</span>
               <span class="teachers__meta">Área: Química · No. Control: Q2023</span>
             </div>
-            <button class="header__button">Ver Detalles</button>
+            <button class="header__button" type="button" aria-label="Ver detalles de Ana Ramírez">Ver Detalles</button>
           </li>
         </ul>
       </section>
@@ -246,16 +274,26 @@
       const filterSelect = document.getElementById('filterSelect');
       const teachersList = document.getElementById('teachersList');
 
+      // Funcio npara normalizar texto, eliminar acentos y convertir a minusculas
+      function normalizeText(text) {
+        return text
+          .toLowerCase() // conversion a minusculas (lower/UPPER)
+          .normalize('NFD') // normalización de acentos
+          .replace(/[\u0300-\u036f]/g, ''); // filtro de acentos
+      }
+
       function filterTeachers() {
-        const searchTerm = searchInput.value.toLowerCase();
+        const searchTerm = normalizeText(searchInput.value);
         const filterValue = filterSelect.value;
         const teachers = teachersList.getElementsByClassName('teachers__item');
 
         Array.from(teachers).forEach(teacher => {
-          const name = teacher.querySelector('.teachers__name').textContent.toLowerCase();
-          const meta = teacher.querySelector('.teachers__meta').textContent.toLowerCase();
+          const name = normalizeText(teacher.querySelector('.teachers__name').textContent);
+          const meta = normalizeText(teacher.querySelector('.teachers__meta').textContent);
+          const area = teacher.getAttribute('data-area');
+          
           const matchesSearch = name.includes(searchTerm) || meta.includes(searchTerm);
-          const matchesFilter = filterValue === 'todos' || meta.includes(filterValue);
+          const matchesFilter = filterValue === 'todos' || area === filterValue;
           
           teacher.style.display = matchesSearch && matchesFilter ? 'flex' : 'none';
         });
@@ -265,4 +303,5 @@
       filterSelect.addEventListener('change', filterTeachers);
     </script>
   </body>
+
 </html>
