@@ -4,138 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Portal de Archivos Docentes</title>
-    <style>
-      /* Variables globales */
-      :root {
-        --bg-main: #121212;
-        --bg-card: #1E1E1E;
-        --text-primary: #fff;
-        --text-secondary: #ccc;
-        --text-muted: rgba(255, 255, 255, 0.6);
-        --border-color: #2A2A2A;
-        --accent: #50E3C2;
-        --button-bg: #A0A0A0;
-        --input-bg: #121212;
-        --card-shadow: 0 8px 24px var(--accent);
-        --spacing-sm: 0.5rem;
-        --spacing-md: 1rem;
-        --spacing-lg: 1.5rem;
-        --spacing-xl: 2rem;
-        --radius-sm: 8px;
-        --radius-lg: 16px;
-      }
-
-      /* BEM Blocks */
-      .page {
-        background-color: var(--bg-main);
-        color: var(--text-primary);
-        min-height: 100vh;
-        margin: 0;
-        font-family: Arial, sans-serif;
-      }
-
-      /* Header Block */
-      .header {
-        max-width: 980px;
-        margin: var(--spacing-lg) auto;
-        padding: 0 var(--spacing-md);
-      }
-
-      .header__title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: var(--spacing-lg) 0;
-        text-align: center;
-      }
-
-      .header__nav {
-        display: flex;
-        justify-content: center;
-        gap: var(--spacing-sm);
-      }
-
-      .header__button {
-        background-color: var(--button-bg);
-        color: var(--text-primary);
-        padding: 0.6rem 0.9rem;
-        font-size: 1.1rem;
-        border: none;
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-
-      .header__button:hover {
-        background-color: var(--accent);
-      }
-
-      .header__link {
-        text-decoration: none;
-      }
-
-      /* Card Block */
-      .card {
-        width: min(900px, 95%);
-        margin: var(--spacing-xl) auto;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        padding: var(--spacing-xl);
-        box-shadow: var(--card-shadow);
-      }
-
-      /* Recent Files Block */
-      .files {
-        margin-top: var(--spacing-lg);
-      }
-
-      .files__title {
-        font-size: 1.5rem;
-        margin-bottom: var(--spacing-lg);
-        color: var(--text-primary);
-        text-align: left;
-      }
-
-      .files__list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-md);
-        list-style: none;
-        padding: 0;
-      }
-
-      .files__item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-md);
-        background: rgba(255,255,255,0.03);
-        border-radius: var(--radius-sm);
-        transition: background 0.2s;
-      }
-
-      .files__item:hover {
-        background: rgba(80,227,194,0.1);
-      }
-
-      .files__info {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-        text-align: left;
-      }
-
-      .files__name {
-        font-weight: 600;
-        color: var(--text-primary);
-      }
-
-      .files__meta {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css">
   </head>
+
   <body class="page">
     <header class="header">
       <h1 class="header__title">Portal de Archivos Docentes</h1>
@@ -151,33 +22,35 @@
     </header>
 
     <main class="card">
-      <article class="files">
-        <h2 class="files__title">Archivos Recientes</h2>
+      <article class="people">
+        <h2 class="people__title">Personal Reciente</h2>
         
-        <ul class="files__list">
-          <li class="files__item">
-            <div class="files__info">
-              <span class="files__name">Planeación Semestral.pdf</span>
-              <span class="files__meta">Modificado: Hoy, 14:30 · 2.1 MB</span>
-            </div>
-            <button class="header__button">Abrir</button>
+        <ul class="people__list" id="peopleList">
+          <li class="people__item">
+            <section class="people__info">
+              <span class="people__name">María González</span>
+              <span class="people__meta">Área: Matemáticas · Último acceso: Hace 5 min</span>
+            </section>
+            <button class="header__button people__btn">Ver Perfil</button>
           </li>
-          <li class="files__item">
-            <div class="files__info">
-              <span class="files__name">Lista de Asistencia.xlsx</span>
-              <span class="files__meta">Modificado: Ayer · 145 KB</span>
-            </div>
-            <button class="header__button">Abrir</button>
+          <li class="people__item">
+            <section class="people__info">
+              <span class="people__name">Juan Pérez</span>
+              <span class="people__meta">Área: Física · Último acceso: Hace 1 hora</span>
+            </section>
+            <button class="header__button people__btn">Ver Perfil</button>
           </li>
-          <li class="files__item">
-            <div class="files__info">
-              <span class="files__name">Evaluación Bimestral.docx</span>
-              <span class="files__meta">Modificado: 2 días atrás · 890 KB</span>
-            </div>
-            <button class="header__button">Abrir</button>
+          <li class="people__item">
+            <section class="people__info">
+              <span class="people__name">Ana Ramírez</span>
+              <span class="people__meta">Área: Química · Último acceso: Hace 2 horas</span>
+            </section>
+            <button class="header__button people__btn">Ver Perfil</button>
           </li>
         </ul>
       </article>
     </main>
+
+    <script src="pag_web.js" defer></script>
   </body>
 </html>
