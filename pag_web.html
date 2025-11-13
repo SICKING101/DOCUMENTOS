@@ -26,21 +26,21 @@
         <h2 class="people__title">Personal Reciente</h2>
         
         <ul class="people__list" id="peopleList">
-          <li class="people__item">
+          <li class="people__item" data-area="Matemáticas" data-tipo="Docente">
             <section class="people__info">
               <span class="people__name">María González</span>
               <span class="people__meta">Área: Matemáticas · Último acceso: Hace 5 min</span>
             </section>
             <button class="header__button people__btn">Ver Perfil</button>
           </li>
-          <li class="people__item">
+          <li class="people__item" data-area="Física" data-tipo="Administración">
             <section class="people__info">
               <span class="people__name">Juan Pérez</span>
               <span class="people__meta">Área: Física · Último acceso: Hace 1 hora</span>
             </section>
             <button class="header__button people__btn">Ver Perfil</button>
           </li>
-          <li class="people__item">
+          <li class="people__item" data-area="Química" data-tipo="Otro">
             <section class="people__info">
               <span class="people__name">Ana Ramírez</span>
               <span class="people__meta">Área: Química · Último acceso: Hace 2 horas</span>
@@ -50,6 +50,24 @@
         </ul>
       </article>
     </main>
+
+    <!-- Modal sin div -->
+    <dialog id="profileModal" class="modal">
+      <article class="modal__content">
+        <header>
+          <h2 id="modalName">Nombre del docente</h2>
+          <p id="modalArea">Área:</p>
+          <p id="modalTipo">Tipo:</p>
+        </header>
+        <section>
+          <h3>Archivos Recientes</h3>
+          <ul id="modalFiles" class="modal__files"></ul>
+        </section>
+        <footer>
+          <button id="closeModal" class="header__button">Cerrar</button>
+        </footer>
+      </article>
+    </dialog>
 
     <script src="pag_web.js" defer></script>
   </body>
