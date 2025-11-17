@@ -1,17 +1,3 @@
-/**
- * server.js
- * Sistema de gestion de documentos - CBTIS051
- * Archivo completo, sin acentos en textos, con debugging detallado.
- *
- * Requisitos:
- * - node >= 16
- * - npm install express mongoose cors multer cloudinary dotenv nodemon
- *
- * Notas:
- * - Ajusta variables en .env: PORT, MONGODB_URI, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
- * - Este archivo mantiene archivos subidos temporalmente en /uploads y los borra al finalizar la subida.
- */
-
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
