@@ -1,7 +1,6 @@
-<?php
-// Configuración y conexión a la base de datos
-require_once '../config/database.php';
-?>
+<php include('../php/header.php');?>
+    
+</php>
 <!DOCTYPE html>
 <html lang="es">
 <head>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Portal de Archivos Docentes</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+
+  <body class="page">
+    <header class="header">
+      <figure class="header__logo">
+        <img src="PHP/uploads/Cbtis_logo.jpg" alt="Logo Portal" class="header__logo-img" />
+      </figure>
+      
+      <h1 class="header__title">Portal de Archivos Docentes</h1>
+      
+      <nav class="header__nav">
+        <a href="pag_web.html" class="header__link">
+          <button class="header__button">Dashboard</button>
+        </a>
+        <a href="personas.html" class="header__link">
+          <button class="header__button">Personas</button>
+        </a>
+        <a href="archivos.html" class="header__link">
+          <button class="header__button header__button--active">Archivos</button>
+        </a>
+      </nav>
+    </header>
+
+    <main class="card">
+      <article class="files">
+        <section class="files__search">
+          <label for="searchInput" class="files__search-label">Buscar archivos</label>
+          <input 
+            type="search" 
+            id="searchInput" 
+            class="files__search-input" 
+            placeholder="Buscar por nombre de archivo..."
+            autocomplete="off"
+          />
+        </section>
+
+        <section class="files__filters">
+          <label class="files__filter">
+            <span class="files__filter-label">Área</span>
+            <select id="filterArea" class="files__filter-select">
+              <option value="">Todas las áreas</option>
+              <option value="Matemáticas">Matemáticas</option>
+              <option value="Física">Física</option>
+              <option value="Química">Química</option>
+              <option value="Biología">Biología</option>
+              <option value="Literatura">Literatura</option>
+            </select>
+          </label>
+
+          <label class="files__filter">
+            <span class="files__filter-label">Tipo de archivo</span>
+            <select id="filterType" class="files__filter-select">
+              <option value="">Todos los tipos</option>
+              <option value="PDF">PDF</option>
+              <option value="DOCX">DOCX</option>
+              <option value="XLSX">XLSX</option>
+              <option value="PPTX">PPTX</option>
+              <option value="ZIP">ZIP</option>
+            </select>
+          </label>
+
+          <label class="files__filter">
+            <span class="files__filter-label">Persona</span>
+            <select id="filterPerson" class="files__filter-select">
+              <option value="">Todas las personas</option>
+              <option value="María González">María González</option>
+              <option value="Juan Pérez">Juan Pérez</option>
+              <option value="Ana Ramírez">Ana Ramírez</option>
+              <option value="Carlos López">Carlos López</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="files__list-section">
+          <header class="files__header">
+            <button class="files__header-col files__header-col--name" data-sort="name">
+              Nombre del archivo
+              <span class="files__sort-icon"></span>
+            </button>
+            <button class="files__header-col files__header-col--person" data-sort="person">
+              Docente - Área
+              <span class="files__sort-icon"></span>
+            </button>
+            <button class="files__header-col files__header-col--size" data-sort="size">
+              Tamaño
+              <span class="files__sort-icon"></span>
+            </button>
+            <button class="files__header-col files__header-col--date" data-sort="date">
+              Fecha de subida
+              <span class="files__sort-icon"></span>
+            </button>
+          </header>
+
+          <ul class="files__list" id="filesList">
+            <!-- Los archivos se cargarán dinamicamente aqui -->
+          </ul>
+        </section>
+      </article>
+    </main>
+
+    <script src="archivos.js" defer></script>  <!-- Lado cliente -->
+    <!-- Jared ya lo de descargar archivos desde ese navegador es asunto tuyo 🤑 -->
+  </body>
+</html>
