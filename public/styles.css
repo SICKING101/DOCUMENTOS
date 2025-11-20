@@ -70,12 +70,14 @@
             gap: 12px;
         }
 
-        .header__logo-icon {
+        .header__logo-image {
             font-size: 2.25rem;
             background: rgba(255, 255, 255, 0.1);
             padding: 12px;
             border-radius: var(--border-radius);
             backdrop-filter: blur(5px);
+            width: 100px;
+            height: 100px;
         }
 
         .header__title {
