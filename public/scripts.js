@@ -30,18 +30,24 @@ class AppState {
         this.filters = {
             category: '',
             type: '',
-            date: ''
+            date: '',
+            status: ''
         };
+        this.searchResults = [];
+        this.currentSearchQuery = '';
     }
 
     logState() {
         console.group('App State');
         console.log('Persons:', this.persons);
         console.log('Documents:', this.documents);
+        console.log('Categories:', this.categories);
         console.log('Dashboard Stats:', this.dashboardStats);
         console.log('Current Tab:', this.currentTab);
         console.log('Selected File:', this.selectedFile);
         console.log('Filters:', this.filters);
+        console.log('Search Results:', this.searchResults);
+        console.log('Current Search Query:', this.currentSearchQuery);
         console.groupEnd();
     }
 }
@@ -81,14 +87,28 @@ const DOM = {
     documentosTableBody: document.getElementById('documentosTableBody'),
     addDocumentBtn: document.getElementById('addDocumentBtn'),
     
+    // Search Elements
+    documentSearch: document.getElementById('documentSearch'),
+    searchDocumentsBtn: document.getElementById('searchDocumentsBtn'),
+    clearSearchBtn: document.getElementById('clearSearchBtn'),
+    
     // Filter Elements
     filterCategory: document.getElementById('filterCategory'),
     filterType: document.getElementById('filterType'),
     filterDate: document.getElementById('filterDate'),
+    filterStatus: document.getElementById('filterStatus'),
+    
+    // Categorías Elements
+    categoriesStats: document.getElementById('categoriesStats'),
+    categoriasTableBody: document.getElementById('categoriasTableBody'),
+    addCategoryBtn: document.getElementById('addCategoryBtn'),
     
     // Modal Elements
     personModal: document.getElementById('personModal'),
     documentModal: document.getElementById('documentModal'),
+    categoryModal: document.getElementById('categoryModal'),
+    searchModal: document.getElementById('searchModal'),
+    reportModal: document.getElementById('reportModal'),
     
     // Form Elements - Personas
     personForm: document.getElementById('personForm'),
@@ -116,6 +136,38 @@ const DOM = {
     documentPerson: document.getElementById('documentPerson'),
     uploadDocumentBtn: document.getElementById('uploadDocumentBtn'),
     cancelDocumentBtn: document.getElementById('cancelDocumentBtn'),
+    
+    // Form Elements - Categorías
+    categoryForm: document.getElementById('categoryForm'),
+    categoryId: document.getElementById('categoryId'),
+    categoryName: document.getElementById('categoryName'),
+    categoryDescription: document.getElementById('categoryDescription'),
+    categoryColor: document.getElementById('categoryColor'),
+    categoryIcon: document.getElementById('categoryIcon'),
+    saveCategoryBtn: document.getElementById('saveCategoryBtn'),
+    cancelCategoryBtn: document.getElementById('cancelCategoryBtn'),
+    categoryModalTitle: document.getElementById('categoryModalTitle'),
+    
+    // Form Elements - Búsqueda Avanzada
+    searchForm: document.getElementById('searchForm'),
+    searchKeyword: document.getElementById('searchKeyword'),
+    searchCategory: document.getElementById('searchCategory'),
+    searchDateFrom: document.getElementById('searchDateFrom'),
+    searchDateTo: document.getElementById('searchDateTo'),
+    searchPerson: document.getElementById('searchPerson'),
+    searchStatus: document.getElementById('searchStatus'),
+    searchResultsList: document.getElementById('searchResultsList'),
+    performSearchBtn: document.getElementById('performSearchBtn'),
+    cancelSearchBtn: document.getElementById('cancelSearchBtn'),
+    
+    // Form Elements - Reportes
+    reportForm: document.getElementById('reportForm'),
+    reportType: document.getElementById('reportType'),
+    reportSpecificFilters: document.getElementById('reportSpecificFilters'),
+    reportFormat: document.getElementById('reportFormat'),
+    reportPreviewContent: document.getElementById('reportPreviewContent'),
+    generateReportBtn: document.getElementById('generateReportBtn'),
+    cancelReportBtn: document.getElementById('cancelReportBtn'),
     
     // Alert Container
     alertContainer: document.getElementById('alertContainer'),
@@ -187,10 +239,34 @@ function setupEventListeners() {
     DOM.uploadDocumentBtn?.addEventListener('click', handleUploadDocument);
     DOM.cancelDocumentBtn?.addEventListener('click', () => closeDocumentModal());
     
+    // Búsqueda de documentos
+    DOM.searchDocumentsBtn?.addEventListener('click', handleDocumentSearch);
+    DOM.clearSearchBtn?.addEventListener('click', handleClearSearch);
+    DOM.documentSearch?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            handleDocumentSearch();
+        }
+    });
+    
     // Filtros
     DOM.filterCategory?.addEventListener('change', handleFilterChange);
     DOM.filterType?.addEventListener('change', handleFilterChange);
     DOM.filterDate?.addEventListener('change', handleFilterChange);
+    DOM.filterStatus?.addEventListener('change', handleFilterChange);
+    
+    // Categorías
+    DOM.addCategoryBtn?.addEventListener('click', () => openCategoryModal());
+    DOM.saveCategoryBtn?.addEventListener('click', handleSaveCategory);
+    DOM.cancelCategoryBtn?.addEventListener('click', () => closeCategoryModal());
+    
+    // Búsqueda avanzada
+    DOM.performSearchBtn?.addEventListener('click', handleAdvancedSearch);
+    DOM.cancelSearchBtn?.addEventListener('click', () => closeSearchModal());
+    
+    // Reportes
+    DOM.reportType?.addEventListener('change', handleReportTypeChange);
+    DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
+    DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
     
     // Drag and Drop
     setupFileDragAndDrop();
@@ -258,6 +334,24 @@ function handleFileSelect(e) {
     handleFile(e.target.files[0]);
 }
 
+function handleDocumentSearch() {
+    const query = DOM.documentSearch.value.trim();
+    console.log('🔍 Buscando documentos:', query);
+    
+    if (query) {
+        searchDocuments(query);
+    } else {
+        showAlert('Por favor ingresa un término de búsqueda', 'warning');
+    }
+}
+
+function handleClearSearch() {
+    console.log('🧹 Limpiando búsqueda...');
+    DOM.documentSearch.value = '';
+    appState.currentSearchQuery = '';
+    renderDocumentsTable();
+}
+
 function handleFilterChange() {
     const filterType = this.id.replace('filter', '').toLowerCase();
     const value = this.value;
@@ -267,6 +361,27 @@ function handleFilterChange() {
     applyFilters();
 }
 
+function handleSaveCategory() {
+    console.log('💾 Guardando categoría...');
+    saveCategory();
+}
+
+function handleAdvancedSearch() {
+    console.log('🔍 Realizando búsqueda avanzada...');
+    performAdvancedSearch();
+}
+
+function handleReportTypeChange() {
+    const reportType = this.value;
+    console.log(`📊 Cambiando tipo de reporte a: ${reportType}`);
+    updateReportFilters(reportType);
+}
+
+function handleGenerateReport() {
+    console.log('📄 Generando reporte...');
+    generateReportData();
+}
+
 function handleModalClose() {
     const modal = this.closest('.modal');
     if (modal) {
@@ -274,6 +389,12 @@ function handleModalClose() {
             closePersonModal();
         } else if (modal.id === 'documentModal') {
             closeDocumentModal();
+        } else if (modal.id === 'categoryModal') {
+            closeCategoryModal();
+        } else if (modal.id === 'searchModal') {
+            closeSearchModal();
+        } else if (modal.id === 'reportModal') {
+            closeReportModal();
         }
     }
 }
@@ -335,7 +456,8 @@ async function loadInitialData() {
         await Promise.all([
             loadDashboardData(),
             loadPersons(),
-            loadDocuments()
+            loadDocuments(),
+            loadCategories()
         ]);
         
         console.log('✅ Datos iniciales cargados correctamente');
@@ -383,6 +505,7 @@ async function loadPersons() {
             appState.persons = data.persons || [];
             renderPersonsTable();
             populatePersonSelect();
+            populateSearchPersonSelect();
             console.log(`✅ ${appState.persons.length} personas cargadas`);
         } else {
             throw new Error(data.message);
@@ -423,6 +546,7 @@ async function loadCategories() {
         if (data.success) {
             appState.categories = data.categories || [];
             renderCategories();
+            populateCategorySelects();
             console.log(`✅ ${appState.categories.length} categorías cargadas`);
         } else {
             throw new Error(data.message);
@@ -483,11 +607,11 @@ function loadRecentDocuments(recentDocuments = []) {
                 </div>
             </div>
             <div class="documents__actions">
-                <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
-                    <i class="fas fa-download"></i>
-                </button>
                 <button class="btn btn--sm btn--outline" onclick="previewDocument('${doc._id}')" title="Vista previa">
                     <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
+                    <i class="fas fa-download"></i>
                 </button>
             </div>
         `;
@@ -541,6 +665,16 @@ function renderDocumentsTable() {
     
     let documentsToShow = appState.documents;
     
+    // Aplicar búsqueda si existe
+    if (appState.currentSearchQuery) {
+        const query = appState.currentSearchQuery.toLowerCase();
+        documentsToShow = documentsToShow.filter(doc => 
+            doc.nombre_original.toLowerCase().includes(query) ||
+            (doc.descripcion && doc.descripcion.toLowerCase().includes(query)) ||
+            doc.categoria.toLowerCase().includes(query)
+        );
+    }
+    
     // Aplicar filtros
     if (appState.filters.category) {
         documentsToShow = documentsToShow.filter(doc => doc.categoria === appState.filters.category);
@@ -572,13 +706,34 @@ function renderDocumentsTable() {
         });
     }
     
+    if (appState.filters.status) {
+        const now = new Date();
+        documentsToShow = documentsToShow.filter(doc => {
+            if (!doc.fecha_vencimiento) return appState.filters.status === 'active';
+            
+            const fechaVencimiento = new Date(doc.fecha_vencimiento);
+            const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
+            
+            switch(appState.filters.status) {
+                case 'active':
+                    return diferenciaDias > 7;
+                case 'expiring':
+                    return diferenciaDias <= 7 && diferenciaDias > 0;
+                case 'expired':
+                    return diferenciaDias <= 0;
+                default:
+                    return true;
+            }
+        });
+    }
+    
     if (documentsToShow.length === 0) {
         DOM.documentosTableBody.innerHTML = `
             <tr>
                 <td colspan="8" class="empty-state">
                     <i class="fas fa-file-alt empty-state__icon"></i>
                     <h3 class="empty-state__title">No hay documentos</h3>
-                    <p class="empty-state__description">${appState.filters.category || appState.filters.type || appState.filters.date ? 'No hay documentos que coincidan con los filtros aplicados' : 'Sube tu primer documento para comenzar'}</p>
+                    <p class="empty-state__description">${appState.currentSearchQuery || appState.filters.category || appState.filters.type || appState.filters.date || appState.filters.status ? 'No hay documentos que coincidan con la búsqueda o filtros aplicados' : 'Sube tu primer documento para comenzar'}</p>
                 </td>
             </tr>
         `;
@@ -660,21 +815,84 @@ function renderDocumentsTable() {
 }
 
 function renderCategories() {
-    const container = document.getElementById('categoriesStats');
+    // Renderizar tarjetas de estadísticas
+    if (DOM.categoriesStats) {
+        DOM.categoriesStats.innerHTML = '';
+        
+        if (appState.categories.length === 0) {
+            DOM.categoriesStats.innerHTML = `
+                <article class="empty-state">
+                    <i class="fas fa-tags empty-state__icon"></i>
+                    <h3 class="empty-state__title">No hay categorías creadas</h3>
+                    <p class="empty-state__description">Crea tu primera categoría para organizar los documentos</p>
+                </article>
+            `;
+            return;
+        }
+        
+        appState.categories.forEach(category => {
+            const categoryCard = document.createElement('article');
+            categoryCard.className = 'stats__card';
+            
+            categoryCard.innerHTML = `
+                <div class="stats__icon" style="background: linear-gradient(135deg, ${category.color || '#4f46e5'}, #4338ca);">
+                    <i class="fas fa-${category.icon || 'folder'}"></i>
+                </div>
+                <div class="stats__info">
+                    <h3 class="stats__info-value">${category.documentCount || 0}</h3>
+                    <p class="stats__info-label">${category.nombre}</p>
+                </div>
+            `;
+            
+            DOM.categoriesStats.appendChild(categoryCard);
+        });
+    }
     
-    if (!container || appState.categories.length === 0) return;
-    
-    container.innerHTML = appState.categories.map(category => `
-        <article class="stats__card">
-            <div class="stats__icon" style="background: linear-gradient(135deg, ${category.color || '#4f46e5'}, #4338ca);">
-                <i class="fas ${category.icon || 'fa-folder'}"></i>
-            </div>
-            <div class="stats__info">
-                <h3 class="stats__info-value">${category.documentCount || 0}</h3>
-                <p class="stats__info-label">${category.nombre}</p>
-            </div>
-        </article>
-    `).join('');
+    // Renderizar tabla de categorías
+    if (DOM.categoriasTableBody) {
+        DOM.categoriasTableBody.innerHTML = '';
+        
+        if (appState.categories.length === 0) {
+            DOM.categoriasTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <i class="fas fa-tags empty-state__icon"></i>
+                        <h3 class="empty-state__title">No hay categorías creadas</h3>
+                        <p class="empty-state__description">Crea tu primera categoría para organizar los documentos</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        appState.categories.forEach(category => {
+            const row = document.createElement('tr');
+            row.className = 'table__row';
+            
+            row.innerHTML = `
+                <td class="table__cell">${category.nombre}</td>
+                <td class="table__cell">${category.descripcion || '-'}</td>
+                <td class="table__cell">
+                    <span class="color-preview" style="background-color: ${category.color || '#4f46e5'}"></span>
+                    ${category.color || '#4f46e5'}
+                </td>
+                <td class="table__cell">
+                    <i class="fas fa-${category.icon || 'folder'}"></i> ${getIconName(category.icon || 'folder')}
+                </td>
+                <td class="table__cell">${category.documentCount || 0}</td>
+                <td class="table__cell">
+                    <button class="btn btn--sm btn--outline" onclick="editCategory('${category._id}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn--sm btn--danger" onclick="deleteCategory('${category._id}')" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            DOM.categoriasTableBody.appendChild(row);
+        });
+    }
 }
 
 // =============================================================================
@@ -816,8 +1034,9 @@ function openDocumentModal() {
     appState.selectedFile = null;
     DOM.fileUploadContainer.classList.remove('upload__container--dragover');
     
-    // Poblar select de personas
+    // Poblar selects
     populatePersonSelect();
+    populateCategorySelect(DOM.documentCategory);
     
     DOM.documentModal.style.display = 'flex';
 }
@@ -899,7 +1118,6 @@ async function handleUploadDocument() {
         
         console.log('📤 Iniciando upload del documento...');
         
-        // MANTENIENDO CLOUDINARY INTACTO - Tu configuración original
         const formData = new FormData();
         formData.append('file', appState.selectedFile);
         formData.append('descripcion', DOM.documentDescription.value);
@@ -947,14 +1165,36 @@ function populatePersonSelect() {
     });
 }
 
+function populateSearchPersonSelect() {
+    if (!DOM.searchPerson) return;
+    
+    DOM.searchPerson.innerHTML = '<option value="">Todas las personas</option>';
+    
+    appState.persons.forEach(person => {
+        const option = document.createElement('option');
+        option.value = person._id;
+        option.textContent = person.nombre;
+        DOM.searchPerson.appendChild(option);
+    });
+}
+
 async function downloadDocument(id) {
     try {
         console.log('📥 Descargando documento:', id);
         
         showAlert('Iniciando descarga del documento...', 'info');
         
-        // Redirigir a la ruta de descarga
-        window.open(`${CONFIG.API_BASE_URL}/documents/${id}/download`, '_blank');
+        // Crear un enlace temporal para la descarga
+        const downloadLink = document.createElement('a');
+        downloadLink.href = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        downloadLink.target = '_blank';
+        downloadLink.download = '';
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        showAlert('Descarga iniciada correctamente', 'success');
         
     } catch (error) {
         console.error('❌ Error descargando documento:', error);
@@ -964,7 +1204,15 @@ async function downloadDocument(id) {
 
 function previewDocument(id) {
     console.log('👁️ Vista previa del documento:', id);
-    showAlert('Función de vista previa en desarrollo', 'info');
+    
+    const document = appState.documents.find(doc => doc._id === id);
+    if (!document) {
+        showAlert('Documento no encontrado', 'error');
+        return;
+    }
+    
+    // Abrir el documento en una nueva pestaña
+    window.open(`${CONFIG.API_BASE_URL}/documents/${id}/preview`, '_blank');
 }
 
 async function deleteDocument(id) {
@@ -994,6 +1242,570 @@ async function deleteDocument(id) {
         console.error('❌ Error eliminando documento:', error);
         showAlert('Error al eliminar documento: ' + error.message, 'error');
     }
+}
+
+// =============================================================================
+// FUNCIONES DE BÚSQUEDA DE DOCUMENTOS
+// =============================================================================
+function searchDocuments(query) {
+    console.log('🔍 Buscando documentos con query:', query);
+    
+    appState.currentSearchQuery = query;
+    renderDocumentsTable();
+    
+    showAlert(`Se encontraron ${getFilteredDocuments().length} documentos para "${query}"`, 'success');
+}
+
+function getFilteredDocuments() {
+    let documents = appState.documents;
+    
+    // Aplicar búsqueda si existe
+    if (appState.currentSearchQuery) {
+        const query = appState.currentSearchQuery.toLowerCase();
+        documents = documents.filter(doc => 
+            doc.nombre_original.toLowerCase().includes(query) ||
+            (doc.descripcion && doc.descripcion.toLowerCase().includes(query)) ||
+            doc.categoria.toLowerCase().includes(query)
+        );
+    }
+    
+    // Aplicar filtros
+    if (appState.filters.category) {
+        documents = documents.filter(doc => doc.categoria === appState.filters.category);
+    }
+    
+    if (appState.filters.type) {
+        documents = documents.filter(doc => doc.tipo_archivo.toLowerCase() === appState.filters.type.toLowerCase());
+    }
+    
+    if (appState.filters.date) {
+        const now = new Date();
+        let startDate;
+        
+        switch(appState.filters.date) {
+            case 'today':
+                startDate = new Date(now.setHours(0, 0, 0, 0));
+                break;
+            case 'week':
+                startDate = new Date(now.setDate(now.getDate() - 7));
+                break;
+            case 'month':
+                startDate = new Date(now.setMonth(now.getMonth() - 1));
+                break;
+        }
+        
+        documents = documents.filter(doc => {
+            const docDate = new Date(doc.fecha_subida);
+            return docDate >= startDate;
+        });
+    }
+    
+    if (appState.filters.status) {
+        const now = new Date();
+        documents = documents.filter(doc => {
+            if (!doc.fecha_vencimiento) return appState.filters.status === 'active';
+            
+            const fechaVencimiento = new Date(doc.fecha_vencimiento);
+            const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
+            
+            switch(appState.filters.status) {
+                case 'active':
+                    return diferenciaDias > 7;
+                case 'expiring':
+                    return diferenciaDias <= 7 && diferenciaDias > 0;
+                case 'expired':
+                    return diferenciaDias <= 0;
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    return documents;
+}
+
+function showAdvancedSearch() {
+    console.log('🔍 Abriendo búsqueda avanzada...');
+    
+    // Poblar selects
+    populateCategorySelect(DOM.searchCategory);
+    populateSearchPersonSelect();
+    
+    DOM.searchModal.style.display = 'flex';
+}
+
+function closeSearchModal() {
+    console.log('❌ Cerrando modal de búsqueda avanzada');
+    DOM.searchModal.style.display = 'none';
+}
+
+function performAdvancedSearch() {
+    console.log('🔍 Realizando búsqueda avanzada...');
+    
+    const keyword = DOM.searchKeyword.value.trim();
+    const category = DOM.searchCategory.value;
+    const dateFrom = DOM.searchDateFrom.value;
+    const dateTo = DOM.searchDateTo.value;
+    const person = DOM.searchPerson.value;
+    const status = DOM.searchStatus.value;
+    
+    // Construir objeto de búsqueda
+    const searchCriteria = {
+        keyword,
+        category,
+        dateFrom,
+        dateTo,
+        person,
+        status
+    };
+    
+    console.log('Criterios de búsqueda:', searchCriteria);
+    
+    // Realizar búsqueda
+    let results = appState.documents;
+    
+    if (keyword) {
+        results = results.filter(doc => 
+            doc.nombre_original.toLowerCase().includes(keyword.toLowerCase()) ||
+            (doc.descripcion && doc.descripcion.toLowerCase().includes(keyword.toLowerCase()))
+        );
+    }
+    
+    if (category) {
+        results = results.filter(doc => doc.categoria === category);
+    }
+    
+    if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        results = results.filter(doc => new Date(doc.fecha_subida) >= fromDate);
+    }
+    
+    if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999); // Fin del día
+        results = results.filter(doc => new Date(doc.fecha_subida) <= toDate);
+    }
+    
+    if (person) {
+        results = results.filter(doc => doc.persona_id && doc.persona_id._id === person);
+    }
+    
+    if (status) {
+        const now = new Date();
+        results = results.filter(doc => {
+            if (!doc.fecha_vencimiento) return status === 'active';
+            
+            const fechaVencimiento = new Date(doc.fecha_vencimiento);
+            const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
+            
+            switch(status) {
+                case 'active':
+                    return diferenciaDias > 7;
+                case 'expiring':
+                    return diferenciaDias <= 7 && diferenciaDias > 0;
+                case 'expired':
+                    return diferenciaDias <= 0;
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    // Mostrar resultados
+    displaySearchResults(results);
+    
+    showAlert(`Se encontraron ${results.length} documentos con los criterios especificados`, 'success');
+}
+
+function displaySearchResults(results) {
+    DOM.searchResultsList.innerHTML = '';
+    
+    if (results.length === 0) {
+        DOM.searchResultsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search empty-state__icon"></i>
+                <h3 class="empty-state__title">No se encontraron documentos</h3>
+                <p class="empty-state__description">Intenta con otros criterios de búsqueda</p>
+            </div>
+        `;
+        return;
+    }
+    
+    results.forEach(doc => {
+        const person = doc.persona_id ? doc.persona_id : { nombre: 'No asignado' };
+        const fileSize = formatFileSize(doc.tamano_archivo);
+        const uploadDate = formatDate(doc.fecha_subida);
+        
+        const resultItem = document.createElement('div');
+        resultItem.className = 'search-result-item';
+        
+        resultItem.innerHTML = `
+            <div class="search-result-item__icon">
+                <i class="fas fa-file-${getFileIcon(doc.tipo_archivo)}"></i>
+            </div>
+            <div class="search-result-item__content">
+                <h4 class="search-result-item__title">${doc.nombre_original}</h4>
+                <p class="search-result-item__meta">
+                    <span class="badge badge--info">${doc.tipo_archivo.toUpperCase()}</span>
+                    <span>${fileSize}</span>
+                    <span>${person.nombre}</span>
+                    <span>${doc.categoria}</span>
+                    <span>${uploadDate}</span>
+                </p>
+                ${doc.descripcion ? `<p class="search-result-item__description">${doc.descripcion}</p>` : ''}
+            </div>
+            <div class="search-result-item__actions">
+                <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="btn btn--sm btn--outline" onclick="previewDocument('${doc._id}')" title="Vista previa">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        `;
+        
+        DOM.searchResultsList.appendChild(resultItem);
+    });
+}
+
+// =============================================================================
+// FUNCIONES DE CATEGORÍAS (CRUD)
+// =============================================================================
+function openCategoryModal(categoryId = null) {
+    console.log(`🏷️ Abriendo modal de categoría: ${categoryId || 'Nueva'}`);
+    
+    if (categoryId) {
+        DOM.categoryModalTitle.textContent = 'Editar Categoría';
+        const category = appState.categories.find(c => c._id === categoryId);
+        if (category) {
+            DOM.categoryId.value = category._id;
+            DOM.categoryName.value = category.nombre;
+            DOM.categoryDescription.value = category.descripcion || '';
+            DOM.categoryColor.value = category.color || '#4f46e5';
+            DOM.categoryIcon.value = category.icon || 'folder';
+        }
+    } else {
+        DOM.categoryModalTitle.textContent = 'Nueva Categoría';
+        DOM.categoryForm.reset();
+        DOM.categoryId.value = '';
+        DOM.categoryColor.value = '#4f46e5';
+        DOM.categoryIcon.value = 'folder';
+    }
+    
+    DOM.categoryModal.style.display = 'flex';
+}
+
+function closeCategoryModal() {
+    console.log('❌ Cerrando modal de categoría');
+    DOM.categoryModal.style.display = 'none';
+}
+
+async function saveCategory() {
+    // Validaciones
+    if (!DOM.categoryName.value.trim()) {
+        showAlert('El nombre de la categoría es obligatorio', 'error');
+        return;
+    }
+    
+    try {
+        setLoadingState(true, DOM.saveCategoryBtn);
+        
+        const categoryData = {
+            nombre: DOM.categoryName.value.trim(),
+            descripcion: DOM.categoryDescription.value.trim(),
+            color: DOM.categoryColor.value,
+            icon: DOM.categoryIcon.value
+        };
+        
+        console.log('💾 Guardando categoría:', categoryData);
+        
+        let data;
+        if (DOM.categoryId.value) {
+            // Actualizar categoría existente
+            data = await apiCall(`/categories/${DOM.categoryId.value}`, {
+                method: 'PUT',
+                body: JSON.stringify(categoryData)
+            });
+        } else {
+            // Crear nueva categoría
+            data = await apiCall('/categories', {
+                method: 'POST',
+                body: JSON.stringify(categoryData)
+            });
+        }
+        
+        if (data.success) {
+            showAlert(data.message, 'success');
+            await loadCategories();
+            closeCategoryModal();
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error guardando categoría:', error);
+        showAlert('Error al guardar categoría: ' + error.message, 'error');
+    } finally {
+        setLoadingState(false, DOM.saveCategoryBtn);
+    }
+}
+
+function editCategory(id) {
+    console.log('✏️ Editando categoría:', id);
+    openCategoryModal(id);
+}
+
+async function deleteCategory(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta categoría? Los documentos asociados quedarán sin categoría.')) {
+        return;
+    }
+    
+    try {
+        console.log('🗑️ Eliminando categoría:', id);
+        
+        const data = await apiCall(`/categories/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (data.success) {
+            showAlert(data.message, 'success');
+            await loadCategories();
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error eliminando categoría:', error);
+        showAlert('Error al eliminar categoría: ' + error.message, 'error');
+    }
+}
+
+function populateCategorySelects() {
+    // Poblar select de categorías en filtros
+    if (DOM.filterCategory) {
+        DOM.filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
+        appState.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.nombre;
+            option.textContent = category.nombre;
+            DOM.filterCategory.appendChild(option);
+        });
+    }
+    
+    // Poblar select de categorías en búsqueda avanzada
+    if (DOM.searchCategory) {
+        DOM.searchCategory.innerHTML = '<option value="">Todas las categorías</option>';
+        appState.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.nombre;
+            option.textContent = category.nombre;
+            DOM.searchCategory.appendChild(option);
+        });
+    }
+}
+
+function populateCategorySelect(selectElement) {
+    if (!selectElement) return;
+    
+    selectElement.innerHTML = '<option value="">Seleccionar categoría</option>';
+    appState.categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.nombre;
+        option.textContent = category.nombre;
+        selectElement.appendChild(option);
+    });
+}
+
+// =============================================================================
+// FUNCIONES DE REPORTES
+// =============================================================================
+function generateReport() {
+    console.log('📊 Abriendo generador de reportes...');
+    
+    // Actualizar filtros específicos según el tipo de reporte
+    updateReportFilters(DOM.reportType.value);
+    
+    DOM.reportModal.style.display = 'flex';
+}
+
+function closeReportModal() {
+    console.log('❌ Cerrando modal de reportes');
+    DOM.reportModal.style.display = 'none';
+}
+
+function updateReportFilters(reportType) {
+    console.log(`📊 Actualizando filtros para reporte: ${reportType}`);
+    
+    DOM.reportSpecificFilters.innerHTML = '';
+    
+    switch(reportType) {
+        case 'byCategory':
+            DOM.reportSpecificFilters.innerHTML = `
+                <div class="form__group">
+                    <label for="reportCategory" class="form__label">Categoría</label>
+                    <select id="reportCategory" class="form__select">
+                        <option value="">Todas las categorías</option>
+                        ${appState.categories.map(cat => `<option value="${cat.nombre}">${cat.nombre}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'byPerson':
+            DOM.reportSpecificFilters.innerHTML = `
+                <div class="form__group">
+                    <label for="reportPerson" class="form__label">Persona</label>
+                    <select id="reportPerson" class="form__select">
+                        <option value="">Todas las personas</option>
+                        ${appState.persons.map(person => `<option value="${person._id}">${person.nombre}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'expiring':
+            DOM.reportSpecificFilters.innerHTML = `
+                <div class="form__group">
+                    <label for="reportDays" class="form__label">Días hasta vencimiento</label>
+                    <input type="number" id="reportDays" class="form__input" value="30" min="1">
+                </div>
+            `;
+            break;
+            
+        default:
+            // No se necesitan filtros adicionales para reporte general o vencidos
+            break;
+    }
+    
+    // Actualizar vista previa
+    updateReportPreview();
+}
+
+function updateReportPreview() {
+    const reportType = DOM.reportType.value;
+    let previewContent = '';
+    
+    switch(reportType) {
+        case 'general':
+            previewContent = `
+                <p><strong>Resumen General del Sistema</strong></p>
+                <ul>
+                    <li>Total de personas: ${appState.persons.length}</li>
+                    <li>Total de documentos: ${appState.documents.length}</li>
+                    <li>Total de categorías: ${appState.categories.length}</li>
+                    <li>Documentos próximos a vencer: ${appState.dashboardStats.proximosVencer}</li>
+                </ul>
+            `;
+            break;
+            
+        case 'byCategory':
+            const selectedCategory = document.getElementById('reportCategory')?.value;
+            if (selectedCategory) {
+                const categoryDocs = appState.documents.filter(doc => doc.categoria === selectedCategory);
+                previewContent = `
+                    <p><strong>Reporte por Categoría: ${selectedCategory}</strong></p>
+                    <ul>
+                        <li>Total de documentos: ${categoryDocs.length}</li>
+                        <li>Tipos de archivo: ${[...new Set(categoryDocs.map(doc => doc.tipo_archivo))].join(', ')}</li>
+                    </ul>
+                `;
+            } else {
+                previewContent = `
+                    <p><strong>Reporte por Categorías</strong></p>
+                    <ul>
+                        ${appState.categories.map(cat => `
+                            <li>${cat.nombre}: ${appState.documents.filter(doc => doc.categoria === cat.nombre).length} documentos</li>
+                        `).join('')}
+                    </ul>
+                `;
+            }
+            break;
+            
+        case 'byPerson':
+            const selectedPerson = document.getElementById('reportPerson')?.value;
+            if (selectedPerson) {
+                const person = appState.persons.find(p => p._id === selectedPerson);
+                const personDocs = appState.documents.filter(doc => doc.persona_id && doc.persona_id._id === selectedPerson);
+                previewContent = `
+                    <p><strong>Reporte por Persona: ${person ? person.nombre : 'No encontrada'}</strong></p>
+                    <ul>
+                        <li>Total de documentos: ${personDocs.length}</li>
+                        <li>Categorías: ${[...new Set(personDocs.map(doc => doc.categoria))].join(', ')}</li>
+                    </ul>
+                `;
+            } else {
+                previewContent = `
+                    <p><strong>Reporte por Personas</strong></p>
+                    <ul>
+                        ${appState.persons.map(person => `
+                            <li>${person.nombre}: ${appState.documents.filter(doc => doc.persona_id && doc.persona_id._id === person._id).length} documentos</li>
+                        `).join('')}
+                    </ul>
+                `;
+            }
+            break;
+            
+        case 'expiring':
+            const days = document.getElementById('reportDays')?.value || 30;
+            const expiringDocs = appState.documents.filter(doc => {
+                if (!doc.fecha_vencimiento) return false;
+                const fechaVencimiento = new Date(doc.fecha_vencimiento);
+                const hoy = new Date();
+                const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                return diferenciaDias <= days && diferenciaDias > 0;
+            });
+            previewContent = `
+                <p><strong>Documentos que vencen en los próximos ${days} días</strong></p>
+                <ul>
+                    <li>Total de documentos: ${expiringDocs.length}</li>
+                    <li>Por categorías: ${[...new Set(expiringDocs.map(doc => doc.categoria))].join(', ')}</li>
+                </ul>
+            `;
+            break;
+            
+        case 'expired':
+            const expiredDocs = appState.documents.filter(doc => {
+                if (!doc.fecha_vencimiento) return false;
+                const fechaVencimiento = new Date(doc.fecha_vencimiento);
+                const hoy = new Date();
+                return fechaVencimiento < hoy;
+            });
+            previewContent = `
+                <p><strong>Documentos Vencidos</strong></p>
+                <ul>
+                    <li>Total de documentos: ${expiredDocs.length}</li>
+                    <li>Por categorías: ${[...new Set(expiredDocs.map(doc => doc.categoria))].join(', ')}</li>
+                <li>Necesitan atención inmediata</li>
+                </ul>
+            `;
+            break;
+    }
+    
+    DOM.reportPreviewContent.innerHTML = previewContent;
+}
+
+function handleGenerateReport() {
+    console.log('📄 Generando reporte...');
+    
+    const reportType = DOM.reportType.value;
+    const reportFormat = DOM.reportFormat.value;
+    
+    // Simular generación de reporte
+    setLoadingState(true, DOM.generateReportBtn);
+    
+    setTimeout(() => {
+        setLoadingState(false, DOM.generateReportBtn);
+        
+        // En un entorno real, aquí se haría la llamada a la API para generar el reporte
+        // y luego se descargaría el archivo
+        
+        showAlert(`Reporte ${reportType} generado en formato ${reportFormat.toUpperCase()}`, 'success');
+        closeReportModal();
+        
+        // Simular descarga (en un entorno real, esto sería un enlace de descarga real)
+        console.log(`📥 Descargando reporte: ${reportType}.${reportFormat}`);
+        
+    }, 2000);
 }
 
 // =============================================================================
@@ -1056,27 +1868,21 @@ function setupModalBackdropClose() {
         if (e.target === DOM.documentModal) {
             closeDocumentModal();
         }
+        if (e.target === DOM.categoryModal) {
+            closeCategoryModal();
+        }
+        if (e.target === DOM.searchModal) {
+            closeSearchModal();
+        }
+        if (e.target === DOM.reportModal) {
+            closeReportModal();
+        }
     });
 }
 
 function applyFilters() {
     console.log('🔍 Aplicando filtros...', appState.filters);
     renderDocumentsTable();
-}
-
-function generateReport() {
-    console.log('📊 Generando reporte...');
-    showAlert('Generando reporte... Esta función estará disponible pronto.', 'info');
-}
-
-function showAdvancedSearch() {
-    console.log('🔎 Mostrando búsqueda avanzada...');
-    showAlert('Búsqueda avanzada en desarrollo. Estará disponible en la próxima actualización.', 'info');
-}
-
-function showAllDocuments() {
-    console.log('📋 Mostrando todos los documentos');
-    switchTab('documentos');
 }
 
 // =============================================================================
@@ -1094,6 +1900,23 @@ function getFileIcon(fileType) {
     };
     
     return iconMap[fileType.toLowerCase()] || 'file';
+}
+
+function getIconName(iconValue) {
+    const iconNames = {
+        'folder': 'Carpeta',
+        'file-contract': 'Contrato',
+        'id-card': 'Identificación',
+        'certificate': 'Certificado',
+        'chart-line': 'Reporte',
+        'file-invoice': 'Factura',
+        'file-medical': 'Médico',
+        'graduation-cap': 'Académico',
+        'briefcase': 'Laboral',
+        'home': 'Personal'
+    };
+    
+    return iconNames[iconValue] || 'Carpeta';
 }
 
 function formatFileSize(bytes) {
@@ -1222,6 +2045,8 @@ window.debugAppState = debugAppState;
 window.testAPIConnection = testAPIConnection;
 window.testCloudinaryConnection = testCloudinaryConnection;
 window.resetApp = resetApp;
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
 
 // =============================================================================
 // MANEJO DE ERRORES GLOBALES
