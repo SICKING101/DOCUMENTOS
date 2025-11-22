@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const ExcelJS = require('exceljs');
+const PDFDocument = require('pdfkit');
 require('dotenv').config();
 
 // -----------------------------
@@ -91,7 +93,7 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png'];
+    const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png'];
     const fileExtension = file.originalname.split('.').pop().toLowerCase();
     
     if (allowedTypes.includes(fileExtension)) {
@@ -487,14 +489,26 @@ app.get('/api/documents', async (req, res) => {
 
 app.post('/api/documents', upload.single('file'), async (req, res) => {
   try {
+    console.log('📥 Recibiendo solicitud de upload de documento...');
+    console.log('📋 Headers:', req.headers);
+    console.log('📋 Body:', req.body);
+    console.log('📋 File:', req.file);
+
     if (!req.file) {
+      console.error('❌ No se recibió archivo en la solicitud');
       return res.status(400).json({ 
         success: false, 
         message: 'No se ha subido ningún archivo' 
       });
     }
 
+    console.log('✅ Archivo recibido:', req.file.originalname);
+    console.log('📊 Tamaño:', req.file.size);
+    console.log('📝 Tipo MIME:', req.file.mimetype);
+
     const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
+
+    console.log('📤 Subiendo a Cloudinary...');
 
     // Subir a Cloudinary
     let cloudinaryResult;
@@ -503,15 +517,21 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
         folder: 'documentos_cbtis051',
         resource_type: 'auto'
       });
+      console.log('✅ Archivo subido a Cloudinary:', cloudinaryResult.secure_url);
     } catch (cloudinaryError) {
-      console.error('Error subiendo a Cloudinary:', cloudinaryError);
+      console.error('❌ Error subiendo a Cloudinary:', cloudinaryError);
+      console.error('❌ Error detallado:', JSON.stringify(cloudinaryError, null, 2));
       // Limpiar archivo temporal
-      fs.unlinkSync(req.file.path);
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(500).json({ 
         success: false, 
-        message: 'Error al subir el archivo a la nube' 
+        message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message 
       });
     }
+
+    console.log('💾 Guardando documento en la base de datos...');
 
     // Crear documento en la base de datos
     const nuevoDocumento = new Document({
@@ -528,13 +548,19 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
     });
 
     await nuevoDocumento.save();
+    console.log('✅ Documento guardado en BD con ID:', nuevoDocumento._id);
 
     // Limpiar archivo temporal
-    fs.unlinkSync(req.file.path);
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+      console.log('🧹 Archivo temporal eliminado');
+    }
 
     // Obtener documento con datos de persona
     const documentoConPersona = await Document.findById(nuevoDocumento._id)
       .populate('persona_id', 'nombre');
+
+    console.log('✅ Upload completado exitosamente');
 
     res.json({
       success: true,
@@ -543,23 +569,26 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error subiendo documento:', error);
+    console.error('❌ Error general subiendo documento:', error);
+    console.error('❌ Stack trace:', error.stack);
     // Limpiar archivo temporal si existe
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
     res.status(500).json({ 
       success: false, 
-      message: 'Error al subir documento' 
+      message: 'Error al subir documento: ' + error.message 
     });
   }
 });
 
 app.get('/api/documents/:id/download', async (req, res) => {
   try {
+    console.log('📥 Solicitud de descarga de documento:', req.params.id);
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('❌ ID inválido:', id);
       return res.status(400).json({ 
         success: false, 
         message: 'ID inválido' 
@@ -569,20 +598,39 @@ app.get('/api/documents/:id/download', async (req, res) => {
     const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
+      console.error('❌ Documento no encontrado:', id);
       return res.status(404).json({ 
         success: false, 
         message: 'Documento no encontrado' 
       });
     }
 
-    // Redirigir a la URL de Cloudinary para descarga
-    res.redirect(documento.cloudinary_url);
+    console.log('✅ Documento encontrado:', documento.nombre_original);
+    console.log('📤 Cloudinary URL:', documento.cloudinary_url);
+
+    // Modificar la URL de Cloudinary para forzar descarga
+    // Agregar fl_attachment al final de la URL antes de la extensión
+    let downloadUrl = documento.cloudinary_url;
+    
+    // Si es una imagen o archivo, agregar parámetro de descarga
+    if (documento.resource_type === 'image' || documento.resource_type === 'raw') {
+      // Insertar fl_attachment antes del nombre del archivo
+      const urlParts = downloadUrl.split('/upload/');
+      if (urlParts.length === 2) {
+        downloadUrl = `${urlParts[0]}/upload/fl_attachment:${encodeURIComponent(documento.nombre_original)}/${urlParts[1]}`;
+      }
+    }
+
+    console.log('🔗 URL de descarga:', downloadUrl);
+    
+    // Redirigir a la URL de Cloudinary con parámetros de descarga
+    res.redirect(downloadUrl);
 
   } catch (error) {
-    console.error('Error descargando documento:', error);
+    console.error('❌ Error descargando documento:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Error al descargar documento' 
+      message: 'Error al descargar documento: ' + error.message 
     });
   }
 });
@@ -668,6 +716,466 @@ app.delete('/api/documents/:id', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error al eliminar documento' 
+    });
+  }
+});
+
+// -----------------------------
+// REPORTES
+// -----------------------------
+
+// Función auxiliar para formatear fechas
+function formatDate(date) {
+  if (!date) return '-';
+  const d = new Date(date);
+  return d.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// Función auxiliar para formatear tamaño de archivo
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Generar reporte en Excel
+app.post('/api/reports/excel', async (req, res) => {
+  try {
+    console.log('📊 Generando reporte en Excel...');
+    const { reportType, category, person, days, dateFrom, dateTo } = req.body;
+
+    // Obtener datos según el tipo de reporte
+    let documents = await Document.find({ activo: true })
+      .populate('persona_id', 'nombre email departamento puesto')
+      .sort({ fecha_subida: -1 });
+
+    // Aplicar filtros según el tipo de reporte
+    if (reportType === 'byCategory' && category) {
+      documents = documents.filter(doc => doc.categoria === category);
+    }
+
+    if (reportType === 'byPerson' && person) {
+      documents = documents.filter(doc => doc.persona_id && doc.persona_id._id.toString() === person);
+    }
+
+    if (reportType === 'expiring' && days) {
+      const now = new Date();
+      const limitDate = new Date();
+      limitDate.setDate(limitDate.getDate() + parseInt(days));
+      documents = documents.filter(doc => {
+        if (!doc.fecha_vencimiento) return false;
+        const vencimiento = new Date(doc.fecha_vencimiento);
+        return vencimiento >= now && vencimiento <= limitDate;
+      });
+    }
+
+    if (reportType === 'expired') {
+      const now = new Date();
+      documents = documents.filter(doc => {
+        if (!doc.fecha_vencimiento) return false;
+        return new Date(doc.fecha_vencimiento) < now;
+      });
+    }
+
+    if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+      documents = documents.filter(doc => {
+        const docDate = new Date(doc.fecha_subida);
+        if (from && docDate < from) return false;
+        if (to && docDate > to) return false;
+        return true;
+      });
+    }
+
+    // Crear libro de Excel
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'CBTIS051';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Documentos');
+
+    // Estilos para el encabezado
+    const headerStyle = {
+      font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } },
+      alignment: { vertical: 'middle', horizontal: 'center' },
+      border: {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      }
+    };
+
+    // Título del reporte
+    worksheet.mergeCells('A1:H1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = `Reporte de Documentos - CBTIS051`;
+    titleCell.font = { bold: true, size: 16, color: { argb: 'FF4F46E5' } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.mergeCells('A2:H2');
+    const subtitleCell = worksheet.getCell('A2');
+    subtitleCell.value = `Generado el ${formatDate(new Date())}`;
+    subtitleCell.font = { size: 11, italic: true };
+    subtitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.addRow([]);
+
+    // Encabezados de columnas
+    const headers = ['Nombre del Documento', 'Tipo', 'Tamaño', 'Categoría', 'Persona Asignada', 'Fecha de Subida', 'Fecha de Vencimiento', 'Estado'];
+    const headerRow = worksheet.addRow(headers);
+    headerRow.height = 25;
+    headerRow.eachCell((cell) => {
+      cell.style = headerStyle;
+    });
+
+    // Datos
+    documents.forEach(doc => {
+      const person = doc.persona_id ? doc.persona_id.nombre : 'No asignado';
+      const vencimiento = doc.fecha_vencimiento ? formatDate(doc.fecha_vencimiento) : 'Sin vencimiento';
+      
+      let estado = 'Activo';
+      if (doc.fecha_vencimiento) {
+        const now = new Date();
+        const vencimientoDate = new Date(doc.fecha_vencimiento);
+        const diff = Math.ceil((vencimientoDate - now) / (1000 * 60 * 60 * 24));
+        if (diff <= 0) estado = 'Vencido';
+        else if (diff <= 7) estado = 'Por vencer';
+      }
+
+      const row = worksheet.addRow([
+        doc.nombre_original,
+        doc.tipo_archivo.toUpperCase(),
+        formatFileSize(doc.tamano_archivo),
+        doc.categoria,
+        person,
+        formatDate(doc.fecha_subida),
+        vencimiento,
+        estado
+      ]);
+
+      // Colorear filas según estado
+      if (estado === 'Vencido') {
+        row.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFECACA' } };
+        });
+      } else if (estado === 'Por vencer') {
+        row.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
+        });
+      }
+
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+    });
+
+    // Ajustar ancho de columnas
+    worksheet.columns = [
+      { width: 40 },
+      { width: 10 },
+      { width: 12 },
+      { width: 20 },
+      { width: 25 },
+      { width: 20 },
+      { width: 20 },
+      { width: 15 }
+    ];
+
+    // Agregar estadísticas al final
+    worksheet.addRow([]);
+    const statsRow = worksheet.addRow(['Total de documentos:', documents.length]);
+    statsRow.getCell(1).font = { bold: true };
+    statsRow.getCell(1).alignment = { horizontal: 'right' };
+
+    // Enviar archivo
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+    console.log('✅ Reporte Excel generado exitosamente');
+
+  } catch (error) {
+    console.error('❌ Error generando reporte Excel:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al generar reporte Excel: ' + error.message 
+    });
+  }
+});
+
+// Generar reporte en PDF
+app.post('/api/reports/pdf', async (req, res) => {
+  try {
+    console.log('📊 Generando reporte en PDF...');
+    const { reportType, category, person, days, dateFrom, dateTo } = req.body;
+
+    // Obtener datos según el tipo de reporte
+    let documents = await Document.find({ activo: true })
+      .populate('persona_id', 'nombre email departamento puesto')
+      .sort({ fecha_subida: -1 });
+
+    // Aplicar filtros (mismo código que Excel)
+    if (reportType === 'byCategory' && category) {
+      documents = documents.filter(doc => doc.categoria === category);
+    }
+
+    if (reportType === 'byPerson' && person) {
+      documents = documents.filter(doc => doc.persona_id && doc.persona_id._id.toString() === person);
+    }
+
+    if (reportType === 'expiring' && days) {
+      const now = new Date();
+      const limitDate = new Date();
+      limitDate.setDate(limitDate.getDate() + parseInt(days));
+      documents = documents.filter(doc => {
+        if (!doc.fecha_vencimiento) return false;
+        const vencimiento = new Date(doc.fecha_vencimiento);
+        return vencimiento >= now && vencimiento <= limitDate;
+      });
+    }
+
+    if (reportType === 'expired') {
+      const now = new Date();
+      documents = documents.filter(doc => {
+        if (!doc.fecha_vencimiento) return false;
+        return new Date(doc.fecha_vencimiento) < now;
+      });
+    }
+
+    if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+      documents = documents.filter(doc => {
+        const docDate = new Date(doc.fecha_subida);
+        if (from && docDate < from) return false;
+        if (to && docDate > to) return false;
+        return true;
+      });
+    }
+
+    // Crear documento PDF
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
+    // Headers para descarga
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.pdf`);
+
+    doc.pipe(res);
+
+    // Encabezado del reporte
+    doc.fontSize(20)
+       .fillColor('#4F46E5')
+       .text('Sistema de Gestión de Documentos', { align: 'center' })
+       .fontSize(16)
+       .text('CBTIS051', { align: 'center' })
+       .moveDown(0.5);
+
+    doc.fontSize(12)
+       .fillColor('#000000')
+       .text(`Reporte generado el ${formatDate(new Date())}`, { align: 'center' })
+       .moveDown(1);
+
+    // Información del reporte
+    let reportTitle = 'Reporte General';
+    if (reportType === 'byCategory') reportTitle = `Reporte por Categoría${category ? ': ' + category : ''}`;
+    if (reportType === 'byPerson') reportTitle = 'Reporte por Persona';
+    if (reportType === 'expiring') reportTitle = `Documentos por Vencer (${days || 30} días)`;
+    if (reportType === 'expired') reportTitle = 'Documentos Vencidos';
+
+    doc.fontSize(14)
+       .fillColor('#4F46E5')
+       .text(reportTitle, { underline: true })
+       .moveDown(1);
+
+    // Estadísticas generales
+    doc.fontSize(11)
+       .fillColor('#000000')
+       .text(`Total de documentos en este reporte: ${documents.length}`, { continued: false })
+       .moveDown(0.5);
+
+    // Línea separadora
+    doc.moveTo(50, doc.y)
+       .lineTo(545, doc.y)
+       .stroke()
+       .moveDown(1);
+
+    // Lista de documentos
+    documents.forEach((document, index) => {
+      // Verificar si hay espacio suficiente, si no, agregar nueva página
+      if (doc.y > 700) {
+        doc.addPage();
+      }
+
+      const person = document.persona_id ? document.persona_id.nombre : 'No asignado';
+      const vencimiento = document.fecha_vencimiento ? formatDate(document.fecha_vencimiento) : 'Sin vencimiento';
+      
+      let estado = 'Activo';
+      let estadoColor = '#10B981';
+      if (document.fecha_vencimiento) {
+        const now = new Date();
+        const vencimientoDate = new Date(document.fecha_vencimiento);
+        const diff = Math.ceil((vencimientoDate - now) / (1000 * 60 * 60 * 24));
+        if (diff <= 0) {
+          estado = 'Vencido';
+          estadoColor = '#EF4444';
+        } else if (diff <= 7) {
+          estado = 'Por vencer';
+          estadoColor = '#F59E0B';
+        }
+      }
+
+      // Número de documento
+      doc.fontSize(10)
+         .fillColor('#6B7280')
+         .text(`${index + 1}.`, 50, doc.y, { continued: true })
+         .fillColor('#000000')
+         .fontSize(11)
+         .text(` ${document.nombre_original}`, { bold: true });
+
+      doc.fontSize(9)
+         .fillColor('#6B7280')
+         .text(`   Tipo: ${document.tipo_archivo.toUpperCase()} | Tamaño: ${formatFileSize(document.tamano_archivo)}`, { indent: 15 })
+         .text(`   Categoría: ${document.categoria}`, { indent: 15 })
+         .text(`   Asignado a: ${person}`, { indent: 15 })
+         .text(`   Fecha de subida: ${formatDate(document.fecha_subida)}`, { indent: 15 })
+         .text(`   Vencimiento: ${vencimiento}`, { indent: 15 })
+         .fillColor(estadoColor)
+         .text(`   Estado: ${estado}`, { indent: 15 })
+         .fillColor('#000000')
+         .moveDown(0.8);
+    });
+
+    // Pie de página
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(8)
+         .fillColor('#6B7280')
+         .text(
+           `Página ${i + 1} de ${pageCount} - Sistema de Gestión de Documentos CBTIS051`,
+           50,
+           doc.page.height - 50,
+           { align: 'center' }
+         );
+    }
+
+    doc.end();
+
+    console.log('✅ Reporte PDF generado exitosamente');
+
+  } catch (error) {
+    console.error('❌ Error generando reporte PDF:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al generar reporte PDF: ' + error.message 
+    });
+  }
+});
+
+// Generar reporte en CSV
+app.post('/api/reports/csv', async (req, res) => {
+  try {
+    console.log('📊 Generando reporte en CSV...');
+    const { reportType, category, person, days, dateFrom, dateTo } = req.body;
+
+    // Obtener datos según el tipo de reporte
+    let documents = await Document.find({ activo: true })
+      .populate('persona_id', 'nombre email departamento puesto')
+      .sort({ fecha_subida: -1 });
+
+    // Aplicar filtros (mismo código)
+    if (reportType === 'byCategory' && category) {
+      documents = documents.filter(doc => doc.categoria === category);
+    }
+
+    if (reportType === 'byPerson' && person) {
+      documents = documents.filter(doc => doc.persona_id && doc.persona_id._id.toString() === person);
+    }
+
+    if (reportType === 'expiring' && days) {
+      const now = new Date();
+      const limitDate = new Date();
+      limitDate.setDate(limitDate.getDate() + parseInt(days));
+      documents = documents.filter(doc => {
+        if (!doc.fecha_vencimiento) return false;
+        const vencimiento = new Date(doc.fecha_vencimiento);
+        return vencimiento >= now && vencimiento <= limitDate;
+      });
+    }
+
+    if (reportType === 'expired') {
+      const now = new Date();
+      documents = documents.filter(doc => {
+        if (!doc.fecha_vencimiento) return false;
+        return new Date(doc.fecha_vencimiento) < now;
+      });
+    }
+
+    if (dateFrom || dateTo) {
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+      documents = documents.filter(doc => {
+        const docDate = new Date(doc.fecha_subida);
+        if (from && docDate < from) return false;
+        if (to && docDate > to) return false;
+        return true;
+      });
+    }
+
+    // Crear CSV
+    let csv = '\uFEFF'; // BOM para UTF-8
+    csv += 'Nombre del Documento,Tipo,Tamaño,Categoría,Persona Asignada,Departamento,Puesto,Fecha de Subida,Fecha de Vencimiento,Estado\n';
+
+    documents.forEach(doc => {
+      const person = doc.persona_id ? doc.persona_id.nombre : 'No asignado';
+      const departamento = doc.persona_id ? doc.persona_id.departamento || '-' : '-';
+      const puesto = doc.persona_id ? doc.persona_id.puesto || '-' : '-';
+      const vencimiento = doc.fecha_vencimiento ? formatDate(doc.fecha_vencimiento) : 'Sin vencimiento';
+      
+      let estado = 'Activo';
+      if (doc.fecha_vencimiento) {
+        const now = new Date();
+        const vencimientoDate = new Date(doc.fecha_vencimiento);
+        const diff = Math.ceil((vencimientoDate - now) / (1000 * 60 * 60 * 24));
+        if (diff <= 0) estado = 'Vencido';
+        else if (diff <= 7) estado = 'Por vencer';
+      }
+
+      // Escapar comillas y comas en los valores
+      const escapeCSV = (value) => {
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      };
+
+      csv += `${escapeCSV(doc.nombre_original)},${doc.tipo_archivo.toUpperCase()},${formatFileSize(doc.tamano_archivo)},${escapeCSV(doc.categoria)},${escapeCSV(person)},${escapeCSV(departamento)},${escapeCSV(puesto)},${formatDate(doc.fecha_subida)},${vencimiento},${estado}\n`;
+    });
+
+    // Enviar archivo
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.csv`);
+    res.send(csv);
+
+    console.log('✅ Reporte CSV generado exitosamente');
+
+  } catch (error) {
+    console.error('❌ Error generando reporte CSV:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al generar reporte CSV: ' + error.message 
     });
   }
 });
