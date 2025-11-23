@@ -582,13 +582,82 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
   }
 });
 
+// FUNCIÓN PARA GENERAR URL DE DESCARGA
+function generateDownloadUrl(cloudinaryUrl, fileName) {
+  try {
+    console.log('🔧 Generando URL de descarga para:', {
+      cloudinaryUrl: cloudinaryUrl,
+      fileName: fileName
+    });
+
+    // Extraer el public_id de la URL de Cloudinary
+    const urlParts = cloudinaryUrl.split('/upload/');
+    if (urlParts.length !== 2) {
+      console.warn('⚠️ URL de Cloudinary no tiene formato esperado');
+      return cloudinaryUrl;
+    }
+
+    const publicIdWithExtension = urlParts[1];
+    const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ""); // Remover extensión
+
+    console.log('📋 Public ID extraído:', publicId);
+
+    // Generar URL de descarga usando el SDK de Cloudinary
+    const downloadUrl = cloudinary.url(publicId, {
+      flags: 'attachment',
+      attachment: fileName,
+      resource_type: 'auto',
+      secure: true,
+      sign_url: false
+    });
+
+    console.log('✅ URL de descarga generada:', downloadUrl);
+    return downloadUrl;
+
+  } catch (error) {
+    console.error('❌ Error generando URL de descarga:', error);
+    // Fallback: devolver la URL original
+    return cloudinaryUrl;
+  }
+}
+
 app.get('/api/documents/:id/download', async (req, res) => {
   try {
-    console.log('📥 Solicitud de descarga de documento:', req.params.id);
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error('❌ ID inválido:', id);
+      return res.status(400).json({ success: false, message: 'ID inválido' });
+    }
+
+    const documento = await Document.findOne({ _id: id, activo: true });
+
+    if (!documento) {
+      return res.status(404).json({ success: false, message: 'Documento no encontrado' });
+    }
+
+    const downloadUrl = cloudinary.url(documento.public_id, {
+      secure: true,
+      flags: "attachment",
+      filename_override: documento.nombre_original,
+      resource_type: documento.resource_type || "raw"
+    });
+
+    return res.redirect(downloadUrl);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
+
+// NUEVA RUTA: DESCARGA CON PROXY (método alternativo)
+app.get('/api/documents/:id/download-proxy', async (req, res) => {
+  try {
+    console.log('📥 Solicitud de descarga con proxy:', req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ 
         success: false, 
         message: 'ID inválido' 
@@ -598,36 +667,67 @@ app.get('/api/documents/:id/download', async (req, res) => {
     const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
-      console.error('❌ Documento no encontrado:', id);
       return res.status(404).json({ 
         success: false, 
         message: 'Documento no encontrado' 
       });
     }
 
-    console.log('✅ Documento encontrado:', documento.nombre_original);
-    console.log('📤 Cloudinary URL:', documento.cloudinary_url);
+    console.log('✅ Descarga con proxy - Documento encontrado:', documento.nombre_original);
 
-    // Modificar la URL de Cloudinary para forzar descarga
-    // Agregar fl_attachment al final de la URL antes de la extensión
-    let downloadUrl = documento.cloudinary_url;
+    // Configurar headers para descarga
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(documento.nombre_original)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+
+    // Hacer fetch al archivo en Cloudinary y redirigir el stream
+    const response = await fetch(documento.cloudinary_url);
     
-    // Si es una imagen o archivo, agregar parámetro de descarga
-    if (documento.resource_type === 'image' || documento.resource_type === 'raw') {
-      // Insertar fl_attachment antes del nombre del archivo
-      const urlParts = downloadUrl.split('/upload/');
-      if (urlParts.length === 2) {
-        downloadUrl = `${urlParts[0]}/upload/fl_attachment:${encodeURIComponent(documento.nombre_original)}/${urlParts[1]}`;
-      }
+    if (!response.ok) {
+      throw new Error(`Error al obtener archivo de Cloudinary: ${response.status}`);
     }
 
-    console.log('🔗 URL de descarga:', downloadUrl);
-    
-    // Redirigir a la URL de Cloudinary con parámetros de descarga
-    res.redirect(downloadUrl);
+    // Redirigir el stream de respuesta
+    response.body.pipe(res);
 
   } catch (error) {
-    console.error('❌ Error descargando documento:', error);
+    console.error('❌ Error en descarga con proxy:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al descargar documento: ' + error.message 
+    });
+  }
+});
+
+// RUTA SIMPLIFICADA: Redirección directa (método más simple)
+app.get('/api/documents/:id/download-simple', async (req, res) => {
+  try {
+    console.log('📥 Solicitud de descarga simple:', req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const documento = await Document.findOne({ _id: id, activo: true });
+
+    if (!documento) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Documento no encontrado' 
+      });
+    }
+
+    console.log('✅ Descarga simple - Redirigiendo a:', documento.cloudinary_url);
+    
+    // Simplemente redirigir a la URL original de Cloudinary
+    // El navegador manejará la descarga según el tipo de archivo
+    res.redirect(documento.cloudinary_url);
+
+  } catch (error) {
+    console.error('❌ Error en descarga simple:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error al descargar documento: ' + error.message 
