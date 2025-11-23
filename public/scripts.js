@@ -1193,10 +1193,10 @@ function populateSearchPersonSelect() {
     });
 }
 
+// FUNCIÓN PARA DESCARGAR DOCUMENTOS
 async function downloadDocument(id) {
     console.group('📥 DESCARGA DE DOCUMENTO');
     console.log('🆔 ID del documento:', id);
-    console.log('📊 Estado actual de documentos:', appState.documents.length, 'documentos');
     
     try {
         // Buscar el documento en el estado para obtener su nombre
@@ -1218,88 +1218,38 @@ async function downloadDocument(id) {
         
         showAlert('Iniciando descarga del documento...', 'info');
         
-        // Opción 1: Usar fetch para obtener el blob y descargarlo con el nombre correcto
-        try {
-            const apiUrl = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
-            console.log('📤 Solicitando documento al servidor:', apiUrl);
-            console.time('⏱️ Tiempo de descarga');
-            
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                redirect: 'follow'
-            });
-
-            console.log('📥 Respuesta recibida:', {
-                status: response.status,
-                statusText: response.statusText,
-                redirected: response.redirected,
-                url: response.url
-            });
-
-            if (!response.ok) {
-                console.error('❌ Respuesta del servidor no OK:', response.status, response.statusText);
-                throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
-            }
-
-            // Si la respuesta es una redirección a Cloudinary, obtener la URL final
-            const finalUrl = response.url;
-            console.log('🔗 URL final de descarga:', finalUrl);
-            console.log('🌐 Es URL de Cloudinary:', finalUrl.includes('cloudinary'));
-
-            // Crear enlace temporal para descarga
-            console.log('🔧 Creando elemento <a> para descarga...');
-            const downloadLink = window.document.createElement('a');
-            downloadLink.href = finalUrl;
-            downloadLink.download = fileName;
-            downloadLink.target = '_blank';
-            downloadLink.rel = 'noopener noreferrer';
-            
-            console.log('📎 Atributos del enlace:', {
-                href: downloadLink.href,
-                download: downloadLink.download,
-                target: downloadLink.target
-            });
-            
-            console.log('➕ Agregando enlace al DOM...');
-            window.document.body.appendChild(downloadLink);
-            
-            console.log('🖱️ Ejecutando click programático...');
-            downloadLink.click();
-            
-            console.log('➖ Removiendo enlace del DOM...');
-            window.document.body.removeChild(downloadLink);
-
-            console.timeEnd('⏱️ Tiempo de descarga');
-            console.log('✅ Descarga iniciada exitosamente');
-            showAlert('Descarga iniciada correctamente', 'success');
-
-        } catch (fetchError) {
-            console.warn('⚠️ Método fetch falló, intentando con enlace directo...');
-            console.error('📋 Error de fetch:', {
-                message: fetchError.message,
-                stack: fetchError.stack,
-                name: fetchError.name
-            });
-            
-            // Método alternativo: enlace directo
-            console.log('🔄 Usando método alternativo: enlace directo');
-            const downloadLink = window.document.createElement('a');
-            downloadLink.href = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
-            downloadLink.download = fileName;
-            downloadLink.target = '_blank';
-            downloadLink.rel = 'noopener noreferrer';
-            
-            console.log('📎 Enlace alternativo creado:', downloadLink.href);
-            window.document.body.appendChild(downloadLink);
-            downloadLink.click();
-            window.document.body.removeChild(downloadLink);
-
-            console.log('✅ Descarga alternativa iniciada');
-            showAlert('Descarga iniciada correctamente', 'success');
-        }
+        // Crear enlace temporal para descarga
+        console.log('🔧 Creando elemento <a> para descarga...');
+        const downloadLink = window.document.createElement('a');
         
+        // Usar la ruta de descarga del servidor que ahora genera URLs correctas de Cloudinary
+        downloadLink.href = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        downloadLink.target = '_blank';
+        downloadLink.rel = 'noopener noreferrer';
+        
+        // Intentar forzar la descarga con el nombre correcto
+        downloadLink.setAttribute('download', fileName);
+        
+        console.log('📎 Atributos del enlace:', {
+            href: downloadLink.href,
+            download: downloadLink.download,
+            target: downloadLink.target
+        });
+        
+        console.log('➕ Agregando enlace al DOM...');
+        window.document.body.appendChild(downloadLink);
+        
+        console.log('🖱️ Ejecutando click programático...');
+        downloadLink.click();
+        
+        console.log('➖ Removiendo enlace del DOM...');
+        window.document.body.removeChild(downloadLink);
+
+        console.log('✅ Descarga iniciada exitosamente');
+        showAlert('Descarga iniciada correctamente', 'success');
+
     } catch (error) {
-        console.error('❌ ERROR CRÍTICO en downloadDocument:');
+        console.error('❌ ERROR en downloadDocument:');
         console.error('📋 Detalles del error:', {
             message: error.message,
             stack: error.stack,
@@ -1309,6 +1259,25 @@ async function downloadDocument(id) {
         showAlert('Error al descargar documento: ' + error.message, 'error');
     } finally {
         console.groupEnd();
+    }
+}
+
+// FUNCIÓN ALTERNATIVA PARA DESCARGAR (MÉTODO DIRECTO)
+async function downloadDocumentDirect(id) {
+    try {
+        const docData = appState.documents.find(doc => doc._id === id);
+        if (!docData) {
+            throw new Error('Documento no encontrado');
+        }
+        
+        // Abrir en nueva pestaña con parámetros de descarga
+        const downloadUrl = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        window.open(downloadUrl, '_blank');
+        
+        showAlert('Descarga iniciada en nueva pestaña', 'success');
+    } catch (error) {
+        console.error('Error en descarga directa:', error);
+        showAlert('Error al descargar documento: ' + error.message, 'error');
     }
 }
 
@@ -2319,9 +2288,34 @@ function resetApp() {
 }
 
 // =============================================================================
+// FUNCIÓN GLOBAL PARA MOSTRAR TODOS LOS DOCUMENTOS
+// =============================================================================
+function showAllDocuments() {
+    console.log('📄 Mostrando todos los documentos');
+    appState.currentSearchQuery = '';
+    appState.filters = {
+        category: '',
+        type: '',
+        date: '',
+        status: ''
+    };
+    
+    // Resetear filtros en la UI
+    if (DOM.filterCategory) DOM.filterCategory.value = '';
+    if (DOM.filterType) DOM.filterType.value = '';
+    if (DOM.filterDate) DOM.filterDate.value = '';
+    if (DOM.filterStatus) DOM.filterStatus.value = '';
+    if (DOM.documentSearch) DOM.documentSearch.value = '';
+    
+    renderDocumentsTable();
+    showAlert('Mostrando todos los documentos', 'info');
+}
+
+// =============================================================================
 // EXPORTAR FUNCIONES GLOBALES
 // =============================================================================
 window.downloadDocument = downloadDocument;
+window.downloadDocumentDirect = downloadDocumentDirect;
 window.previewDocument = previewDocument;
 window.deleteDocument = deleteDocument;
 window.editPerson = editPerson;
