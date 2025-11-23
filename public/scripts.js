@@ -7,7 +7,7 @@ const CONFIG = {
     CLOUDINARY_API_KEY: '797652563747974',
     CLOUDINARY_UPLOAD_PRESET: 'DOCUMENTOS',
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-    ALLOWED_FILE_TYPES: ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png']
+    ALLOWED_FILE_TYPES: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png']
 };
 
 // =============================================================================
@@ -1117,6 +1117,9 @@ async function handleUploadDocument() {
         setLoadingState(true, DOM.uploadDocumentBtn);
         
         console.log('📤 Iniciando upload del documento...');
+        console.log('📋 Archivo seleccionado:', appState.selectedFile.name);
+        console.log('📋 Tamaño:', formatFileSize(appState.selectedFile.size));
+        console.log('📋 Tipo:', appState.selectedFile.type);
         
         const formData = new FormData();
         formData.append('file', appState.selectedFile);
@@ -1125,12 +1128,23 @@ async function handleUploadDocument() {
         formData.append('fecha_vencimiento', DOM.documentExpiration.value);
         formData.append('persona_id', DOM.documentPerson.value);
 
+        console.log('📤 Enviando archivo al servidor...');
+
         const response = await fetch(`${CONFIG.API_BASE_URL}/documents`, {
             method: 'POST',
             body: formData
         });
 
+        console.log('📥 Respuesta recibida:', response.status, response.statusText);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Error del servidor:', errorText);
+            throw new Error(`Error del servidor (${response.status}): ${errorText}`);
+        }
+
         const data = await response.json();
+        console.log('📦 Datos de respuesta:', data);
 
         if (data.success) {
             showAlert(data.message, 'success');
@@ -1141,11 +1155,12 @@ async function handleUploadDocument() {
                 await loadDashboardData();
             }
         } else {
-            throw new Error(data.message);
+            throw new Error(data.message || 'Error desconocido al subir el archivo');
         }
         
     } catch (error) {
         console.error('❌ Error subiendo documento:', error);
+        console.error('❌ Stack trace:', error.stack);
         showAlert('Error al subir documento: ' + error.message, 'error');
     } finally {
         setLoadingState(false, DOM.uploadDocumentBtn);
@@ -1178,26 +1193,90 @@ function populateSearchPersonSelect() {
     });
 }
 
+// FUNCIÓN PARA DESCARGAR DOCUMENTOS
 async function downloadDocument(id) {
+    console.group('📥 DESCARGA DE DOCUMENTO');
+    console.log('🆔 ID del documento:', id);
+    
     try {
-        console.log('📥 Descargando documento:', id);
+        // Buscar el documento en el estado para obtener su nombre
+        console.log('🔍 Buscando documento en el estado...');
+        const docData = appState.documents.find(doc => doc._id === id);
+        
+        if (!docData) {
+            console.error('❌ Documento no encontrado en el estado con ID:', id);
+            throw new Error('Documento no encontrado en el estado local');
+        }
+        
+        const fileName = docData.nombre_original;
+        console.log('✅ Documento encontrado:', {
+            nombre: fileName,
+            tipo: docData.tipo_archivo,
+            tamaño: docData.tamano_archivo,
+            categoria: docData.categoria
+        });
         
         showAlert('Iniciando descarga del documento...', 'info');
         
-        // Crear un enlace temporal para la descarga
-        const downloadLink = document.createElement('a');
+        // Crear enlace temporal para descarga
+        console.log('🔧 Creando elemento <a> para descarga...');
+        const downloadLink = window.document.createElement('a');
+        
+        // Usar la ruta de descarga del servidor que ahora genera URLs correctas de Cloudinary
         downloadLink.href = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
         downloadLink.target = '_blank';
-        downloadLink.download = '';
+        downloadLink.rel = 'noopener noreferrer';
         
-        document.body.appendChild(downloadLink);
+        // Intentar forzar la descarga con el nombre correcto
+        downloadLink.setAttribute('download', fileName);
+        
+        console.log('📎 Atributos del enlace:', {
+            href: downloadLink.href,
+            download: downloadLink.download,
+            target: downloadLink.target
+        });
+        
+        console.log('➕ Agregando enlace al DOM...');
+        window.document.body.appendChild(downloadLink);
+        
+        console.log('🖱️ Ejecutando click programático...');
         downloadLink.click();
-        document.body.removeChild(downloadLink);
         
+        console.log('➖ Removiendo enlace del DOM...');
+        window.document.body.removeChild(downloadLink);
+
+        console.log('✅ Descarga iniciada exitosamente');
         showAlert('Descarga iniciada correctamente', 'success');
-        
+
     } catch (error) {
-        console.error('❌ Error descargando documento:', error);
+        console.error('❌ ERROR en downloadDocument:');
+        console.error('📋 Detalles del error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            documentId: id
+        });
+        showAlert('Error al descargar documento: ' + error.message, 'error');
+    } finally {
+        console.groupEnd();
+    }
+}
+
+// FUNCIÓN ALTERNATIVA PARA DESCARGAR (MÉTODO DIRECTO)
+async function downloadDocumentDirect(id) {
+    try {
+        const docData = appState.documents.find(doc => doc._id === id);
+        if (!docData) {
+            throw new Error('Documento no encontrado');
+        }
+        
+        // Abrir en nueva pestaña con parámetros de descarga
+        const downloadUrl = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        window.open(downloadUrl, '_blank');
+        
+        showAlert('Descarga iniciada en nueva pestaña', 'success');
+    } catch (error) {
+        console.error('Error en descarga directa:', error);
         showAlert('Error al descargar documento: ' + error.message, 'error');
     }
 }
@@ -1649,6 +1728,10 @@ function updateReportFilters(reportType) {
                     </select>
                 </div>
             `;
+            // Agregar event listener para actualizar vista previa
+            setTimeout(() => {
+                document.getElementById('reportCategory')?.addEventListener('change', updateReportPreview);
+            }, 100);
             break;
             
         case 'byPerson':
@@ -1661,6 +1744,10 @@ function updateReportFilters(reportType) {
                     </select>
                 </div>
             `;
+            // Agregar event listener para actualizar vista previa
+            setTimeout(() => {
+                document.getElementById('reportPerson')?.addEventListener('change', updateReportPreview);
+            }, 100);
             break;
             
         case 'expiring':
@@ -1670,6 +1757,10 @@ function updateReportFilters(reportType) {
                     <input type="number" id="reportDays" class="form__input" value="30" min="1">
                 </div>
             `;
+            // Agregar event listener para actualizar vista previa
+            setTimeout(() => {
+                document.getElementById('reportDays')?.addEventListener('input', updateReportPreview);
+            }, 100);
             break;
             
         default:
@@ -1786,26 +1877,190 @@ function updateReportPreview() {
 
 function handleGenerateReport() {
     console.log('📄 Generando reporte...');
+    generateReportDownload();
+}
+
+async function generateReportDownload() {
+    console.group('📊 GENERACIÓN DE REPORTE');
     
-    const reportType = DOM.reportType.value;
-    const reportFormat = DOM.reportFormat.value;
-    
-    // Simular generación de reporte
-    setLoadingState(true, DOM.generateReportBtn);
-    
-    setTimeout(() => {
-        setLoadingState(false, DOM.generateReportBtn);
+    try {
+        const reportType = DOM.reportType.value;
+        const reportFormat = DOM.reportFormat.value;
+
+        console.log('📋 Configuración inicial:', {
+            tipo: reportType,
+            formato: reportFormat
+        });
+
+        // Validar formato
+        if (!['pdf', 'excel', 'csv'].includes(reportFormat)) {
+            console.error('❌ Formato no válido:', reportFormat);
+            console.error('✅ Formatos válidos: pdf, excel, csv');
+            showAlert('Formato de reporte no válido', 'error');
+            return;
+        }
+
+        console.log('✅ Formato validado correctamente');
+        setLoadingState(true, DOM.generateReportBtn);
+        console.time('⏱️ Tiempo de generación');
         
-        // En un entorno real, aquí se haría la llamada a la API para generar el reporte
-        // y luego se descargaría el archivo
+        // Preparar datos del reporte
+        const reportData = {
+            reportType: reportType,
+            category: '',
+            person: '',
+            days: 30,
+            dateFrom: '',
+            dateTo: ''
+        };
+
+        console.log('🔧 Datos base del reporte:', reportData);
+
+        // Obtener valores específicos según el tipo de reporte
+        if (reportType === 'byCategory') {
+            const categorySelect = document.getElementById('reportCategory');
+            if (categorySelect) {
+                reportData.category = categorySelect.value;
+                console.log('🏷️ Categoría seleccionada:', reportData.category || 'Todas');
+            } else {
+                console.warn('⚠️ No se encontró el selector de categoría');
+            }
+        }
+
+        if (reportType === 'byPerson') {
+            const personSelect = document.getElementById('reportPerson');
+            if (personSelect) {
+                reportData.person = personSelect.value;
+                console.log('👤 Persona seleccionada:', reportData.person || 'Todas');
+            } else {
+                console.warn('⚠️ No se encontró el selector de persona');
+            }
+        }
+
+        if (reportType === 'expiring') {
+            const daysInput = document.getElementById('reportDays');
+            if (daysInput) {
+                reportData.days = daysInput.value;
+                console.log('📅 Días hasta vencimiento:', reportData.days);
+            } else {
+                console.warn('⚠️ No se encontró el input de días');
+            }
+        }
+
+        console.log('📦 Datos finales del reporte:', reportData);
+
+        // Determinar endpoint según formato
+        let endpoint = '';
+        if (reportFormat === 'pdf') {
+            endpoint = '/reports/pdf';
+        } else if (reportFormat === 'excel') {
+            endpoint = '/reports/excel';
+        } else if (reportFormat === 'csv') {
+            endpoint = '/reports/csv';
+        }
+
+        const fullUrl = `${CONFIG.API_BASE_URL}${endpoint}`;
+        console.log('🌐 URL del endpoint:', fullUrl);
+        console.log('📤 Método: POST');
+        console.log('📋 Headers:', { 'Content-Type': 'application/json' });
+
+        // Hacer la solicitud
+        console.log('🚀 Enviando solicitud al servidor...');
+        const response = await fetch(fullUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(reportData)
+        });
+
+        console.log('📥 Respuesta recibida:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: {
+                contentType: response.headers.get('content-type'),
+                contentDisposition: response.headers.get('content-disposition')
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Error del servidor:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorText: errorText
+            });
+            throw new Error(`Error del servidor (${response.status}): ${errorText}`);
+        }
+
+        console.log('✅ Respuesta OK, obteniendo blob...');
+        // Obtener el blob de la respuesta
+        const blob = await response.blob();
+        console.log('📦 Blob recibido:', {
+            size: blob.size,
+            type: blob.type,
+            sizeFormatted: (blob.size / 1024).toFixed(2) + ' KB'
+        });
         
-        showAlert(`Reporte ${reportType} generado en formato ${reportFormat.toUpperCase()}`, 'success');
+        // Crear URL temporal para descarga
+        console.log('🔗 Creando URL temporal...');
+        const url = window.URL.createObjectURL(blob);
+        console.log('✅ URL creada:', url.substring(0, 50) + '...');
+        
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Determinar nombre y extensión del archivo
+        let fileName = `reporte_documentos_${Date.now()}`;
+        let extension = reportFormat;
+        if (reportFormat === 'excel') {
+            extension = 'xlsx';
+        }
+        const fullFileName = `${fileName}.${extension}`;
+        a.download = fullFileName;
+        
+        console.log('📄 Nombre del archivo:', fullFileName);
+        console.log('🔧 Atributos del enlace:', {
+            href: a.href.substring(0, 50) + '...',
+            download: a.download
+        });
+        
+        // Descargar archivo
+        console.log('➕ Agregando enlace al DOM...');
+        document.body.appendChild(a);
+        
+        console.log('🖱️ Ejecutando click...');
+        a.click();
+        
+        console.log('➖ Removiendo enlace del DOM...');
+        document.body.removeChild(a);
+        
+        // Limpiar
+        console.log('🧹 Revocando URL temporal...');
+        window.URL.revokeObjectURL(url);
+
+        console.timeEnd('⏱️ Tiempo de generación');
+        console.log('✅ Reporte descargado exitosamente');
+        showAlert(`Reporte generado y descargado en formato ${reportFormat.toUpperCase()}`, 'success');
+        
+        console.log('🚪 Cerrando modal...');
         closeReportModal();
-        
-        // Simular descarga (en un entorno real, esto sería un enlace de descarga real)
-        console.log(`📥 Descargando reporte: ${reportType}.${reportFormat}`);
-        
-    }, 2000);
+
+    } catch (error) {
+        console.error('❌ ERROR CRÍTICO en generateReportDownload:');
+        console.error('📋 Detalles del error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            tipo: DOM.reportType?.value,
+            formato: DOM.reportFormat?.value
+        });
+        showAlert('Error al generar reporte: ' + error.message, 'error');
+    } finally {
+        setLoadingState(false, DOM.generateReportBtn);
+        console.groupEnd();
+    }
 }
 
 // =============================================================================
@@ -1893,6 +2148,8 @@ function getFileIcon(fileType) {
         'pdf': 'pdf',
         'doc': 'word',
         'docx': 'word',
+        'xls': 'excel',
+        'xlsx': 'excel',
         'txt': 'alt',
         'jpg': 'image',
         'jpeg': 'image',
@@ -2031,9 +2288,34 @@ function resetApp() {
 }
 
 // =============================================================================
+// FUNCIÓN GLOBAL PARA MOSTRAR TODOS LOS DOCUMENTOS
+// =============================================================================
+function showAllDocuments() {
+    console.log('📄 Mostrando todos los documentos');
+    appState.currentSearchQuery = '';
+    appState.filters = {
+        category: '',
+        type: '',
+        date: '',
+        status: ''
+    };
+    
+    // Resetear filtros en la UI
+    if (DOM.filterCategory) DOM.filterCategory.value = '';
+    if (DOM.filterType) DOM.filterType.value = '';
+    if (DOM.filterDate) DOM.filterDate.value = '';
+    if (DOM.filterStatus) DOM.filterStatus.value = '';
+    if (DOM.documentSearch) DOM.documentSearch.value = '';
+    
+    renderDocumentsTable();
+    showAlert('Mostrando todos los documentos', 'info');
+}
+
+// =============================================================================
 // EXPORTAR FUNCIONES GLOBALES
 // =============================================================================
 window.downloadDocument = downloadDocument;
+window.downloadDocumentDirect = downloadDocumentDirect;
 window.previewDocument = previewDocument;
 window.deleteDocument = deleteDocument;
 window.editPerson = editPerson;
