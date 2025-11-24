@@ -1785,27 +1785,116 @@ function updateReportPreview() {
 }
 
 function handleGenerateReport() {
-    console.log('📄 Generando reporte...');
+    console.group('📊 Generando Reporte');
+    console.time('⏱️ Tiempo de generación');
     
     const reportType = DOM.reportType.value;
     const reportFormat = DOM.reportFormat.value;
     
-    // Simular generación de reporte
+    console.log('Tipo de reporte:', reportType);
+    console.log('Formato solicitado:', reportFormat);
+    
+    // Construir filtros según el tipo de reporte
+    const filters = {
+        reportType: reportType
+    };
+    
+    // Agregar filtros específicos según el tipo de reporte
+    switch(reportType) {
+        case 'byCategory':
+            const categorySelect = document.getElementById('reportCategory');
+            if (categorySelect) {
+                filters.categoria = categorySelect.value;
+                console.log('Filtro categoría:', filters.categoria || 'Todas');
+            }
+            break;
+            
+        case 'byPerson':
+            const personSelect = document.getElementById('reportPerson');
+            if (personSelect) {
+                filters.persona_id = personSelect.value;
+                console.log('Filtro persona:', filters.persona_id || 'Todas');
+            }
+            break;
+            
+        case 'expiring':
+            const daysInput = document.getElementById('reportDays');
+            if (daysInput) {
+                filters.dias = parseInt(daysInput.value) || 30;
+                console.log('Días hasta vencimiento:', filters.dias);
+            }
+            break;
+    }
+    
+    // Llamada a la API para generar el reporte
     setLoadingState(true, DOM.generateReportBtn);
     
-    setTimeout(() => {
+    console.log('📤 Enviando petición al servidor...');
+    
+    fetch(`${CONFIG.API_BASE_URL}/reports/${reportFormat}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(filters)
+    })
+    .then(response => {
+        console.log('📥 Respuesta recibida:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        return response.blob();
+    })
+    .then(blob => {
+        console.log('✅ Blob recibido:', {
+            size: blob.size,
+            type: blob.type
+        });
+        
+        // Crear URL temporal para el blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Determinar extensión del archivo
+        let extension = reportFormat;
+        if (reportFormat === 'csv') extension = 'csv';
+        if (reportFormat === 'excel') extension = 'xlsx';
+        if (reportFormat === 'pdf') extension = 'pdf';
+        
+        // Crear nombre del archivo con timestamp
+        const timestamp = new Date().toISOString().split('T')[0];
+        const fileName = `reporte_${reportType}_${timestamp}.${extension}`;
+        
+        console.log('📥 Descargando archivo:', fileName);
+        
+        // Crear elemento <a> temporal para descargar
+        const a = window.document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        window.document.body.appendChild(a);
+        a.click();
+        
+        // Limpiar
+        window.document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('✅ Archivo descargado exitosamente');
+        console.timeEnd('⏱️ Tiempo de generación');
+        console.groupEnd();
+        
         setLoadingState(false, DOM.generateReportBtn);
-        
-        // En un entorno real, aquí se haría la llamada a la API para generar el reporte
-        // y luego se descargaría el archivo
-        
-        showAlert(`Reporte ${reportType} generado en formato ${reportFormat.toUpperCase()}`, 'success');
+        showAlert(`Reporte generado y descargado exitosamente`, 'success');
         closeReportModal();
+    })
+    .catch(error => {
+        console.error('❌ Error generando reporte:', error);
+        console.timeEnd('⏱️ Tiempo de generación');
+        console.groupEnd();
         
-        // Simular descarga (en un entorno real, esto sería un enlace de descarga real)
-        console.log(`📥 Descargando reporte: ${reportType}.${reportFormat}`);
-        
-    }, 2000);
+        setLoadingState(false, DOM.generateReportBtn);
+        showAlert(`Error al generar el reporte: ${error.message}`, 'error');
+    });
 }
 
 // =============================================================================
