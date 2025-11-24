@@ -582,82 +582,13 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
   }
 });
 
-// FUNCIÓN PARA GENERAR URL DE DESCARGA
-function generateDownloadUrl(cloudinaryUrl, fileName) {
-  try {
-    console.log('🔧 Generando URL de descarga para:', {
-      cloudinaryUrl: cloudinaryUrl,
-      fileName: fileName
-    });
-
-    // Extraer el public_id de la URL de Cloudinary
-    const urlParts = cloudinaryUrl.split('/upload/');
-    if (urlParts.length !== 2) {
-      console.warn('⚠️ URL de Cloudinary no tiene formato esperado');
-      return cloudinaryUrl;
-    }
-
-    const publicIdWithExtension = urlParts[1];
-    const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ""); // Remover extensión
-
-    console.log('📋 Public ID extraído:', publicId);
-
-    // Generar URL de descarga usando el SDK de Cloudinary
-    const downloadUrl = cloudinary.url(publicId, {
-      flags: 'attachment',
-      attachment: fileName,
-      resource_type: 'auto',
-      secure: true,
-      sign_url: false
-    });
-
-    console.log('✅ URL de descarga generada:', downloadUrl);
-    return downloadUrl;
-
-  } catch (error) {
-    console.error('❌ Error generando URL de descarga:', error);
-    // Fallback: devolver la URL original
-    return cloudinaryUrl;
-  }
-}
-
 app.get('/api/documents/:id/download', async (req, res) => {
   try {
+    console.log('📥 Solicitud de descarga de documento:', req.params.id);
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'ID inválido' });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      return res.status(404).json({ success: false, message: 'Documento no encontrado' });
-    }
-
-    const downloadUrl = cloudinary.url(documento.public_id, {
-      secure: true,
-      flags: "attachment",
-      filename_override: documento.nombre_original,
-      resource_type: documento.resource_type || "raw"
-    });
-
-    return res.redirect(downloadUrl);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-
-// NUEVA RUTA: DESCARGA CON PROXY (método alternativo)
-app.get('/api/documents/:id/download-proxy', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga con proxy:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('❌ ID inválido:', id);
       return res.status(400).json({ 
         success: false, 
         message: 'ID inválido' 
@@ -667,67 +598,41 @@ app.get('/api/documents/:id/download-proxy', async (req, res) => {
     const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
+      console.error('❌ Documento no encontrado:', id);
       return res.status(404).json({ 
         success: false, 
         message: 'Documento no encontrado' 
       });
     }
 
-    console.log('✅ Descarga con proxy - Documento encontrado:', documento.nombre_original);
-
-    // Configurar headers para descarga
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(documento.nombre_original)}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-
-    // Hacer fetch al archivo en Cloudinary y redirigir el stream
-    const response = await fetch(documento.cloudinary_url);
-    
-    if (!response.ok) {
-      throw new Error(`Error al obtener archivo de Cloudinary: ${response.status}`);
-    }
-
-    // Redirigir el stream de respuesta
-    response.body.pipe(res);
-
-  } catch (error) {
-    console.error('❌ Error en descarga con proxy:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al descargar documento: ' + error.message 
+    console.log('✅ Documento encontrado:', {
+      nombre: documento.nombre_original,
+      tipo: documento.tipo_archivo,
+      resourceType: documento.resource_type
     });
-  }
-});
+    console.log('📤 Cloudinary URL original:', documento.cloudinary_url);
 
-// RUTA SIMPLIFICADA: Redirección directa (método más simple)
-app.get('/api/documents/:id/download-simple', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga simple:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
-      });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
-      });
-    }
-
-    console.log('✅ Descarga simple - Redirigiendo a:', documento.cloudinary_url);
+    // Modificar la URL de Cloudinary para forzar descarga
+    let downloadUrl = documento.cloudinary_url;
+    const nombreArchivo = encodeURIComponent(documento.nombre_original);
     
-    // Simplemente redirigir a la URL original de Cloudinary
-    // El navegador manejará la descarga según el tipo de archivo
-    res.redirect(documento.cloudinary_url);
+    // Para TODOS los tipos de archivos, agregar fl_attachment
+    const urlParts = downloadUrl.split('/upload/');
+    if (urlParts.length === 2) {
+      // Funciona para image, raw, video y cualquier otro resource_type
+      downloadUrl = `${urlParts[0]}/upload/fl_attachment:${nombreArchivo}/${urlParts[1]}`;
+      console.log('✅ Parámetro fl_attachment agregado correctamente');
+    } else {
+      console.warn('⚠️ No se pudo modificar la URL, usando URL original');
+    }
+
+    console.log('🔗 URL de descarga final:', downloadUrl);
+    
+    // Redirigir a la URL de Cloudinary con parámetros de descarga
+    res.redirect(downloadUrl);
 
   } catch (error) {
-    console.error('❌ Error en descarga simple:', error);
+    console.error('❌ Error descargando documento:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error al descargar documento: ' + error.message 
@@ -1157,20 +1062,31 @@ app.post('/api/reports/pdf', async (req, res) => {
          .moveDown(0.8);
     });
 
-    // Pie de página
-    const pageCount = doc.bufferedPageRange().count;
+    // Obtener el rango de páginas
+    const range = doc.bufferedPageRange();
+    const pageCount = range.count;
+    
+    console.log(`📄 Total de páginas generadas: ${pageCount}`);
+
+    // Agregar pie de página en cada página
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
+      
+      // Guardar posición actual
+      const oldBottomMargin = doc.page.margins.bottom;
+      
+      // Posicionar en el footer
       doc.fontSize(8)
          .fillColor('#6B7280')
          .text(
            `Página ${i + 1} de ${pageCount} - Sistema de Gestión de Documentos CBTIS051`,
            50,
            doc.page.height - 50,
-           { align: 'center' }
+           { align: 'center', lineBreak: false }
          );
     }
 
+    // Finalizar documento
     doc.end();
 
     console.log('✅ Reporte PDF generado exitosamente');
