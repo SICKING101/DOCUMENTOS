@@ -6,10 +6,10 @@
     <!-- Fuente Inter para mejor tipografía -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Meta tags para mejor apariencia -->
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#dc2626">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Sistema de Gestión de Documentos - CBTIS051</title>
@@ -17,261 +17,358 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- ===== HEADER ===== -->
-    <header class="header">
-        <div class="container">
-            <div class="header__content">
-                <div class="header__logo">
-                    <img class="header__logo-image" src="/IMAGENES/cbtis051.png" alt="logo">
-                    <h1 class="header__title">Sistema de Documentos - CBTIS051</h1>
-                </div>
-                <nav class="header__nav">
-                    <a href="#" class="header__nav-link header__nav-link--active" data-tab="dashboard">
-                        <i class="fas fa-chart-pie"></i> Dashboard
-                    </a>
-                    <a href="#" class="header__nav-link" data-tab="personas">
-                        <i class="fas fa-users"></i> Personas
-                    </a>
-                    <a href="#" class="header__nav-link" data-tab="documentos">
-                        <i class="fas fa-file"></i> Documentos
-                    </a>
-                    <a href="#" class="header__nav-link" data-tab="categorias">
-                        <i class="fas fa-tags"></i> Categorías
-                    </a>
-                </nav>
+    <!-- ===== APP LAYOUT ===== -->
+    <div class="app-layout">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
+            <div class="sidebar__header">
+                <img class="sidebar__logo" src="IMAGENES/cbtis051.png" alt="CBTIS051">
+                <h1 class="sidebar__title">CBTIS051</h1>
             </div>
-        </div>
-    </header>
 
-    <!-- ===== MAIN CONTENT ===== -->
-    <main class="main">
-        <div class="container">
-            <!-- ===== DASHBOARD TAB ===== -->
-            <section id="dashboard" class="tab-content tab-content--active">
-                <header class="section__title">
-                    <h2 class="section__heading">Dashboard</h2>
-                    <button class="btn btn--primary" id="refreshDashboard">
-                        <i class="fas fa-sync-alt"></i> Actualizar
+            <!-- Navigation Menu -->
+            <nav class="sidebar__nav">
+                <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="sidebar__nav-link" data-tab="personas">
+                    <i class="fas fa-users"></i>
+                    <span>Personas</span>
+                </a>
+                <a href="#" class="sidebar__nav-link" data-tab="documentos">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Documentos</span>
+                </a>
+                <a href="#" class="sidebar__nav-link" data-tab="categorias">
+                    <i class="fas fa-tags"></i>
+                    <span>Categorías</span>
+                </a>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar__footer">
+                <button class="sidebar__theme-toggle" id="themeToggle" title="Cambiar tema">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="sidebar__user">
+                    <div class="sidebar__user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="sidebar__user-info">
+                        <p class="sidebar__user-name">Administrador</p>
+                        <p class="sidebar__user-role">Sistema</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT AREA ===== -->
+        <div class="content-wrapper">
+            <!-- ===== TOP BAR ===== -->
+            <header class="topbar">
+                <div class="topbar__actions">
+                    <button class="topbar__action" id="notificationsBtn" title="Notificaciones">
+                        <i class="fas fa-bell"></i>
+                        <span class="topbar__badge">3</span>
                     </button>
-                </header>
+                    <button class="topbar__action" id="settingsBtn" title="Configuración">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </header>
 
-                <!-- Quick Actions -->
-                <section class="quick-actions">
-                    <article class="action-card" onclick="openDocumentModal()">
-                        <i class="fas fa-cloud-upload-alt action-card__icon"></i>
-                        <h3 class="action-card__title">Subir Documento</h3>
-                        <p class="action-card__description">Agregar nuevo documento al sistema</p>
-                    </article>
-                    <article class="action-card" onclick="openPersonModal()">
-                        <i class="fas fa-user-plus action-card__icon"></i>
-                        <h3 class="action-card__title">Agregar Persona</h3>
-                        <p class="action-card__description">Registrar nueva persona en el sistema</p>
-                    </article>
-                    <article class="action-card" onclick="generateReport()">
-                        <i class="fas fa-chart-bar action-card__icon"></i>
-                        <h3 class="action-card__title">Generar Reporte</h3>
-                        <p class="action-card__description">Crear reporte de documentos</p>
-                    </article>
-                    <article class="action-card" onclick="showAdvancedSearch()">
-                        <i class="fas fa-search action-card__icon"></i>
-                        <h3 class="action-card__title">Búsqueda Avanzada</h3>
-                        <p class="action-card__description">Buscar documentos específicos</p>
-                    </article>
-                </section>
+            <!-- ===== MAIN CONTENT ===== -->
+            <main class="main-content">
+                <!-- ===== DASHBOARD TAB ===== -->
+                <section id="dashboard" class="tab-content tab-content--active">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">Dashboard</h2>
+                            <p class="section__subtitle">Resumen general del sistema</p>
+                        </div>
+                        <button class="btn btn--primary" id="refreshDashboard">
+                            <i class="fas fa-sync-alt"></i> Actualizar
+                        </button>
+                    </div>
 
-                <!-- Stats Cards -->
-                <section class="dashboard__stats">
-                    <article class="stats__card">
-                        <div class="stats__icon stats__icon--personas">
-                            <i class="fas fa-users"></i>
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card stat-card--personas">
+                            <div class="stat-card__header">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-card__trend stat-card__trend--up">
+                                    <i class="fas fa-arrow-up"></i> 12%
+                                </div>
+                            </div>
+                            <div class="stat-card__body">
+                                <h3 class="stat-card__value" id="totalPersonas">0</h3>
+                                <p class="stat-card__label">Personas Registradas</p>
+                            </div>
                         </div>
-                        <div class="stats__info">
-                            <h3 class="stats__info-value" id="totalPersonas">0</h3>
-                            <p class="stats__info-label">Personas Registradas</p>
-                        </div>
-                    </article>
-                    <article class="stats__card">
-                        <div class="stats__icon stats__icon--documentos">
-                            <i class="fas fa-file"></i>
-                        </div>
-                        <div class="stats__info">
-                            <h3 class="stats__info-value" id="totalDocumentos">0</h3>
-                            <p class="stats__info-label">Documentos Subidos</p>
-                        </div>
-                    </article>
-                    <article class="stats__card">
-                        <div class="stats__icon stats__icon--vencer">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stats__info">
-                            <h3 class="stats__info-value" id="proximosVencer">0</h3>
-                            <p class="stats__info-label">Próximos a Vencer</p>
-                        </div>
-                    </article>
-                    <article class="stats__card">
-                        <div class="stats__icon" style="background: linear-gradient(135deg, var(--info), #0891b2);">
-                            <i class="fas fa-folder"></i>
-                        </div>
-                        <div class="stats__info">
-                            <h3 class="stats__info-value" id="totalCategorias">0</h3>
-                            <p class="stats__info-label">Categorías Activas</p>
-                        </div>
-                    </article>
-                </section>
 
-                <!-- Recent Documents -->
-                <section class="dashboard__recent">
-                    <header class="preview__header">
-                        <h3 class="dashboard__subheading">Documentos Recientes</h3>
-                    </header>
-                    <div class="documents__list" id="recentDocuments">
-                        <!-- Los documentos recientes se cargarán aquí -->
-                        <article class="empty-state">
-                            <i class="fas fa-file-alt empty-state__icon"></i>
-                            <h3 class="empty-state__title">No hay documentos recientes</h3>
-                            <p class="empty-state__description">Sube tu primer documento para comenzar</p>
-                            <button class="btn btn--primary" id="addFirstDocument">
-                                <i class="fas fa-plus"></i> Subir Documento
-                            </button>
+                        <div class="stat-card stat-card--documentos">
+                            <div class="stat-card__header">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="stat-card__trend stat-card__trend--up">
+                                    <i class="fas fa-arrow-up"></i> 8%
+                                </div>
+                            </div>
+                            <div class="stat-card__body">
+                                <h3 class="stat-card__value" id="totalDocumentos">0</h3>
+                                <p class="stat-card__label">Documentos Totales</p>
+                            </div>
+                        </div>
+
+                        <div class="stat-card stat-card--categorias">
+                            <div class="stat-card__header">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-folder"></i>
+                                </div>
+                                <div class="stat-card__trend stat-card__trend--neutral">
+                                    <i class="fas fa-minus"></i> 0%
+                                </div>
+                            </div>
+                            <div class="stat-card__body">
+                                <h3 class="stat-card__value" id="totalCategorias">0</h3>
+                                <p class="stat-card__label">Categorías Activas</p>
+                            </div>
+                        </div>
+
+                        <div class="stat-card stat-card--vencer">
+                            <div class="stat-card__header">
+                                <div class="stat-card__icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-card__trend stat-card__trend--down">
+                                    <i class="fas fa-arrow-down"></i> 5%
+                                </div>
+                            </div>
+                            <div class="stat-card__body">
+                                <h3 class="stat-card__value" id="proximosVencer">0</h3>
+                                <p class="stat-card__label">Próximos a Vencer</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <section class="quick-actions">
+                        <article class="action-card" onclick="openDocumentModal()">
+                            <i class="fas fa-cloud-upload-alt action-card__icon"></i>
+                            <h3 class="action-card__title">Subir Documento</h3>
+                            <p class="action-card__description">Agregar nuevo documento al sistema</p>
                         </article>
-                    </div>
-                </section>
-            </section>
+                        <article class="action-card" onclick="openPersonModal()">
+                            <i class="fas fa-user-plus action-card__icon"></i>
+                            <h3 class="action-card__title">Agregar Persona</h3>
+                            <p class="action-card__description">Registrar nueva persona en el sistema</p>
+                        </article>
+                        <article class="action-card" onclick="generateReport()">
+                            <i class="fas fa-chart-bar action-card__icon"></i>
+                            <h3 class="action-card__title">Generar Reporte</h3>
+                            <p class="action-card__description">Crear reporte de documentos</p>
+                        </article>
+                        <article class="action-card" onclick="showAdvancedSearch()">
+                            <i class="fas fa-search action-card__icon"></i>
+                            <h3 class="action-card__title">Búsqueda Avanzada</h3>
+                            <p class="action-card__description">Buscar documentos específicos</p>
+                        </article>
+                    </section>
 
-            <!-- ===== PERSONAS TAB ===== -->
-            <section id="personas" class="tab-content">
-                <header class="section__title">
-                    <h2 class="section__heading">Gestión de Personas</h2>
-                    <button class="btn btn--primary" id="addPersonBtn">
-                        <i class="fas fa-plus"></i> Agregar Persona
-                    </button>
-                </header>
-
-                <!-- Personas Table -->
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th class="table__header">Nombre</th>
-                                <th class="table__header">Email</th>
-                                <th class="table__header">Teléfono</th>
-                                <th class="table__header">Departamento</th>
-                                <th class="table__header">Puesto</th>
-                                <th class="table__header">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="personasTableBody">
-                            <!-- Las personas se cargarán aquí -->
-                            <tr>
-                                <td colspan="6" class="empty-state">
-                                    <i class="fas fa-users empty-state__icon"></i>
-                                    <h3 class="empty-state__title">No hay personas registradas</h3>
-                                    <p class="empty-state__description">Agrega la primera persona para comenzar</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- ===== DOCUMENTOS TAB ===== -->
-            <section id="documentos" class="tab-content">
-                <header class="section__title">
-                    <h2 class="section__heading">Gestión de Documentos</h2>
-                    <button class="btn btn--primary" id="addDocumentBtn">
-                        <i class="fas fa-plus"></i> Subir Documento
-                    </button>
-                </header>
-
-                <!-- Filters -->
-                <section class="filters">
-                    <h3 class="filters__title">Filtros</h3>
-                    <div class="filters__grid">
-                        <div class="form__group">
-                            <label class="form__label">Categoría</label>
-                            <select class="form__select" id="filterCategory">
-                                <option value="">Todas las categorías</option>
-                                <!-- Las categorías se cargarán dinámicamente -->
-                            </select>
+                    <!-- Recent Documents -->
+                    <section class="dashboard__recent">
+                        <header class="preview__header">
+                            <h3 class="dashboard__subheading">Documentos Recientes</h3>
+                        </header>
+                        <div class="documents__list" id="recentDocuments">
+                            <!-- Los documentos recientes se cargarán aquí -->
+                            <article class="empty-state">
+                                <i class="fas fa-file-alt empty-state__icon"></i>
+                                <h3 class="empty-state__title">No hay documentos recientes</h3>
+                                <p class="empty-state__description">Sube tu primer documento para comenzar</p>
+                                <button class="btn btn--primary" id="addFirstDocument">
+                                    <i class="fas fa-plus"></i> Subir Documento
+                                </button>
+                            </article>
                         </div>
-                        <div class="form__group">
-                            <label class="form__label">Tipo de Archivo</label>
-                            <select class="form__select" id="filterType">
-                                <option value="">Todos los tipos</option>
-                                <option value="PDF">PDF</option>
-                                <option value="DOCX">Word</option>
-                                <option value="XLSX">Excel</option>
-                                <option value="JPG">Imagen</option>
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label class="form__label">Fecha</label>
-                            <select class="form__select" id="filterDate">
-                                <option value="">Cualquier fecha</option>
-                                <option value="today">Hoy</option>
-                                <option value="week">Esta semana</option>
-                                <option value="month">Este mes</option>
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label class="form__label">Estado</label>
-                            <select class="form__select" id="filterStatus">
-                                <option value="">Todos los estados</option>
-                                <option value="active">Activos</option>
-                                <option value="expired">Vencidos</option>
-                                <option value="expiring">Por vencer</option>
-                            </select>
-                        </div>
-                    </div>
+                    </section>
                 </section>
 
-                <!-- Documentos Table -->
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th class="table__header">Nombre</th>
-                                <th class="table__header">Tipo</th>
-                                <th class="table__header">Tamaño</th>
-                                <th class="table__header">Persona</th>
-                                <th class="table__header">Categoría</th>
-                                <th class="table__header">Fecha Subida</th>
-                                <th class="table__header">Estado</th>
-                                <th class="table__header">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="documentosTableBody">
-                            <!-- Los documentos se cargarán aquí -->
-                            <tr>
-                                <td colspan="8" class="empty-state">
-                                    <i class="fas fa-file-alt empty-state__icon"></i>
-                                    <h3 class="empty-state__title">No hay documentos subidos</h3>
-                                    <p class="empty-state__description">Sube tu primer documento para comenzar</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                <!-- ===== PERSONAS TAB ===== -->
+                <section id="personas" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">Gestión de Personas</h2>
+                            <p class="section__subtitle">Administra usuarios, estudiantes y personal</p>
+                        </div>
+                        <button class="btn btn--primary" id="addPersonBtn">
+                            <i class="fas fa-user-plus"></i> Agregar Persona
+                        </button>
+                    </div>
 
-            <!-- ===== CATEGORIAS TAB ===== -->
-            <section id="categorias" class="tab-content">
-                <header class="section__title">
-                    <h2 class="section__heading">Gestión de Categorías</h2>
-                    <button class="btn btn--primary" id="addCategoryBtn">
-                        <i class="fas fa-plus"></i> Nueva Categoría
-                    </button>
-                </header>
+                    <!-- Filters -->
+                    <div class="filters-bar">
+                        <div class="filters-bar__search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Buscar personas..." id="personasSearch">
+                        </div>
+                        <select class="filters-bar__select">
+                            <option>Todos los roles</option>
+                            <option>Estudiantes</option>
+                            <option>Docentes</option>
+                            <option>Personal</option>
+                        </select>
+                        <select class="filters-bar__select">
+                            <option>Ordenar por nombre</option>
+                            <option>Ordenar por fecha</option>
+                        </select>
+                    </div>
 
-                <!-- Categories Grid -->
-                <div class="dashboard__stats" id="categoriesStats">
-                    <!-- Las categorías se cargarán dinámicamente -->
-                </div>
+                    <!-- Personas Table -->
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th class="table__header">Nombre</th>
+                                    <th class="table__header">Email</th>
+                                    <th class="table__header">Teléfono</th>
+                                    <th class="table__header">Departamento</th>
+                                    <th class="table__header">Puesto</th>
+                                    <th class="table__header">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="personasTableBody">
+                                <!-- Las personas se cargarán aquí -->
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        <i class="fas fa-users empty-state__icon"></i>
+                                        <h3 class="empty-state__title">No hay personas registradas</h3>
+                                        <p class="empty-state__description">Agrega la primera persona para comenzar</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
-                    </table>
-            </section>
+                <!-- ===== DOCUMENTOS TAB ===== -->
+                <section id="documentos" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">Gestión de Documentos</h2>
+                            <p class="section__subtitle">Organiza y administra todos los documentos</p>
+                        </div>
+                        <button class="btn btn--primary" id="addDocumentBtn">
+                            <i class="fas fa-file-upload"></i> Subir Documento
+                        </button>
+                    </div>
+
+                    <!-- Categories Chips -->
+                    <div class="categories-section">
+                        <h3 class="categories-section__title">Filtrar por Categoría</h3>
+                        <div class="category-chips" id="categoryChips">
+                            <button class="category-chip category-chip--all category-chip--active" data-category="all">
+                                <i class="fas fa-th"></i> Todos
+                            </button>
+                            <!-- Las categorías se cargarán dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <section class="filters">
+                        <h3 class="filters__title">Filtros</h3>
+                        <div class="filters__grid">
+                            <div class="form__group">
+                                <label class="form__label">Categoría</label>
+                                <select class="form__select" id="filterCategory">
+                                    <option value="">Todas las categorías</option>
+                                    <!-- Las categorías se cargarán dinámicamente -->
+                                </select>
+                            </div>
+                            <div class="form__group">
+                                <label class="form__label">Tipo de Archivo</label>
+                                <select class="form__select" id="filterType">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="PDF">PDF</option>
+                                    <option value="DOCX">Word</option>
+                                    <option value="XLSX">Excel</option>
+                                    <option value="JPG">Imagen</option>
+                                </select>
+                            </div>
+                            <div class="form__group">
+                                <label class="form__label">Fecha</label>
+                                <select class="form__select" id="filterDate">
+                                    <option value="">Cualquier fecha</option>
+                                    <option value="today">Hoy</option>
+                                    <option value="week">Esta semana</option>
+                                    <option value="month">Este mes</option>
+                                </select>
+                            </div>
+                            <div class="form__group">
+                                <label class="form__label">Estado</label>
+                                <select class="form__select" id="filterStatus">
+                                    <option value="">Todos los estados</option>
+                                    <option value="active">Activos</option>
+                                    <option value="expired">Vencidos</option>
+                                    <option value="expiring">Por vencer</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Documentos Table -->
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th class="table__header">Nombre</th>
+                                    <th class="table__header">Tipo</th>
+                                    <th class="table__header">Tamaño</th>
+                                    <th class="table__header">Persona</th>
+                                    <th class="table__header">Categoría</th>
+                                    <th class="table__header">Fecha Subida</th>
+                                    <th class="table__header">Estado</th>
+                                    <th class="table__header">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documentosTableBody">
+                                <!-- Los documentos se cargarán aquí -->
+                                <tr>
+                                    <td colspan="8" class="empty-state">
+                                        <i class="fas fa-file-alt empty-state__icon"></i>
+                                        <h3 class="empty-state__title">No hay documentos subidos</h3>
+                                        <p class="empty-state__description">Sube tu primer documento para comenzar</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ===== CATEGORIAS TAB ===== -->
+                <section id="categorias" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">Gestión de Categorías</h2>
+                            <p class="section__subtitle">Organiza documentos por categorías</p>
+                        </div>
+                        <button class="btn btn--primary" id="addCategoryBtn">
+                            <i class="fas fa-plus"></i> Nueva Categoría
+                        </button>
+                    </div>
+
+                    <!-- Categories Grid -->
+                    <div class="dashboard__stats" id="categoriesStats">
+                        <!-- Las categorías se cargarán dinámicamente -->
+                    </div>
+                </section>
+            </main>
         </div>
-    </main>
+    </div>
 
     <!-- ===== MODALS ===== -->
 
@@ -540,50 +637,9 @@
         </article>
     </dialog>
 
-    <!-- Document Preview Modal -->
-    <dialog id="previewModal" class="modal modal--large">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Vista Previa del Documento</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <div class="preview__content">
-                    <div class="preview__meta">
-                        <h4>Información del Documento</h4>
-                        <div class="preview__info">
-                            <p><strong>Nombre:</strong> <span id="previewFileName"></span></p>
-                            <p><strong>Tipo:</strong> <span id="previewFileType"></span></p>
-                            <p><strong>Tamaño:</strong> <span id="previewFileSize"></span></p>
-                            <p><strong>Fecha de subida:</strong> <span id="previewUploadDate"></span></p>
-                            <p><strong>Vencimiento:</strong> <span id="previewExpiration"></span></p>
-                            <p><strong>Categoría:</strong> <span id="previewCategory"></span></p>
-                            <p><strong>Persona asignada:</strong> <span id="previewPerson"></span></p>
-                        </div>
-                    </div>
-                    <div class="preview__file">
-                        <div id="previewContainer">
-                            <i class="fas fa-file-alt preview__file-icon" id="previewIcon"></i>
-                            <p>Vista previa no disponible para este tipo de archivo</p>
-                            <button class="btn btn--primary" id="downloadPreviewBtn">
-                                <i class="fas fa-download"></i> Descargar Documento
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="closePreviewBtn">Cerrar</button>
-                <button class="btn btn--primary" id="downloadFromPreviewBtn">
-                    <i class="fas fa-download"></i> Descargar
-                </button>
-            </footer>
-        </article>
-    </dialog>
-
     <!-- Alert Container -->
     <aside id="alertContainer" class="container"></aside>
 
-    <script src="scripts.js"></script>
+<script type="module" src="JAVASCRIPT/app.js"></script>
 </body>
 </html>
