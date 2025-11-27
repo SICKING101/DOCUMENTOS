@@ -757,7 +757,7 @@ app.get('/api/documents/:id/preview', async (req, res) => {
     }
 
     // Para PDFs y imágenes, podemos usar la URL de Cloudinary directamente
-    // Para otros tipos, redirigir a la descarga
+    // Para otros tipos redirigir a la descarga
     if (documento.tipo_archivo === 'pdf' || 
         ['jpg', 'jpeg', 'png'].includes(documento.tipo_archivo)) {
       res.redirect(documento.cloudinary_url);
