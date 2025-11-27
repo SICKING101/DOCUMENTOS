@@ -1,0 +1,105 @@
+import { DOM } from '../dom.js';
+import { apiCall } from '../api.js';
+import { setLoadingState, showAlert, getFileIcon, formatDate } from '../utils.js';
+
+// =============================================================================
+// FUNCIONES DEL DASHBOARD
+// =============================================================================
+async function loadDashboardData(appState) {
+    if (appState.isLoading) return;
+    
+    try {
+        setLoadingState(true);
+        console.log('📊 Cargando datos del dashboard...');
+        
+        const data = await apiCall('/dashboard');
+        
+        if (data.success) {
+            appState.dashboardStats = data.stats;
+            updateDashboardStats(appState);
+            loadRecentDocuments(data.recent_documents || [], appState);
+            console.log('✅ Dashboard actualizado correctamente');
+            showAlert('Dashboard actualizado', 'success');
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando dashboard:', error);
+        showAlert('Error al cargar el dashboard: ' + error.message, 'error');
+    } finally {
+        setLoadingState(false);
+    }
+}
+
+function updateDashboardStats(appState) {
+    if (DOM.statsCards.totalPersonas) DOM.statsCards.totalPersonas.textContent = appState.dashboardStats.totalPersonas;
+    if (DOM.statsCards.totalDocumentos) DOM.statsCards.totalDocumentos.textContent = appState.dashboardStats.totalDocumentos;
+    if (DOM.statsCards.proximosVencer) DOM.statsCards.proximosVencer.textContent = appState.dashboardStats.proximosVencer;
+    if (DOM.statsCards.totalCategorias) DOM.statsCards.totalCategorias.textContent = appState.dashboardStats.totalCategorias;
+}
+
+function loadRecentDocuments(recentDocuments = [], appState) {
+    if (!DOM.recentDocuments) return;
+    
+    const docsToShow = recentDocuments.length > 0 ? recentDocuments : appState.documents.slice(0, 5);
+    
+    DOM.recentDocuments.innerHTML = '';
+    
+    if (docsToShow.length === 0) {
+        DOM.recentDocuments.innerHTML = `
+            <article class="empty-state">
+                <i class="fas fa-file-alt empty-state__icon"></i>
+                <h3 class="empty-state__title">No hay documentos recientes</h3>
+                <p class="empty-state__description">Sube tu primer documento para comenzar</p>
+                <button class="btn btn--primary" id="addFirstDocument">
+                    <i class="fas fa-plus"></i> Subir Documento
+                </button>
+            </article>
+        `;
+        // Re-attach event listener
+        document.getElementById('addFirstDocument')?.addEventListener('click', () => {
+            if (typeof window.openDocumentModal === 'function') {
+                window.openDocumentModal();
+            }
+        });
+        return;
+    }
+    
+    docsToShow.forEach(doc => {
+        const person = doc.persona_id ? doc.persona_id : { nombre: 'No asignado' };
+        
+        const documentItem = document.createElement('article');
+        documentItem.className = 'documents__item';
+        
+        documentItem.innerHTML = `
+            <div class="documents__info">
+                <div class="documents__icon">
+                    <i class="fas fa-file-${getFileIcon(doc.tipo_archivo)}"></i>
+                </div>
+                <div class="documents__details">
+                    <h4 class="documents__details-name">${doc.nombre_original}</h4>
+                    <p class="documents__details-meta">Subido por: ${person.nombre} • ${formatDate(doc.fecha_subida)}</p>
+                    ${doc.descripcion ? `<p class="documents__details-description">${doc.descripcion}</p>` : ''}
+                </div>
+            </div>
+            <div class="documents__actions">
+                <button class="btn btn--sm btn--outline" onclick="previewDocument('${doc._id}')" title="Vista previa">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+        `;
+        
+        DOM.recentDocuments.appendChild(documentItem);
+    });
+}
+
+function handleRefreshDashboard(appState) {
+    console.log('🔄 Actualizando dashboard...');
+    loadDashboardData(appState);
+}
+
+export { loadDashboardData, updateDashboardStats, loadRecentDocuments, handleRefreshDashboard };
