@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Enlace al archivo de estilos externo -->
+    <link rel="stylesheet" href="styles.css"> 
+    <style>
+
+    .modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.5); 
+    }
+
+    </style>
+</head>
+<body>
+    <section id="addTaskModal" class="modal" open>
+    <article class="modal__content">
+        <header class="modal__header">
+            <h3 class="modal__title" id="taskModalTitle">Agregar Tarea/ Recordatorio</h3>
+            <button class="modal__close">&times;</button>
+        </header>
+
+        <section class="modal__body">
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+
+                <div class="form__row">
+                    <div class="form__group">
+                        <label for="taskTitle" class="form__label">Título/Nombre *</label>
+                        <input type="text" id="taskTitle" class="form__input" required>
+                    </div>
+
+                    <div class="form__group">
+                        <label for="taskDueDate" class="form__label">Fecha Límite *</label>
+                        <input type="date" id="taskDueDate" class="form__input" required>
+                    </div>
+                </div>
+
+                <div class="form__group">
+                    <label for="taskDescription" class="form__label">Descripción</label>
+                    <textarea id="taskDescription" class="form__input form__textarea"></textarea>
+                </div>
+            </form>
+        </section>
+
+        <footer class="modal__footer">
+            <button class="btn btn--outline">Cancelar</button>
+            <button class="btn btn--primary" form="taskForm">Guardar Tarea</button>
+        </footer>
+    </article>
+</section>
+
+
+</body>
+</html>

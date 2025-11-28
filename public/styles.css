@@ -19,18 +19,17 @@
     --danger: #ef4444;
     --info: #06b6d4;
     
-    /* Neutrals - Light Theme */
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-tertiary: #e2e8f0;
-    --text-primary: #1e293b;
-    --text-secondary: #475569;
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
     --text-tertiary: #64748b;
-    --border: #cbd5e1;
+    --border: #334155;
     
     /* Sidebar */
-    --sidebar-bg: #1e293b;
-    --sidebar-hover: #334155;
+    --sidebar-bg: #020617;
+    --sidebar-hover: #1e293b;
     --sidebar-active: var(--primary);
     --sidebar-text: #e2e8f0;
     
@@ -57,19 +56,6 @@
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Dark Theme Variables */
-body.dark-theme {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-tertiary: #64748b;
-    --border: #334155;
-    
-    --sidebar-bg: #020617;
-    --sidebar-hover: #1e293b;
-}
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -312,6 +298,75 @@ body {
     font-size: 1rem;
     color: var(--text-secondary);
 }
+
+
+/* ===== TASKBAR ===== */
+.taskbar {
+    left: 17.5rem;
+    position: fixed;
+    bottom: 0;
+    z-index: 10;
+    width: 100%;
+    height: 3rem;
+    background: #474747;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.taskbar__button {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+
+    background-color: transparent;
+    border: none;
+    height: 100%;
+    width: 3rem;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+
+    /* Transición suave */
+    overflow: hidden; /* Por si la capa se sale */
+}
+
+.taskbar__button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #ffffff2a;     /*  ← tu capa semitransparente */
+    opacity: 0;                /*  ← empieza invisible */
+    transition: opacity 0.3s ease;
+    border-radius: inherit;    /* mantiene forma del botón */
+    pointer-events: none;      /* no bloquea clics */
+}
+
+.taskbar__button:hover::after {
+    opacity: 1;                /* ← aparece como fade */
+}
+
+.taskbar__button.static {
+    background: var(--primary-dark); /* fondo base intacto */
+}
+
+
+
+
+.taskbar__button i {
+    font-size: 1.25rem;
+    width: auto;
+    height: auto;
+    text-align: center;
+}
+
+
+
+
+
+
 
 /* ===== BUTTONS ===== */
 .btn {

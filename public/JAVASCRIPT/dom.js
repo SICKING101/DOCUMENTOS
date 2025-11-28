@@ -55,6 +55,7 @@ const DOM = {
     categoryModal: document.getElementById('categoryModal'),
     searchModal: document.getElementById('searchModal'),
     reportModal: document.getElementById('reportModal'),
+    addTaskModal: document.getElementById('addTaskModal'),
     
     // Form Elements - Personas
     personForm: document.getElementById('personForm'),
@@ -114,6 +115,17 @@ const DOM = {
     reportPreviewContent: document.getElementById('reportPreviewContent'),
     generateReportBtn: document.getElementById('generateReportBtn'),
     cancelReportBtn: document.getElementById('cancelReportBtn'),
+
+
+    // Form Elements - Tasks 
+    saveTaskBtn: document.getElementById('saveTaskBtn'), // Botón 'Guardar Tarea'
+    cancelTaskBtn: document.getElementById('cancelTaskBtn'), // Botón 'Cancelar'
+    taskForm: document.getElementById('taskForm'), // El formulario
+    taskId: document.getElementById('taskId'), // Hidden input
+    taskModalTitle: document.getElementById('taskModalTitle'), // El h3
+    taskTitle: document.getElementById('taskTitle'),
+    taskDescription: document.getElementById('taskDescription'),
+    taskDueDate: document.getElementById('taskDueDate'),
     
     // Alert Container
     alertContainer: document.getElementById('alertContainer'),

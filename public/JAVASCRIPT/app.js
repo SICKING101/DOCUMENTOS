@@ -62,6 +62,15 @@ import {
     handleGenerateReport, 
     handleReportTypeChange 
 } from './modules/reports.js';
+ 
+
+import {
+    openAddTaskModal,
+    closeAddTaskModal,
+    handleSaveTask
+} from './modules/tasks.js';
+
+
 
 // =============================================================================
 // INICIALIZACIÓN DE LA APLICACIÓN
@@ -158,6 +167,9 @@ function setupEventListeners() {
     DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
     DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
     
+    DOM.saveTaskBtn?.addEventListener('click', () => handleSaveTask()); // Llamar a la función del módulo tasks.js
+    DOM.cancelTaskBtn?.addEventListener('click', () => closeAddTaskModal());
+    
     // Drag and Drop
     setupFileDragAndDrop();
     
@@ -172,7 +184,8 @@ function setupEventListeners() {
         documentModal: DOM.documentModal,
         categoryModal: DOM.categoryModal,
         searchModal: DOM.searchModal,
-        reportModal: DOM.reportModal
+        reportModal: DOM.reportModal,
+        addTaskModal: DOM.addTaskModal
     };
     setupModalBackdropClose(modals);
     
@@ -275,6 +288,9 @@ function handleQuickAction(e) {
         case 'Búsqueda Avanzada':
             showAdvancedSearch();
             break;
+        case 'Agregar Tarea':
+            openAddTaskModal();
+            break;
         default:
             console.warn('Acción no reconocida:', action);
     }
@@ -293,6 +309,8 @@ function handleModalClose() {
             closeSearchModal();
         } else if (modal.id === 'reportModal') {
             closeReportModal();
+        } else if (modal.id === 'addTaskModal') {
+            closeAddTaskModal();
         }
     }
 }
