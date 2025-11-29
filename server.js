@@ -67,9 +67,32 @@ const documentSchema = new mongoose.Schema({
   activo: { type: Boolean, default: true }
 }, { timestamps: true });
 
+const taskSchema = new mongoose.Schema({
+    titulo: { type: String, required: true },
+    descripcion: String,
+    prioridad: { 
+        type: String, 
+        enum: ['baja', 'media', 'alta'], 
+        default: 'media' 
+    },
+    estado: { 
+        type: String, 
+        enum: ['pendiente', 'en-progreso', 'completada'], 
+        default: 'pendiente' 
+    },
+    categoria: String,
+    recordatorio: { type: Boolean, default: false },
+    fecha_limite: Date,
+    hora_limite: String,
+    fecha_creacion: { type: Date, default: Date.now },
+    fecha_actualizacion: { type: Date, default: Date.now },
+    activo: { type: Boolean, default: true }
+}, { timestamps: true });
+
 const Person = mongoose.model('Person', personSchema);
 const Category = mongoose.model('Category', categorySchema);
 const Document = mongoose.model('Document', documentSchema);
+const Task = mongoose.model('Task', taskSchema);
 
 // -----------------------------
 // Configuración de Multer
@@ -582,82 +605,13 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
   }
 });
 
-// FUNCIÓN PARA GENERAR URL DE DESCARGA
-function generateDownloadUrl(cloudinaryUrl, fileName) {
-  try {
-    console.log('🔧 Generando URL de descarga para:', {
-      cloudinaryUrl: cloudinaryUrl,
-      fileName: fileName
-    });
-
-    // Extraer el public_id de la URL de Cloudinary
-    const urlParts = cloudinaryUrl.split('/upload/');
-    if (urlParts.length !== 2) {
-      console.warn('⚠️ URL de Cloudinary no tiene formato esperado');
-      return cloudinaryUrl;
-    }
-
-    const publicIdWithExtension = urlParts[1];
-    const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ""); // Remover extensión
-
-    console.log('📋 Public ID extraído:', publicId);
-
-    // Generar URL de descarga usando el SDK de Cloudinary
-    const downloadUrl = cloudinary.url(publicId, {
-      flags: 'attachment',
-      attachment: fileName,
-      resource_type: 'auto',
-      secure: true,
-      sign_url: false
-    });
-
-    console.log('✅ URL de descarga generada:', downloadUrl);
-    return downloadUrl;
-
-  } catch (error) {
-    console.error('❌ Error generando URL de descarga:', error);
-    // Fallback: devolver la URL original
-    return cloudinaryUrl;
-  }
-}
-
 app.get('/api/documents/:id/download', async (req, res) => {
   try {
+    console.log('📥 Solicitud de descarga de documento:', req.params.id);
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'ID inválido' });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      return res.status(404).json({ success: false, message: 'Documento no encontrado' });
-    }
-
-    const downloadUrl = cloudinary.url(documento.public_id, {
-      secure: true,
-      flags: "attachment",
-      filename_override: documento.nombre_original,
-      resource_type: documento.resource_type || "raw"
-    });
-
-    return res.redirect(downloadUrl);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-
-// NUEVA RUTA: DESCARGA CON PROXY (método alternativo)
-app.get('/api/documents/:id/download-proxy', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga con proxy:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('❌ ID inválido:', id);
       return res.status(400).json({ 
         success: false, 
         message: 'ID inválido' 
@@ -667,67 +621,41 @@ app.get('/api/documents/:id/download-proxy', async (req, res) => {
     const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
+      console.error('❌ Documento no encontrado:', id);
       return res.status(404).json({ 
         success: false, 
         message: 'Documento no encontrado' 
       });
     }
 
-    console.log('✅ Descarga con proxy - Documento encontrado:', documento.nombre_original);
-
-    // Configurar headers para descarga
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(documento.nombre_original)}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-
-    // Hacer fetch al archivo en Cloudinary y redirigir el stream
-    const response = await fetch(documento.cloudinary_url);
-    
-    if (!response.ok) {
-      throw new Error(`Error al obtener archivo de Cloudinary: ${response.status}`);
-    }
-
-    // Redirigir el stream de respuesta
-    response.body.pipe(res);
-
-  } catch (error) {
-    console.error('❌ Error en descarga con proxy:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al descargar documento: ' + error.message 
+    console.log('✅ Documento encontrado:', {
+      nombre: documento.nombre_original,
+      tipo: documento.tipo_archivo,
+      resourceType: documento.resource_type
     });
-  }
-});
+    console.log('📤 Cloudinary URL original:', documento.cloudinary_url);
 
-// RUTA SIMPLIFICADA: Redirección directa (método más simple)
-app.get('/api/documents/:id/download-simple', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga simple:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
-      });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
-      });
-    }
-
-    console.log('✅ Descarga simple - Redirigiendo a:', documento.cloudinary_url);
+    // Modificar la URL de Cloudinary para forzar descarga
+    let downloadUrl = documento.cloudinary_url;
+    const nombreArchivo = encodeURIComponent(documento.nombre_original);
     
-    // Simplemente redirigir a la URL original de Cloudinary
-    // El navegador manejará la descarga según el tipo de archivo
-    res.redirect(documento.cloudinary_url);
+    // Para TODOS los tipos de archivos, agregar fl_attachment
+    const urlParts = downloadUrl.split('/upload/');
+    if (urlParts.length === 2) {
+      // Funciona para image, raw, video y cualquier otro resource_type
+      downloadUrl = `${urlParts[0]}/upload/fl_attachment:${nombreArchivo}/${urlParts[1]}`;
+      console.log('✅ Parámetro fl_attachment agregado correctamente');
+    } else {
+      console.warn('⚠️ No se pudo modificar la URL, usando URL original');
+    }
+
+    console.log('🔗 URL de descarga final:', downloadUrl);
+    
+    // Redirigir a la URL de Cloudinary con parámetros de descarga
+    res.redirect(downloadUrl);
 
   } catch (error) {
-    console.error('❌ Error en descarga simple:', error);
+    console.error('❌ Error descargando documento:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error al descargar documento: ' + error.message 
@@ -1157,20 +1085,31 @@ app.post('/api/reports/pdf', async (req, res) => {
          .moveDown(0.8);
     });
 
-    // Pie de página
-    const pageCount = doc.bufferedPageRange().count;
+    // Obtener el rango de páginas
+    const range = doc.bufferedPageRange();
+    const pageCount = range.count;
+    
+    console.log(`📄 Total de páginas generadas: ${pageCount}`);
+
+    // Agregar pie de página en cada página
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
+      
+      // Guardar posición actual
+      const oldBottomMargin = doc.page.margins.bottom;
+      
+      // Posicionar en el footer
       doc.fontSize(8)
          .fillColor('#6B7280')
          .text(
            `Página ${i + 1} de ${pageCount} - Sistema de Gestión de Documentos CBTIS051`,
            50,
            doc.page.height - 50,
-           { align: 'center' }
+           { align: 'center', lineBreak: false }
          );
     }
 
+    // Finalizar documento
     doc.end();
 
     console.log('✅ Reporte PDF generado exitosamente');
@@ -1278,6 +1217,281 @@ app.post('/api/reports/csv', async (req, res) => {
       message: 'Error al generar reporte CSV: ' + error.message 
     });
   }
+});
+
+// -----------------------------
+// TAREAS
+// -----------------------------
+
+// Obtener todas las tareas
+app.get('/api/tasks', async (req, res) => {
+    try {
+        const tasks = await Task.find({ activo: true })
+            .sort({ fecha_creacion: -1 })
+            .lean();
+
+        res.json({ 
+            success: true, 
+            tasks 
+        });
+    } catch (error) {
+        console.error('Error obteniendo tareas:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener tareas' 
+        });
+    }
+});
+
+// Crear nueva tarea
+app.post('/api/tasks', async (req, res) => {
+    try {
+        const { 
+            titulo, 
+            descripcion, 
+            prioridad, 
+            estado, 
+            categoria, 
+            recordatorio, 
+            fecha_limite, 
+            hora_limite 
+        } = req.body;
+
+        if (!titulo) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El título es obligatorio' 
+            });
+        }
+
+        const nuevaTarea = new Task({
+            titulo,
+            descripcion: descripcion || '',
+            prioridad: prioridad || 'media',
+            estado: estado || 'pendiente',
+            categoria: categoria || '',
+            recordatorio: recordatorio || false,
+            fecha_limite: fecha_limite || null,
+            hora_limite: hora_limite || null
+        });
+
+        await nuevaTarea.save();
+
+        res.json({ 
+            success: true, 
+            message: 'Tarea creada correctamente',
+            task: nuevaTarea 
+        });
+    } catch (error) {
+        console.error('Error creando tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al crear tarea' 
+        });
+    }
+});
+
+// Actualizar tarea
+app.put('/api/tasks/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { 
+            titulo, 
+            descripcion, 
+            prioridad, 
+            estado, 
+            categoria, 
+            recordatorio, 
+            fecha_limite, 
+            hora_limite 
+        } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID inválido' 
+            });
+        }
+
+        if (!titulo) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El título es obligatorio' 
+            });
+        }
+
+        const tareaActualizada = await Task.findByIdAndUpdate(
+            id,
+            {
+                titulo,
+                descripcion,
+                prioridad,
+                estado,
+                categoria,
+                recordatorio,
+                fecha_limite,
+                hora_limite,
+                fecha_actualizacion: new Date()
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!tareaActualizada) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Tarea no encontrada' 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Tarea actualizada correctamente',
+            task: tareaActualizada 
+        });
+    } catch (error) {
+        console.error('Error actualizando tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al actualizar tarea' 
+        });
+    }
+});
+
+// Eliminar tarea (eliminación lógica)
+app.delete('/api/tasks/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID inválido' 
+            });
+        }
+
+        const tareaEliminada = await Task.findByIdAndUpdate(
+            id,
+            { activo: false },
+            { new: true }
+        );
+
+        if (!tareaEliminada) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Tarea no encontrada' 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Tarea eliminada correctamente' 
+        });
+    } catch (error) {
+        console.error('Error eliminando tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al eliminar tarea' 
+        });
+    }
+});
+
+// Cambiar estado de tarea
+app.patch('/api/tasks/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estado } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID inválido' 
+            });
+        }
+
+        const estadosPermitidos = ['pendiente', 'en-progreso', 'completada'];
+        if (!estadosPermitidos.includes(estado)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Estado no válido' 
+            });
+        }
+
+        const tareaActualizada = await Task.findByIdAndUpdate(
+            id,
+            { 
+                estado,
+                fecha_actualizacion: new Date()
+            },
+            { new: true }
+        );
+
+        if (!tareaActualizada) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Tarea no encontrada' 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Tarea marcada como ${estado}`,
+            task: tareaActualizada 
+        });
+    } catch (error) {
+        console.error('Error cambiando estado de tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al cambiar estado de tarea' 
+        });
+    }
+});
+
+// Obtener estadísticas de tareas
+app.get('/api/tasks/stats', async (req, res) => {
+    try {
+        const totalTareas = await Task.countDocuments({ activo: true });
+        const tareasPendientes = await Task.countDocuments({ 
+            activo: true, 
+            estado: 'pendiente' 
+        });
+        const tareasEnProgreso = await Task.countDocuments({ 
+            activo: true, 
+            estado: 'en-progreso' 
+        });
+        const tareasCompletadas = await Task.countDocuments({ 
+            activo: true, 
+            estado: 'completada' 
+        });
+
+        // Tareas próximas a vencer (en los próximos 7 días)
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() + 7);
+        const tareasPorVencer = await Task.countDocuments({
+            activo: true,
+            estado: { $ne: 'completada' },
+            fecha_limite: { 
+                $gte: new Date(), 
+                $lte: fechaLimite 
+            }
+        });
+
+        res.json({
+            success: true,
+            stats: {
+                total: totalTareas,
+                pendientes: tareasPendientes,
+                enProgreso: tareasEnProgreso,
+                completadas: tareasCompletadas,
+                porVencer: tareasPorVencer
+            }
+        });
+    } catch (error) {
+        console.error('Error obteniendo estadísticas de tareas:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener estadísticas' 
+        });
+    }
 });
 
 // -----------------------------
