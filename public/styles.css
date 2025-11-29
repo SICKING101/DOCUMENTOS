@@ -400,12 +400,7 @@ dialog::backdrop {
     flex-direction: row; /* HORIZONTAL porque la barra es horizontal */
     align-items: center;
     gap: 0.75rem;
-    
-    /* Separador visual entre botones estáticos y tareas */
-    margin-left: 1rem;
-    padding-left: 1rem;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    height: 60%; /* Altura del separador */
+
 }
 
 /* El botón circular del icono (La Tarea en sí) */
@@ -425,7 +420,7 @@ dialog::backdrop {
     color: #555;
     font-size: 0.9rem;
 }
-
+      
 .taskbar__item:hover {
     transform: translateY(-3px) scale(1.1); /* Sube un poquito al pasar el mouse */
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
