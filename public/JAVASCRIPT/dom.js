@@ -2,12 +2,20 @@
 // ELEMENTOS DOM
 // =============================================================================
 const DOM = {
-    // Header
-    headerTitle: document.querySelector('.header__title'),
     
     // Navigation
     navLinks: document.querySelectorAll('.sidebar__nav-link'),
+
+   // Elementos de tareas (NUEVOS)
+    tasksContainer: document.getElementById('tasksContainer'),
+    addTaskBtn: document.getElementById('addTaskBtn'),
+    taskModal: document.getElementById('taskModal'),
+    taskForm: document.getElementById('taskForm'),
+    tasksSearch: document.getElementById('tasksSearch'),
+    addFirstTask: document.getElementById('addFirstTask'),
     
+    // Modal close buttons (actualizado)
+    modalCloseButtons: document.querySelectorAll('.modal__close'),
     // Main Content
     tabContents: document.querySelectorAll('.tab-content'),
     
@@ -33,11 +41,6 @@ const DOM = {
     documentosTableBody: document.getElementById('documentosTableBody'),
     addDocumentBtn: document.getElementById('addDocumentBtn'),
     
-    // Search Elements
-    documentSearch: document.getElementById('documentSearch'),
-    searchDocumentsBtn: document.getElementById('searchDocumentsBtn'),
-    clearSearchBtn: document.getElementById('clearSearchBtn'),
-    
     // Filter Elements
     filterCategory: document.getElementById('filterCategory'),
     filterType: document.getElementById('filterType'),
@@ -46,7 +49,6 @@ const DOM = {
     
     // Categorías Elements
     categoriesStats: document.getElementById('categoriesStats'),
-    categoriasTableBody: document.getElementById('categoriasTableBody'),
     addCategoryBtn: document.getElementById('addCategoryBtn'),
     
     // Modal Elements

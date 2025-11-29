@@ -2,6 +2,7 @@ import { CONFIG } from './config.js';
 import { AppState } from './state.js';
 import { DOM } from './dom.js';
 import { showAlert, setupModalBackdropClose } from './utils.js';
+import TaskManager from './task.js';
 
 // Importar todos los módulos
 import { 
@@ -71,6 +72,9 @@ const appState = new AppState();
 // Hacer appState global para todos los módulos
 window.appState = appState;
 
+// Instancia global del gestor de tareas
+let taskManager = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Inicializando Sistema de Gestión de Documentos - CBTIS051');
     console.log('📡 URL de la API:', CONFIG.API_BASE_URL);
@@ -96,8 +100,54 @@ function initializeApp() {
         console.warn('⚠️ Elementos DOM faltantes:', missingElements);
     }
     
+    // Inicializar navegación activa
+    initializeActiveNavigation();
+    
+    // Inicializar gestor de tareas
+    initializeTaskManager();
+    
     // Mostrar estado inicial
     appState.logState();
+}
+
+// FUNCIÓN: Inicializar gestor de tareas
+function initializeTaskManager() {
+    console.log('📝 Inicializando gestor de tareas...');
+    try {
+        taskManager = new TaskManager();
+        window.taskManager = taskManager;
+        console.log('✅ Gestor de tareas inicializado correctamente');
+    } catch (error) {
+        console.error('❌ Error al inicializar gestor de tareas:', error);
+        showAlert('Error al inicializar módulo de tareas', 'error');
+    }
+}
+
+// FUNCIÓN: Inicializar navegación activa
+function initializeActiveNavigation() {
+    console.log('🎯 Inicializando navegación activa...');
+    
+    // Verificar si hay una pestaña activa en el HTML
+    const currentActiveLink = document.querySelector('.sidebar__nav-link--active');
+    if (currentActiveLink) {
+        const activeTab = currentActiveLink.getAttribute('data-tab');
+        console.log('📌 Pestaña activa encontrada en HTML:', activeTab);
+        
+        // Asegurarse de que el contenido también esté activo
+        DOM.tabContents.forEach(tab => {
+            tab.classList.toggle('tab-content--active', tab.id === activeTab);
+        });
+        
+        appState.currentTab = activeTab;
+    } else {
+        // Si no hay activa, activar dashboard
+        console.log('📌 No hay pestaña activa, activando dashboard por defecto');
+        const dashboardLink = document.querySelector('[data-tab="dashboard"]');
+        if (dashboardLink) {
+            dashboardLink.classList.add('sidebar__nav-link--active');
+            appState.currentTab = 'dashboard';
+        }
+    }
 }
 
 function setupEventListeners() {
@@ -172,7 +222,8 @@ function setupEventListeners() {
         documentModal: DOM.documentModal,
         categoryModal: DOM.categoryModal,
         searchModal: DOM.searchModal,
-        reportModal: DOM.reportModal
+        reportModal: DOM.reportModal,
+        taskModal: DOM.taskModal // NUEVO: Modal de tareas
     };
     setupModalBackdropClose(modals);
     
@@ -180,7 +231,7 @@ function setupEventListeners() {
 }
 
 // =============================================================================
-// FUNCIONES DE NAVEGACIÓN
+// FUNCIONES DE NAVEGACIÓN - ACTUALIZADAS CON TAREAS
 // =============================================================================
 function handleTabNavigation(e) {
     e.preventDefault();
@@ -190,46 +241,105 @@ function handleTabNavigation(e) {
 }
 
 function switchTab(tabId) {
-    // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias'];
+    // Validar tabId - ACTUALIZADO con tareas
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
     }
     
-    // Actualizar navegación
+    console.log(`🔄 Cambiando a pestaña: ${tabId}`);
+    
+    // 1. Remover clase activa de TODOS los enlaces
     DOM.navLinks.forEach(link => {
-        const isActive = link.getAttribute('data-tab') === tabId;
-        link.classList.toggle('header__nav-link--active', isActive);
+        link.classList.remove('sidebar__nav-link--active', 'header__nav-link--active');
     });
     
-    // Mostrar contenido de pestaña seleccionada
+    // 2. Agregar clase activa SOLO al enlace seleccionado
+    const activeLink = Array.from(DOM.navLinks).find(
+        link => link.getAttribute('data-tab') === tabId
+    );
+    
+    if (activeLink) {
+        activeLink.classList.add('sidebar__nav-link--active');
+        console.log(`✅ Enlace activo establecido: ${tabId}`);
+    } else {
+        console.error(`❌ No se encontró enlace para: ${tabId}`);
+        return;
+    }
+    
+    // 3. Ocultar TODOS los contenidos
     DOM.tabContents.forEach(tab => {
-        const isActive = tab.id === tabId;
-        tab.classList.toggle('tab-content--active', isActive);
+        tab.classList.remove('tab-content--active');
     });
     
-    appState.currentTab = tabId;
-    console.log(`✅ Pestaña cambiada a: ${tabId}`);
+    // 4. Mostrar SOLO el contenido activo
+    const activeTab = document.getElementById(tabId);
+    if (activeTab) {
+        activeTab.classList.add('tab-content--active');
+        console.log(`✅ Contenido activo establecido: ${tabId}`);
+    } else {
+        console.error(`❌ No se encontró contenido para: ${tabId}`);
+        return;
+    }
     
-    // Cargar datos específicos de la pestaña
+    // 5. Actualizar estado
+    appState.currentTab = tabId;
+    console.log(`🎯 Pestaña cambiada exitosamente a: ${tabId}`);
+    
+    // 6. Cargar datos específicos
     loadTabSpecificData(tabId);
 }
 
+// En app.js - Busca esta función y modifícala
 function loadTabSpecificData(tabId) {
-    switch(tabId) {
-        case 'personas':
-            loadPersons();
-            break;
-        case 'documentos':
-            loadDocuments();
-            break;
-        case 'categorias':
-            loadCategories();
-            break;
-        case 'dashboard':
-            // El dashboard ya se carga por defecto
-            break;
+    try {
+        console.log(`🔄 Cargando datos específicos para pestaña: ${tabId}`);
+        
+        switch(tabId) {
+            case 'dashboard':
+                // Cargar datos del dashboard
+                loadDashboardData();
+                break;
+                
+            case 'personas':
+                // Cargar datos de personas
+                if (window.personManager && typeof personManager.loadData === 'function') {
+                    personManager.loadData();
+                }
+                break;
+                
+            case 'documentos':
+                // Cargar datos de documentos
+                if (window.documentManager && typeof documentManager.loadData === 'function') {
+                    documentManager.loadData();
+                }
+                break;
+                
+            case 'categorias':
+                // Cargar datos de categorías
+                if (window.categoryManager && typeof categoryManager.loadData === 'function') {
+                    categoryManager.loadData();
+                }
+                break;
+                
+            case 'tareas':
+                // Cargar datos de tareas - CORREGIDO
+                if (window.taskManager && typeof taskManager.loadTasks === 'function') {
+                    taskManager.loadTasks();
+                } else if (window.taskManager) {
+                    // Fallback: simplemente renderizar las tareas existentes
+                    taskManager.renderTasks();
+                    taskManager.updateSummary();
+                }
+                break;
+                
+            default:
+                console.log(`ℹ️  No hay carga específica para la pestaña: ${tabId}`);
+        }
+    } catch (error) {
+        console.error(`❌ Error cargando datos para pestaña ${tabId}:`, error);
+        showAlert(`Error al cargar datos de ${tabId}`, 'error');
     }
 }
 
@@ -256,7 +366,7 @@ async function loadInitialData() {
 }
 
 // =============================================================================
-// MANEJADORES DE UI
+// MANEJADORES DE UI - ACTUALIZADOS
 // =============================================================================
 function handleQuickAction(e) {
     const action = this.querySelector('.action-card__title')?.textContent;
@@ -293,16 +403,87 @@ function handleModalClose() {
             closeSearchModal();
         } else if (modal.id === 'reportModal') {
             closeReportModal();
+        } else if (modal.id === 'taskModal') {
+            // NUEVO: Cerrar modal de tareas
+            if (taskManager) {
+                taskManager.closeTaskModal();
+            }
         }
     }
 }
 
 // =============================================================================
-// FUNCIONES GLOBALES PARA DEBUG Y TEST
+// NUEVAS FUNCIONES PARA GESTIÓN DE TAREAS
+// =============================================================================
+
+// Función para abrir modal de tarea desde otros módulos
+function openTaskModal(task = null) {
+    if (taskManager) {
+        taskManager.openTaskModal(task);
+    } else {
+        console.error('❌ taskManager no está disponible');
+        showAlert('Error: Módulo de tareas no disponible', 'error');
+    }
+}
+
+// Función para crear tarea rápida desde dashboard
+function createQuickTask(title, description = '', priority = 'media') {
+    if (taskManager) {
+        const quickTask = {
+            title: title,
+            description: description,
+            priority: priority,
+            status: 'pendiente',
+            category: 'Rápida',
+            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mañana
+            reminder: false
+        };
+        
+        taskManager.openTaskModal(quickTask);
+    }
+}
+
+// Función para obtener estadísticas de tareas para el dashboard
+function getTasksStats() {
+    if (!taskManager) return null;
+    
+    const tasks = taskManager.tasks;
+    return {
+        total: tasks.length,
+        pending: tasks.filter(t => t.status === 'pendiente').length,
+        inProgress: tasks.filter(t => t.status === 'en-progreso').length,
+        completed: tasks.filter(t => t.status === 'completada').length,
+        overdue: tasks.filter(t => {
+            if (!t.dueDate || t.status === 'completada') return false;
+            return new Date(t.dueDate) < new Date();
+        }).length
+    };
+}
+
+// =============================================================================
+// FUNCIONES GLOBALES PARA DEBUG Y TEST - ACTUALIZADAS
 // =============================================================================
 function debugAppState() {
     console.group('🔧 Debug App State');
     appState.logState();
+    
+    // Mostrar estadísticas de tareas si están disponibles
+    if (taskManager) {
+        console.log('📊 Estadísticas de Tareas:', {
+            total: taskManager.tasks.length,
+            porEstado: {
+                pendientes: taskManager.tasks.filter(t => t.status === 'pendiente').length,
+                enProgreso: taskManager.tasks.filter(t => t.status === 'en-progreso').length,
+                completadas: taskManager.tasks.filter(t => t.status === 'completada').length
+            },
+            porPrioridad: {
+                alta: taskManager.tasks.filter(t => t.priority === 'alta').length,
+                media: taskManager.tasks.filter(t => t.priority === 'media').length,
+                baja: taskManager.tasks.filter(t => t.priority === 'baja').length
+            }
+        });
+    }
+    
     console.groupEnd();
 }
 
@@ -339,8 +520,31 @@ function testCloudinaryConnection() {
     showAlert('Configuración de Cloudinary verificada correctamente', 'success');
 }
 
+function testTaskManager() {
+    console.log('🧪 Probando gestor de tareas...');
+    
+    if (!taskManager) {
+        showAlert('Gestor de tareas no disponible', 'error');
+        return;
+    }
+    
+    // Crear tarea de prueba
+    const testTask = {
+        title: 'Tarea de prueba',
+        description: 'Esta es una tarea de prueba generada automáticamente',
+        priority: 'media',
+        status: 'pendiente',
+        category: 'Prueba',
+        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // En 2 días
+        reminder: true
+    };
+    
+    taskManager.openTaskModal(testTask);
+    showAlert('Gestor de tareas funcionando correctamente', 'success');
+}
+
 function resetApp() {
-    if (confirm('¿Estás seguro de que deseas resetear la aplicación? Se perderán los datos no guardados.')) {
+    if (confirm('¿Estás seguro de que deseas resetear la aplicación? Se perderán TODOS los datos incluyendo tareas.')) {
         localStorage.clear();
         location.reload();
     }
@@ -371,7 +575,7 @@ function showAllDocuments() {
 }
 
 // =============================================================================
-// EXPORTAR FUNCIONES GLOBALES
+// EXPORTAR FUNCIONES GLOBALES - ACTUALIZADO
 // =============================================================================
 
 // Hacer todas las funciones necesarias disponibles globalmente
@@ -396,7 +600,17 @@ window.showAllDocuments = showAllDocuments;
 window.debugAppState = debugAppState;
 window.testAPIConnection = testAPIConnection;
 window.testCloudinaryConnection = testCloudinaryConnection;
+window.testTaskManager = testTaskManager; // NUEVO
 window.resetApp = resetApp;
+
+// Funciones de navegación globales
+window.switchTab = switchTab;
+window.loadTabSpecificData = loadTabSpecificData;
+
+// Funciones de tareas globales
+window.openTaskModal = openTaskModal;
+window.createQuickTask = createQuickTask;
+window.getTasksStats = getTasksStats;
 
 // Funciones que necesitan ser globales para otros módulos
 window.loadDashboardData = () => loadDashboardData(appState);
@@ -425,6 +639,42 @@ window.addEventListener('unhandledrejection', function(e) {
     showAlert('Error en operación asíncrona. Revisa la consola para más detalles.', 'error');
 });
 
+// =============================================================================
+// INICIALIZACIÓN TARDÍA PARA ELEMENTOS DINÁMICOS
+// =============================================================================
+// Para elementos que se cargan dinámicamente después del DOMContentLoaded
+setTimeout(() => {
+    // Verificar si hay elementos de tareas que necesitan inicialización tardía
+    const taskElements = [
+        'tasksContainer',
+        'addTaskBtn',
+        'taskModal',
+        'taskForm',
+        'tasksSearch',
+        'filterPriority',
+        'filterStatus',
+        'clearFiltersBtn'
+    ];
+    
+    const missingTaskElements = taskElements.filter(id => !document.getElementById(id));
+    if (missingTaskElements.length > 0) {
+        console.warn('⚠️ Elementos de tareas faltantes en inicialización tardía:', missingTaskElements);
+    }
+    
+    // Re-bind eventos si es necesario
+    if (taskManager && missingTaskElements.length === 0) {
+        console.log('🔄 Re-bindeando eventos de tareas...');
+        taskManager.bindEvents();
+    }
+}, 1000);
+
 console.log('✅ Script de aplicación cargado correctamente');
 
-export { loadTabSpecificData };
+export { 
+    loadTabSpecificData, 
+    switchTab,
+    taskManager,
+    openTaskModal,
+    createQuickTask,
+    getTasksStats
+};

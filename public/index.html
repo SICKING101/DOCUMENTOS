@@ -7,11 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Meta tags para mejor apariencia -->
-    <meta name="theme-color" content="#dc2626">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Sistema de Gestión de Documentos - CBTIS051</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -43,6 +38,10 @@
                 <a href="#" class="sidebar__nav-link" data-tab="categorias">
                     <i class="fas fa-tags"></i>
                     <span>Categorías</span>
+                </a>
+                <a href="#" class="sidebar__nav-link" data-tab="tareas">
+                    <i class="fa-solid fa-thumbtack"></i>
+                    <span>Tareas</span>
                 </a>
             </nav>
 
@@ -366,6 +365,98 @@
                         <!-- Las categorías se cargarán dinámicamente -->
                     </div>
                 </section>
+
+                                    <!-- ===== TAREAS TAB ===== -->
+                <section id="tareas" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">Gestión de Tareas</h2>
+                            <p class="section__subtitle">Organiza tus tareas y actividades</p>
+                        </div>
+                        <button class="btn btn--primary" id="addTaskBtn">
+                            <i class="fas fa-plus"></i> Nueva Tarea
+                        </button>
+                    </div>
+
+                    <!-- Task Filters -->
+                    <div class="filters-bar">
+                        <div class="filters-bar__search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Buscar tareas..." id="tasksSearch">
+                        </div>
+                        <select class="filters-bar__select" id="filterPriority">
+                            <option value="all">Todas las prioridades</option>
+                            <option value="alta">Alta prioridad</option>
+                            <option value="media">Prioridad media</option>
+                            <option value="baja">Baja prioridad</option>
+                        </select>
+                        <select class="filters-bar__select" id="filterStatus">
+                            <option value="all">Todas las tareas</option>
+                            <option value="pendiente">Pendientes</option>
+                            <option value="en-progreso">En progreso</option>
+                            <option value="completada">Completadas</option>
+                        </select>
+                        <button class="btn btn--outline" id="clearFiltersBtn">
+                            <i class="fas fa-times"></i> Limpiar filtros
+                        </button>
+                    </div>
+
+                    <!-- Tasks Summary -->
+                    <div class="tasks-summary">
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--total">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="totalTasks">0</h3>
+                                <p class="summary-card__label">Total de tareas</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--pending">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="pendingTasks">0</h3>
+                                <p class="summary-card__label">Pendientes</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--progress">
+                                <i class="fas fa-spinner"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="progressTasks">0</h3>
+                                <p class="summary-card__label">En progreso</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--completed">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="completedTasks">0</h3>
+                                <p class="summary-card__label">Completadas</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tasks Container -->
+                    <div class="tasks-container" id="tasksContainer">
+                        <!-- Las tareas se cargarán aquí dinámicamente -->
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-list empty-state__icon"></i>
+                            <h3 class="empty-state__title">No hay tareas registradas</h3>
+                            <p class="empty-state__description">Crea tu primera tarea para comenzar</p>
+                            <button class="btn btn--primary" id="addFirstTask">
+                                <i class="fas fa-plus"></i> Crear Tarea
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
             </main>
         </div>
     </div>
@@ -633,6 +724,70 @@
                 <button class="btn btn--primary" id="generateReportBtn">
                     <i class="fas fa-download"></i> Generar Reporte
                 </button>
+            </footer>
+        </article>
+    </dialog>
+
+    <!-- Add Task Modal -->
+    <dialog id="taskModal" class="modal">
+        <article class="modal__content">
+            <header class="modal__header">
+                <h3 class="modal__title" id="taskModalTitle">Nueva Tarea</h3>
+                <button class="modal__close" id="closeTaskModal">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="taskForm">
+                    <input type="hidden" id="taskId">
+                    <div class="form__group">
+                        <label for="taskTitle" class="form__label">Título *</label>
+                        <input type="text" id="taskTitle" class="form__input" placeholder="Título de la tarea" required>
+                    </div>
+                    <div class="form__group">
+                        <label for="taskDescription" class="form__label">Descripción</label>
+                        <textarea id="taskDescription" class="form__textarea" rows="4" placeholder="Descripción detallada de la tarea..."></textarea>
+                    </div>
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="taskPriority" class="form__label">Prioridad</label>
+                            <select id="taskPriority" class="form__select">
+                                <option value="baja">Baja</option>
+                                <option value="media">Media</option>
+                                <option value="alta">Alta</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="taskStatus" class="form__label">Estado</label>
+                            <select id="taskStatus" class="form__select">
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en-progreso">En progreso</option>
+                                <option value="completada">Completada</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="taskDueDate" class="form__label">Fecha límite</label>
+                            <input type="date" id="taskDueDate" class="form__input">
+                        </div>
+                        <div class="form__group">
+                            <label for="taskTime" class="form__label">Hora límite</label>
+                            <input type="time" id="taskTime" class="form__input">
+                        </div>
+                    </div>
+                    <div class="form__group">
+                        <label for="taskCategory" class="form__label">Categoría</label>
+                        <input type="text" id="taskCategory" class="form__input" placeholder="Ej: Personal, Trabajo, Estudio...">
+                    </div>
+                    <div class="form__group">
+                        <label class="form__label">
+                            <input type="checkbox" id="taskReminder"> Recordatorio
+                        </label>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelTaskBtn">Cancelar</button>
+                <button class="btn btn--primary" id="saveTaskBtn">Guardar Tarea</button>
             </footer>
         </article>
     </dialog>
