@@ -403,13 +403,15 @@
 
             <nav class="taskbar">
 
-                <button class="taskbar__button static" id="addTaskBtn">    
+                <button class="taskbar__button static" id="addTaskBtn">
                     <i class="fas fa-plus"></i>
                 </button>
-                <button class="taskbar__button static" id="editTaskBtn">    
+                <button class="taskbar__button static" id="editTaskBtn">  
                     <i class="fas fa-pencil"></i>
                 </button>
-                <section id="task__list"></section>
+                <section id="task__list">
+                    
+                </section>
 
             </nav> <!-- final taskbar -->
 
@@ -701,35 +703,111 @@
     </dialog>
 
 
-    <!-- Add task Modal -->
+    
+
+
+    <!-- Add Task Modal -->
     <dialog id="addTaskModal" class="modal">
         <article class="modal__content">
             <header class="modal__header">
                 <h3 class="modal__title" id="taskModalTitle">Agregar Tarea/Recordatorio</h3>
                 <button class="modal__close" data-close-modal="addTaskModal">&times;</button>
             </header>
+            
             <section class="modal__body">
                 <form id="taskForm">
                     <input type="hidden" id="taskId">
+                    
+                    <div class="form__group">
+                        <label for="taskTitle" class="form__label">Título/Nombre *</label>
+                        <input type="text" id="taskTitle" class="form__input" placeholder="Ej: Entregar reporte final" required>
+                    </div>
+
                     <div class="form__row">
-                        <div class="form__group">
-                            <label for="taskTitle" class="form__label">Título/Nombre *</label>
-                            <input type="text" id="taskTitle" class="form__input" required>
-                        </div>
                         <div class="form__group">
                             <label for="taskDueDate" class="form__label">Fecha Límite *</label>
                             <input type="date" id="taskDueDate" class="form__input" required>
                         </div>
+                        <div class="form__group">
+                            <label for="taskTime" class="form__label">Hora Recordatorio</label>
+                            <input type="time" id="taskTime" class="form__input">
+                        </div>
                     </div>
+
+                    <div class="form__group">
+                        <label class="form__label">Etiquetas</label>
+                        <div class="tag-selector" id="taskTagsContainer">
+                            </div>
+                        <input type="hidden" id="taskTagsSelected">
+                    </div>
+
                     <div class="form__group">
                         <label for="taskDescription" class="form__label">Descripción</label>
-                        <textarea id="taskDescription" class="form__input form__textarea"></textarea>
+                        <textarea id="taskDescription" class="form__input form__textarea" rows="3" placeholder="Detalles adicionales..."></textarea>
                     </div>
                 </form>
             </section>
+
             <footer class="modal__footer">
                 <button class="btn btn--outline" id="cancelTaskBtn">Cancelar</button>
                 <button class="btn btn--primary" id="saveTaskBtn">Guardar Tarea</button>
+            </footer>
+        </article>
+    </dialog>
+
+
+
+
+    <!-- View Task Modal -->
+    <dialog id="viewTaskModal" class="modal">
+        <article class="modal__content">
+            <header class="modal__header">
+                <h3 class="modal__title">Detalles de la Tarea</h3>
+                <button class="modal__close" data-close-modal="viewTaskModal">&times;</button>
+            </header>
+
+            <section class="modal__body">
+                <input type="hidden" id="viewTaskId">
+
+                <div class="view-task__header">
+                    <div class="form__group">
+                        <label class="form__label">Título</label>
+                        <p class="modal__value" id="viewTaskTitle">--</p>
+                    </div>
+                    <div id="viewTaskTagIcon" class="view-task__icon"></div>
+                </div>
+
+                <div class="form__row">
+                    <div class="form__group">
+                        <label class="form__label">Fecha Límite</label>
+                        <p class="modal__value" id="viewTaskDate">--</p>
+                    </div>
+                    <div class="form__group">
+                        <label class="form__label">Hora</label>
+                        <p class="modal__value" id="viewTaskTime">--</p>
+                    </div>
+                </div>
+
+                <div class="form__group">
+                    <label class="form__label">Descripción</label>
+                    <p class="modal__value" id="viewTaskDescription" style="white-space: pre-wrap;">--</p>
+                </div>
+            </section>
+
+            <footer class="modal__footer modal__footer--space-between">
+                <div class="modal__actions-left">
+                    <button class="btn btn--danger btn--icon" id="deleteTaskBtn" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="modal__actions-right">
+                    <button class="btn btn--outline" id="editTaskActionBtn">
+                        <i class="fas fa-pencil-alt"></i> Editar
+                    </button>
+                    <button class="btn btn--primary" id="completeTaskBtn">
+                        <i class="fas fa-check"></i> Completar
+                    </button>
+                </div>
             </footer>
         </article>
     </dialog>

@@ -56,6 +56,10 @@ function handleModalClose() {
         } else if (modal.id === 'reportModal') {
             if (typeof window.closeReportModal === 'function') {
                 window.closeReportModal();
+            } 
+        } else if (modal.id === 'addTaskModal') {
+            if (typeof window.closeAddTaskModal === 'function') {
+                window.closeAddTaskModal();
             }
         }
     }

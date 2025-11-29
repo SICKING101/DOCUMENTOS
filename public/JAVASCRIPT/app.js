@@ -167,8 +167,10 @@ function setupEventListeners() {
     DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
     DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
     
+    DOM.addTaskBtn?.addEventListener('click', () => openAddTaskModal());
     DOM.saveTaskBtn?.addEventListener('click', () => handleSaveTask()); // Llamar a la función del módulo tasks.js
     DOM.cancelTaskBtn?.addEventListener('click', () => closeAddTaskModal());
+
     
     // Drag and Drop
     setupFileDragAndDrop();
@@ -408,6 +410,8 @@ window.closeReportModal = closeReportModal;
 window.openCategoryModal = openCategoryModal;
 window.showAdvancedSearch = showAdvancedSearch;
 window.generateReport = generateReport;
+window.openAddTaskModal = openAddTaskModal;
+window.closeAddTaskModal = closeAddTaskModal;
 window.editCategory = editCategory;
 window.deleteCategory = deleteCategory;
 window.showAllDocuments = showAllDocuments;
