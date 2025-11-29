@@ -118,14 +118,42 @@ const DOM = {
 
 
     // Form Elements - Tasks 
+    taskListContainer: document.getElementById('task__list'),
     saveTaskBtn: document.getElementById('saveTaskBtn'), // Botón 'Guardar Tarea'
-    cancelTaskBtn: document.getElementById('cancelTaskBtn'), // Botón 'Cancelar'
-    taskForm: document.getElementById('taskForm'), // El formulario
-    taskId: document.getElementById('taskId'), // Hidden input
-    taskModalTitle: document.getElementById('taskModalTitle'), // El h3
+    cancelTaskBtn: document.getElementById('cancelTaskBtn'),
+    taskForm: document.getElementById('taskForm'),
+    taskId: document.getElementById('taskId'),
+    taskModalTitle: document.getElementById('taskModalTitle'),
     taskTitle: document.getElementById('taskTitle'),
     taskDescription: document.getElementById('taskDescription'),
     taskDueDate: document.getElementById('taskDueDate'),
+    addTaskBtn: document.getElementById('addTaskBtn'),
+    saveTaskBtn: document.getElementById('saveTaskBtn'),
+    cancelTaskBtn: document.getElementById('cancelTaskBtn'),
+    taskForm: document.getElementById('taskForm'),
+    taskId: document.getElementById('taskId'),
+    taskModalTitle: document.getElementById('taskModalTitle'),
+    // Inputs task
+    taskTitle: document.getElementById('taskTitle'),
+    taskDueDate: document.getElementById('taskDueDate'),
+    taskTime: document.getElementById('taskTime'), 
+    taskDescription: document.getElementById('taskDescription'),
+    taskTagsContainer: document.getElementById('taskTagsContainer'),
+
+    viewTaskModal: document.getElementById('viewTaskModal'),
+    viewTaskId: document.getElementById('viewTaskId'),
+    viewTaskTitle: document.getElementById('viewTaskTitle'),
+    viewTaskDate: document.getElementById('viewTaskDate'),
+    viewTaskTime: document.getElementById('viewTaskTime'),
+    viewTaskDescription: document.getElementById('viewTaskDescription'),
+    viewTaskTagIcon: document.getElementById('viewTaskTagIcon'),
+    // Botones vista
+    deleteTaskBtn: document.getElementById('deleteTaskBtn'),
+    editTaskActionBtn: document.getElementById('editTaskActionBtn'),
+    completeTaskBtn: document.getElementById('completeTaskBtn'),
+
+    taskListContainer: document.getElementById('task__list'),
+
     
     // Alert Container
     alertContainer: document.getElementById('alertContainer'),
