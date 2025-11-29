@@ -64,6 +64,10 @@ import {
     handleReportTypeChange 
 } from './modules/reports.js';
 
+import { 
+    initNotificaciones 
+} from './modules/notificaciones.js';
+
 // =============================================================================
 // INICIALIZACIÓN DE LA APLICACIÓN
 // =============================================================================
@@ -82,6 +86,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
     loadInitialData();
+    
+    // Inicializar módulo de notificaciones
+    initNotificaciones();
 });
 
 // =============================================================================
