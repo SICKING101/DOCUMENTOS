@@ -94,6 +94,10 @@ const Category = mongoose.model('Category', categorySchema);
 const Document = mongoose.model('Document', documentSchema);
 const Task = mongoose.model('Task', taskSchema);
 
+// Importar modelo y servicio de notificaciones
+const Notification = require('./public/JAVASCRIPT/modules/Notification');
+const NotificationService = require('./public/JAVASCRIPT/modules/notificationService');
+
 // -----------------------------
 // Configuración de Multer
 // -----------------------------
@@ -131,7 +135,15 @@ const upload = multer({
 // Conexión a MongoDB
 // -----------------------------
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ Conectado a MongoDB'))
+  .then(async () => {
+    console.log('✅ Conectado a MongoDB');
+    // Crear notificación de sistema iniciado
+    try {
+      await NotificationService.sistemaIniciado();
+    } catch (error) {
+      console.error('⚠️ Error creando notificación de inicio:', error.message);
+    }
+  })
   .catch(err => {
     console.error('❌ Error conectando a MongoDB:', err);
     process.exit(1);
@@ -230,6 +242,13 @@ app.post('/api/persons', async (req, res) => {
 
     await nuevaPersona.save();
     
+    // Crear notificación de persona agregada
+    try {
+      await NotificationService.personaAgregada(nuevaPersona);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+    
     res.json({ 
       success: true, 
       message: 'Persona agregada correctamente',
@@ -320,6 +339,13 @@ app.delete('/api/persons/:id', async (req, res) => {
       });
     }
 
+    // Crear notificación de persona eliminada
+    try {
+      await NotificationService.personaEliminada(personaEliminada.nombre);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
     res.json({ 
       success: true, 
       message: 'Persona eliminada correctamente' 
@@ -393,6 +419,13 @@ app.post('/api/categories', async (req, res) => {
     });
 
     await nuevaCategoria.save();
+    
+    // Crear notificación de categoría agregada
+    try {
+      await NotificationService.categoriaAgregada(nuevaCategoria);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
     
     res.json({ 
       success: true, 
@@ -583,6 +616,16 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
     const documentoConPersona = await Document.findById(nuevoDocumento._id)
       .populate('persona_id', 'nombre');
 
+    // Crear notificación de documento subido
+    try {
+      await NotificationService.documentoSubido(
+        documentoConPersona,
+        documentoConPersona.persona_id
+      );
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
     console.log('✅ Upload completado exitosamente');
 
     res.json({
@@ -722,6 +765,10 @@ app.delete('/api/documents/:id', async (req, res) => {
       });
     }
 
+    // Guardar datos para la notificación antes de eliminar
+    const nombreDocumento = documento.nombre_original;
+    const categoriaDocumento = documento.categoria;
+
     // Eliminar de Cloudinary
     try {
       await cloudinary.uploader.destroy(documento.public_id, {
@@ -733,6 +780,13 @@ app.delete('/api/documents/:id', async (req, res) => {
 
     // Eliminar lógicamente de la base de datos
     await Document.findByIdAndUpdate(id, { activo: false });
+
+    // Crear notificación de documento eliminado
+    try {
+      await NotificationService.documentoEliminado(nombreDocumento, categoriaDocumento);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
 
     res.json({ 
       success: true, 
@@ -934,6 +988,13 @@ app.post('/api/reports/excel', async (req, res) => {
 
     console.log('✅ Reporte Excel generado exitosamente');
 
+    // Crear notificación de reporte generado
+    try {
+      await NotificationService.reporteGenerado(reportType, 'excel', documents.length);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
   } catch (error) {
     console.error('❌ Error generando reporte Excel:', error);
     res.status(500).json({ 
@@ -1114,6 +1175,13 @@ app.post('/api/reports/pdf', async (req, res) => {
 
     console.log('✅ Reporte PDF generado exitosamente');
 
+    // Crear notificación de reporte generado
+    try {
+      await NotificationService.reporteGenerado(reportType, 'pdf', documents.length);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
   } catch (error) {
     console.error('❌ Error generando reporte PDF:', error);
     res.status(500).json({ 
@@ -1209,6 +1277,13 @@ app.post('/api/reports/csv', async (req, res) => {
     res.send(csv);
 
     console.log('✅ Reporte CSV generado exitosamente');
+
+    // Crear notificación de reporte generado
+    try {
+      await NotificationService.reporteGenerado(reportType, 'csv', documents.length);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
 
   } catch (error) {
     console.error('❌ Error generando reporte CSV:', error);
@@ -1513,6 +1588,189 @@ app.use((error, req, res, next) => {
     success: false,
     message: 'Error interno del servidor'
   });
+});
+
+// =============================================================================
+// RUTAS DE NOTIFICACIONES
+// =============================================================================
+
+// Obtener todas las notificaciones con filtros
+app.get('/api/notifications', async (req, res) => {
+  try {
+    console.log('📥 Obteniendo notificaciones con filtros:', req.query);
+    
+    const {
+      leida,
+      tipo,
+      prioridad,
+      desde,
+      hasta,
+      limite = 50,
+      pagina = 1
+    } = req.query;
+
+    const filtros = {};
+    if (leida !== undefined) filtros.leida = leida === 'true';
+    if (tipo) filtros.tipo = tipo;
+    if (prioridad) filtros.prioridad = prioridad;
+    if (desde) filtros.desde = desde;
+    if (hasta) filtros.hasta = hasta;
+
+    const resultado = await NotificationService.obtener(filtros, {
+      limite: parseInt(limite),
+      pagina: parseInt(pagina)
+    });
+
+    console.log(`✅ ${resultado.notificaciones.length} notificaciones obtenidas`);
+
+    res.json({
+      success: true,
+      data: resultado
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo notificaciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener notificaciones: ' + error.message
+    });
+  }
+});
+
+// Obtener notificaciones no leídas
+app.get('/api/notifications/unread', async (req, res) => {
+  try {
+    console.log('📥 Obteniendo notificaciones no leídas');
+    
+    const resultado = await NotificationService.obtener({ leida: false });
+    
+    console.log(`✅ ${resultado.notificaciones.length} notificaciones no leídas`);
+
+    res.json({
+      success: true,
+      data: resultado
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo notificaciones no leídas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener notificaciones: ' + error.message
+    });
+  }
+});
+
+// Obtener estadísticas de notificaciones
+app.get('/api/notifications/stats', async (req, res) => {
+  try {
+    console.log('📊 Obteniendo estadísticas de notificaciones');
+    
+    const estadisticas = await NotificationService.obtenerEstadisticas();
+    
+    console.log('✅ Estadísticas obtenidas:', estadisticas);
+
+    res.json({
+      success: true,
+      data: estadisticas
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas: ' + error.message
+    });
+  }
+});
+
+// Marcar notificación como leída
+app.patch('/api/notifications/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('✅ Marcando notificación como leída:', id);
+
+    const notificacion = await NotificationService.marcarLeida(id);
+
+    res.json({
+      success: true,
+      message: 'Notificación marcada como leída',
+      data: notificacion
+    });
+
+  } catch (error) {
+    console.error('❌ Error marcando notificación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al marcar notificación: ' + error.message
+    });
+  }
+});
+
+// Marcar todas las notificaciones como leídas
+app.patch('/api/notifications/read-all', async (req, res) => {
+  try {
+    console.log('✅ Marcando todas las notificaciones como leídas');
+
+    const cantidad = await NotificationService.marcarTodasLeidas();
+
+    res.json({
+      success: true,
+      message: `${cantidad} notificación(es) marcada(s) como leída(s)`,
+      data: { cantidad }
+    });
+
+  } catch (error) {
+    console.error('❌ Error marcando notificaciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al marcar notificaciones: ' + error.message
+    });
+  }
+});
+
+// Eliminar notificación
+app.delete('/api/notifications/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🗑️ Eliminando notificación:', id);
+
+    await NotificationService.eliminar(id);
+
+    res.json({
+      success: true,
+      message: 'Notificación eliminada correctamente'
+    });
+
+  } catch (error) {
+    console.error('❌ Error eliminando notificación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar notificación: ' + error.message
+    });
+  }
+});
+
+// Limpiar notificaciones antiguas
+app.post('/api/notifications/cleanup', async (req, res) => {
+  try {
+    const { dias = 30 } = req.body;
+    console.log(`🧹 Limpiando notificaciones de más de ${dias} días`);
+
+    const cantidad = await NotificationService.limpiarAntiguas(dias);
+
+    res.json({
+      success: true,
+      message: `${cantidad} notificación(es) antigua(s) eliminada(s)`,
+      data: { cantidad }
+    });
+
+  } catch (error) {
+    console.error('❌ Error limpiando notificaciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al limpiar notificaciones: ' + error.message
+    });
+  }
 });
 
 // Ruta para SPA
