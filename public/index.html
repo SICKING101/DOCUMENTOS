@@ -792,6 +792,29 @@
         </article>
     </dialog>
 
+        <!-- Modal de Acciones -->
+<dialog id="actionModal" class="modal">
+    <article class="modal__content modal__content--sm">
+        <header class="modal__header">
+            <h3 class="modal__title" id="actionModalTitle">Confirmar acción</h3>
+        </header>
+        <section class="modal__body">
+            <div class="action-modal__content">
+                <div class="action-modal__icon" id="actionModalIcon">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <p class="action-modal__message" id="actionModalMessage">
+                    ¿Estás seguro de que quieres realizar esta acción?
+                </p>
+            </div>
+        </section>
+        <footer class="modal__footer modal__footer--centered">
+            <button class="btn btn--outline" id="cancelActionBtn">Cancelar</button>
+            <button class="btn" id="confirmActionBtn">Confirmar</button>
+        </footer>
+    </article>
+</dialog>
+
     <!-- Alert Container -->
     <aside id="alertContainer" class="container"></aside>
 

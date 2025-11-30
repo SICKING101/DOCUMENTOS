@@ -64,6 +64,10 @@ import {
     handleReportTypeChange 
 } from './modules/reports.js';
 
+import { 
+    initNotificaciones 
+} from './modules/notificaciones.js';
+
 // =============================================================================
 // INICIALIZACIÓN DE LA APLICACIÓN
 // =============================================================================
@@ -82,6 +86,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
     loadInitialData();
+    
+    // Inicializar módulo de notificaciones
+    initNotificaciones();
 });
 
 // =============================================================================
@@ -223,7 +230,7 @@ function setupEventListeners() {
         categoryModal: DOM.categoryModal,
         searchModal: DOM.searchModal,
         reportModal: DOM.reportModal,
-        taskModal: DOM.taskModal // NUEVO: Modal de tareas
+        taskModal: DOM.taskModal
     };
     setupModalBackdropClose(modals);
     
@@ -291,40 +298,34 @@ function switchTab(tabId) {
     loadTabSpecificData(tabId);
 }
 
-// En app.js - Busca esta función y modifícala
 function loadTabSpecificData(tabId) {
     try {
         console.log(`🔄 Cargando datos específicos para pestaña: ${tabId}`);
         
         switch(tabId) {
             case 'dashboard':
-                // Cargar datos del dashboard
                 loadDashboardData();
                 break;
                 
             case 'personas':
-                // Cargar datos de personas
                 if (window.personManager && typeof personManager.loadData === 'function') {
                     personManager.loadData();
                 }
                 break;
                 
             case 'documentos':
-                // Cargar datos de documentos
                 if (window.documentManager && typeof documentManager.loadData === 'function') {
                     documentManager.loadData();
                 }
                 break;
                 
             case 'categorias':
-                // Cargar datos de categorías
                 if (window.categoryManager && typeof categoryManager.loadData === 'function') {
                     categoryManager.loadData();
                 }
                 break;
                 
             case 'tareas':
-                // Cargar datos de tareas - CORREGIDO
                 if (window.taskManager && typeof taskManager.loadTasks === 'function') {
                     taskManager.loadTasks();
                 } else if (window.taskManager) {
@@ -404,7 +405,6 @@ function handleModalClose() {
         } else if (modal.id === 'reportModal') {
             closeReportModal();
         } else if (modal.id === 'taskModal') {
-            // NUEVO: Cerrar modal de tareas
             if (taskManager) {
                 taskManager.closeTaskModal();
             }
@@ -435,7 +435,7 @@ function createQuickTask(title, description = '', priority = 'media') {
             priority: priority,
             status: 'pendiente',
             category: 'Rápida',
-            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Mañana
+            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             reminder: false
         };
         
@@ -510,7 +510,6 @@ function testCloudinaryConnection() {
     console.log('☁️ Probando Cloudinary...');
     showAlert('Probando conexión con Cloudinary...', 'info');
     
-    // Funcionalidad Cloudinary
     console.log('Cloudinary Config:', {
         cloudName: CONFIG.CLOUDINARY_CLOUD_NAME,
         apiKey: CONFIG.CLOUDINARY_API_KEY,
@@ -528,14 +527,13 @@ function testTaskManager() {
         return;
     }
     
-    // Crear tarea de prueba
     const testTask = {
         title: 'Tarea de prueba',
         description: 'Esta es una tarea de prueba generada automáticamente',
         priority: 'media',
         status: 'pendiente',
         category: 'Prueba',
-        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // En 2 días
+        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
         reminder: true
     };
     
@@ -600,7 +598,7 @@ window.showAllDocuments = showAllDocuments;
 window.debugAppState = debugAppState;
 window.testAPIConnection = testAPIConnection;
 window.testCloudinaryConnection = testCloudinaryConnection;
-window.testTaskManager = testTaskManager; // NUEVO
+window.testTaskManager = testTaskManager;
 window.resetApp = resetApp;
 
 // Funciones de navegación globales
@@ -642,9 +640,7 @@ window.addEventListener('unhandledrejection', function(e) {
 // =============================================================================
 // INICIALIZACIÓN TARDÍA PARA ELEMENTOS DINÁMICOS
 // =============================================================================
-// Para elementos que se cargan dinámicamente después del DOMContentLoaded
 setTimeout(() => {
-    // Verificar si hay elementos de tareas que necesitan inicialización tardía
     const taskElements = [
         'tasksContainer',
         'addTaskBtn',
@@ -661,7 +657,6 @@ setTimeout(() => {
         console.warn('⚠️ Elementos de tareas faltantes en inicialización tardía:', missingTaskElements);
     }
     
-    // Re-bind eventos si es necesario
     if (taskManager && missingTaskElements.length === 0) {
         console.log('🔄 Re-bindeando eventos de tareas...');
         taskManager.bindEvents();

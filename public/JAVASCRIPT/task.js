@@ -1,4 +1,4 @@
-// task.js - Gestión de Tareas (Versión definitiva con overlay completo)
+// task.js - Gestión de Tareas (Versión definitiva - Solo modales y notificaciones)
 
 class TaskManager {
     constructor() {
@@ -8,13 +8,14 @@ class TaskManager {
             status: 'all'
         };
         this.currentSearch = '';
+        this.pendingAction = null;
         this.init();
     }
 
     init() {
         this.bindEvents();
         this.loadTasks();
-        console.log('TaskManager inicializado correctamente');
+        this.showNotification('Sistema de tareas cargado correctamente', 'success');
     }
 
     bindEvents() {
@@ -56,6 +57,32 @@ class TaskManager {
             });
         }
         
+        // Modal de acciones
+        const confirmActionBtn = document.getElementById('confirmActionBtn');
+        const cancelActionBtn = document.getElementById('cancelActionBtn');
+        const closeActionModal = document.getElementById('closeActionModal');
+        const actionModal = document.getElementById('actionModal');
+        
+        if (confirmActionBtn) {
+            confirmActionBtn.addEventListener('click', () => this.executePendingAction());
+        }
+        
+        if (cancelActionBtn) {
+            cancelActionBtn.addEventListener('click', () => this.closeActionModal());
+        }
+        
+        if (closeActionModal) {
+            closeActionModal.addEventListener('click', () => this.closeActionModal());
+        }
+        
+        if (actionModal) {
+            actionModal.addEventListener('click', (e) => {
+                if (e.target === actionModal) {
+                    this.closeActionModal();
+                }
+            });
+        }
+        
         // Filtros
         const filterPriority = document.getElementById('filterPriority');
         const filterStatus = document.getElementById('filterStatus');
@@ -78,9 +105,18 @@ class TaskManager {
             clearFiltersBtn.addEventListener('click', () => this.clearFilters());
         }
         
-        // Cerrar modal con escape
+        // Botón para limpiar tareas completadas
+        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+        if (clearCompletedBtn) {
+            clearCompletedBtn.addEventListener('click', () => this.showClearCompletedModal());
+        }
+        
+        // Cerrar modales con escape
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.closeTaskModal();
+            if (e.key === 'Escape') {
+                this.closeTaskModal();
+                this.closeActionModal();
+            }
         });
     }
 
@@ -89,7 +125,6 @@ class TaskManager {
     // =============================================================================
 
     loadTasks() {
-        console.log('📡 Cargando tareas...');
         this.loadTasksFromLocalStorage();
     }
 
@@ -99,7 +134,7 @@ class TaskManager {
         const form = document.getElementById('taskForm');
         
         if (!modal) {
-            console.error('❌ No se encontró el modal de tareas');
+            this.showNotification('Error: No se pudo abrir el formulario', 'error');
             return;
         }
         
@@ -115,9 +150,9 @@ class TaskManager {
             document.getElementById('taskDueDate').min = today;
         }
         
-        // Abrir modal como div normal
+        // Abrir modal
         modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+        document.body.style.overflow = 'hidden';
         
         // Agregar animación
         setTimeout(() => {
@@ -147,11 +182,10 @@ class TaskManager {
     closeTaskModal() {
         const modal = document.getElementById('taskModal');
         if (modal) {
-            // Animación de salida
             modal.classList.remove('active');
             setTimeout(() => {
                 modal.style.display = 'none';
-                document.body.style.overflow = ''; // Restaurar scroll
+                document.body.style.overflow = '';
             }, 300);
         }
         const form = document.getElementById('taskForm');
@@ -163,7 +197,7 @@ class TaskManager {
     saveTask() {
         const form = document.getElementById('taskForm');
         if (!form) {
-            console.error('❌ No se encontró el formulario de tareas');
+            this.showNotification('Error: No se encontró el formulario', 'error');
             return;
         }
         
@@ -185,7 +219,7 @@ class TaskManager {
 
         // Validar título
         if (!taskData.title) {
-            this.showAlert('El título de la tarea es obligatorio', 'error');
+            this.showNotification('El título de la tarea es obligatorio', 'warning');
             return;
         }
 
@@ -200,43 +234,174 @@ class TaskManager {
                         ...taskData,
                         updatedAt: new Date().toISOString()
                     };
+                    this.showNotification('Tarea actualizada correctamente', 'success');
                 }
             } else {
                 taskData.id = this.generateId();
                 taskData.createdAt = new Date().toISOString();
                 taskData.updatedAt = new Date().toISOString();
                 this.tasks.unshift(taskData);
+                this.showNotification('Tarea creada correctamente', 'success');
             }
 
             this.saveTasksToLocalStorage();
             this.renderTasks();
             this.updateSummary();
-            
-            this.showAlert(
-                isEdit ? 'Tarea actualizada correctamente' : 'Tarea creada correctamente', 
-                'success'
-            );
             this.closeTaskModal();
         } catch (error) {
-            console.error('Error guardando tarea:', error);
-            this.showAlert('Error al guardar tarea: ' + error.message, 'error');
+            this.showNotification('Error al guardar la tarea', 'error');
+        }
+    }
+
+    // =============================================================================
+    // MODAL DE ACCIONES
+    // =============================================================================
+
+    showActionModal(actionType, taskId, additionalData = {}) {
+        const modal = document.getElementById('actionModal');
+        const title = document.getElementById('actionModalTitle');
+        const message = document.getElementById('actionModalMessage');
+        const icon = document.getElementById('actionModalIcon');
+        const confirmBtn = document.getElementById('confirmActionBtn');
+        
+        if (!modal) {
+            this.showNotification('Error: No se pudo abrir el panel de confirmación', 'error');
+            return;
+        }
+        
+        // Configurar según el tipo de acción
+        const actionConfig = {
+            delete: {
+                title: 'Eliminar Tarea',
+                message: '¿Estás seguro de que quieres eliminar esta tarea? Esta acción no se puede deshacer.',
+                icon: 'fas fa-trash-alt',
+                iconClass: 'action-modal__icon--error',
+                btnClass: 'btn--danger',
+                btnText: 'Eliminar'
+            },
+            complete: {
+                title: 'Marcar como Completada',
+                message: '¿Quieres marcar esta tarea como completada?',
+                icon: 'fas fa-check-circle',
+                iconClass: 'action-modal__icon--success',
+                btnClass: 'btn--success',
+                btnText: 'Completar'
+            },
+            restart: {
+                title: 'Reiniciar Tarea',
+                message: '¿Quieres volver a marcar esta tarea como pendiente?',
+                icon: 'fas fa-redo-alt',
+                iconClass: 'action-modal__icon--info',
+                btnClass: 'btn--primary',
+                btnText: 'Reiniciar'
+            },
+            clearCompleted: {
+                title: 'Limpiar Tareas Completadas',
+                message: '¿Estás seguro de que quieres eliminar todas las tareas completadas? Esta acción no se puede deshacer.',
+                icon: 'fas fa-broom',
+                iconClass: 'action-modal__icon--warning',
+                btnClass: 'btn--warning',
+                btnText: 'Limpiar Todo'
+            }
+        };
+        
+        const config = actionConfig[actionType] || actionConfig.delete;
+        
+        // Aplicar configuración
+        title.textContent = config.title;
+        message.textContent = config.message;
+        
+        // Configurar icono
+        icon.className = 'action-modal__icon';
+        icon.classList.add(config.iconClass);
+        const iconElement = document.createElement('i');
+        iconElement.className = config.icon;
+        icon.innerHTML = '';
+        icon.appendChild(iconElement);
+        
+        // Configurar botón de confirmación
+        confirmBtn.className = 'btn';
+        confirmBtn.classList.add(config.btnClass);
+        confirmBtn.textContent = config.btnText;
+        
+        // Guardar acción pendiente
+        this.pendingAction = {
+            type: actionType,
+            taskId: taskId,
+            additionalData: additionalData
+        };
+        
+        // Abrir modal
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        // Agregar animación
+        setTimeout(() => {
+            modal.classList.add('active');
+        }, 10);
+    }
+
+    showClearCompletedModal() {
+        const completedTasks = this.tasks.filter(task => task.status === 'completada');
+        if (completedTasks.length === 0) {
+            this.showNotification('No hay tareas completadas para eliminar', 'info');
+            return;
+        }
+        this.showActionModal('clearCompleted');
+    }
+
+    closeActionModal() {
+        const modal = document.getElementById('actionModal');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }, 300);
+        }
+        this.pendingAction = null;
+    }
+
+    executePendingAction() {
+        if (!this.pendingAction) return;
+        
+        const { type, taskId, additionalData } = this.pendingAction;
+        
+        try {
+            switch (type) {
+                case 'delete':
+                    this.deleteTask(taskId);
+                    break;
+                case 'complete':
+                    this.toggleTaskStatus(taskId, 'completada');
+                    break;
+                case 'restart':
+                    this.toggleTaskStatus(taskId, 'pendiente');
+                    break;
+                case 'clearCompleted':
+                    this.clearCompletedTasks();
+                    break;
+                default:
+                    this.showNotification('Acción no reconocida', 'warning');
+            }
+            
+            this.closeActionModal();
+        } catch (error) {
+            this.showNotification('Error al ejecutar la acción', 'error');
+            this.closeActionModal();
         }
     }
 
     deleteTask(taskId) {
-        if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
-            return;
-        }
-
         try {
+            const taskTitle = this.tasks.find(t => t.id === taskId)?.title || 'la tarea';
             this.tasks = this.tasks.filter(task => task.id !== taskId);
             this.saveTasksToLocalStorage();
             this.renderTasks();
             this.updateSummary();
-            this.showAlert('Tarea eliminada correctamente', 'success');
+            this.showNotification(`Tarea "${taskTitle}" eliminada correctamente`, 'success');
         } catch (error) {
-            console.error('Error eliminando tarea:', error);
-            this.showAlert('Error al eliminar tarea: ' + error.message, 'error');
+            this.showNotification('Error al eliminar la tarea', 'error');
         }
     }
 
@@ -244,18 +409,31 @@ class TaskManager {
         try {
             const task = this.tasks.find(t => t.id === taskId);
             if (task) {
+                const oldStatus = task.status;
                 task.status = newStatus;
                 task.updatedAt = new Date().toISOString();
                 this.saveTasksToLocalStorage();
                 this.renderTasks();
                 this.updateSummary();
                 
-                const statusText = newStatus === 'completada' ? 'completada' : 'actualizada';
-                this.showAlert(`Tarea ${statusText} correctamente`, 'success');
+                const statusText = newStatus === 'completada' ? 'completada' : 'reiniciada';
+                this.showNotification(`Tarea "${task.title}" ${statusText} correctamente`, 'success');
             }
         } catch (error) {
-            console.error('Error cambiando estado:', error);
-            this.showAlert('Error al cambiar estado: ' + error.message, 'error');
+            this.showNotification('Error al cambiar el estado de la tarea', 'error');
+        }
+    }
+
+    clearCompletedTasks() {
+        try {
+            const completedTasks = this.tasks.filter(task => task.status === 'completada');
+            this.tasks = this.tasks.filter(task => task.status !== 'completada');
+            this.saveTasksToLocalStorage();
+            this.renderTasks();
+            this.updateSummary();
+            this.showNotification(`${completedTasks.length} tareas completadas eliminadas`, 'success');
+        } catch (error) {
+            this.showNotification('Error al limpiar las tareas completadas', 'error');
         }
     }
 
@@ -312,12 +490,12 @@ class TaskManager {
         };
         this.currentSearch = '';
         this.renderTasks();
+        this.showNotification('Filtros limpiados correctamente', 'info');
     }
 
     renderTasks() {
         const container = document.getElementById('tasksContainer');
         if (!container) {
-            console.error('❌ No se encontró el contenedor de tareas');
             return;
         }
 
@@ -421,7 +599,11 @@ class TaskManager {
                             <button class="task-card__action task-card__action--complete" data-task-id="${task.id}" data-action="complete" title="Completar tarea">
                                 <i class="fas fa-check"></i>
                             </button>
-                        ` : ''}
+                        ` : `
+                            <button class="task-card__action task-card__action--restart" data-task-id="${task.id}" data-action="restart" title="Reiniciar tarea">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        `}
                         <button class="task-card__action task-card__action--edit" data-task-id="${task.id}" data-action="edit" title="Editar tarea">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -448,10 +630,13 @@ class TaskManager {
                         if (task) this.openTaskModal(task);
                         break;
                     case 'delete':
-                        this.deleteTask(taskId);
+                        this.showActionModal('delete', taskId);
                         break;
                     case 'complete':
-                        this.toggleTaskStatus(taskId, 'completada');
+                        this.showActionModal('complete', taskId);
+                        break;
+                    case 'restart':
+                        this.showActionModal('restart', taskId);
                         break;
                 }
             });
@@ -493,20 +678,81 @@ class TaskManager {
     }
 
     // =============================================================================
+    // SISTEMA DE NOTIFICACIONES
+    // =============================================================================
+
+    showNotification(message, type = 'info') {
+        // Crear contenedor de notificaciones si no existe
+        let container = document.getElementById('notificationsContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notificationsContainer';
+            container.className = 'notifications';
+            document.body.appendChild(container);
+        }
+
+        // Crear notificación
+        const notification = document.createElement('div');
+        notification.className = `notification notification--${type}`;
+        
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+
+        notification.innerHTML = `
+            <div class="notification__icon">
+                <i class="${icons[type] || icons.info}"></i>
+            </div>
+            <div class="notification__content">
+                <div class="notification__message">${message}</div>
+            </div>
+            <button class="notification__close">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        container.appendChild(notification);
+
+        // Auto-eliminar después de 5 segundos
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.add('notification--leaving');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }, 5000);
+
+        // Cerrar al hacer clic en la X
+        const closeBtn = notification.querySelector('.notification__close');
+        closeBtn.addEventListener('click', () => {
+            notification.classList.add('notification--leaving');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        });
+    }
+
+    // =============================================================================
     // LOCALSTORAGE
     // =============================================================================
 
     loadTasksFromLocalStorage() {
-        console.log('🔄 Cargando tareas desde localStorage...');
         try {
             const storedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
             this.tasks = storedTasks;
             this.renderTasks();
             this.updateSummary();
-            console.log(`✅ ${this.tasks.length} tareas cargadas desde localStorage`);
         } catch (error) {
-            console.error('Error cargando tareas desde localStorage:', error);
             this.tasks = [];
+            this.showNotification('Error al cargar las tareas guardadas', 'error');
         }
     }
 
@@ -514,7 +760,7 @@ class TaskManager {
         try {
             localStorage.setItem('tasks', JSON.stringify(this.tasks));
         } catch (error) {
-            console.error('Error guardando tareas en localStorage:', error);
+            this.showNotification('Error al guardar las tareas', 'error');
         }
     }
 
@@ -527,47 +773,145 @@ class TaskManager {
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
-
-    showAlert(message, type = 'info') {
-        // Usar el sistema de alertas existente
-        const alertContainer = document.getElementById('alertContainer');
-        if (alertContainer && typeof window.showAlert === 'function') {
-            window.showAlert(message, type);
-        } else {
-            // Fallback básico
-            console.log(`${type.toUpperCase()}: ${message}`);
-            alert(message);
-        }
-    }
-
-    // =============================================================================
-    // MÉTODOS DE DEBUG
-    // =============================================================================
-
-    debug() {
-        console.group('🐛 Debug TaskManager');
-        console.log('Tareas:', this.tasks);
-        console.log('Filtro actual:', this.currentFilter);
-        console.log('Búsqueda actual:', this.currentSearch);
-        console.log('Elementos DOM encontrados:', {
-            tasksContainer: !!document.getElementById('tasksContainer'),
-            taskModal: !!document.getElementById('taskModal'),
-            addTaskBtn: !!document.getElementById('addTaskBtn')
-        });
-        console.groupEnd();
-    }
 }
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('📋 Inicializando módulo de tareas...');
     try {
         window.taskManager = new TaskManager();
-        console.log('✅ TaskManager inicializado correctamente');
     } catch (error) {
-        console.error('❌ Error al inicializar TaskManager:', error);
+        // En caso de error crítico, crear una notificación de error
+        const errorNotification = document.createElement('div');
+        errorNotification.className = 'notification notification--error';
+        errorNotification.style.position = 'fixed';
+        errorNotification.style.top = '20px';
+        errorNotification.style.left = '50%';
+        errorNotification.style.transform = 'translateX(-50%)';
+        errorNotification.style.zIndex = '9999';
+        errorNotification.style.background = '#fef2f2';
+        errorNotification.style.color = '#dc2626';
+        errorNotification.style.padding = '1rem';
+        errorNotification.style.borderRadius = '8px';
+        errorNotification.style.border = '1px solid #fecaca';
+        errorNotification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Error al cargar el sistema de tareas</span>
+            </div>
+        `;
+        document.body.appendChild(errorNotification);
     }
 });
+
+// CSS para las notificaciones (se agrega automáticamente)
+const notificationStyles = `
+.notifications {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1100;
+    max-width: 400px;
+}
+
+.notification {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-left: 4px solid #3b82f6;
+    transform: translateX(400px);
+    opacity: 0;
+    animation: slideIn 0.3s ease forwards;
+}
+
+.notification--success {
+    border-left-color: #10b981;
+}
+
+.notification--error {
+    border-left-color: #ef4444;
+}
+
+.notification--warning {
+    border-left-color: #f59e0b;
+}
+
+.notification--info {
+    border-left-color: #06b6d4;
+}
+
+.notification--leaving {
+    animation: slideOut 0.3s ease forwards;
+}
+
+.notification__icon {
+    font-size: 1.25rem;
+}
+
+.notification--success .notification__icon {
+    color: #10b981;
+}
+
+.notification--error .notification__icon {
+    color: #ef4444;
+}
+
+.notification--warning .notification__icon {
+    color: #f59e0b;
+}
+
+.notification--info .notification__icon {
+    color: #06b6d4;
+}
+
+.notification__content {
+    flex: 1;
+}
+
+.notification__message {
+    font-weight: 500;
+}
+
+.notification__close {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.notification__close:hover {
+    background-color: #f3f4f6;
+}
+
+@keyframes slideIn {
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+`;
+
+// Agregar estilos de notificaciones al documento
+if (!document.querySelector('#notification-styles')) {
+    const styleSheet = document.createElement('style');
+    styleSheet.id = 'notification-styles';
+    styleSheet.textContent = notificationStyles;
+    document.head.appendChild(styleSheet);
+}
 
 // Exportar para uso en otros módulos
 export default TaskManager;
