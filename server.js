@@ -648,64 +648,7 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
   }
 });
 
-app.get('/api/documents/:id/download', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga de documento:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error('❌ ID inválido:', id);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
-      });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      console.error('❌ Documento no encontrado:', id);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
-      });
-    }
-
-    console.log('✅ Documento encontrado:', {
-      nombre: documento.nombre_original,
-      tipo: documento.tipo_archivo,
-      resourceType: documento.resource_type
-    });
-    console.log('📤 Cloudinary URL original:', documento.cloudinary_url);
-
-    // Modificar la URL de Cloudinary para forzar descarga
-    let downloadUrl = documento.cloudinary_url;
-    const nombreArchivo = encodeURIComponent(documento.nombre_original);
-    
-    // Para TODOS los tipos de archivos, agregar fl_attachment
-    const urlParts = downloadUrl.split('/upload/');
-    if (urlParts.length === 2) {
-      // Funciona para image, raw, video y cualquier otro resource_type
-      downloadUrl = `${urlParts[0]}/upload/fl_attachment:${nombreArchivo}/${urlParts[1]}`;
-      console.log('✅ Parámetro fl_attachment agregado correctamente');
-    } else {
-      console.warn('⚠️ No se pudo modificar la URL, usando URL original');
-    }
-
-    console.log('🔗 URL de descarga final:', downloadUrl);
-    
-    // Redirigir a la URL de Cloudinary con parámetros de descarga
-    res.redirect(downloadUrl);
-
-  } catch (error) {
-    console.error('❌ Error descargando documento:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al descargar documento: ' + error.message 
-    });
-  }
-});
-
+// ENDPOINT DE VISTA PREVIA
 app.get('/api/documents/:id/preview', async (req, res) => {
   try {
     const { id } = req.params;
@@ -717,8 +660,7 @@ app.get('/api/documents/:id/preview', async (req, res) => {
       });
     }
 
-    const documento = await Document.findOne({ _id: id, activo: true })
-      .populate('persona_id', 'nombre');
+    const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
       return res.status(404).json({ 
@@ -727,17 +669,21 @@ app.get('/api/documents/:id/preview', async (req, res) => {
       });
     }
 
-    // Para PDFs y imágenes, podemos usar la URL de Cloudinary directamente
-    // Para otros tipos redirigir a la descarga
-    if (documento.tipo_archivo === 'pdf' || 
-        ['jpg', 'jpeg', 'png'].includes(documento.tipo_archivo)) {
-      res.redirect(documento.cloudinary_url);
-    } else {
-      res.redirect(documento.cloudinary_url);
+    if (!documento.cloudinary_url) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'URL del documento no disponible' 
+      });
     }
 
+    console.log('👁️ Vista previa para:', documento.nombre_original);
+
+    // PARA PDF: Cloudinary puede mostrar vista previa
+    // PARA IMÁGENES: Redirigir directamente
+    res.redirect(documento.cloudinary_url);
+
   } catch (error) {
-    console.error('Error en vista previa:', error);
+    console.error('❌ Error en vista previa:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error al cargar vista previa' 
