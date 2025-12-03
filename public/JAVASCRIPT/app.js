@@ -33,6 +33,7 @@ import {
     downloadDocument, 
     previewDocument, 
     deleteDocument, 
+    downloadDocumentSimple,
     handleFileSelect 
 } from './modules/documentos.js';
 
@@ -610,6 +611,15 @@ window.openTaskModal = openTaskModal;
 window.createQuickTask = createQuickTask;
 window.getTasksStats = getTasksStats;
 
+// Funciones de descarga
+window.downloadDocument = downloadDocument;
+window.downloadDocumentSimple = downloadDocumentSimple;
+window.downloadDocumentAlternative = downloadDocumentAlternative;
+
+// Para debug
+window.debugDownload = debugDocumentDownload;
+window.testAllDownloads = testAllDownloads;
+
 // Funciones que necesitan ser globales para otros módulos
 window.loadDashboardData = () => loadDashboardData(appState);
 window.renderDocumentsTable = renderDocumentsTable;
@@ -662,6 +672,61 @@ setTimeout(() => {
         taskManager.bindEvents();
     }
 }, 1000);
+
+// Tema oscuro 
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = themeToggle.querySelector('i');
+
+const getPreferredTheme = () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        return savedTheme;
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const applyTheme = (theme) => {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.body.classList.remove('dark-theme');
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+        localStorage.setItem('theme', 'light');
+    }
+};
+
+const initTheme = () => {
+    const preferredTheme = getPreferredTheme();
+    applyTheme(preferredTheme);
+    
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+};
+
+const toggleTheme = () => {
+    const isDark = document.body.classList.contains('dark-theme');
+    applyTheme(isDark ? 'light' : 'dark');
+};
+
+if (themeToggle) {
+    themeToggle.addEventListener('click', toggleTheme);
+    themeToggle.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleTheme();
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initTheme);
 
 console.log('✅ Script de aplicación cargado correctamente');
 
