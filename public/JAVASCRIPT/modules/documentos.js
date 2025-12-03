@@ -315,13 +315,13 @@ function renderDocumentsTable() {
                 ${vencimientoText ? `<span class="badge ${vencimientoClass}">${vencimientoText}</span>` : 'Sin vencimiento'}
             </td>
             <td class="table__cell">
-                <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
+                <button class="btn btn--sm btn--outline" onclick="window.downloadDocument('${doc._id}')" title="Descargar">
                     <i class="fas fa-download"></i>
                 </button>
-                <button class="btn btn--sm btn--outline" onclick="previewDocument('${doc._id}')" title="Vista previa">
+                <button class="btn btn--sm btn--outline" onclick="window.previewDocument('${doc._id}')" title="Vista previa">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="btn btn--sm btn--danger" onclick="deleteDocument('${doc._id}')" title="Eliminar">
+                <button class="btn btn--sm btn--danger" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -331,211 +331,221 @@ function renderDocumentsTable() {
     });
 }
 
-// FUNCIÓN DEFINITIVA CORREGIDA PARA TODOS LOS TIPOS DE ARCHIVO
+// En documentos.js, reemplaza la función downloadDocument con esta versión ULTRA SIMPLE:
+
 async function downloadDocument(id) {
-    console.group('📥 DESCARGA UNIVERSAL - INICIO');
-    console.log('🆔 ID del documento:', id);
+    console.group('🚀 DESCARGAR DOCUMENTO - VERSIÓN SIMPLE');
     
     try {
-        // Buscar el documento en el estado
-        const docData = window.appState.documents.find(doc => doc._id === id);
+        // Verificar que estamos en un navegador
+        if (typeof window === 'undefined' || typeof document === 'undefined') {
+            throw new Error('Este método solo funciona en el navegador');
+        }
         
-        if (!docData) {
+        // Buscar documento
+        const doc = window.appState.documents.find(d => d._id === id);
+        if (!doc) {
             throw new Error('Documento no encontrado');
         }
         
-        const fileName = docData.nombre_original;
-        const fileType = docData.tipo_archivo;
-        const cloudinaryUrl = docData.url_cloudinary || docData.cloudinary_url;
+        const fileName = doc.nombre_original;
         
-        console.log('✅ Documento encontrado:', {
+        console.log('📄 Descargando:', {
+            id: id,
             nombre: fileName,
-            tipo: fileType,
+            tipo: doc.tipo_archivo
+        });
+        
+        showAlert(`Iniciando descarga: ${fileName}`, 'info');
+        
+        // URL del endpoint
+        const endpoint = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        
+        // Agregar parámetros para evitar caché
+        const url = new URL(endpoint);
+        url.searchParams.append('t', Date.now());
+        url.searchParams.append('filename', fileName);
+        
+        const finalUrl = url.toString();
+        console.log('🔗 URL final:', finalUrl);
+        
+        // MÉTODO 1: Enlace temporal (el más confiable)
+        const link = document.createElement('a');
+        link.href = finalUrl;
+        link.download = fileName;
+        
+        // Para documentos no-imagen, abrir en nueva pestaña
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        const isImage = ['png', 'jpg', 'jpeg', 'gif'].includes(fileExtension);
+        
+        if (!isImage) {
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+        }
+        
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        
+        // Hacer clic
+        link.click();
+        
+        // Limpiar después de 3 segundos
+        setTimeout(() => {
+            if (link.parentNode) {
+                document.body.removeChild(link);
+            }
+        }, 3000);
+        
+        console.log('✅ Descarga iniciada');
+        showAlert(`Descarga iniciada: ${fileName}`, 'success');
+        
+        // También abrir en nueva pestaña como respaldo
+        setTimeout(() => {
+            window.open(finalUrl, '_blank');
+        }, 100);
+        
+        console.groupEnd();
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error en descarga:', error);
+        
+        // Mostrar error específico
+        let errorMessage = `Error: ${error.message}`;
+        
+        if (error.message.includes('document is not defined')) {
+            errorMessage = 'Error del navegador. Intenta recargar la página.';
+        } else if (error.message.includes('fetch') || error.message.includes('network')) {
+            errorMessage = 'Error de red. Verifica tu conexión a internet.';
+        }
+        
+        showAlert(errorMessage, 'error');
+        console.groupEnd();
+        return false;
+    }
+}
+
+// Función de diagnóstico rápido
+async function diagnosticDownload(id) {
+    const doc = window.appState.documents.find(d => d._id === id);
+    if (!doc) {
+        showAlert('Documento no encontrado', 'error');
+        return;
+    }
+    
+    console.group('🔍 DIAGNÓSTICO RÁPIDO');
+    console.log('📄 Documento:', {
+        nombre: doc.nombre_original,
+        tipo: doc.tipo_archivo,
+        tamaño: doc.tamano_archivo,
+        tieneCloudinaryUrl: !!(doc.cloudinary_url || doc.url_cloudinary)
+    });
+    
+    // Probar diferentes métodos
+    const methods = [
+        {
+            name: 'Endpoint directo',
+            url: `${CONFIG.API_BASE_URL}/documents/${id}/download?t=${Date.now()}`
+        },
+        {
+            name: 'Endpoint con filename',
+            url: `${CONFIG.API_BASE_URL}/documents/${id}/download?t=${Date.now()}&filename=${encodeURIComponent(doc.nombre_original)}`
+        }
+    ];
+    
+    if (doc.cloudinary_url || doc.url_cloudinary) {
+        const cloudinaryUrl = doc.cloudinary_url || doc.url_cloudinary;
+        methods.push({
+            name: 'Cloudinary directo',
             url: cloudinaryUrl
         });
+    }
+    
+    console.table(methods);
+    
+    // Abrir todos los métodos en pestañas diferentes
+    methods.forEach((method, index) => {
+        setTimeout(() => {
+            console.log(`🔄 Probando método ${index + 1}: ${method.name}`);
+            window.open(method.url, '_blank');
+        }, index * 1000);
+    });
+    
+    showAlert(`Probando ${methods.length} métodos de descarga...`, 'info');
+    console.groupEnd();
+}
 
-        showAlert(`Preparando descarga: ${fileName}`, 'info');
-
-        // DETECTAR TIPO DE ARCHIVO Y APLICAR ESTRATEGIA CORRECTA
-        const fileExtension = fileName.split('.').pop().toLowerCase();
-        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(fileExtension);
-        const isPDF = fileExtension === 'pdf';
-        const isDocument = ['doc', 'docx', 'txt', 'rtf'].includes(fileExtension);
-        const isSpreadsheet = ['xls', 'xlsx', 'csv'].includes(fileExtension);
-
-        console.log('🔍 Análisis de tipo de archivo:', {
-            extension: fileExtension,
-            esImagen: isImage,
-            esPDF: isPDF,
-            esDocumento: isDocument,
-            esHojaCalculo: isSpreadsheet
-        });
-
-        // ESTRATEGIA 1: PARA ARCHIVOS DE IMAGEN (funcionan directo)
-        if (isImage) {
-            console.log('🖼️ Estrategia para imagen: Descarga directa');
-            await downloadImageFile(cloudinaryUrl, fileName);
+// =============================================================================
+// FUNCIÓN DE VISTA PREVIA MEJORADA
+// =============================================================================
+function previewDocument(id) {
+    console.group('👁️ VISTA PREVIA MEJORADA');
+    
+    try {
+        const document = window.appState.documents.find(doc => doc._id === id);
+        if (!document) {
+            showAlert('Documento no encontrado', 'error');
+            console.groupEnd();
             return;
         }
-
-        // ESTRATEGIA 2: PARA PDF Y OTROS DOCUMENTOS (requieren endpoint del servidor)
-        console.log('📄 Estrategia para PDF/Documentos: Usar endpoint del servidor');
         
-        const serverDownloadUrl = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
-        console.log('🔗 Endpoint del servidor:', serverDownloadUrl);
+        const fileName = document.nombre_original;
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        const cloudinaryUrl = document.url_cloudinary || document.cloudinary_url;
         
-        // Verificar que el endpoint existe
-        const response = await fetch(serverDownloadUrl, { method: 'HEAD' });
+        console.log('📋 Documento para vista previa:', {
+            nombre: fileName,
+            extension: fileExtension,
+            url: cloudinaryUrl
+        });
         
-        if (response.ok) {
-            console.log('✅ Endpoint de descarga disponible');
-            
-            // Descargar usando el endpoint del servidor
-            const downloadResponse = await fetch(serverDownloadUrl);
-            
-            if (!downloadResponse.ok) {
-                throw new Error(`Error del servidor: ${downloadResponse.status}`);
+        // Determinar estrategia según tipo
+        const previewableImages = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
+        const previewablePDF = ['pdf'];
+        const officeDocuments = ['doc', 'docx', 'xls', 'xlsx'];
+        
+        if (previewableImages.includes(fileExtension)) {
+            // Imágenes: abrir directamente
+            console.log('🖼️ Vista previa de imagen');
+            if (cloudinaryUrl) {
+                window.open(cloudinaryUrl, '_blank');
+                showAlert('Abriendo imagen en nueva pestaña...', 'info');
             }
             
-            const blob = await downloadResponse.blob();
+        } else if (previewablePDF.includes(fileExtension)) {
+            // PDF: usar endpoint de preview del servidor
+            console.log('📄 Vista previa de PDF');
+            const previewUrl = `${CONFIG.API_BASE_URL}/documents/${id}/preview`;
+            window.open(previewUrl, '_blank');
+            showAlert('Abriendo PDF en nueva pestaña...', 'info');
             
-            if (blob.size === 0) {
-                throw new Error('Archivo vacío recibido');
-            }
-            
-            // Crear descarga con blob
-            const blobUrl = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.href = blobUrl;
-            downloadLink.download = fileName;
-            downloadLink.style.display = 'none';
-            
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            
-            // Limpiar
-            setTimeout(() => {
-                document.body.removeChild(downloadLink);
-                URL.revokeObjectURL(blobUrl);
-            }, 1000);
-            
-            console.log('✅ Descarga de PDF/documento completada');
-            showAlert(`Descarga completada: ${fileName}`, 'success');
+        } else if (officeDocuments.includes(fileExtension)) {
+            // Documentos Office: forzar descarga
+            console.log('📝 Documento Office, forzando descarga');
+            downloadDocument(id);
             
         } else {
-            throw new Error('Endpoint de descarga no disponible');
+            // Otros tipos: intentar abrir directamente
+            console.log('❓ Tipo desconocido, intentando abrir');
+            if (cloudinaryUrl) {
+                window.open(cloudinaryUrl, '_blank');
+                showAlert('Abriendo documento en nueva pestaña...', 'info');
+            } else {
+                showAlert('No se puede previsualizar este tipo de archivo', 'warning');
+            }
         }
         
     } catch (error) {
-        console.error('❌ ERROR en descarga:', error);
-        
-        // ESTRATEGIA DE EMERGENCIA: Enlace directo
-        console.log('🆘 Estrategia de emergencia: Enlace directo');
-        try {
-            const docData = window.appState.documents.find(doc => doc._id === id);
-            if (docData) {
-                const cloudinaryUrl = docData.url_cloudinary || docData.cloudinary_url;
-                if (cloudinaryUrl) {
-                    window.open(cloudinaryUrl, '_blank');
-                    showAlert('Abriendo documento en nueva pestaña', 'info');
-                }
-            }
-        } catch (finalError) {
-            console.error('💥 ERROR crítico:', finalError);
-            showAlert(`Error al descargar: ${error.message}`, 'error');
-        }
+        console.error('❌ Error en vista previa:', error);
+        showAlert(`Error: ${error.message}`, 'error');
     } finally {
         console.groupEnd();
     }
 }
 
-// FUNCIÓN AUXILIAR PARA DESCARGAR IMÁGENES
-async function downloadImageFile(url, fileName) {
-    console.log('🖼️ Descargando imagen...');
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        throw new Error(`Error al descargar imagen: ${response.status}`);
-    }
-    
-    const blob = await response.blob();
-    
-    if (blob.size === 0) {
-        throw new Error('Imagen vacía recibida');
-    }
-    
-    const blobUrl = URL.createObjectURL(blob);
-    const downloadLink = document.createElement('a');
-    downloadLink.href = blobUrl;
-    downloadLink.download = fileName;
-    downloadLink.style.display = 'none';
-    
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    
-    setTimeout(() => {
-        document.body.removeChild(downloadLink);
-        URL.revokeObjectURL(blobUrl);
-    }, 1000);
-    
-    console.log('✅ Imagen descargada correctamente');
-}
-
-// FUNCIÓN MEJORADA PARA VISTA PREVIA
-function previewDocument(id) {
-    console.group('👁️ VISTA PREVIA UNIVERSAL - INICIO');
-    
-    const document = window.appState.documents.find(doc => doc._id === id);
-    if (!document) {
-        showAlert('Documento no encontrado', 'error');
-        console.groupEnd();
-        return;
-    }
-    
-    const fileName = document.nombre_original;
-    const fileExtension = fileName.split('.').pop().toLowerCase();
-    const cloudinaryUrl = document.url_cloudinary || document.cloudinary_url;
-    
-    console.log('📋 Documento para vista previa:', {
-        nombre: fileName,
-        tipo: fileExtension,
-        url: cloudinaryUrl
-    });
-
-    // ESTRATEGIAS DIFERENTES SEGÚN EL TIPO DE ARCHIVO
-    const previewableImages = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
-    const previewablePDF = ['pdf'];
-    const nonPreviewable = ['doc', 'docx', 'xls', 'xlsx', 'txt', 'csv'];
-
-    if (previewableImages.includes(fileExtension)) {
-        // Imágenes: abrir directamente
-        console.log('🖼️ Vista previa de imagen');
-        window.open(cloudinaryUrl, '_blank');
-        showAlert('Abriendo imagen...', 'info');
-        
-    } else if (previewablePDF.includes(fileExtension)) {
-        // PDF: usar el endpoint de vista previa del servidor
-        console.log('📄 Vista previa de PDF');
-        const previewUrl = `${CONFIG.API_BASE_URL}/documents/${id}/preview`;
-        window.open(previewUrl, '_blank');
-        showAlert('Abriendo PDF...', 'info');
-        
-    } else if (nonPreviewable.includes(fileExtension)) {
-        // Documentos no previewable: forzar descarga
-        console.log('📝 Archivo no previewable, iniciando descarga');
-        downloadDocument(id);
-        
-    } else {
-        // Tipo desconocido: intentar abrir directamente
-        console.log('❓ Tipo desconocido, intentando abrir directamente');
-        window.open(cloudinaryUrl, '_blank');
-        showAlert('Abriendo documento...', 'info');
-    }
-    
-    console.groupEnd();
-}
-
+// =============================================================================
+// FUNCIÓN PARA ELIMINAR DOCUMENTO
+// =============================================================================
 async function deleteDocument(id) {
     if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
         return;
@@ -565,6 +575,9 @@ async function deleteDocument(id) {
     }
 }
 
+// =============================================================================
+// FUNCIONES AUXILIARES
+// =============================================================================
 function handleFileSelect(e) {
     console.log('📁 Archivo seleccionado:', e.target.files[0]?.name);
     handleFile(e.target.files[0]);
@@ -587,65 +600,206 @@ function populateDocumentCategorySelect() {
     }
 }
 
-// FUNCIÓN DE DIAGNÓSTICO MEJORADA
-function debugDocumentDownload(id) {
-    console.group('🐛 DIAGNÓSTICO UNIVERSAL DE DESCARGA');
-    
-    const doc = window.appState.documents.find(d => d._id === id);
-    if (!doc) {
-        console.error('❌ Documento no encontrado');
-        console.groupEnd();
-        return;
-    }
-    
-    const fileExtension = doc.nombre_original.split('.').pop().toLowerCase();
-    
-    console.log('📊 INFORMACIÓN DEL DOCUMENTO:');
-    console.table({
-        'ID': doc._id,
-        'Nombre': doc.nombre_original,
-        'Tipo': doc.tipo_archivo,
-        'Extensión': fileExtension,
-        'Tamaño': `${doc.tamano_archivo} bytes`,
-        'URL Cloudinary': doc.url_cloudinary || doc.cloudinary_url
-    });
-    
-    console.log('🎯 ESTRATEGIA RECOMENDADA:');
-    if (['png', 'jpg', 'jpeg', 'gif'].includes(fileExtension)) {
-        console.log('💡 IMAGEN: Usar descarga directa desde Cloudinary');
-    } else if (fileExtension === 'pdf') {
-        console.log('💡 PDF: Usar endpoint del servidor (/download)');
-    } else {
-        console.log('💡 OTRO TIPO: Usar endpoint del servidor o enlace directo');
-    }
-    
-    console.groupEnd();
-}
-
-// FUNCIÓN SIMPLIFICADA PARA PRUEBAS RÁPIDAS
-function downloadDocumentSimple(id) {
+// =============================================================================
+// FUNCIÓN DE DESCARGAS MÚLTIPLES Y EMERGENCIA
+// =============================================================================
+async function downloadDocumentSimple(id) {
     const doc = window.appState.documents.find(d => d._id === id);
     if (!doc) {
         showAlert('Documento no encontrado', 'error');
         return;
     }
     
-    const fileExtension = doc.nombre_original.split('.').pop().toLowerCase();
+    console.log('⚡ Descarga simple para:', doc.nombre_original);
     
-    if (['png', 'jpg', 'jpeg', 'gif'].includes(fileExtension)) {
-        // Imágenes: descarga directa
-        const link = document.createElement('a');
-        link.href = doc.url_cloudinary || doc.cloudinary_url;
-        link.download = doc.nombre_original;
-        link.click();
-        showAlert(`Descargando imagen: ${doc.nombre_original}`, 'success');
-    } else {
-        // Otros archivos: usar endpoint
-        window.open(`${CONFIG.API_BASE_URL}/documents/${id}/download`, '_blank');
-        showAlert(`Descargando: ${doc.nombre_original}`, 'success');
+    const url = `${CONFIG.API_BASE_URL}/documents/${id}/download?simple=true&t=${Date.now()}`;
+    
+    // Método ultra simple: abrir URL
+    window.open(url, '_blank');
+    
+    showAlert(`Descargando: ${doc.nombre_original}`, 'info');
+}
+
+async function downloadDocumentAlternative(id) {
+    console.group('🔄 DESCARGAR DOCUMENTO - MÉTODO ALTERNATIVO');
+    
+    try {
+        const doc = window.appState.documents.find(d => d._id === id);
+        if (!doc) {
+            throw new Error('Documento no encontrado');
+        }
+        
+        const fileName = doc.nombre_original;
+        const endpoint = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        
+        console.log('📄 Usando método alternativo para:', fileName);
+        showAlert(`Descargando: ${fileName}...`, 'info');
+        
+        // Crear formulario oculto
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = endpoint;
+        form.target = '_blank';
+        form.style.display = 'none';
+        
+        // Agregar parámetros
+        const timestampInput = document.createElement('input');
+        timestampInput.type = 'hidden';
+        timestampInput.name = 't';
+        timestampInput.value = Date.now();
+        form.appendChild(timestampInput);
+        
+        // Agregar al body y enviar
+        document.body.appendChild(form);
+        form.submit();
+        
+        // Limpiar
+        setTimeout(() => {
+            if (form.parentNode) {
+                document.body.removeChild(form);
+            }
+        }, 3000);
+        
+        console.log('✅ Formulario enviado para descarga');
+        console.groupEnd();
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error en método alternativo:', error);
+        showAlert(`Error: ${error.message}`, 'error');
+        console.groupEnd();
+        return false;
     }
 }
 
+// =============================================================================
+// FUNCIONES DE DIAGNÓSTICO
+// =============================================================================
+async function debugDocumentDownload(id) {
+    console.group('🐛 DIAGNÓSTICO DE DESCARGA');
+    
+    try {
+        const doc = window.appState.documents.find(d => d._id === id);
+        if (!doc) {
+            console.error('❌ Documento no encontrado');
+            showAlert('Documento no encontrado', 'error');
+            console.groupEnd();
+            return;
+        }
+        
+        console.log('📊 INFORMACIÓN DEL DOCUMENTO:');
+        console.table({
+            'ID': doc._id,
+            'Nombre': doc.nombre_original,
+            'Tipo': doc.tipo_archivo,
+            'Tamaño': `${doc.tamano_archivo} bytes (${formatFileSize(doc.tamano_archivo)})`,
+            'URL Cloudinary': doc.url_cloudinary || doc.cloudinary_url,
+            'Fecha subida': formatDate(doc.fecha_subida)
+        });
+        
+        // Probar diferentes métodos
+        console.log('🧪 PROBANDO MÉTODOS DE DESCARGA:');
+        
+        // Método 1: Endpoint directo
+        const endpoint = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        console.log('1️⃣ Endpoint:', endpoint);
+        
+        // Método 2: URL Cloudinary
+        if (doc.url_cloudinary || doc.cloudinary_url) {
+            console.log('2️⃣ Cloudinary URL:', doc.url_cloudinary || doc.cloudinary_url);
+        }
+        
+        // Recomendaciones
+        console.log('💡 RECOMENDACIONES:');
+        const extension = doc.nombre_original.split('.').pop().toLowerCase();
+        
+        if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
+            console.log('   • Usar endpoint del servidor o URL directa de Cloudinary');
+        } else if (extension === 'pdf') {
+            console.log('   • Usar endpoint del servidor (/download)');
+        } else {
+            console.log('   • Usar endpoint del servidor siempre');
+        }
+        
+        showAlert(`Diagnóstico completado para: ${doc.nombre_original}`, 'info');
+        
+    } catch (error) {
+        console.error('❌ Error en diagnóstico:', error);
+        showAlert('Error en diagnóstico: ' + error.message, 'error');
+    } finally {
+        console.groupEnd();
+    }
+}
+
+// =============================================================================
+// FUNCIÓN DE TEST
+// =============================================================================
+async function testAllDownloads() {
+    console.group('🧪 TEST COMPLETO DE DESCARGAS');
+    
+    if (!window.appState.documents || window.appState.documents.length === 0) {
+        showAlert('No hay documentos para probar', 'warning');
+        console.groupEnd();
+        return;
+    }
+    
+    const testDocuments = window.appState.documents.slice(0, 2); // Probar solo 2
+    const results = [];
+    
+    showAlert(`Iniciando test de ${testDocuments.length} descargas...`, 'info');
+    
+    for (const doc of testDocuments) {
+        console.log(`\n🔍 Probando: ${doc.nombre_original}`);
+        
+        try {
+            const startTime = Date.now();
+            await downloadDocument(doc._id);
+            const endTime = Date.now();
+            
+            results.push({
+                documento: doc.nombre_original,
+                tipo: doc.tipo_archivo,
+                tamaño: formatFileSize(doc.tamano_archivo),
+                tiempo: `${endTime - startTime}ms`,
+                estado: '✅ EXITOSO'
+            });
+            
+            // Esperar entre descargas
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+        } catch (error) {
+            results.push({
+                documento: doc.nombre_original,
+                tipo: doc.tipo_archivo,
+                tamaño: formatFileSize(doc.tamano_archivo),
+                tiempo: 'N/A',
+                estado: `❌ FALLIDO: ${error.message}`
+            });
+        }
+    }
+    
+    // Mostrar resultados
+    console.table(results);
+    
+    const successful = results.filter(r => r.estado.includes('✅')).length;
+    const total = results.length;
+    
+    console.log(`\n📊 RESULTADO: ${successful}/${total} descargas exitosas`);
+    
+    if (successful === total) {
+        showAlert('✅ Todas las descargas funcionan correctamente', 'success');
+    } else if (successful > 0) {
+        showAlert(`⚠️ ${successful}/${total} descargas exitosas`, 'warning');
+    } else {
+        showAlert('❌ Todas las descargas fallaron', 'error');
+    }
+    
+    console.groupEnd();
+}
+
+// =============================================================================
+// EXPORTACIONES
+// =============================================================================
 export { 
     openDocumentModal, 
     closeDocumentModal, 
@@ -660,5 +814,7 @@ export {
     handleFileSelect,
     populateDocumentCategorySelect,
     debugDocumentDownload,
-    downloadDocumentSimple
+    downloadDocumentSimple,
+    downloadDocumentAlternative,
+    testAllDownloads
 };

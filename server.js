@@ -1312,6 +1312,257 @@ app.post('/api/tasks', async (req, res) => {
     }
 });
 
+// ============================================================================
+// DESCARGA DE DOCUMENTOS (FUNCIONA PDF, IMÁGENES, OFFICE, TXT, TODO)
+// ============================================================================
+
+app.get('/api/documents/:id/download', async (req, res) => {
+    console.log('📥 ====== INICIO ENDPOINT DESCARGA ======');
+
+    try {
+        const { id } = req.params;
+        const { filename } = req.query;
+
+        console.log('📋 Parámetros recibidos:', { id, filename });
+
+        // 1. Validar ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de documento invalido'
+            });
+        }
+
+        // 2. Buscar en BD
+        const documento = await Document.findOne({ 
+            _id: id, 
+            activo: true 
+        }).populate('persona_id', 'nombre');
+
+        if (!documento) {
+            return res.status(404).json({
+                success: false,
+                message: 'Documento no encontrado'
+            });
+        }
+
+        const fileName = filename || documento.nombre_original;
+        const cloudinaryUrl = documento.cloudinary_url || documento.url_cloudinary;
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+
+        console.log('📄 Documento encontrado:', {
+            fileName,
+            extension: fileExtension,
+            url: cloudinaryUrl
+        });
+
+        if (!cloudinaryUrl) {
+            return res.status(404).json({
+                success: false,
+                message: 'URL de archivo no disponible'
+            });
+        }
+
+        // Tipos de archivo
+        const isImage = ['png','jpg','jpeg','gif','webp','bmp'].includes(fileExtension);
+        const isPDF = fileExtension === 'pdf';
+
+        // =====================================================================
+        // ESTRATEGIA 1: Redireccion directa para IMAGENES (funciona perfecto)
+        // =====================================================================
+        if (isImage) {
+            console.log('🖼️ Imagen detectada → redireccion directa');
+
+            let finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
+
+            return res.redirect(finalUrl);
+        }
+
+        // =====================================================================
+        // ESTRATEGIA 2: SERVIDOR PROXY PARA PDF, DOCX, XLSX, TXT, ETC
+        // =====================================================================
+        console.log('📄 Documento → usando servidor proxy');
+
+        // Intento 1: URL original
+        let response = await tryFetch(cloudinaryUrl);
+
+        // Si fallo, intentamos con URL modificada
+        if (!response.ok) {
+            console.log('⚠️ Intento 1 fallo, probando URL mejorada para Cloudinary...');
+            
+            const modifiedUrl = buildCloudinaryDownloadURL(cloudinaryUrl, fileExtension);
+            console.log('🔗 URL modificada final:', modifiedUrl);
+
+            response = await tryFetch(modifiedUrl);
+
+            if (!response.ok) {
+                console.log('❌ Intento 2 tambien fallo. Haciendo redireccion como ultimo recurso.');
+                
+                res.setHeader('Content-Type', getContentType(fileExtension));
+                res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+                return res.redirect(cloudinaryUrl);
+            }
+        }
+
+        // Procesar archivo
+        await processAndSendFile(response, res, fileName, fileExtension);
+
+    } catch (error) {
+        console.error('❌ ERROR CRITICO:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno en la descarga',
+            error: error.message
+        });
+    } finally {
+        console.log('📥 ====== FIN ENDPOINT DESCARGA ======');
+    }
+});
+
+
+// ============================================================================
+// FUNCION: Corregir URL para descarga desde Cloudinary (fix definitivo PDF)
+// ============================================================================
+function buildCloudinaryDownloadURL(url, extension) {
+    if (!url.includes('/upload/')) return url;
+
+    // Inserta fl_attachment incluso si existe /v123456/
+    let newUrl = url.replace(/\/upload\/(?:v\d+\/)?/, match => {
+        return match.replace('upload/', 'upload/fl_attachment/');
+    });
+
+    // Cloudinary requiere .pdf al final para PDFs
+    if (extension === 'pdf' && !newUrl.endsWith('.pdf')) {
+        if (newUrl.includes('.pdf')) {
+            newUrl = newUrl.split('.pdf')[0] + '.pdf';
+        } else {
+            newUrl += '.pdf';
+        }
+    }
+
+    return newUrl;
+}
+
+
+// ============================================================================
+// FUNCION: Intento de fetch con headers correctos
+// ============================================================================
+async function tryFetch(url) {
+    try {
+        return await fetch(url, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0'
+            },
+            timeout: 30000
+        });
+    } catch (err) {
+        console.error('❌ Error en fetch:', err);
+        return { ok: false, status: 0 };
+    }
+}
+
+
+// ============================================================================
+// FUNCION: Procesar y enviar archivo
+// ============================================================================
+async function processAndSendFile(fetchResponse, res, fileName, fileExtension) {
+    const buffer = await fetchResponse.arrayBuffer();
+    const nodeBuffer = Buffer.from(buffer);
+
+    if (nodeBuffer.length === 0) {
+        throw new Error('Buffer vacio');
+    }
+
+    // Verificacion PDF
+    if (fileExtension === 'pdf') {
+        const firstBytes = nodeBuffer.slice(0, 5).toString();
+        if (!firstBytes.includes('%PDF')) {
+            console.log('⚠️ El archivo no empieza con %PDF, Cloudinary devolvio HTML');
+            throw new Error('Respuesta invalida para PDF');
+        }
+    }
+
+    // Headers
+    const contentType = getContentType(fileExtension);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', nodeBuffer.length);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+
+    return res.end(nodeBuffer);
+}
+
+
+// ============================================================================
+// MIME TYPES
+// ============================================================================
+function getContentType(ext) {
+    const types = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'txt': 'text/plain',
+        'csv': 'text/csv',
+        'rtf': 'application/rtf',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp'
+    };
+
+    return types[ext.toLowerCase()] || 'application/octet-stream';
+}
+
+
+// =============================================================================
+// ENDPOINT PARA OBTENER INFORMACIÓN DEL ARCHIVO (OPCIONAL)
+// =============================================================================
+
+app.get('/api/documents/:id/info', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const documento = await Document.findOne({ _id: id, activo: true })
+            .populate('persona_id', 'nombre email departamento puesto');
+        
+        if (!documento) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Documento no encontrado' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            document: {
+                id: documento._id,
+                nombre_original: documento.nombre_original,
+                tipo_archivo: documento.tipo_archivo,
+                tamano_archivo: documento.tamano_archivo,
+                descripcion: documento.descripcion,
+                categoria: documento.categoria,
+                fecha_subida: documento.fecha_subida,
+                fecha_vencimiento: documento.fecha_vencimiento,
+                persona: documento.persona_id,
+                cloudinary_url: documento.cloudinary_url,
+                public_id: documento.public_id,
+                resource_type: documento.resource_type
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo info del documento:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener información del documento' 
+        });
+    }
+});
+
 // Actualizar tarea
 app.put('/api/tasks/:id', async (req, res) => {
     try {
