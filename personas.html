@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Portal de Archivos Docentes</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Personas — Portal de Archivos Docentes</title>
+    <style>
+      
+      body {
+        background-color: #121212;
+        color: #fff;
+        margin: 0;
+        min-height: 100vh;
+        text-align: center;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      
+      .header {
+        max-width: 980px;
+        margin: 1.25rem auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0 1rem;
+      }
+      
+      .brand .site-title { font-weight:700; font-size:1.1rem; color: #fff; }
+      .brand .subtitle { color: rgba(255,255,255,0.7); font-size:0.85rem; }
+
+      .actions { display:flex; gap:0.5rem; align-items:center; }
+      button {
+        background-color: #A0A0A0;
+        color: white;
+        text-decoration-color: #E0E0E0;
+        padding: 0.6rem 0.9rem;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 8px;
+        margin: 0.5rem;
+        cursor: pointer;
+      }
+      a.button-link { text-decoration:none; }
+
+      
+      .card {
+        width: min(900px, 95%);
+        margin: 3rem auto;
+        background: #1E1E1E;
+        border: 1px solid #2A2A2A;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 8px 24px #50E3C2;
+        display: flex;
+        flex-direction: column;
+        align-items: left;
+        gap: 1rem;
+      }
+
+      .card-input {
+        width: 300px;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid #333;
+        background: #121212;
+        color: #fff;
+        outline: none;
+        font-size: large;
+      }
+      .card-input::placeholder { color: rgba(255,255,255,0.6); }
+
+      .back-row {
+        display:flex;
+        justify-content:center;
+        gap:0.5rem;
+        margin-top:1rem;
+      }
+
+      .small {
+        font-size:0.9rem;
+        color: rgba(255,255,255,0.8);
+      }
+
+      /* Estilos para el dropdown */
+      .card-select {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid #333;
+        background: #121212;
+        color: #fff;
+        outline: none;
+        font-size: large;
+        cursor: pointer;
+      }
+      
+      /* Card */
+      .card {
+        width: min(900px, 95%);
+        margin: 3rem auto;
+        background: #1E1E1E;
+        border: 1px solid #2A2A2A;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 8px 24px #50E3C2;
+        display: flex;
+        flex-direction: column;
+        align-items: left;
+        gap: 1rem;
+      }
+
+      /* Agregar contenedor para la barra de búsqueda y el dropdown */
+      .search-row {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      /* Estilos para la sección de datos */
+      .datos {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+      }
+
+      .datos h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    
+    <header class="header" role="banner" aria-label="Encabezado">
+      
+
+      <section class="actions" role="navigation" aria-label="acciones principales">
+        <a class="button-link" href="pag_web.html"><button>Dashboard</button></a>
+        <a class="button-link" href="personas.html"><button>Personas</button></a>
+        
+      </section>
+    </header>
+
+
+
+    
+    <!-- main card -->
+    <main class="card" role="main">
+      <section class="search-row">
+        <input class="card-input" type="text" placeholder="Buscar Docente..." aria-label="Buscar Docente">
+        
+        <select class="card-select" aria-label="Filtrar por">
+          <option value="nombre">Nombre</option>
+          <option value="materia">Materia</option>
+          <option value="fecha">Fecha</option>
+        </select>
+      </section>
+
+      <article class="card datos" role="article">
+        <section class="datos-headers">
+          <h3>Nombre:</h3>
+          <h3>Area:</h3>
+          <h3>No Control:</h3>
+        </section>
+        <button aria-label="Botón de descarga">Descargar</button>
+      </article>
+    </main>
+
+  </body>
+</html>

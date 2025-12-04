@@ -1,0 +1,23 @@
+Colores (Usados en la app):
+  Fondo pantalla: #121212
+  Fondo boton: #A0A0A0
+  Texto boton: #white
+  Fondo card: #1E1E1E
+  Shadow card:  #50E3C2;
+  Fondo textbox: #121212
+
+
+#idea para paleta
+
+
+
+  | Element                       | Color     | Purpose                                                     |
+| ----------------------------- | --------- | ----------------------------------------------------------- |
+| **Background**                | `#121212` | Deep neutral background (not pure black) — easy on the eyes |
+| **Surface / Card background** | `#1E1E1E` | Slightly lighter to distinguish panels or cards             |
+| **Accent (Primary)**          | `#4A90E2` | Calming academic blue for buttons/links                     |
+| **Accent (Secondary)**        | `#50E3C2` | Soft teal for highlights or hover states                    |
+| **Text (Primary)**            | `#E0E0E0` | Light gray text — no stark white glare                      |
+| **Text (Secondary)**          | `#A0A0A0` | Muted gray for labels and metadata                          |
+| **Borders / Lines**           | `#2A2A2A` | Gentle contrast for dividers                                |
+| **Error / Warning**           | `#E57373` | Muted red for alerts                                        |
