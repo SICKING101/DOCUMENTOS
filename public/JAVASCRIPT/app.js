@@ -34,6 +34,15 @@ import {
     previewDocument, 
     deleteDocument, 
     downloadDocumentSimple,
+    downloadDocumentAlternative,
+    debugDocumentDownload,
+    testAllDownloads,
+     handleMultipleFileSelect,
+     switchUploadMode,
+     handleUploadMultipleDocuments,
+     debugMultipleUpload,
+     testMultipleUploadWithMockFiles,
+     cancelMultipleUpload,
     handleFileSelect 
 } from './modules/documentos.js';
 
@@ -160,6 +169,68 @@ function initializeActiveNavigation() {
 
 function setupEventListeners() {
     console.log('🔧 Configurando event listeners...');
+
+    function handleQuickAction(e) {
+    const action = this.querySelector('.action-card__title')?.textContent;
+    console.log(`⚡ Acción rápida: ${action}`);
+    
+    switch(action) {
+        case 'Subir Documento':
+            openDocumentModal();
+            break;
+        case 'Subir Múltiples':
+            openDocumentModal();
+            // Cambiar automáticamente a modo múltiple
+            setTimeout(() => {
+                switchUploadMode('multiple');
+            }, 100);
+            break;
+        case 'Agregar Persona':
+            openPersonModal();
+            break;
+        case 'Generar Reporte':
+            generateReport();
+            break;
+        case 'Búsqueda Avanzada':
+            showAdvancedSearch();
+            break;
+        default:
+            console.warn('Acción no reconocida:', action);
+    }
+}
+
+     // =========================================================================
+    // NUEVOS EVENT LISTENERS PARA SUBIDA MÚLTIPLE
+    // =========================================================================
+    
+    // Tabs de modo de subida
+    DOM.uploadTabs?.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const mode = this.dataset.mode;
+            switchUploadMode(mode);
+        });
+    });
+    
+    // Botón para seleccionar múltiples archivos
+    DOM.browseMultipleFilesBtn?.addEventListener('click', () => DOM.multipleFileInput?.click());
+    
+    // Input para múltiples archivos
+    DOM.multipleFileInput?.addEventListener('change', handleMultipleFileSelect);
+    
+    // Botón para subir múltiples documentos
+    DOM.uploadMultipleDocumentsBtn?.addEventListener('click', () => handleUploadMultipleDocuments());
+    
+    // Toggle de opciones avanzadas
+    DOM.toggleAdvancedOptions?.addEventListener('click', function() {
+        const advancedOptions = DOM.advancedOptions;
+        if (advancedOptions) {
+            const isVisible = advancedOptions.style.display === 'block';
+            advancedOptions.style.display = isVisible ? 'none' : 'block';
+            this.innerHTML = isVisible ? 
+                '<i class="fas fa-sliders-h"></i> Opciones Avanzadas' :
+                '<i class="fas fa-sliders-h"></i> Ocultar Opciones';
+        }
+    });
     
     // Navegación entre pestañas
     DOM.navLinks.forEach(link => {
@@ -237,6 +308,61 @@ function setupEventListeners() {
     
     console.log('✅ Event listeners configurados correctamente');
 }
+
+// Tema oscuro 
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = themeToggle.querySelector('i');
+
+const getPreferredTheme = () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        return savedTheme;
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const applyTheme = (theme) => {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.body.classList.remove('dark-theme');
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+        localStorage.setItem('theme', 'light');
+    }
+};
+
+const initTheme = () => {
+    const preferredTheme = getPreferredTheme();
+    applyTheme(preferredTheme);
+    
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+};
+
+const toggleTheme = () => {
+    const isDark = document.body.classList.contains('dark-theme');
+    applyTheme(isDark ? 'light' : 'dark');
+};
+
+if (themeToggle) {
+    themeToggle.addEventListener('click', toggleTheme);
+    themeToggle.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleTheme();
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initTheme);
 
 // =============================================================================
 // FUNCIONES DE NAVEGACIÓN - ACTUALIZADAS CON TAREAS
@@ -611,6 +737,12 @@ window.openTaskModal = openTaskModal;
 window.createQuickTask = createQuickTask;
 window.getTasksStats = getTasksStats;
 
+window.switchUploadMode = switchUploadMode;
+window.handleUploadMultipleDocuments = handleUploadMultipleDocuments;
+window.debugMultipleUpload = debugMultipleUpload;
+window.testMultipleUploadWithMockFiles = testMultipleUploadWithMockFiles;
+window.cancelMultipleUpload = cancelMultipleUpload;
+
 // Funciones de descarga
 window.downloadDocument = downloadDocument;
 window.downloadDocumentSimple = downloadDocumentSimple;
@@ -672,61 +804,6 @@ setTimeout(() => {
         taskManager.bindEvents();
     }
 }, 1000);
-
-// Tema oscuro 
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = themeToggle.querySelector('i');
-
-const getPreferredTheme = () => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        return savedTheme;
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-};
-
-const applyTheme = (theme) => {
-    if (theme === 'dark') {
-        document.body.classList.add('dark-theme');
-        themeIcon.classList.remove('fa-moon');
-        themeIcon.classList.add('fa-sun');
-        localStorage.setItem('theme', 'dark');
-    } else {
-        document.body.classList.remove('dark-theme');
-        themeIcon.classList.remove('fa-sun');
-        themeIcon.classList.add('fa-moon');
-        localStorage.setItem('theme', 'light');
-    }
-};
-
-const initTheme = () => {
-    const preferredTheme = getPreferredTheme();
-    applyTheme(preferredTheme);
-    
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', (e) => {
-        if (!localStorage.getItem('theme')) {
-            applyTheme(e.matches ? 'dark' : 'light');
-        }
-    });
-};
-
-const toggleTheme = () => {
-    const isDark = document.body.classList.contains('dark-theme');
-    applyTheme(isDark ? 'light' : 'dark');
-};
-
-if (themeToggle) {
-    themeToggle.addEventListener('click', toggleTheme);
-    themeToggle.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleTheme();
-        }
-    });
-}
-
-document.addEventListener('DOMContentLoaded', initTheme);
 
 console.log('✅ Script de aplicación cargado correctamente');
 
