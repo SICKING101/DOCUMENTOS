@@ -460,6 +460,87 @@ async function universalDownload(fileData) {
     throw lastError || new Error('No se pudo descargar el archivo con ninguna estrategia');
 }
 
+/**
+ * Formatea el tiempo en segundos a un string legible
+ */
+function formatTime(seconds) {
+    if (seconds < 60) {
+        return `${seconds} segundos`;
+    } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+    } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        return `${hours}h ${minutes}m`;
+    }
+}
+
+/**
+ * Calcula la velocidad de subida
+ */
+function calculateUploadSpeed(bytesUploaded, timeInSeconds) {
+    if (timeInSeconds === 0) return '0 B/s';
+    
+    const bytesPerSecond = bytesUploaded / timeInSeconds;
+    return formatFileSize(bytesPerSecond) + '/s';
+}
+
+/**
+ * Valida si un conjunto de archivos puede ser subido
+ */
+function validateFilesForUpload(files, maxFiles, maxIndividualSize, maxTotalSize) {
+    const errors = [];
+    
+    if (files.length > maxFiles) {
+        errors.push(`Máximo ${maxFiles} archivos permitidos. Seleccionados: ${files.length}`);
+    }
+    
+    let totalSize = 0;
+    files.forEach((file, index) => {
+        if (file.size > maxIndividualSize) {
+            errors.push(`"${file.name}" excede el tamaño máximo por archivo (${formatFileSize(maxIndividualSize)})`);
+        }
+        totalSize += file.size;
+    });
+    
+    if (totalSize > maxTotalSize) {
+        errors.push(`Tamaño total excedido: ${formatFileSize(totalSize)} > ${formatFileSize(maxTotalSize)}`);
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors: errors,
+        totalSize: totalSize
+    };
+}
+
+/**
+ * Extrae el nombre sin extensión de un archivo
+ */
+function getFileNameWithoutExtension(filename) {
+    return filename.replace(/\.[^/.]+$/, "");
+}
+
+/**
+ * Genera una descripción automática basada en el nombre del archivo
+ */
+function generateAutoDescription(filename) {
+    const nameWithoutExt = getFileNameWithoutExtension(filename);
+    
+    // Reemplazar guiones bajos y guiones por espacios
+    let description = nameWithoutExt.replace(/[_-]/g, ' ');
+    
+    // Capitalizar primera letra de cada palabra
+    description = description.replace(/\b\w/g, char => char.toUpperCase());
+    
+    // Remover números al inicio
+    description = description.replace(/^\d+\s*/, '');
+    
+    return description || 'Documento subido';
+}
+
 // =============================================================================
 // EXPORTACIONES
 // =============================================================================
@@ -476,5 +557,10 @@ export {
     downloadFromCloudinaryOptimized,
     getMimeTypeFromExtension,
     validateBlob,
+     formatTime,
+    calculateUploadSpeed,
+    validateFilesForUpload,
+    getFileNameWithoutExtension,
+    generateAutoDescription,
     universalDownload
 };

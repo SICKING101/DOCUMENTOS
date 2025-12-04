@@ -390,12 +390,6 @@
                             <option value="media">Prioridad media</option>
                             <option value="baja">Baja prioridad</option>
                         </select>
-                        <select class="filters-bar__select" id="filterStatus">
-                            <option value="all">Todas las tareas</option>
-                            <option value="pendiente">Pendientes</option>
-                            <option value="en-progreso">En progreso</option>
-                            <option value="completada">Completadas</option>
-                        </select>
                         <button class="btn btn--outline" id="clearFiltersBtn">
                             <i class="fas fa-times"></i> Limpiar filtros
                         </button>
@@ -507,15 +501,27 @@
     </dialog>
 
     <!-- Add Document Modal -->
-    <dialog id="documentModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Subir Documento</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="documentForm">
-                    <div class="upload__container" id="fileUploadContainer">
+<dialog id="documentModal" class="modal">
+    <article class="modal__content">
+        <header class="modal__header">
+            <h3 class="modal__title">Subir Documento</h3>
+            <button class="modal__close">&times;</button>
+        </header>
+        <section class="modal__body">
+            <form id="documentForm">
+                <!-- Tabs para modo único/múltiple -->
+                <div class="upload__tabs">
+                    <button type="button" class="upload__tab upload__tab--active" data-mode="single">
+                        <i class="fas fa-file-upload"></i> Subir Único
+                    </button>
+                    <button type="button" class="upload__tab" data-mode="multiple">
+                        <i class="fas fa-folder-open"></i> Subir Múltiple
+                    </button>
+                </div>
+
+                <!-- Contenedor para modo único -->
+                <div id="singleUploadContainer" class="upload__container upload__mode--active">
+                    <div class="upload__dropzone" id="fileUploadContainer">
                         <i class="fas fa-cloud-upload-alt upload__icon"></i>
                         <h3>Arrastra y suelta tu archivo aquí</h3>
                         <p>o</p>
@@ -555,16 +561,140 @@
                             <!-- Las opciones se cargarán dinámicamente -->
                         </select>
                     </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
-                <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
-                    <i class="fas fa-upload"></i> Subir Documento
-                </button>
-            </footer>
-        </article>
-    </dialog>
+                </div>
+
+                <!-- Contenedor para modo múltiple -->
+                <div id="multipleUploadContainer" class="upload__container">
+                    <div class="multiple-upload__header">
+                        <i class="fas fa-layer-group"></i>
+                        <h3>Subir Múltiples Documentos</h3>
+                        <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos juntos</p>
+                    </div>
+
+                    <div class="multiple-upload__dropzone" id="multipleFileUploadContainer">
+                        <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
+                        <h3>Arrastra y suelta múltiples archivos aquí</h3>
+                        <p>o</p>
+                        <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
+                            <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
+                        </button>
+                        <input type="file" id="multipleFileInput" class="upload__input" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                        <p class="upload__hint">Máximo ${CONFIG.MAX_MULTIPLE_FILES || 10} archivos • Tamaño máximo por archivo: ${formatFileSize(CONFIG.MAX_FILE_SIZE)}</p>
+                    </div>
+
+                    <!-- Configuración común para múltiples archivos -->
+                    <div class="multiple-upload__config">
+                        <h4><i class="fas fa-cog"></i> Configuración Común</h4>
+                        
+                        <div class="form__row">
+                            <div class="form__group">
+                                <label for="multipleDocumentCategory" class="form__label">Categoría para Todos</label>
+                                <select id="multipleDocumentCategory" class="form__select">
+                                    <option value="">Seleccionar categoría común</option>
+                                    <!-- Las categorías se cargarán dinámicamente -->
+                                </select>
+                            </div>
+                            <div class="form__group">
+                                <label for="multipleDocumentPerson" class="form__label">Asignar a Persona</label>
+                                <select id="multipleDocumentPerson" class="form__select">
+                                    <option value="">Seleccionar persona</option>
+                                    <!-- Las opciones se cargarán dinámicamente -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form__group">
+                            <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento (opcional)</label>
+                            <input type="number" id="multipleExpirationDays" class="form__input" min="0" placeholder="Ej: 30 (días desde hoy)">
+                        </div>
+                    </div>
+
+                    <!-- Lista de archivos seleccionados -->
+                    <div class="multiple-upload__files" id="multipleFilesList">
+                        <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span id="selectedFilesCount">0</span>)</h4>
+                        <div class="files__list" id="filesListContainer">
+                            <!-- Los archivos se agregarán dinámicamente aquí -->
+                            <div class="files__empty">
+                                <i class="fas fa-file-alt"></i>
+                                <p>No hay archivos seleccionados</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Resumen -->
+                        <div class="files__summary" id="filesSummary">
+                            <div class="summary__item">
+                                <i class="fas fa-file"></i>
+                                <span>Total archivos: <strong>0</strong></span>
+                            </div>
+                            <div class="summary__item">
+                                <i class="fas fa-hdd"></i>
+                                <span>Tamaño total: <strong>0 MB</strong></span>
+                            </div>
+                            <div class="summary__item">
+                                <i class="fas fa-clock"></i>
+                                <span>Tiempo estimado: <strong>0s</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Opciones avanzadas -->
+                    <div class="multiple-upload__advanced">
+                        <button type="button" class="btn btn--sm btn--outline" id="toggleAdvancedOptions">
+                            <i class="fas fa-sliders-h"></i> Opciones Avanzadas
+                        </button>
+                        
+                        <div class="advanced__options" id="advancedOptions" style="display: none;">
+                            <div class="form__group">
+                                <label class="form__label">
+                                    <input type="checkbox" id="autoGenerateDescriptions"> 
+                                    Generar descripciones automáticamente
+                                </label>
+                                <p class="form__hint">Usa el nombre del archivo como descripción</p>
+                            </div>
+                            
+                            <div class="form__group">
+                                <label class="form__label">
+                                    <input type="checkbox" id="notifyPerson"> 
+                                    Notificar a la persona asignada
+                                </label>
+                            </div>
+                            
+                            <div class="form__group">
+                                <label for="uploadStrategy" class="form__label">Estrategia de Subida</label>
+                                <select id="uploadStrategy" class="form__select">
+                                    <option value="sequential">Secuencial (más estable)</option>
+                                    <option value="parallel">Paralelo (más rápido)</option>
+                                    <option value="batch">Por lotes (equilibrado)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <footer class="modal__footer">
+            <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
+            <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
+                <i class="fas fa-upload"></i> Subir Documento
+            </button>
+            <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
+                <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
+            </button>
+        </footer>
+    </article>
+</dialog>
+
+<!-- En la sección de quick actions -->
+<div class="quick-actions">
+    <div class="action-card" data-action="multiple-upload">
+        <div class="action-card__icon">
+            <i class="fas fa-layer-group"></i>
+        </div>
+        <h3 class="action-card__title">Subir Múltiples</h3>
+        <p class="action-card__description">Sube varios documentos a la vez</p>
+    </div>
+    <!-- ... otras quick actions ... -->
+</div>
 
     <!-- Add Category Modal -->
     <dialog id="categoryModal" class="modal">
