@@ -1,22 +1,65 @@
-// task.js - Gestión de Tareas (Versión definitiva - Solo modales y notificaciones)
+// =============================================================================
+// 1. DEFINICIÓN DE LA CLASE TASKMANAGER
+// =============================================================================
 
+/**
+ * 1.1 Clase principal del gestor de tareas
+ * Maneja toda la funcionalidad relacionada con tareas: CRUD, filtrado,
+ * persistencia local y modales de confirmación.
+ */
 class TaskManager {
     constructor() {
+        /**
+         * 1.1.1 Lista de tareas
+         * Almacena todas las tareas creadas en la aplicación.
+         */
         this.tasks = [];
+        
+        /**
+         * 1.1.2 Filtros actuales
+         * Estado de los filtros aplicados a la lista de tareas.
+         */
         this.currentFilter = {
             priority: 'all',
             status: 'all'
         };
+        
+        /**
+         * 1.1.3 Término de búsqueda actual
+         * Texto para filtrar tareas por contenido.
+         */
         this.currentSearch = '';
+        
+        /**
+         * 1.1.4 Acción pendiente
+         * Almacena información sobre acciones que requieren confirmación.
+         */
         this.pendingAction = null;
+        
+        /**
+         * 1.1.5 Inicializar instancia
+         * Configura eventos y carga datos existentes.
+         */
         this.init();
     }
 
+    /**
+     * 1.2 Inicializar gestor de tareas
+     * Conecta eventos del DOM y carga tareas guardadas.
+     */
     init() {
         this.bindEvents();
         this.loadTasks();
     }
 
+    // =============================================================================
+    // 2. CONFIGURACIÓN DE EVENT LISTENERS
+    // =============================================================================
+
+    /**
+     * 2.1 Vincular todos los eventos del DOM
+     * Conecta botones, formularios y controles con sus funciones correspondientes.
+     */
     bindEvents() {
         // Botones principales
         const addTaskBtn = document.getElementById('addTaskBtn');
@@ -120,13 +163,21 @@ class TaskManager {
     }
 
     // =============================================================================
-    // FUNCIONES PRINCIPALES
+    // 3. FUNCIONES PRINCIPALES DE GESTIÓN
     // =============================================================================
 
+    /**
+     * 3.1 Cargar tareas desde almacenamiento local
+     * Recupera tareas guardadas anteriormente o inicializa lista vacía.
+     */
     loadTasks() {
         this.loadTasksFromLocalStorage();
     }
 
+    /**
+     * 3.2 Abrir modal de tarea
+     * Muestra formulario para crear nueva tarea o editar existente.
+     */
     openTaskModal(task = null) {
         const modal = document.getElementById('taskModal');
         const title = document.getElementById('taskModalTitle');
@@ -159,6 +210,10 @@ class TaskManager {
         }, 10);
     }
 
+    /**
+     * 3.3 Poblar formulario con datos de tarea
+     * Llena los campos del formulario con datos existentes para edición.
+     */
     populateForm(task) {
         document.getElementById('taskId').value = task.id;
         document.getElementById('taskTitle').value = task.title;
@@ -178,6 +233,10 @@ class TaskManager {
         }
     }
 
+    /**
+     * 3.4 Cerrar modal de tarea
+     * Oculta el formulario y restaura estado del documento.
+     */
     closeTaskModal() {
         const modal = document.getElementById('taskModal');
         if (modal) {
@@ -193,6 +252,10 @@ class TaskManager {
         }
     }
 
+    /**
+     * 3.5 Guardar tarea (crear o actualizar)
+     * Valida formulario y persiste datos en localStorage.
+     */
     saveTask() {
         const form = document.getElementById('taskForm');
         if (!form) {
@@ -253,9 +316,13 @@ class TaskManager {
     }
 
     // =============================================================================
-    // MODAL DE ACCIONES
+    // 4. MODAL DE ACCIONES CON CONFIRMACIÓN
     // =============================================================================
 
+    /**
+     * 4.1 Mostrar modal de acción con confirmación
+     * Presenta diálogo para confirmar operaciones críticas (eliminar, completar, etc.).
+     */
     showActionModal(actionType, taskId, additionalData = {}) {
         const modal = document.getElementById('actionModal');
         const title = document.getElementById('actionModalTitle');
@@ -340,6 +407,10 @@ class TaskManager {
         }, 10);
     }
 
+    /**
+     * 4.2 Mostrar modal para limpiar tareas completadas
+     * Solicita confirmación antes de eliminar todas las tareas completadas.
+     */
     showClearCompletedModal() {
         const completedTasks = this.tasks.filter(task => task.status === 'completada');
         if (completedTasks.length === 0) {
@@ -349,6 +420,10 @@ class TaskManager {
         this.showActionModal('clearCompleted');
     }
 
+    /**
+     * 4.3 Cerrar modal de acción
+     * Oculta diálogo de confirmación y limpia acción pendiente.
+     */
     closeActionModal() {
         const modal = document.getElementById('actionModal');
         if (modal) {
@@ -361,6 +436,10 @@ class TaskManager {
         this.pendingAction = null;
     }
 
+    /**
+     * 4.4 Ejecutar acción pendiente confirmada
+     * Realiza la operación después de confirmación del usuario.
+     */
     executePendingAction() {
         if (!this.pendingAction) return;
         
@@ -391,6 +470,10 @@ class TaskManager {
         }
     }
 
+    /**
+     * 4.5 Eliminar tarea específica
+     * Remueve tarea de la lista y actualiza interfaz.
+     */
     deleteTask(taskId) {
         try {
             const taskTitle = this.tasks.find(t => t.id === taskId)?.title || 'la tarea';
@@ -404,6 +487,10 @@ class TaskManager {
         }
     }
 
+    /**
+     * 4.6 Cambiar estado de tarea
+     * Alterna entre estados "pendiente" y "completada".
+     */
     toggleTaskStatus(taskId, newStatus) {
         try {
             const task = this.tasks.find(t => t.id === taskId);
@@ -423,6 +510,10 @@ class TaskManager {
         }
     }
 
+    /**
+     * 4.7 Limpiar todas las tareas completadas
+     * Elimina permanentemente tareas con estado "completada".
+     */
     clearCompletedTasks() {
         try {
             const completedTasks = this.tasks.filter(task => task.status === 'completada');
@@ -437,9 +528,13 @@ class TaskManager {
     }
 
     // =============================================================================
-    // FUNCIONES DE UI
+    // 5. FUNCIONES DE INTERFAZ DE USUARIO
     // =============================================================================
 
+    /**
+     * 5.1 Obtener fecha de vencimiento formateada
+     * Combina fecha y hora del formulario en objeto Date.
+     */
     getDueDate() {
         const date = document.getElementById('taskDueDate')?.value;
         const time = document.getElementById('taskTime')?.value;
@@ -453,10 +548,18 @@ class TaskManager {
         }
     }
 
+    /**
+     * 5.2 Generar ID único para tarea
+     * Crea identificador único usando timestamp y random.
+     */
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
+    /**
+     * 5.3 Filtrar tareas por criterios
+     * Aplica filtros de prioridad y estado a la lista.
+     */
     filterTasks() {
         const priorityFilter = document.getElementById('filterPriority')?.value || 'all';
         const statusFilter = document.getElementById('filterStatus')?.value || 'all';
@@ -469,11 +572,19 @@ class TaskManager {
         this.renderTasks();
     }
 
+    /**
+     * 5.4 Buscar tareas por texto
+     * Filtra tareas que contengan el término de búsqueda en título, descripción o categoría.
+     */
     searchTasks(e) {
         this.currentSearch = e.target.value.toLowerCase();
         this.renderTasks();
     }
 
+    /**
+     * 5.5 Limpiar todos los filtros
+     * Restaura filtros a valores por defecto y muestra todas las tareas.
+     */
     clearFilters() {
         const filterPriority = document.getElementById('filterPriority');
         const filterStatus = document.getElementById('filterStatus');
@@ -492,6 +603,10 @@ class TaskManager {
         this.showNotification('Filtros limpiados correctamente', 'info');
     }
 
+    /**
+     * 5.6 Renderizar lista de tareas
+     * Genera HTML para mostrar tareas filtradas en el contenedor.
+     */
     renderTasks() {
         const container = document.getElementById('tasksContainer');
         if (!container) {
@@ -536,6 +651,10 @@ class TaskManager {
         this.bindTaskCardEvents();
     }
 
+    /**
+     * 5.7 Crear tarjeta HTML para tarea
+     * Genera elemento visual con información completa de la tarea.
+     */
     createTaskCard(task) {
         const dueDate = task.dueDate ? new Date(task.dueDate) : null;
         const isOverdue = dueDate && dueDate < new Date() && task.status !== 'completada';
@@ -615,6 +734,10 @@ class TaskManager {
         `;
     }
 
+    /**
+     * 5.8 Vincular eventos de tarjetas de tareas
+     * Asigna listeners a botones de acción dentro de cada tarjeta.
+     */
     bindTaskCardEvents() {
         document.querySelectorAll('.task-card__action').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -642,6 +765,10 @@ class TaskManager {
         });
     }
 
+    /**
+     * 5.9 Obtener estado vacío
+     * Genera HTML para mostrar cuando no hay tareas que coincidan con los filtros.
+     */
     getEmptyState() {
         const hasFilters = this.currentSearch || 
                           this.currentFilter.priority !== 'all' || 
@@ -659,6 +786,10 @@ class TaskManager {
         `;
     }
 
+    /**
+     * 5.10 Actualizar resumen de estadísticas
+     * Muestra contadores de tareas por estado en la interfaz.
+     */
     updateSummary() {
         const total = this.tasks.length;
         const pending = this.tasks.filter(task => task.status === 'pendiente').length;
@@ -677,9 +808,13 @@ class TaskManager {
     }
 
     // =============================================================================
-    // SISTEMA DE NOTIFICACIONES
+    // 6. SISTEMA DE NOTIFICACIONES
     // =============================================================================
 
+    /**
+     * 6.1 Mostrar notificación al usuario
+     * Crea notificación visual temporal con mensaje y tipo específico.
+     */
     showNotification(message, type = 'info') {
         // Crear contenedor de notificaciones si no existe
         let container = document.getElementById('notificationsContainer');
@@ -740,9 +875,13 @@ class TaskManager {
     }
 
     // =============================================================================
-    // LOCALSTORAGE
+    // 7. PERSISTENCIA EN LOCALSTORAGE
     // =============================================================================
 
+    /**
+     * 7.1 Cargar tareas desde localStorage
+     * Recupera tareas guardadas y actualiza estado e interfaz.
+     */
     loadTasksFromLocalStorage() {
         try {
             const storedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
@@ -755,6 +894,10 @@ class TaskManager {
         }
     }
 
+    /**
+     * 7.2 Guardar tareas en localStorage
+     * Persiste lista actual de tareas para recuperación posterior.
+     */
     saveTasksToLocalStorage() {
         try {
             localStorage.setItem('tasks', JSON.stringify(this.tasks));
@@ -763,6 +906,10 @@ class TaskManager {
         }
     }
 
+    /**
+     * 7.3 Escapar HTML para prevenir XSS
+     * Convierte caracteres especiales para mostrar texto seguro.
+     */
     escapeHtml(unsafe) {
         if (!unsafe) return '';
         return unsafe
@@ -774,7 +921,14 @@ class TaskManager {
     }
 }
 
-// Inicializar cuando el DOM esté listo
+// =============================================================================
+// 8. INICIALIZACIÓN AL CARGAR EL DOM
+// =============================================================================
+
+/**
+ * 8.1 Inicializar TaskManager cuando el DOM esté listo
+ * Crea instancia global y maneja errores críticos.
+ */
 document.addEventListener('DOMContentLoaded', () => {
     try {
         window.taskManager = new TaskManager();
@@ -802,7 +956,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// CSS para las notificaciones (se agrega automáticamente)
+// =============================================================================
+// 9. ESTILOS CSS PARA NOTIFICACIONES
+// =============================================================================
+
+/**
+ * 9.1 Estilos CSS para el sistema de notificaciones
+ * Se inyectan automáticamente al cargar el módulo.
+ */
 const notificationStyles = `
 .notifications {
     position: fixed;
@@ -904,7 +1065,14 @@ const notificationStyles = `
 }
 `;
 
-// Agregar estilos de notificaciones al documento
+// =============================================================================
+// 10. INYECTAR ESTILOS EN EL DOCUMENTO
+// =============================================================================
+
+/**
+ * 10.1 Agregar estilos de notificaciones al documento
+ * Se asegura de que los estilos estén disponibles para las notificaciones.
+ */
 if (!document.querySelector('#notification-styles')) {
     const styleSheet = document.createElement('style');
     styleSheet.id = 'notification-styles';
@@ -912,5 +1080,12 @@ if (!document.querySelector('#notification-styles')) {
     document.head.appendChild(styleSheet);
 }
 
-// Exportar para uso en otros módulos
+// =============================================================================
+// 11. EXPORTACIÓN PARA USO EN OTROS MÓDULOS
+// =============================================================================
+
+/**
+ * 11.1 Exportar TaskManager como módulo por defecto
+ * Permite importar la clase en otros archivos de la aplicación.
+ */
 export default TaskManager;

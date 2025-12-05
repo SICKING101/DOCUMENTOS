@@ -1,12 +1,23 @@
 const Notification = require('./Notification');
 
+// =============================================================================
+// 1. DEFINICIÓN DEL SERVICIO DE NOTIFICACIONES
+// =============================================================================
+
 /**
- * Servicio para gestionar notificaciones del sistema
+ * 1.1 Clase principal del servicio de notificaciones
+ * Servicio para gestionar todas las operaciones relacionadas con notificaciones,
+ * incluyendo creación, consulta y gestión del ciclo de vida.
  */
 class NotificationService {
   
+  // =============================================================================
+  // 2. MÉTODOS GENERALES DE CREACIÓN
+  // =============================================================================
+  
   /**
-   * Crear una nueva notificación
+   * 2.1 Crear notificación genérica
+   * Método base para crear cualquier tipo de notificación en la base de datos.
    */
   static async crear(data) {
     try {
@@ -19,9 +30,14 @@ class NotificationService {
       throw error;
     }
   }
-
+  
+  // =============================================================================
+  // 3. NOTIFICACIONES ESPECÍFICAS DE DOCUMENTOS
+  // =============================================================================
+  
   /**
-   * Notificación: Documento subido
+   * 3.1 Notificar subida de documento
+   * Genera notificación cuando un usuario sube un nuevo documento al sistema.
    */
   static async documentoSubido(documento, persona = null) {
     const nombrePersona = persona ? persona.nombre : 'Usuario';
@@ -42,7 +58,8 @@ class NotificationService {
   }
 
   /**
-   * Notificación: Documento eliminado
+   * 3.2 Notificar eliminación de documento
+   * Alerta sobre la eliminación de un documento del sistema.
    */
   static async documentoEliminado(nombreDocumento, categoria, usuario = 'Usuario') {
     return await this.crear({
@@ -59,7 +76,8 @@ class NotificationService {
   }
 
   /**
-   * Notificación: Documento próximo a vencer
+   * 3.3 Notificar documento próximo a vencer
+   * Alerta preventiva sobre documentos con fecha de vencimiento cercana.
    */
   static async documentoProximoVencer(documento, diasRestantes) {
     return await this.crear({
@@ -77,7 +95,8 @@ class NotificationService {
   }
 
   /**
-   * Notificación: Documento vencido
+   * 3.4 Notificar documento vencido
+   * Alerta crítica sobre documentos cuya fecha de vencimiento ha expirado.
    */
   static async documentoVencido(documento) {
     return await this.crear({
@@ -92,9 +111,14 @@ class NotificationService {
       }
     });
   }
-
+  
+  // =============================================================================
+  // 4. NOTIFICACIONES DE PERSONAS
+  // =============================================================================
+  
   /**
-   * Notificación: Persona agregada
+   * 4.1 Notificar agregado de persona
+   * Informa sobre la creación de un nuevo registro de persona en el sistema.
    */
   static async personaAgregada(persona) {
     return await this.crear({
@@ -112,7 +136,8 @@ class NotificationService {
   }
 
   /**
-   * Notificación: Persona eliminada
+   * 4.2 Notificar eliminación de persona
+   * Informa sobre la eliminación de un registro de persona del sistema.
    */
   static async personaEliminada(nombrePersona) {
     return await this.crear({
@@ -123,9 +148,14 @@ class NotificationService {
       prioridad: 'baja'
     });
   }
-
+  
+  // =============================================================================
+  // 5. NOTIFICACIONES DE CATEGORÍAS
+  // =============================================================================
+  
   /**
-   * Notificación: Categoría agregada
+   * 5.1 Notificar creación de categoría
+   * Informa sobre la creación de una nueva categoría para documentos.
    */
   static async categoriaAgregada(categoria) {
     return await this.crear({
@@ -137,9 +167,14 @@ class NotificationService {
       categoria_id: categoria._id
     });
   }
-
+  
+  // =============================================================================
+  // 6. NOTIFICACIONES DE REPORTES Y SISTEMA
+  // =============================================================================
+  
   /**
-   * Notificación: Reporte generado
+   * 6.1 Notificar generación de reporte
+   * Confirma la creación exitosa de un reporte en el sistema.
    */
   static async reporteGenerado(tipoReporte, formato, cantidadRegistros) {
     const nombresReportes = {
@@ -165,7 +200,8 @@ class NotificationService {
   }
 
   /**
-   * Notificación: Sistema iniciado
+   * 6.2 Notificar inicio del sistema
+   * Registra el evento de inicio del sistema para auditoría y monitoreo.
    */
   static async sistemaIniciado() {
     return await this.crear({
@@ -182,7 +218,8 @@ class NotificationService {
   }
 
   /**
-   * Notificación: Error del sistema
+   * 6.3 Notificar error del sistema
+   * Alerta sobre errores críticos que requieren atención administrativa.
    */
   static async errorSistema(mensaje, detalles = {}) {
     return await this.crear({
@@ -194,9 +231,14 @@ class NotificationService {
       metadata: detalles
     });
   }
-
+  
+  // =============================================================================
+  // 7. CONSULTAS Y GESTIÓN DE NOTIFICACIONES
+  // =============================================================================
+  
   /**
-   * Obtener notificaciones con filtros
+   * 7.1 Obtener notificaciones con filtros
+   * Consulta paginada con múltiples filtros para listar notificaciones en el frontend.
    */
   static async obtener(filtros = {}, opciones = {}) {
     const {
@@ -242,7 +284,8 @@ class NotificationService {
   }
 
   /**
-   * Marcar notificación como leída
+   * 7.2 Marcar notificación individual como leída
+   * Cambia el estado de una notificación específica a "leída".
    */
   static async marcarLeida(id) {
     const notificacion = await Notification.findById(id);
@@ -253,7 +296,8 @@ class NotificationService {
   }
 
   /**
-   * Marcar todas como leídas
+   * 7.3 Marcar todas las notificaciones como leídas
+   * Cambia masivamente el estado de todas las notificaciones no leídas.
    */
   static async marcarTodasLeidas() {
     const resultado = await Notification.updateMany(
@@ -264,21 +308,28 @@ class NotificationService {
   }
 
   /**
-   * Eliminar notificación
+   * 7.4 Eliminar notificación específica
+   * Remueve permanentemente una notificación de la base de datos.
    */
   static async eliminar(id) {
     return await Notification.findByIdAndDelete(id);
   }
-
+  
+  // =============================================================================
+  // 8. ESTADÍSTICAS Y MANTENIMIENTO
+  // =============================================================================
+  
   /**
-   * Obtener estadísticas
+   * 8.1 Obtener estadísticas generales
+   * Genera métricas sobre el estado de las notificaciones para dashboards.
    */
   static async obtenerEstadisticas() {
     return await Notification.obtenerEstadisticas();
   }
 
   /**
-   * Limpiar notificaciones antiguas
+   * 8.2 Limpiar notificaciones antiguas
+   * Tarea de mantenimiento para eliminar notificaciones leídas antiguas.
    */
   static async limpiarAntiguas(dias = 30) {
     return await Notification.limpiarAntiguas(dias);

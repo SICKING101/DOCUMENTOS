@@ -2,8 +2,14 @@ import { DOM } from '../dom.js';
 import { showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
 
 // =============================================================================
-// FUNCIONES DE BÚSQUEDA DE DOCUMENTOS
+// 1. BÚSQUEDA BÁSICA DE DOCUMENTOS
 // =============================================================================
+
+/**
+ * 1.1 Buscar documentos por término general
+ * Realiza búsqueda de documentos por nombre, descripción o categoría
+ * y actualiza la tabla de resultados.
+ */
 function searchDocuments(query) {
     console.log('🔍 Buscando documentos con query:', query);
     
@@ -13,6 +19,15 @@ function searchDocuments(query) {
     showAlert(`Se encontraron ${getFilteredDocuments().length} documentos para "${query}"`, 'success');
 }
 
+// =============================================================================
+// 2. FILTRADO DE DOCUMENTOS
+// =============================================================================
+
+/**
+ * 2.1 Obtener documentos filtrados según criterios actuales
+ * Aplica todos los filtros activos (búsqueda, categoría, tipo, fecha, estado)
+ * para obtener la lista de documentos que cumplan con todos los criterios.
+ */
 function getFilteredDocuments() {
     let documents = window.appState.documents;
     
@@ -81,17 +96,38 @@ function getFilteredDocuments() {
     return documents;
 }
 
+// =============================================================================
+// 3. MANEJO DEL MODAL DE BÚSQUEDA AVANZADA
+// =============================================================================
+
+/**
+ * 3.1 Mostrar modal de búsqueda avanzada
+ * Abre el formulario con múltiples criterios de búsqueda para filtrado preciso.
+ */
 function showAdvancedSearch() {
     console.log('🔍 Abriendo búsqueda avanzada...');
     
     DOM.searchModal.style.display = 'flex';
 }
 
+/**
+ * 3.2 Cerrar modal de búsqueda avanzada
+ * Oculta el formulario de búsqueda avanzada.
+ */
 function closeSearchModal() {
     console.log('❌ Cerrando modal de búsqueda avanzada');
     DOM.searchModal.style.display = 'none';
 }
 
+// =============================================================================
+// 4. BÚSQUEDA AVANZADA
+// =============================================================================
+
+/**
+ * 4.1 Realizar búsqueda avanzada
+ * Ejecuta búsqueda con múltiples criterios: palabras clave, categoría,
+ * fechas, persona asignada y estado de vencimiento.
+ */
 function performAdvancedSearch() {
     console.log('🔍 Realizando búsqueda avanzada...');
     
@@ -170,6 +206,10 @@ function performAdvancedSearch() {
     showAlert(`Se encontraron ${results.length} documentos con los criterios especificados`, 'success');
 }
 
+/**
+ * 4.2 Mostrar resultados de búsqueda avanzada
+ * Renderiza los documentos encontrados en formato detallado dentro del modal.
+ */
 function displaySearchResults(results) {
     if (!DOM.searchResultsList) return;
     
@@ -223,6 +263,14 @@ function displaySearchResults(results) {
     });
 }
 
+// =============================================================================
+// 5. HANDLERS/CONTROLADORES DE BÚSQUEDA
+// =============================================================================
+
+/**
+ * 5.1 Handler para búsqueda de documentos
+ * Captura el término de búsqueda del input principal y ejecuta la búsqueda.
+ */
 function handleDocumentSearch() {
     const query = DOM.documentSearch.value.trim();
     console.log('🔍 Buscando documentos:', query);
@@ -234,6 +282,10 @@ function handleDocumentSearch() {
     }
 }
 
+/**
+ * 5.2 Handler para limpiar búsqueda
+ * Remueve todos los términos de búsqueda y restaura la vista completa de documentos.
+ */
 function handleClearSearch() {
     console.log('🧹 Limpiando búsqueda...');
     DOM.documentSearch.value = '';
@@ -241,6 +293,10 @@ function handleClearSearch() {
     window.renderDocumentsTable();
 }
 
+/**
+ * 5.3 Handler para cambio de filtros
+ * Actualiza el estado global cuando se modifican los filtros de la barra lateral.
+ */
 function handleFilterChange() {
     const filterType = this.id.replace('filter', '').toLowerCase();
     const value = this.value;
@@ -250,11 +306,19 @@ function handleFilterChange() {
     applyFilters();
 }
 
+/**
+ * 5.4 Aplicar filtros activos
+ * Refresca la tabla de documentos aplicando todos los filtros configurados.
+ */
 function applyFilters() {
     console.log('🔍 Aplicando filtros...', window.appState.filters);
     window.renderDocumentsTable();
 }
 
+/**
+ * 5.5 Handler para búsqueda avanzada
+ * Ejecuta la búsqueda avanzada desde el botón del modal.
+ */
 function handleAdvancedSearch() {
     console.log('🔍 Realizando búsqueda avanzada...');
     performAdvancedSearch();

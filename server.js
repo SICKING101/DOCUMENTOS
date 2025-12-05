@@ -1517,6 +1517,154 @@ function getContentType(ext) {
     return types[ext.toLowerCase()] || 'application/octet-stream';
 }
 
+// =============================================================================
+// ENDPOINT PARA CONTENIDO DE TEXTO (VISTA PREVIA)
+// =============================================================================
+
+app.get('/api/documents/:id/content', async (req, res) => {
+    console.log('📝 Obteniendo contenido para vista previa de texto');
+    
+    try {
+        const { id } = req.params;
+        const { limit = 50000 } = req.query; // Limitar a 50KB por defecto
+
+        // Validar ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de documento inválido'
+            });
+        }
+
+        // Buscar documento
+        const documento = await Document.findOne({ 
+            _id: id, 
+            activo: true 
+        });
+
+        if (!documento) {
+            return res.status(404).json({
+                success: false,
+                message: 'Documento no encontrado'
+            });
+        }
+
+        // Verificar que sea archivo de texto
+        const extension = documento.nombre_original.split('.').pop().toLowerCase();
+        const textExtensions = ['txt', 'csv', 'json', 'xml', 'html', 'htm', 'js', 'css', 'md'];
+        
+        if (!textExtensions.includes(extension)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Este tipo de archivo no puede ser previsualizado como texto'
+            });
+        }
+
+        const cloudinaryUrl = documento.cloudinary_url;
+        
+        if (!cloudinaryUrl) {
+            return res.status(500).json({
+                success: false,
+                message: 'URL del archivo no disponible'
+            });
+        }
+
+        console.log('📥 Descargando contenido desde Cloudinary...');
+
+        // IMPORTANTE: Para archivos .txt, Cloudinary los sirve como 'raw'
+        // Necesitamos agregar parámetros para asegurar que sea texto
+        let finalUrl = cloudinaryUrl;
+        
+        // Si es una URL de Cloudinary, forzar formato raw
+        if (cloudinaryUrl.includes('cloudinary.com')) {
+            if (!cloudinaryUrl.includes('/raw/')) {
+                finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
+            }
+        }
+
+        // Descargar desde Cloudinary con fetch nativo de Node.js 18+
+        const response = await fetch(finalUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error al descargar desde Cloudinary: ${response.status}`);
+        }
+
+        // Leer el contenido
+        const buffer = await response.arrayBuffer();
+        
+        if (buffer.byteLength === 0) {
+            return res.status(500).json({
+                success: false,
+                message: 'El archivo está vacío'
+            });
+        }
+
+        // Convertir a texto
+        let textContent;
+        try {
+            // Intentar UTF-8 primero
+            textContent = new TextDecoder('utf-8').decode(buffer);
+        } catch (utf8Error) {
+            // Si falla UTF-8, intentar Latin-1
+            try {
+                textContent = new TextDecoder('latin-1').decode(buffer);
+            } catch (latinError) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'No se pudo decodificar el contenido del archivo'
+                });
+            }
+        }
+
+        // Limitar contenido si es muy grande
+        const maxLength = parseInt(limit);
+        let isTruncated = false;
+        
+        if (textContent.length > maxLength) {
+            textContent = textContent.substring(0, maxLength);
+            isTruncated = true;
+        }
+
+        // Determinar tipo de contenido
+        let contentType = 'text/plain; charset=utf-8';
+        if (extension === 'html' || extension === 'htm') contentType = 'text/html; charset=utf-8';
+        if (extension === 'json') contentType = 'application/json; charset=utf-8';
+        if (extension === 'xml') contentType = 'application/xml; charset=utf-8';
+        if (extension === 'css') contentType = 'text/css; charset=utf-8';
+        if (extension === 'js') contentType = 'application/javascript; charset=utf-8';
+        if (extension === 'csv') contentType = 'text/csv; charset=utf-8';
+        if (extension === 'md') contentType = 'text/markdown; charset=utf-8';
+
+        // Configurar respuesta
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('X-File-Name', encodeURIComponent(documento.nombre_original));
+        res.setHeader('X-File-Size', buffer.byteLength);
+        res.setHeader('X-Content-Length', textContent.length);
+        if (isTruncated) {
+            res.setHeader('X-Content-Truncated', 'true');
+            res.setHeader('X-Original-Length', buffer.byteLength);
+        }
+
+        // Enviar contenido
+        res.send(textContent);
+
+        console.log(`✅ Contenido enviado: ${textContent.length} caracteres`);
+
+    } catch (error) {
+        console.error('❌ Error en endpoint de contenido:', error);
+        
+        // Enviar como JSON si es un error
+        res.setHeader('Content-Type', 'application/json');
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener contenido: ' + error.message
+        });
+    }
+});
 
 // =============================================================================
 // ENDPOINT PARA OBTENER INFORMACIÓN DEL ARCHIVO (OPCIONAL)

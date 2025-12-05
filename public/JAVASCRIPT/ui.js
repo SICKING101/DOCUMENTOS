@@ -2,8 +2,14 @@ import { DOM } from './dom.js';
 import { showAlert } from './utils.js';
 
 // =============================================================================
-// MANEJADORES DE EVENTOS PRINCIPALES
+// 1. MANEJADOR DE ACCIONES RÁPIDAS
 // =============================================================================
+
+/**
+ * 1.1 Manejar acciones rápidas del dashboard
+ * Controla los clics en las tarjetas de acciones rápidas del panel principal
+ * y ejecuta las funciones correspondientes para cada acción.
+ */
 function handleQuickAction(e) {
     const action = this.querySelector('.action-card__title')?.textContent;
     console.log(`⚡ Acción rápida: ${action}`);
@@ -34,6 +40,15 @@ function handleQuickAction(e) {
     }
 }
 
+// =============================================================================
+// 2. MANEJADOR DE CIERRE DE MODALES
+// =============================================================================
+
+/**
+ * 2.1 Manejar cierre de modales
+ * Controla los clics en botones de cierre (×) de todos los modales
+ * y llama a las funciones específicas de cierre para cada tipo de modal.
+ */
 function handleModalClose() {
     const modal = this.closest('.modal');
     if (modal) {

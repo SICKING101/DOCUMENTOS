@@ -2,8 +2,14 @@ import { CONFIG } from './config.js';
 import { showAlert } from './utils.js';
 
 // =============================================================================
-// FUNCIÓN AUXILIAR PARA LLAMADAS A LA API - COMPLETO
+// 1. FUNCIÓN PRINCIPAL DE LLAMADAS A LA API
 // =============================================================================
+
+/**
+ * 1.1 Función auxiliar genérica para llamadas a la API
+ * Maneja todas las solicitudes HTTP al backend, incluyendo gestión de headers,
+ * manejo de errores y procesamiento de respuestas JSON.
+ */
 async function apiCall(endpoint, options = {}) {
     try {
         console.log(`📡 API Call: ${CONFIG.API_BASE_URL}${endpoint}`, options.method || 'GET');
@@ -49,11 +55,13 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // =============================================================================
-// FUNCIONES ESPECIALIZADAS PARA DESCARGAS - COMPLETO
+// 2. FUNCIONES ESPECIALIZADAS PARA DESCARGAS DE ARCHIVOS
 // =============================================================================
 
 /**
- * Función especializada para descargar archivos
+ * 2.1 Función especializada para descargar archivos
+ * Gestiona la descarga de archivos binarios desde el servidor, incluyendo
+ * manejo de blobs, creación de URLs temporales y disparo de descargas.
  */
 async function downloadFileApi(endpoint, fileName, options = {}) {
     console.group('📥 DOWNLOAD FILE API');
@@ -155,7 +163,9 @@ async function downloadFileApi(endpoint, fileName, options = {}) {
 }
 
 /**
- * Verificar disponibilidad de endpoint de descarga
+ * 2.2 Verificar disponibilidad de endpoint de descarga
+ * Realiza una petición HEAD para verificar si un endpoint de descarga está activo
+ * antes de intentar la descarga completa.
  */
 async function checkDownloadEndpoint(fileId) {
     try {
@@ -187,7 +197,8 @@ async function checkDownloadEndpoint(fileId) {
 }
 
 /**
- * Obtener información detallada del archivo
+ * 2.3 Obtener información detallada del archivo
+ * Recupera metadatos específicos de un archivo antes de intentar la descarga.
  */
 async function getFileInfo(fileId) {
     try {
@@ -199,8 +210,14 @@ async function getFileInfo(fileId) {
     }
 }
 
+// =============================================================================
+// 3. FUNCIONES DE DIAGNÓSTICO Y DEBUG
+// =============================================================================
+
 /**
- * Función que prueba múltiples endpoints de descarga
+ * 3.1 Probar múltiples endpoints de descarga
+ * Evalúa diferentes rutas de API para encontrar el endpoint funcional
+ * para descargar un archivo específico.
  */
 async function testDownloadEndpoints(fileId) {
     const endpoints = [
@@ -235,12 +252,10 @@ async function testDownloadEndpoints(fileId) {
     return results;
 }
 
-// =============================================================================
-// FUNCIONES DE DEBUG PARA DESCARGAS
-// =============================================================================
-
 /**
- * Debug detallado de descarga
+ * 3.2 Debug detallado de descarga
+ * Herramienta de diagnóstico completa que analiza todos los aspectos
+ * de una descarga fallida para identificar la causa raíz.
  */
 async function debugDownload(fileId) {
     console.group('🐛 DEBUG DE DESCARGA DETALLADO');
@@ -324,8 +339,14 @@ async function debugDownload(fileId) {
 }
 
 // =============================================================================
-// EXPORTACIONES
+// 4. EXPORTACIONES DE FUNCIONES
 // =============================================================================
+
+/**
+ * 4.1 Exportar todas las funciones de API
+ * Hace disponibles las funciones de llamada a API, descarga y diagnóstico
+ * para su uso en otros módulos de la aplicación.
+ */
 export { 
     apiCall,
     downloadFileApi,

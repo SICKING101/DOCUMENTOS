@@ -4,8 +4,14 @@ import { apiCall } from '../api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
 
 // =============================================================================
-// ESTADO DE SUBIDA MÚLTIPLE
+// SECCIÓN 1: ESTADO DE SUBIDA MÚLTIPLE
 // =============================================================================
+
+/**
+ * Clase que gestiona el estado completo de la subida múltiple de archivos.
+ * Controla archivos pendientes, en progreso, completados y fallidos,
+ * así como configuraciones comunes para todos los archivos.
+ */
 class MultipleUploadState {
     constructor() {
         this.files = [];
@@ -22,6 +28,10 @@ class MultipleUploadState {
         this.notifyPerson = false;
     }
 
+    /**
+     * Reinicia completamente el estado de subida múltiple.
+     * Útil para comenzar una nueva sesión de subida.
+     */
     reset() {
         this.files = [];
         this.currentUploads = [];
@@ -34,6 +44,11 @@ class MultipleUploadState {
         this.expirationDays = null;
     }
 
+    /**
+     * Agrega nuevos archivos al estado, validando cada uno individualmente.
+     * Evita duplicados y aplica validaciones de tipo y tamaño.
+     * @param {File[]} newFiles - Array de archivos a agregar
+     */
     addFiles(newFiles) {
         console.group('📦 Agregando archivos múltiples');
         
@@ -72,6 +87,11 @@ class MultipleUploadState {
         console.groupEnd();
     }
 
+    /**
+     * Elimina un archivo del estado por su ID.
+     * @param {string} fileId - ID único del archivo a eliminar
+     * @returns {boolean} - True si se eliminó correctamente
+     */
     removeFile(fileId) {
         const index = this.files.findIndex(f => f.id === fileId);
         if (index !== -1) {
@@ -84,6 +104,12 @@ class MultipleUploadState {
         return false;
     }
 
+    /**
+     * Valida un archivo individual según configuraciones del sistema.
+     * Verifica tipo de archivo, tamaño individual y tamaño total acumulado.
+     * @param {File} file - Archivo a validar
+     * @returns {boolean} - True si el archivo es válido
+     */
     validateSingleFile(file) {
         try {
             console.log(`🔍 Validando archivo: ${file.name}`);
@@ -129,6 +155,11 @@ class MultipleUploadState {
         }
     }
 
+    /**
+     * Valida todos los archivos en el estado globalmente.
+     * Verifica límites, categorías y otros requisitos del sistema.
+     * @returns {boolean} - True si todos los archivos son válidos
+     */
     validateAllFiles() {
         console.group('🔍 Validando todos los archivos');
         
@@ -166,10 +197,19 @@ class MultipleUploadState {
         return true;
     }
 
+    /**
+     * Genera un ID único para un archivo basado en nombre, tamaño y timestamp.
+     * @param {File} file - Archivo para generar ID
+     * @returns {string} - ID único del archivo
+     */
     generateFileId(file) {
         return `${file.name}_${file.size}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
 
+    /**
+     * Obtiene estadísticas actuales del estado de subida.
+     * @returns {object} - Objeto con conteos de archivos por estado y tamaños
+     */
     getStats() {
         return {
             total: this.files.length,
@@ -184,6 +224,10 @@ class MultipleUploadState {
         };
     }
 
+    /**
+     * Muestra en consola el estado actual de la subida múltiple.
+     * Útil para debugging y seguimiento de progreso.
+     */
     logState() {
         console.group('📊 Estado de Subida Múltiple');
         const stats = this.getStats();
@@ -204,8 +248,13 @@ class MultipleUploadState {
 const multipleUploadState = new MultipleUploadState();
 
 // =============================================================================
-// FUNCIONES DE DOCUMENTOS (CRUD) - ACTUALIZADO
+// SECCIÓN 2: FUNCIONES PRINCIPALES DE DOCUMENTOS (CRUD)
 // =============================================================================
+
+/**
+ * Abre el modal para subir documentos (individual o múltiple).
+ * Configura los selects, resetea formularios y prepara la interfaz.
+ */
 function openDocumentModal() {
     console.group('📄 Abriendo modal de documento');
     
@@ -253,9 +302,70 @@ function openDocumentModal() {
     console.groupEnd();
 }
 
+/**
+ * Cierra el modal de documentos, con confirmación si hay subidas en progreso.
+ */
+function closeDocumentModal() {
+    console.log('❌ Cerrando modal de documento');
+    DOM.documentModal.style.display = 'none';
+    
+    // Si está subiendo, preguntar
+    if (multipleUploadState.isUploading) {
+        if (confirm('Hay archivos subiendo. ¿Seguro que quieres cancelar?')) {
+            cancelMultipleUpload();
+        } else {
+            DOM.documentModal.style.display = 'flex';
+            return;
+        }
+    }
+}
+
+/**
+ * Cambia entre modo de subida individual y múltiple.
+ * Actualiza la interfaz y el estado global.
+ * @param {string} mode - 'single' para individual, 'multiple' para múltiple
+ */
+function switchUploadMode(mode) {
+    console.log(`🔄 Cambiando a modo: ${mode}`);
+    
+    // Actualizar tabs
+    DOM.uploadTabs.forEach(tab => {
+        if (tab.dataset.mode === mode) {
+            tab.classList.add('upload__tab--active');
+        } else {
+            tab.classList.remove('upload__tab--active');
+        }
+    });
+    
+    // Mostrar/ocultar contenedores
+    if (mode === 'single') {
+        DOM.singleUploadContainer.classList.add('upload__mode--active');
+        DOM.multipleUploadContainer.classList.remove('upload__mode--active');
+        DOM.uploadDocumentBtn.style.display = 'flex';
+        DOM.uploadMultipleDocumentsBtn.style.display = 'none';
+    } else {
+        DOM.singleUploadContainer.classList.remove('upload__mode--active');
+        DOM.multipleUploadContainer.classList.add('upload__mode--active');
+        DOM.uploadDocumentBtn.style.display = 'none';
+        DOM.uploadMultipleDocumentsBtn.style.display = 'flex';
+        
+        // Actualizar UI de múltiple
+        updateMultipleUploadUI();
+    }
+    
+    // Actualizar estado
+    window.appState.uploadMode = mode;
+}
+
 // =============================================================================
-// FUNCIÓN AUXILIAR PARA POBLAR PERSONAS
+// SECCIÓN 3: FUNCIONES AUXILIARES DE DOCUMENTOS
 // =============================================================================
+
+/**
+ * Pobla el select de personas desde la API o estado global.
+ * Se usa en ambos modos de subida (individual y múltiple).
+ * @param {HTMLSelectElement} selectElement - Elemento select a poblar
+ */
 async function populatePersonSelect(selectElement) {
     if (!selectElement) return;
     
@@ -297,56 +407,71 @@ async function populatePersonSelect(selectElement) {
     }
 }
 
-function closeDocumentModal() {
-    console.log('❌ Cerrando modal de documento');
-    DOM.documentModal.style.display = 'none';
+/**
+ * Pobla el select de categorías para el modo individual.
+ * Usa las categorías del estado global.
+ */
+function populateDocumentCategorySelect() {
+    if (!DOM.documentCategory) return;
     
-    // Si está subiendo, preguntar
-    if (multipleUploadState.isUploading) {
-        if (confirm('Hay archivos subiendo. ¿Seguro que quieres cancelar?')) {
-            cancelMultipleUpload();
-        } else {
-            DOM.documentModal.style.display = 'flex';
-            return;
-        }
+    DOM.documentCategory.innerHTML = '<option value="">Seleccionar categoría</option>';
+    
+    if (window.appState && window.appState.categories) {
+        window.appState.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.nombre;
+            option.textContent = category.nombre;
+            DOM.documentCategory.appendChild(option);
+        });
     }
 }
 
-function switchUploadMode(mode) {
-    console.log(`🔄 Cambiando a modo: ${mode}`);
+/**
+ * Pobla el select de categorías para el modo múltiple.
+ * Usa las categorías del estado global.
+ */
+function populateMultipleCategorySelect() {
+    if (!DOM.multipleDocumentCategory) return;
     
-    // Actualizar tabs
-    DOM.uploadTabs.forEach(tab => {
-        if (tab.dataset.mode === mode) {
-            tab.classList.add('upload__tab--active');
-        } else {
-            tab.classList.remove('upload__tab--active');
-        }
-    });
+    DOM.multipleDocumentCategory.innerHTML = '<option value="">Seleccionar categoría</option>';
     
-    // Mostrar/ocultar contenedores
-    if (mode === 'single') {
-        DOM.singleUploadContainer.classList.add('upload__mode--active');
-        DOM.multipleUploadContainer.classList.remove('upload__mode--active');
-        DOM.uploadDocumentBtn.style.display = 'flex';
-        DOM.uploadMultipleDocumentsBtn.style.display = 'none';
-    } else {
-        DOM.singleUploadContainer.classList.remove('upload__mode--active');
-        DOM.multipleUploadContainer.classList.add('upload__mode--active');
-        DOM.uploadDocumentBtn.style.display = 'none';
-        DOM.uploadMultipleDocumentsBtn.style.display = 'flex';
-        
-        // Actualizar UI de múltiple
-        updateMultipleUploadUI();
+    if (window.appState && window.appState.categories) {
+        window.appState.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.nombre;
+            option.textContent = category.nombre;
+            DOM.multipleDocumentCategory.appendChild(option);
+        });
     }
+}
+
+/**
+ * Pobla un select de categorías específico para archivos individuales en modo múltiple.
+ * @param {HTMLSelectElement} selectElement - Elemento select a poblar
+ */
+function populateFileCategorySelect(selectElement) {
+    if (!selectElement) return;
     
-    // Actualizar estado
-    window.appState.uploadMode = mode;
+    selectElement.innerHTML = '<option value="">Usar categoría común</option>';
+    
+    if (window.appState && window.appState.categories) {
+        window.appState.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.nombre;
+            option.textContent = category.nombre;
+            selectElement.appendChild(option);
+        });
+    }
 }
 
 // =============================================================================
-// DRAG AND DROP MEJORADO
+// SECCIÓN 4: DRAG AND DROP MEJORADO
 // =============================================================================
+
+/**
+ * Configura el drag and drop para ambos modos de subida.
+ * Llama a funciones específicas para cada contenedor.
+ */
 function setupFileDragAndDrop() {
     console.log('🔧 Configurando drag and drop...');
     
@@ -363,6 +488,12 @@ function setupFileDragAndDrop() {
     console.log('✅ Drag and drop configurado');
 }
 
+/**
+ * Configura eventos de drag and drop para un elemento específico.
+ * Maneja drag over, drag leave y drop.
+ * @param {HTMLElement} element - Elemento donde configurar drag and drop
+ * @param {boolean} isMultiple - True si es para modo múltiple
+ */
 function setupDragAndDropForElement(element, isMultiple) {
     element.addEventListener('dragover', function(e) {
         e.preventDefault();
@@ -396,8 +527,14 @@ function setupDragAndDropForElement(element, isMultiple) {
 }
 
 // =============================================================================
-// MANEJO DE ARCHIVOS INDIVIDUALES
+// SECCIÓN 5: MANEJO DE ARCHIVOS INDIVIDUALES
 // =============================================================================
+
+/**
+ * Maneja la selección de un archivo individual.
+ * Valida el archivo y lo almacena en el estado global.
+ * @param {File} file - Archivo seleccionado
+ */
 function handleFile(file) {
     if (!file) {
         console.warn('⚠️ No se proporcionó archivo');
@@ -433,9 +570,24 @@ function handleFile(file) {
     console.groupEnd();
 }
 
+/**
+ * Handler para el input de archivo individual.
+ * @param {Event} e - Evento del input file
+ */
+function handleFileSelect(e) {
+    console.log('📁 Archivo individual seleccionado:', e.target.files[0]?.name);
+    handleFile(e.target.files[0]);
+}
+
 // =============================================================================
-// MANEJO DE MÚLTIPLES ARCHIVOS - NUEVO
+// SECCIÓN 6: MANEJO DE MÚLTIPLES ARCHIVOS
 // =============================================================================
+
+/**
+ * Maneja la selección de múltiples archivos.
+ * Valida cantidad máxima y agrega archivos al estado.
+ * @param {File[]} files - Array de archivos seleccionados
+ */
 function handleMultipleFiles(files) {
     console.group(`📁 Procesando ${files.length} archivo(s) múltiple(s)`);
     
@@ -462,6 +614,19 @@ function handleMultipleFiles(files) {
     console.groupEnd();
 }
 
+/**
+ * Handler para el input de múltiples archivos.
+ * @param {Event} e - Evento del input file múltiple
+ */
+function handleMultipleFileSelect(e) {
+    console.log('📁 Múltiples archivos seleccionados:', e.target.files.length);
+    handleMultipleFiles(Array.from(e.target.files));
+}
+
+/**
+ * Actualiza toda la interfaz de subida múltiple.
+ * Incluye contador, lista de archivos, resumen y configuración.
+ */
 function updateMultipleUploadUI() {
     console.log('🔄 Actualizando UI de subida múltiple');
     
@@ -478,6 +643,10 @@ function updateMultipleUploadUI() {
     updateCommonSettings();
 }
 
+/**
+ * Renderiza la lista de archivos en el contenedor correspondiente.
+ * Muestra estado, progreso y acciones para cada archivo.
+ */
 function renderFilesList() {
     console.log('📋 Renderizando lista de archivos');
     
@@ -507,6 +676,12 @@ function renderFilesList() {
     });
 }
 
+/**
+ * Crea un elemento DOM para un archivo en la lista.
+ * Incluye información, estado, progreso y configuración individual.
+ * @param {object} fileObj - Objeto de archivo del estado
+ * @returns {HTMLElement} - Elemento DOM del archivo
+ */
 function createFileElement(fileObj) {
     const file = fileObj.file;
     const fileExtension = file.name.split('.').pop().toLowerCase();
@@ -618,6 +793,11 @@ function createFileElement(fileObj) {
     return element;
 }
 
+/**
+ * Obtiene el texto legible para un estado de archivo.
+ * @param {string} status - Estado del archivo
+ * @returns {string} - Texto legible del estado
+ */
 function getStatusText(status) {
     const statusMap = {
         'pending': 'Pendiente',
@@ -628,6 +808,9 @@ function getStatusText(status) {
     return statusMap[status] || status;
 }
 
+/**
+ * Actualiza el resumen de archivos con estadísticas actuales.
+ */
 function updateFilesSummary() {
     console.log('📊 Actualizando resumen de archivos');
     
@@ -654,6 +837,9 @@ function updateFilesSummary() {
     `;
 }
 
+/**
+ * Actualiza la configuración común desde los controles de la UI.
+ */
 function updateCommonSettings() {
     console.log('⚙️ Actualizando configuración común');
     
@@ -671,8 +857,13 @@ function updateCommonSettings() {
 }
 
 // =============================================================================
-// SUBIDA DE DOCUMENTOS INDIVIDUAL
+// SECCIÓN 7: SUBIDA DE DOCUMENTOS INDIVIDUAL
 // =============================================================================
+
+/**
+ * Maneja la subida de un documento individual.
+ * Valida, prepara FormData y envía al servidor.
+ */
 async function handleUploadDocument() {
     console.group('📤 Subiendo documento individual');
     
@@ -742,8 +933,13 @@ async function handleUploadDocument() {
 }
 
 // =============================================================================
-// SUBIDA MÚLTIPLE DE DOCUMENTOS - NUEVO
+// SECCIÓN 8: SUBIDA MÚLTIPLE DE DOCUMENTOS
 // =============================================================================
+
+/**
+ * Maneja la subida múltiple de documentos.
+ * Coordina la subida según la estrategia seleccionada y muestra progreso.
+ */
 async function handleUploadMultipleDocuments() {
     console.group('📤📤📤 SUBIDA MÚLTIPLE DE DOCUMENTOS');
     
@@ -821,6 +1017,10 @@ async function handleUploadMultipleDocuments() {
     }
 }
 
+/**
+ * Sube archivos de forma secuencial, uno tras otro.
+ * @returns {object} - Resultados de la subida
+ */
 async function uploadSequentially() {
     console.log('🔀 Subida secuencial iniciada');
     
@@ -886,6 +1086,10 @@ async function uploadSequentially() {
     return results;
 }
 
+/**
+ * Sube archivos en paralelo con límite de concurrencia.
+ * @returns {object} - Resultados de la subida
+ */
 async function uploadInParallel() {
     console.log('⚡ Subida paralela iniciada');
     
@@ -960,6 +1164,10 @@ async function uploadInParallel() {
     return results;
 }
 
+/**
+ * Sube archivos por lotes, con pausas entre lotes.
+ * @returns {object} - Resultados de la subida
+ */
 async function uploadInBatches() {
     console.log('📦 Subida por lotes iniciada');
     
@@ -1037,6 +1245,12 @@ async function uploadInBatches() {
     return results;
 }
 
+/**
+ * Sube un archivo individual con seguimiento de progreso.
+ * Usa XMLHttpRequest para obtener eventos de progreso.
+ * @param {object} fileObj - Objeto de archivo a subir
+ * @returns {Promise<boolean>} - True si la subida fue exitosa
+ */
 async function uploadSingleFileWithProgress(fileObj) {
     return new Promise(async (resolve, reject) => {
         try {
@@ -1153,6 +1367,10 @@ async function uploadSingleFileWithProgress(fileObj) {
     });
 }
 
+/**
+ * Actualiza la UI de un archivo específico en la lista.
+ * @param {string} fileId - ID del archivo a actualizar
+ */
 function updateFileUI(fileId) {
     const fileElement = document.querySelector(`.file-item[data-file-id="${fileId}"]`);
     if (!fileElement) return;
@@ -1196,6 +1414,10 @@ function updateFileUI(fileId) {
     updateOverallProgress();
 }
 
+/**
+ * Actualiza el progreso general de la subida múltiple.
+ * Actualiza barra de progreso y estadísticas.
+ */
 function updateOverallProgress() {
     const stats = multipleUploadState.getStats();
     const progressContainer = document.getElementById('uploadProgressContainer');
@@ -1242,6 +1464,10 @@ function updateOverallProgress() {
     }
 }
 
+/**
+ * Muestra el contenedor de progreso de subida múltiple.
+ * Contiene barra de progreso general, estadísticas y tiempo.
+ */
 function showUploadProgressContainer() {
     console.log('📊 Mostrando contenedor de progreso');
     
@@ -1312,6 +1538,9 @@ function showUploadProgressContainer() {
     startUploadTimer();
 }
 
+/**
+ * Oculta el contenedor de progreso de subida múltiple.
+ */
 function hideUploadProgressContainer() {
     const progressContainer = document.getElementById('uploadProgressContainer');
     if (progressContainer) {
@@ -1319,6 +1548,9 @@ function hideUploadProgressContainer() {
     }
 }
 
+/**
+ * Inicia el temporizador para mostrar tiempo transcurrido de subida.
+ */
 function startUploadTimer() {
     const startTime = Date.now();
     const timeElement = document.getElementById('uploadTime');
@@ -1336,6 +1568,10 @@ function startUploadTimer() {
     }, 1000);
 }
 
+/**
+ * Cancela la subida múltiple con confirmación.
+ * Cambia estado de archivos y oculta progreso.
+ */
 function cancelMultipleUpload() {
     console.log('⏹️ Cancelando subida múltiple...');
     
@@ -1356,6 +1592,11 @@ function cancelMultipleUpload() {
     }
 }
 
+/**
+ * Muestra los resultados de la subida múltiple.
+ * Notifica al usuario y limpia archivos exitosos.
+ * @param {object} results - Resultados de la subida
+ */
 function showUploadResults(results) {
     console.group('📊 Resultados de la subida múltiple');
     console.table({
@@ -1399,66 +1640,15 @@ function showUploadResults(results) {
 }
 
 // =============================================================================
-// FUNCIONES AUXILIARES
+// SECCIÓN 9: FUNCIONES DE DESCARGA DE DOCUMENTOS
 // =============================================================================
-function handleFileSelect(e) {
-    console.log('📁 Archivo individual seleccionado:', e.target.files[0]?.name);
-    handleFile(e.target.files[0]);
-}
 
-function handleMultipleFileSelect(e) {
-    console.log('📁 Múltiples archivos seleccionados:', e.target.files.length);
-    handleMultipleFiles(Array.from(e.target.files));
-}
-
-function populateDocumentCategorySelect() {
-    if (!DOM.documentCategory) return;
-    
-    DOM.documentCategory.innerHTML = '<option value="">Seleccionar categoría</option>';
-    
-    if (window.appState && window.appState.categories) {
-        window.appState.categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.nombre;
-            option.textContent = category.nombre;
-            DOM.documentCategory.appendChild(option);
-        });
-    }
-}
-
-function populateMultipleCategorySelect() {
-    if (!DOM.multipleDocumentCategory) return;
-    
-    DOM.multipleDocumentCategory.innerHTML = '<option value="">Seleccionar categoría</option>';
-    
-    if (window.appState && window.appState.categories) {
-        window.appState.categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.nombre;
-            option.textContent = category.nombre;
-            DOM.multipleDocumentCategory.appendChild(option);
-        });
-    }
-}
-
-function populateFileCategorySelect(selectElement) {
-    if (!selectElement) return;
-    
-    selectElement.innerHTML = '<option value="">Usar categoría común</option>';
-    
-    if (window.appState && window.appState.categories) {
-        window.appState.categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.nombre;
-            option.textContent = category.nombre;
-            selectElement.appendChild(option);
-        });
-    }
-}
-
-// =============================================================================
-// FUNCIONES DE DESCARGA (MANTENER LAS EXISTENTES)
-// =============================================================================
+/**
+ * Descarga un documento con manejo robusto de errores.
+ * Usa enlace temporal para la descarga.
+ * @param {string} id - ID del documento a descargar
+ * @returns {Promise<boolean>} - True si la descarga fue exitosa
+ */
 async function downloadDocument(id) {
     console.group('🚀 DESCARGAR DOCUMENTO');
     
@@ -1556,6 +1746,10 @@ async function downloadDocument(id) {
     }
 }
 
+/**
+ * Descarga un documento usando método simple (abrir URL).
+ * @param {string} id - ID del documento a descargar
+ */
 async function downloadDocumentSimple(id) {
     const doc = window.appState.documents.find(d => d._id === id);
     if (!doc) {
@@ -1573,6 +1767,12 @@ async function downloadDocumentSimple(id) {
     showAlert(`Descargando: ${doc.nombre_original}`, 'info');
 }
 
+/**
+ * Descarga un documento usando método alternativo (formulario oculto).
+ * Útil para casos donde el método principal falla.
+ * @param {string} id - ID del documento a descargar
+ * @returns {Promise<boolean>} - True si la descarga fue exitosa
+ */
 async function downloadDocumentAlternative(id) {
     console.group('🔄 DESCARGAR DOCUMENTO - MÉTODO ALTERNATIVO');
     
@@ -1625,6 +1825,15 @@ async function downloadDocumentAlternative(id) {
     }
 }
 
+// =============================================================================
+// SECCIÓN 10: FUNCIONES DE VISTA PREVIA
+// =============================================================================
+
+/**
+ * Muestra vista previa de un documento según su tipo.
+ * Usa diferentes estrategias para imágenes, PDFs, Office y texto.
+ * @param {string} id - ID del documento a previsualizar
+ */
 function previewDocument(id) {
     console.group('👁️ VISTA PREVIA MEJORADA');
     
@@ -1708,315 +1917,11 @@ function previewDocument(id) {
     }
 }
 
-async function deleteDocument(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
-        return;
-    }
-    
-    try {
-        console.log('🗑️ Eliminando documento:', id);
-        
-        const data = await apiCall(`/documents/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (data.success) {
-            showAlert(data.message, 'success');
-            await loadDocuments();
-            
-            if (window.appState.currentTab === 'dashboard') {
-                await window.loadDashboardData();
-            }
-        } else {
-            throw new Error(data.message);
-        }
-        
-    } catch (error) {
-        console.error('❌ Error eliminando documento:', error);
-        showAlert('Error al eliminar documento: ' + error.message, 'error');
-    }
-}
-
-// =============================================================================
-// FUNCIONES DE DIAGNÓSTICO
-// =============================================================================
-async function debugDocumentDownload(id) {
-    console.group('🐛 DIAGNÓSTICO DE DESCARGA');
-    
-    try {
-        const doc = window.appState.documents.find(d => d._id === id);
-        if (!doc) {
-            console.error('❌ Documento no encontrado');
-            showAlert('Documento no encontrado', 'error');
-            console.groupEnd();
-            return;
-        }
-        
-        console.log('📊 INFORMACIÓN DEL DOCUMENTO:');
-        console.table({
-            'ID': doc._id,
-            'Nombre': doc.nombre_original,
-            'Tipo': doc.tipo_archivo,
-            'Tamaño': `${doc.tamano_archivo} bytes (${formatFileSize(doc.tamano_archivo)})`,
-            'URL Cloudinary': doc.url_cloudinary || doc.cloudinary_url,
-            'Fecha subida': formatDate(doc.fecha_subida)
-        });
-        
-        // Probar diferentes métodos
-        console.log('🧪 PROBANDO MÉTODOS DE DESCARGA:');
-        
-        // Método 1: Endpoint directo
-        const endpoint = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
-        console.log('1️⃣ Endpoint:', endpoint);
-        
-        // Método 2: URL Cloudinary
-        if (doc.url_cloudinary || doc.cloudinary_url) {
-            console.log('2️⃣ Cloudinary URL:', doc.url_cloudinary || doc.cloudinary_url);
-        }
-        
-        // Recomendaciones
-        console.log('💡 RECOMENDACIONES:');
-        const extension = doc.nombre_original.split('.').pop().toLowerCase();
-        
-        if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
-            console.log('   • Usar endpoint del servidor o URL directa de Cloudinary');
-        } else if (extension === 'pdf') {
-            console.log('   • Usar endpoint del servidor (/download)');
-        } else {
-            console.log('   • Usar endpoint del servidor siempre');
-        }
-        
-        showAlert(`Diagnóstico completado para: ${doc.nombre_original}`, 'info');
-        
-    } catch (error) {
-        console.error('❌ Error en diagnóstico:', error);
-        showAlert('Error en diagnóstico: ' + error.message, 'error');
-    } finally {
-        console.groupEnd();
-    }
-}
-
-async function testAllDownloads() {
-    console.group('🧪 TEST COMPLETO DE DESCARGAS');
-    
-    if (!window.appState.documents || window.appState.documents.length === 0) {
-        showAlert('No hay documentos para probar', 'warning');
-        console.groupEnd();
-        return;
-    }
-    
-    const testDocuments = window.appState.documents.slice(0, 2); // Probar solo 2
-    const results = [];
-    
-    showAlert(`Iniciando test de ${testDocuments.length} descargas...`, 'info');
-    
-    for (const doc of testDocuments) {
-        console.log(`\n🔍 Probando: ${doc.nombre_original}`);
-        
-        try {
-            const startTime = Date.now();
-            await downloadDocument(doc._id);
-            const endTime = Date.now();
-            
-            results.push({
-                documento: doc.nombre_original,
-                tipo: doc.tipo_archivo,
-                tamaño: formatFileSize(doc.tamano_archivo),
-                tiempo: `${endTime - startTime}ms`,
-                estado: '✅ EXITOSO'
-            });
-            
-            // Esperar entre descargas
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-        } catch (error) {
-            results.push({
-                documento: doc.nombre_original,
-                tipo: doc.tipo_archivo,
-                tamaño: formatFileSize(doc.tamano_archivo),
-                tiempo: 'N/A',
-                estado: `❌ FALLIDO: ${error.message}`
-            });
-        }
-    }
-    
-    // Mostrar resultados
-    console.table(results);
-    
-    const successful = results.filter(r => r.estado.includes('✅')).length;
-    const total = results.length;
-    
-    console.log(`\n📊 RESULTADO: ${successful}/${total} descargas exitosas`);
-    
-    if (successful === total) {
-        showAlert('✅ Todas las descargas funcionan correctamente', 'success');
-    } else if (successful > 0) {
-        showAlert(`⚠️ ${successful}/${total} descargas exitosas`, 'warning');
-    } else {
-        showAlert('❌ Todas las descargas fallaron', 'error');
-    }
-    
-    console.groupEnd();
-}
-
-// =============================================================================
-// DEBUGGING Y DIAGNÓSTICO DE SUBIDA MÚLTIPLE
-// =============================================================================
-function debugMultipleUpload() {
-    console.group('🐛 DIAGNÓSTICO DE SUBIDA MÚLTIPLE');
-    
-    console.log('📊 Estado actual:', {
-        modo: window.appState.uploadMode || 'no definido',
-        archivosSeleccionados: multipleUploadState.files.length,
-        subiendo: multipleUploadState.isUploading,
-        tamañoTotal: formatFileSize(multipleUploadState.totalSize)
-    });
-    
-    console.log('📋 Archivos individuales:');
-    multipleUploadState.files.forEach((fileObj, index) => {
-        console.log(`${index + 1}. ${fileObj.file.name}`, {
-            tamaño: formatFileSize(fileObj.file.size),
-            estado: fileObj.status,
-            progreso: fileObj.progress,
-            error: fileObj.error,
-            categoríaPersonalizada: fileObj.customCategory,
-            categoríaComún: multipleUploadState.commonCategory
-        });
-    });
-    
-    console.log('⚙️ Configuración común:', {
-        categoría: multipleUploadState.commonCategory,
-        persona: multipleUploadState.commonPersonId,
-        díasVencimiento: multipleUploadState.expirationDays,
-        estrategia: multipleUploadState.uploadStrategy,
-        autoDescripciones: multipleUploadState.autoGenerateDescriptions,
-        notificar: multipleUploadState.notifyPerson
-    });
-    
-    console.log('🔧 Configuración del sistema:', {
-        maxArchivos: CONFIG.MAX_MULTIPLE_FILES,
-        maxTamañoIndividual: formatFileSize(CONFIG.MAX_FILE_SIZE),
-        maxTamañoTotal: formatFileSize(CONFIG.MAX_TOTAL_UPLOAD_SIZE),
-        tiposPermitidos: CONFIG.ALLOWED_FILE_TYPES,
-        estrategias: CONFIG.UPLOAD_STRATEGIES
-    });
-    
-    // Validar
-    const isValid = multipleUploadState.validateAllFiles();
-    console.log(`✅ Validación: ${isValid ? 'PASÓ' : 'FALLÓ'}`);
-    
-    // Estadísticas
-    const stats = multipleUploadState.getStats();
-    console.table({
-        'Total Archivos': stats.total,
-        'Pendientes': stats.pending,
-        'Subiendo': stats.uploading,
-        'Completados': stats.completed,
-        'Fallidos': stats.failed,
-        'Tamaño Total': formatFileSize(stats.totalSize),
-        'Tamaño Subido': formatFileSize(stats.uploadedSize)
-    });
-    
-    // Recomendaciones
-    console.log('💡 RECOMENDACIONES:');
-    if (multipleUploadState.files.length > 10) {
-        console.log('   • Considera usar estrategia "Por lotes" para mejor rendimiento');
-    }
-    
-    if (multipleUploadState.totalSize > 20 * 1024 * 1024) {
-        console.log('   • El tamaño total es grande, la subida puede tardar varios minutos');
-    }
-    
-    const tieneCategoría = multipleUploadState.commonCategory || 
-                          multipleUploadState.files.every(f => f.customCategory);
-    if (!tieneCategoría) {
-        console.log('   ⚠️  No hay categoría definida para todos los archivos');
-    }
-    
-    console.groupEnd();
-    
-    showAlert('Diagnóstico de subida múltiple completado. Revisa la consola.', 'info');
-}
-
-function testMultipleUploadWithMockFiles() {
-    console.group('🧪 TEST CON ARCHIVOS DE PRUEBA');
-    
-    // Crear archivos de prueba
-    const mockFiles = [];
-    const fileNames = [
-        'documento_prueba_1.pdf',
-        'imagen_prueba_1.jpg',
-        'excel_prueba_1.xlsx',
-        'word_prueba_1.docx',
-        'texto_prueba_1.txt'
-    ];
-    
-    fileNames.forEach((fileName, index) => {
-        const blob = new Blob([`Contenido de prueba ${index + 1}`], { type: 'text/plain' });
-        const file = new File([blob], fileName, {
-            type: fileName.endsWith('.pdf') ? 'application/pdf' :
-                  fileName.endsWith('.jpg') ? 'image/jpeg' :
-                  fileName.endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
-                  fileName.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
-                  'text/plain',
-            lastModified: Date.now()
-        });
-        
-        mockFiles.push(file);
-    });
-    
-    console.log(`📁 ${mockFiles.length} archivos de prueba creados`);
-    
-    // Cambiar a modo múltiple si no está
-    if (window.appState.uploadMode !== 'multiple') {
-        switchUploadMode('multiple');
-    }
-    
-    // Agregar archivos de prueba
-    handleMultipleFiles(mockFiles);
-    
-    // Configurar valores de prueba
-    DOM.multipleDocumentCategory.value = window.appState.categories?.[0]?.nombre || 'General';
-    DOM.multipleDocumentPerson.value = window.appState.persons?.[0]?._id || '';
-    DOM.multipleExpirationDays.value = '30';
-    DOM.uploadStrategy.value = 'sequential';
-    
-    // Actualizar estado
-    updateCommonSettings();
-    
-    console.log('✅ Test configurado. Archivos listos para subir.');
-    console.groupEnd();
-    
-    showAlert('Test de subida múltiple configurado. Revisa los archivos de prueba.', 'info');
-}
-
-// =============================================================================
-// FUNCIONES DE RENDERIZADO DE TABLA
-// =============================================================================
-async function loadDocuments() {
-    try {
-        console.log('📄 Cargando documentos...');
-        
-        const data = await apiCall('/documents');
-        
-        if (data.success) {
-            window.appState.documents = (data.documents || []).map(doc => ({
-                ...doc,
-                url_cloudinary: doc.url_cloudinary || doc.cloudinary_url
-            }));
-            
-            renderDocumentsTable();
-            console.log(`✅ ${window.appState.documents.length} documentos cargados`);
-        } else {
-            throw new Error(data.message);
-        }
-        
-    } catch (error) {
-        console.error('❌ Error cargando documentos:', error);
-        showAlert('Error al cargar documentos: ' + error.message, 'error');
-    }
-}
-
+/**
+ * Determina si un tipo de archivo puede ser previsualizado y cómo.
+ * @param {string} fileType - Extensión del archivo
+ * @returns {object} - Información sobre capacidad de previsualización
+ */
 function canPreviewDocument(fileType) {
     // Tipos de archivo que se pueden previsualizar
     const previewableExtensions = [
@@ -2049,6 +1954,1116 @@ function canPreviewDocument(fileType) {
     };
 }
 
+/**
+ * Muestra modal de vista previa para imágenes.
+ * @param {string} imageUrl - URL de la imagen
+ * @param {string} fileName - Nombre del archivo
+ */
+function showImagePreviewModal(imageUrl, fileName) {
+    // Crear modal para imagen
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    `;
+    
+    modal.innerHTML = `
+        <div class="preview-modal__header" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
+            <button class="close-preview" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            ">&times;</button>
+        </div>
+        
+        <div class="preview-modal__content" style="
+            max-width: 90%;
+            max-height: 80%;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        ">
+            <img src="${imageUrl}" alt="${fileName}" style="
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            ">
+        </div>
+        
+        <div class="preview-modal__footer" style="
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+        ">
+            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
+                background: #4f46e5;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-right: 0.5rem;
+            ">
+                <i class="fas fa-download"></i> Descargar
+            </button>
+            <a href="${imageUrl}" target="_blank" style="
+                background: #10b981;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+            ">
+                <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
+            </a>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    modal.querySelector('.close-preview').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(modal);
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+    
+    // Cerrar haciendo clic fuera de la imagen
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+/**
+ * Muestra modal de vista previa para PDFs.
+ * @param {string} pdfUrl - URL del PDF
+ * @param {string} fileName - Nombre del archivo
+ */
+function showPDFPreviewModal(pdfUrl, fileName) {
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    `;
+    
+    modal.innerHTML = `
+        <div class="preview-modal__header" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
+            <button class="close-preview" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            ">&times;</button>
+        </div>
+        
+        <div class="preview-modal__content" style="
+            width: 90%;
+            height: 80%;
+            overflow: hidden;
+            background: white;
+        ">
+            <embed src="${pdfUrl}" type="application/pdf" style="
+                width: 100%;
+                height: 100%;
+            ">
+        </div>
+        
+        <div class="preview-modal__footer" style="
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+        ">
+            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
+                background: #4f46e5;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-right: 0.5rem;
+            ">
+                <i class="fas fa-download"></i> Descargar
+            </button>
+            <a href="${pdfUrl}" target="_blank" style="
+                background: #10b981;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+            ">
+                <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
+            </a>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    modal.querySelector('.close-preview').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(modal);
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+    
+    // Cerrar haciendo clic fuera del contenido
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+/**
+ * Muestra modal de vista previa para documentos Office usando Google Docs Viewer.
+ * @param {string} viewerUrl - URL de Google Docs Viewer
+ * @param {string} fileName - Nombre del archivo
+ */
+function showOfficePreviewModal(viewerUrl, fileName) {
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    `;
+    
+    modal.innerHTML = `
+        <div class="preview-modal__header" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <h3 style="margin: 0; font-size: 1.1rem;">${fileName} (Vista previa online)</h3>
+            <button class="close-preview" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            ">&times;</button>
+        </div>
+        
+        <div class="preview-modal__content" style="
+            width: 90%;
+            height: 80%;
+            overflow: hidden;
+            background: white;
+        ">
+            <iframe src="${viewerUrl}" style="
+                width: 100%;
+                height: 100%;
+                border: none;
+            "></iframe>
+        </div>
+        
+        <div class="preview-modal__footer" style="
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+        ">
+            <div style="margin-bottom: 0.5rem; font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> Vista previa proporcionada por Google Docs Viewer
+            </div>
+            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
+                background: #4f46e5;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+            ">
+                <i class="fas fa-download"></i> Descargar documento original
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    modal.querySelector('.close-preview').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(modal);
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+    
+    // Cerrar haciendo clic fuera del contenido
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+/**
+ * Muestra modal de vista previa para archivos de texto.
+ * @param {string} documentId - ID del documento
+ * @param {string} fileName - Nombre del archivo
+ */
+async function showTextPreviewModal(documentId, fileName) {
+    console.group('📝 VISTA PREVIA DE TEXTO');
+    
+    try {
+        console.log('📄 Obteniendo contenido para:', fileName);
+        
+        // Primero intentar con el endpoint de contenido específico
+        console.log('🔄 Intentando endpoint /content...');
+        
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/documents/${documentId}/content?limit=50000`);
+            
+            if (response.ok) {
+                console.log('✅ Endpoint /content funcionó');
+                
+                // Obtener metadatos de los headers
+                const isTruncated = response.headers.get('X-Content-Truncated') === 'true';
+                const originalSize = response.headers.get('X-Original-Length');
+                const contentType = response.headers.get('Content-Type') || 'text/plain';
+                
+                const textContent = await response.text();
+                console.log(`✅ Contenido obtenido: ${textContent.length} caracteres`);
+                
+                // Crear modal con metadatos
+                createTextPreviewModal(documentId, fileName, textContent, {
+                    isTruncated,
+                    originalSize: originalSize ? parseInt(originalSize) : null,
+                    contentType
+                });
+                
+                console.groupEnd();
+                return;
+            }
+        } catch (contentError) {
+            console.warn('⚠️ Endpoint /content falló:', contentError.message);
+        }
+        
+        // Si falla, intentar con el endpoint de descarga
+        console.log('🔄 Intentando endpoint /download como fallback...');
+        
+        const downloadResponse = await fetch(`${CONFIG.API_BASE_URL}/documents/${documentId}/download`, {
+            headers: {
+                'Accept': 'text/plain'
+            }
+        });
+        
+        if (!downloadResponse.ok) {
+            throw new Error(`Error ${downloadResponse.status}: No se pudo obtener el contenido`);
+        }
+        
+        const textContent = await downloadResponse.text();
+        console.log(`✅ Contenido obtenido via /download: ${textContent.length} caracteres`);
+        
+        // Verificar que no sea una página de error HTML
+        if (textContent.includes('<!DOCTYPE html>') || 
+            textContent.includes('<html') ||
+            textContent.includes('Error al cargar')) {
+            console.warn('⚠️ El contenido parece ser HTML de error');
+            
+            // Intentar obtener directamente desde Cloudinary
+            const doc = window.appState.documents.find(d => d._id === documentId);
+            if (doc && (doc.cloudinary_url || doc.url_cloudinary)) {
+                console.log('🔄 Intentando desde Cloudinary directamente...');
+                
+                try {
+                    const cloudinaryResponse = await fetch(doc.cloudinary_url || doc.url_cloudinary);
+                    if (cloudinaryResponse.ok) {
+                        const cloudinaryText = await cloudinaryResponse.text();
+                        
+                        // Verificar que no sea el mismo error
+                        if (!cloudinaryText.includes('<!DOCTYPE html>')) {
+                            createTextPreviewModal(documentId, fileName, cloudinaryText);
+                            console.groupEnd();
+                            return;
+                        }
+                    }
+                } catch (cloudinaryError) {
+                    console.warn('⚠️ Cloudinary también falló:', cloudinaryError.message);
+                }
+            }
+            
+            throw new Error('El servidor devolvió una página HTML en lugar del contenido de texto');
+        }
+        
+        // Si todo está bien, crear el modal
+        createTextPreviewModal(documentId, fileName, textContent);
+        
+    } catch (error) {
+        console.error('❌ Error en vista previa de texto:', error);
+        
+        // Crear modal de error
+        createTextPreviewErrorModal(documentId, fileName, error);
+    } finally {
+        console.groupEnd();
+    }
+}
+
+/**
+ * Crea el modal de vista previa de texto
+ */
+function createTextPreviewModal(documentId, fileName, textContent, metadata = {}) {
+    console.log('🖼️ Creando modal para:', fileName);
+    
+    // Renombrar la variable 'document' a 'docData' para evitar conflicto
+    // con el objeto global 'document' del navegador
+    const docData = window.appState.documents.find(d => d._id === documentId);
+    
+    // Desestructurar metadata con valores por defecto
+    const {
+        isTruncated = false,
+        originalSize = null,
+        contentType = 'text/plain'
+    } = metadata;
+    
+    // Crear elemento modal
+    const modal = document.createElement('div');  // Aquí usamos document GLOBAL del navegador
+    modal.className = 'preview-modal preview-modal--text';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+    `;
+    
+    // Limitar longitud para mostrar (100KB máximo en modal)
+    const maxLength = 100000; // 100KB
+    let displayContent = textContent;
+    let isContentTruncated = false;
+    
+    if (textContent.length > maxLength) {
+        displayContent = textContent.substring(0, maxLength);
+        isContentTruncated = true;
+    }
+    
+    // Si metadata indica truncado del servidor
+    const finalIsTruncated = isTruncated || isContentTruncated;
+    
+    // Escapar HTML y manejar saltos de línea
+    displayContent = escapeHtml(displayContent)
+        .replace(/\n/g, '<br>')
+        .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+        .replace(/  /g, '&nbsp;&nbsp;');
+    
+    // Preparar estadísticas
+    const fileSize = docData ? formatFileSize(docData.tamano_archivo) : 'Desconocido';
+    const lines = displayContent.split('<br>').length;
+    const words = displayContent.split(/\s+/).filter(w => w.length > 0).length;
+    const charCount = textContent.length;
+    
+    modal.innerHTML = `
+        <!-- Header -->
+        <div style="
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2d3748;
+            flex-shrink: 0;
+        ">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fas fa-file-alt" style="font-size: 1.25rem; color: #4f46e5;"></i>
+                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600;">${fileName}</h3>
+                </div>
+                <div style="margin-top: 0.25rem; font-size: 0.85rem; opacity: 0.8; display: flex; gap: 1rem;">
+                    <span><i class="fas fa-hdd"></i> ${fileSize}</span>
+                    <span><i class="fas fa-font"></i> ${charCount.toLocaleString()} caracteres</span>
+                    ${finalIsTruncated ? '<span><i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Truncado</span>' : ''}
+                </div>
+            </div>
+            <button class="close-preview" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+                padding: 0.5rem;
+                line-height: 1;
+                border-radius: 4px;
+                transition: background 0.2s;
+            ">&times;</button>
+        </div>
+        
+        <!-- Content -->
+        <div style="
+            flex: 1;
+            overflow: auto;
+            padding: 1.5rem;
+            background: #0f172a;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e2e8f0;
+        ">
+            <!-- Barra de herramientas -->
+            <div style="
+                background: #1e293b;
+                padding: 0.75rem 1rem;
+                border-radius: 6px;
+                margin-bottom: 1rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border: 1px solid #334155;
+            ">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="copy-text-btn" style="
+                        background: #374151;
+                        color: #d1d5db;
+                        border: 1px solid #4b5563;
+                        padding: 0.5rem 1rem;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        transition: all 0.2s;
+                    " title="Copiar texto completo">
+                        <i class="fas fa-copy"></i> Copiar
+                    </button>
+                    <button class="download-btn" style="
+                        background: #1d4ed8;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 0.9rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        transition: all 0.2s;
+                    " title="Descargar archivo completo">
+                        <i class="fas fa-download"></i> Descargar
+                    </button>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="font-size: 0.85rem; color: #9ca3af;">${contentType}</span>
+                </div>
+            </div>
+            
+            <!-- Contenido del texto -->
+            <div id="textContentDisplay" style="
+                background: #0f172a;
+                padding: 1.5rem;
+                border-radius: 6px;
+                border: 1px solid #1e293b;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                min-height: 200px;
+            ">
+                ${displayContent}
+            </div>
+            
+            <!-- Advertencia de truncado -->
+            ${finalIsTruncated ? `
+                <div style="
+                    margin-top: 1.5rem;
+                    padding: 1rem;
+                    background: rgba(245, 158, 11, 0.1);
+                    border-left: 4px solid #f59e0b;
+                    border-radius: 4px;
+                    color: #fbbf24;
+                ">
+                    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 1.1rem; margin-top: 0.1rem;"></i>
+                        <div>
+                            <strong style="display: block; margin-bottom: 0.25rem;">Contenido truncado</strong>
+                            <p style="margin: 0; font-size: 0.9rem;">
+                                ${originalSize ? `Solo se muestran los primeros ${maxLength.toLocaleString()} caracteres 
+                                (${((maxLength / originalSize) * 100).toFixed(1)}% del archivo).` : 
+                                `Solo se muestran los primeros ${maxLength.toLocaleString()} caracteres.`}
+                                Descarga el archivo completo para ver todo el contenido.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Información del archivo -->
+            <div style="
+                margin-top: 1.5rem;
+                padding: 1rem;
+                background: #1e293b;
+                border-radius: 6px;
+                font-size: 0.9rem;
+                color: #94a3b8;
+            ">
+                <strong style="display: block; margin-bottom: 0.5rem; color: #cbd5e1;">Información del archivo:</strong>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                    <div><i class="far fa-file-alt"></i> <strong>Tamaño:</strong> ${charCount.toLocaleString()} caracteres</div>
+                    <div><i class="fas fa-code"></i> <strong>Líneas:</strong> ${lines.toLocaleString()}</div>
+                    <div><i class="fas fa-font"></i> <strong>Palabras:</strong> ${words.toLocaleString()}</div>
+                    <div><i class="fas fa-database"></i> <strong>Bytes:</strong> ${new Blob([textContent]).size.toLocaleString()}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="
+            padding: 1rem 1.5rem;
+            background: #1a1a2e;
+            border-top: 1px solid #2d3748;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        ">
+            <div style="font-size: 0.85rem; color: #9ca3af;">
+                <i class="fas fa-info-circle"></i>
+                <span>Usa Ctrl+F para buscar en el texto</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="close-btn" style="
+                    background: #374151;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1.25rem;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                ">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Agregar al DOM
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    const closeBtn = modal.querySelector('.close-preview');
+    const closeMainBtn = modal.querySelector('.close-btn');
+    const copyBtn = modal.querySelector('.copy-text-btn');
+    const downloadBtn = modal.querySelector('.download-btn');
+    
+    // Función para cerrar el modal
+    const closeModal = () => {
+        if (modal.parentNode) {
+            document.body.removeChild(modal);
+        }
+        // Limpiar event listeners globales
+        document.removeEventListener('keydown', handleEscKey);
+    };
+    
+    // Función para manejar tecla ESC
+    const handleEscKey = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    };
+    
+    // Event listener para cerrar
+    closeBtn.addEventListener('click', closeModal);
+    closeMainBtn.addEventListener('click', closeModal);
+    
+    // Event listener para ESC
+    document.addEventListener('keydown', handleEscKey);
+    
+    // Event listener para copiar texto
+    copyBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(textContent);
+            showAlert('Texto copiado al portapapeles', 'success');
+        } catch (err) {
+            console.error('Error copiando texto:', err);
+            // Método alternativo para navegadores antiguos
+            const textArea = document.createElement('textarea');
+            textArea.value = textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showAlert('Texto copiado al portapapeles', 'success');
+        }
+    });
+    
+    // Event listener para descargar
+    downloadBtn.addEventListener('click', () => {
+        window.downloadDocument(documentId);
+    });
+    
+    // Buscar con Ctrl+F
+    modal.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            showSearchBar();
+        }
+    });
+    
+    // Función para mostrar barra de búsqueda
+    function showSearchBar() {
+        const existingSearchBar = document.getElementById('textSearchBar');
+        if (existingSearchBar) return;
+        
+        const searchBar = document.createElement('div');
+        searchBar.id = 'textSearchBar';
+        searchBar.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border: 1px solid #4b5563;
+            min-width: 400px;
+        `;
+        
+        searchBar.innerHTML = `
+            <input type="text" id="textSearchInput" placeholder="Buscar en el texto..." style="
+                flex: 1;
+                background: #0f172a;
+                border: 1px solid #4b5563;
+                color: white;
+                padding: 0.5rem 0.75rem;
+                border-radius: 4px;
+                font-family: inherit;
+                font-size: 0.9rem;
+            " autofocus>
+            <span id="searchResults" style="font-size: 0.85rem; color: #9ca3af; min-width: 80px; text-align: center;">
+                0/0
+            </span>
+            <button class="search-btn" style="
+                background: #4f46e5;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.9rem;
+            ">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="close-search-btn" style="
+                background: transparent;
+                color: #9ca3af;
+                border: none;
+                padding: 0.5rem;
+                cursor: pointer;
+                font-size: 1rem;
+            ">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        modal.appendChild(searchBar);
+        
+        // Funciones de búsqueda
+        const performSearch = () => {
+            const searchTerm = document.getElementById('textSearchInput').value;
+            if (!searchTerm.trim()) return;
+            
+            const textElement = document.getElementById('textContentDisplay');
+            const originalContent = textElement.innerHTML;
+            const plainText = textElement.textContent || textElement.innerText;
+            
+            // Encontrar todas las ocurrencias
+            const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+            const matches = plainText.match(regex) || [];
+            
+            // Actualizar contador
+            document.getElementById('searchResults').textContent = 
+                `${matches.length} resultado(s)`;
+            
+            // Resaltar
+            const highlighted = plainText.replace(
+                regex,
+                '<mark style="background: #f59e0b; color: #000; padding: 0 2px; border-radius: 2px; font-weight: bold;">$1</mark>'
+            );
+            
+            // Convertir de vuelta a HTML con saltos de línea
+            textElement.innerHTML = highlighted.replace(/\n/g, '<br>');
+            
+            // Desplazar a la primera coincidencia
+            const firstMark = textElement.querySelector('mark');
+            if (firstMark) {
+                firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        };
+        
+        const closeSearch = () => {
+            searchBar.remove();
+            
+            // Restaurar contenido original
+            const textElement = document.getElementById('textContentDisplay');
+            textElement.innerHTML = displayContent;
+        };
+        
+        // Event listeners para búsqueda
+        searchBar.querySelector('.search-btn').addEventListener('click', performSearch);
+        searchBar.querySelector('.close-search-btn').addEventListener('click', closeSearch);
+        
+        // Buscar al presionar Enter
+        searchBar.querySelector('#textSearchInput').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        // Cerrar búsqueda al presionar ESC dentro del input
+        searchBar.querySelector('#textSearchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSearch();
+            }
+        });
+    }
+}
+
+/**
+ * Crea modal de error para vista previa
+ */
+function createTextPreviewErrorModal(documentId, fileName, error) {
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal preview-modal--error';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            color: white;
+            border: 1px solid #374151;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        ">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="
+                    width: 60px;
+                    height: 60px;
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1rem;
+                ">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 1.75rem;"></i>
+                </div>
+                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; color: #fca5a5;">No se puede previsualizar</h3>
+                <p style="margin: 0; opacity: 0.8; font-size: 0.95rem;">${fileName}</p>
+            </div>
+            
+            <div style="
+                background: rgba(239, 68, 68, 0.1);
+                padding: 1rem;
+                border-radius: 8px;
+                margin-bottom: 1.5rem;
+                border-left: 4px solid #ef4444;
+            ">
+                <p style="margin: 0; font-size: 0.9rem;">
+                    <strong>Error:</strong> ${error.message || 'Error desconocido'}
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <p style="margin: 0 0 0.75rem 0; font-size: 0.95rem; color: #cbd5e1;">
+                    <strong>Posibles causas:</strong>
+                </p>
+                <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.9rem; color: #9ca3af; line-height: 1.5;">
+                    <li>El archivo está vacío o dañado</li>
+                    <li>El tipo de archivo no es texto plano válido</li>
+                    <li>El servidor no puede acceder al contenido</li>
+                    <li>Problemas de permisos o conexión</li>
+                </ul>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <button onclick="window.downloadDocument('${documentId}')" style="
+                    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+                    color: white;
+                    border: none;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    font-size: 0.9rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    transition: all 0.2s;
+                ">
+                    <i class="fas fa-download"></i> Descargar archivo
+                </button>
+                
+                <button onclick="closeErrorModal()" style="
+                    background: transparent;
+                    color: white;
+                    border: 1px solid #4b5563;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                    transition: all 0.2s;
+                ">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    window.closeErrorModal = function() {
+        if (modal.parentNode) {
+            document.body.removeChild(modal);
+        }
+        delete window.closeErrorModal;
+    };
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            window.closeErrorModal();
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+    
+    // Cerrar al hacer clic fuera
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            window.closeErrorModal();
+        }
+    });
+}
+
+/**
+ * Función auxiliar para escapar comillas simples en texto
+ */
+function escapeSingleQuotes(text) {
+    return text.replace(/'/g, "\\'");
+}
+
+/**
+ * Función auxiliar para escapar caracteres especiales en expresiones regulares
+ */
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Función auxiliar para escapar HTML y prevenir XSS.
+ * @param {string} text - Texto a escapar
+ * @returns {string} - Texto escapado
+ */
+/**
+ * Escapa caracteres HTML para prevenir XSS
+ */
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return unsafe;
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// =============================================================================
+// SECCIÓN 11: FUNCIONES DE ELIMINACIÓN Y CARGA
+// =============================================================================
+
+/**
+ * Elimina un documento con confirmación.
+ * @param {string} id - ID del documento a eliminar
+ */
+async function deleteDocument(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+        return;
+    }
+    
+    try {
+        console.log('🗑️ Eliminando documento:', id);
+        
+        const data = await apiCall(`/documents/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (data.success) {
+            showAlert(data.message, 'success');
+            await loadDocuments();
+            
+            if (window.appState.currentTab === 'dashboard') {
+                await window.loadDashboardData();
+            }
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error eliminando documento:', error);
+        showAlert('Error al eliminar documento: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Carga documentos desde la API y actualiza el estado global.
+ */
+async function loadDocuments() {
+    try {
+        console.log('📄 Cargando documentos...');
+        
+        const data = await apiCall('/documents');
+        
+        if (data.success) {
+            window.appState.documents = (data.documents || []).map(doc => ({
+                ...doc,
+                url_cloudinary: doc.url_cloudinary || doc.cloudinary_url
+            }));
+            
+            renderDocumentsTable();
+            console.log(`✅ ${window.appState.documents.length} documentos cargados`);
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando documentos:', error);
+        showAlert('Error al cargar documentos: ' + error.message, 'error');
+    }
+}
+
+// =============================================================================
+// SECCIÓN 12: RENDERIZADO DE TABLA DE DOCUMENTOS
+// =============================================================================
+
+/**
+ * Renderiza la tabla de documentos con filtros y búsqueda aplicados.
+ * Muestra estado, acciones y formatos los datos apropiadamente.
+ */
 function renderDocumentsTable() {
     if (!DOM.documentosTableBody) return;
     
@@ -2227,474 +3242,289 @@ function renderDocumentsTable() {
 }
 
 // =============================================================================
-// MODALES DE VISTA PREVIA ESPECÍFICOS
+// SECCIÓN 13: DIAGNÓSTICO Y DEBUGGING
 // =============================================================================
-function showImagePreviewModal(imageUrl, fileName) {
-    // Crear modal para imagen
-    const modal = document.createElement('div');
-    modal.className = 'preview-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.9);
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-    `;
-    
-    modal.innerHTML = `
-        <div class="preview-modal__header" style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 1rem;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10000;
-        ">
-            <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
-            <button class="close-preview" style="
-                background: none;
-                border: none;
-                color: white;
-                font-size: 1.5rem;
-                cursor: pointer;
-            ">&times;</button>
-        </div>
-        
-        <div class="preview-modal__content" style="
-            max-width: 90%;
-            max-height: 80%;
-            overflow: auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        ">
-            <img src="${imageUrl}" alt="${fileName}" style="
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-            ">
-        </div>
-        
-        <div class="preview-modal__footer" style="
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 1rem;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            text-align: center;
-        ">
-            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
-                background: #4f46e5;
-                color: white;
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 4px;
-                cursor: pointer;
-                margin-right: 0.5rem;
-            ">
-                <i class="fas fa-download"></i> Descargar
-            </button>
-            <a href="${imageUrl}" target="_blank" style="
-                background: #10b981;
-                color: white;
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 4px;
-                cursor: pointer;
-                text-decoration: none;
-                display: inline-block;
-            ">
-                <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
-            </a>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Event listeners
-    modal.querySelector('.close-preview').addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-    
-    // Cerrar con ESC
-    document.addEventListener('keydown', function closeOnEsc(e) {
-        if (e.key === 'Escape') {
-            document.body.removeChild(modal);
-            document.removeEventListener('keydown', closeOnEsc);
-        }
-    });
-    
-    // Cerrar haciendo clic fuera de la imagen
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    });
-}
 
-function showPDFPreviewModal(pdfUrl, fileName) {
-    const modal = document.createElement('div');
-    modal.className = 'preview-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.9);
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-    `;
+/**
+ * Diagnóstico de descarga de documentos.
+ * Muestra información detallada y probando métodos de descarga.
+ * @param {string} id - ID del documento a diagnosticar
+ */
+async function debugDocumentDownload(id) {
+    console.group('🐛 DIAGNÓSTICO DE DESCARGA');
     
-    modal.innerHTML = `
-        <div class="preview-modal__header" style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 1rem;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10000;
-        ">
-            <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
-            <button class="close-preview" style="
-                background: none;
-                border: none;
-                color: white;
-                font-size: 1.5rem;
-                cursor: pointer;
-            ">&times;</button>
-        </div>
-        
-        <div class="preview-modal__content" style="
-            width: 90%;
-            height: 80%;
-            overflow: hidden;
-            background: white;
-        ">
-            <embed src="${pdfUrl}" type="application/pdf" style="
-                width: 100%;
-                height: 100%;
-            ">
-        </div>
-        
-        <div class="preview-modal__footer" style="
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 1rem;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            text-align: center;
-        ">
-            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
-                background: #4f46e5;
-                color: white;
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 4px;
-                cursor: pointer;
-                margin-right: 0.5rem;
-            ">
-                <i class="fas fa-download"></i> Descargar
-            </button>
-            <a href="${pdfUrl}" target="_blank" style="
-                background: #10b981;
-                color: white;
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 4px;
-                cursor: pointer;
-                text-decoration: none;
-                display: inline-block;
-            ">
-                <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
-            </a>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Event listeners
-    modal.querySelector('.close-preview').addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-    
-    // Cerrar con ESC
-    document.addEventListener('keydown', function closeOnEsc(e) {
-        if (e.key === 'Escape') {
-            document.body.removeChild(modal);
-            document.removeEventListener('keydown', closeOnEsc);
-        }
-    });
-    
-    // Cerrar haciendo clic fuera del contenido
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    });
-}
-
-function showOfficePreviewModal(viewerUrl, fileName) {
-    const modal = document.createElement('div');
-    modal.className = 'preview-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.9);
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-    `;
-    
-    modal.innerHTML = `
-        <div class="preview-modal__header" style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 1rem;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10000;
-        ">
-            <h3 style="margin: 0; font-size: 1.1rem;">${fileName} (Vista previa online)</h3>
-            <button class="close-preview" style="
-                background: none;
-                border: none;
-                color: white;
-                font-size: 1.5rem;
-                cursor: pointer;
-            ">&times;</button>
-        </div>
-        
-        <div class="preview-modal__content" style="
-            width: 90%;
-            height: 80%;
-            overflow: hidden;
-            background: white;
-        ">
-            <iframe src="${viewerUrl}" style="
-                width: 100%;
-                height: 100%;
-                border: none;
-            "></iframe>
-        </div>
-        
-        <div class="preview-modal__footer" style="
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 1rem;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            text-align: center;
-        ">
-            <div style="margin-bottom: 0.5rem; font-size: 0.9rem;">
-                <i class="fas fa-info-circle"></i> Vista previa proporcionada por Google Docs Viewer
-            </div>
-            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
-                background: #4f46e5;
-                color: white;
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 4px;
-                cursor: pointer;
-            ">
-                <i class="fas fa-download"></i> Descargar documento original
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Event listeners
-    modal.querySelector('.close-preview').addEventListener('click', () => {
-        document.body.removeChild(modal);
-    });
-    
-    // Cerrar con ESC
-    document.addEventListener('keydown', function closeOnEsc(e) {
-        if (e.key === 'Escape') {
-            document.body.removeChild(modal);
-            document.removeEventListener('keydown', closeOnEsc);
-        }
-    });
-    
-    // Cerrar haciendo clic fuera del contenido
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-        }
-    });
-}
-
-async function showTextPreviewModal(documentId, fileName) {
     try {
-        // Obtener contenido del texto
-        const response = await fetch(`${CONFIG.API_BASE_URL}/documents/${documentId}/content`);
-        if (!response.ok) {
-            throw new Error('No se pudo obtener el contenido del archivo');
+        const doc = window.appState.documents.find(d => d._id === id);
+        if (!doc) {
+            console.error('❌ Documento no encontrado');
+            showAlert('Documento no encontrado', 'error');
+            console.groupEnd();
+            return;
         }
         
-        const textContent = await response.text();
-        
-        const modal = document.createElement('div');
-        modal.className = 'preview-modal';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        `;
-        
-        modal.innerHTML = `
-            <div class="preview-modal__header" style="
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                padding: 1rem;
-                background: rgba(0,0,0,0.7);
-                color: white;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                z-index: 10000;
-            ">
-                <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
-                <button class="close-preview" style="
-                    background: none;
-                    border: none;
-                    color: white;
-                    font-size: 1.5rem;
-                    cursor: pointer;
-                ">&times;</button>
-            </div>
-            
-            <div class="preview-modal__content" style="
-                width: 90%;
-                height: 70%;
-                overflow: auto;
-                background: white;
-                padding: 1rem;
-                font-family: monospace;
-                white-space: pre-wrap;
-                word-wrap: break-word;
-                border-radius: 4px;
-                margin-top: 3rem;
-            ">
-                ${escapeHtml(textContent.substring(0, 10000))}${textContent.length > 10000 ? '\n\n... (contenido truncado, descarga el archivo para ver completo)' : ''}
-            </div>
-            
-            <div class="preview-modal__footer" style="
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                padding: 1rem;
-                background: rgba(0,0,0,0.7);
-                color: white;
-                text-align: center;
-            ">
-                <button onclick="window.downloadDocumentFromPreview('${documentId}')" style="
-                    background: #4f46e5;
-                    color: white;
-                    border: none;
-                    padding: 0.5rem 1rem;
-                    border-radius: 4px;
-                    cursor: pointer;
-                ">
-                    <i class="fas fa-download"></i> Descargar archivo completo
-                </button>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        // Event listeners
-        modal.querySelector('.close-preview').addEventListener('click', () => {
-            document.body.removeChild(modal);
+        console.log('📊 INFORMACIÓN DEL DOCUMENTO:');
+        console.table({
+            'ID': doc._id,
+            'Nombre': doc.nombre_original,
+            'Tipo': doc.tipo_archivo,
+            'Tamaño': `${doc.tamano_archivo} bytes (${formatFileSize(doc.tamano_archivo)})`,
+            'URL Cloudinary': doc.url_cloudinary || doc.cloudinary_url,
+            'Fecha subida': formatDate(doc.fecha_subida)
         });
         
-        // Cerrar con ESC
-        document.addEventListener('keydown', function closeOnEsc(e) {
-            if (e.key === 'Escape') {
-                document.body.removeChild(modal);
-                document.removeEventListener('keydown', closeOnEsc);
-            }
-        });
+        // Probar diferentes métodos
+        console.log('🧪 PROBANDO MÉTODOS DE DESCARGA:');
         
-        // Cerrar haciendo clic fuera del contenido
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                document.body.removeChild(modal);
-            }
-        });
+        // Método 1: Endpoint directo
+        const endpoint = `${CONFIG.API_BASE_URL}/documents/${id}/download`;
+        console.log('1️⃣ Endpoint:', endpoint);
+        
+        // Método 2: URL Cloudinary
+        if (doc.url_cloudinary || doc.cloudinary_url) {
+            console.log('2️⃣ Cloudinary URL:', doc.url_cloudinary || doc.cloudinary_url);
+        }
+        
+        // Recomendaciones
+        console.log('💡 RECOMENDACIONES:');
+        const extension = doc.nombre_original.split('.').pop().toLowerCase();
+        
+        if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
+            console.log('   • Usar endpoint del servidor o URL directa de Cloudinary');
+        } else if (extension === 'pdf') {
+            console.log('   • Usar endpoint del servidor (/download)');
+        } else {
+            console.log('   • Usar endpoint del servidor siempre');
+        }
+        
+        showAlert(`Diagnóstico completado para: ${doc.nombre_original}`, 'info');
         
     } catch (error) {
-        console.error('Error mostrando vista previa de texto:', error);
-        showAlert('No se pudo cargar el contenido del archivo de texto', 'error');
+        console.error('❌ Error en diagnóstico:', error);
+        showAlert('Error en diagnóstico: ' + error.message, 'error');
+    } finally {
+        console.groupEnd();
     }
 }
 
-// Función auxiliar para escapar HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+/**
+ * Prueba todas las descargas disponibles.
+ * Útil para validar que todas las descargas funcionan correctamente.
+ */
+async function testAllDownloads() {
+    console.group('🧪 TEST COMPLETO DE DESCARGAS');
+    
+    if (!window.appState.documents || window.appState.documents.length === 0) {
+        showAlert('No hay documentos para probar', 'warning');
+        console.groupEnd();
+        return;
+    }
+    
+    const testDocuments = window.appState.documents.slice(0, 2); // Probar solo 2
+    const results = [];
+    
+    showAlert(`Iniciando test de ${testDocuments.length} descargas...`, 'info');
+    
+    for (const doc of testDocuments) {
+        console.log(`\n🔍 Probando: ${doc.nombre_original}`);
+        
+        try {
+            const startTime = Date.now();
+            await downloadDocument(doc._id);
+            const endTime = Date.now();
+            
+            results.push({
+                documento: doc.nombre_original,
+                tipo: doc.tipo_archivo,
+                tamaño: formatFileSize(doc.tamano_archivo),
+                tiempo: `${endTime - startTime}ms`,
+                estado: '✅ EXITOSO'
+            });
+            
+            // Esperar entre descargas
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+        } catch (error) {
+            results.push({
+                documento: doc.nombre_original,
+                tipo: doc.tipo_archivo,
+                tamaño: formatFileSize(doc.tamano_archivo),
+                tiempo: 'N/A',
+                estado: `❌ FALLIDO: ${error.message}`
+            });
+        }
+    }
+    
+    // Mostrar resultados
+    console.table(results);
+    
+    const successful = results.filter(r => r.estado.includes('✅')).length;
+    const total = results.length;
+    
+    console.log(`\n📊 RESULTADO: ${successful}/${total} descargas exitosas`);
+    
+    if (successful === total) {
+        showAlert('✅ Todas las descargas funcionan correctamente', 'success');
+    } else if (successful > 0) {
+        showAlert(`⚠️ ${successful}/${total} descargas exitosas`, 'warning');
+    } else {
+        showAlert('❌ Todas las descargas fallaron', 'error');
+    }
+    
+    console.groupEnd();
+}
+
+/**
+ * Diagnóstico de subida múltiple.
+ * Muestra estado, configuración y recomendaciones.
+ */
+function debugMultipleUpload() {
+    console.group('🐛 DIAGNÓSTICO DE SUBIDA MÚLTIPLE');
+    
+    console.log('📊 Estado actual:', {
+        modo: window.appState.uploadMode || 'no definido',
+        archivosSeleccionados: multipleUploadState.files.length,
+        subiendo: multipleUploadState.isUploading,
+        tamañoTotal: formatFileSize(multipleUploadState.totalSize)
+    });
+    
+    console.log('📋 Archivos individuales:');
+    multipleUploadState.files.forEach((fileObj, index) => {
+        console.log(`${index + 1}. ${fileObj.file.name}`, {
+            tamaño: formatFileSize(fileObj.file.size),
+            estado: fileObj.status,
+            progreso: fileObj.progress,
+            error: fileObj.error,
+            categoríaPersonalizada: fileObj.customCategory,
+            categoríaComún: multipleUploadState.commonCategory
+        });
+    });
+    
+    console.log('⚙️ Configuración común:', {
+        categoría: multipleUploadState.commonCategory,
+        persona: multipleUploadState.commonPersonId,
+        díasVencimiento: multipleUploadState.expirationDays,
+        estrategia: multipleUploadState.uploadStrategy,
+        autoDescripciones: multipleUploadState.autoGenerateDescriptions,
+        notificar: multipleUploadState.notifyPerson
+    });
+    
+    console.log('🔧 Configuración del sistema:', {
+        maxArchivos: CONFIG.MAX_MULTIPLE_FILES,
+        maxTamañoIndividual: formatFileSize(CONFIG.MAX_FILE_SIZE),
+        maxTamañoTotal: formatFileSize(CONFIG.MAX_TOTAL_UPLOAD_SIZE),
+        tiposPermitidos: CONFIG.ALLOWED_FILE_TYPES,
+        estrategias: CONFIG.UPLOAD_STRATEGIES
+    });
+    
+    // Validar
+    const isValid = multipleUploadState.validateAllFiles();
+    console.log(`✅ Validación: ${isValid ? 'PASÓ' : 'FALLÓ'}`);
+    
+    // Estadísticas
+    const stats = multipleUploadState.getStats();
+    console.table({
+        'Total Archivos': stats.total,
+        'Pendientes': stats.pending,
+        'Subiendo': stats.uploading,
+        'Completados': stats.completed,
+        'Fallidos': stats.failed,
+        'Tamaño Total': formatFileSize(stats.totalSize),
+        'Tamaño Subido': formatFileSize(stats.uploadedSize)
+    });
+    
+    // Recomendaciones
+    console.log('💡 RECOMENDACIONES:');
+    if (multipleUploadState.files.length > 10) {
+        console.log('   • Considera usar estrategia "Por lotes" para mejor rendimiento');
+    }
+    
+    if (multipleUploadState.totalSize > 20 * 1024 * 1024) {
+        console.log('   • El tamaño total es grande, la subida puede tardar varios minutos');
+    }
+    
+    const tieneCategoría = multipleUploadState.commonCategory || 
+                          multipleUploadState.files.every(f => f.customCategory);
+    if (!tieneCategoría) {
+        console.log('   ⚠️  No hay categoría definida para todos los archivos');
+    }
+    
+    console.groupEnd();
+    
+    showAlert('Diagnóstico de subida múltiple completado. Revisa la consola.', 'info');
+}
+
+/**
+ * Prueba la subida múltiple con archivos mock.
+ * Útil para desarrollo y testing.
+ */
+function testMultipleUploadWithMockFiles() {
+    console.group('🧪 TEST CON ARCHIVOS DE PRUEBA');
+    
+    // Crear archivos de prueba
+    const mockFiles = [];
+    const fileNames = [
+        'documento_prueba_1.pdf',
+        'imagen_prueba_1.jpg',
+        'excel_prueba_1.xlsx',
+        'word_prueba_1.docx',
+        'texto_prueba_1.txt'
+    ];
+    
+    fileNames.forEach((fileName, index) => {
+        const blob = new Blob([`Contenido de prueba ${index + 1}`], { type: 'text/plain' });
+        const file = new File([blob], fileName, {
+            type: fileName.endsWith('.pdf') ? 'application/pdf' :
+                  fileName.endsWith('.jpg') ? 'image/jpeg' :
+                  fileName.endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                  fileName.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+                  'text/plain',
+            lastModified: Date.now()
+        });
+        
+        mockFiles.push(file);
+    });
+    
+    console.log(`📁 ${mockFiles.length} archivos de prueba creados`);
+    
+    // Cambiar a modo múltiple si no está
+    if (window.appState.uploadMode !== 'multiple') {
+        switchUploadMode('multiple');
+    }
+    
+    // Agregar archivos de prueba
+    handleMultipleFiles(mockFiles);
+    
+    // Configurar valores de prueba
+    DOM.multipleDocumentCategory.value = window.appState.categories?.[0]?.nombre || 'General';
+    DOM.multipleDocumentPerson.value = window.appState.persons?.[0]?._id || '';
+    DOM.multipleExpirationDays.value = '30';
+    DOM.uploadStrategy.value = 'sequential';
+    
+    // Actualizar estado
+    updateCommonSettings();
+    
+    console.log('✅ Test configurado. Archivos listos para subir.');
+    console.groupEnd();
+    
+    showAlert('Test de subida múltiple configurado. Revisa los archivos de prueba.', 'info');
 }
 
 // =============================================================================
-// FUNCIÓN AUXILIAR PARA DESCARGAR DESDE PREVIEW
+// SECCIÓN 14: FUNCIÓN AUXILIAR PARA DESCARGAR DESDE PREVIEW
 // =============================================================================
+
+/**
+ * Función global para descargar documentos desde modales de vista previa.
+ * @param {string} documentId - ID del documento a descargar
+ */
 window.downloadDocumentFromPreview = function(documentId) {
     downloadDocument(documentId);
 };
 
-
-
 // =============================================================================
-// EXPORTACIONES CORREGIDAS
+// SECCIÓN 15: EXPORTACIONES
 // =============================================================================
+
 export { 
     openDocumentModal, 
     closeDocumentModal, 

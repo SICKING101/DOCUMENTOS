@@ -1,9 +1,14 @@
 import { DOM } from '../dom.js';
 
 // =============================================================================
-// FUNCIONES DE NAVEGACIÓN
+// 1. INICIALIZACIÓN DE LA NAVEGACIÓN POR PESTAÑAS
 // =============================================================================
 
+/**
+ * 1.1 Inicializar navegación por pestañas
+ * Configura los event listeners para cambiar entre secciones de la aplicación
+ * y establece la pestaña activa inicial.
+ */
 function initializeTabNavigation() {
     console.log('🔧 Inicializando navegación por pestañas...');
     
@@ -45,6 +50,11 @@ function initializeTabNavigation() {
     console.log('✅ Navegación por pestañas inicializada');
 }
 
+/**
+ * 1.2 Establecer pestaña activa inicial
+ * Determina qué pestaña mostrar al cargar la aplicación, ya sea desde
+ * estado previo o usando dashboard por defecto.
+ */
 function setInitialActiveTab() {
     console.log('🎯 Configurando pestaña activa inicial...');
     
@@ -61,11 +71,23 @@ function setInitialActiveTab() {
     }
 }
 
+// =============================================================================
+// 2. VALIDACIÓN Y MANEJO DE PESTAÑAS
+// =============================================================================
+
+/**
+ * 2.1 Validar identificador de pestaña
+ * Verifica que el tabId proporcionado corresponda a una pestaña válida del sistema.
+ */
 function isValidTab(tabId) {
     const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas'];
     return validTabs.includes(tabId);
 }
 
+/**
+ * 2.2 Manejar clic en enlace de pestaña
+ * Controla la acción cuando un usuario hace clic en un enlace de navegación.
+ */
 function handleTabClick(clickedLink) {
     const targetTab = clickedLink.getAttribute('data-tab');
     console.log(`📂 Cambiando a pestaña: ${targetTab}`);
@@ -73,6 +95,11 @@ function handleTabClick(clickedLink) {
     switchTab(targetTab);
 }
 
+/**
+ * 2.3 Cambiar a pestaña específica
+ * Función principal que actualiza la interfaz para mostrar una pestaña determinada,
+ * incluyendo actualización de estados visuales y carga de datos específicos.
+ */
 function switchTab(tabId) {
     // Validar tabId
     if (!isValidTab(tabId)) {
@@ -129,6 +156,15 @@ function switchTab(tabId) {
     loadTabSpecificData(tabId);
 }
 
+// =============================================================================
+// 3. CARGA DE DATOS ESPECÍFICOS POR PESTAÑA
+// =============================================================================
+
+/**
+ * 3.1 Cargar datos específicos de pestaña
+ * Ejecuta las funciones de carga correspondientes según la pestaña activa
+ * para mantener los datos actualizados.
+ */
 function loadTabSpecificData(tabId) {
     console.log(`📥 Cargando datos para pestaña: ${tabId}`);
     
@@ -175,19 +211,37 @@ function loadTabSpecificData(tabId) {
     }
 }
 
-// Función global para mostrar pestañas desde otros lugares
+// =============================================================================
+// 4. FUNCIONES GLOBALES DE NAVEGACIÓN
+// =============================================================================
+
+/**
+ * 4.1 Mostrar pestaña (función global)
+ * Función expuesta globalmente para cambiar de pestaña desde otros módulos
+ * como notificaciones o botones de acción rápida.
+ */
 function showTab(tabId) {
     console.log(`🔍 Mostrando pestaña desde función global: ${tabId}`);
     switchTab(tabId);
 }
 
-// Función para obtener la pestaña actual activa
+/**
+ * 4.2 Obtener pestaña actual activa
+ * Devuelve el identificador de la pestaña que está actualmente visible.
+ */
 function getCurrentTab() {
     const activeLink = document.querySelector('.sidebar__nav-link--active');
     return activeLink ? activeLink.getAttribute('data-tab') : 'dashboard';
 }
 
-// Función para inicializar navegación por teclado
+// =============================================================================
+// 5. NAVEGACIÓN POR TECLADO
+// =============================================================================
+
+/**
+ * 5.1 Inicializar navegación por teclado
+ * Configura atajos de teclado para navegar rápidamente entre pestañas.
+ */
 function initializeKeyboardNavigation() {
     document.addEventListener('keydown', (e) => {
         // Solo activar si no estamos en un campo de entrada
@@ -236,7 +290,15 @@ function initializeKeyboardNavigation() {
     });
 }
 
-// Función para actualizar contadores en la navegación
+// =============================================================================
+// 6. ACTUALIZACIÓN DE CONTADORES Y ESTADOS
+// =============================================================================
+
+/**
+ * 6.1 Actualizar contadores de navegación
+ * Muestra badges con contadores de elementos pendientes en los enlaces de navegación,
+ * como número de tareas pendientes.
+ */
 function updateNavigationCounters() {
     // Actualizar contador de tareas pendientes si existe
     if (window.taskManager) {
@@ -263,7 +325,15 @@ function updateNavigationCounters() {
     }
 }
 
-// Inicializar toda la navegación
+// =============================================================================
+// 7. INICIALIZACIÓN COMPLETA DEL SISTEMA DE NAVEGACIÓN
+// =============================================================================
+
+/**
+ * 7.1 Inicializar toda la navegación
+ * Función principal que configura todos los aspectos del sistema de navegación:
+ * pestañas, teclado, contadores y actualizaciones periódicas.
+ */
 function initializeNavigation() {
     initializeTabNavigation();
     initializeKeyboardNavigation();

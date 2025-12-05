@@ -1,9 +1,14 @@
 import { CONFIG } from './config.js';
 
 // =============================================================================
-// FUNCIONES UTILITARIAS - COMPLETO
+// 1. FUNCIONES DE ICONOS Y VISUALIZACIÓN
 // =============================================================================
 
+/**
+ * 1.1 Obtener ícono según tipo de archivo
+ * Devuelve el nombre de clase FontAwesome correspondiente al tipo de archivo
+ * para mostrar íconos adecuados en la interfaz.
+ */
 function getFileIcon(fileType) {
     const type = fileType.toLowerCase();
     
@@ -20,6 +25,11 @@ function getFileIcon(fileType) {
     return 'file'; // default
 }
 
+/**
+ * 1.2 Obtener nombre descriptivo de ícono
+ * Traduce los valores de ícono a nombres legibles en español para mostrar
+ * en la interfaz de usuario.
+ */
 function getIconName(iconValue) {
     const iconNames = {
         'folder': 'Carpeta',
@@ -37,6 +47,14 @@ function getIconName(iconValue) {
     return iconNames[iconValue] || 'Carpeta';
 }
 
+// =============================================================================
+// 2. FUNCIONES DE FORMATEO
+// =============================================================================
+
+/**
+ * 2.1 Formatear tamaño de archivo legible
+ * Convierte bytes a unidades legibles (KB, MB, GB) con dos decimales.
+ */
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
     
@@ -47,6 +65,10 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+/**
+ * 2.2 Formatear fecha en español
+ * Convierte fecha ISO a formato español corto (ej: "15 ene, 2024").
+ */
 function formatDate(dateString) {
     try {
         const date = new Date(dateString);
@@ -62,11 +84,76 @@ function formatDate(dateString) {
     }
 }
 
+/**
+ * 2.3 Formatear tiempo en segundos a texto legible
+ * Convierte segundos a formato "Xh Ym Zs" según la duración.
+ */
+function formatTime(seconds) {
+    if (seconds < 60) {
+        return `${seconds} segundos`;
+    } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+    } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        return `${hours}h ${minutes}m`;
+    }
+}
+
+// =============================================================================
+// 3. FUNCIONES DE VALIDACIÓN
+// =============================================================================
+
+/**
+ * 3.1 Validar formato de email
+ * Verifica que una cadena sea un email válido mediante expresión regular.
+ */
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
 
+/**
+ * 3.2 Validar archivos para subida
+ * Verifica que un conjunto de archivos cumpla con límites de cantidad,
+ * tamaño individual y tamaño total.
+ */
+function validateFilesForUpload(files, maxFiles, maxIndividualSize, maxTotalSize) {
+    const errors = [];
+    
+    if (files.length > maxFiles) {
+        errors.push(`Máximo ${maxFiles} archivos permitidos. Seleccionados: ${files.length}`);
+    }
+    
+    let totalSize = 0;
+    files.forEach((file, index) => {
+        if (file.size > maxIndividualSize) {
+            errors.push(`"${file.name}" excede el tamaño máximo por archivo (${formatFileSize(maxIndividualSize)})`);
+        }
+        totalSize += file.size;
+    });
+    
+    if (totalSize > maxTotalSize) {
+        errors.push(`Tamaño total excedido: ${formatFileSize(totalSize)} > ${formatFileSize(maxTotalSize)}`);
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors: errors,
+        totalSize: totalSize
+    };
+}
+
+// =============================================================================
+// 4. FUNCIONES DE INTERFAZ DE USUARIO
+// =============================================================================
+
+/**
+ * 4.1 Establecer estado de carga en botones
+ * Muestra spinner y deshabilita botones durante operaciones asíncronas.
+ */
 function setLoadingState(loading, element = null) {
     if (element) {
         if (loading) {
@@ -86,6 +173,10 @@ function setLoadingState(loading, element = null) {
     document.body.classList.toggle('loading', loading);
 }
 
+/**
+ * 4.2 Mostrar alerta al usuario
+ * Crea y muestra notificaciones temporales con íconos y estilos según tipo.
+ */
 function showAlert(message, type = 'info') {
     console.log(`🔔 Alert [${type}]: ${message}`);
     
@@ -118,6 +209,10 @@ function showAlert(message, type = 'info') {
     }
 }
 
+/**
+ * 4.3 Configurar cierre de modales al hacer clic fuera
+ * Agrega event listener para cerrar modales al hacer clic en el fondo oscuro.
+ */
 function setupModalBackdropClose(modals) {
     window.addEventListener('click', function(e) {
         Object.keys(modals).forEach(modalKey => {
@@ -132,14 +227,12 @@ function setupModalBackdropClose(modals) {
 }
 
 // =============================================================================
-// FUNCIONES DE DESCARGA MEJORADAS - COMPLETO
+// 5. FUNCIONES DE DESCARGA MEJORADAS
 // =============================================================================
 
 /**
- * Función mejorada para descargar cualquier tipo de archivo
- * @param {string} url - URL del archivo
- * @param {string} fileName - Nombre del archivo
- * @param {Object} options - Opciones adicionales
+ * 5.1 Función mejorada para descargar archivos
+ * Implementa reintentos, timeouts y validación para descargas robustas.
  */
 async function downloadFileImproved(url, fileName, options = {}) {
     console.group('📥 DESCARGA MEJORADA - INICIO');
@@ -255,10 +348,8 @@ async function downloadFileImproved(url, fileName, options = {}) {
 }
 
 /**
- * Función para descargar desde Cloudinary con parámetros optimizados
- * @param {string} cloudinaryUrl - URL de Cloudinary
- * @param {string} fileName - Nombre del archivo
- * @param {string} fileType - Tipo de archivo (extensión)
+ * 5.2 Descargar desde Cloudinary con optimizaciones
+ * Aplica transformaciones Cloudinary para forzar descargas en lugar de vista previa.
  */
 function downloadFromCloudinaryOptimized(cloudinaryUrl, fileName, fileType) {
     console.group('☁️ DESCARGA CLOUDINARY OPTIMIZADA');
@@ -319,8 +410,13 @@ function downloadFromCloudinaryOptimized(cloudinaryUrl, fileName, fileType) {
     }
 }
 
+// =============================================================================
+// 6. FUNCIONES AUXILIARES DE ARCHIVOS
+// =============================================================================
+
 /**
- * Obtener tipo MIME según extensión
+ * 6.1 Obtener tipo MIME según extensión
+ * Mapea extensiones de archivo a sus correspondientes tipos MIME.
  */
 function getMimeTypeFromExtension(filename) {
     if (!filename) return 'application/octet-stream';
@@ -330,7 +426,8 @@ function getMimeTypeFromExtension(filename) {
 }
 
 /**
- * Validar integridad del blob descargado
+ * 6.2 Validar integridad de blob descargado
+ * Verifica que un blob sea válido, no esté vacío y coincida con tamaño esperado.
  */
 function validateBlob(blob, expectedSize = null) {
     if (!blob || !(blob instanceof Blob)) {
@@ -355,7 +452,53 @@ function validateBlob(blob, expectedSize = null) {
 }
 
 /**
- * Función de descarga universal que prueba múltiples estrategias
+ * 6.3 Calcular velocidad de subida
+ * Calcula velocidad promedio en bytes/segundo y la formatea legiblemente.
+ */
+function calculateUploadSpeed(bytesUploaded, timeInSeconds) {
+    if (timeInSeconds === 0) return '0 B/s';
+    
+    const bytesPerSecond = bytesUploaded / timeInSeconds;
+    return formatFileSize(bytesPerSecond) + '/s';
+}
+
+/**
+ * 6.4 Extraer nombre sin extensión de archivo
+ * Remueve la extensión del nombre de archivo para obtener nombre base.
+ */
+function getFileNameWithoutExtension(filename) {
+    return filename.replace(/\.[^/.]+$/, "");
+}
+
+/**
+ * 6.5 Generar descripción automática
+ * Crea descripción legible basada en nombre de archivo (remueve guiones, capitaliza).
+ */
+function generateAutoDescription(filename) {
+    const nameWithoutExt = getFileNameWithoutExtension(filename);
+    
+    // Reemplazar guiones bajos y guiones por espacios
+    let description = nameWithoutExt.replace(/[_-]/g, ' ');
+    
+    // Capitalizar primera letra de cada palabra
+    description = description.replace(/\b\w/g, char => char.toUpperCase());
+    
+    // Remover números al inicio
+    description = description.replace(/^\d+\s*/, '');
+    
+    return description || 'Documento subido';
+}
+
+// =============================================================================
+// 7. FUNCIÓN DE DESCARGA UNIVERSAL
+// =============================================================================
+
+/**
+ * 7.1 Descarga universal con múltiples estrategias
+ * Intenta diferentes métodos de descarga en orden hasta que uno funcione:
+ * 1. Endpoint del servidor
+ * 2. Cloudinary optimizado
+ * 3. Cloudinary directo
  */
 async function universalDownload(fileData) {
     console.group('🌍 DESCARGA UNIVERSAL');
@@ -460,90 +603,10 @@ async function universalDownload(fileData) {
     throw lastError || new Error('No se pudo descargar el archivo con ninguna estrategia');
 }
 
-/**
- * Formatea el tiempo en segundos a un string legible
- */
-function formatTime(seconds) {
-    if (seconds < 60) {
-        return `${seconds} segundos`;
-    } else if (seconds < 3600) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}m ${remainingSeconds}s`;
-    } else {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        return `${hours}h ${minutes}m`;
-    }
-}
-
-/**
- * Calcula la velocidad de subida
- */
-function calculateUploadSpeed(bytesUploaded, timeInSeconds) {
-    if (timeInSeconds === 0) return '0 B/s';
-    
-    const bytesPerSecond = bytesUploaded / timeInSeconds;
-    return formatFileSize(bytesPerSecond) + '/s';
-}
-
-/**
- * Valida si un conjunto de archivos puede ser subido
- */
-function validateFilesForUpload(files, maxFiles, maxIndividualSize, maxTotalSize) {
-    const errors = [];
-    
-    if (files.length > maxFiles) {
-        errors.push(`Máximo ${maxFiles} archivos permitidos. Seleccionados: ${files.length}`);
-    }
-    
-    let totalSize = 0;
-    files.forEach((file, index) => {
-        if (file.size > maxIndividualSize) {
-            errors.push(`"${file.name}" excede el tamaño máximo por archivo (${formatFileSize(maxIndividualSize)})`);
-        }
-        totalSize += file.size;
-    });
-    
-    if (totalSize > maxTotalSize) {
-        errors.push(`Tamaño total excedido: ${formatFileSize(totalSize)} > ${formatFileSize(maxTotalSize)}`);
-    }
-    
-    return {
-        isValid: errors.length === 0,
-        errors: errors,
-        totalSize: totalSize
-    };
-}
-
-/**
- * Extrae el nombre sin extensión de un archivo
- */
-function getFileNameWithoutExtension(filename) {
-    return filename.replace(/\.[^/.]+$/, "");
-}
-
-/**
- * Genera una descripción automática basada en el nombre del archivo
- */
-function generateAutoDescription(filename) {
-    const nameWithoutExt = getFileNameWithoutExtension(filename);
-    
-    // Reemplazar guiones bajos y guiones por espacios
-    let description = nameWithoutExt.replace(/[_-]/g, ' ');
-    
-    // Capitalizar primera letra de cada palabra
-    description = description.replace(/\b\w/g, char => char.toUpperCase());
-    
-    // Remover números al inicio
-    description = description.replace(/^\d+\s*/, '');
-    
-    return description || 'Documento subido';
-}
-
 // =============================================================================
-// EXPORTACIONES
+// 8. EXPORTACIÓN DE FUNCIONES
 // =============================================================================
+
 export { 
     getFileIcon, 
     getIconName, 
@@ -557,7 +620,7 @@ export {
     downloadFromCloudinaryOptimized,
     getMimeTypeFromExtension,
     validateBlob,
-     formatTime,
+    formatTime,
     calculateUploadSpeed,
     validateFilesForUpload,
     getFileNameWithoutExtension,

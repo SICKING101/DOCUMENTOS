@@ -3,8 +3,13 @@ import { CONFIG } from '../config.js';
 import { setLoadingState, showAlert } from '../utils.js';
 
 // =============================================================================
-// FUNCIONES DE REPORTES
+// 1. MANEJO DEL MODAL DE REPORTES
 // =============================================================================
+
+/**
+ * 1.1 Abrir modal de generación de reportes
+ * Muestra el formulario de configuración de reportes con opciones de filtrado.
+ */
 function generateReport() {
     console.log('📊 Abriendo generador de reportes...');
     
@@ -14,11 +19,23 @@ function generateReport() {
     DOM.reportModal.style.display = 'flex';
 }
 
+/**
+ * 1.2 Cerrar modal de reportes
+ * Oculta el formulario de configuración de reportes.
+ */
 function closeReportModal() {
     console.log('❌ Cerrando modal de reportes');
     DOM.reportModal.style.display = 'none';
 }
 
+// =============================================================================
+// 2. CONFIGURACIÓN DE FILTROS DE REPORTES
+// =============================================================================
+
+/**
+ * 2.1 Actualizar filtros específicos por tipo de reporte
+ * Muestra controles de filtrado dinámicos según el tipo de reporte seleccionado.
+ */
 function updateReportFilters(reportType) {
     console.log(`📊 Actualizando filtros para reporte: ${reportType}`);
     
@@ -79,6 +96,10 @@ function updateReportFilters(reportType) {
     updateReportPreview();
 }
 
+/**
+ * 2.2 Actualizar vista previa del reporte
+ * Muestra una previsualización de los datos que incluirá el reporte seleccionado.
+ */
 function updateReportPreview() {
     const reportType = DOM.reportType.value;
     let previewContent = '';
@@ -182,11 +203,23 @@ function updateReportPreview() {
     DOM.reportPreviewContent.innerHTML = previewContent;
 }
 
+// =============================================================================
+// 3. GENERACIÓN Y DESCARGA DE REPORTES
+// =============================================================================
+
+/**
+ * 3.1 Handler para iniciar generación de reporte
+ * Función wrapper para ser usada como event listener en el botón de generación.
+ */
 function handleGenerateReport() {
     console.log('📄 Generando reporte...');
     generateReportDownload();
 }
 
+/**
+ * 3.2 Generar y descargar reporte
+ * Proceso principal que prepara datos, llama a la API y maneja la descarga del archivo.
+ */
 async function generateReportDownload() {
     console.group('📊 GENERACIÓN DE REPORTE');
     
@@ -370,6 +403,14 @@ async function generateReportDownload() {
     }
 }
 
+// =============================================================================
+// 4. HANDLERS/CONTROLADORES
+// =============================================================================
+
+/**
+ * 4.1 Handler para cambio de tipo de reporte
+ * Actualiza la interfaz cuando el usuario cambia el tipo de reporte seleccionado.
+ */
 function handleReportTypeChange() {
     const reportType = this.value;
     console.log(`📊 Cambiando tipo de reporte a: ${reportType}`);
