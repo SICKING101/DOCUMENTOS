@@ -5,19 +5,19 @@ import { CONFIG } from './config.js';
 // =============================================================================
 
 function getFileIcon(fileType) {
-    const iconMap = {
-        'pdf': 'pdf',
-        'doc': 'word',
-        'docx': 'word',
-        'xls': 'excel',
-        'xlsx': 'excel',
-        'txt': 'alt',
-        'jpg': 'image',
-        'jpeg': 'image',
-        'png': 'image'
-    };
+    const type = fileType.toLowerCase();
     
-    return iconMap[fileType.toLowerCase()] || 'file';
+    if (type === 'pdf') return 'pdf';
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(type)) return 'image';
+    if (['doc', 'docx'].includes(type)) return 'word';
+    if (['xls', 'xlsx', 'csv'].includes(type)) return 'excel';
+    if (['ppt', 'pptx'].includes(type)) return 'powerpoint';
+    if (['txt', 'md', 'json', 'xml', 'html', 'css', 'js'].includes(type)) return 'alt';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(type)) return 'archive';
+    if (['mp3', 'wav', 'ogg', 'flac'].includes(type)) return 'audio';
+    if (['mp4', 'avi', 'mov', 'wmv', 'mkv'].includes(type)) return 'video';
+    
+    return 'file'; // default
 }
 
 function getIconName(iconValue) {
