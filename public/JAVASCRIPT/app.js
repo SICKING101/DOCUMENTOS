@@ -64,12 +64,11 @@ import {
 } from './modules/reports.js';
  
 
-import {
-    openAddTaskModal,
-    closeAddTaskModal,
-    handleSaveTask
-} from './modules/tasks.js';
+import './modules/tasks.js';
 
+import { 
+    initNotificaciones 
+} from './modules/notificaciones.js';
 
 
 // =============================================================================
@@ -87,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
     loadInitialData();
+    initNotificaciones();
 });
 
 // =============================================================================
@@ -167,9 +167,6 @@ function setupEventListeners() {
     DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
     DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
     
-    DOM.addTaskBtn?.addEventListener('click', () => openAddTaskModal());
-    DOM.saveTaskBtn?.addEventListener('click', () => handleSaveTask()); // Llamar a la función del módulo tasks.js
-    DOM.cancelTaskBtn?.addEventListener('click', () => closeAddTaskModal());
 
     
     // Drag and Drop
@@ -187,7 +184,8 @@ function setupEventListeners() {
         categoryModal: DOM.categoryModal,
         searchModal: DOM.searchModal,
         reportModal: DOM.reportModal,
-        addTaskModal: DOM.addTaskModal
+        addTaskModal: DOM.addTaskModal,
+        viewTaskModal: DOM.viewTaskModal
     };
     setupModalBackdropClose(modals);
     
@@ -311,8 +309,6 @@ function handleModalClose() {
             closeSearchModal();
         } else if (modal.id === 'reportModal') {
             closeReportModal();
-        } else if (modal.id === 'addTaskModal') {
-            closeAddTaskModal();
         }
     }
 }

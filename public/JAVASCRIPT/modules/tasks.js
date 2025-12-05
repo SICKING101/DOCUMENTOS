@@ -1,222 +1,311 @@
-// modules/tasks.js
-import { DOM } from '../dom.js'; 
-import { showAlert } from '../utils.js'; 
+// modules/tasks.js - Gestión de Tareas (Versión Definitiva Integrada)
 
-// =============================================================================
-// 1. CONFIGURACIÓN Y DATOS (SIMULACIÓN DB)
-// =============================================================================
-
-// Aquí se guardarán tus tareas de mientras (en memoria del navegador)
-let taskList = []; 
-
-// Configuración visual de las etiquetas
+// Configuración visual para la barra lateral
 const TAG_CONFIG = {
     'urgent':   { colorClass: 'taskbar__item--urgent',   icon: 'fa-exclamation-triangle', label: 'Urgente' },
     'work':     { colorClass: 'taskbar__item--work',     icon: 'fa-briefcase',            label: 'Trabajo' },
-    'admin': { colorClass: 'taskbar__item--adminis', icon: 'fa-school',                 label: 'Admin.' },
+    'personal': { colorClass: 'taskbar__item--personal', icon: 'fa-home',                 label: 'Personal' },
     'study':    { colorClass: 'taskbar__item--study',    icon: 'fa-book',                 label: 'Estudio' },
     'default':  { colorClass: 'taskbar__item--default',  icon: 'fa-sticky-note',          label: 'General' }
 };
 
-let selectedTags = new Set(); // Para el modal de creación
-
-// =============================================================================
-// 2. MODAL DE CREACIÓN / EDICIÓN
-// =============================================================================
-
-function openAddTaskModal(task = {}) {
-    console.log('📝 Abriendo editor');
-    DOM.taskForm?.reset();
-    selectedTags.clear();
-    
-    // Configuración base (Crear)
-    if (DOM.taskModalTitle) DOM.taskModalTitle.textContent = 'Agregar Tarea';
-    if (DOM.saveTaskBtn) DOM.saveTaskBtn.textContent = 'Guardar';
-    if (DOM.taskId) DOM.taskId.value = '';
-
-    // Si viene una tarea, es modo EDICIÓN
-    if (Object.keys(task).length > 0) {
-        DOM.taskModalTitle.textContent = 'Editar Tarea';
-        DOM.saveTaskBtn.textContent = 'Actualizar';
-        
-        DOM.taskId.value = task.id;
-        DOM.taskTitle.value = task.title;
-        DOM.taskDescription.value = task.description;
-        DOM.taskDueDate.value = task.dueDate;
-        DOM.taskTime.value = task.dueTime;
-
-        if (task.tags) task.tags.forEach(t => selectedTags.add(t));
+class TaskManager {
+    constructor() {
+        this.tasks = [];
+        this.currentFilter = { priority: 'all', status: 'all' };
+        this.currentSearch = '';
+        this.init();
     }
 
-    renderTagsInForm(); // Dibujar los chips de selección
-    DOM.addTaskModal?.showModal();
-}
-
-function closeAddTaskModal() {
-    DOM.addTaskModal?.close();
-}
-
-// =============================================================================
-// 3. GUARDAR (SIMULACIÓN BACKEND)
-// =============================================================================
-
-async function handleSaveTask(e) {
-    if (e) e.preventDefault();
-
-    if (!DOM.taskTitle?.value || !DOM.taskDueDate?.value) {
-        showAlert('Faltan datos obligatorios', 'warning');
-        return;
+    init() {
+        this.bindEvents();
+        this.loadTasks();
+        console.log('✅ TaskManager inicializado correctamente');
     }
 
-    const isEdit = DOM.taskId.value !== '';
-    
-    const taskData = {
-        id: isEdit ? DOM.taskId.value : Date.now().toString(), // ID único basado en tiempo
-        title: DOM.taskTitle.value,
-        description: DOM.taskDescription?.value || '',
-        dueDate: DOM.taskDueDate.value,
-        dueTime: DOM.taskTime?.value || '00:00',
-        tags: Array.from(selectedTags), // Guardamos los tags seleccionados
-        status: 'pending'
-    };
-
-    if (isEdit) {
-        // Actualizar: buscamos en el array y reemplazamos
-        const index = taskList.findIndex(t => t.id === taskData.id);
-        if (index !== -1) taskList[index] = taskData;
-        showAlert('Tarea actualizada', 'success');
-    } else {
-        // Crear: empujamos al array
-        taskList.push(taskData);
-        showAlert('Tarea creada', 'success');
-    }
-
-    renderSidebar(); // <--- AQUÍ SE INSERTA EN LA BARRA
-    closeAddTaskModal();
-}
-
-// =============================================================================
-// 4. RENDERIZADO DE LA BARRA LATERAL (LO QUE PEDISTE)
-// =============================================================================
-
-function renderSidebar() {
-    // 1. Verificación de seguridad
-    if (!DOM.taskListContainer) {
-        console.error("❌ Error crítico: No encuentro el elemento #task__list en el HTML");
-        return;
-    }
-
-    // 2. Limpiar la lista actual (para no duplicar al guardar)
-    DOM.taskListContainer.innerHTML = '';
-
-    // 3. Crear un botón por cada tarea en el array
-    taskList.forEach(task => {
-        const btn = document.createElement('button');
+    bindEvents() {
+        // --- 1. BOTONES DE APERTURA ---
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const addFirstTask = document.getElementById('addFirstTask');
         
-        // Determinar configuración visual (Icono y Color)
-        // Si no tiene etiqueta, usa 'default'
-        const mainTag = task.tags[0] || 'default'; 
-        const config = TAG_CONFIG[mainTag] || TAG_CONFIG['default'];
-
-        // CLASES CSS:
-        // 'taskbar__button' -> Para que tenga la forma y tamaño base
-        // 'taskbar__item--[tipo]' -> Para el color específico
-        btn.className = `taskbar__button ${config.colorClass}`;
+        if (addTaskBtn) addTaskBtn.addEventListener('click', () => this.openTaskModal());
+        if (addFirstTask) addFirstTask.addEventListener('click', () => this.openTaskModal());
         
-        // Tooltip (Nombre al pasar el mouse)
-        btn.setAttribute('data-tooltip', task.title);
+        // --- 2. MODAL DE CREAR/EDITAR (taskModal) ---
+        const saveTaskBtn = document.getElementById('saveTaskBtn');
+        const cancelTaskBtn = document.getElementById('cancelTaskBtn');
+        const closeTaskModalBtn = document.querySelector('[data-close-modal="addTaskModal"]'); // Busca por data-attribute
         
-        // Insertar el icono
-        btn.innerHTML = `<i class="fas ${config.icon}"></i>`;
+        if (saveTaskBtn) saveTaskBtn.addEventListener('click', () => this.saveTask());
+        if (cancelTaskBtn) cancelTaskBtn.addEventListener('click', () => this.closeTaskModal());
+        if (closeTaskModalBtn) closeTaskModalBtn.addEventListener('click', () => this.closeTaskModal());
         
-        // EVENTO CLICK: Abrir el modal de vista
-        btn.addEventListener('click', (e) => {
-            // Evita que el click se propague si fuera necesario
-            e.stopPropagation(); 
-            openViewTaskModal(task.id);
-        });
-
-        // 4. Insertar el botón en la sección
-        DOM.taskListContainer.appendChild(btn);
-    });
-}
-
-// =============================================================================
-// 5. MODAL DE "VISTA" (LECTURA)
-// =============================================================================
-
-function openViewTaskModal(taskId) {
-    // Buscar la tarea en nuestro array
-    const task = taskList.find(t => t.id === taskId);
-    if (!task) return;
-
-    // Rellenar los campos del modal de vista
-    DOM.viewTaskId.value = task.id;
-    DOM.viewTaskTitle.textContent = task.title;
-    DOM.viewTaskDate.textContent = task.dueDate;
-    DOM.viewTaskTime.textContent = task.dueTime;
-    DOM.viewTaskDescription.textContent = task.description || 'Sin descripción detallada.';
-
-    // Renderizar el icono grande en el modal
-    const mainTag = task.tags[0] || 'default';
-    const style = TAG_CONFIG[mainTag] || TAG_CONFIG['default'];
-    DOM.viewTaskTagIcon.className = `view-task__icon ${style.colorClass}`;
-    DOM.viewTaskTagIcon.innerHTML = `<i class="fas ${style.icon}"></i> ${style.label}`;
-
-    // CONFIGURAR BOTONES DE ACCIÓN
-
-    // Borrar
-    DOM.deleteTaskBtn.onclick = () => {
-        if(confirm('¿Eliminar esta tarea?')) {
-            taskList = taskList.filter(t => t.id !== taskId); // Borrar del array
-            renderSidebar(); // Actualizar barra
-            DOM.viewTaskModal.close();
-            showAlert('Tarea eliminada', 'info');
+        // --- 3. MODAL DE VER DETALLES (viewTaskModal) - AQUÍ ARREGLAMOS EL BUG ---
+        const closeViewBtn = document.querySelector('[data-close-modal="viewTaskModal"]');
+        const viewModal = document.getElementById('viewTaskModal');
+        
+        if (closeViewBtn) {
+            closeViewBtn.addEventListener('click', () => this.closeViewTaskModal());
         }
-    };
 
-    // Editar
-    DOM.editTaskActionBtn.onclick = () => {
-        DOM.viewTaskModal.close(); // Cerramos vista
-        openAddTaskModal(task);    // Abrimos el editor con los datos cargados
-    };
+        // Acciones dentro del modal de vista
+        const deleteBtn = document.getElementById('deleteTaskBtn');
+        const editBtn = document.getElementById('editTaskActionBtn');
+        const completeBtn = document.getElementById('completeTaskBtn');
 
-    // Completar
-    DOM.completeTaskBtn.onclick = () => {
-        showAlert('¡Tarea completada! 🎉', 'success');
-        taskList = taskList.filter(t => t.id !== taskId); // La sacamos de la lista
-        renderSidebar();
-        DOM.viewTaskModal.close();
-    };
+        if (deleteBtn) deleteBtn.addEventListener('click', () => this.handleViewAction('delete'));
+        if (editBtn) editBtn.addEventListener('click', () => this.handleViewAction('edit'));
+        if (completeBtn) completeBtn.addEventListener('click', () => this.handleViewAction('complete'));
 
-    DOM.viewTaskModal.showModal();
-}
-
-// =============================================================================
-// AUXILIAR: CHIPS EN EL FORMULARIO
-// =============================================================================
-function renderTagsInForm() {
-    if (!DOM.taskTagsContainer) return;
-    DOM.taskTagsContainer.innerHTML = '';
-
-    Object.entries(TAG_CONFIG).forEach(([key, config]) => {
-        if (key === 'default') return; // No mostrar "default" en el selector
-
-        const chip = document.createElement('div');
-        // Usamos una clase diferente para los chips del form, reciclando colores
-        chip.className = `tag-selector__chip ${config.colorClass.replace('taskbar__item', 'tag-selector__chip')}`;
-        chip.textContent = config.label;
+        // --- 4. FILTROS Y BÚSQUEDA ---
+        const filterPriority = document.getElementById('filterPriority');
+        const filterStatus = document.getElementById('filterStatus');
+        const tasksSearch = document.getElementById('tasksSearch');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         
-        if (selectedTags.has(key)) chip.classList.add('tag-selector__chip--active');
-
-        chip.addEventListener('click', () => {
-            if (selectedTags.has(key)) selectedTags.delete(key);
-            else selectedTags.add(key);
-            renderTagsInForm(); 
+        if (filterPriority) filterPriority.addEventListener('change', () => this.filterTasks());
+        if (filterStatus) filterStatus.addEventListener('change', () => this.filterTasks());
+        if (tasksSearch) tasksSearch.addEventListener('input', (e) => this.searchTasks(e));
+        if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', () => this.clearFilters());
+        
+        // Cerrar modales con ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeTaskModal();
+                this.closeViewTaskModal();
+            }
         });
-        DOM.taskTagsContainer.appendChild(chip);
-    });
+    }
+
+    // =============================================================================
+    // GESTIÓN DE DATOS
+    // =============================================================================
+
+    loadTasks() {
+        console.log('🔄 Cargando tareas...');
+        const stored = localStorage.getItem('myTasks'); // Usamos 'myTasks' para consistencia
+        this.tasks = stored ? JSON.parse(stored) : [];
+        this.renderAll(); // Renderiza todo (Sidebar y Panel)
+    }
+
+    saveTasksToLocalStorage() {
+        localStorage.setItem('myTasks', JSON.stringify(this.tasks));
+    }
+
+    // =============================================================================
+    // LÓGICA DEL MODAL CREAR/EDITAR
+    // =============================================================================
+
+    openTaskModal(task = null) {
+        const modal = document.getElementById('addTaskModal'); // Corregido ID
+        const title = document.getElementById('taskModalTitle');
+        const form = document.getElementById('taskForm');
+        
+        if (!modal) return;
+        
+        // Limpiar tags seleccionados (si usas la lógica de tags visuales)
+        // Aquí simplificamos para usar el form standard
+        
+        if (task) {
+            if(title) title.textContent = 'Editar Tarea';
+            if(document.getElementById('saveTaskBtn')) document.getElementById('saveTaskBtn').textContent = 'Actualizar';
+            this.populateForm(task);
+        } else {
+            if(title) title.textContent = 'Nueva Tarea';
+            if(document.getElementById('saveTaskBtn')) document.getElementById('saveTaskBtn').textContent = 'Guardar';
+            if(form) form.reset();
+            document.getElementById('taskId').value = '';
+            
+            // Fecha hoy por defecto
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('taskDueDate');
+            if(dateInput) dateInput.value = today;
+        }
+        
+        modal.showModal();
+    }
+
+    populateForm(task) {
+        if(document.getElementById('taskId')) document.getElementById('taskId').value = task.id;
+        if(document.getElementById('taskTitle')) document.getElementById('taskTitle').value = task.title;
+        if(document.getElementById('taskDescription')) document.getElementById('taskDescription').value = task.description || '';
+        if(document.getElementById('taskDueDate')) document.getElementById('taskDueDate').value = task.dueDate;
+        if(document.getElementById('taskTime')) document.getElementById('taskTime').value = task.dueTime || '';
+        
+        // Aquí podrías agregar lógica para poblar tags si usas el selector complejo
+    }
+
+    closeTaskModal() {
+        const modal = document.getElementById('addTaskModal');
+        if (modal) {
+            modal.close();
+            document.getElementById('taskForm')?.reset();
+        }
+    }
+
+    saveTask() {
+        const titleInput = document.getElementById('taskTitle');
+        const dateInput = document.getElementById('taskDueDate');
+        
+        if (!titleInput?.value || !dateInput?.value) {
+            this.showAlert('Título y fecha son obligatorios', 'warning');
+            return;
+        }
+
+        const idInput = document.getElementById('taskId');
+        const isEdit = idInput.value !== '';
+
+        const taskData = {
+            id: isEdit ? idInput.value : Date.now().toString(),
+            title: titleInput.value.trim(),
+            description: document.getElementById('taskDescription')?.value.trim() || '',
+            dueDate: dateInput.value,
+            dueTime: document.getElementById('taskTime')?.value || '00:00',
+            status: 'pending',
+            // Por simplicidad, asignamos un tag por defecto si no hay lógica de tags compleja
+            tags: ['default'], 
+            createdAt: new Date().toISOString()
+        };
+
+        if (isEdit) {
+            const index = this.tasks.findIndex(t => t.id === taskData.id);
+            if (index !== -1) {
+                // Preservar tags y createdAt originales
+                taskData.tags = this.tasks[index].tags; 
+                taskData.createdAt = this.tasks[index].createdAt;
+                this.tasks[index] = taskData;
+            }
+        } else {
+            this.tasks.push(taskData);
+        }
+
+        this.saveTasksToLocalStorage();
+        this.renderAll();
+        this.closeTaskModal();
+        this.showAlert(isEdit ? 'Tarea actualizada' : 'Tarea creada', 'success');
+    }
+
+    // =============================================================================
+    // LÓGICA DEL MODAL "VER TAREA" (VIEW)
+    // =============================================================================
+
+    openViewTaskModal(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        // Referencias
+        const modal = document.getElementById('viewTaskModal');
+        const vId = document.getElementById('viewTaskId');
+        const vTitle = document.getElementById('viewTaskTitle');
+        const vDate = document.getElementById('viewTaskDate');
+        const vTime = document.getElementById('viewTaskTime');
+        const vDesc = document.getElementById('viewTaskDescription');
+        const vIcon = document.getElementById('viewTaskTagIcon');
+
+        // Llenar datos
+        if(vId) vId.value = task.id;
+        if(vTitle) vTitle.textContent = task.title;
+        if(vDate) vDate.textContent = task.dueDate;
+        if(vTime) vTime.textContent = task.dueTime;
+        if(vDesc) vDesc.textContent = task.description || 'Sin descripción';
+
+        // Renderizar icono
+        const mainTag = (task.tags && task.tags[0]) || 'default';
+        const style = TAG_CONFIG[mainTag] || TAG_CONFIG['default'];
+        
+        if(vIcon) {
+            vIcon.className = `view-task__icon ${style.colorClass}`;
+            vIcon.innerHTML = `<i class="fas ${style.icon}"></i> ${style.label}`;
+        }
+
+        if(modal) modal.showModal();
+    }
+
+    closeViewTaskModal() {
+        const modal = document.getElementById('viewTaskModal');
+        if (modal) modal.close();
+    }
+
+    handleViewAction(action) {
+        const id = document.getElementById('viewTaskId')?.value;
+        if (!id) return;
+
+        if (action === 'delete') {
+            if(confirm('¿Eliminar tarea?')) {
+                this.tasks = this.tasks.filter(t => t.id !== id);
+                this.saveTasksToLocalStorage();
+                this.renderAll();
+                this.closeViewTaskModal();
+                this.showAlert('Tarea eliminada', 'info');
+            }
+        } else if (action === 'edit') {
+            const task = this.tasks.find(t => t.id === id);
+            this.closeViewTaskModal();
+            this.openTaskModal(task);
+        } else if (action === 'complete') {
+            this.tasks = this.tasks.filter(t => t.id !== id); // O cambiar status
+            this.saveTasksToLocalStorage();
+            this.renderAll();
+            this.closeViewTaskModal();
+            this.showAlert('¡Tarea completada!', 'success');
+        }
+    }
+
+    // =============================================================================
+    // RENDERIZADO (Sidebar y Panel Principal)
+    // =============================================================================
+
+    renderAll() {
+        this.renderSidebar();
+        this.renderTasksPanel(); // Si usas el panel principal también
+    }
+
+    renderSidebar() {
+        const container = document.getElementById('task__list');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        this.tasks.forEach(task => {
+            const btn = document.createElement('button');
+            const mainTag = (task.tags && task.tags[0]) || 'default';
+            const config = TAG_CONFIG[mainTag] || TAG_CONFIG['default'];
+
+            btn.className = `taskbar__button ${config.colorClass}`;
+            btn.setAttribute('data-tooltip', task.title);
+            btn.innerHTML = `<i class="fas ${config.icon}"></i>`;
+            
+            // Evento para abrir el modal de vista
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openViewTaskModal(task.id);
+            });
+
+            container.appendChild(btn);
+        });
+    }
+
+    renderTasksPanel() {
+        // Implementación opcional si usas el panel grande de tareas
+        // Mantenida vacía para enfocarnos en la sidebar
+    }
+
+    // =============================================================================
+    // UTILIDADES
+    // =============================================================================
+
+    showAlert(message, type = 'info') {
+        if (typeof window.showAlert === 'function') {
+            window.showAlert(message, type);
+        } else {
+            alert(message);
+        }
+    }
 }
 
-// Exportar
-export { openAddTaskModal, closeAddTaskModal, handleSaveTask };
+// Inicializar
+document.addEventListener('DOMContentLoaded', () => {
+    window.taskManager = new TaskManager();
+});
+
+export default TaskManager;

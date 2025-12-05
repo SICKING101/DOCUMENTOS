@@ -67,9 +67,36 @@ const documentSchema = new mongoose.Schema({
   activo: { type: Boolean, default: true }
 }, { timestamps: true });
 
+const taskSchema = new mongoose.Schema({
+    titulo: { type: String, required: true },
+    descripcion: String,
+    prioridad: { 
+        type: String, 
+        enum: ['baja', 'media', 'alta'], 
+        default: 'media' 
+    },
+    estado: { 
+        type: String, 
+        enum: ['pendiente', 'en-progreso', 'completada'], 
+        default: 'pendiente' 
+    },
+    categoria: String,
+    recordatorio: { type: Boolean, default: false },
+    fecha_limite: Date,
+    hora_limite: String,
+    fecha_creacion: { type: Date, default: Date.now },
+    fecha_actualizacion: { type: Date, default: Date.now },
+    activo: { type: Boolean, default: true }
+}, { timestamps: true });
+
 const Person = mongoose.model('Person', personSchema);
 const Category = mongoose.model('Category', categorySchema);
 const Document = mongoose.model('Document', documentSchema);
+const Task = mongoose.model('Task', taskSchema);
+
+// Importar modelo y servicio de notificaciones
+const Notification = require('./public/JAVASCRIPT/modules/Notification');
+const NotificationService = require('./public/JAVASCRIPT/modules/notificationService');
 
 // -----------------------------
 // Configuración de Multer
@@ -108,7 +135,15 @@ const upload = multer({
 // Conexión a MongoDB
 // -----------------------------
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ Conectado a MongoDB'))
+  .then(async () => {
+    console.log('✅ Conectado a MongoDB');
+    // Crear notificación de sistema iniciado
+    try {
+      await NotificationService.sistemaIniciado();
+    } catch (error) {
+      console.error('⚠️ Error creando notificación de inicio:', error.message);
+    }
+  })
   .catch(err => {
     console.error('❌ Error conectando a MongoDB:', err);
     process.exit(1);
@@ -207,6 +242,13 @@ app.post('/api/persons', async (req, res) => {
 
     await nuevaPersona.save();
     
+    // Crear notificación de persona agregada
+    try {
+      await NotificationService.personaAgregada(nuevaPersona);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+    
     res.json({ 
       success: true, 
       message: 'Persona agregada correctamente',
@@ -297,6 +339,13 @@ app.delete('/api/persons/:id', async (req, res) => {
       });
     }
 
+    // Crear notificación de persona eliminada
+    try {
+      await NotificationService.personaEliminada(personaEliminada.nombre);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
     res.json({ 
       success: true, 
       message: 'Persona eliminada correctamente' 
@@ -370,6 +419,13 @@ app.post('/api/categories', async (req, res) => {
     });
 
     await nuevaCategoria.save();
+    
+    // Crear notificación de categoría agregada
+    try {
+      await NotificationService.categoriaAgregada(nuevaCategoria);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
     
     res.json({ 
       success: true, 
@@ -560,6 +616,16 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
     const documentoConPersona = await Document.findById(nuevoDocumento._id)
       .populate('persona_id', 'nombre');
 
+    // Crear notificación de documento subido
+    try {
+      await NotificationService.documentoSubido(
+        documentoConPersona,
+        documentoConPersona.persona_id
+      );
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
     console.log('✅ Upload completado exitosamente');
 
     res.json({
@@ -582,82 +648,13 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
   }
 });
 
-// FUNCIÓN PARA GENERAR URL DE DESCARGA
-function generateDownloadUrl(cloudinaryUrl, fileName) {
-  try {
-    console.log('🔧 Generando URL de descarga para:', {
-      cloudinaryUrl: cloudinaryUrl,
-      fileName: fileName
-    });
-
-    // Extraer el public_id de la URL de Cloudinary
-    const urlParts = cloudinaryUrl.split('/upload/');
-    if (urlParts.length !== 2) {
-      console.warn('⚠️ URL de Cloudinary no tiene formato esperado');
-      return cloudinaryUrl;
-    }
-
-    const publicIdWithExtension = urlParts[1];
-    const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ""); // Remover extensión
-
-    console.log('📋 Public ID extraído:', publicId);
-
-    // Generar URL de descarga usando el SDK de Cloudinary
-    const downloadUrl = cloudinary.url(publicId, {
-      flags: 'attachment',
-      attachment: fileName,
-      resource_type: 'auto',
-      secure: true,
-      sign_url: false
-    });
-
-    console.log('✅ URL de descarga generada:', downloadUrl);
-    return downloadUrl;
-
-  } catch (error) {
-    console.error('❌ Error generando URL de descarga:', error);
-    // Fallback: devolver la URL original
-    return cloudinaryUrl;
-  }
-}
-
 app.get('/api/documents/:id/download', async (req, res) => {
   try {
+    console.log('📥 Solicitud de descarga de documento:', req.params.id);
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'ID inválido' });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      return res.status(404).json({ success: false, message: 'Documento no encontrado' });
-    }
-
-    const downloadUrl = cloudinary.url(documento.public_id, {
-      secure: true,
-      flags: "attachment",
-      filename_override: documento.nombre_original,
-      resource_type: documento.resource_type || "raw"
-    });
-
-    return res.redirect(downloadUrl);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Error interno' });
-  }
-});
-
-
-// NUEVA RUTA: DESCARGA CON PROXY (método alternativo)
-app.get('/api/documents/:id/download-proxy', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga con proxy:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('❌ ID inválido:', id);
       return res.status(400).json({ 
         success: false, 
         message: 'ID inválido' 
@@ -667,67 +664,41 @@ app.get('/api/documents/:id/download-proxy', async (req, res) => {
     const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
+      console.error('❌ Documento no encontrado:', id);
       return res.status(404).json({ 
         success: false, 
         message: 'Documento no encontrado' 
       });
     }
 
-    console.log('✅ Descarga con proxy - Documento encontrado:', documento.nombre_original);
-
-    // Configurar headers para descarga
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(documento.nombre_original)}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-
-    // Hacer fetch al archivo en Cloudinary y redirigir el stream
-    const response = await fetch(documento.cloudinary_url);
-    
-    if (!response.ok) {
-      throw new Error(`Error al obtener archivo de Cloudinary: ${response.status}`);
-    }
-
-    // Redirigir el stream de respuesta
-    response.body.pipe(res);
-
-  } catch (error) {
-    console.error('❌ Error en descarga con proxy:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al descargar documento: ' + error.message 
+    console.log('✅ Documento encontrado:', {
+      nombre: documento.nombre_original,
+      tipo: documento.tipo_archivo,
+      resourceType: documento.resource_type
     });
-  }
-});
+    console.log('📤 Cloudinary URL original:', documento.cloudinary_url);
 
-// RUTA SIMPLIFICADA: Redirección directa (método más simple)
-app.get('/api/documents/:id/download-simple', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga simple:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
-      });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
-      });
-    }
-
-    console.log('✅ Descarga simple - Redirigiendo a:', documento.cloudinary_url);
+    // Modificar la URL de Cloudinary para forzar descarga
+    let downloadUrl = documento.cloudinary_url;
+    const nombreArchivo = encodeURIComponent(documento.nombre_original);
     
-    // Simplemente redirigir a la URL original de Cloudinary
-    // El navegador manejará la descarga según el tipo de archivo
-    res.redirect(documento.cloudinary_url);
+    // Para TODOS los tipos de archivos, agregar fl_attachment
+    const urlParts = downloadUrl.split('/upload/');
+    if (urlParts.length === 2) {
+      // Funciona para image, raw, video y cualquier otro resource_type
+      downloadUrl = `${urlParts[0]}/upload/fl_attachment:${nombreArchivo}/${urlParts[1]}`;
+      console.log('✅ Parámetro fl_attachment agregado correctamente');
+    } else {
+      console.warn('⚠️ No se pudo modificar la URL, usando URL original');
+    }
+
+    console.log('🔗 URL de descarga final:', downloadUrl);
+    
+    // Redirigir a la URL de Cloudinary con parámetros de descarga
+    res.redirect(downloadUrl);
 
   } catch (error) {
-    console.error('❌ Error en descarga simple:', error);
+    console.error('❌ Error descargando documento:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error al descargar documento: ' + error.message 
@@ -794,6 +765,10 @@ app.delete('/api/documents/:id', async (req, res) => {
       });
     }
 
+    // Guardar datos para la notificación antes de eliminar
+    const nombreDocumento = documento.nombre_original;
+    const categoriaDocumento = documento.categoria;
+
     // Eliminar de Cloudinary
     try {
       await cloudinary.uploader.destroy(documento.public_id, {
@@ -805,6 +780,13 @@ app.delete('/api/documents/:id', async (req, res) => {
 
     // Eliminar lógicamente de la base de datos
     await Document.findByIdAndUpdate(id, { activo: false });
+
+    // Crear notificación de documento eliminado
+    try {
+      await NotificationService.documentoEliminado(nombreDocumento, categoriaDocumento);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
 
     res.json({ 
       success: true, 
@@ -1006,6 +988,13 @@ app.post('/api/reports/excel', async (req, res) => {
 
     console.log('✅ Reporte Excel generado exitosamente');
 
+    // Crear notificación de reporte generado
+    try {
+      await NotificationService.reporteGenerado(reportType, 'excel', documents.length);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
   } catch (error) {
     console.error('❌ Error generando reporte Excel:', error);
     res.status(500).json({ 
@@ -1157,23 +1146,41 @@ app.post('/api/reports/pdf', async (req, res) => {
          .moveDown(0.8);
     });
 
-    // Pie de página
-    const pageCount = doc.bufferedPageRange().count;
+    // Obtener el rango de páginas
+    const range = doc.bufferedPageRange();
+    const pageCount = range.count;
+    
+    console.log(`📄 Total de páginas generadas: ${pageCount}`);
+
+    // Agregar pie de página en cada página
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
+      
+      // Guardar posición actual
+      const oldBottomMargin = doc.page.margins.bottom;
+      
+      // Posicionar en el footer
       doc.fontSize(8)
          .fillColor('#6B7280')
          .text(
            `Página ${i + 1} de ${pageCount} - Sistema de Gestión de Documentos CBTIS051`,
            50,
            doc.page.height - 50,
-           { align: 'center' }
+           { align: 'center', lineBreak: false }
          );
     }
 
+    // Finalizar documento
     doc.end();
 
     console.log('✅ Reporte PDF generado exitosamente');
+
+    // Crear notificación de reporte generado
+    try {
+      await NotificationService.reporteGenerado(reportType, 'pdf', documents.length);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
 
   } catch (error) {
     console.error('❌ Error generando reporte PDF:', error);
@@ -1271,6 +1278,13 @@ app.post('/api/reports/csv', async (req, res) => {
 
     console.log('✅ Reporte CSV generado exitosamente');
 
+    // Crear notificación de reporte generado
+    try {
+      await NotificationService.reporteGenerado(reportType, 'csv', documents.length);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
   } catch (error) {
     console.error('❌ Error generando reporte CSV:', error);
     res.status(500).json({ 
@@ -1278,6 +1292,288 @@ app.post('/api/reports/csv', async (req, res) => {
       message: 'Error al generar reporte CSV: ' + error.message 
     });
   }
+});
+
+// -----------------------------
+// TAREAS
+// -----------------------------
+
+// Obtener todas las tareas
+app.get('/api/tasks', async (req, res) => {
+    try {
+        const tasks = await Task.find({ activo: true })
+            .sort({ fecha_creacion: -1 })
+            .lean();
+
+        res.json({ 
+            success: true, 
+            tasks 
+        });
+    } catch (error) {
+        console.error('Error obteniendo tareas:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener tareas' 
+        });
+    }
+});
+
+// Crear nueva tarea
+app.post('/api/tasks', async (req, res) => {
+    try {
+        const { 
+            titulo, 
+            descripcion, 
+            prioridad, 
+            estado, 
+            categoria, 
+            recordatorio, 
+            fecha_limite, 
+            hora_limite 
+        } = req.body;
+
+        if (!titulo) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El título es obligatorio' 
+            });
+        }
+
+        const nuevaTarea = new Task({
+            titulo,
+            descripcion: descripcion || '',
+            prioridad: prioridad || 'media',
+            estado: estado || 'pendiente',
+            categoria: categoria || '',
+            recordatorio: recordatorio || false,
+            fecha_limite: fecha_limite || null,
+            hora_limite: hora_limite || null
+        });
+
+        await nuevaTarea.save();
+
+        // Crear notificación de persona eliminada
+        try {
+          await NotificationService.tareaCreada(nuevaTarea, "Administrador");
+        } catch (notifError) {
+          console.error('⚠️ Error creando notificación:', notifError.message);
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Tarea creada correctamente',
+            task: nuevaTarea 
+        });
+    } catch (error) {
+        console.error('Error creando tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al crear tarea' 
+        });
+    }
+});
+
+// Actualizar tarea
+app.put('/api/tasks/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { 
+            titulo, 
+            descripcion, 
+            prioridad, 
+            estado, 
+            categoria, 
+            recordatorio, 
+            fecha_limite, 
+            hora_limite 
+        } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID inválido' 
+            });
+        }
+
+        if (!titulo) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El título es obligatorio' 
+            });
+        }
+
+        const tareaActualizada = await Task.findByIdAndUpdate(
+            id,
+            {
+                titulo,
+                descripcion,
+                prioridad,
+                estado,
+                categoria,
+                recordatorio,
+                fecha_limite,
+                hora_limite,
+                fecha_actualizacion: new Date()
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!tareaActualizada) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Tarea no encontrada' 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Tarea actualizada correctamente',
+            task: tareaActualizada 
+        });
+    } catch (error) {
+        console.error('Error actualizando tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al actualizar tarea' 
+        });
+    }
+});
+
+// Eliminar tarea (eliminación lógica)
+app.delete('/api/tasks/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID inválido' 
+            });
+        }
+
+        const tareaEliminada = await Task.findByIdAndUpdate(
+            id,
+            { activo: false },
+            { new: true }
+        );
+
+        if (!tareaEliminada) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Tarea no encontrada' 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Tarea eliminada correctamente' 
+        });
+    } catch (error) {
+        console.error('Error eliminando tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al eliminar tarea' 
+        });
+    }
+});
+
+// Cambiar estado de tarea
+app.patch('/api/tasks/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estado } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID inválido' 
+            });
+        }
+
+        const estadosPermitidos = ['pendiente', 'en-progreso', 'completada'];
+        if (!estadosPermitidos.includes(estado)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Estado no válido' 
+            });
+        }
+
+        const tareaActualizada = await Task.findByIdAndUpdate(
+            id,
+            { 
+                estado,
+                fecha_actualizacion: new Date()
+            },
+            { new: true }
+        );
+
+        if (!tareaActualizada) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Tarea no encontrada' 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Tarea marcada como ${estado}`,
+            task: tareaActualizada 
+        });
+    } catch (error) {
+        console.error('Error cambiando estado de tarea:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al cambiar estado de tarea' 
+        });
+    }
+});
+
+// Obtener estadísticas de tareas
+app.get('/api/tasks/stats', async (req, res) => {
+    try {
+        const totalTareas = await Task.countDocuments({ activo: true });
+        const tareasPendientes = await Task.countDocuments({ 
+            activo: true, 
+            estado: 'pendiente' 
+        });
+        const tareasEnProgreso = await Task.countDocuments({ 
+            activo: true, 
+            estado: 'en-progreso' 
+        });
+        const tareasCompletadas = await Task.countDocuments({ 
+            activo: true, 
+            estado: 'completada' 
+        });
+
+        // Tareas próximas a vencer (en los próximos 7 días)
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() + 7);
+        const tareasPorVencer = await Task.countDocuments({
+            activo: true,
+            estado: { $ne: 'completada' },
+            fecha_limite: { 
+                $gte: new Date(), 
+                $lte: fechaLimite 
+            }
+        });
+
+        res.json({
+            success: true,
+            stats: {
+                total: totalTareas,
+                pendientes: tareasPendientes,
+                enProgreso: tareasEnProgreso,
+                completadas: tareasCompletadas,
+                porVencer: tareasPorVencer
+            }
+        });
+    } catch (error) {
+        console.error('Error obteniendo estadísticas de tareas:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener estadísticas' 
+        });
+    }
 });
 
 // -----------------------------
@@ -1299,6 +1595,189 @@ app.use((error, req, res, next) => {
     success: false,
     message: 'Error interno del servidor'
   });
+});
+
+// =============================================================================
+// RUTAS DE NOTIFICACIONES
+// =============================================================================
+
+// Obtener todas las notificaciones con filtros
+app.get('/api/notifications', async (req, res) => {
+  try {
+    console.log('📥 Obteniendo notificaciones con filtros:', req.query);
+    
+    const {
+      leida,
+      tipo,
+      prioridad,
+      desde,
+      hasta,
+      limite = 50,
+      pagina = 1
+    } = req.query;
+
+    const filtros = {};
+    if (leida !== undefined) filtros.leida = leida === 'true';
+    if (tipo) filtros.tipo = tipo;
+    if (prioridad) filtros.prioridad = prioridad;
+    if (desde) filtros.desde = desde;
+    if (hasta) filtros.hasta = hasta;
+
+    const resultado = await NotificationService.obtener(filtros, {
+      limite: parseInt(limite),
+      pagina: parseInt(pagina)
+    });
+
+    console.log(`✅ ${resultado.notificaciones.length} notificaciones obtenidas`);
+
+    res.json({
+      success: true,
+      data: resultado
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo notificaciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener notificaciones: ' + error.message
+    });
+  }
+});
+
+// Obtener notificaciones no leídas
+app.get('/api/notifications/unread', async (req, res) => {
+  try {
+    console.log('📥 Obteniendo notificaciones no leídas');
+    
+    const resultado = await NotificationService.obtener({ leida: false });
+    
+    console.log(`✅ ${resultado.notificaciones.length} notificaciones no leídas`);
+
+    res.json({
+      success: true,
+      data: resultado
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo notificaciones no leídas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener notificaciones: ' + error.message
+    });
+  }
+});
+
+// Obtener estadísticas de notificaciones
+app.get('/api/notifications/stats', async (req, res) => {
+  try {
+    console.log('📊 Obteniendo estadísticas de notificaciones');
+    
+    const estadisticas = await NotificationService.obtenerEstadisticas();
+    
+    console.log('✅ Estadísticas obtenidas:', estadisticas);
+
+    res.json({
+      success: true,
+      data: estadisticas
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas: ' + error.message
+    });
+  }
+});
+
+// Marcar notificación como leída
+app.patch('/api/notifications/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('✅ Marcando notificación como leída:', id);
+
+    const notificacion = await NotificationService.marcarLeida(id);
+
+    res.json({
+      success: true,
+      message: 'Notificación marcada como leída',
+      data: notificacion
+    });
+
+  } catch (error) {
+    console.error('❌ Error marcando notificación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al marcar notificación: ' + error.message
+    });
+  }
+});
+
+// Marcar todas las notificaciones como leídas
+app.patch('/api/notifications/read-all', async (req, res) => {
+  try {
+    console.log('✅ Marcando todas las notificaciones como leídas');
+
+    const cantidad = await NotificationService.marcarTodasLeidas();
+
+    res.json({
+      success: true,
+      message: `${cantidad} notificación(es) marcada(s) como leída(s)`,
+      data: { cantidad }
+    });
+
+  } catch (error) {
+    console.error('❌ Error marcando notificaciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al marcar notificaciones: ' + error.message
+    });
+  }
+});
+
+// Eliminar notificación
+app.delete('/api/notifications/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🗑️ Eliminando notificación:', id);
+
+    await NotificationService.eliminar(id);
+
+    res.json({
+      success: true,
+      message: 'Notificación eliminada correctamente'
+    });
+
+  } catch (error) {
+    console.error('❌ Error eliminando notificación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar notificación: ' + error.message
+    });
+  }
+});
+
+// Limpiar notificaciones antiguas
+app.post('/api/notifications/cleanup', async (req, res) => {
+  try {
+    const { dias = 30 } = req.body;
+    console.log(`🧹 Limpiando notificaciones de más de ${dias} días`);
+
+    const cantidad = await NotificationService.limpiarAntiguas(dias);
+
+    res.json({
+      success: true,
+      message: `${cantidad} notificación(es) antigua(s) eliminada(s)`,
+      data: { cantidad }
+    });
+
+  } catch (error) {
+    console.error('❌ Error limpiando notificaciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al limpiar notificaciones: ' + error.message
+    });
+  }
 });
 
 // Ruta para SPA
