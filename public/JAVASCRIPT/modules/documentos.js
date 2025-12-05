@@ -226,12 +226,21 @@ function openDocumentModal() {
     // Configurar modo único por defecto
     switchUploadMode('single');
     
-    // Poblar selects
+    // Poblar selects - CORREGIDO AQUÍ
     populateDocumentCategorySelect();
     populateMultipleCategorySelect();
+    
+    // Poblar personas en AMBOS selects
     if (typeof window.populatePersonSelect === 'function') {
+        // Poblar para modo individual
         window.populatePersonSelect();
+        
+        // Poblar para modo múltiple usando el mismo método
         window.populatePersonSelect(DOM.multipleDocumentPerson);
+    } else {
+        // Si no existe la función global, crear una versión local
+        populatePersonSelect(DOM.documentPerson);
+        populatePersonSelect(DOM.multipleDocumentPerson);
     }
     
     // Mostrar modal
@@ -242,6 +251,50 @@ function openDocumentModal() {
     
     console.log('✅ Modal de documento abierto');
     console.groupEnd();
+}
+
+// =============================================================================
+// FUNCIÓN AUXILIAR PARA POBLAR PERSONAS
+// =============================================================================
+async function populatePersonSelect(selectElement) {
+    if (!selectElement) return;
+    
+    try {
+        console.log('👥 Cargando personas para select...');
+        
+        // Limpiar select
+        selectElement.innerHTML = '<option value="">Seleccionar persona</option>';
+        
+        // Cargar personas si no están en el estado
+        if (!window.appState.persons || window.appState.persons.length === 0) {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/persons`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.persons) {
+                    window.appState.persons = data.persons;
+                }
+            }
+        }
+        
+        // Poblar opciones
+        if (window.appState.persons && window.appState.persons.length > 0) {
+            window.appState.persons.forEach(person => {
+                const option = document.createElement('option');
+                option.value = person._id;
+                option.textContent = person.nombre || person.name || `Persona ${person._id}`;
+                selectElement.appendChild(option);
+            });
+            
+            console.log(`✅ ${window.appState.persons.length} personas cargadas en select`);
+        } else {
+            console.log('ℹ️ No hay personas disponibles');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando personas:', error);
+        showAlert('Error al cargar la lista de personas', 'error');
+    }
 }
 
 function closeDocumentModal() {
@@ -476,9 +529,6 @@ function createFileElement(fileObj) {
                 </div>
             </div>
             <div class="file-item__actions">
-                <button class="btn btn--sm btn--outline file-item__edit" title="Editar configuración">
-                    <i class="fas fa-edit"></i>
-                </button>
                 <button class="btn btn--sm btn--danger file-item__remove" title="Eliminar">
                     <i class="fas fa-times"></i>
                 </button>
@@ -534,14 +584,8 @@ function createFileElement(fileObj) {
     `;
     
     // Agregar event listeners
-    const editBtn = element.querySelector('.file-item__edit');
     const removeBtn = element.querySelector('.file-item__remove');
     const configSection = element.querySelector('.file-item__config');
-    
-    editBtn.addEventListener('click', () => {
-        configSection.style.display = configSection.style.display === 'none' ? 'block' : 'none';
-        populateFileCategorySelect(element.querySelector('.file-item__category'));
-    });
     
     removeBtn.addEventListener('click', () => {
         if (multipleUploadState.removeFile(fileObj.id)) {
@@ -1385,7 +1429,7 @@ function populateDocumentCategorySelect() {
 function populateMultipleCategorySelect() {
     if (!DOM.multipleDocumentCategory) return;
     
-    DOM.multipleDocumentCategory.innerHTML = '<option value="">Seleccionar categoría común</option>';
+    DOM.multipleDocumentCategory.innerHTML = '<option value="">Seleccionar categoría</option>';
     
     if (window.appState && window.appState.categories) {
         window.appState.categories.forEach(category => {
