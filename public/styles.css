@@ -200,11 +200,6 @@ li {
     text-align: center;
 }
 
-.sidebar__nav-link:hover {
-    background: var(--sidebar-hover);
-    color: white;
-}
-
 .sidebar__nav-link--active {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;

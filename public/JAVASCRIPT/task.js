@@ -15,7 +15,6 @@ class TaskManager {
     init() {
         this.bindEvents();
         this.loadTasks();
-        this.showNotification('Sistema de tareas cargado correctamente', 'success');
     }
 
     bindEvents() {

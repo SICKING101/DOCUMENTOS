@@ -156,9 +156,6 @@ const DOM = {
     generateReportBtn: document.getElementById('generateReportBtn'),
     cancelReportBtn: document.getElementById('cancelReportBtn'),
     
-    // Alert Container
-    alertContainer: document.getElementById('alertContainer'),
-    
     // Progress Container (nuevo)
     uploadProgressContainer: document.createElement('div')
 };

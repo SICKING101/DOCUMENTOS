@@ -1495,27 +1495,34 @@ async function downloadDocument(id) {
         const finalUrl = url.toString();
         console.log('🔗 URL final:', finalUrl);
         
-        // Método: Enlace temporal
+        // Método: Enlace temporal (UNICAMENTE ESTE MÉTODO)
         const link = document.createElement('a');
         link.href = finalUrl;
         link.download = fileName;
         
         // Para documentos no-imagen, abrir en nueva pestaña
         const fileExtension = fileName.split('.').pop().toLowerCase();
-        const isImage = ['png', 'jpg', 'jpeg', 'gif'].includes(fileExtension);
+        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(fileExtension);
+        const isPDF = fileExtension === 'pdf';
+        const isText = ['txt', 'csv', 'json', 'xml', 'html', 'htm'].includes(fileExtension);
         
-        if (!isImage) {
+        // Solo abrir en nueva pestaña para PDFs o texto
+        if (isPDF || isText) {
             link.target = '_blank';
-            link.rel = 'noopener noreferrer';
         }
+        // Para imágenes, usar descarga directa
+        // Para otros tipos (Excel, Word, etc.), también descarga directa
         
+        link.rel = 'noopener noreferrer';
         link.style.display = 'none';
+        
+        // Agregar al body
         document.body.appendChild(link);
         
-        // Hacer clic
+        // Hacer clic UNA VEZ
         link.click();
         
-        // Limpiar después de 3 segundos
+        // Limpiar después de un tiempo
         setTimeout(() => {
             if (link.parentNode) {
                 document.body.removeChild(link);
@@ -1525,10 +1532,8 @@ async function downloadDocument(id) {
         console.log('✅ Descarga iniciada');
         showAlert(`Descarga iniciada: ${fileName}`, 'success');
         
-        // También abrir en nueva pestaña como respaldo
-        setTimeout(() => {
-            window.open(finalUrl, '_blank');
-        }, 100);
+        // NO ABRIR EN NUEVA PESTAÑA - ESTO CAUSA LA DESCARGA DOBLE
+        // Si el usuario quiere abrir en nueva pestaña, puede hacerlo manualmente
         
         console.groupEnd();
         return true;
@@ -1642,38 +1647,56 @@ function previewDocument(id) {
         });
         
         // Determinar estrategia según tipo
-        const previewableImages = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
-        const previewablePDF = ['pdf'];
-        const officeDocuments = ['doc', 'docx', 'xls', 'xlsx'];
+        const previewInfo = canPreviewDocument(fileExtension);
         
-        if (previewableImages.includes(fileExtension)) {
+        if (!previewInfo.canPreview) {
+            showAlert('Este tipo de archivo no puede ser previsualizado directamente', 'warning');
+            console.groupEnd();
+            return;
+        }
+        
+        if (previewInfo.isImage) {
             // Imágenes: abrir directamente
             console.log('🖼️ Vista previa de imagen');
             if (cloudinaryUrl) {
-                window.open(cloudinaryUrl, '_blank');
-                showAlert('Abriendo imagen en nueva pestaña...', 'info');
+                // Crear modal para vista previa de imagen
+                showImagePreviewModal(cloudinaryUrl, fileName);
+            } else {
+                showAlert('No se puede acceder a la imagen', 'error');
             }
             
-        } else if (previewablePDF.includes(fileExtension)) {
+        } else if (previewInfo.isPDF) {
             // PDF: usar endpoint de preview del servidor
             console.log('📄 Vista previa de PDF');
             const previewUrl = `${CONFIG.API_BASE_URL}/documents/${id}/preview`;
-            window.open(previewUrl, '_blank');
-            showAlert('Abriendo PDF en nueva pestaña...', 'info');
             
-        } else if (officeDocuments.includes(fileExtension)) {
-            // Documentos Office: forzar descarga
-            console.log('📝 Documento Office, forzando descarga');
-            downloadDocument(id);
+            // Crear modal para PDF
+            showPDFPreviewModal(previewUrl, fileName);
+            
+        } else if (previewInfo.isOffice && previewInfo.isOnlinePreviewable) {
+            // Documentos Office: usar Google Docs Viewer
+            console.log('📝 Vista previa de documento Office (Google Docs Viewer)');
+            
+            if (cloudinaryUrl) {
+                const googleDocsViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(cloudinaryUrl)}&embedded=true`;
+                showOfficePreviewModal(googleDocsViewerUrl, fileName);
+            } else {
+                showAlert('No se puede acceder al documento para vista previa', 'error');
+            }
+            
+        } else if (previewInfo.isText) {
+            // Texto: cargar y mostrar en modal
+            console.log('📝 Vista previa de texto');
+            showTextPreviewModal(id, fileName);
             
         } else {
-            // Otros tipos: intentar abrir directamente
-            console.log('❓ Tipo desconocido, intentando abrir');
+            // Otros tipos previsualizables: intentar abrir en nueva pestaña
+            console.log('❓ Tipo previsualizable, abriendo en nueva pestaña');
             if (cloudinaryUrl) {
                 window.open(cloudinaryUrl, '_blank');
                 showAlert('Abriendo documento en nueva pestaña...', 'info');
             } else {
-                showAlert('No se puede previsualizar este tipo de archivo', 'warning');
+                showAlert('No se puede previsualizar este archivo', 'warning');
             }
         }
         
@@ -1994,6 +2017,38 @@ async function loadDocuments() {
     }
 }
 
+function canPreviewDocument(fileType) {
+    // Tipos de archivo que se pueden previsualizar
+    const previewableExtensions = [
+        'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 
+        'txt', 'csv', 'json', 'xml', 'html', 'htm'
+    ];
+    
+    // Tipos de Office que pueden previsualizarse online (via Google Docs viewer o similar)
+    const officePreviewable = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+    
+    // Verificar si es una imagen
+    const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(fileType.toLowerCase());
+    
+    // Verificar si es texto plano
+    const isText = ['txt', 'csv', 'json', 'xml', 'html', 'htm'].includes(fileType.toLowerCase());
+    
+    // Verificar si es PDF
+    const isPDF = fileType.toLowerCase() === 'pdf';
+    
+    // Verificar si es Office (puede previsualizarse online)
+    const isOffice = officePreviewable.includes(fileType.toLowerCase());
+    
+    return {
+        canPreview: previewableExtensions.includes(fileType.toLowerCase()) || officePreviewable.includes(fileType.toLowerCase()),
+        isImage: isImage,
+        isText: isText,
+        isPDF: isPDF,
+        isOffice: isOffice,
+        isOnlinePreviewable: officePreviewable.includes(fileType.toLowerCase())
+    };
+}
+
 function renderDocumentsTable() {
     if (!DOM.documentosTableBody) return;
     
@@ -2109,6 +2164,33 @@ function renderDocumentsTable() {
             }
         }
         
+        // Determinar si se puede previsualizar
+        const fileExtension = doc.nombre_original.split('.').pop().toLowerCase();
+        const previewInfo = canPreviewDocument(fileExtension);
+        
+        // Crear botones de acciones
+        let actionButtons = `
+            <button class="btn btn--sm btn--outline" onclick="window.downloadDocument('${doc._id}')" title="Descargar">
+                <i class="fas fa-download"></i>
+            </button>
+        `;
+        
+        // Solo agregar botón de vista previa si se puede previsualizar
+        if (previewInfo.canPreview) {
+            actionButtons += `
+                <button class="btn btn--sm btn--outline" onclick="window.previewDocument('${doc._id}')" title="Vista previa">
+                    <i class="fas fa-eye"></i>
+                </button>
+            `;
+        }
+        
+        // Siempre agregar botón de eliminar
+        actionButtons += `
+            <button class="btn btn--sm btn--danger" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
         const row = document.createElement('tr');
         row.className = 'table__row';
         
@@ -2134,21 +2216,481 @@ function renderDocumentsTable() {
                 ${vencimientoText ? `<span class="badge ${vencimientoClass}">${vencimientoText}</span>` : 'Sin vencimiento'}
             </td>
             <td class="table__cell">
-                <button class="btn btn--sm btn--outline" onclick="window.downloadDocument('${doc._id}')" title="Descargar">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button class="btn btn--sm btn--outline" onclick="window.previewDocument('${doc._id}')" title="Vista previa">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn--sm btn--danger" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <div class="action-buttons">
+                    ${actionButtons}
+                </div>
             </td>
         `;
         
         DOM.documentosTableBody.appendChild(row);
     });
 }
+
+// =============================================================================
+// MODALES DE VISTA PREVIA ESPECÍFICOS
+// =============================================================================
+function showImagePreviewModal(imageUrl, fileName) {
+    // Crear modal para imagen
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    `;
+    
+    modal.innerHTML = `
+        <div class="preview-modal__header" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
+            <button class="close-preview" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            ">&times;</button>
+        </div>
+        
+        <div class="preview-modal__content" style="
+            max-width: 90%;
+            max-height: 80%;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        ">
+            <img src="${imageUrl}" alt="${fileName}" style="
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            ">
+        </div>
+        
+        <div class="preview-modal__footer" style="
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+        ">
+            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
+                background: #4f46e5;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-right: 0.5rem;
+            ">
+                <i class="fas fa-download"></i> Descargar
+            </button>
+            <a href="${imageUrl}" target="_blank" style="
+                background: #10b981;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+            ">
+                <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
+            </a>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    modal.querySelector('.close-preview').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(modal);
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+    
+    // Cerrar haciendo clic fuera de la imagen
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+function showPDFPreviewModal(pdfUrl, fileName) {
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    `;
+    
+    modal.innerHTML = `
+        <div class="preview-modal__header" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
+            <button class="close-preview" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            ">&times;</button>
+        </div>
+        
+        <div class="preview-modal__content" style="
+            width: 90%;
+            height: 80%;
+            overflow: hidden;
+            background: white;
+        ">
+            <embed src="${pdfUrl}" type="application/pdf" style="
+                width: 100%;
+                height: 100%;
+            ">
+        </div>
+        
+        <div class="preview-modal__footer" style="
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+        ">
+            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
+                background: #4f46e5;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-right: 0.5rem;
+            ">
+                <i class="fas fa-download"></i> Descargar
+            </button>
+            <a href="${pdfUrl}" target="_blank" style="
+                background: #10b981;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+            ">
+                <i class="fas fa-external-link-alt"></i> Abrir en nueva pestaña
+            </a>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    modal.querySelector('.close-preview').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(modal);
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+    
+    // Cerrar haciendo clic fuera del contenido
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+function showOfficePreviewModal(viewerUrl, fileName) {
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    `;
+    
+    modal.innerHTML = `
+        <div class="preview-modal__header" style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <h3 style="margin: 0; font-size: 1.1rem;">${fileName} (Vista previa online)</h3>
+            <button class="close-preview" style="
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            ">&times;</button>
+        </div>
+        
+        <div class="preview-modal__content" style="
+            width: 90%;
+            height: 80%;
+            overflow: hidden;
+            background: white;
+        ">
+            <iframe src="${viewerUrl}" style="
+                width: 100%;
+                height: 100%;
+                border: none;
+            "></iframe>
+        </div>
+        
+        <div class="preview-modal__footer" style="
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+        ">
+            <div style="margin-bottom: 0.5rem; font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> Vista previa proporcionada por Google Docs Viewer
+            </div>
+            <button onclick="window.downloadDocumentFromPreview('${window.appState.documents.find(d => d.nombre_original === fileName)?._id}')" style="
+                background: #4f46e5;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+            ">
+                <i class="fas fa-download"></i> Descargar documento original
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    modal.querySelector('.close-preview').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // Cerrar con ESC
+    document.addEventListener('keydown', function closeOnEsc(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(modal);
+            document.removeEventListener('keydown', closeOnEsc);
+        }
+    });
+    
+    // Cerrar haciendo clic fuera del contenido
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+async function showTextPreviewModal(documentId, fileName) {
+    try {
+        // Obtener contenido del texto
+        const response = await fetch(`${CONFIG.API_BASE_URL}/documents/${documentId}/content`);
+        if (!response.ok) {
+            throw new Error('No se pudo obtener el contenido del archivo');
+        }
+        
+        const textContent = await response.text();
+        
+        const modal = document.createElement('div');
+        modal.className = 'preview-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        `;
+        
+        modal.innerHTML = `
+            <div class="preview-modal__header" style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                padding: 1rem;
+                background: rgba(0,0,0,0.7);
+                color: white;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                z-index: 10000;
+            ">
+                <h3 style="margin: 0; font-size: 1.1rem;">${fileName}</h3>
+                <button class="close-preview" style="
+                    background: none;
+                    border: none;
+                    color: white;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                ">&times;</button>
+            </div>
+            
+            <div class="preview-modal__content" style="
+                width: 90%;
+                height: 70%;
+                overflow: auto;
+                background: white;
+                padding: 1rem;
+                font-family: monospace;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                border-radius: 4px;
+                margin-top: 3rem;
+            ">
+                ${escapeHtml(textContent.substring(0, 10000))}${textContent.length > 10000 ? '\n\n... (contenido truncado, descarga el archivo para ver completo)' : ''}
+            </div>
+            
+            <div class="preview-modal__footer" style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                padding: 1rem;
+                background: rgba(0,0,0,0.7);
+                color: white;
+                text-align: center;
+            ">
+                <button onclick="window.downloadDocumentFromPreview('${documentId}')" style="
+                    background: #4f46e5;
+                    color: white;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 4px;
+                    cursor: pointer;
+                ">
+                    <i class="fas fa-download"></i> Descargar archivo completo
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Event listeners
+        modal.querySelector('.close-preview').addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+        
+        // Cerrar con ESC
+        document.addEventListener('keydown', function closeOnEsc(e) {
+            if (e.key === 'Escape') {
+                document.body.removeChild(modal);
+                document.removeEventListener('keydown', closeOnEsc);
+            }
+        });
+        
+        // Cerrar haciendo clic fuera del contenido
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error mostrando vista previa de texto:', error);
+        showAlert('No se pudo cargar el contenido del archivo de texto', 'error');
+    }
+}
+
+// Función auxiliar para escapar HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// =============================================================================
+// FUNCIÓN AUXILIAR PARA DESCARGAR DESDE PREVIEW
+// =============================================================================
+window.downloadDocumentFromPreview = function(documentId) {
+    downloadDocument(documentId);
+};
+
+
 
 // =============================================================================
 // EXPORTACIONES CORREGIDAS
@@ -2180,5 +2722,8 @@ export {
     debugDocumentDownload,
     downloadDocumentSimple,
     downloadDocumentAlternative,
-    testAllDownloads
+    testAllDownloads,
+    
+    // Nuevas funciones de vista previa
+    canPreviewDocument
 };
