@@ -3,8 +3,14 @@ import { apiCall } from '../api.js';
 import { setLoadingState, showAlert, getIconName } from '../utils.js';
 
 // =============================================================================
-// FUNCIONES DE CATEGORÍAS (CRUD)
+// 1. MANEJO DEL MODAL DE CATEGORÍAS
 // =============================================================================
+
+/**
+ * 1.1 Abrir modal para crear/editar categoría
+ * Sirve para mostrar el formulario de categoría, inicializando los campos
+ * con datos existentes si es edición o vacíos si es creación.
+ */
 function openCategoryModal(categoryId = null) {
     console.log(`🏷️ Abriendo modal de categoría: ${categoryId || 'Nueva'}`);
     
@@ -29,13 +35,25 @@ function openCategoryModal(categoryId = null) {
     DOM.categoryModal.style.display = 'flex';
 }
 
+/**
+ * 1.2 Cerrar modal de categorías
+ * Oculta el formulario modal para crear/editar categorías.
+ */
 function closeCategoryModal() {
     console.log('❌ Cerrando modal de categoría');
     DOM.categoryModal.style.display = 'none';
 }
 
+// =============================================================================
+// 2. OPERACIONES CRUD DE CATEGORÍAS
+// =============================================================================
+
+/**
+ * 2.1 Guardar categoría (crear o actualizar)
+ * Envía los datos del formulario a la API para persistir la categoría,
+ * maneja validaciones y actualiza la interfaz tras guardar.
+ */
 async function saveCategory() {
-    // Validaciones
     if (!DOM.categoryName.value.trim()) {
         showAlert('El nombre de la categoría es obligatorio', 'error');
         return;
@@ -55,13 +73,11 @@ async function saveCategory() {
         
         let data;
         if (DOM.categoryId.value) {
-            // Actualizar categoría existente
             data = await apiCall(`/categories/${DOM.categoryId.value}`, {
                 method: 'PUT',
                 body: JSON.stringify(categoryData)
             });
         } else {
-            // Crear nueva categoría
             data = await apiCall('/categories', {
                 method: 'POST',
                 body: JSON.stringify(categoryData)
@@ -84,6 +100,11 @@ async function saveCategory() {
     }
 }
 
+/**
+ * 2.2 Cargar lista de categorías desde la API
+ * Obtiene todas las categorías del servidor y actualiza el estado global,
+ * luego llama a las funciones de renderizado y poblamiento de selects.
+ */
 async function loadCategories() {
     try {
         console.log('🏷️ Cargando categorías...');
@@ -101,12 +122,58 @@ async function loadCategories() {
         
     } catch (error) {
         console.error('❌ Error cargando categorías:', error);
-        // No mostrar alerta para evitar spam en pestaña no utilizada
     }
 }
 
+/**
+ * 2.3 Editar categoría existente
+ * Prepara el modal para edición cargando los datos de la categoría seleccionada.
+ */
+function editCategory(id) {
+    console.log('✏️ Editando categoría:', id);
+    openCategoryModal(id);
+}
+
+/**
+ * 2.4 Eliminar categoría con confirmación
+ * Solicita confirmación al usuario y elimina la categoría mediante API,
+ * luego recarga la lista de categorías.
+ */
+async function deleteCategory(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta categoría? Los documentos asociados quedarán sin categoría.')) {
+        return;
+    }
+    
+    try {
+        console.log('🗑️ Eliminando categoría:', id);
+        
+        const data = await apiCall(`/categories/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (data.success) {
+            showAlert(data.message, 'success');
+            await loadCategories();
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error eliminando categoría:', error);
+        showAlert('Error al eliminar categoría: ' + error.message, 'error');
+    }
+}
+
+// =============================================================================
+// 3. RENDERIZADO DE INTERFAZ
+// =============================================================================
+
+/**
+ * 3.1 Renderizar categorías en la interfaz
+ * Muestra las categorías como tarjetas de estadísticas y en una tabla,
+ * incluyendo manejo de estado vacío.
+ */
 function renderCategories() {
-    // Renderizar tarjetas de estadísticas
     if (DOM.categoriesStats) {
         DOM.categoriesStats.innerHTML = '';
         
@@ -139,7 +206,6 @@ function renderCategories() {
         });
     }
     
-    // Renderizar tabla de categorías
     if (DOM.categoriasTableBody) {
         DOM.categoriasTableBody.innerHTML = '';
         
@@ -186,8 +252,15 @@ function renderCategories() {
     }
 }
 
+// =============================================================================
+// 4. MANEJO DE SELECTS/FILTROS
+// =============================================================================
+
+/**
+ * 4.1 Poblar todos los selects de categorías en filtros y búsqueda
+ * Llena los elementos <select> con las categorías disponibles para filtrar documentos.
+ */
 function populateCategorySelects() {
-    // Poblar select de categorías en filtros
     if (DOM.filterCategory) {
         DOM.filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
         window.appState.categories.forEach(category => {
@@ -198,7 +271,6 @@ function populateCategorySelects() {
         });
     }
     
-    // Poblar select de categorías en búsqueda avanzada
     if (DOM.searchCategory) {
         DOM.searchCategory.innerHTML = '<option value="">Todas las categorías</option>';
         window.appState.categories.forEach(category => {
@@ -210,6 +282,10 @@ function populateCategorySelects() {
     }
 }
 
+/**
+ * 4.2 Poblar un select de categorías específico
+ * Utilidad genérica para llenar cualquier elemento <select> con las categorías disponibles.
+ */
 function populateCategorySelect(selectElement) {
     if (!selectElement) return;
     
@@ -222,36 +298,14 @@ function populateCategorySelect(selectElement) {
     });
 }
 
-function editCategory(id) {
-    console.log('✏️ Editando categoría:', id);
-    openCategoryModal(id);
-}
+// =============================================================================
+// 5. HANDLERS/CONTROLADORES
+// =============================================================================
 
-async function deleteCategory(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta categoría? Los documentos asociados quedarán sin categoría.')) {
-        return;
-    }
-    
-    try {
-        console.log('🗑️ Eliminando categoría:', id);
-        
-        const data = await apiCall(`/categories/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (data.success) {
-            showAlert(data.message, 'success');
-            await loadCategories();
-        } else {
-            throw new Error(data.message);
-        }
-        
-    } catch (error) {
-        console.error('❌ Error eliminando categoría:', error);
-        showAlert('Error al eliminar categoría: ' + error.message, 'error');
-    }
-}
-
+/**
+ * 5.1 Handler para guardar categoría
+ * Función wrapper para ser usada como event listener en el botón de guardar.
+ */
 function handleSaveCategory() {
     console.log('💾 Guardando categoría...');
     saveCategory();

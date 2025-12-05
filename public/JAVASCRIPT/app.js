@@ -79,16 +79,29 @@ import {
 } from './modules/notificaciones.js';
 
 // =============================================================================
-// INICIALIZACIÓN DE LA APLICACIÓN
+// 1. INICIALIZACIÓN DE LA APLICACIÓN
 // =============================================================================
+
+/**
+ * 1.1 Crear instancia del estado de la aplicación
+ * Objeto global que mantiene todo el estado de la aplicación para acceso
+ * consistente entre módulos.
+ */
 const appState = new AppState();
 
 // Hacer appState global para todos los módulos
 window.appState = appState;
 
-// Instancia global del gestor de tareas
+/**
+ * 1.2 Instancia global del gestor de tareas
+ * Inicializada posteriormente en el DOMContentLoaded.
+ */
 let taskManager = null;
 
+/**
+ * 1.3 Evento DOMContentLoaded principal
+ * Punto de entrada de la aplicación cuando el DOM está completamente cargado.
+ */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Inicializando Sistema de Gestión de Documentos - CBTIS051');
     console.log('📡 URL de la API:', CONFIG.API_BASE_URL);
@@ -102,8 +115,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================================================
-// FUNCIONES DE INICIALIZACIÓN
+// 2. FUNCIONES DE INICIALIZACIÓN
 // =============================================================================
+
+/**
+ * 2.1 Inicializar aplicación completa
+ * Configura todos los componentes principales y verifica integridad del DOM.
+ */
 function initializeApp() {
     // Verificar que todos los elementos DOM estén disponibles
     const missingElements = Object.keys(DOM).filter(key => {
@@ -127,7 +145,10 @@ function initializeApp() {
     appState.logState();
 }
 
-// FUNCIÓN: Inicializar gestor de tareas
+/**
+ * 2.2 Inicializar gestor de tareas
+ * Crea instancia del TaskManager y la hace disponible globalmente.
+ */
 function initializeTaskManager() {
     console.log('📝 Inicializando gestor de tareas...');
     try {
@@ -140,7 +161,10 @@ function initializeTaskManager() {
     }
 }
 
-// FUNCIÓN: Inicializar navegación activa
+/**
+ * 2.3 Inicializar navegación activa
+ * Establece la pestaña inicial activa basada en estado previo o valor por defecto.
+ */
 function initializeActiveNavigation() {
     console.log('🎯 Inicializando navegación activa...');
     
@@ -167,9 +191,21 @@ function initializeActiveNavigation() {
     }
 }
 
+// =============================================================================
+// 3. CONFIGURACIÓN DE EVENT LISTENERS
+// =============================================================================
+
+/**
+ * 3.1 Configurar todos los event listeners
+ * Conecta eventos del DOM con funciones de manejo correspondientes.
+ */
 function setupEventListeners() {
     console.log('🔧 Configurando event listeners...');
 
+    /**
+     * 3.1.1 Manejador de acciones rápidas
+     * Procesa clics en las tarjetas de acciones rápidas del dashboard.
+     */
     function handleQuickAction(e) {
     const action = this.querySelector('.action-card__title')?.textContent;
     console.log(`⚡ Acción rápida: ${action}`);
@@ -198,12 +234,15 @@ function setupEventListeners() {
             console.warn('Acción no reconocida:', action);
     }
 }
-
-     // =========================================================================
-    // NUEVOS EVENT LISTENERS PARA SUBIDA MÚLTIPLE
-    // =========================================================================
     
-    // Tabs de modo de subida
+    // =============================================================================
+    // 3.2 EVENT LISTENERS PARA SUBIDA MÚLTIPLE
+    // =============================================================================
+    
+    /**
+     * 3.2.1 Tabs de modo de subida
+     * Alterna entre subida única y múltiple.
+     */
     DOM.uploadTabs?.forEach(tab => {
         tab.addEventListener('click', function() {
             const mode = this.dataset.mode;
@@ -211,16 +250,28 @@ function setupEventListeners() {
         });
     });
     
-    // Botón para seleccionar múltiples archivos
+    /**
+     * 3.2.2 Botón para seleccionar múltiples archivos
+     * Dispara el input file con atributo multiple.
+     */
     DOM.browseMultipleFilesBtn?.addEventListener('click', () => DOM.multipleFileInput?.click());
     
-    // Input para múltiples archivos
+    /**
+     * 3.2.3 Input para múltiples archivos
+     * Maneja la selección de múltiples archivos.
+     */
     DOM.multipleFileInput?.addEventListener('change', handleMultipleFileSelect);
     
-    // Botón para subir múltiples documentos
+    /**
+     * 3.2.4 Botón para subir múltiples documentos
+     * Inicia el proceso de subida de todos los archivos seleccionados.
+     */
     DOM.uploadMultipleDocumentsBtn?.addEventListener('click', () => handleUploadMultipleDocuments());
     
-    // Toggle de opciones avanzadas
+    /**
+     * 3.2.5 Toggle de opciones avanzadas
+     * Muestra/oculta configuración adicional para subidas múltiples.
+     */
     DOM.toggleAdvancedOptions?.addEventListener('click', function() {
         const advancedOptions = DOM.advancedOptions;
         if (advancedOptions) {
@@ -232,70 +283,198 @@ function setupEventListeners() {
         }
     });
     
-    // Navegación entre pestañas
+    // =============================================================================
+    // 3.3 EVENT LISTENERS PRINCIPALES
+    // =============================================================================
+    
+    /**
+     * 3.3.1 Navegación entre pestañas
+     * Maneja clics en los enlaces de la barra lateral.
+     */
     DOM.navLinks.forEach(link => {
         link.addEventListener('click', handleTabNavigation);
     });
     
-    // Dashboard
+    /**
+     * 3.3.2 Dashboard - Refrescar datos
+     * Actualiza todas las estadísticas del panel principal.
+     */
     DOM.refreshDashboard?.addEventListener('click', () => handleRefreshDashboard(appState));
+    
+    /**
+     * 3.3.3 Dashboard - Agregar primer documento
+     * Acceso rápido al formulario de subida desde estado vacío.
+     */
     DOM.addFirstDocument?.addEventListener('click', () => openDocumentModal());
     
-    // Quick Actions
+    /**
+     * 3.3.4 Acciones rápidas
+     * Procesa clics en tarjetas de acciones del dashboard.
+     */
     DOM.quickActions.forEach(action => {
         action.addEventListener('click', handleQuickAction);
     });
     
-    // Personas
+    /**
+     * 3.3.5 Personas - Agregar
+     * Abre formulario para registrar nueva persona.
+     */
     DOM.addPersonBtn?.addEventListener('click', () => openPersonModal());
+    
+    /**
+     * 3.3.6 Personas - Guardar
+     * Ejecuta guardado/actualización de datos de persona.
+     */
     DOM.savePersonBtn?.addEventListener('click', () => handleSavePerson());
+    
+    /**
+     * 3.3.7 Personas - Cancelar
+     * Cierra formulario de persona sin guardar.
+     */
     DOM.cancelPersonBtn?.addEventListener('click', () => closePersonModal());
     
-    // Documentos
+    /**
+     * 3.3.8 Documentos - Agregar
+     * Abre formulario para subir documento.
+     */
     DOM.addDocumentBtn?.addEventListener('click', () => openDocumentModal());
+    
+    /**
+     * 3.3.9 Documentos - Explorar archivos
+     * Abre selector de archivos del sistema.
+     */
     DOM.browseFilesBtn?.addEventListener('click', () => DOM.fileInput?.click());
+    
+    /**
+     * 3.3.10 Documentos - Selección de archivo
+     * Maneja selección de archivo único.
+     */
     DOM.fileInput?.addEventListener('change', handleFileSelect);
+    
+    /**
+     * 3.3.11 Documentos - Subir documento único
+     * Inicia subida de archivo individual.
+     */
     DOM.uploadDocumentBtn?.addEventListener('click', () => handleUploadDocument());
+    
+    /**
+     * 3.3.12 Documentos - Cancelar
+     * Cierra formulario de documento sin subir.
+     */
     DOM.cancelDocumentBtn?.addEventListener('click', () => closeDocumentModal());
     
-    // Búsqueda de documentos
+    /**
+     * 3.3.13 Búsqueda de documentos - Buscar
+     * Ejecuta búsqueda básica por término.
+     */
     DOM.searchDocumentsBtn?.addEventListener('click', () => handleDocumentSearch());
+    
+    /**
+     * 3.3.14 Búsqueda de documentos - Limpiar
+     * Remueve filtros y términos de búsqueda.
+     */
     DOM.clearSearchBtn?.addEventListener('click', () => handleClearSearch());
+    
+    /**
+     * 3.3.15 Búsqueda de documentos - Enter
+     * Ejecuta búsqueda al presionar Enter en campo de texto.
+     */
     DOM.documentSearch?.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             handleDocumentSearch();
         }
     });
     
-    // Filtros
+    /**
+     * 3.3.16 Filtros - Cambio de categoría
+     * Actualiza filtro por categoría y refresca tabla.
+     */
     DOM.filterCategory?.addEventListener('change', handleFilterChange);
+    
+    /**
+     * 3.3.17 Filtros - Cambio de tipo
+     * Actualiza filtro por tipo de archivo y refresca tabla.
+     */
     DOM.filterType?.addEventListener('change', handleFilterChange);
+    
+    /**
+     * 3.3.18 Filtros - Cambio de fecha
+     * Actualiza filtro por rango de tiempo y refresca tabla.
+     */
     DOM.filterDate?.addEventListener('change', handleFilterChange);
+    
+    /**
+     * 3.3.19 Filtros - Cambio de estado
+     * Actualiza filtro por estado de vencimiento y refresca tabla.
+     */
     DOM.filterStatus?.addEventListener('change', handleFilterChange);
     
-    // Categorías
+    /**
+     * 3.3.20 Categorías - Agregar
+     * Abre formulario para crear nueva categoría.
+     */
     DOM.addCategoryBtn?.addEventListener('click', () => openCategoryModal());
+    
+    /**
+     * 3.3.21 Categorías - Guardar
+     * Ejecuta guardado/actualización de categoría.
+     */
     DOM.saveCategoryBtn?.addEventListener('click', () => handleSaveCategory());
+    
+    /**
+     * 3.3.22 Categorías - Cancelar
+     * Cierra formulario de categoría sin guardar.
+     */
     DOM.cancelCategoryBtn?.addEventListener('click', () => closeCategoryModal());
     
-    // Búsqueda avanzada
+    /**
+     * 3.3.23 Búsqueda avanzada - Ejecutar
+     * Realiza búsqueda con múltiples criterios.
+     */
     DOM.performSearchBtn?.addEventListener('click', () => handleAdvancedSearch());
+    
+    /**
+     * 3.3.24 Búsqueda avanzada - Cancelar
+     * Cierra modal de búsqueda avanzada.
+     */
     DOM.cancelSearchBtn?.addEventListener('click', () => closeSearchModal());
     
-    // Reportes
+    /**
+     * 3.3.25 Reportes - Cambio de tipo
+     * Actualiza filtros específicos según tipo de reporte seleccionado.
+     */
     DOM.reportType?.addEventListener('change', handleReportTypeChange);
+    
+    /**
+     * 3.3.26 Reportes - Generar
+     * Ejecuta generación y descarga de reporte.
+     */
     DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
+    
+    /**
+     * 3.3.27 Reportes - Cancelar
+     * Cierra modal de reportes sin generar.
+     */
     DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
     
-    // Drag and Drop
+    /**
+     * 3.3.28 Drag and Drop
+     * Configura área de arrastrar y soltar archivos.
+     */
     setupFileDragAndDrop();
     
-    // Modal Close Buttons
+    /**
+     * 3.3.29 Botones de cierre de modales
+     * Asigna funcionalidad a botones de cerrar (×) de todos los modales.
+     */
     DOM.modalCloseButtons.forEach(btn => {
         btn.addEventListener('click', handleModalClose);
     });
     
-    // Cerrar modales al hacer clic fuera
+    /**
+     * 3.3.30 Cerrar modales al hacer clic fuera
+     * Configura cierre de modales al hacer clic en el fondo oscuro.
+     */
     const modals = {
         personModal: DOM.personModal,
         documentModal: DOM.documentModal,
@@ -309,10 +488,21 @@ function setupEventListeners() {
     console.log('✅ Event listeners configurados correctamente');
 }
 
-// Tema oscuro 
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = themeToggle.querySelector('i');
+// =============================================================================
+// 4. MANEJO DE TEMA OSCURO/CLARO
+// =============================================================================
 
+/**
+ * 4.1 Configuración de toggle de tema
+ * Controla la alternancia entre tema claro y oscuro con persistencia en localStorage.
+ */
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = themeToggle?.querySelector('i');
+
+/**
+ * 4.2 Obtener tema preferido
+ * Determina tema basado en localStorage o preferencia del sistema.
+ */
 const getPreferredTheme = () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
@@ -321,24 +511,33 @@ const getPreferredTheme = () => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
+/**
+ * 4.3 Aplicar tema
+ * Agrega/remueve clases CSS y actualiza ícono según tema seleccionado.
+ */
 const applyTheme = (theme) => {
     if (theme === 'dark') {
         document.body.classList.add('dark-theme');
-        themeIcon.classList.remove('fa-moon');
-        themeIcon.classList.add('fa-sun');
+        themeIcon?.classList.remove('fa-moon');
+        themeIcon?.classList.add('fa-sun');
         localStorage.setItem('theme', 'dark');
     } else {
         document.body.classList.remove('dark-theme');
-        themeIcon.classList.remove('fa-sun');
-        themeIcon.classList.add('fa-moon');
+        themeIcon?.classList.remove('fa-sun');
+        themeIcon?.classList.add('fa-moon');
         localStorage.setItem('theme', 'light');
     }
 };
 
+/**
+ * 4.4 Inicializar tema
+ * Aplica tema inicial al cargar la aplicación.
+ */
 const initTheme = () => {
     const preferredTheme = getPreferredTheme();
     applyTheme(preferredTheme);
     
+    // Escuchar cambios en preferencia del sistema
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', (e) => {
         if (!localStorage.getItem('theme')) {
@@ -347,11 +546,16 @@ const initTheme = () => {
     });
 };
 
+/**
+ * 4.5 Alternar tema
+ * Cambia entre tema claro y oscuro al hacer clic en el botón.
+ */
 const toggleTheme = () => {
     const isDark = document.body.classList.contains('dark-theme');
     applyTheme(isDark ? 'light' : 'dark');
 };
 
+// Configurar botón de tema si existe
 if (themeToggle) {
     themeToggle.addEventListener('click', toggleTheme);
     themeToggle.addEventListener('keypress', (e) => {
@@ -362,11 +566,17 @@ if (themeToggle) {
     });
 }
 
+// Inicializar tema al cargar
 document.addEventListener('DOMContentLoaded', initTheme);
 
 // =============================================================================
-// FUNCIONES DE NAVEGACIÓN - ACTUALIZADAS CON TAREAS
+// 5. FUNCIONES DE NAVEGACIÓN
 // =============================================================================
+
+/**
+ * 5.1 Manejar navegación por pestañas
+ * Procesa clics en enlaces de la barra lateral para cambiar de sección.
+ */
 function handleTabNavigation(e) {
     e.preventDefault();
     const tabId = this.getAttribute('data-tab');
@@ -374,8 +584,12 @@ function handleTabNavigation(e) {
     switchTab(tabId);
 }
 
+/**
+ * 5.2 Cambiar pestaña
+ * Función principal que actualiza interfaz y estado al cambiar de sección.
+ */
 function switchTab(tabId) {
-    // Validar tabId - ACTUALIZADO con tareas
+    // Validar tabId
     const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
@@ -425,6 +639,10 @@ function switchTab(tabId) {
     loadTabSpecificData(tabId);
 }
 
+/**
+ * 5.3 Cargar datos específicos por pestaña
+ * Ejecuta funciones de carga correspondientes según la sección activa.
+ */
 function loadTabSpecificData(tabId) {
     try {
         console.log(`🔄 Cargando datos específicos para pestaña: ${tabId}`);
@@ -472,8 +690,13 @@ function loadTabSpecificData(tabId) {
 }
 
 // =============================================================================
-// FUNCIONES DE CARGA DE DATOS
+// 6. CARGA DE DATOS INICIALES
 // =============================================================================
+
+/**
+ * 6.1 Cargar datos iniciales de la aplicación
+ * Obtiene información base de todas las secciones al iniciar.
+ */
 async function loadInitialData() {
     console.log('📥 Cargando datos iniciales...');
     
@@ -494,8 +717,13 @@ async function loadInitialData() {
 }
 
 // =============================================================================
-// MANEJADORES DE UI - ACTUALIZADOS
+// 7. MANEJADORES DE INTERFAZ DE USUARIO
 // =============================================================================
+
+/**
+ * 7.1 Manejador de acciones rápidas (función principal)
+ * Controla la lógica de las tarjetas de acciones rápidas en el dashboard.
+ */
 function handleQuickAction(e) {
     const action = this.querySelector('.action-card__title')?.textContent;
     console.log(`⚡ Acción rápida: ${action}`);
@@ -518,6 +746,10 @@ function handleQuickAction(e) {
     }
 }
 
+/**
+ * 7.2 Manejador de cierre de modales
+ * Cierra cualquier modal activo según su tipo.
+ */
 function handleModalClose() {
     const modal = this.closest('.modal');
     if (modal) {
@@ -540,10 +772,13 @@ function handleModalClose() {
 }
 
 // =============================================================================
-// NUEVAS FUNCIONES PARA GESTIÓN DE TAREAS
+// 8. FUNCIONES PARA GESTIÓN DE TAREAS
 // =============================================================================
 
-// Función para abrir modal de tarea desde otros módulos
+/**
+ * 8.1 Abrir modal de tarea desde otros módulos
+ * Interfaz externa para abrir el formulario de tareas con datos opcionales.
+ */
 function openTaskModal(task = null) {
     if (taskManager) {
         taskManager.openTaskModal(task);
@@ -553,7 +788,10 @@ function openTaskModal(task = null) {
     }
 }
 
-// Función para crear tarea rápida desde dashboard
+/**
+ * 8.2 Crear tarea rápida desde dashboard
+ * Genera tarea con configuración básica para casos de uso rápido.
+ */
 function createQuickTask(title, description = '', priority = 'media') {
     if (taskManager) {
         const quickTask = {
@@ -570,7 +808,10 @@ function createQuickTask(title, description = '', priority = 'media') {
     }
 }
 
-// Función para obtener estadísticas de tareas para el dashboard
+/**
+ * 8.3 Obtener estadísticas de tareas para el dashboard
+ * Calcula métricas de tareas para mostrar en el panel principal.
+ */
 function getTasksStats() {
     if (!taskManager) return null;
     
@@ -588,8 +829,13 @@ function getTasksStats() {
 }
 
 // =============================================================================
-// FUNCIONES GLOBALES PARA DEBUG Y TEST - ACTUALIZADAS
+// 9. FUNCIONES DE DEBUG Y TEST
 // =============================================================================
+
+/**
+ * 9.1 Debug del estado de la aplicación
+ * Muestra en consola el estado completo de la app para diagnóstico.
+ */
 function debugAppState() {
     console.group('🔧 Debug App State');
     appState.logState();
@@ -614,6 +860,10 @@ function debugAppState() {
     console.groupEnd();
 }
 
+/**
+ * 9.2 Probar conexión con la API
+ * Verifica conectividad con el servidor backend.
+ */
 function testAPIConnection() {
     console.log('🧪 Probando conexión API...');
     showAlert('Probando conexión con el servidor...', 'info');
@@ -633,6 +883,10 @@ function testAPIConnection() {
         });
 }
 
+/**
+ * 9.3 Probar conexión con Cloudinary
+ * Verifica configuración de Cloudinary para subida de archivos.
+ */
 function testCloudinaryConnection() {
     console.log('☁️ Probando Cloudinary...');
     showAlert('Probando conexión con Cloudinary...', 'info');
@@ -646,6 +900,10 @@ function testCloudinaryConnection() {
     showAlert('Configuración de Cloudinary verificada correctamente', 'success');
 }
 
+/**
+ * 9.4 Probar gestor de tareas
+ * Crea tarea de prueba para verificar funcionamiento del módulo.
+ */
 function testTaskManager() {
     console.log('🧪 Probando gestor de tareas...');
     
@@ -668,6 +926,10 @@ function testTaskManager() {
     showAlert('Gestor de tareas funcionando correctamente', 'success');
 }
 
+/**
+ * 9.5 Resetear aplicación
+ * Limpia almacenamiento local y recarga la página.
+ */
 function resetApp() {
     if (confirm('¿Estás seguro de que deseas resetear la aplicación? Se perderán TODOS los datos incluyendo tareas.')) {
         localStorage.clear();
@@ -676,8 +938,13 @@ function resetApp() {
 }
 
 // =============================================================================
-// FUNCIÓN GLOBAL PARA MOSTRAR TODOS LOS DOCUMENTOS
+// 10. FUNCIONES GLOBALES DE UTILIDAD
 // =============================================================================
+
+/**
+ * 10.1 Mostrar todos los documentos
+ * Remueve filtros y términos de búsqueda para mostrar lista completa.
+ */
 function showAllDocuments() {
     console.log('📄 Mostrando todos los documentos');
     appState.currentSearchQuery = '';
@@ -700,7 +967,7 @@ function showAllDocuments() {
 }
 
 // =============================================================================
-// EXPORTAR FUNCIONES GLOBALES - ACTUALIZADO
+// 11. EXPORTACIÓN DE FUNCIONES GLOBALES
 // =============================================================================
 
 // Hacer todas las funciones necesarias disponibles globalmente
@@ -737,22 +1004,23 @@ window.openTaskModal = openTaskModal;
 window.createQuickTask = createQuickTask;
 window.getTasksStats = getTasksStats;
 
+// Funciones de subida múltiple globales
 window.switchUploadMode = switchUploadMode;
 window.handleUploadMultipleDocuments = handleUploadMultipleDocuments;
 window.debugMultipleUpload = debugMultipleUpload;
 window.testMultipleUploadWithMockFiles = testMultipleUploadWithMockFiles;
 window.cancelMultipleUpload = cancelMultipleUpload;
 
-// Funciones de descarga
+// Funciones de descarga globales
 window.downloadDocument = downloadDocument;
 window.downloadDocumentSimple = downloadDocumentSimple;
 window.downloadDocumentAlternative = downloadDocumentAlternative;
 
-// Para debug
+// Funciones de debug globales
 window.debugDownload = debugDocumentDownload;
 window.testAllDownloads = testAllDownloads;
 
-// Funciones que necesitan ser globales para otros módulos
+// Funciones auxiliares globales
 window.loadDashboardData = () => loadDashboardData(appState);
 window.renderDocumentsTable = renderDocumentsTable;
 window.populateCategorySelect = (selectElement) => {
@@ -767,21 +1035,35 @@ window.populateCategorySelect = (selectElement) => {
 };
 
 // =============================================================================
-// MANEJO DE ERRORES GLOBALES
+// 12. MANEJO DE ERRORES GLOBALES
 // =============================================================================
+
+/**
+ * 12.1 Capturar errores globales
+ * Intercepta errores no manejados para evitar caídas inesperadas.
+ */
 window.addEventListener('error', function(e) {
     console.error('🚨 Error global capturado:', e.error);
     showAlert('Ha ocurrido un error inesperado. Revisa la consola para más detalles.', 'error');
 });
 
+/**
+ * 12.2 Capturar promesas rechazadas no manejadas
+ * Maneja errores en operaciones asíncronas no capturadas.
+ */
 window.addEventListener('unhandledrejection', function(e) {
     console.error('🚨 Promise rechazada no manejada:', e.reason);
     showAlert('Error en operación asíncrona. Revisa la consola para más detalles.', 'error');
 });
 
 // =============================================================================
-// INICIALIZACIÓN TARDÍA PARA ELEMENTOS DINÁMICOS
+// 13. INICIALIZACIÓN TARDÍA PARA ELEMENTOS DINÁMICOS
 // =============================================================================
+
+/**
+ * 13.1 Re-bindear eventos de tareas después de carga
+ * Reconfigura event listeners para elementos que puedan cargarse dinámicamente.
+ */
 setTimeout(() => {
     const taskElements = [
         'tasksContainer',
@@ -806,6 +1088,10 @@ setTimeout(() => {
 }, 1000);
 
 console.log('✅ Script de aplicación cargado correctamente');
+
+// =============================================================================
+// 14. EXPORTACIONES PRINCIPALES
+// =============================================================================
 
 export { 
     loadTabSpecificData, 

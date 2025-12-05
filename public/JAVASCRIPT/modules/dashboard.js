@@ -3,8 +3,14 @@ import { apiCall } from '../api.js';
 import { setLoadingState, showAlert, getFileIcon, formatDate } from '../utils.js';
 
 // =============================================================================
-// FUNCIONES DEL DASHBOARD
+// 1. CARGA DE DATOS DEL DASHBOARD
 // =============================================================================
+
+/**
+ * 1.1 Cargar datos principales del dashboard
+ * Obtiene estadísticas y documentos recientes desde la API para mostrar
+ * en el panel principal de la aplicación.
+ */
 async function loadDashboardData(appState) {
     if (appState.isLoading) return;
     
@@ -32,6 +38,15 @@ async function loadDashboardData(appState) {
     }
 }
 
+// =============================================================================
+// 2. ACTUALIZACIÓN DE ESTADÍSTICAS
+// =============================================================================
+
+/**
+ * 2.1 Actualizar tarjetas de estadísticas en la UI
+ * Muestra los valores numéricos de las métricas principales en las tarjetas
+ * del dashboard (personas, documentos, vencimientos, categorías).
+ */
 function updateDashboardStats(appState) {
     if (DOM.statsCards.totalPersonas) DOM.statsCards.totalPersonas.textContent = appState.dashboardStats.totalPersonas;
     if (DOM.statsCards.totalDocumentos) DOM.statsCards.totalDocumentos.textContent = appState.dashboardStats.totalDocumentos;
@@ -39,6 +54,15 @@ function updateDashboardStats(appState) {
     if (DOM.statsCards.totalCategorias) DOM.statsCards.totalCategorias.textContent = appState.dashboardStats.totalCategorias;
 }
 
+// =============================================================================
+// 3. MANEJO DE DOCUMENTOS RECIENTES
+// =============================================================================
+
+/**
+ * 3.1 Cargar y mostrar documentos recientes
+ * Renderiza la lista de documentos más recientes en el dashboard,
+ * con opciones para vista previa y descarga.
+ */
 function loadRecentDocuments(recentDocuments = [], appState) {
     if (!DOM.recentDocuments) return;
     
@@ -97,6 +121,15 @@ function loadRecentDocuments(recentDocuments = [], appState) {
     });
 }
 
+// =============================================================================
+// 4. HANDLERS/CONTROLADORES
+// =============================================================================
+
+/**
+ * 4.1 Handler para refrescar el dashboard
+ * Función para ser llamada desde botones de actualización que recarga
+ * todos los datos del panel principal.
+ */
 function handleRefreshDashboard(appState) {
     console.log('🔄 Actualizando dashboard...');
     loadDashboardData(appState);

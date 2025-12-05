@@ -1,20 +1,35 @@
 // =============================================================================
-// MÓDULO DE NOTIFICACIONES - Frontend
+// 1. IMPORTACIONES Y CONFIGURACIÓN
 // =============================================================================
 
+/**
+ * 1.1 Importar configuraciones y utilidades
+ * Carga la configuración de la API y funciones de utilidad para mostrar alertas.
+ */
 import { CONFIG } from '../config.js';
 import { showAlert } from '../utils.js';
 
 // =============================================================================
-// ESTADO DE NOTIFICACIONES
+// 2. ESTADO GLOBAL DEL MÓDULO
 // =============================================================================
+
+/**
+ * 2.1 Estado de las notificaciones
+ * Almacena las notificaciones recibidas, contador de no leídas y estado del dropdown.
+ */
 let notificaciones = [];
 let notificacionesNoLeidas = 0;
 let isDropdownOpen = false;
 
 // =============================================================================
-// INICIALIZACIÓN
+// 3. INICIALIZACIÓN DEL MÓDULO
 // =============================================================================
+
+/**
+ * 3.1 Inicializar sistema de notificaciones
+ * Configura event listeners y carga notificaciones iniciales.
+ * Se ejecuta al cargar la aplicación para activar el sistema de notificaciones.
+ */
 export function initNotificaciones() {
     console.log('🔔 Inicializando módulo de notificaciones...');
     
@@ -45,10 +60,14 @@ export function initNotificaciones() {
 }
 
 // =============================================================================
-// FUNCIONES DE API
+// 4. FUNCIONES DE API Y COMUNICACIÓN CON BACKEND
 // =============================================================================
 
-// Obtener notificaciones
+/**
+ * 4.1 Obtener notificaciones desde el servidor
+ * Realiza petición GET a la API para obtener las notificaciones más recientes
+ * y actualiza el estado local del módulo.
+ */
 async function fetchNotificaciones() {
     try {
         console.log('🔄 Fetching notificaciones desde:', `${CONFIG.API_BASE_URL}/notifications`);
@@ -81,7 +100,11 @@ async function fetchNotificaciones() {
     }
 }
 
-// Marcar notificación como leída
+/**
+ * 4.2 Marcar notificación individual como leída
+ * Envía petición PATCH para marcar una notificación específica como leída
+ * y actualiza el estado local.
+ */
 async function marcarComoLeida(notificacionId) {
     try {
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notificacionId}/read`, {
@@ -110,7 +133,10 @@ async function marcarComoLeida(notificacionId) {
     }
 }
 
-// Marcar todas como leídas
+/**
+ * 4.3 Marcar todas las notificaciones como leídas
+ * Envía petición PATCH para marcar todas las notificaciones como leídas de una vez.
+ */
 async function marcarTodasLeidas() {
     try {
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/read-all`, {
@@ -138,10 +164,13 @@ async function marcarTodasLeidas() {
 }
 
 // =============================================================================
-// FUNCIONES DE UI
+// 5. FUNCIONES DE INTERFAZ DE USUARIO
 // =============================================================================
 
-// Actualizar badge de contador
+/**
+ * 5.1 Actualizar badge de contador de notificaciones
+ * Muestra/oculta el contador de notificaciones no leídas en el botón del navbar.
+ */
 function updateBadge() {
     const badge = document.querySelector('#notificationsBtn .topbar__badge');
     if (!badge) {
@@ -159,7 +188,10 @@ function updateBadge() {
     }
 }
 
-// Abrir/cerrar dropdown
+/**
+ * 5.2 Alternar visibilidad del dropdown de notificaciones
+ * Controla la apertura y cierre del menú desplegable de notificaciones.
+ */
 function toggleNotificationsDropdown() {
     if (isDropdownOpen) {
         closeNotificationsDropdown();
@@ -168,7 +200,10 @@ function toggleNotificationsDropdown() {
     }
 }
 
-// Abrir dropdown
+/**
+ * 5.3 Abrir dropdown de notificaciones
+ * Crea y muestra el contenedor de notificaciones con posicionamiento dinámico.
+ */
 function openNotificationsDropdown() {
     let dropdown = document.getElementById('notificationsDropdown');
     
@@ -189,7 +224,10 @@ function openNotificationsDropdown() {
     isDropdownOpen = true;
 }
 
-// Cerrar dropdown
+/**
+ * 5.4 Cerrar dropdown de notificaciones
+ * Oculta el menú desplegable de notificaciones.
+ */
 function closeNotificationsDropdown() {
     const dropdown = document.getElementById('notificationsDropdown');
     if (dropdown) {
@@ -198,7 +236,10 @@ function closeNotificationsDropdown() {
     isDropdownOpen = false;
 }
 
-// Crear elemento dropdown
+/**
+ * 5.5 Crear elemento HTML del dropdown
+ * Genera la estructura DOM del contenedor de notificaciones con botón de "marcar todas leídas".
+ */
 function createDropdownElement() {
     const dropdown = document.createElement('div');
     dropdown.id = 'notificationsDropdown';
@@ -225,7 +266,10 @@ function createDropdownElement() {
     return dropdown;
 }
 
-// Posicionar dropdown relativo al botón
+/**
+ * 5.6 Posicionar dropdown relativo al botón
+ * Calcula la posición óptima para mostrar el dropdown debajo del botón de notificaciones.
+ */
 function positionDropdown(dropdown) {
     const btn = document.getElementById('notificationsBtn');
     if (!btn) return;
@@ -238,7 +282,10 @@ function positionDropdown(dropdown) {
     dropdown.style.right = `${window.innerWidth - rect.right}px`;
 }
 
-// Renderizar lista de notificaciones
+/**
+ * 5.7 Renderizar lista de notificaciones en el dropdown
+ * Genera la lista HTML de notificaciones con estados visuales diferenciados (leída/no leída).
+ */
 function renderNotificacionesList() {
     const lista = document.getElementById('notificationsList');
     if (!lista) return;
@@ -280,7 +327,15 @@ function renderNotificacionesList() {
     }).join('');
 }
 
-// Manejar click en notificación
+// =============================================================================
+// 6. MANEJO DE INTERACCIÓN CON NOTIFICACIONES
+// =============================================================================
+
+/**
+ * 6.1 Manejar click en notificación (función global)
+ * Marca como leída y navega según el tipo de notificación.
+ * Se expone globalmente para ser accesible desde los elementos HTML generados.
+ */
 window.handleNotificationClick = function(notificacionId) {
     const notificacion = notificaciones.find(n => n._id === notificacionId);
     if (!notificacion) return;
@@ -297,7 +352,11 @@ window.handleNotificationClick = function(notificacionId) {
     navigateFromNotification(notificacion);
 };
 
-// Navegar desde notificación
+/**
+ * 6.2 Navegar según tipo de notificación
+ * Redirige al usuario a la sección correspondiente de la aplicación
+ * basándose en el tipo de notificación recibida.
+ */
 function navigateFromNotification(notificacion) {
     switch(notificacion.tipo) {
         case 'documento_subido':
@@ -337,10 +396,13 @@ function navigateFromNotification(notificacion) {
 }
 
 // =============================================================================
-// FUNCIONES AUXILIARES
+// 7. FUNCIONES AUXILIARES
 // =============================================================================
 
-// Obtener tiempo relativo (ej: "hace 5 minutos")
+/**
+ * 7.1 Obtener tiempo relativo formateado
+ * Convierte fechas a formato humano (ej: "hace 5 minutos", "hace 2 días").
+ */
 function getRelativeTime(date) {
     const now = new Date();
     const diff = now - date;
@@ -362,8 +424,13 @@ function getRelativeTime(date) {
 }
 
 // =============================================================================
-// EXPORTAR FUNCIONES
+// 8. EXPORTACIÓN DE FUNCIONES PÚBLICAS
 // =============================================================================
+
+/**
+ * 8.1 Exportar funciones principales del módulo
+ * Hace disponibles las funciones clave para uso externo en la aplicación.
+ */
 export {
     fetchNotificaciones,
     marcarComoLeida,
