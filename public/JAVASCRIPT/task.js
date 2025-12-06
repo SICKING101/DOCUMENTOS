@@ -129,7 +129,6 @@ class TaskManager {
         const filterPriority = document.getElementById('filterPriority');
         const filterStatus = document.getElementById('filterStatus');
         const tasksSearch = document.getElementById('tasksSearch');
-        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         
         if (filterPriority) {
             filterPriority.addEventListener('change', (e) => this.filterTasks());
@@ -141,10 +140,6 @@ class TaskManager {
         
         if (tasksSearch) {
             tasksSearch.addEventListener('input', (e) => this.searchTasks(e));
-        }
-        
-        if (clearFiltersBtn) {
-            clearFiltersBtn.addEventListener('click', () => this.clearFilters());
         }
         
         // Botón para limpiar tareas completadas

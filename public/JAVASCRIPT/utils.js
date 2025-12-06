@@ -603,6 +603,88 @@ async function universalDownload(fileData) {
     throw lastError || new Error('No se pudo descargar el archivo con ninguna estrategia');
 }
 
+/**
+ * Mostrar diálogo de confirmación
+ * @param {string} title - Título de la confirmación
+ * @param {string} message - Mensaje de la confirmación
+ * @returns {Promise<boolean>} - True si se confirma, false si se cancela
+ */
+// En utils.js o donde tengas las utilidades
+export async function showConfirmation(title, message, options = {}) {
+    return new Promise((resolve) => {
+        const modalHTML = `
+            <div id="confirmationModal" class="modal">
+                <article class="modal__content modal__content--sm">
+                    <header class="modal__header">
+                        <h3 class="modal__title">${title}</h3>
+                        <button class="modal__close">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <div class="action-modal__content">
+                            <div class="action-modal__icon action-modal__icon--warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <p class="action-modal__message">${message}</p>
+                        </div>
+                    </section>
+                    <footer class="modal__footer modal__footer--centered">
+                        <button class="btn btn--outline" id="cancelConfirmBtn">Cancelar</button>
+                        <button class="btn btn--danger" id="confirmBtn">${options.confirmText || 'Confirmar'}</button>
+                    </footer>
+                </article>
+            </div>
+        `;
+
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer.firstElementChild);
+
+        const modal = document.getElementById('confirmationModal');
+        const closeBtn = modal.querySelector('.modal__close');
+        const cancelBtn = modal.querySelector('#cancelConfirmBtn');
+        const confirmBtn = modal.querySelector('#confirmBtn');
+
+        // Mostrar modal
+        modal.style.display = 'flex';
+        modal.offsetHeight; // Forzar reflow
+        setTimeout(() => {
+            modal.style.opacity = '1';
+            modal.style.visibility = 'visible';
+        }, 10);
+
+        // Función para cerrar
+        const closeModal = (result) => {
+            modal.style.opacity = '0';
+            modal.style.visibility = 'hidden';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.remove();
+                resolve(result);
+            }, 300);
+        };
+
+        // Event listeners
+        closeBtn.addEventListener('click', () => closeModal(false));
+        cancelBtn.addEventListener('click', () => closeModal(false));
+        confirmBtn.addEventListener('click', () => closeModal(true));
+
+        // Cerrar al hacer clic fuera
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal(false);
+            }
+        });
+
+        // Cerrar con ESC
+        const handleEscKey = (e) => {
+            if (e.key === 'Escape') {
+                closeModal(false);
+            }
+        };
+        document.addEventListener('keydown', handleEscKey);
+    });
+}
+
 // =============================================================================
 // 8. EXPORTACIÓN DE FUNCIONES
 // =============================================================================
