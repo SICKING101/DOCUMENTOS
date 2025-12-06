@@ -64,7 +64,11 @@ const documentSchema = new mongoose.Schema({
   cloudinary_url: { type: String, required: true },
   public_id: { type: String, required: true },
   resource_type: { type: String, required: true },
-  activo: { type: Boolean, default: true }
+  activo: { type: Boolean, default: true },
+  // Campos para papelera
+  enPapelera: { type: Boolean, default: false },
+  fechaEliminacion: { type: Date, default: null },
+  eliminadoPor: { type: String, default: null }
 }, { timestamps: true });
 
 const taskSchema = new mongoose.Schema({
@@ -97,6 +101,10 @@ const Task = mongoose.model('Task', taskSchema);
 // Importar modelo y servicio de notificaciones
 const Notification = require('./public/JAVASCRIPT/modules/Notification');
 const NotificationService = require('./public/JAVASCRIPT/modules/notificationService');
+
+// Importar modelo y servicio de historial
+const Historial = require('./public/JAVASCRIPT/modules/Historial');
+const HistorialService = require('./public/JAVASCRIPT/modules/historialService');
 
 // -----------------------------
 // Configuración de Multer
@@ -140,8 +148,9 @@ mongoose.connect(MONGODB_URI)
     // Crear notificación de sistema iniciado
     try {
       await NotificationService.sistemaIniciado();
+      await HistorialService.sistemaIniciado();
     } catch (error) {
-      console.error('⚠️ Error creando notificación de inicio:', error.message);
+      console.error('⚠️ Error creando notificación/historial de inicio:', error.message);
     }
   })
   .catch(err => {
@@ -648,64 +657,7 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
   }
 });
 
-app.get('/api/documents/:id/download', async (req, res) => {
-  try {
-    console.log('📥 Solicitud de descarga de documento:', req.params.id);
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.error('❌ ID inválido:', id);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
-      });
-    }
-
-    const documento = await Document.findOne({ _id: id, activo: true });
-
-    if (!documento) {
-      console.error('❌ Documento no encontrado:', id);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
-      });
-    }
-
-    console.log('✅ Documento encontrado:', {
-      nombre: documento.nombre_original,
-      tipo: documento.tipo_archivo,
-      resourceType: documento.resource_type
-    });
-    console.log('📤 Cloudinary URL original:', documento.cloudinary_url);
-
-    // Modificar la URL de Cloudinary para forzar descarga
-    let downloadUrl = documento.cloudinary_url;
-    const nombreArchivo = encodeURIComponent(documento.nombre_original);
-    
-    // Para TODOS los tipos de archivos, agregar fl_attachment
-    const urlParts = downloadUrl.split('/upload/');
-    if (urlParts.length === 2) {
-      // Funciona para image, raw, video y cualquier otro resource_type
-      downloadUrl = `${urlParts[0]}/upload/fl_attachment:${nombreArchivo}/${urlParts[1]}`;
-      console.log('✅ Parámetro fl_attachment agregado correctamente');
-    } else {
-      console.warn('⚠️ No se pudo modificar la URL, usando URL original');
-    }
-
-    console.log('🔗 URL de descarga final:', downloadUrl);
-    
-    // Redirigir a la URL de Cloudinary con parámetros de descarga
-    res.redirect(downloadUrl);
-
-  } catch (error) {
-    console.error('❌ Error descargando documento:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al descargar documento: ' + error.message 
-    });
-  }
-});
-
+// ENDPOINT DE VISTA PREVIA
 app.get('/api/documents/:id/preview', async (req, res) => {
   try {
     const { id } = req.params;
@@ -717,8 +669,7 @@ app.get('/api/documents/:id/preview', async (req, res) => {
       });
     }
 
-    const documento = await Document.findOne({ _id: id, activo: true })
-      .populate('persona_id', 'nombre');
+    const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
       return res.status(404).json({ 
@@ -727,17 +678,21 @@ app.get('/api/documents/:id/preview', async (req, res) => {
       });
     }
 
-    // Para PDFs y imágenes, podemos usar la URL de Cloudinary directamente
-    // Para otros tipos redirigir a la descarga
-    if (documento.tipo_archivo === 'pdf' || 
-        ['jpg', 'jpeg', 'png'].includes(documento.tipo_archivo)) {
-      res.redirect(documento.cloudinary_url);
-    } else {
-      res.redirect(documento.cloudinary_url);
+    if (!documento.cloudinary_url) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'URL del documento no disponible' 
+      });
     }
 
+    console.log('👁️ Vista previa para:', documento.nombre_original);
+
+    // PARA PDF: Cloudinary puede mostrar vista previa
+    // PARA IMÁGENES: Redirigir directamente
+    res.redirect(documento.cloudinary_url);
+
   } catch (error) {
-    console.error('Error en vista previa:', error);
+    console.error('❌ Error en vista previa:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error al cargar vista previa' 
@@ -765,32 +720,42 @@ app.delete('/api/documents/:id', async (req, res) => {
       });
     }
 
-    // Guardar datos para la notificación antes de eliminar
+    // Guardar datos para la notificación antes de mover a papelera
     const nombreDocumento = documento.nombre_original;
     const categoriaDocumento = documento.categoria;
 
-    // Eliminar de Cloudinary
-    try {
-      await cloudinary.uploader.destroy(documento.public_id, {
-        resource_type: documento.resource_type
-      });
-    } catch (cloudinaryError) {
-      console.warn('No se pudo eliminar de Cloudinary:', cloudinaryError);
-    }
+    // NO eliminamos de Cloudinary - solo movemos a papelera
+    // Marcar como eliminado (mover a papelera)
+    await Document.findByIdAndUpdate(id, { 
+      activo: false,
+      enPapelera: true,
+      fechaEliminacion: new Date(),
+      eliminadoPor: 'Usuario' // Aquí puedes poner el nombre del usuario si tienes auth
+    });
 
-    // Eliminar lógicamente de la base de datos
-    await Document.findByIdAndUpdate(id, { activo: false });
-
-    // Crear notificación de documento eliminado
+    // Crear notificación de documento movido a papelera
     try {
       await NotificationService.documentoEliminado(nombreDocumento, categoriaDocumento);
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
 
+    // Registrar en historial
+    try {
+      await HistorialService.documentoEliminado(
+        nombreDocumento,
+        categoriaDocumento,
+        id,
+        'Usuario',
+        req.ip
+      );
+    } catch (histError) {
+      console.error('⚠️ Error registrando historial:', histError.message);
+    }
+
     res.json({ 
       success: true, 
-      message: 'Documento eliminado correctamente' 
+      message: 'Documento movido a papelera' 
     });
 
   } catch (error) {
@@ -798,6 +763,287 @@ app.delete('/api/documents/:id', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error al eliminar documento' 
+    });
+  }
+});
+
+// =============================================================================================
+// PAPELERA - Sistema de eliminación temporal con recuperación
+// =============================================================================================
+
+/**
+ * GET /api/trash
+ * Obtener todos los documentos en papelera
+ * Incluye contador de días restantes hasta eliminación definitiva
+ */
+app.get('/api/trash', async (req, res) => {
+  try {
+    console.log('🗑️ Obteniendo documentos en papelera...');
+    
+    const documentosEnPapelera = await Document.find({ 
+      enPapelera: true 
+    })
+    .populate('persona_id', 'nombre departamento')
+    .sort({ fechaEliminacion: -1 });
+
+    // Calcular días restantes para cada documento
+    const ahora = new Date();
+    const documentosConContador = documentosEnPapelera.map(doc => {
+      const fechaEliminacion = new Date(doc.fechaEliminacion);
+      const diasTranscurridos = Math.floor((ahora - fechaEliminacion) / (1000 * 60 * 60 * 24));
+      const diasRestantes = 30 - diasTranscurridos;
+      
+      return {
+        ...doc.toObject(),
+        diasRestantes: diasRestantes > 0 ? diasRestantes : 0,
+        seEliminaAutomaticamente: diasRestantes <= 0
+      };
+    });
+
+    console.log(`✅ ${documentosConContador.length} documentos en papelera`);
+
+    res.json({
+      success: true,
+      documentos: documentosConContador,
+      total: documentosConContador.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo papelera:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener documentos en papelera: ' + error.message
+    });
+  }
+});
+
+/**
+ * POST /api/trash/restore/:id
+ * Restaurar un documento de la papelera
+ */
+app.post('/api/trash/restore/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
+      });
+    }
+
+    const documento = await Document.findOne({ _id: id, enPapelera: true });
+
+    if (!documento) {
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado en papelera'
+      });
+    }
+
+    // Restaurar documento
+    await Document.findByIdAndUpdate(id, {
+      activo: true,
+      enPapelera: false,
+      fechaEliminacion: null,
+      eliminadoPor: null
+    });
+
+    console.log(`♻️ Documento restaurado: ${documento.nombre_original}`);
+
+    // Crear notificación de restauración
+    try {
+      await NotificationService.crear({
+        tipo: 'documento_subido',
+        titulo: 'Documento restaurado',
+        mensaje: `El documento "${documento.nombre_original}" fue restaurado desde la papelera`,
+        icono: 'trash-restore',
+        prioridad: 'media',
+        documento_id: documento._id
+      });
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
+    // Registrar en historial
+    try {
+      await HistorialService.documentoRestaurado(
+        documento.nombre_original,
+        documento.categoria,
+        documento._id,
+        'Usuario',
+        req.ip
+      );
+    } catch (histError) {
+      console.error('⚠️ Error registrando historial:', histError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Documento restaurado correctamente',
+      documento: documento
+    });
+
+  } catch (error) {
+    console.error('❌ Error restaurando documento:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al restaurar documento: ' + error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/trash/permanent/:id
+ * Eliminar documento definitivamente de la papelera
+ * Esto SÍ elimina el archivo de Cloudinary y la BD permanentemente
+ */
+app.delete('/api/trash/permanent/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
+      });
+    }
+
+    const documento = await Document.findOne({ _id: id, enPapelera: true });
+
+    if (!documento) {
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado en papelera'
+      });
+    }
+
+    const nombreDocumento = documento.nombre_original;
+    const categoriaDocumento = documento.categoria;
+
+    // Eliminar definitivamente de Cloudinary
+    try {
+      await cloudinary.uploader.destroy(documento.public_id, {
+        resource_type: documento.resource_type
+      });
+      console.log(`☁️ Archivo eliminado de Cloudinary: ${documento.public_id}`);
+    } catch (cloudinaryError) {
+      console.warn('⚠️ No se pudo eliminar de Cloudinary:', cloudinaryError);
+    }
+
+    // Eliminar definitivamente de la base de datos
+    await Document.findByIdAndDelete(id);
+
+    console.log(`🗑️ Documento eliminado definitivamente: ${nombreDocumento}`);
+
+    // Crear notificación de eliminación definitiva
+    try {
+      await NotificationService.crear({
+        tipo: 'documento_eliminado',
+        titulo: 'Documento eliminado definitivamente',
+        mensaje: `El documento "${nombreDocumento}" de la categoría ${categoriaDocumento} fue eliminado permanentemente`,
+        icono: 'trash',
+        prioridad: 'alta'
+      });
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
+    // Registrar en historial
+    try {
+      await HistorialService.documentoEliminadoDefinitivo(
+        nombreDocumento,
+        categoriaDocumento,
+        id,
+        'Usuario',
+        req.ip
+      );
+    } catch (histError) {
+      console.error('⚠️ Error registrando historial:', histError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Documento eliminado definitivamente'
+    });
+
+  } catch (error) {
+    console.error('❌ Error eliminando documento definitivamente:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar documento: ' + error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/trash/cleanup
+ * Eliminar automáticamente documentos con más de 30 días en papelera
+ * Esta ruta se puede llamar manualmente o programar con cron
+ */
+app.delete('/api/trash/cleanup', async (req, res) => {
+  try {
+    console.log('🧹 Iniciando limpieza automática de papelera...');
+
+    const treintaDiasAtras = new Date();
+    treintaDiasAtras.setDate(treintaDiasAtras.getDate() - 30);
+
+    const documentosAEliminar = await Document.find({
+      enPapelera: true,
+      fechaEliminacion: { $lte: treintaDiasAtras }
+    });
+
+    let eliminados = 0;
+    let errores = 0;
+
+    for (const doc of documentosAEliminar) {
+      try {
+        // Eliminar de Cloudinary
+        await cloudinary.uploader.destroy(doc.public_id, {
+          resource_type: doc.resource_type
+        });
+
+        // Eliminar de BD
+        await Document.findByIdAndDelete(doc._id);
+        
+        eliminados++;
+        console.log(`✅ Auto-eliminado: ${doc.nombre_original}`);
+
+      } catch (error) {
+        errores++;
+        console.error(`❌ Error eliminando ${doc.nombre_original}:`, error);
+      }
+    }
+
+    console.log(`🧹 Limpieza completada: ${eliminados} eliminados, ${errores} errores`);
+
+    // Notificación de limpieza
+    if (eliminados > 0) {
+      try {
+        await NotificationService.crear({
+          tipo: 'sistema_iniciado',
+          titulo: 'Limpieza automática de papelera',
+          mensaje: `Se eliminaron automáticamente ${eliminados} documento(s) con más de 30 días en papelera`,
+          icono: 'broom',
+          prioridad: 'baja'
+        });
+      } catch (notifError) {
+        console.error('⚠️ Error creando notificación:', notifError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Limpieza completada',
+      eliminados: eliminados,
+      errores: errores
+    });
+
+  } catch (error) {
+    console.error('❌ Error en limpieza automática:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error en limpieza automática: ' + error.message
     });
   }
 });
@@ -1294,6 +1540,111 @@ app.post('/api/reports/csv', async (req, res) => {
   }
 });
 
+// =============================================================================================
+// HISTORIAL - Sistema de registro de todas las acciones
+// =============================================================================================
+
+/**
+ * GET /api/historial
+ * Obtener historial con filtros opcionales
+ */
+app.get('/api/historial', async (req, res) => {
+  try {
+    console.log('📜 Obteniendo historial con filtros:', req.query);
+    
+    const {
+      accion,
+      modulo,
+      usuario,
+      desde,
+      hasta,
+      limite = 50,
+      pagina = 1
+    } = req.query;
+
+    const filtros = {};
+    if (accion) filtros.accion = accion;
+    if (modulo) filtros.modulo = modulo;
+    if (usuario) filtros.usuario = usuario;
+    if (desde) filtros.desde = desde;
+    if (hasta) filtros.hasta = hasta;
+
+    const resultado = await HistorialService.obtener(filtros, {
+      limite: parseInt(limite),
+      pagina: parseInt(pagina)
+    });
+
+    console.log(`✅ ${resultado.entradas.length} entradas de historial obtenidas`);
+
+    res.json({
+      success: true,
+      data: resultado
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo historial:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener historial: ' + error.message
+    });
+  }
+});
+
+/**
+ * GET /api/historial/stats
+ * Obtener estadísticas del historial
+ */
+app.get('/api/historial/stats', async (req, res) => {
+  try {
+    console.log('📊 Obteniendo estadísticas del historial...');
+    
+    const estadisticas = await HistorialService.obtenerEstadisticas();
+    
+    console.log('✅ Estadísticas obtenidas');
+
+    res.json({
+      success: true,
+      data: estadisticas
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas: ' + error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/historial/cleanup
+ * Limpiar historial antiguo (más de 90 días)
+ */
+app.delete('/api/historial/cleanup', async (req, res) => {
+  try {
+    const { dias = 90 } = req.query;
+    
+    console.log(`🧹 Limpiando historial mayor a ${dias} días...`);
+    
+    const eliminados = await HistorialService.limpiarAntiguo(parseInt(dias));
+    
+    console.log(`✅ ${eliminados} entradas eliminadas`);
+
+    res.json({
+      success: true,
+      message: `Limpieza completada: ${eliminados} entradas eliminadas`,
+      eliminados: eliminados
+    });
+
+  } catch (error) {
+    console.error('❌ Error limpiando historial:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al limpiar historial: ' + error.message
+    });
+  }
+});
+
 // -----------------------------
 // TAREAS
 // -----------------------------
@@ -1362,6 +1713,405 @@ app.post('/api/tasks', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Error al crear tarea' 
+        });
+    }
+});
+
+// ============================================================================
+// DESCARGA DE DOCUMENTOS (FUNCIONA PDF, IMÁGENES, OFFICE, TXT, TODO)
+// ============================================================================
+
+app.get('/api/documents/:id/download', async (req, res) => {
+    console.log('📥 ====== INICIO ENDPOINT DESCARGA ======');
+
+    try {
+        const { id } = req.params;
+        const { filename } = req.query;
+
+        console.log('📋 Parámetros recibidos:', { id, filename });
+
+        // 1. Validar ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de documento invalido'
+            });
+        }
+
+        // 2. Buscar en BD
+        const documento = await Document.findOne({ 
+            _id: id, 
+            activo: true 
+        }).populate('persona_id', 'nombre');
+
+        if (!documento) {
+            return res.status(404).json({
+                success: false,
+                message: 'Documento no encontrado'
+            });
+        }
+
+        const fileName = filename || documento.nombre_original;
+        const cloudinaryUrl = documento.cloudinary_url || documento.url_cloudinary;
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+
+        console.log('📄 Documento encontrado:', {
+            fileName,
+            extension: fileExtension,
+            url: cloudinaryUrl
+        });
+
+        if (!cloudinaryUrl) {
+            return res.status(404).json({
+                success: false,
+                message: 'URL de archivo no disponible'
+            });
+        }
+
+        // Tipos de archivo
+        const isImage = ['png','jpg','jpeg','gif','webp','bmp'].includes(fileExtension);
+        const isPDF = fileExtension === 'pdf';
+
+        // =====================================================================
+        // ESTRATEGIA 1: Redireccion directa para IMAGENES (funciona perfecto)
+        // =====================================================================
+        if (isImage) {
+            console.log('🖼️ Imagen detectada → redireccion directa');
+
+            let finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
+
+            return res.redirect(finalUrl);
+        }
+
+        // =====================================================================
+        // ESTRATEGIA 2: SERVIDOR PROXY PARA PDF, DOCX, XLSX, TXT, ETC
+        // =====================================================================
+        console.log('📄 Documento → usando servidor proxy');
+
+        // Intento 1: URL original
+        let response = await tryFetch(cloudinaryUrl);
+
+        // Si fallo, intentamos con URL modificada
+        if (!response.ok) {
+            console.log('⚠️ Intento 1 fallo, probando URL mejorada para Cloudinary...');
+            
+            const modifiedUrl = buildCloudinaryDownloadURL(cloudinaryUrl, fileExtension);
+            console.log('🔗 URL modificada final:', modifiedUrl);
+
+            response = await tryFetch(modifiedUrl);
+
+            if (!response.ok) {
+                console.log('❌ Intento 2 tambien fallo. Haciendo redireccion como ultimo recurso.');
+                
+                res.setHeader('Content-Type', getContentType(fileExtension));
+                res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+                return res.redirect(cloudinaryUrl);
+            }
+        }
+
+        // Procesar archivo
+        await processAndSendFile(response, res, fileName, fileExtension);
+
+    } catch (error) {
+        console.error('❌ ERROR CRITICO:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno en la descarga',
+            error: error.message
+        });
+    } finally {
+        console.log('📥 ====== FIN ENDPOINT DESCARGA ======');
+    }
+});
+
+
+// ============================================================================
+// FUNCION: Corregir URL para descarga desde Cloudinary (fix definitivo PDF)
+// ============================================================================
+function buildCloudinaryDownloadURL(url, extension) {
+    if (!url.includes('/upload/')) return url;
+
+    // Inserta fl_attachment incluso si existe /v123456/
+    let newUrl = url.replace(/\/upload\/(?:v\d+\/)?/, match => {
+        return match.replace('upload/', 'upload/fl_attachment/');
+    });
+
+    // Cloudinary requiere .pdf al final para PDFs
+    if (extension === 'pdf' && !newUrl.endsWith('.pdf')) {
+        if (newUrl.includes('.pdf')) {
+            newUrl = newUrl.split('.pdf')[0] + '.pdf';
+        } else {
+            newUrl += '.pdf';
+        }
+    }
+
+    return newUrl;
+}
+
+
+// ============================================================================
+// FUNCION: Intento de fetch con headers correctos
+// ============================================================================
+async function tryFetch(url) {
+    try {
+        return await fetch(url, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0'
+            },
+            timeout: 30000
+        });
+    } catch (err) {
+        console.error('❌ Error en fetch:', err);
+        return { ok: false, status: 0 };
+    }
+}
+
+
+// ============================================================================
+// FUNCION: Procesar y enviar archivo
+// ============================================================================
+async function processAndSendFile(fetchResponse, res, fileName, fileExtension) {
+    const buffer = await fetchResponse.arrayBuffer();
+    const nodeBuffer = Buffer.from(buffer);
+
+    if (nodeBuffer.length === 0) {
+        throw new Error('Buffer vacio');
+    }
+
+    // Verificacion PDF
+    if (fileExtension === 'pdf') {
+        const firstBytes = nodeBuffer.slice(0, 5).toString();
+        if (!firstBytes.includes('%PDF')) {
+            console.log('⚠️ El archivo no empieza con %PDF, Cloudinary devolvio HTML');
+            throw new Error('Respuesta invalida para PDF');
+        }
+    }
+
+    // Headers
+    const contentType = getContentType(fileExtension);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', nodeBuffer.length);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+
+    return res.end(nodeBuffer);
+}
+
+
+// ============================================================================
+// MIME TYPES
+// ============================================================================
+function getContentType(ext) {
+    const types = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'txt': 'text/plain',
+        'csv': 'text/csv',
+        'rtf': 'application/rtf',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp'
+    };
+
+    return types[ext.toLowerCase()] || 'application/octet-stream';
+}
+
+// =============================================================================
+// ENDPOINT PARA CONTENIDO DE TEXTO (VISTA PREVIA)
+// =============================================================================
+
+app.get('/api/documents/:id/content', async (req, res) => {
+    console.log('📝 Obteniendo contenido para vista previa de texto');
+    
+    try {
+        const { id } = req.params;
+        const { limit = 50000 } = req.query; // Limitar a 50KB por defecto
+
+        // Validar ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de documento inválido'
+            });
+        }
+
+        // Buscar documento
+        const documento = await Document.findOne({ 
+            _id: id, 
+            activo: true 
+        });
+
+        if (!documento) {
+            return res.status(404).json({
+                success: false,
+                message: 'Documento no encontrado'
+            });
+        }
+
+        // Verificar que sea archivo de texto
+        const extension = documento.nombre_original.split('.').pop().toLowerCase();
+        const textExtensions = ['txt', 'csv', 'json', 'xml', 'html', 'htm', 'js', 'css', 'md'];
+        
+        if (!textExtensions.includes(extension)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Este tipo de archivo no puede ser previsualizado como texto'
+            });
+        }
+
+        const cloudinaryUrl = documento.cloudinary_url;
+        
+        if (!cloudinaryUrl) {
+            return res.status(500).json({
+                success: false,
+                message: 'URL del archivo no disponible'
+            });
+        }
+
+        console.log('📥 Descargando contenido desde Cloudinary...');
+
+        // IMPORTANTE: Para archivos .txt, Cloudinary los sirve como 'raw'
+        // Necesitamos agregar parámetros para asegurar que sea texto
+        let finalUrl = cloudinaryUrl;
+        
+        // Si es una URL de Cloudinary, forzar formato raw
+        if (cloudinaryUrl.includes('cloudinary.com')) {
+            if (!cloudinaryUrl.includes('/raw/')) {
+                finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
+            }
+        }
+
+        // Descargar desde Cloudinary con fetch nativo de Node.js 18+
+        const response = await fetch(finalUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error al descargar desde Cloudinary: ${response.status}`);
+        }
+
+        // Leer el contenido
+        const buffer = await response.arrayBuffer();
+        
+        if (buffer.byteLength === 0) {
+            return res.status(500).json({
+                success: false,
+                message: 'El archivo está vacío'
+            });
+        }
+
+        // Convertir a texto
+        let textContent;
+        try {
+            // Intentar UTF-8 primero
+            textContent = new TextDecoder('utf-8').decode(buffer);
+        } catch (utf8Error) {
+            // Si falla UTF-8, intentar Latin-1
+            try {
+                textContent = new TextDecoder('latin-1').decode(buffer);
+            } catch (latinError) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'No se pudo decodificar el contenido del archivo'
+                });
+            }
+        }
+
+        // Limitar contenido si es muy grande
+        const maxLength = parseInt(limit);
+        let isTruncated = false;
+        
+        if (textContent.length > maxLength) {
+            textContent = textContent.substring(0, maxLength);
+            isTruncated = true;
+        }
+
+        // Determinar tipo de contenido
+        let contentType = 'text/plain; charset=utf-8';
+        if (extension === 'html' || extension === 'htm') contentType = 'text/html; charset=utf-8';
+        if (extension === 'json') contentType = 'application/json; charset=utf-8';
+        if (extension === 'xml') contentType = 'application/xml; charset=utf-8';
+        if (extension === 'css') contentType = 'text/css; charset=utf-8';
+        if (extension === 'js') contentType = 'application/javascript; charset=utf-8';
+        if (extension === 'csv') contentType = 'text/csv; charset=utf-8';
+        if (extension === 'md') contentType = 'text/markdown; charset=utf-8';
+
+        // Configurar respuesta
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('X-File-Name', encodeURIComponent(documento.nombre_original));
+        res.setHeader('X-File-Size', buffer.byteLength);
+        res.setHeader('X-Content-Length', textContent.length);
+        if (isTruncated) {
+            res.setHeader('X-Content-Truncated', 'true');
+            res.setHeader('X-Original-Length', buffer.byteLength);
+        }
+
+        // Enviar contenido
+        res.send(textContent);
+
+        console.log(`✅ Contenido enviado: ${textContent.length} caracteres`);
+
+    } catch (error) {
+        console.error('❌ Error en endpoint de contenido:', error);
+        
+        // Enviar como JSON si es un error
+        res.setHeader('Content-Type', 'application/json');
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener contenido: ' + error.message
+        });
+    }
+});
+
+// =============================================================================
+// ENDPOINT PARA OBTENER INFORMACIÓN DEL ARCHIVO (OPCIONAL)
+// =============================================================================
+
+app.get('/api/documents/:id/info', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const documento = await Document.findOne({ _id: id, activo: true })
+            .populate('persona_id', 'nombre email departamento puesto');
+        
+        if (!documento) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Documento no encontrado' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            document: {
+                id: documento._id,
+                nombre_original: documento.nombre_original,
+                tipo_archivo: documento.tipo_archivo,
+                tamano_archivo: documento.tamano_archivo,
+                descripcion: documento.descripcion,
+                categoria: documento.categoria,
+                fecha_subida: documento.fecha_subida,
+                fecha_vencimiento: documento.fecha_vencimiento,
+                persona: documento.persona_id,
+                cloudinary_url: documento.cloudinary_url,
+                public_id: documento.public_id,
+                resource_type: documento.resource_type
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo info del documento:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener información del documento' 
         });
     }
 });
