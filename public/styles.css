@@ -1,16 +1,24 @@
-/* ===== CSS RESET & BASE STYLES ===== */
+/* =============================================================================
+   SISTEMA DE GESTIÓN DOCUMENTAL - ESTILOS PRINCIPALES
+   ============================================================================= */
+
+/* ===== 1. CSS RESET & BASE STYLES ===== */
+
+/* Reset para eliminar márgenes y padding por defecto */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* Variables de colores y estilos para el tema claro */
 :root {
-    /* Colors */
+    /* Paleta de colores principal */
     --primary: #dc2626;
     --primary-dark: #b91c1c;
     --primary-light: #ef4444;
     
+    /* Colores secundarios y de estado */
     --secondary: #10b981;
     --secondary-dark: #059669;
     --accent: #8b5cf6;
@@ -19,6 +27,7 @@
     --danger: #ef4444;
     --info: #06b6d4;
 
+    /* Colores para estados específicos */
     --success-color: #28a745;
     --success-dark: #218838;
     --warning-color: #ffc107;
@@ -29,7 +38,7 @@
     --info-dark: #138496;
     --text-color: #333;
     
-    /* Neutrals - Light Theme */
+    /* Colores neutros para el tema claro */
     --bg-primary: #ffffff;
     --bg-secondary: #f8fafc;
     --bg-tertiary: #e2e8f0;
@@ -38,37 +47,38 @@
     --text-tertiary: #64748b;
     --border: #cbd5e1;
     
-    /* Sidebar */
+    /* Colores específicos para el sidebar */
     --sidebar-bg: #1e293b;
     --sidebar-hover: #334155;
     --sidebar-active: var(--primary);
     --sidebar-text: #e2e8f0;
     
-    /* Shadows */
+    /* Sistema de sombras para efectos de profundidad */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
     
-    /* Spacing */
+    /* Sistema de espaciado consistente */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
     
-    /* Border Radius */
+    /* Sistema de bordes redondeados */
     --radius-sm: 0.375rem;
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
     --radius-xl: 1rem;
     
-    /* Transitions */
+    /* Transición estándar para animaciones suaves */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Dark Theme Variables */
+/* Variables para el tema oscuro */
 body.dark-theme {
+    /* Colores invertidos para modo oscuro */
     --bg-primary: #0f172a;
     --bg-secondary: #1e293b;
     --bg-tertiary: #334155;
@@ -77,11 +87,12 @@ body.dark-theme {
     --text-tertiary: #64748b;
     --border: #334155;
     
+    /* Ajustes específicos para sidebar en modo oscuro */
     --sidebar-bg: #020617;
     --sidebar-hover: #1e293b;
 }
 
-/* Base Styles */
+/* Estilos base para toda la aplicación */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg-primary);
@@ -90,19 +101,20 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Elimina estilos de lista por defecto */
 li {
     list-style: none;
 }
 
-/* ===== LAYOUT COMPONENTS ===== */
+/* ===== 2. LAYOUT COMPONENTS ===== */
 
-/* App Layout */
+/* Layout principal de la aplicación con sidebar y contenido */
 .app-layout {
     display: flex;
     min-height: 100vh;
 }
 
-/* Content Wrapper */
+/* Wrapper del contenido principal que ocupa el espacio restante */
 .content-wrapper {
     flex: 1;
     margin-left: 280px;
@@ -111,14 +123,14 @@ li {
     min-height: 100vh;
 }
 
-/* Main Content */
+/* Área de contenido principal con padding y scroll */
 .main-content {
     flex: 1;
     padding: var(--spacing-xl);
     overflow-y: auto;
 }
 
-/* Section Headers */
+/* Cabeceras de sección con título y subtítulo */
 .section__header {
     display: flex;
     justify-content: space-between;
@@ -126,6 +138,7 @@ li {
     margin-bottom: var(--spacing-xl);
 }
 
+/* Título principal de cada sección */
 .section__title {
     font-size: 2rem;
     font-weight: 700;
@@ -134,12 +147,15 @@ li {
     letter-spacing: -0.025em;
 }
 
+/* Subtítulo descriptivo debajo del título principal */
 .section__subtitle {
     font-size: 1rem;
     color: var(--text-secondary);
 }
 
-/* ===== SIDEBAR COMPONENTS ===== */
+/* ===== 3. SIDEBAR COMPONENTS ===== */
+
+/* Barra lateral fija con navegación y controles */
 .sidebar {
     width: 280px;
     background: var(--sidebar-bg);
@@ -153,6 +169,7 @@ li {
     transition: var(--transition);
 }
 
+/* Cabecera del sidebar con logo y nombre de la aplicación */
 .sidebar__header {
     padding: var(--spacing-xl);
     display: flex;
@@ -161,11 +178,13 @@ li {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Logo de la aplicación en el sidebar */
 .sidebar__logo {
     width: 40px;
     height: 40px;
 }
 
+/* Nombre de la aplicación en el sidebar */
 .sidebar__title {
     font-size: 1.25rem;
     font-weight: 700;
@@ -173,13 +192,14 @@ li {
     letter-spacing: -0.025em;
 }
 
-/* Sidebar Navigation */
+/* Navegación principal del sidebar */
 .sidebar__nav {
     flex: 1;
     padding: var(--spacing-lg);
     overflow-y: auto;
 }
 
+/* Enlaces de navegación del sidebar */
 .sidebar__nav-link {
     display: flex;
     align-items: center;
@@ -194,24 +214,27 @@ li {
     position: relative;
 }
 
+/* Iconos dentro de los enlaces de navegación */
 .sidebar__nav-link i {
     font-size: 1.25rem;
     width: 24px;
     text-align: center;
 }
 
+/* Estado activo para enlaces de navegación */
 .sidebar__nav-link--active {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
-/* Sidebar Footer */
+/* Pie del sidebar con controles de usuario y tema */
 .sidebar__footer {
     padding: var(--spacing-lg);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Botón para alternar entre tema claro y oscuro */
 .sidebar__theme-toggle {
     width: 100%;
     padding: 0.75rem;
@@ -225,17 +248,20 @@ li {
     margin-bottom: var(--spacing-md);
 }
 
+/* Efecto hover para el botón de tema */
 .sidebar__theme-toggle:hover {
     background: linear-gradient(135deg, var(--accent), #6d28d9);
     color: white;
 }
 
+/* Información del usuario en el footer del sidebar */
 .sidebar__user {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
 }
 
+/* Avatar del usuario con gradiente */
 .sidebar__user-avatar {
     width: 40px;
     height: 40px;
@@ -248,10 +274,12 @@ li {
     font-size: 1.125rem;
 }
 
+/* Contenedor de información del usuario */
 .sidebar__user-info {
     flex: 1;
 }
 
+/* Nombre del usuario */
 .sidebar__user-name {
     font-size: 0.875rem;
     font-weight: 600;
@@ -259,13 +287,16 @@ li {
     margin-bottom: 0.125rem;
 }
 
+/* Rol o cargo del usuario */
 .sidebar__user-role {
     font-size: 0.75rem;
     color: var(--sidebar-text);
     opacity: 0.7;
 }
 
-/* ===== TOPBAR COMPONENTS ===== */
+/* ===== 4. TOPBAR COMPONENTS ===== */
+
+/* Barra superior fija con acciones y notificaciones */
 .topbar {
     height: 70px;
     background: var(--bg-secondary);
@@ -281,12 +312,14 @@ li {
     box-shadow: var(--shadow-sm);
 }
 
+/* Contenedor para botones de acción en la topbar */
 .topbar__actions {
     display: flex;
     gap: var(--spacing-md);
     margin-left: auto;
 }
 
+/* Botones de acción individuales en la topbar */
 .topbar__action {
     position: relative;
     width: 44px;
@@ -303,12 +336,14 @@ li {
     justify-content: center;
 }
 
+/* Efecto hover para botones de acción */
 .topbar__action:hover {
     background: var(--primary);
     color: white;
     transform: translateY(-2px);
 }
 
+/* Badge para mostrar notificaciones no leídas */
 .topbar__badge {
     position: absolute;
     top: -4px;
@@ -325,7 +360,9 @@ li {
     justify-content: center;
 }
 
-/* ===== BUTTON COMPONENTS ===== */
+/* ===== 5. BUTTON COMPONENTS ===== */
+
+/* Sistema de botones con variantes para diferentes acciones */
 .btn {
     padding: 0.75rem 1.5rem;
     border-radius: var(--radius-md);
@@ -341,71 +378,82 @@ li {
     font-family: inherit;
 }
 
+/* Botón primario para acciones principales */
 .btn--primary {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
     box-shadow: var(--shadow-md);
 }
 
+/* Efecto hover para botón primario */
 .btn--primary:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
+/* Botón secundario para acciones alternativas */
 .btn--secondary {
     background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
     color: white;
     box-shadow: var(--shadow-md);
 }
 
+/* Efecto hover para botón secundario */
 .btn--secondary:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
+/* Botón de peligro para acciones destructivas */
 .btn--danger {
     background: linear-gradient(135deg, var(--danger), #dc2626);
     color: white;
     box-shadow: var(--shadow-md);
 }
 
+/* Efecto hover para botón de peligro */
 .btn--danger:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
+/* Botón fantasma para acciones secundarias */
 .btn--ghost {
     background: transparent;
     color: var(--text-secondary);
     border: 1px solid var(--border);
 }
 
+/* Efecto hover para botón fantasma */
 .btn--ghost:hover {
     background: var(--bg-tertiary);
     border-color: var(--primary);
     color: var(--primary);
 }
 
+/* Botón outline para acciones con borde destacado */
 .btn--outline {
     background: transparent;
     color: var(--primary);
     border: 2px solid var(--primary);
 }
 
+/* Efecto hover para botón outline */
 .btn--outline:hover {
     background: var(--primary);
     color: white;
 }
 
+/* Variante pequeña para botones en espacios reducidos */
 .btn--sm {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     margin-left: 10px;
 }
 
-/* ===== CARD COMPONENTS ===== */
+/* ===== 6. CARD COMPONENTS ===== */
 
-/* Stats Grid */
+/* Grid para tarjetas de estadísticas */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -413,6 +461,7 @@ li {
     margin-bottom: var(--spacing-xl);
 }
 
+/* Tarjeta para mostrar estadísticas con icono y valor */
 .stat-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
@@ -421,11 +470,13 @@ li {
     transition: var(--transition);
 }
 
+/* Efecto hover para tarjetas de estadísticas */
 .stat-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
 }
 
+/* Cabecera de tarjeta con icono y tendencia */
 .stat-card__header {
     display: flex;
     justify-content: space-between;
@@ -433,6 +484,7 @@ li {
     margin-bottom: var(--spacing-lg);
 }
 
+/* Icono decorativo para tarjetas de estadísticas */
 .stat-card__icon {
     width: 56px;
     height: 56px;
@@ -444,6 +496,7 @@ li {
     color: white;
 }
 
+/* Colores específicos para diferentes tipos de estadísticas */
 .stat-card--personas .stat-card__icon {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
@@ -460,6 +513,7 @@ li {
     background: linear-gradient(135deg, var(--warning), #d97706);
 }
 
+/* Indicador de tendencia (subida/bajada) */
 .stat-card__trend {
     padding: 0.375rem 0.75rem;
     border-radius: var(--radius-md);
@@ -470,21 +524,25 @@ li {
     gap: 0.25rem;
 }
 
+/* Estilo para tendencia positiva */
 .stat-card__trend--up {
     background: rgba(16, 185, 129, 0.1);
     color: var(--success);
 }
 
+/* Estilo para tendencia negativa */
 .stat-card__trend--down {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
 }
 
+/* Estilo para tendencia neutral */
 .stat-card__trend--neutral {
     background: rgba(100, 116, 139, 0.1);
     color: var(--text-tertiary);
 }
 
+/* Valor principal en tarjeta de estadísticas */
 .stat-card__value {
     font-size: 2.5rem;
     font-weight: 800;
@@ -493,13 +551,14 @@ li {
     line-height: 1;
 }
 
+/* Etiqueta descriptiva del valor */
 .stat-card__label {
     font-size: 0.9375rem;
     color: var(--text-secondary);
     font-weight: 500;
 }
 
-/* Quick Actions */
+/* Grid para acciones rápidas en dashboard */
 .quick-actions {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -507,6 +566,7 @@ li {
     margin-bottom: 2rem;
 }
 
+/* Tarjeta para acciones rápidas con icono y descripción */
 .action-card {
     background: var(--bg-primary);
     border-radius: var(--radius-lg);
@@ -518,29 +578,35 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Efecto hover para tarjetas de acción */
 .action-card:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-lg);
 }
 
+/* Icono grande en tarjeta de acción */
 .action-card__icon {
     font-size: 2.5rem;
     margin-bottom: 1rem;
     color: var(--primary);
 }
 
+/* Título de la acción rápida */
 .action-card__title {
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--text-primary);
 }
 
+/* Descripción breve de la acción */
 .action-card__description {
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
-/* ===== TABLE COMPONENTS ===== */
+/* ===== 7. TABLE COMPONENTS ===== */
+
+/* Contenedor para tablas con scroll horizontal */
 .table-container {
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
@@ -551,12 +617,14 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Estructura base para tablas */
 .table {
     width: 100%;
     border-collapse: collapse;
     min-width: 800px;
 }
 
+/* Cabecera de tabla con estilo distintivo */
 .table__header {
     padding: 1.25rem 1rem;
     text-align: left;
@@ -569,19 +637,24 @@ li {
     letter-spacing: 0.05em;
 }
 
+/* Celdas individuales de la tabla */
 .table__cell {
     padding: 1.25rem 1rem;
 }
 
+/* Efecto hover para filas de tabla */
 .table__row:hover {
     background-color: var(--bg-tertiary);
 }
 
-/* ===== FORM COMPONENTS ===== */
+/* ===== 8. FORM COMPONENTS ===== */
+
+/* Grupo de formulario con margen inferior */
 .form__group {
     margin-bottom: 1.5rem;
 }
 
+/* Etiqueta para inputs de formulario */
 .form__label {
     display: block;
     margin-bottom: 0.5rem;
@@ -590,6 +663,7 @@ li {
     color: var(--text-primary);
 }
 
+/* Inputs, selects y textareas con estilo consistente */
 .form__input,
 .form__select,
 .form__textarea {
@@ -603,6 +677,7 @@ li {
     color: var(--text-primary);
 }
 
+/* Estilo para inputs en estado de foco */
 .form__input:focus,
 .form__select:focus,
 .form__textarea:focus {
@@ -611,21 +686,26 @@ li {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
+/* Diseño en fila para grupos de formulario */
 .form__row {
     display: flex;
     gap: 20px;
 }
 
+/* Grupos de formulario dentro de filas */
 .form__row .form__group {
     flex: 1;
 }
 
+/* Input específico para selección de color */
 .form__input--color {
     height: 50px;
     padding: 5px;
 }
 
-/* ===== MODAL COMPONENTS ===== */
+/* ===== 9. MODAL COMPONENTS ===== */
+
+/* Modal overlay que cubre toda la pantalla */
 .modal {
     position: fixed;
     top: 0;
@@ -643,10 +723,12 @@ li {
     animation: modalOverlayFadeIn 0.3s ease-out;
 }
 
+/* Estado activo del modal */
 .modal[open] {
     display: flex;
 }
 
+/* Animación de entrada para overlay del modal */
 @keyframes modalOverlayFadeIn {
     from { 
         opacity: 0; 
@@ -658,6 +740,7 @@ li {
     }
 }
 
+/* Contenido principal del modal */
 .modal__content {
     background: var(--bg-primary);
     border-radius: var(--radius-xl);
@@ -671,10 +754,12 @@ li {
     position: relative;
 }
 
+/* Variante grande para modales con más contenido */
 .modal--large .modal__content {
     max-width: 800px;
 }
 
+/* Animación de entrada para contenido del modal */
 @keyframes modalContentSlideIn {
     from { 
         opacity: 0; 
@@ -686,6 +771,7 @@ li {
     }
 }
 
+/* Cabecera del modal con título y botón de cerrar */
 .modal__header {
     padding: 1.75rem 1.75rem 1rem;
     display: flex;
@@ -695,6 +781,7 @@ li {
     position: relative;
 }
 
+/* Línea decorativa debajo de la cabecera */
 .modal__header::after {
     content: '';
     position: absolute;
@@ -706,6 +793,7 @@ li {
     opacity: 0.6;
 }
 
+/* Título principal del modal */
 .modal__title {
     margin: 0;
     font-size: 1.5rem;
@@ -714,6 +802,7 @@ li {
     line-height: 1.3;
 }
 
+/* Botón para cerrar el modal */
 .modal__close {
     background: var(--bg-tertiary);
     border: none;
@@ -731,18 +820,21 @@ li {
     flex-shrink: 0;
 }
 
+/* Efecto hover para botón de cerrar */
 .modal__close:hover {
     background: var(--primary);
     color: white;
     transform: rotate(90deg);
 }
 
+/* Cuerpo del modal con contenido principal */
 .modal__body {
     padding: 1.75rem;
     overflow-y: auto;
     max-height: calc(85vh - 140px);
 }
 
+/* Pie del modal con botones de acción */
 .modal__footer {
     padding: 1rem 1.75rem 1.75rem;
     display: flex;
@@ -753,6 +845,7 @@ li {
     transform: translateY(-20%);
 }
 
+/* Línea decorativa encima del footer */
 .modal__footer::before {
     content: '';
     position: absolute;
@@ -764,27 +857,31 @@ li {
     opacity: 0.6;
 }
 
-/* Modal de Acciones */
+/* Variante pequeña para modales de confirmación */
 .modal__content--sm {
     max-width: 400px;
 }
 
+/* Footer centrado para modales de acción */
 .modal__footer--centered {
     display: flex;
     justify-content: center;
     gap: 12px;
 }
 
+/* Contenido centrado para modales de acción */
 .action-modal__content {
     text-align: center;
     padding: 20px 0;
 }
 
+/* Icono grande para modales de acción */
 .action-modal__icon {
     font-size: 48px;
     margin-bottom: 16px;
 }
 
+/* Colores específicos para iconos según tipo de acción */
 .action-modal__icon--success {
     color: var(--success-color);
 }
@@ -801,6 +898,7 @@ li {
     color: var(--info-color);
 }
 
+/* Mensaje en modales de acción */
 .action-modal__message {
     font-size: 16px;
     line-height: 1.5;
@@ -808,7 +906,7 @@ li {
     margin: 0;
 }
 
-/* Estados de botones para diferentes acciones */
+/* Botones específicos para diferentes tipos de acciones */
 .btn--danger {
     background-color: var(--error-color);
     border-color: var(--error-color);
@@ -840,7 +938,371 @@ li {
     border-color: var(--warning-dark);
 }
 
-/* ===== FILTER COMPONENTS ===== */
+/* ===== 9.1 ESTILOS ESPECÍFICOS PARA MODAL DE DETALLES DEL HISTORIAL ===== */
+
+/* Contenedor principal de detalles */
+.history-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0.5rem;
+}
+
+/* Cabecera del detalle */
+.detail-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.detail-title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.detail-title h4 {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    line-height: 1.4;
+    word-wrap: break-word;
+    min-width: 200px;
+}
+
+.detail-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.detail-date,
+.detail-type {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.detail-date i,
+.detail-type i {
+    width: 20px;
+    text-align: center;
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+/* Contenido principal */
+.detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.detail-content h5 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.detail-message {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Metadatos adicionales */
+.detail-metadata {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 0.875rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
+
+.metadata-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+}
+
+.metadata-item strong {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.metadata-item strong::before {
+    content: '•';
+    color: var(--primary);
+    font-size: 1.25rem;
+}
+
+.metadata-item span {
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    word-wrap: break-word;
+    padding-left: 1.5rem;
+}
+
+/* Elementos relacionados */
+.detail-related {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
+
+.detail-related:hover {
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
+}
+
+.detail-related i {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    border-radius: var(--radius-md);
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+.detail-related span {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+/* Pie del detalle */
+.detail-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border);
+    margin-top: 0.5rem;
+}
+
+.detail-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Ajustes para el badge de prioridad dentro del modal */
+.detail-title .priority-badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    min-width: 80px;
+    text-align: center;
+    height: fit-content;
+    align-self: flex-start;
+}
+
+/* Ajustes para el badge de estado */
+.detail-status .status-badge {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Responsive para modal de detalles */
+@media (max-width: 768px) {
+    .history-detail {
+        gap: 1.25rem;
+        padding: 0.25rem;
+    }
+    
+    .detail-header {
+        gap: 0.875rem;
+        padding-bottom: 1rem;
+    }
+    
+    .detail-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .detail-title h4 {
+        font-size: 1.25rem;
+        min-width: 100%;
+    }
+    
+    .detail-meta {
+        padding: 0.875rem;
+        gap: 0.625rem;
+    }
+    
+    .detail-date,
+    .detail-type {
+        font-size: 0.875rem;
+        gap: 0.625rem;
+    }
+    
+    .detail-content {
+        gap: 1.25rem;
+    }
+    
+    .detail-content h5 {
+        font-size: 1.0625rem;
+        margin-bottom: 0.625rem;
+    }
+    
+    .detail-message {
+        padding: 0.875rem;
+        font-size: 0.9375rem;
+    }
+    
+    .detail-metadata {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 0.875rem;
+    }
+    
+    .metadata-item {
+        padding: 0.625rem;
+    }
+    
+    .detail-related {
+        padding: 0.875rem;
+    }
+    
+    .detail-related i {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    
+    .detail-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding-top: 1.25rem;
+    }
+    
+    .detail-status {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .history-detail {
+        gap: 1rem;
+    }
+    
+    .detail-title h4 {
+        font-size: 1.125rem;
+    }
+    
+    .detail-content h5 {
+        font-size: 1rem;
+    }
+    
+    .detail-message {
+        font-size: 0.875rem;
+        padding: 0.75rem;
+    }
+    
+    .metadata-item span {
+        font-size: 0.875rem;
+        padding-left: 1.25rem;
+    }
+    
+    .detail-title .priority-badge {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    .detail-status .status-badge {
+        padding: 0.5rem 1rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* Ajustes para modo oscuro */
+body.dark-theme .detail-meta {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .detail-message {
+    background: var(--bg-tertiary);
+}
+
+body.dark-theme .detail-metadata {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .metadata-item {
+    background: var(--bg-secondary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .detail-related {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .detail-related:hover {
+    background: var(--hover-dark);
+}
+
+/* ===== 10. FILTER COMPONENTS ===== */
+
+/* Contenedor para filtros con estilo de tarjeta */
 .filters {
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
@@ -850,6 +1312,7 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Título de sección de filtros */
 .filters__title {
     font-size: 1.1rem;
     margin-bottom: 1rem;
@@ -857,12 +1320,14 @@ li {
     color: var(--text-primary);
 }
 
+/* Grid para organizar filtros en columnas */
 .filters__grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
 }
 
+/* Barra horizontal para filtros y búsqueda */
 .filters-bar {
     display: flex;
     gap: var(--spacing-md);
@@ -870,12 +1335,14 @@ li {
     flex-wrap: wrap;
 }
 
+/* Campo de búsqueda dentro de la barra de filtros */
 .filters-bar__search {
     flex: 1;
     min-width: 250px;
     position: relative;
 }
 
+/* Icono de búsqueda dentro del campo */
 .filters-bar__search i {
     position: absolute;
     left: var(--spacing-md);
@@ -884,6 +1351,7 @@ li {
     color: var(--text-tertiary);
 }
 
+/* Input de búsqueda con padding para icono */
 .filters-bar__search input {
     width: 100%;
     padding: 0.75rem 1rem 0.75rem 2.5rem;
@@ -894,6 +1362,7 @@ li {
     font-size: 0.9375rem;
 }
 
+/* Select para filtros en la barra */
 .filters-bar__select {
     padding: 0.75rem 1rem;
     border: 1px solid var(--border);
@@ -904,11 +1373,14 @@ li {
     cursor: pointer;
 }
 
-/* ===== CATEGORY COMPONENTS ===== */
+/* ===== 11. CATEGORY COMPONENTS ===== */
+
+/* Sección para mostrar categorías como chips */
 .categories-section {
     margin-bottom: var(--spacing-xl);
 }
 
+/* Título de sección de categorías */
 .categories-section__title {
     font-size: 0.875rem;
     font-weight: 600;
@@ -918,12 +1390,14 @@ li {
     margin-bottom: var(--spacing-md);
 }
 
+/* Contenedor para chips de categorías */
 .category-chips {
     display: flex;
     gap: var(--spacing-sm);
     flex-wrap: wrap;
 }
 
+/* Chip individual para representar una categoría */
 .category-chip {
     padding: 0.625rem 1.25rem;
     border-radius: var(--radius-lg);
@@ -939,22 +1413,27 @@ li {
     gap: var(--spacing-sm);
 }
 
+/* Efecto hover para chips de categoría */
 .category-chip:hover {
     border-color: var(--primary);
     transform: translateY(-2px);
 }
 
+/* Estado activo para chip de categoría */
 .category-chip--active {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     border-color: var(--primary);
     color: white;
 }
 
+/* Estilo específico para chip "Todas las categorías" */
 .category-chip--all.category-chip--active {
     background: linear-gradient(135deg, #475569, #334155);
 }
 
-/* ===== FILE UPLOAD COMPONENTS ===== */
+/* ===== 12. FILE UPLOAD COMPONENTS ===== */
+
+/* Contenedor para área de subida de archivos */
 .upload__container {
     border: 2px dashed var(--border);
     border-radius: var(--radius-lg);
@@ -965,26 +1444,31 @@ li {
     background-color: var(--bg-secondary);
 }
 
+/* Efecto hover para área de subida */
 .upload__container:hover {
     border-color: var(--primary);
     background-color: rgba(220, 38, 38, 0.02);
 }
 
+/* Estado cuando se está arrastrando un archivo */
 .upload__container--dragover {
     border-color: var(--primary);
     background-color: rgba(220, 38, 38, 0.05);
 }
 
+/* Icono grande para área de subida */
 .upload__icon {
     font-size: 3.5rem;
     color: var(--primary);
     margin-bottom: 1rem;
 }
 
+/* Input de archivo oculto */
 .upload__input {
     display: none;
 }
 
+/* Información de archivos subidos */
 .upload__info {
     margin-top: 1.5rem;
     padding: 1rem;
@@ -994,7 +1478,9 @@ li {
     text-align: left;
 }
 
-/* ===== ALERT COMPONENTS ===== */
+/* ===== 13. ALERT COMPONENTS ===== */
+
+/* Sistema de alertas para mensajes del sistema */
 .alert {
     padding: 1rem 1.25rem;
     border-radius: var(--radius-sm);
@@ -1005,46 +1491,56 @@ li {
     border-left: 4px solid;
 }
 
+/* Alertas de éxito (operaciones exitosas) */
 .alert--success {
     background-color: rgba(16, 185, 129, 0.1);
     color: var(--success);
     border-left-color: var(--success);
 }
 
+/* Alertas de error (operaciones fallidas) */
 .alert--error {
     background-color: rgba(239, 68, 68, 0.1);
     color: var(--danger);
     border-left-color: var(--danger);
 }
 
+/* Alertas de advertencia (precauciones) */
 .alert--warning {
     background-color: rgba(245, 158, 11, 0.1);
     color: var(--warning);
     border-left-color: var(--warning);
 }
 
+/* Alertas informativas (información general) */
 .alert--info {
     background-color: rgba(6, 182, 212, 0.1);
     color: var(--info);
     border-left-color: var(--info);
 }
 
-/* ===== TAB COMPONENTS ===== */
+/* ===== 14. TAB COMPONENTS ===== */
+
+/* Contenedor para contenido de pestañas */
 .tab-content {
     display: none;
     animation: fadeIn 0.3s ease;
 }
 
+/* Animación de entrada para contenido de pestañas */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
+/* Estado activo para contenido de pestaña */
 .tab-content--active {
     display: block;
 }
 
-/* ===== BADGE COMPONENTS ===== */
+/* ===== 15. BADGE COMPONENTS ===== */
+
+/* Sistema de badges para estados y etiquetas */
 .badge {
     display: inline-block;
     padding: 6px 12px;
@@ -1053,27 +1549,33 @@ li {
     font-weight: 500;
 }
 
+/* Badge para estado exitoso */
 .badge--success {
     background-color: rgba(16, 185, 129, 0.15);
     color: var(--success);
 }
 
+/* Badge para estado de advertencia */
 .badge--warning {
     background-color: rgba(245, 158, 11, 0.15);
     color: var(--warning);
 }
 
+/* Badge para estado de peligro */
 .badge--danger {
     background-color: rgba(239, 68, 68, 0.15);
     color: var(--danger);
 }
 
+/* Badge para estado informativo */
 .badge--info {
     background-color: rgba(6, 182, 212, 0.15);
     color: var(--info);
 }
 
-/* ===== EMPTY STATE COMPONENTS ===== */
+/* ===== 16. EMPTY STATE COMPONENTS ===== */
+
+/* Estado vacío para listas sin elementos */
 .empty-state {
     text-align: center;
     padding: 3rem 2rem;
@@ -1081,26 +1583,29 @@ li {
     transform: translateX(100%);
 }
 
+/* Icono grande para estado vacío */
 .empty-state__icon {
     font-size: 4rem;
     margin-bottom: 1.5rem;
     color: var(--text-tertiary);
 }
 
+/* Título para estado vacío */
 .empty-state__title {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
     color: var(--text-primary);
 }
 
+/* Descripción para estado vacío */
 .empty-state__description {
     margin-bottom: 1.5rem;
     color: var(--text-secondary);
 }
 
-/* ===== DASHBOARD SPECIFIC COMPONENTS ===== */
+/* ===== 17. DASHBOARD SPECIFIC COMPONENTS ===== */
 
-/* Dashboard Recent */
+/* Sección de documentos recientes en dashboard */
 .dashboard__recent {
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
@@ -1109,6 +1614,7 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Subtítulo para secciones del dashboard */
 .dashboard__subheading {
     font-size: 1.25rem;
     margin-bottom: 1.25rem;
@@ -1116,11 +1622,13 @@ li {
     color: var(--text-primary);
 }
 
+/* Lista de documentos recientes */
 .documents__list {
     display: grid;
     gap: 16px;
 }
 
+/* Item individual en lista de documentos */
 .documents__item {
     display: flex;
     justify-content: space-between;
@@ -1133,17 +1641,20 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Efecto hover para items de documentos */
 .documents__item:hover {
     background-color: var(--bg-tertiary);
     transform: translateX(4px);
 }
 
+/* Contenedor de información del documento */
 .documents__info {
     display: flex;
     align-items: center;
     gap: 16px;
 }
 
+/* Icono representativo del documento */
 .documents__icon {
     width: 48px;
     height: 48px;
@@ -1156,23 +1667,26 @@ li {
     font-size: 1.25rem;
 }
 
+/* Nombre del documento */
 .documents__details-name {
     margin-bottom: 6px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
+/* Metadatos del documento (fecha, tamaño, etc) */
 .documents__details-meta {
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
+/* Acciones disponibles para el documento */
 .documents__actions {
     display: flex;
     gap: 8px;
 }
 
-/* Dashboard Stats */
+/* Grid para estadísticas del dashboard */
 .dashboard__stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1180,6 +1694,7 @@ li {
     margin-bottom: 2.5rem;
 }
 
+/* Tarjeta de estadísticas del dashboard */
 .stats__card {
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
@@ -1194,6 +1709,7 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Borde decorativo a la izquierda de la tarjeta */
 .stats__card::before {
     content: '';
     position: absolute;
@@ -1204,11 +1720,13 @@ li {
     background: linear-gradient(to bottom, var(--primary), var(--secondary));
 }
 
+/* Efecto hover para tarjetas de estadísticas */
 .stats__card:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-lg);
 }
 
+/* Icono en tarjeta de estadísticas */
 .stats__icon {
     width: 70px;
     height: 70px;
@@ -1221,6 +1739,7 @@ li {
     flex-shrink: 0;
 }
 
+/* Colores específicos para diferentes tipos de estadísticas */
 .stats__icon--personas {
     background: linear-gradient(135deg, var(--primary), var(--primary-light));
 }
@@ -1233,6 +1752,7 @@ li {
     background: linear-gradient(135deg, var(--warning), #fbbf24);
 }
 
+/* Valor principal en tarjeta de estadísticas */
 .stats__info-value {
     font-size: 2rem;
     margin-bottom: 5px;
@@ -1240,15 +1760,16 @@ li {
     color: var(--text-primary);
 }
 
+/* Etiqueta descriptiva del valor */
 .stats__info-label {
     color: var(--text-secondary);
     font-size: 0.95rem;
     font-weight: 500;
 }
 
-/* ===== TASKS COMPONENTS ===== */
+/* ===== 18. TASKS COMPONENTS ===== */
 
-/* Tasks Summary */
+/* Grid para resumen de tareas */
 .tasks-summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1256,6 +1777,7 @@ li {
     margin-bottom: 2rem;
 }
 
+/* Tarjeta para resumen de tareas por estado */
 .summary-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
@@ -1268,11 +1790,13 @@ li {
     box-shadow: var(--shadow-sm);
 }
 
+/* Efecto hover para tarjetas de resumen */
 .summary-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
 
+/* Icono en tarjeta de resumen */
 .summary-card__icon {
     width: 60px;
     height: 60px;
@@ -1285,6 +1809,7 @@ li {
     flex-shrink: 0;
 }
 
+/* Colores específicos para diferentes tipos de resumen */
 .summary-card__icon--total {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -1301,10 +1826,12 @@ li {
     background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 }
 
+/* Contenido de la tarjeta de resumen */
 .summary-card__content {
     flex: 1;
 }
 
+/* Valor principal en tarjeta de resumen */
 .summary-card__value {
     font-size: 2rem;
     font-weight: 700;
@@ -1313,6 +1840,7 @@ li {
     line-height: 1;
 }
 
+/* Etiqueta descriptiva del valor */
 .summary-card__label {
     margin: 0;
     color: var(--text-secondary);
@@ -1320,7 +1848,7 @@ li {
     font-weight: 500;
 }
 
-/* Tasks Container */
+/* Contenedor grid para tarjetas de tareas */
 .tasks-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -1329,7 +1857,7 @@ li {
     min-height: 200px;
 }
 
-/* Task Card */
+/* Tarjeta individual de tarea */
 .task-card {
     background: var(--bg-primary);
     border: 1px solid var(--border);
@@ -1344,12 +1872,14 @@ li {
     height: fit-content;
 }
 
+/* Efecto hover para tarjetas de tarea */
 .task-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
     border-color: var(--primary);
 }
 
+/* Borde decorativo según prioridad */
 .task-card::before {
     content: '';
     position: absolute;
@@ -1360,18 +1890,22 @@ li {
     transition: var(--transition);
 }
 
+/* Borde rojo para prioridad alta */
 .task-card--alta::before {
     background: linear-gradient(to bottom, #ef4444, #dc2626);
 }
 
+/* Borde amarillo para prioridad media */
 .task-card--media::before {
     background: linear-gradient(to bottom, #f59e0b, #d97706);
 }
 
+/* Borde verde para prioridad baja */
 .task-card--baja::before {
     background: linear-gradient(to bottom, #10b981, #059669);
 }
 
+/* Cabecera de la tarjeta de tarea */
 .task-card__header {
     display: flex;
     justify-content: space-between;
@@ -1380,6 +1914,7 @@ li {
     gap: 1rem;
 }
 
+/* Título de la tarea */
 .task-card__title {
     font-size: 1.1rem;
     font-weight: 600;
@@ -1390,6 +1925,7 @@ li {
     word-wrap: break-word;
 }
 
+/* Badge de prioridad de la tarea */
 .task-card__priority {
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
@@ -1400,24 +1936,28 @@ li {
     white-space: nowrap;
 }
 
+/* Estilos para prioridad alta */
 .task-card__priority--alta {
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+/* Estilos para prioridad media */
 .task-card__priority--media {
     background: rgba(245, 158, 11, 0.1);
     color: #f59e0b;
     border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+/* Estilos para prioridad baja */
 .task-card__priority--baja {
     background: rgba(16, 185, 129, 0.1);
     color: #10b981;
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
+/* Descripción de la tarea */
 .task-card__description {
     color: var(--text-secondary);
     font-size: 0.9rem;
@@ -1429,6 +1969,7 @@ li {
     flex: 1;
 }
 
+/* Contenedor para metadatos de la tarea */
 .task-card__meta {
     display: flex;
     flex-wrap: wrap;
@@ -1436,6 +1977,7 @@ li {
     margin-bottom: 1.5rem;
 }
 
+/* Item individual de metadato */
 .task-card__meta-item {
     display: flex;
     align-items: center;
@@ -1444,6 +1986,7 @@ li {
     color: var(--text-secondary);
 }
 
+/* Icono en item de metadato */
 .task-card__meta-icon {
     width: 16px;
     height: 16px;
@@ -1454,6 +1997,7 @@ li {
     flex-shrink: 0;
 }
 
+/* Badge de categoría de la tarea */
 .task-card__category {
     background: rgba(79, 70, 229, 0.1);
     color: #4f46e5;
@@ -1464,6 +2008,7 @@ li {
     border: 1px solid rgba(79, 70, 229, 0.2);
 }
 
+/* Badge de estado de la tarea */
 .task-card__status {
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
@@ -1473,24 +2018,28 @@ li {
     border: 1px solid;
 }
 
+/* Estado pendiente */
 .task-card__status--pendiente {
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.3);
 }
 
+/* Estado en progreso */
 .task-card__status--en-progreso {
     background: rgba(59, 130, 246, 0.1);
     color: #3b82f6;
     border-color: rgba(59, 130, 246, 0.3);
 }
 
+/* Estado completada */
 .task-card__status--completada {
     background: rgba(34, 197, 94, 0.1);
     color: #22c55e;
     border-color: rgba(34, 197, 94, 0.3);
 }
 
+/* Pie de la tarjeta de tarea */
 .task-card__footer {
     display: flex;
     justify-content: space-between;
@@ -1500,16 +2049,19 @@ li {
     margin-top: auto;
 }
 
+/* Fecha de la tarea */
 .task-card__date {
     font-size: 0.8rem;
     color: var(--text-tertiary);
 }
 
+/* Contenedor para botones de acción */
 .task-card__actions {
     display: flex;
     gap: 0.5rem;
 }
 
+/* Botones de acción individuales */
 .task-card__action {
     background: none;
     border: none;
@@ -1524,58 +2076,67 @@ li {
     font-size: 0.9rem;
 }
 
+/* Efecto hover para botones de acción */
 .task-card__action:hover {
     background: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
+/* Acción de editar */
 .task-card__action--edit:hover {
     color: #3b82f6;
     background: rgba(59, 130, 246, 0.1);
 }
 
+/* Acción de eliminar */
 .task-card__action--delete:hover {
     color: #ef4444;
     background: rgba(239, 68, 68, 0.1);
 }
 
+/* Acción de completar */
 .task-card__action--complete:hover {
     color: #22c55e;
     background: rgba(34, 197, 94, 0.1);
 }
 
-/* Task States */
+/* Estilo para tareas completadas */
 .task-card--completed {
     opacity: 0.8;
     background: var(--bg-secondary);
 }
 
+/* Título tachado para tareas completadas */
 .task-card--completed .task-card__title {
     text-decoration: line-through;
     color: var(--text-tertiary);
 }
 
+/* Descripción atenuada para tareas completadas */
 .task-card--completed .task-card__description {
     color: var(--text-tertiary);
 }
 
+/* Estilo para tareas vencidas */
 .task-card--overdue {
     border-left-color: #ef4444;
     background: rgba(239, 68, 68, 0.02);
 }
 
+/* Fecha resaltada para tareas vencidas */
 .task-card--overdue .task-card__due-date {
     color: #ef4444;
     font-weight: 600;
 }
 
-/* ===== UTILITY COMPONENTS ===== */
+/* ===== 19. UTILITY COMPONENTS ===== */
 
-/* Search Results */
+/* Contenedor para resultados de búsqueda */
 .search-results {
     margin-top: 1.5rem;
 }
 
+/* Título de resultados de búsqueda */
 .search-results__title {
     font-size: 1.1rem;
     margin-bottom: 1rem;
@@ -1583,11 +2144,13 @@ li {
     color: var(--text-primary);
 }
 
+/* Lista de resultados de búsqueda */
 .search-results__list {
     display: grid;
     gap: 1rem;
 }
 
+/* Item individual de resultado de búsqueda */
 .search-result-item {
     display: flex;
     align-items: center;
@@ -1598,6 +2161,7 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Icono del resultado de búsqueda */
 .search-result-item__icon {
     width: 40px;
     height: 40px;
@@ -1610,16 +2174,19 @@ li {
     font-size: 1.25rem;
 }
 
+/* Contenido del resultado de búsqueda */
 .search-result-item__content {
     flex: 1;
 }
 
+/* Título del resultado de búsqueda */
 .search-result-item__title {
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--text-primary);
 }
 
+/* Metadatos del resultado de búsqueda */
 .search-result-item__meta {
     display: flex;
     gap: 1rem;
@@ -1628,18 +2195,20 @@ li {
     color: var(--text-secondary);
 }
 
+/* Descripción del resultado de búsqueda */
 .search-result-item__description {
     margin-top: 0.5rem;
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
+/* Acciones para resultado de búsqueda */
 .search-result-item__actions {
     display: flex;
     gap: 0.5rem;
 }
 
-/* Report Preview */
+/* Vista previa de reportes */
 .report-preview {
     margin-top: 1.5rem;
     padding: 1.5rem;
@@ -1648,6 +2217,7 @@ li {
     border: 1px solid var(--border);
 }
 
+/* Título de vista previa de reporte */
 .report-preview__title {
     font-size: 1.1rem;
     margin-bottom: 1rem;
@@ -1655,11 +2225,12 @@ li {
     color: var(--text-primary);
 }
 
+/* Contenido de vista previa de reporte */
 .report-preview__content {
     color: var(--text-secondary);
 }
 
-/* Status Indicator */
+/* Indicador visual de estado (punto de color) */
 .status-indicator {
     display: inline-block;
     width: 8px;
@@ -1668,19 +2239,22 @@ li {
     margin-right: 6px;
 }
 
+/* Color verde para estado exitoso */
 .status-indicator--success {
     background-color: var(--success);
 }
 
+/* Color amarillo para estado de advertencia */
 .status-indicator--warning {
     background-color: var(--warning);
 }
 
+/* Color rojo para estado de error */
 .status-indicator--danger {
     background-color: var(--danger);
 }
 
-/* Color Preview */
+/* Vista previa de color para selección */
 .color-preview {
     display: inline-block;
     width: 16px;
@@ -1690,7 +2264,7 @@ li {
     vertical-align: middle;
 }
 
-/* Spinner */
+/* Spinner para estados de carga */
 .spinner {
     width: 20px;
     height: 20px;
@@ -1702,30 +2276,38 @@ li {
     margin-right: 8px;
 }
 
+/* Animación de rotación para spinner */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
 
-/* ===== CUSTOM SCROLLBAR ===== */
+/* ===== 20. CUSTOM SCROLLBAR ===== */
+
+/* Ancho de la barra de scroll */
 ::-webkit-scrollbar {
     width: 8px;
 }
 
+/* Fondo de la pista del scroll */
 ::-webkit-scrollbar-track {
     background: var(--bg-secondary);
 }
 
+/* Estilo del thumb (agarre) del scroll */
 ::-webkit-scrollbar-thumb {
     background: var(--text-tertiary);
     border-radius: 4px;
 }
 
+/* Efecto hover para el thumb del scroll */
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* ===== 21. RESPONSIVE DESIGN ===== */
+
+/* Dispositivos tablet y pantallas medianas */
 @media (max-width: 1024px) {
     .sidebar {
         transform: translateX(-100%);
@@ -1757,6 +2339,7 @@ li {
     }
 }
 
+/* Dispositivos móviles grandes */
 @media (max-width: 768px) {
     .section__header {
         flex-direction: column;
@@ -1853,6 +2436,7 @@ li {
     }
 }
 
+/* Dispositivos móviles pequeños */
 @media (max-width: 640px) {
     .topbar {
         padding: 0 var(--spacing-md);
@@ -1935,7 +2519,9 @@ li {
     }
 }
 
-/* ===== DARK THEME ADJUSTMENTS ===== */
+/* ===== 22. DARK THEME ADJUSTMENTS ===== */
+
+/* Ajustes específicos para modo oscuro */
 body.dark-theme .task-card {
     background: var(--bg-secondary);
 }
@@ -1967,7 +2553,9 @@ body.dark-theme .form__textarea:focus {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
 }
 
-/* ===== ANIMATIONS ===== */
+/* ===== 23. ANIMATIONS ===== */
+
+/* Animación de entrada para nuevas tareas */
 @keyframes taskSlideIn {
     from {
         opacity: 0;
@@ -1979,22 +2567,28 @@ body.dark-theme .form__textarea:focus {
     }
 }
 
+/* Clase para aplicar animación de entrada a tareas */
 .task-card--new {
     animation: taskSlideIn 0.3s ease-out;
 }
 
-/* ===== ACCESSIBILITY ===== */
+/* ===== 24. ACCESSIBILITY ===== */
+
+/* Enfoque visible para accesibilidad en botones de tarea */
 .task-card__action:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
 
+/* Enfoque visible para botón de cerrar modal */
 .modal__close:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
 
-/* ===== LOADING STATES ===== */
+/* ===== 25. LOADING STATES ===== */
+
+/* Estado de carga para listas de tareas */
 .tasks-loading {
     display: flex;
     justify-content: center;
@@ -2003,6 +2597,7 @@ body.dark-theme .form__textarea:focus {
     color: var(--text-tertiary);
 }
 
+/* Spinner para estado de carga */
 .tasks-loading::after {
     content: '';
     width: 24px;
@@ -2015,10 +2610,10 @@ body.dark-theme .form__textarea:focus {
 }
 
 /* =============================================================================
-   NOTIFICATIONS DROPDOWN STYLES
+   26. NOTIFICATIONS DROPDOWN STYLES
    ============================================================================= */
 
-/* Dropdown Container */
+/* Dropdown flotante para notificaciones */
 .notifications-dropdown {
     position: fixed;
     width: 380px;
@@ -2036,13 +2631,14 @@ body.dark-theme .form__textarea:focus {
     z-index: 9999;
 }
 
+/* Estado activo del dropdown de notificaciones */
 .notifications-dropdown--active {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
 }
 
-/* Header */
+/* Cabecera del dropdown de notificaciones */
 .notifications-header {
     display: flex;
     justify-content: space-between;
@@ -2053,6 +2649,7 @@ body.dark-theme .form__textarea:focus {
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
+/* Título del dropdown de notificaciones */
 .notifications-title {
     font-size: 1rem;
     font-weight: 700;
@@ -2060,23 +2657,26 @@ body.dark-theme .form__textarea:focus {
     margin: 0;
 }
 
+/* Botón de texto en cabecera de notificaciones */
 .notifications-header .btn--text {
     font-size: 0.75rem;
     padding: 0.375rem 0.75rem;
     color: var(--primary);
 }
 
+/* Efecto hover para botón de texto */
 .notifications-header .btn--text:hover {
     background: var(--bg-tertiary);
 }
 
-/* List Container */
+/* Contenedor de lista de notificaciones con scroll */
 .notifications-list {
     overflow-y: auto;
     max-height: 420px;
     padding: 0.5rem;
 }
 
+/* Scrollbar personalizado para lista de notificaciones */
 .notifications-list::-webkit-scrollbar {
     width: 6px;
 }
@@ -2094,7 +2694,7 @@ body.dark-theme .form__textarea:focus {
     background: var(--text-tertiary);
 }
 
-/* Empty State */
+/* Estado vacío para lista de notificaciones */
 .notifications-empty {
     display: flex;
     flex-direction: column;
@@ -2105,17 +2705,19 @@ body.dark-theme .form__textarea:focus {
     text-align: center;
 }
 
+/* Icono para estado vacío de notificaciones */
 .notifications-empty i {
     font-size: 3rem;
     margin-bottom: 1rem;
     opacity: 0.5;
 }
 
+/* Texto para estado vacío de notificaciones */
 .notifications-empty p {
     font-size: 0.9375rem;
 }
 
-/* Notification Item */
+/* Item individual de notificación */
 .notification-item {
     position: relative;
     display: flex;
@@ -2127,20 +2729,23 @@ body.dark-theme .form__textarea:focus {
     border: 1px solid transparent;
 }
 
+/* Efecto hover para items de notificación */
 .notification-item:hover {
     background: var(--bg-secondary);
     border-color: var(--border);
 }
 
+/* Estado leído para notificaciones */
 .notification-item--read {
     opacity: 0.7;
 }
 
+/* Restaurar opacidad en hover para notificaciones leídas */
 .notification-item--read:hover {
     opacity: 1;
 }
 
-/* Icon */
+/* Icono de notificación con colores según prioridad */
 .notification-icon {
     width: 40px;
     height: 40px;
@@ -2152,6 +2757,7 @@ body.dark-theme .form__textarea:focus {
     font-size: 1.125rem;
 }
 
+/* Colores específicos para diferentes niveles de prioridad */
 .notification-icon--baja {
     background: rgba(6, 182, 212, 0.1);
     color: var(--info);
@@ -2172,12 +2778,13 @@ body.dark-theme .form__textarea:focus {
     color: var(--primary);
 }
 
-/* Content */
+/* Contenido de la notificación */
 .notification-content {
     flex: 1;
     min-width: 0;
 }
 
+/* Cabecera de la notificación con título y hora */
 .notification-header {
     display: flex;
     justify-content: space-between;
@@ -2186,6 +2793,7 @@ body.dark-theme .form__textarea:focus {
     margin-bottom: 0.25rem;
 }
 
+/* Título de la notificación */
 .notification-title {
     font-size: 0.875rem;
     font-weight: 600;
@@ -2194,6 +2802,7 @@ body.dark-theme .form__textarea:focus {
     line-height: 1.4;
 }
 
+/* Hora de la notificación */
 .notification-time {
     font-size: 0.75rem;
     color: var(--text-tertiary);
@@ -2201,6 +2810,7 @@ body.dark-theme .form__textarea:focus {
     flex-shrink: 0;
 }
 
+/* Mensaje de la notificación */
 .notification-message {
     font-size: 0.8125rem;
     color: var(--text-secondary);
@@ -2212,6 +2822,7 @@ body.dark-theme .form__textarea:focus {
     -webkit-box-orient: vertical;
 }
 
+/* Detalles adicionales de la notificación */
 .notification-details {
     font-size: 0.75rem;
     color: var(--text-tertiary);
@@ -2219,10 +2830,10 @@ body.dark-theme .form__textarea:focus {
     font-style: italic;
 }
 
-/* Unread Indicator */
+/* Punto indicador de notificación no leída */
 .notification-unread-dot {
     position: absolute;
-    top: 1rem;
+    top: 0.45rem;
     right: 0.875rem;
     width: 8px;
     height: 8px;
@@ -2231,6 +2842,7 @@ body.dark-theme .form__textarea:focus {
     animation: pulse 2s ease-in-out infinite;
 }
 
+/* Animación de pulso para punto de notificación no leída */
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
@@ -2242,11 +2854,68 @@ body.dark-theme .form__textarea:focus {
     }
 }
 
+/* Ajustes para modo oscuro en dropdown de notificaciones */
+body.dark-theme .notifications-dropdown {
+    background: var(--sidebar-bg);
+    border-color: var(--sidebar-hover);
+}
+
+body.dark-theme .notifications-header {
+    background: var(--sidebar-hover);
+    border-color: var(--sidebar-hover);
+}
+
+body.dark-theme .notification-item:hover {
+    background: var(--sidebar-hover);
+    border-color: var(--border);
+}
+
+body.dark-theme .notifications-list::-webkit-scrollbar-thumb {
+    background: var(--sidebar-hover);
+}
+
+body.dark-theme .notifications-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Responsive para dropdown de notificaciones */
+@media (max-width: 768px) {
+    .notifications-dropdown {
+        width: calc(100vw - 2rem);
+        max-width: 380px;
+        right: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .notifications-dropdown {
+        width: calc(100vw - 1rem);
+        right: 0.5rem !important;
+        left: 0.5rem !important;
+        max-height: 70vh;
+    }
+
+    .notifications-list {
+        max-height: calc(70vh - 60px);
+    }
+
+    .notification-item {
+        padding: 0.75rem;
+    }
+
+    .notification-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 1rem;
+    }
+}
+
 /* =============================================================================
-   ESTILOS PARA SUBIDA MÚLTIPLE
+   27. ESTILOS PARA SUBIDA MÚLTIPLE
    ============================================================================= */
 
-/* Tabs de modo */
+/* Pestañas para modo de subida (simple vs múltiple) */
 .upload__tabs {
     display: flex;
     gap: 8px;
@@ -2255,6 +2924,7 @@ body.dark-theme .form__textarea:focus {
     padding-bottom: 10px;
 }
 
+/* Pestaña individual de modo de subida */
 .upload__tab {
     flex: 1;
     padding: 12px 16px;
@@ -2271,25 +2941,28 @@ body.dark-theme .form__textarea:focus {
     color: var(--bg-primary);
 }
 
+/* Efecto hover para pestañas de subida */
 .upload__tab:hover {
     transform: translateY(-2px);
 }
 
+/* Estado activo para pestaña de subida */
 .upload__tab--active {
     background: var(--info-dark);
 }
 
-/* Contenedores de modo */
+/* Contenedores de modo de subida (inicialmente ocultos) */
 .upload__container {
     display: none;
 }
 
+/* Estado activo para contenedor de modo de subida */
 .upload__mode--active {
     display: block;
     animation: fadeIn 0.3s ease;
 }
 
-/* Dropzone para múltiples archivos */
+/* Área de dropzone para subida múltiple de archivos */
 .multiple-upload__dropzone {
     border: 3px dashed var(--border-color);
     border-radius: 12px;
@@ -2300,30 +2973,34 @@ body.dark-theme .form__textarea:focus {
     background: var(--background-secondary);
 }
 
+/* Efecto hover para dropzone de subida múltiple */
 .multiple-upload__dropzone:hover {
     border-color: var(--primary-color);
     background: rgba(var(--primary-rgb), 0.05);
 }
 
+/* Estado cuando se está arrastrando archivos sobre el dropzone */
 .multiple-upload__dropzone.upload__container--dragover {
     border-color: var(--success-color);
     background: rgba(var(--success-rgb), 0.1);
     transform: scale(1.02);
 }
 
+/* Icono específico para subida múltiple */
 .upload__icon--multiple {
     font-size: 48px;
     color: var(--primary-color);
     margin-bottom: 16px;
 }
 
+/* Texto de ayuda para subida múltiple */
 .upload__hint {
     font-size: 14px;
     color: var(--text-secondary);
     margin-top: 12px;
 }
 
-/* Cabecera múltiple */
+/* Cabecera para sección de subida múltiple */
 .multiple-upload__header {
     text-align: center;
     margin-bottom: 24px;
@@ -2345,7 +3022,7 @@ body.dark-theme .form__textarea:focus {
     font-size: 14px;
 }
 
-/* Configuración común */
+/* Configuración común para subida múltiple */
 .multiple-upload__config {
     background: var(--background-secondary);
     border-radius: 12px;
@@ -2366,7 +3043,7 @@ body.dark-theme .form__textarea:focus {
     color: var(--primary-color);
 }
 
-/* Lista de archivos */
+/* Lista de archivos en subida múltiple */
 .multiple-upload__files {
     background: var(--background-secondary);
     border-radius: 12px;
@@ -2387,6 +3064,7 @@ body.dark-theme .form__textarea:focus {
     color: var(--primary-color);
 }
 
+/* Lista contenedora de archivos */
 .files__list {
     max-height: 300px;
     overflow-y: auto;
@@ -2396,6 +3074,7 @@ body.dark-theme .form__textarea:focus {
     padding: 12px;
 }
 
+/* Estado vacío para lista de archivos */
 .files__empty {
     text-align: center;
     padding: 40px 20px;
@@ -2408,7 +3087,7 @@ body.dark-theme .form__textarea:focus {
     opacity: 0.5;
 }
 
-/* Items de archivo */
+/* Item individual de archivo en lista */
 .file-item {
     background: var(--background-primary);
     border: 1px solid var(--border-color);
@@ -2418,23 +3097,28 @@ body.dark-theme .form__textarea:focus {
     transition: all 0.3s ease;
 }
 
+/* Efecto hover para items de archivo */
 .file-item:hover {
     border-color: var(--primary-color);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* Estado de subida en progreso */
 .file-item--uploading {
     border-left: 4px solid var(--info-color);
 }
 
+/* Estado de subida completada */
 .file-item--completed {
     border-left: 4px solid var(--success-color);
 }
 
+/* Estado de subida fallida */
 .file-item--failed {
     border-left: 4px solid var(--danger-color);
 }
 
+/* Cabecera del item de archivo */
 .file-item__header {
     display: flex;
     align-items: center;
@@ -2442,6 +3126,7 @@ body.dark-theme .form__textarea:focus {
     margin-bottom: 12px;
 }
 
+/* Icono del tipo de archivo */
 .file-item__icon {
     width: 40px;
     height: 40px;
@@ -2454,11 +3139,13 @@ body.dark-theme .form__textarea:focus {
     color: var(--primary-color);
 }
 
+/* Información del archivo */
 .file-item__info {
     flex: 1;
     min-width: 0;
 }
 
+/* Nombre del archivo */
 .file-item__name {
     font-weight: 500;
     color: var(--text-primary);
@@ -2468,6 +3155,7 @@ body.dark-theme .form__textarea:focus {
     margin-bottom: 4px;
 }
 
+/* Detalles del archivo (tamaño, tipo) */
 .file-item__details {
     display: flex;
     gap: 12px;
@@ -2475,17 +3163,20 @@ body.dark-theme .form__textarea:focus {
     color: var(--text-secondary);
 }
 
+/* Acciones disponibles para el archivo */
 .file-item__actions {
     display: flex;
     gap: 8px;
 }
 
+/* Cuerpo del item de archivo */
 .file-item__body {
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
 }
 
+/* Estado de subida del archivo */
 .file-item__status {
     display: flex;
     align-items: center;
@@ -2493,7 +3184,7 @@ body.dark-theme .form__textarea:focus {
     margin-bottom: 12px;
 }
 
-/* Barra de progreso */
+/* Barra de progreso de subida */
 .file-item__progress {
     flex: 1;
     display: flex;
@@ -2501,6 +3192,7 @@ body.dark-theme .form__textarea:focus {
     gap: 12px;
 }
 
+/* Contenedor de barra de progreso */
 .progress-bar {
     flex: 1;
     height: 6px;
@@ -2509,6 +3201,7 @@ body.dark-theme .form__textarea:focus {
     overflow: hidden;
 }
 
+/* Fill animado de barra de progreso */
 .progress-bar__fill {
     height: 100%;
     background: linear-gradient(90deg, var(--info-color), var(--primary-color));
@@ -2516,6 +3209,7 @@ body.dark-theme .form__textarea:focus {
     transition: width 0.3s ease;
 }
 
+/* Texto de porcentaje de progreso */
 .progress-text {
     font-size: 12px;
     font-weight: 500;
@@ -2523,7 +3217,7 @@ body.dark-theme .form__textarea:focus {
     min-width: 40px;
 }
 
-/* Badges de estado */
+/* Badges de estado para subida de archivos */
 .status-badge {
     padding: 4px 12px;
     border-radius: 20px;
@@ -2532,31 +3226,35 @@ body.dark-theme .form__textarea:focus {
     display: inline-block;
 }
 
+/* Estado pendiente */
 .status-badge--pending {
     background: rgba(var(--warning-rgb), 0.1);
     color: var(--warning-color);
     border: 1px solid rgba(var(--warning-rgb), 0.3);
 }
 
+/* Estado subiendo */
 .status-badge--uploading {
     background: rgba(var(--info-rgb), 0.1);
     color: var(--info-color);
     border: 1px solid rgba(var(--info-rgb), 0.3);
 }
 
+/* Estado completado */
 .status-badge--completed {
     background: rgba(var(--success-rgb), 0.1);
     color: var(--success-color);
     border: 1px solid rgba(var(--success-rgb), 0.3);
 }
 
+/* Estado fallido */
 .status-badge--failed {
     background: rgba(var(--danger-rgb), 0.1);
     color: var(--danger-color);
     border: 1px solid rgba(var(--danger-rgb), 0.3);
 }
 
-/* Configuración de archivo */
+/* Configuración específica para archivo */
 .file-item__config {
     padding: 12px;
     background: var(--background-secondary);
@@ -2564,7 +3262,7 @@ body.dark-theme .form__textarea:focus {
     margin-top: 12px;
 }
 
-/* Errores */
+/* Mensaje de error en subida de archivo */
 .file-item__error {
     display: flex;
     align-items: center;
@@ -2581,7 +3279,7 @@ body.dark-theme .form__textarea:focus {
     font-size: 14px;
 }
 
-/* Resumen de archivos */
+/* Resumen estadístico de archivos */
 .files__summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -2592,6 +3290,7 @@ body.dark-theme .form__textarea:focus {
     border: 1px solid var(--border-color);
 }
 
+/* Item individual del resumen */
 .summary__item {
     display: flex;
     align-items: center;
@@ -2616,7 +3315,7 @@ body.dark-theme .form__textarea:focus {
     font-weight: 600;
 }
 
-/* Opciones avanzadas */
+/* Opciones avanzadas para subida múltiple */
 .multiple-upload__advanced {
     margin-top: 20px;
     padding-top: 20px;
@@ -2635,6 +3334,7 @@ body.dark-theme .form__textarea:focus {
     margin-bottom: 16px;
 }
 
+/* Texto de ayuda para opciones de formulario */
 .form__hint {
     font-size: 12px;
     color: var(--text-secondary);
@@ -2642,7 +3342,7 @@ body.dark-theme .form__textarea:focus {
     margin-left: 24px;
 }
 
-/* Contenedor de progreso global */
+/* Contenedor flotante de progreso global */
 .upload-progress {
     position: fixed;
     bottom: 20px;
@@ -2658,6 +3358,7 @@ body.dark-theme .form__textarea:focus {
     animation: slideInUp 0.3s ease;
 }
 
+/* Cabecera del progreso global */
 .upload-progress__header {
     display: flex;
     justify-content: space-between;
@@ -2679,11 +3380,12 @@ body.dark-theme .form__textarea:focus {
     color: var(--primary-color);
 }
 
+/* Cuerpo del progreso global */
 .upload-progress__body {
     padding: 20px;
 }
 
-/* Progreso general */
+/* Progreso general de todas las subidas */
 .overall-progress {
     margin-bottom: 20px;
 }
@@ -2710,7 +3412,7 @@ body.dark-theme .form__textarea:focus {
     color: var(--text-primary);
 }
 
-/* Estadísticas */
+/* Estadísticas de la subida múltiple */
 .upload-stats {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -2739,6 +3441,7 @@ body.dark-theme .form__textarea:focus {
     margin-left: 20px;
 }
 
+/* Colores específicos para valores estadísticos */
 .stat-item__value--success {
     color: var(--success-color);
 }
@@ -2751,7 +3454,7 @@ body.dark-theme .form__textarea:focus {
     color: var(--info-color);
 }
 
-/* Lista de subidas actuales */
+/* Lista de subidas en curso */
 .current-uploads {
     max-height: 200px;
     overflow-y: auto;
@@ -2802,7 +3505,7 @@ body.dark-theme .form__textarea:focus {
     border-radius: 2px;
 }
 
-/* Footer del progreso */
+/* Pie del progreso global con información adicional */
 .upload-progress__footer {
     display: flex;
     justify-content: space-between;
@@ -2828,7 +3531,7 @@ body.dark-theme .form__textarea:focus {
     font-weight: 500;
 }
 
-/* Botones */
+/* Botón de éxito para acciones positivas */
 .btn--success {
     background: var(--success-color);
     color: white;
@@ -2839,7 +3542,7 @@ body.dark-theme .form__textarea:focus {
     background: var(--success-dark);
 }
 
-/* Animaciones */
+/* Animaciones para componentes de subida */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -2862,7 +3565,7 @@ body.dark-theme .form__textarea:focus {
     }
 }
 
-/* Responsive */
+/* Responsive para componentes de subida múltiple */
 @media (max-width: 768px) {
     .upload__tabs {
         flex-direction: column;
@@ -2883,7 +3586,7 @@ body.dark-theme .form__textarea:focus {
     }
 }
 
-/* Modo oscuro ajustes */
+/* Ajustes para modo oscuro en subida múltiple */
 .dark-theme .file-item {
     background: rgba(255, 255, 255, 0.05);
 }
@@ -2897,59 +3600,770 @@ body.dark-theme .form__textarea:focus {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Dark Theme Support */
-body.dark-theme .notifications-dropdown {
-    background: var(--sidebar-bg);
-    border-color: var(--sidebar-hover);
+/* =============================================================================
+   28. SECCIÓN DE HISTORIAL - DISEÑO MEJORADO COMPACTO Y ORGANIZADO
+   ============================================================================= */
+
+/* Contenedor principal para la pestaña de historial */
+#historial.tab-content {
+    padding: 1.25rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-body.dark-theme .notifications-header {
-    background: var(--sidebar-hover);
-    border-color: var(--sidebar-hover);
+/* Cabecera compacta para sección de historial */
+#historial .section__header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color-light);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-body.dark-theme .notification-item:hover {
-    background: var(--sidebar-hover);
-    border-color: var(--border);
+/* Título principal de la sección de historial */
+#historial .section__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.2;
 }
 
-body.dark-theme .notifications-list::-webkit-scrollbar-thumb {
-    background: var(--sidebar-hover);
+/* Subtítulo descriptivo del historial */
+#historial .section__subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.4;
 }
 
-body.dark-theme .notifications-list::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
+/* Contenedor de acciones principales del historial */
+.historial__actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Responsive Design */
+/* Botones específicos para acciones del historial */
+.historial__actions .btn {
+    min-width: 0;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+/* Filtros compactos para búsqueda en historial */
+.historial-filters {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Título de la sección de filtros */
+.historial-filters__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.historial-filters__title i {
+    color: var(--primary-color);
+    font-size: 0.875rem;
+}
+
+/* Layout de filtros en grid responsive */
+.filters__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 0;
+}
+
+/* Grupos de formulario compactos para filtros */
+.form__group--compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.form__group--compact .form__label {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Inputs de fecha compactos para filtros */
+.form__input--date {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--primary-dark);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form__input--date:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Selects compactos para filtros */
+.form__select {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    padding-right: 2rem;
+    border: 1px solid var(--primary-dark);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form__select:focus {
+    outline: none;
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Contenedor compacto para rango de fechas */
+.date-range-container {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.date-range-container span {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    text-align: center;
+    min-width: 1.5rem;
+}
+
+/* Barra de búsqueda compacta con icono */
+.search-with-icon {
+    position: relative;
+}
+
+.search-with-icon i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+}
+
+.search-with-icon input {
+    width: 100%;
+    padding: 0.625rem 0.75rem 0.625rem 2.25rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.search-with-icon input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Estadísticas compactas del historial */
+.historial-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.historial-stats .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.historial-stats .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary-color);
+}
+
+/* Iconos para estadísticas del historial */
+.stat-card__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* Colores específicos para diferentes tipos de estadísticas */
+.stat-card__icon--history {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-card__icon--unread {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    color: white;
+}
+
+.stat-card__icon--today {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.stat-card__icon--critical {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.stat-card__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-card__value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.value {
+    font-size: 2rem;
+}
+
+.stat-card__label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Tabla compacta para mostrar el historial */
+.table-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Scrollbar personalizado para tabla */
+.table-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* Estructura de tabla para historial */
+.table--history {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.table--history .table__header {
+    background: var(--table-header-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.table--history .table__cell {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color-light);
+    vertical-align: middle;
+    transition: background-color 0.2s ease;
+    font-size: 0.8125rem;
+}
+
+/* Filas de historial con efectos hover */
+.history-item {
+    transition: all 0.2s ease;
+}
+
+.history-item:hover {
+    background: var(--hover-bg);
+}
+
+/* Estado no leído para items de historial */
+.history-item--unread {
+    background: linear-gradient(90deg, rgba(79, 70, 229, 0.04) 0%, transparent 100%);
+    border-left: 2px solid var(--primary-color);
+}
+
+/* Celdas específicas para fecha */
+.table__cell--date {
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-weight: 500;
+    min-width: 120px;
+}
+
+/* Contenedor para fecha y hora */
+.date-time {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.date-time .date {
+    font-weight: 500;
+    font-size: 0.8125rem;
+}
+
+.date-time .time {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+}
+
+/* Tipo de actividad en historial */
+.history-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 140px;
+}
+
+.history-type i {
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: rgba(79, 70, 229, 0.1);
+    flex-shrink: 0;
+}
+
+.history-type span {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Contenido del registro de historial */
+.history-content {
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.history-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-message {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    line-clamp: 2;              
+    -webkit-line-clamp: 2;       
+    -webkit-box-orient: vertical;
+}
+
+/* Badges compactos para prioridades */
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
+    min-width: 60px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+/* Colores específicos para diferentes niveles de prioridad */
+.priority-badge--critical {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.priority-badge--high {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    color: white;
+}
+
+.priority-badge--medium {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: var(--text-primary);
+}
+
+.priority-badge--low {
+    background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+    color: var(--text-primary);
+}
+
+/* Badges para estado de lectura */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    min-width: 70px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.status-badge--read {
+    background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+    color: var(--text-primary);
+}
+
+.status-badge--unread {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    color: white;
+}
+
+/* Acciones de tabla para historial */
+.table__actions {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: flex-end;
+    min-width: 100px;
+}
+
+/* Botones de icono para acciones */
+.btn--icon {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.75rem;
+}
+
+/* Efecto hover para botones de icono */
+.btn--icon:hover, .btn--icon.btn--danger:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+/* Estado vacío para tabla de historial */
+.empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+}
+
+.empty-state__icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+.empty-state__title {
+    color: var(--text-primary);
+    font-size: 1rem;
+    margin: 0 0 0.375rem 0;
+    font-weight: 600;
+}
+
+.empty-state__description {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Paginación compacta para historial */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    flex-wrap: wrap;
+}
+
+.pagination__btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.pagination__btn:hover:not(:disabled) {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+
+.pagination__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--disabled-bg);
+}
+
+.pagination__info {
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    background: var(--input-bg);
+    border-radius: 6px;
+    min-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Responsive para sección de historial */
+@media (max-width: 1200px) {
+    .filters__grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .historial-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
-    .notifications-dropdown {
-        width: calc(100vw - 2rem);
-        max-width: 380px;
-        right: 1rem !important;
+    #historial.tab-content {
+        padding: 1rem;
+    }
+    
+    .historial__actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .historial-filters {
+        padding: 1rem;
+    }
+    
+    .filters__grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .historial-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .table-container {
+        border-radius: 10px;
+        margin: 0 -1rem;
+        width: calc(100% + 2rem);
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+    }
+    
+    .pagination {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .pagination__btn,
+    .pagination__info {
+        width: 100%;
     }
 }
 
 @media (max-width: 480px) {
-    .notifications-dropdown {
-        width: calc(100vw - 1rem);
-        right: 0.5rem !important;
-        left: 0.5rem !important;
-        max-height: 70vh;
+    #historial .section__title {
+        font-size: 1.25rem;
     }
-
-    .notifications-list {
-        max-height: calc(70vh - 60px);
+    
+    .historial-filters {
+        padding: 0.875rem;
     }
-
-    .notification-item {
-        padding: 0.75rem;
+    
+    .stat-card {
+        padding: 0.875rem;
     }
-
-    .notification-icon {
+    
+    .stat-card__icon {
         width: 36px;
         height: 36px;
-        min-width: 36px;
-        font-size: 1rem;
+        font-size: 0.875rem;
     }
+    
+    .stat-card__value {
+        font-size: 1.125rem;
+    }
+}
+
+/* Ajustes para modo oscuro en historial */
+.dark-theme .historial-filters {
+    background: var(--dark-card-bg);
+    border-color: var(--dark-border-color);
+}
+
+.dark-theme .table-container {
+    background: var(--dark-card-bg);
+    border-color: var(--dark-border-color);
+}
+
+.dark-theme .pagination {
+    background: var(--dark-card-bg);
+    border-color: var(--dark-border-color);
+}
+
+.dark-theme .table--history .table__header {
+    background: var(--dark-table-header-bg);
+    border-bottom-color: var(--dark-border-color);
+}
+
+.dark-theme .table--history .table__cell {
+    border-bottom-color: var(--dark-border-color-light);
+}
+
+.dark-theme .history-item--unread {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.12) 0%, transparent 100%);
+}
+
+.dark-theme .form__input--date,
+.dark-theme .form__select,
+.dark-theme .search-with-icon input {
+    background: var(--dark-input-bg);
+    border-color: var(--dark-border-color);
+    color: var(--dark-text-primary);
+}
+
+/* Animaciones para tabla de historial */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table--history tbody tr {
+    animation: fadeIn 0.25s ease-out;
+}
+
+.stat-card {
+    animation: fadeIn 0.3s ease-out;
 }

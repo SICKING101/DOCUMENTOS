@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Fuente Inter para mejor tipografía -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <title>Sistema de Gestión de Documentos - CBTIS051</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <!-- ===== APP LAYOUT ===== -->
     <div class="app-layout">
@@ -43,6 +46,10 @@
                     <i class="fa-solid fa-thumbtack"></i>
                     <span>Tareas</span>
                 </a>
+                <a href="#" class="sidebar__nav-link" data-tab="historial">
+                    <i class="fas fa-history"></i>
+                    <span>Historial</span>
+                </a>
             </nav>
 
             <!-- Sidebar Footer -->
@@ -70,9 +77,6 @@
                     <button class="topbar__action" id="notificationsBtn" title="Notificaciones">
                         <i class="fas fa-bell"></i>
                         <span class="topbar__badge">3</span>
-                    </button>
-                    <button class="topbar__action" id="settingsBtn" title="Configuración">
-                        <i class="fas fa-cog"></i>
                     </button>
                 </div>
             </header>
@@ -103,7 +107,7 @@
                                 </div>
                             </div>
                             <div class="stat-card__body">
-                                <h3 class="stat-card__value" id="totalPersonas">0</h3>
+                                <h3 class="stat-card__value value" id="totalPersonas">0</h3>
                                 <p class="stat-card__label">Personas Registradas</p>
                             </div>
                         </div>
@@ -118,7 +122,7 @@
                                 </div>
                             </div>
                             <div class="stat-card__body">
-                                <h3 class="stat-card__value" id="totalDocumentos">0</h3>
+                                <h3 class="stat-card__value value" id="totalDocumentos">0</h3>
                                 <p class="stat-card__label">Documentos Totales</p>
                             </div>
                         </div>
@@ -133,7 +137,7 @@
                                 </div>
                             </div>
                             <div class="stat-card__body">
-                                <h3 class="stat-card__value" id="totalCategorias">0</h3>
+                                <h3 class="stat-card__value value" id="totalCategorias">0</h3>
                                 <p class="stat-card__label">Categorías Activas</p>
                             </div>
                         </div>
@@ -148,7 +152,7 @@
                                 </div>
                             </div>
                             <div class="stat-card__body">
-                                <h3 class="stat-card__value" id="proximosVencer">0</h3>
+                                <h3 class="stat-card__value value" id="proximosVencer">0</h3>
                                 <p class="stat-card__label">Próximos a Vencer</p>
                             </div>
                         </div>
@@ -196,6 +200,177 @@
                         </div>
                     </section>
                 </section>
+
+                <!-- ===== HISTORIAL TAB ===== -->
+<section id="historial" class="tab-content">
+    <div class="section__header">
+        <div>
+            <h2 class="section__title">Historial del Sistema</h2>
+            <p class="section__subtitle">Registro completo de todas las actividades</p>
+        </div>
+        <div class="historial__actions">
+            <button class="btn btn--outline" id="clearHistoryBtn">
+                <i class="fas fa-trash"></i> Limpiar Historial
+            </button>
+            <button class="btn btn--outline" id="exportHistoryBtn">
+                <i class="fas fa-download"></i> Exportar
+            </button>
+            <button class="btn btn--primary" id="refreshHistoryBtn">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros avanzados -->
+    <div class="historial-filters">
+        <div class="historial-filters__title">
+            <i class="fas fa-filter"></i>
+            <span>Filtros de Búsqueda</span>
+        </div>
+        
+        <div class="filters__row">
+            <div class="form__group form__group--inline">
+                <label for="filterDateFrom" class="form__label">Rango de fechas</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="date" id="filterDateFrom" class="form__input form__input--date" placeholder="Desde">
+                    <span>a</span>
+                    <input type="date" id="filterDateTo" class="form__input form__input--date" placeholder="Hasta">
+                </div>
+            </div>
+
+            <div class="form__group form__group--inline">
+                <label for="filterType" class="form__label">Tipo de actividad</label>
+                <select id="filterType" class="form__select">
+                    <option value="all">Todos los tipos</option>
+                    <option value="documento_subido">Documento subido</option>
+                    <option value="documento_eliminado">Documento eliminado</option>
+                    <option value="documento_proximo_vencer">Documento por vencer</option>
+                    <option value="documento_vencido">Documento vencido</option>
+                    <option value="persona_agregada">Persona agregada</option>
+                    <option value="persona_eliminada">Persona eliminada</option>
+                    <option value="categoria_agregada">Categoría agregada</option>
+                    <option value="reporte_generado">Reporte generado</option>
+                    <option value="sistema_iniciado">Sistema iniciado</option>
+                    <option value="error_sistema">Error del sistema</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filters__row">
+            <div class="form__group form__group--inline">
+                <label for="filterPriority" class="form__label">Nivel de prioridad</label>
+                <select id="filterPriority" class="form__select">
+                    <option value="all">Todas las prioridades</option>
+                    <option value="critica">Crítica</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                </select>
+            </div>
+
+            <div class="form__group form__group--inline">
+                <label for="filterRead" class="form__label">Estado de lectura</label>
+                <select id="filterRead" class="form__select">
+                    <option value="all">Todos los estados</option>
+                    <option value="read">Leídos</option>
+                    <option value="unread">No leídos</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filters__row">
+            <div class="form__group form__group--inline">
+                <label for="itemsPerPage" class="form__label">Resultados por página</label>
+                <select id="itemsPerPage" class="form__select">
+                    <option value="10">10 registros</option>
+                    <option value="25" selected>25 registros</option>
+                    <option value="50">50 registros</option>
+                    <option value="100">100 registros</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="historial-stats">
+        <div class="stat-card">
+            <div class="stat-card__icon stat-card__icon--history">
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="stat-card__content">
+                <h3 class="stat-card__value" id="totalHistory">0</h3>
+                <p class="stat-card__label">Registros totales</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card__icon stat-card__icon--unread">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="stat-card__content">
+                <h3 class="stat-card__value" id="unreadHistory">0</h3>
+                <p class="stat-card__label">No leídos</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card__icon stat-card__icon--today">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="stat-card__content">
+                <h3 class="stat-card__value" id="todayHistory">0</h3>
+                <p class="stat-card__label">Hoy</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card__icon stat-card__icon--critical">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="stat-card__content">
+                <h3 class="stat-card__value" id="criticalHistory">0</h3>
+                <p class="stat-card__label">Críticos</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de historial -->
+    <div class="table-container">
+        <table class="table table--history">
+            <thead>
+                <tr>
+                    <th class="table__header">Fecha</th>
+                    <th class="table__header">Tipo</th>
+                    <th class="table__header">Título</th>
+                    <th class="table__header">Mensaje</th>
+                    <th class="table__header">Prioridad</th>
+                    <th class="table__header">Estado</th>
+                    <th class="table__header">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+                <!-- El historial se cargará aquí -->
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <i class="fas fa-history empty-state__icon"></i>
+                        <h3 class="empty-state__title">No hay registros de historial</h3>
+                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination" id="historyPagination">
+        <button class="pagination__btn pagination__btn--prev" disabled>
+            <i class="fas fa-chevron-left"></i> Anterior
+        </button>
+        <div class="pagination__info">
+            <span id="paginationInfo">Página 1 de 1</span>
+        </div>
+        <button class="pagination__btn pagination__btn--next" disabled>
+            Siguiente <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</section>
 
                 <!-- ===== PERSONAS TAB ===== -->
                 <section id="personas" class="tab-content">
@@ -366,7 +541,7 @@
                     </div>
                 </section>
 
-                                    <!-- ===== TAREAS TAB ===== -->
+                <!-- ===== TAREAS TAB ===== -->
                 <section id="tareas" class="tab-content">
                     <div class="section__header">
                         <div>
@@ -448,8 +623,8 @@
             </main>
         </div>
     </div>
-            </main>
-        </div>
+    </main>
+    </div>
     </div>
 
     <!-- ===== MODALS ===== -->
@@ -498,188 +673,194 @@
     </dialog>
 
     <!-- Add Document Modal -->
-<dialog id="documentModal" class="modal">
-    <article class="modal__content">
-        <header class="modal__header">
-            <h3 class="modal__title">Subir Documento</h3>
-            <button class="modal__close">&times;</button>
-        </header>
-        <section class="modal__body">
-            <form id="documentForm">
-                <!-- Tabs para modo único/múltiple -->
-                <div class="upload__tabs">
-                    <button type="button" class="upload__tab upload__tab--active" data-mode="single">
-                        <i class="fas fa-file-upload"></i> Subir Único
-                    </button>
-                    <button type="button" class="upload__tab" data-mode="multiple">
-                        <i class="fas fa-folder-open"></i> Subir Múltiple
-                    </button>
-                </div>
-
-                <!-- Contenedor para modo único -->
-                <div id="singleUploadContainer" class="upload__container upload__mode--active">
-                    <div class="upload__dropzone" id="fileUploadContainer">
-                        <i class="fas fa-cloud-upload-alt upload__icon"></i>
-                        <h3>Arrastra y suelta tu archivo aquí</h3>
-                        <p>o</p>
-                        <button type="button" class="btn btn--primary" id="browseFilesBtn">
-                            <i class="fas fa-folder-open"></i> Seleccionar Archivo
+    <dialog id="documentModal" class="modal">
+        <article class="modal__content">
+            <header class="modal__header">
+                <h3 class="modal__title">Subir Documento</h3>
+                <button class="modal__close">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="documentForm">
+                    <!-- Tabs para modo único/múltiple -->
+                    <div class="upload__tabs">
+                        <button type="button" class="upload__tab upload__tab--active" data-mode="single">
+                            <i class="fas fa-file-upload"></i> Subir Único
                         </button>
-                        <input type="file" id="fileInput" class="upload__input" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                        <div class="upload__info" id="fileInfo">
-                            <p><strong>Archivo:</strong> <span id="fileName"></span></p>
-                            <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
-                        </div>
-                    </div>
-
-                    <div class="form__group">
-                        <label for="documentDescription" class="form__label">Descripción</label>
-                        <textarea id="documentDescription" class="form__textarea" rows="3"></textarea>
-                    </div>
-
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="documentCategory" class="form__label">Categoría</label>
-                            <select id="documentCategory" class="form__select">
-                                <option value="">Seleccionar categoría</option>
-                                <!-- Las categorías se cargarán dinámicamente -->
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label for="documentExpiration" class="form__label">Fecha de Vencimiento</label>
-                            <input type="date" id="documentExpiration" class="form__input">
-                        </div>
-                    </div>
-
-                    <div class="form__group">
-                        <label for="documentPerson" class="form__label">Asignar a Persona</label>
-                        <select id="documentPerson" class="form__select">
-                            <option value="">Seleccionar persona</option>
-                            <!-- Las opciones se cargarán dinámicamente -->
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Contenedor para modo múltiple -->
-                <div id="multipleUploadContainer" class="upload__container">
-                    <div class="multiple-upload__header">
-                        <i class="fas fa-layer-group"></i>
-                        <h3>Subir Múltiples Documentos</h3>
-                        <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos juntos</p>
-                    </div>
-
-                    <div class="multiple-upload__dropzone" id="multipleFileUploadContainer">
-                        <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
-                        <h3>Arrastra y suelta múltiples archivos aquí</h3>
-                        <p>o</p>
-                        <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
-                            <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
+                        <button type="button" class="upload__tab" data-mode="multiple">
+                            <i class="fas fa-folder-open"></i> Subir Múltiple
                         </button>
-                        <input type="file" id="multipleFileInput" class="upload__input" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                        <p class="upload__hint">Tamaño total permitido por archivo: 10 MB</p>
                     </div>
 
-                    <!-- Configuración común para múltiples archivos -->
-                    <div class="multiple-upload__config">
-                        <h4><i class="fas fa-cog"></i> Configuración Común</h4>
-                        
+                    <!-- Contenedor para modo único -->
+                    <div id="singleUploadContainer" class="upload__container upload__mode--active">
+                        <div class="upload__dropzone" id="fileUploadContainer">
+                            <i class="fas fa-cloud-upload-alt upload__icon"></i>
+                            <h3>Arrastra y suelta tu archivo aquí</h3>
+                            <p>o</p>
+                            <button type="button" class="btn btn--primary" id="browseFilesBtn">
+                                <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                            </button>
+                            <input type="file" id="fileInput" class="upload__input"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                            <div class="upload__info" id="fileInfo">
+                                <p><strong>Archivo:</strong> <span id="fileName"></span></p>
+                                <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
+                            </div>
+                        </div>
+
+                        <div class="form__group">
+                            <label for="documentDescription" class="form__label">Descripción</label>
+                            <textarea id="documentDescription" class="form__textarea" rows="3"></textarea>
+                        </div>
+
                         <div class="form__row">
                             <div class="form__group">
-                                <label for="multipleDocumentCategory" class="form__label">Categoría para Todos</label>
-                                <select id="multipleDocumentCategory" class="form__select">
-                                    <option value="">Seleccionar categoría común</option>
+                                <label for="documentCategory" class="form__label">Categoría</label>
+                                <select id="documentCategory" class="form__select">
+                                    <option value="">Seleccionar categoría</option>
                                     <!-- Las categorías se cargarán dinámicamente -->
                                 </select>
                             </div>
                             <div class="form__group">
-                                <label for="multipleDocumentPerson" class="form__label">Asignar a Persona</label>
-                                <select id="multipleDocumentPerson" class="form__select">
-                                    <option value="">Seleccionar persona</option>
-                                    <!-- Las opciones se cargarán dinámicamente -->
-                                </select>
+                                <label for="documentExpiration" class="form__label">Fecha de Vencimiento</label>
+                                <input type="date" id="documentExpiration" class="form__input">
                             </div>
                         </div>
-                        
+
                         <div class="form__group">
-                            <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento (opcional)</label>
-                            <input type="number" id="multipleExpirationDays" class="form__input" min="0" placeholder="Ej: 30 (días desde hoy)">
+                            <label for="documentPerson" class="form__label">Asignar a Persona</label>
+                            <select id="documentPerson" class="form__select">
+                                <option value="">Seleccionar persona</option>
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Lista de archivos seleccionados -->
-                    <div class="multiple-upload__files" id="multipleFilesList">
-                        <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span id="selectedFilesCount">0</span>)</h4>
-                        <div class="files__list" id="filesListContainer">
-                            <!-- Los archivos se agregarán dinámicamente aquí -->
-                            <div class="files__empty">
-                                <i class="fas fa-file-alt"></i>
-                                <p>No hay archivos seleccionados</p>
-                            </div>
+                    <!-- Contenedor para modo múltiple -->
+                    <div id="multipleUploadContainer" class="upload__container">
+                        <div class="multiple-upload__header">
+                            <i class="fas fa-layer-group"></i>
+                            <h3>Subir Múltiples Documentos</h3>
+                            <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos juntos</p>
                         </div>
-                        
-                        <!-- Resumen -->
-                        <div class="files__summary" id="filesSummary">
-                            <div class="summary__item">
-                                <i class="fas fa-file"></i>
-                                <span>Total archivos: <strong>0</strong></span>
-                            </div>
-                            <div class="summary__item">
-                                <i class="fas fa-hdd"></i>
-                                <span>Tamaño total: <strong>0 MB</strong></span>
-                            </div>
-                            <div class="summary__item">
-                                <i class="fas fa-clock"></i>
-                                <span>Tiempo estimado: <strong>0s</strong></span>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Opciones avanzadas -->
-                    <div class="multiple-upload__advanced">
-                        <button type="button" class="btn btn--sm btn--outline" id="toggleAdvancedOptions">
-                            <i class="fas fa-sliders-h"></i> Opciones Avanzadas
-                        </button>
-                        
-                        <div class="advanced__options" id="advancedOptions" style="display: none;">
-                            <div class="form__group">
-                                <label class="form__label">
-                                    <input type="checkbox" id="autoGenerateDescriptions"> 
-                                    Generar descripciones automáticamente
-                                </label>
-                                <p class="form__hint">Usa el nombre del archivo como descripción</p>
+                        <div class="multiple-upload__dropzone" id="multipleFileUploadContainer">
+                            <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
+                            <h3>Arrastra y suelta múltiples archivos aquí</h3>
+                            <p>o</p>
+                            <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
+                                <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
+                            </button>
+                            <input type="file" id="multipleFileInput" class="upload__input" multiple
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                            <p class="upload__hint">Tamaño total permitido por archivo: 10 MB</p>
+                        </div>
+
+                        <!-- Configuración común para múltiples archivos -->
+                        <div class="multiple-upload__config">
+                            <h4><i class="fas fa-cog"></i> Configuración Común</h4>
+
+                            <div class="form__row">
+                                <div class="form__group">
+                                    <label for="multipleDocumentCategory" class="form__label">Categoría para
+                                        Todos</label>
+                                    <select id="multipleDocumentCategory" class="form__select">
+                                        <option value="">Seleccionar categoría común</option>
+                                        <!-- Las categorías se cargarán dinámicamente -->
+                                    </select>
+                                </div>
+                                <div class="form__group">
+                                    <label for="multipleDocumentPerson" class="form__label">Asignar a Persona</label>
+                                    <select id="multipleDocumentPerson" class="form__select">
+                                        <option value="">Seleccionar persona</option>
+                                        <!-- Las opciones se cargarán dinámicamente -->
+                                    </select>
+                                </div>
                             </div>
-                            
+
                             <div class="form__group">
-                                <label class="form__label">
-                                    <input type="checkbox" id="notifyPerson"> 
-                                    Notificar a la persona asignada
-                                </label>
+                                <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento
+                                    (opcional)</label>
+                                <input type="number" id="multipleExpirationDays" class="form__input" min="0"
+                                    placeholder="Ej: 30 (días desde hoy)">
                             </div>
-                            
-                            <div class="form__group">
-                                <label for="uploadStrategy" class="form__label">Estrategia de Subida</label>
-                                <select id="uploadStrategy" class="form__select">
-                                    <option value="sequential">Secuencial (más estable)</option>
-                                    <option value="parallel">Paralelo (más rápido)</option>
-                                    <option value="batch">Por lotes (equilibrado)</option>
-                                </select>
+                        </div>
+
+                        <!-- Lista de archivos seleccionados -->
+                        <div class="multiple-upload__files" id="multipleFilesList">
+                            <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span
+                                    id="selectedFilesCount">0</span>)</h4>
+                            <div class="files__list" id="filesListContainer">
+                                <!-- Los archivos se agregarán dinámicamente aquí -->
+                                <div class="files__empty">
+                                    <i class="fas fa-file-alt"></i>
+                                    <p>No hay archivos seleccionados</p>
+                                </div>
+                            </div>
+
+                            <!-- Resumen -->
+                            <div class="files__summary" id="filesSummary">
+                                <div class="summary__item">
+                                    <i class="fas fa-file"></i>
+                                    <span>Total archivos: <strong>0</strong></span>
+                                </div>
+                                <div class="summary__item">
+                                    <i class="fas fa-hdd"></i>
+                                    <span>Tamaño total: <strong>0 MB</strong></span>
+                                </div>
+                                <div class="summary__item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Tiempo estimado: <strong>0s</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Opciones avanzadas -->
+                        <div class="multiple-upload__advanced">
+                            <button type="button" class="btn btn--sm btn--outline" id="toggleAdvancedOptions">
+                                <i class="fas fa-sliders-h"></i> Opciones Avanzadas
+                            </button>
+
+                            <div class="advanced__options" id="advancedOptions" style="display: none;">
+                                <div class="form__group">
+                                    <label class="form__label">
+                                        <input type="checkbox" id="autoGenerateDescriptions">
+                                        Generar descripciones automáticamente
+                                    </label>
+                                    <p class="form__hint">Usa el nombre del archivo como descripción</p>
+                                </div>
+
+                                <div class="form__group">
+                                    <label class="form__label">
+                                        <input type="checkbox" id="notifyPerson">
+                                        Notificar a la persona asignada
+                                    </label>
+                                </div>
+
+                                <div class="form__group">
+                                    <label for="uploadStrategy" class="form__label">Estrategia de Subida</label>
+                                    <select id="uploadStrategy" class="form__select">
+                                        <option value="sequential">Secuencial (más estable)</option>
+                                        <option value="parallel">Paralelo (más rápido)</option>
+                                        <option value="batch">Por lotes (equilibrado)</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </form>
-        </section>
-        <footer class="modal__footer">
-            <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
-            <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
-                <i class="fas fa-upload"></i> Subir Documento
-            </button>
-            <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
-                <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
-            </button>
-        </footer>
-    </article>
-</dialog>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
+                <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
+                    <i class="fas fa-upload"></i> Subir Documento
+                </button>
+                <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
+                    <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
+                </button>
+            </footer>
+        </article>
+    </dialog>
 
     <!-- Add Category Modal -->
     <dialog id="categoryModal" class="modal">
@@ -702,7 +883,8 @@
                     <div class="form__row">
                         <div class="form__group">
                             <label for="categoryColor" class="form__label">Color</label>
-                            <input type="color" id="categoryColor" class="form__input form__input--color" value="#4f46e5">
+                            <input type="color" id="categoryColor" class="form__input form__input--color"
+                                value="#4f46e5">
                         </div>
                         <div class="form__group">
                             <label for="categoryIcon" class="form__label">Icono</label>
@@ -741,7 +923,8 @@
                     <div class="form__row">
                         <div class="form__group">
                             <label for="searchKeyword" class="form__label">Palabra clave</label>
-                            <input type="text" id="searchKeyword" class="form__input" placeholder="Buscar en nombre, descripción...">
+                            <input type="text" id="searchKeyword" class="form__input"
+                                placeholder="Buscar en nombre, descripción...">
                         </div>
                         <div class="form__group">
                             <label for="searchCategory" class="form__label">Categoría</label>
@@ -859,7 +1042,8 @@
                     </div>
                     <div class="form__group">
                         <label for="taskDescription" class="form__label">Descripción</label>
-                        <textarea id="taskDescription" class="form__textarea" rows="4" placeholder="Descripción detallada de la tarea..."></textarea>
+                        <textarea id="taskDescription" class="form__textarea" rows="4"
+                            placeholder="Descripción detallada de la tarea..."></textarea>
                     </div>
                     <div class="form__row">
                         <div class="form__group">
@@ -891,7 +1075,8 @@
                     </div>
                     <div class="form__group">
                         <label for="taskCategory" class="form__label">Categoría</label>
-                        <input type="text" id="taskCategory" class="form__input" placeholder="Ej: Personal, Trabajo, Estudio...">
+                        <input type="text" id="taskCategory" class="form__input"
+                            placeholder="Ej: Personal, Trabajo, Estudio...">
                     </div>
                     <div class="form__group">
                         <label class="form__label">
@@ -907,29 +1092,30 @@
         </article>
     </dialog>
 
-        <!-- Modal de Acciones -->
-<dialog id="actionModal" class="modal">
-    <article class="modal__content modal__content--sm">
-        <header class="modal__header">
-            <h3 class="modal__title" id="actionModalTitle">Confirmar acción</h3>
-        </header>
-        <section class="modal__body">
-            <div class="action-modal__content">
-                <div class="action-modal__icon" id="actionModalIcon">
-                    <i class="fas fa-question-circle"></i>
+    <!-- Modal de Acciones -->
+    <dialog id="actionModal" class="modal">
+        <article class="modal__content modal__content--sm">
+            <header class="modal__header">
+                <h3 class="modal__title" id="actionModalTitle">Confirmar acción</h3>
+            </header>
+            <section class="modal__body">
+                <div class="action-modal__content">
+                    <div class="action-modal__icon" id="actionModalIcon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <p class="action-modal__message" id="actionModalMessage">
+                        ¿Estás seguro de que quieres realizar esta acción?
+                    </p>
                 </div>
-                <p class="action-modal__message" id="actionModalMessage">
-                    ¿Estás seguro de que quieres realizar esta acción?
-                </p>
-            </div>
-        </section>
-        <footer class="modal__footer modal__footer--centered">
-            <button class="btn btn--outline" id="cancelActionBtn">Cancelar</button>
-            <button class="btn" id="confirmActionBtn">Confirmar</button>
-        </footer>
-    </article>
-</dialog>
+            </section>
+            <footer class="modal__footer modal__footer--centered">
+                <button class="btn btn--outline" id="cancelActionBtn">Cancelar</button>
+                <button class="btn" id="confirmActionBtn">Confirmar</button>
+            </footer>
+        </article>
+    </dialog>
 
-<script type="module" src="JAVASCRIPT/app.js"></script>
+    <script type="module" src="JAVASCRIPT/app.js"></script>
 </body>
+
 </html>
