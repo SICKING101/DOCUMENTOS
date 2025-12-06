@@ -5,77 +5,82 @@ import { showAlert, setupModalBackdropClose } from './utils.js';
 import TaskManager from './task.js';
 
 // Importar todos los módulos
-import { 
-    loadDashboardData, 
-    handleRefreshDashboard 
+import {
+    loadDashboardData,
+    handleRefreshDashboard
 } from './modules/dashboard.js';
 
-import { 
-    openPersonModal, 
-    closePersonModal, 
-    savePerson, 
-    loadPersons, 
-    renderPersonsTable, 
-    populatePersonSelect, 
-    editPerson, 
-    deletePerson, 
-    handleSavePerson 
+import {
+    initHistorial,
+    loadTabSpecificHistorial
+} from './modules/historial.js';
+
+import {
+    openPersonModal,
+    closePersonModal,
+    savePerson,
+    loadPersons,
+    renderPersonsTable,
+    populatePersonSelect,
+    editPerson,
+    deletePerson,
+    handleSavePerson
 } from './modules/personas.js';
 
-import { 
-    openDocumentModal, 
-    closeDocumentModal, 
-    setupFileDragAndDrop, 
-    handleFile, 
-    handleUploadDocument, 
-    loadDocuments, 
-    renderDocumentsTable, 
-    downloadDocument, 
-    previewDocument, 
-    deleteDocument, 
+import {
+    openDocumentModal,
+    closeDocumentModal,
+    setupFileDragAndDrop,
+    handleFile,
+    handleUploadDocument,
+    loadDocuments,
+    renderDocumentsTable,
+    downloadDocument,
+    previewDocument,
+    deleteDocument,
     downloadDocumentSimple,
     downloadDocumentAlternative,
     debugDocumentDownload,
     testAllDownloads,
-     handleMultipleFileSelect,
-     switchUploadMode,
-     handleUploadMultipleDocuments,
-     debugMultipleUpload,
-     testMultipleUploadWithMockFiles,
-     cancelMultipleUpload,
-    handleFileSelect 
+    handleMultipleFileSelect,
+    switchUploadMode,
+    handleUploadMultipleDocuments,
+    debugMultipleUpload,
+    testMultipleUploadWithMockFiles,
+    cancelMultipleUpload,
+    handleFileSelect
 } from './modules/documentos.js';
 
-import { 
-    openCategoryModal, 
-    closeCategoryModal, 
-    saveCategory, 
-    loadCategories, 
-    renderCategories, 
-    populateCategorySelects, 
-    editCategory, 
-    deleteCategory, 
-    handleSaveCategory 
+import {
+    openCategoryModal,
+    closeCategoryModal,
+    saveCategory,
+    loadCategories,
+    renderCategories,
+    populateCategorySelects,
+    editCategory,
+    deleteCategory,
+    handleSaveCategory
 } from './modules/categorias.js';
 
-import { 
-    showAdvancedSearch, 
-    closeSearchModal, 
-    handleDocumentSearch, 
-    handleClearSearch, 
-    handleFilterChange, 
-    handleAdvancedSearch 
+import {
+    showAdvancedSearch,
+    closeSearchModal,
+    handleDocumentSearch,
+    handleClearSearch,
+    handleFilterChange,
+    handleAdvancedSearch
 } from './modules/search.js';
 
-import { 
-    generateReport, 
-    closeReportModal, 
-    handleGenerateReport, 
-    handleReportTypeChange 
+import {
+    generateReport,
+    closeReportModal,
+    handleGenerateReport,
+    handleReportTypeChange
 } from './modules/reports.js';
 
-import { 
-    initNotificaciones 
+import {
+    initNotificaciones
 } from './modules/notificaciones.js';
 
 // =============================================================================
@@ -102,14 +107,16 @@ let taskManager = null;
  * 1.3 Evento DOMContentLoaded principal
  * Punto de entrada de la aplicación cuando el DOM está completamente cargado.
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 Inicializando Sistema de Gestión de Documentos - CBTIS051');
     console.log('📡 URL de la API:', CONFIG.API_BASE_URL);
-    
+
     initializeApp();
     setupEventListeners();
     loadInitialData();
-    
+
+    initHistorial(); // Nueva línea
+
     // Inicializar módulo de notificaciones
     initNotificaciones();
 });
@@ -130,17 +137,17 @@ function initializeApp() {
         }
         return DOM[key] === null;
     });
-    
+
     if (missingElements.length > 0) {
         console.warn('⚠️ Elementos DOM faltantes:', missingElements);
     }
-    
+
     // Inicializar navegación activa
     initializeActiveNavigation();
-    
+
     // Inicializar gestor de tareas
     initializeTaskManager();
-    
+
     // Mostrar estado inicial
     appState.logState();
 }
@@ -167,18 +174,18 @@ function initializeTaskManager() {
  */
 function initializeActiveNavigation() {
     console.log('🎯 Inicializando navegación activa...');
-    
+
     // Verificar si hay una pestaña activa en el HTML
     const currentActiveLink = document.querySelector('.sidebar__nav-link--active');
     if (currentActiveLink) {
         const activeTab = currentActiveLink.getAttribute('data-tab');
         console.log('📌 Pestaña activa encontrada en HTML:', activeTab);
-        
+
         // Asegurarse de que el contenido también esté activo
         DOM.tabContents.forEach(tab => {
             tab.classList.toggle('tab-content--active', tab.id === activeTab);
         });
-        
+
         appState.currentTab = activeTab;
     } else {
         // Si no hay activa, activar dashboard
@@ -207,86 +214,90 @@ function setupEventListeners() {
      * Procesa clics en las tarjetas de acciones rápidas del dashboard.
      */
     function handleQuickAction(e) {
-    const action = this.querySelector('.action-card__title')?.textContent;
-    console.log(`⚡ Acción rápida: ${action}`);
-    
-    switch(action) {
-        case 'Subir Documento':
-            openDocumentModal();
-            break;
-        case 'Subir Múltiples':
-            openDocumentModal();
-            // Cambiar automáticamente a modo múltiple
-            setTimeout(() => {
-                switchUploadMode('multiple');
-            }, 100);
-            break;
-        case 'Agregar Persona':
-            openPersonModal();
-            break;
-        case 'Generar Reporte':
-            generateReport();
-            break;
-        case 'Búsqueda Avanzada':
-            showAdvancedSearch();
-            break;
-        default:
-            console.warn('Acción no reconocida:', action);
+        const action = this.querySelector('.action-card__title')?.textContent;
+        console.log(`⚡ Acción rápida: ${action}`);
+
+        switch (action) {
+            case 'Subir Documento':
+                openDocumentModal();
+                break;
+            case 'Subir Múltiples':
+                openDocumentModal();
+                // Cambiar automáticamente a modo múltiple
+                setTimeout(() => {
+                    switchUploadMode('multiple');
+                }, 100);
+                break;
+            case 'Agregar Persona':
+                openPersonModal();
+                break;
+            case 'Generar Reporte':
+                generateReport();
+                break;
+            case 'Búsqueda Avanzada':
+                showAdvancedSearch();
+                break;
+            default:
+                console.warn('Acción no reconocida:', action);
+        }
     }
-}
-    
+
+    document.getElementById('historialBtn')?.addEventListener('click', () => {
+        switchTab('historial');
+    });
+
     // =============================================================================
     // 3.2 EVENT LISTENERS PARA SUBIDA MÚLTIPLE
     // =============================================================================
-    
+
     /**
      * 3.2.1 Tabs de modo de subida
      * Alterna entre subida única y múltiple.
      */
     DOM.uploadTabs?.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             const mode = this.dataset.mode;
             switchUploadMode(mode);
         });
     });
-    
+
     /**
      * 3.2.2 Botón para seleccionar múltiples archivos
      * Dispara el input file con atributo multiple.
      */
     DOM.browseMultipleFilesBtn?.addEventListener('click', () => DOM.multipleFileInput?.click());
-    
+
     /**
      * 3.2.3 Input para múltiples archivos
      * Maneja la selección de múltiples archivos.
      */
     DOM.multipleFileInput?.addEventListener('change', handleMultipleFileSelect);
-    
+
     /**
      * 3.2.4 Botón para subir múltiples documentos
      * Inicia el proceso de subida de todos los archivos seleccionados.
      */
     DOM.uploadMultipleDocumentsBtn?.addEventListener('click', () => handleUploadMultipleDocuments());
-    
+
     /**
      * 3.2.5 Toggle de opciones avanzadas
      * Muestra/oculta configuración adicional para subidas múltiples.
      */
-    DOM.toggleAdvancedOptions?.addEventListener('click', function() {
+    DOM.toggleAdvancedOptions?.addEventListener('click', function () {
         const advancedOptions = DOM.advancedOptions;
         if (advancedOptions) {
             const isVisible = advancedOptions.style.display === 'block';
             advancedOptions.style.display = isVisible ? 'none' : 'block';
-            this.innerHTML = isVisible ? 
+            this.innerHTML = isVisible ?
                 '<i class="fas fa-sliders-h"></i> Opciones Avanzadas' :
                 '<i class="fas fa-sliders-h"></i> Ocultar Opciones';
         }
     });
-    
+
     // =============================================================================
     // 3.3 EVENT LISTENERS PRINCIPALES
     // =============================================================================
-    
+
     /**
      * 3.3.1 Navegación entre pestañas
      * Maneja clics en los enlaces de la barra lateral.
@@ -294,19 +305,19 @@ function setupEventListeners() {
     DOM.navLinks.forEach(link => {
         link.addEventListener('click', handleTabNavigation);
     });
-    
+
     /**
      * 3.3.2 Dashboard - Refrescar datos
      * Actualiza todas las estadísticas del panel principal.
      */
     DOM.refreshDashboard?.addEventListener('click', () => handleRefreshDashboard(appState));
-    
+
     /**
      * 3.3.3 Dashboard - Agregar primer documento
      * Acceso rápido al formulario de subida desde estado vacío.
      */
     DOM.addFirstDocument?.addEventListener('click', () => openDocumentModal());
-    
+
     /**
      * 3.3.4 Acciones rápidas
      * Procesa clics en tarjetas de acciones del dashboard.
@@ -314,155 +325,155 @@ function setupEventListeners() {
     DOM.quickActions.forEach(action => {
         action.addEventListener('click', handleQuickAction);
     });
-    
+
     /**
      * 3.3.5 Personas - Agregar
      * Abre formulario para registrar nueva persona.
      */
     DOM.addPersonBtn?.addEventListener('click', () => openPersonModal());
-    
+
     /**
      * 3.3.6 Personas - Guardar
      * Ejecuta guardado/actualización de datos de persona.
      */
     DOM.savePersonBtn?.addEventListener('click', () => handleSavePerson());
-    
+
     /**
      * 3.3.7 Personas - Cancelar
      * Cierra formulario de persona sin guardar.
      */
     DOM.cancelPersonBtn?.addEventListener('click', () => closePersonModal());
-    
+
     /**
      * 3.3.8 Documentos - Agregar
      * Abre formulario para subir documento.
      */
     DOM.addDocumentBtn?.addEventListener('click', () => openDocumentModal());
-    
+
     /**
      * 3.3.9 Documentos - Explorar archivos
      * Abre selector de archivos del sistema.
      */
     DOM.browseFilesBtn?.addEventListener('click', () => DOM.fileInput?.click());
-    
+
     /**
      * 3.3.10 Documentos - Selección de archivo
      * Maneja selección de archivo único.
      */
     DOM.fileInput?.addEventListener('change', handleFileSelect);
-    
+
     /**
      * 3.3.11 Documentos - Subir documento único
      * Inicia subida de archivo individual.
      */
     DOM.uploadDocumentBtn?.addEventListener('click', () => handleUploadDocument());
-    
+
     /**
      * 3.3.12 Documentos - Cancelar
      * Cierra formulario de documento sin subir.
      */
     DOM.cancelDocumentBtn?.addEventListener('click', () => closeDocumentModal());
-    
+
     /**
      * 3.3.13 Búsqueda de documentos - Buscar
      * Ejecuta búsqueda básica por término.
      */
     DOM.searchDocumentsBtn?.addEventListener('click', () => handleDocumentSearch());
-    
+
     /**
      * 3.3.14 Búsqueda de documentos - Limpiar
      * Remueve filtros y términos de búsqueda.
      */
     DOM.clearSearchBtn?.addEventListener('click', () => handleClearSearch());
-    
+
     /**
      * 3.3.15 Búsqueda de documentos - Enter
      * Ejecuta búsqueda al presionar Enter en campo de texto.
      */
-    DOM.documentSearch?.addEventListener('keypress', function(e) {
+    DOM.documentSearch?.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             handleDocumentSearch();
         }
     });
-    
+
     /**
      * 3.3.16 Filtros - Cambio de categoría
      * Actualiza filtro por categoría y refresca tabla.
      */
     DOM.filterCategory?.addEventListener('change', handleFilterChange);
-    
+
     /**
      * 3.3.17 Filtros - Cambio de tipo
      * Actualiza filtro por tipo de archivo y refresca tabla.
      */
     DOM.filterType?.addEventListener('change', handleFilterChange);
-    
+
     /**
      * 3.3.18 Filtros - Cambio de fecha
      * Actualiza filtro por rango de tiempo y refresca tabla.
      */
     DOM.filterDate?.addEventListener('change', handleFilterChange);
-    
+
     /**
      * 3.3.19 Filtros - Cambio de estado
      * Actualiza filtro por estado de vencimiento y refresca tabla.
      */
     DOM.filterStatus?.addEventListener('change', handleFilterChange);
-    
+
     /**
      * 3.3.20 Categorías - Agregar
      * Abre formulario para crear nueva categoría.
      */
     DOM.addCategoryBtn?.addEventListener('click', () => openCategoryModal());
-    
+
     /**
      * 3.3.21 Categorías - Guardar
      * Ejecuta guardado/actualización de categoría.
      */
     DOM.saveCategoryBtn?.addEventListener('click', () => handleSaveCategory());
-    
+
     /**
      * 3.3.22 Categorías - Cancelar
      * Cierra formulario de categoría sin guardar.
      */
     DOM.cancelCategoryBtn?.addEventListener('click', () => closeCategoryModal());
-    
+
     /**
      * 3.3.23 Búsqueda avanzada - Ejecutar
      * Realiza búsqueda con múltiples criterios.
      */
     DOM.performSearchBtn?.addEventListener('click', () => handleAdvancedSearch());
-    
+
     /**
      * 3.3.24 Búsqueda avanzada - Cancelar
      * Cierra modal de búsqueda avanzada.
      */
     DOM.cancelSearchBtn?.addEventListener('click', () => closeSearchModal());
-    
+
     /**
      * 3.3.25 Reportes - Cambio de tipo
      * Actualiza filtros específicos según tipo de reporte seleccionado.
      */
     DOM.reportType?.addEventListener('change', handleReportTypeChange);
-    
+
     /**
      * 3.3.26 Reportes - Generar
      * Ejecuta generación y descarga de reporte.
      */
     DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
-    
+
     /**
      * 3.3.27 Reportes - Cancelar
      * Cierra modal de reportes sin generar.
      */
     DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
-    
+
     /**
      * 3.3.28 Drag and Drop
      * Configura área de arrastrar y soltar archivos.
      */
     setupFileDragAndDrop();
-    
+
     /**
      * 3.3.29 Botones de cierre de modales
      * Asigna funcionalidad a botones de cerrar (×) de todos los modales.
@@ -470,7 +481,7 @@ function setupEventListeners() {
     DOM.modalCloseButtons.forEach(btn => {
         btn.addEventListener('click', handleModalClose);
     });
-    
+
     /**
      * 3.3.30 Cerrar modales al hacer clic fuera
      * Configura cierre de modales al hacer clic en el fondo oscuro.
@@ -484,7 +495,7 @@ function setupEventListeners() {
         taskModal: DOM.taskModal
     };
     setupModalBackdropClose(modals);
-    
+
     console.log('✅ Event listeners configurados correctamente');
 }
 
@@ -536,7 +547,7 @@ const applyTheme = (theme) => {
 const initTheme = () => {
     const preferredTheme = getPreferredTheme();
     applyTheme(preferredTheme);
-    
+
     // Escuchar cambios en preferencia del sistema
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', (e) => {
@@ -590,24 +601,24 @@ function handleTabNavigation(e) {
  */
 function switchTab(tabId) {
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
     }
-    
+
     console.log(`🔄 Cambiando a pestaña: ${tabId}`);
-    
+
     // 1. Remover clase activa de TODOS los enlaces
     DOM.navLinks.forEach(link => {
         link.classList.remove('sidebar__nav-link--active', 'header__nav-link--active');
     });
-    
+
     // 2. Agregar clase activa SOLO al enlace seleccionado
     const activeLink = Array.from(DOM.navLinks).find(
         link => link.getAttribute('data-tab') === tabId
     );
-    
+
     if (activeLink) {
         activeLink.classList.add('sidebar__nav-link--active');
         console.log(`✅ Enlace activo establecido: ${tabId}`);
@@ -615,12 +626,12 @@ function switchTab(tabId) {
         console.error(`❌ No se encontró enlace para: ${tabId}`);
         return;
     }
-    
+
     // 3. Ocultar TODOS los contenidos
     DOM.tabContents.forEach(tab => {
         tab.classList.remove('tab-content--active');
     });
-    
+
     // 4. Mostrar SOLO el contenido activo
     const activeTab = document.getElementById(tabId);
     if (activeTab) {
@@ -630,11 +641,11 @@ function switchTab(tabId) {
         console.error(`❌ No se encontró contenido para: ${tabId}`);
         return;
     }
-    
+
     // 5. Actualizar estado
     appState.currentTab = tabId;
     console.log(`🎯 Pestaña cambiada exitosamente a: ${tabId}`);
-    
+
     // 6. Cargar datos específicos
     loadTabSpecificData(tabId);
 }
@@ -646,30 +657,30 @@ function switchTab(tabId) {
 function loadTabSpecificData(tabId) {
     try {
         console.log(`🔄 Cargando datos específicos para pestaña: ${tabId}`);
-        
-        switch(tabId) {
+
+        switch (tabId) {
             case 'dashboard':
                 loadDashboardData();
                 break;
-                
+
             case 'personas':
                 if (window.personManager && typeof personManager.loadData === 'function') {
                     personManager.loadData();
                 }
                 break;
-                
+
             case 'documentos':
                 if (window.documentManager && typeof documentManager.loadData === 'function') {
                     documentManager.loadData();
                 }
                 break;
-                
+
             case 'categorias':
                 if (window.categoryManager && typeof categoryManager.loadData === 'function') {
                     categoryManager.loadData();
                 }
                 break;
-                
+
             case 'tareas':
                 if (window.taskManager && typeof taskManager.loadTasks === 'function') {
                     taskManager.loadTasks();
@@ -679,7 +690,11 @@ function loadTabSpecificData(tabId) {
                     taskManager.updateSummary();
                 }
                 break;
-                
+
+            case 'historial':
+                loadTabSpecificHistorial();
+                break;
+
             default:
                 console.log(`ℹ️  No hay carga específica para la pestaña: ${tabId}`);
         }
@@ -699,7 +714,7 @@ function loadTabSpecificData(tabId) {
  */
 async function loadInitialData() {
     console.log('📥 Cargando datos iniciales...');
-    
+
     try {
         await Promise.all([
             loadDashboardData(appState),
@@ -707,7 +722,7 @@ async function loadInitialData() {
             loadDocuments(),
             loadCategories()
         ]);
-        
+
         console.log('✅ Datos iniciales cargados correctamente');
         showAlert('Sistema cargado correctamente', 'success');
     } catch (error) {
@@ -727,8 +742,8 @@ async function loadInitialData() {
 function handleQuickAction(e) {
     const action = this.querySelector('.action-card__title')?.textContent;
     console.log(`⚡ Acción rápida: ${action}`);
-    
-    switch(action) {
+
+    switch (action) {
         case 'Subir Documento':
             openDocumentModal();
             break;
@@ -803,7 +818,7 @@ function createQuickTask(title, description = '', priority = 'media') {
             dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             reminder: false
         };
-        
+
         taskManager.openTaskModal(quickTask);
     }
 }
@@ -814,7 +829,7 @@ function createQuickTask(title, description = '', priority = 'media') {
  */
 function getTasksStats() {
     if (!taskManager) return null;
-    
+
     const tasks = taskManager.tasks;
     return {
         total: tasks.length,
@@ -839,7 +854,7 @@ function getTasksStats() {
 function debugAppState() {
     console.group('🔧 Debug App State');
     appState.logState();
-    
+
     // Mostrar estadísticas de tareas si están disponibles
     if (taskManager) {
         console.log('📊 Estadísticas de Tareas:', {
@@ -856,7 +871,7 @@ function debugAppState() {
             }
         });
     }
-    
+
     console.groupEnd();
 }
 
@@ -867,7 +882,7 @@ function debugAppState() {
 function testAPIConnection() {
     console.log('🧪 Probando conexión API...');
     showAlert('Probando conexión con el servidor...', 'info');
-    
+
     fetch(`${CONFIG.API_BASE_URL}/health`)
         .then(response => response.json())
         .then(data => {
@@ -890,13 +905,13 @@ function testAPIConnection() {
 function testCloudinaryConnection() {
     console.log('☁️ Probando Cloudinary...');
     showAlert('Probando conexión con Cloudinary...', 'info');
-    
+
     console.log('Cloudinary Config:', {
         cloudName: CONFIG.CLOUDINARY_CLOUD_NAME,
         apiKey: CONFIG.CLOUDINARY_API_KEY,
         uploadPreset: CONFIG.CLOUDINARY_UPLOAD_PRESET
     });
-    
+
     showAlert('Configuración de Cloudinary verificada correctamente', 'success');
 }
 
@@ -906,12 +921,12 @@ function testCloudinaryConnection() {
  */
 function testTaskManager() {
     console.log('🧪 Probando gestor de tareas...');
-    
+
     if (!taskManager) {
         showAlert('Gestor de tareas no disponible', 'error');
         return;
     }
-    
+
     const testTask = {
         title: 'Tarea de prueba',
         description: 'Esta es una tarea de prueba generada automáticamente',
@@ -921,7 +936,7 @@ function testTaskManager() {
         dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
         reminder: true
     };
-    
+
     taskManager.openTaskModal(testTask);
     showAlert('Gestor de tareas funcionando correctamente', 'success');
 }
@@ -954,14 +969,14 @@ function showAllDocuments() {
         date: '',
         status: ''
     };
-    
+
     // Resetear filtros en la UI
     if (DOM.filterCategory) DOM.filterCategory.value = '';
     if (DOM.filterType) DOM.filterType.value = '';
     if (DOM.filterDate) DOM.filterDate.value = '';
     if (DOM.filterStatus) DOM.filterStatus.value = '';
     if (DOM.documentSearch) DOM.documentSearch.value = '';
-    
+
     renderDocumentsTable();
     showAlert('Mostrando todos los documentos', 'info');
 }
@@ -1042,7 +1057,7 @@ window.populateCategorySelect = (selectElement) => {
  * 12.1 Capturar errores globales
  * Intercepta errores no manejados para evitar caídas inesperadas.
  */
-window.addEventListener('error', function(e) {
+window.addEventListener('error', function (e) {
     console.error('🚨 Error global capturado:', e.error);
     showAlert('Ha ocurrido un error inesperado. Revisa la consola para más detalles.', 'error');
 });
@@ -1051,7 +1066,7 @@ window.addEventListener('error', function(e) {
  * 12.2 Capturar promesas rechazadas no manejadas
  * Maneja errores en operaciones asíncronas no capturadas.
  */
-window.addEventListener('unhandledrejection', function(e) {
+window.addEventListener('unhandledrejection', function (e) {
     console.error('🚨 Promise rechazada no manejada:', e.reason);
     showAlert('Error en operación asíncrona. Revisa la consola para más detalles.', 'error');
 });
@@ -1072,15 +1087,14 @@ setTimeout(() => {
         'taskForm',
         'tasksSearch',
         'filterPriority',
-        'filterStatus',
-        'clearFiltersBtn'
+        'filterStatus'
     ];
-    
+
     const missingTaskElements = taskElements.filter(id => !document.getElementById(id));
     if (missingTaskElements.length > 0) {
         console.warn('⚠️ Elementos de tareas faltantes en inicialización tardía:', missingTaskElements);
     }
-    
+
     if (taskManager && missingTaskElements.length === 0) {
         console.log('🔄 Re-bindeando eventos de tareas...');
         taskManager.bindEvents();
@@ -1093,8 +1107,8 @@ console.log('✅ Script de aplicación cargado correctamente');
 // 14. EXPORTACIONES PRINCIPALES
 // =============================================================================
 
-export { 
-    loadTabSpecificData, 
+export {
+    loadTabSpecificData,
     switchTab,
     taskManager,
     openTaskModal,
