@@ -1112,12 +1112,23 @@ app.post('/api/trash/:id/restore', async (req, res) => {
       });
     }
 
+    // Guardar datos para notificación
+    const nombreDocumento = documento.nombre_original;
+    const categoriaDocumento = documento.categoria;
+
     // Restaurar documento
     await Document.findByIdAndUpdate(id, { 
       isDeleted: false,
       deletedAt: null,
       deletedBy: null
     });
+
+    // Crear notificación de documento restaurado
+    try {
+      await NotificationService.documentoRestaurado(nombreDocumento, categoriaDocumento, 'Administrador');
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
 
     res.json({ 
       success: true, 
