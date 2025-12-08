@@ -2,6 +2,7 @@ import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
 import { apiCall } from '../api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
+import { updateTrashBadge } from './papelera.js';
 
 // =============================================================================
 // SECCIÓN 1: ESTADO DE SUBIDA MÚLTIPLE
@@ -3001,22 +3002,29 @@ function escapeHtml(unsafe) {
  * @param {string} id - ID del documento a eliminar
  */
 async function deleteDocument(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+    console.log('🔧 deleteDocument llamada con ID:', id);
+    
+    if (!confirm('¿Mover este documento a la papelera?')) {
+        console.log('⚠️ Usuario canceló la eliminación');
         return;
     }
     
     try {
-        console.log('🗑️ Eliminando documento:', id);
+        console.log('🗑️ Moviendo documento a la papelera:', id);
+        console.log('📡 Haciendo llamada DELETE a:', `/documents/${id}`);
         
-        const data = await apiCall(`/documents/${id}`, {
-            method: 'DELETE'
-        });
+        const data = await apiCall(`/documents/${id}`, { method: 'DELETE' });
+        
+        console.log('📦 Respuesta del servidor:', data);
         
         if (data.success) {
-            showAlert(data.message, 'success');
+            showAlert(data.message || 'Documento movido a la papelera', 'success');
             await loadDocuments();
             
-            if (window.appState.currentTab === 'dashboard') {
+            // Actualizar badge de papelera
+            await updateTrashBadge();
+            
+            if (window.appState && window.appState.currentTab === 'dashboard') {
                 await window.loadDashboardData();
             }
         } else {
@@ -3024,8 +3032,8 @@ async function deleteDocument(id) {
         }
         
     } catch (error) {
-        console.error('❌ Error eliminando documento:', error);
-        showAlert('Error al eliminar documento: ' + error.message, 'error');
+        console.error('❌ Error moviendo documento a papelera:', error);
+        showAlert('Error al mover documento a la papelera: ' + error.message, 'error');
     }
 }
 

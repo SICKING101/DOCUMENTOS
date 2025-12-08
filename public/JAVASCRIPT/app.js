@@ -64,6 +64,18 @@ import {
 } from './modules/categorias.js';
 
 import {
+    openDepartmentModal,
+    closeDepartmentModal,
+    saveDepartment,
+    loadDepartments,
+    renderDepartments,
+    populateDepartmentSelects,
+    editDepartment,
+    deleteDepartment,
+    handleSaveDepartment
+} from './modules/departamentos.js';
+
+import {
     showAdvancedSearch,
     closeSearchModal,
     handleDocumentSearch,
@@ -82,6 +94,10 @@ import {
 import {
     initNotificaciones
 } from './modules/notificaciones.js';
+
+import {
+    initPapelera
+} from './modules/papelera.js';
 
 // =============================================================================
 // 1. INICIALIZACIÓN DE LA APLICACIÓN
@@ -307,6 +323,17 @@ function setupEventListeners() {
     });
 
     /**
+     * 3.3.1b Botón de papelera en topbar
+     * Cambia a la pestaña de papelera al hacer clic
+     */
+    const trashBtn = document.getElementById('trashBtn');
+    if (trashBtn) {
+        trashBtn.addEventListener('click', async () => {
+            await switchTab('papelera');
+        });
+    }
+
+    /**
      * 3.3.2 Dashboard - Refrescar datos
      * Actualiza todas las estadísticas del panel principal.
      */
@@ -439,7 +466,25 @@ function setupEventListeners() {
     DOM.cancelCategoryBtn?.addEventListener('click', () => closeCategoryModal());
 
     /**
-     * 3.3.23 Búsqueda avanzada - Ejecutar
+     * 3.3.23 Departamentos - Agregar
+     * Abre formulario para crear nuevo departamento.
+     */
+    DOM.addDepartmentBtn?.addEventListener('click', () => openDepartmentModal());
+
+    /**
+     * 3.3.24 Departamentos - Guardar
+     * Ejecuta guardado/actualización de departamento.
+     */
+    DOM.saveDepartmentBtn?.addEventListener('click', () => handleSaveDepartment());
+
+    /**
+     * 3.3.25 Departamentos - Cancelar
+     * Cierra formulario de departamento sin guardar.
+     */
+    DOM.cancelDepartmentBtn?.addEventListener('click', () => closeDepartmentModal());
+
+    /**
+     * 3.3.26 Búsqueda avanzada - Ejecutar
      * Realiza búsqueda con múltiples criterios.
      */
     DOM.performSearchBtn?.addEventListener('click', () => handleAdvancedSearch());
@@ -588,20 +633,20 @@ document.addEventListener('DOMContentLoaded', initTheme);
  * 5.1 Manejar navegación por pestañas
  * Procesa clics en enlaces de la barra lateral para cambiar de sección.
  */
-function handleTabNavigation(e) {
+async function handleTabNavigation(e) {
     e.preventDefault();
     const tabId = this.getAttribute('data-tab');
     console.log(`📂 Cambiando a pestaña: ${tabId}`);
-    switchTab(tabId);
+    await switchTab(tabId);
 }
 
 /**
  * 5.2 Cambiar pestaña
  * Función principal que actualiza interfaz y estado al cambiar de sección.
  */
-function switchTab(tabId) {
+async function switchTab(tabId) {
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
@@ -614,7 +659,7 @@ function switchTab(tabId) {
         link.classList.remove('sidebar__nav-link--active', 'header__nav-link--active');
     });
 
-    // 2. Agregar clase activa SOLO al enlace seleccionado
+    // 2. Agregar clase activa SOLO al enlace seleccionado (si existe en sidebar)
     const activeLink = Array.from(DOM.navLinks).find(
         link => link.getAttribute('data-tab') === tabId
     );
@@ -623,8 +668,8 @@ function switchTab(tabId) {
         activeLink.classList.add('sidebar__nav-link--active');
         console.log(`✅ Enlace activo establecido: ${tabId}`);
     } else {
-        console.error(`❌ No se encontró enlace para: ${tabId}`);
-        return;
+        console.log(`⚠️ No hay enlace en sidebar para: ${tabId} (tab especial)`);
+        // No retornar - tabs especiales como papelera no tienen enlace en sidebar
     }
 
     // 3. Ocultar TODOS los contenidos
@@ -647,14 +692,14 @@ function switchTab(tabId) {
     console.log(`🎯 Pestaña cambiada exitosamente a: ${tabId}`);
 
     // 6. Cargar datos específicos
-    loadTabSpecificData(tabId);
+    await loadTabSpecificData(tabId);
 }
 
 /**
  * 5.3 Cargar datos específicos por pestaña
  * Ejecuta funciones de carga correspondientes según la sección activa.
  */
-function loadTabSpecificData(tabId) {
+async function loadTabSpecificData(tabId) {
     try {
         console.log(`🔄 Cargando datos específicos para pestaña: ${tabId}`);
 
@@ -695,6 +740,10 @@ function loadTabSpecificData(tabId) {
                 loadTabSpecificHistorial();
                 break;
 
+            case 'papelera':
+                await initPapelera();
+                break;
+
             default:
                 console.log(`ℹ️  No hay carga específica para la pestaña: ${tabId}`);
         }
@@ -720,7 +769,8 @@ async function loadInitialData() {
             loadDashboardData(appState),
             loadPersons(),
             loadDocuments(),
-            loadCategories()
+            loadCategories(),
+            loadDepartments()
         ]);
 
         console.log('✅ Datos iniciales cargados correctamente');

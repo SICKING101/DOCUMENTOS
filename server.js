@@ -52,6 +52,14 @@ const categorySchema = new mongoose.Schema({
   activo: { type: Boolean, default: true }
 }, { timestamps: true });
 
+const departmentSchema = new mongoose.Schema({
+  nombre: { type: String, required: true },
+  descripcion: String,
+  color: { type: String, default: '#3b82f6' },
+  icon: { type: String, default: 'building' },
+  activo: { type: Boolean, default: true }
+}, { timestamps: true });
+
 const documentSchema = new mongoose.Schema({
   nombre_original: { type: String, required: true },
   tipo_archivo: { type: String, required: true },
@@ -64,7 +72,11 @@ const documentSchema = new mongoose.Schema({
   cloudinary_url: { type: String, required: true },
   public_id: { type: String, required: true },
   resource_type: { type: String, required: true },
-  activo: { type: Boolean, default: true }
+  activo: { type: Boolean, default: true },
+  // Campos para papelera
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
+  deletedBy: { type: String, default: null }
 }, { timestamps: true });
 
 const taskSchema = new mongoose.Schema({
@@ -91,6 +103,7 @@ const taskSchema = new mongoose.Schema({
 
 const Person = mongoose.model('Person', personSchema);
 const Category = mongoose.model('Category', categorySchema);
+const Department = mongoose.model('Department', departmentSchema);
 const Document = mongoose.model('Document', documentSchema);
 const Task = mongoose.model('Task', taskSchema);
 
@@ -168,7 +181,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/dashboard', async (req, res) => {
   try {
     const totalPersonas = await Person.countDocuments({ activo: true });
-    const totalDocumentos = await Document.countDocuments({ activo: true });
+    const totalDocumentos = await Document.countDocuments({ activo: true, isDeleted: false });
     const totalCategorias = await Category.countDocuments({ activo: true });
 
     // Documentos próximos a vencer (en los próximos 30 días)
@@ -176,6 +189,7 @@ app.get('/api/dashboard', async (req, res) => {
     fechaLimite.setDate(fechaLimite.getDate() + 30);
     const proximosVencer = await Document.countDocuments({
       activo: true,
+      isDeleted: false,
       fecha_vencimiento: { 
         $gte: new Date(), 
         $lte: fechaLimite 
@@ -183,7 +197,7 @@ app.get('/api/dashboard', async (req, res) => {
     });
 
     // Documentos recientes
-    const recentDocuments = await Document.find({ activo: true })
+    const recentDocuments = await Document.find({ activo: true, isDeleted: false })
       .populate('persona_id', 'nombre')
       .sort({ fecha_subida: -1 })
       .limit(5)
@@ -528,11 +542,172 @@ app.delete('/api/categories/:id', async (req, res) => {
 });
 
 // -----------------------------
+// DEPARTAMENTOS
+// -----------------------------
+app.get('/api/departments', async (req, res) => {
+  try {
+    const departments = await Department.find({ activo: true }).sort({ nombre: 1 });
+    
+    // Contar personas por departamento
+    const departmentsWithCounts = await Promise.all(
+      departments.map(async (department) => {
+        const personCount = await Person.countDocuments({ 
+          departamento: department.nombre,
+          activo: true 
+        });
+        return {
+          ...department.toObject(),
+          personCount
+        };
+      })
+    );
+
+    res.json({ success: true, departments: departmentsWithCounts });
+  } catch (error) {
+    console.error('Error obteniendo departamentos:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener departamentos' });
+  }
+});
+
+app.post('/api/departments', async (req, res) => {
+  try {
+    const { nombre, descripcion, color, icon } = req.body;
+    
+    if (!nombre) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'El nombre es obligatorio' 
+      });
+    }
+
+    // Verificar si ya existe un departamento con el mismo nombre
+    const departamentoExistente = await Department.findOne({ 
+      nombre: { $regex: new RegExp(`^${nombre}$`, 'i') },
+      activo: true 
+    });
+
+    if (departamentoExistente) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Ya existe un departamento con ese nombre' 
+      });
+    }
+
+    const nuevoDepartamento = new Department({
+      nombre,
+      descripcion,
+      color: color || '#3b82f6',
+      icon: icon || 'building'
+    });
+
+    await nuevoDepartamento.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Departamento creado correctamente',
+      department: nuevoDepartamento 
+    });
+  } catch (error) {
+    console.error('Error creando departamento:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al crear departamento' 
+    });
+  }
+});
+
+app.put('/api/departments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, descripcion, color, icon } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const departamentoActualizado = await Department.findByIdAndUpdate(
+      id,
+      { nombre, descripcion, color, icon },
+      { new: true, runValidators: true }
+    );
+
+    if (!departamentoActualizado) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Departamento no encontrado' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Departamento actualizado correctamente',
+      department: departamentoActualizado 
+    });
+  } catch (error) {
+    console.error('Error actualizando departamento:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al actualizar departamento' 
+    });
+  }
+});
+
+app.delete('/api/departments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const departamento = await Department.findById(id);
+    if (!departamento) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Departamento no encontrado' 
+      });
+    }
+
+    // Verificar si hay personas en este departamento
+    const personasEnDepartamento = await Person.countDocuments({ 
+      departamento: departamento.nombre,
+      activo: true 
+    });
+
+    if (personasEnDepartamento > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No se puede eliminar el departamento porque tiene personas asociadas' 
+      });
+    }
+
+    await Department.findByIdAndUpdate(id, { activo: false });
+
+    res.json({ 
+      success: true, 
+      message: 'Departamento eliminado correctamente' 
+    });
+  } catch (error) {
+    console.error('Error eliminando departamento:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al eliminar departamento' 
+    });
+  }
+});
+
+// -----------------------------
 // DOCUMENTOS
 // -----------------------------
 app.get('/api/documents', async (req, res) => {
   try {
-    const documents = await Document.find({ activo: true })
+    const documents = await Document.find({ activo: true, isDeleted: false })
       .populate('persona_id', 'nombre email departamento puesto')
       .sort({ fecha_subida: -1 });
 
@@ -694,6 +869,226 @@ app.get('/api/documents/:id/preview', async (req, res) => {
 app.delete('/api/documents/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    
+    console.log('🗑️ ========== ELIMINACIÓN SOFT DELETE ==========');
+    console.log('📋 ID recibido:', id);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log('❌ ID inválido:', id);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const documento = await Document.findOne({ _id: id, activo: true, isDeleted: false });
+    
+    console.log('📄 Documento encontrado:', documento ? 'SÍ' : 'NO');
+    if (documento) {
+      console.log('📄 Nombre:', documento.nombre_original);
+      console.log('📄 Categoría:', documento.categoria);
+    }
+
+    if (!documento) {
+      console.log('❌ Documento no encontrado o ya eliminado');
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Documento no encontrado' 
+      });
+    }
+
+    // Guardar datos para la notificación antes de mover a papelera
+    const nombreDocumento = documento.nombre_original;
+    const categoriaDocumento = documento.categoria;
+
+    // Mover a papelera (eliminación suave)
+    const updateResult = await Document.findByIdAndUpdate(id, { 
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedBy: 'Administrador' // En producción, usar el usuario actual
+    }, { new: true });
+    
+    console.log('✅ Documento actualizado en BD');
+    console.log('📋 isDeleted:', updateResult.isDeleted);
+    console.log('📋 deletedAt:', updateResult.deletedAt);
+    console.log('📋 deletedBy:', updateResult.deletedBy);
+
+    // Crear notificación de documento movido a papelera
+    try {
+      await NotificationService.documentoEliminado(nombreDocumento, categoriaDocumento);
+      console.log('✅ Notificación creada');
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+    
+    console.log('🗑️ ========== FIN ELIMINACIÓN ==========');
+
+    res.json({ 
+      success: true, 
+      message: 'Documento movido a la papelera' 
+    });
+
+  } catch (error) {
+    console.error('Error moviendo documento a papelera:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al eliminar documento' 
+    });
+  }
+});
+
+// -----------------------------
+// PAPELERA (TRASH BIN)
+// -----------------------------
+
+// Obtener todos los documentos en la papelera
+app.get('/api/trash', async (req, res) => {
+  try {
+    console.log('🗑️ ========== OBTENIENDO PAPELERA ==========');
+    
+    const trashedDocs = await Document.find({ 
+      activo: true, 
+      isDeleted: true 
+    })
+    .populate('persona_id', 'nombre email departamento')
+    .sort({ deletedAt: -1 });
+    
+    console.log('📊 Documentos en papelera encontrados:', trashedDocs.length);
+    trashedDocs.forEach((doc, index) => {
+      console.log(`  ${index + 1}. ${doc.nombre_original} - Eliminado: ${doc.deletedAt}`);
+    });
+
+    // Calcular días restantes para cada documento
+    const docsWithDaysRemaining = trashedDocs.map(doc => {
+      const deletedDate = new Date(doc.deletedAt);
+      const expirationDate = new Date(deletedDate);
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      
+      const now = new Date();
+      const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+      
+      return {
+        ...doc.toObject(),
+        daysRemaining: Math.max(0, daysRemaining),
+        expirationDate: expirationDate
+      };
+    });
+    
+    console.log('🗑️ ========== FIN OBTENER PAPELERA ==========');
+
+    res.json({ 
+      success: true, 
+      documents: docsWithDaysRemaining 
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo documentos de papelera:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al obtener documentos de la papelera' 
+    });
+  }
+});
+
+// Vaciar papelera (eliminar todos los documentos permanentemente) - DEBE IR ANTES DE /:id
+app.delete('/api/trash/empty-all', async (req, res) => {
+  try {
+    console.log('🗑️ ========== VACIANDO PAPELERA ==========');
+    const trashedDocs = await Document.find({ 
+      activo: true, 
+      isDeleted: true 
+    });
+
+    console.log('📊 Documentos a eliminar:', trashedDocs.length);
+    let deletedCount = 0;
+    let errorCount = 0;
+
+    for (const doc of trashedDocs) {
+      try {
+        // Eliminar de Cloudinary
+        await cloudinary.uploader.destroy(doc.public_id, {
+          resource_type: doc.resource_type
+        });
+        
+        // Eliminar de la base de datos
+        await Document.findByIdAndUpdate(doc._id, { activo: false });
+        deletedCount++;
+        console.log(`  ✅ ${doc.nombre_original}`);
+      } catch (error) {
+        console.error(`❌ Error eliminando ${doc.nombre_original}:`, error);
+        errorCount++;
+      }
+    }
+
+    console.log('🗑️ ========== FIN VACIADO ==========');
+    res.json({ 
+      success: true, 
+      message: `Papelera vaciada: ${deletedCount} documentos eliminados`,
+      deletedCount,
+      errorCount
+    });
+
+  } catch (error) {
+    console.error('Error vaciando papelera:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al vaciar papelera' 
+    });
+  }
+});
+
+// Proceso automático para eliminar documentos con más de 30 días en papelera - DEBE IR ANTES DE /:id
+app.post('/api/trash/auto-cleanup', async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const expiredDocs = await Document.find({
+      activo: true,
+      isDeleted: true,
+      deletedAt: { $lte: thirtyDaysAgo }
+    });
+
+    let deletedCount = 0;
+    let errorCount = 0;
+
+    for (const doc of expiredDocs) {
+      try {
+        // Eliminar de Cloudinary
+        await cloudinary.uploader.destroy(doc.public_id, {
+          resource_type: doc.resource_type
+        });
+        
+        // Eliminar de la base de datos
+        await Document.findByIdAndUpdate(doc._id, { activo: false });
+        deletedCount++;
+        console.log(`🗑️ Auto-eliminado: ${doc.nombre_original}`);
+      } catch (error) {
+        console.error(`Error auto-eliminando ${doc.nombre_original}:`, error);
+        errorCount++;
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Limpieza automática completada: ${deletedCount} documentos eliminados`,
+      deletedCount,
+      errorCount
+    });
+
+  } catch (error) {
+    console.error('Error en limpieza automática:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error en limpieza automática' 
+    });
+  }
+});
+
+// Restaurar documento de la papelera
+app.post('/api/trash/:id/restore', async (req, res) => {
+  try {
+    const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ 
@@ -702,48 +1097,83 @@ app.delete('/api/documents/:id', async (req, res) => {
       });
     }
 
-    const documento = await Document.findOne({ _id: id, activo: true });
+    const documento = await Document.findOne({ _id: id, activo: true, isDeleted: true });
 
     if (!documento) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Documento no encontrado' 
+        message: 'Documento no encontrado en la papelera' 
       });
     }
 
-    // Guardar datos para la notificación antes de eliminar
+    // Restaurar documento
+    await Document.findByIdAndUpdate(id, { 
+      isDeleted: false,
+      deletedAt: null,
+      deletedBy: null
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Documento restaurado exitosamente',
+      document: documento 
+    });
+
+  } catch (error) {
+    console.error('Error restaurando documento:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al restaurar documento' 
+    });
+  }
+});
+
+// Eliminar documento permanentemente de la papelera
+app.delete('/api/trash/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const documento = await Document.findOne({ _id: id, activo: true, isDeleted: true });
+
+    if (!documento) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Documento no encontrado en la papelera' 
+      });
+    }
+
     const nombreDocumento = documento.nombre_original;
-    const categoriaDocumento = documento.categoria;
 
     // Eliminar de Cloudinary
     try {
       await cloudinary.uploader.destroy(documento.public_id, {
         resource_type: documento.resource_type
       });
+      console.log('✅ Archivo eliminado de Cloudinary');
     } catch (cloudinaryError) {
-      console.warn('No se pudo eliminar de Cloudinary:', cloudinaryError);
+      console.warn('⚠️ No se pudo eliminar de Cloudinary:', cloudinaryError);
     }
 
-    // Eliminar lógicamente de la base de datos
+    // Eliminar permanentemente de la base de datos
     await Document.findByIdAndUpdate(id, { activo: false });
-
-    // Crear notificación de documento eliminado
-    try {
-      await NotificationService.documentoEliminado(nombreDocumento, categoriaDocumento);
-    } catch (notifError) {
-      console.error('⚠️ Error creando notificación:', notifError.message);
-    }
 
     res.json({ 
       success: true, 
-      message: 'Documento eliminado correctamente' 
+      message: `"${nombreDocumento}" eliminado permanentemente` 
     });
 
   } catch (error) {
-    console.error('Error eliminando documento:', error);
+    console.error('Error eliminando documento permanentemente:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Error al eliminar documento' 
+      message: 'Error al eliminar documento permanentemente' 
     });
   }
 });
@@ -775,7 +1205,7 @@ app.post('/api/reports/excel', async (req, res) => {
     const { reportType, category, person, days, dateFrom, dateTo } = req.body;
 
     // Obtener datos según el tipo de reporte
-    let documents = await Document.find({ activo: true })
+    let documents = await Document.find({ activo: true, isDeleted: false })
       .populate('persona_id', 'nombre email departamento puesto')
       .sort({ fecha_subida: -1 });
 
@@ -957,7 +1387,7 @@ app.post('/api/reports/pdf', async (req, res) => {
     const { reportType, category, person, days, dateFrom, dateTo } = req.body;
 
     // Obtener datos según el tipo de reporte
-    let documents = await Document.find({ activo: true })
+    let documents = await Document.find({ activo: true, isDeleted: false })
       .populate('persona_id', 'nombre email departamento puesto')
       .sort({ fecha_subida: -1 });
 
@@ -1144,7 +1574,7 @@ app.post('/api/reports/csv', async (req, res) => {
     const { reportType, category, person, days, dateFrom, dateTo } = req.body;
 
     // Obtener datos según el tipo de reporte
-    let documents = await Document.find({ activo: true })
+    let documents = await Document.find({ activo: true, isDeleted: false })
       .populate('persona_id', 'nombre email departamento puesto')
       .sort({ fecha_subida: -1 });
 

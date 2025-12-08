@@ -74,6 +74,10 @@
             <!-- ===== TOP BAR ===== -->
             <header class="topbar">
                 <div class="topbar__actions">
+                    <button class="topbar__action" id="trashBtn" title="Papelera">
+                        <i class="fas fa-trash-alt"></i>
+                        <span class="topbar__badge" id="trashBadge" style="display: none;">0</span>
+                    </button>
                     <button class="topbar__action" id="notificationsBtn" title="Notificaciones">
                         <i class="fas fa-bell"></i>
                         <span class="topbar__badge">3</span>
@@ -201,8 +205,90 @@
                     </section>
                 </section>
 
+                <!-- ===== PAPELERA TAB ===== -->
+                <section id="papelera" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">
+                                <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
+                            </h2>
+                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30 días</p>
+                        </div>
+                        <div class="trash-header-actions">
+                            <button class="btn btn--outline" id="refreshTrash">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                            <button class="btn btn--danger" id="emptyTrashBtn">
+                                <i class="fas fa-trash"></i> Vaciar Papelera
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas de papelera -->
+                    <div class="trash-stats">
+                        <div class="trash-stat-card">
+                            <div class="trash-stat-icon trash-stat-icon--primary">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashTotalDocs">0</div>
+                                <div class="trash-stat-label">Documentos en Papelera</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controles de papelera -->
+                    <div class="trash-controls">
+                        <div class="trash-controls-left">
+                            <button class="btn btn--outline btn--sm" id="selectAllTrash">
+                                <i class="fas fa-check-square"></i> Seleccionar Todo
+                            </button>
+                            <button class="btn btn--outline btn--sm" id="deselectAllTrash">
+                                <i class="fas fa-square"></i> Deseleccionar
+                            </button>
+                            <div class="trash-selection-counter" id="trashSelectionCounter" style="display: none;">
+                                0 seleccionado(s)
+                            </div>
+                        </div>
+
+                        <div class="trash-controls-right">
+                            <select id="trashSortSelect" class="sort-select">
+                                <option value="deletedAt-desc">Más recientes primero</option>
+                                <option value="deletedAt-asc">Más antiguos primero</option>
+                                <option value="daysRemaining-asc">Menos días restantes</option>
+                                <option value="daysRemaining-desc">Más días restantes</option>
+                                <option value="name-asc">Nombre (A-Z)</option>
+                                <option value="name-desc">Nombre (Z-A)</option>
+                                <option value="size-desc">Mayor tamaño</option>
+                                <option value="size-asc">Menor tamaño</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Acciones masivas -->
+                    <div class="trash-bulk-actions">
+                        <button class="btn btn--success" id="restoreSelectedBtn">
+                            <i class="fas fa-undo"></i> Restaurar Seleccionados
+                        </button>
+                        <button class="btn btn--danger" id="deleteSelectedBtn">
+                            <i class="fas fa-times"></i> Eliminar Seleccionados
+                        </button>
+                    </div>
+
+                    <!-- Lista de documentos en papelera -->
+                    <div class="trash-content" id="trashContent">
+                        <div id="trashDocumentsList" class="trash-documents-list">
+                            <div class="empty-state">
+                                <i class="fas fa-trash-alt"></i>
+                                <h3>La papelera está vacía</h3>
+                                <p>Los documentos eliminados aparecerán aquí</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- ===== HISTORIAL TAB ===== -->
-<section id="historial" class="tab-content">
+                <section id="historial" class="tab-content">
     <div class="section__header">
         <div>
             <h2 class="section__title">Historial del Sistema</h2>
@@ -219,9 +305,7 @@
                 <i class="fas fa-sync-alt"></i> Actualizar
             </button>
         </div>
-    </div>
-
-    <!-- Filtros avanzados -->
+    </div>    <!-- Filtros avanzados -->
     <div class="historial-filters">
         <div class="historial-filters__title">
             <i class="fas fa-filter"></i>
@@ -384,19 +468,34 @@
                         </button>
                     </div>
 
+                    <!-- Departments Section -->
+                    <div class="departments-section">
+                        <div class="section__header section__header--compact">
+                            <h3 class="section__title section__title--small">
+                                <i class="fas fa-building"></i> Departamentos
+                            </h3>
+                            <button class="btn btn--primary btn--sm" id="addDepartmentBtn">
+                                <i class="fas fa-plus"></i> Nuevo Departamento
+                            </button>
+                        </div>
+                        <div class="stats__grid" id="departmentsStats">
+                            <!-- Los departamentos se cargarán aquí -->
+                        </div>
+                    </div>
+
                     <!-- Filters -->
                     <div class="filters-bar">
                         <div class="filters-bar__search">
                             <i class="fas fa-search"></i>
                             <input type="text" placeholder="Buscar personas..." id="personasSearch">
                         </div>
-                        <select class="filters-bar__select">
+                        <select class="filters-bar__select" id="personasRoleFilter" name="roleFilter">
                             <option>Todos los roles</option>
                             <option>Estudiantes</option>
                             <option>Docentes</option>
                             <option>Personal</option>
                         </select>
-                        <select class="filters-bar__select">
+                        <select class="filters-bar__select" id="personasSortFilter" name="sortFilter">
                             <option>Ordenar por nombre</option>
                             <option>Ordenar por fecha</option>
                         </select>
@@ -457,14 +556,14 @@
                         <h3 class="filters__title">Filtros</h3>
                         <div class="filters__grid">
                             <div class="form__group">
-                                <label class="form__label">Categoría</label>
+                                <label for="filterCategory" class="form__label">Categoría</label>
                                 <select class="form__select" id="filterCategory">
                                     <option value="">Todas las categorías</option>
                                     <!-- Las categorías se cargarán dinámicamente -->
                                 </select>
                             </div>
                             <div class="form__group">
-                                <label class="form__label">Tipo de Archivo</label>
+                                <label for="filterType" class="form__label">Tipo de Archivo</label>
                                 <select class="form__select" id="filterType">
                                     <option value="">Todos los tipos</option>
                                     <option value="PDF">PDF</option>
@@ -474,7 +573,7 @@
                                 </select>
                             </div>
                             <div class="form__group">
-                                <label class="form__label">Fecha</label>
+                                <label for="filterDate" class="form__label">Fecha</label>
                                 <select class="form__select" id="filterDate">
                                     <option value="">Cualquier fecha</option>
                                     <option value="today">Hoy</option>
@@ -483,7 +582,7 @@
                                 </select>
                             </div>
                             <div class="form__group">
-                                <label class="form__label">Estado</label>
+                                <label for="filterStatus" class="form__label">Estado</label>
                                 <select class="form__select" id="filterStatus">
                                     <option value="">Todos los estados</option>
                                     <option value="active">Activos</option>
@@ -907,6 +1006,57 @@
             <footer class="modal__footer">
                 <button class="btn btn--outline" id="cancelCategoryBtn">Cancelar</button>
                 <button class="btn btn--primary" id="saveCategoryBtn">Guardar</button>
+            </footer>
+        </article>
+    </dialog>
+
+    <!-- Department Modal -->
+    <dialog id="departmentModal" class="modal">
+        <article class="modal__content">
+            <header class="modal__header">
+                <h3 class="modal__title" id="departmentModalTitle">Nuevo Departamento</h3>
+                <button class="modal__close">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="departmentForm">
+                    <input type="hidden" id="departmentId">
+                    <div class="form__group">
+                        <label for="departmentName" class="form__label">Nombre *</label>
+                        <input type="text" id="departmentName" class="form__input" placeholder="Ej: Recursos Humanos" required>
+                    </div>
+                    <div class="form__group">
+                        <label for="departmentDescription" class="form__label">Descripción</label>
+                        <textarea id="departmentDescription" class="form__textarea" rows="3" placeholder="Descripción del departamento..."></textarea>
+                    </div>
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="departmentColor" class="form__label">Color</label>
+                            <input type="color" id="departmentColor" class="form__input form__input--color"
+                                value="#3b82f6">
+                        </div>
+                        <div class="form__group">
+                            <label for="departmentIcon" class="form__label">Icono</label>
+                            <select id="departmentIcon" class="form__select">
+                                <option value="building">Edificio</option>
+                                <option value="users">Equipo</option>
+                                <option value="briefcase">Maletín</option>
+                                <option value="cogs">Operaciones</option>
+                                <option value="chart-line">Ventas</option>
+                                <option value="tools">Mantenimiento</option>
+                                <option value="graduation-cap">Académico</option>
+                                <option value="shield-alt">Seguridad</option>
+                                <option value="heartbeat">Salud</option>
+                                <option value="laptop-code">TI</option>
+                                <option value="balance-scale">Legal</option>
+                                <option value="money-bill-wave">Finanzas</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelDepartmentBtn">Cancelar</button>
+                <button class="btn btn--primary" id="saveDepartmentBtn">Guardar</button>
             </footer>
         </article>
     </dialog>
