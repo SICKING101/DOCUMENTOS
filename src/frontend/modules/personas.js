@@ -1,5 +1,5 @@
 import { DOM } from '../dom.js';
-import { apiCall } from '../api.js';
+import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
 import { setLoadingState, showAlert, isValidEmail } from '../utils.js';
 
 // =============================================================================
@@ -80,16 +80,10 @@ async function savePerson() {
         let data;
         if (DOM.personId.value) {
             // Actualizar persona existente
-            data = await apiCall(`/persons/${DOM.personId.value}`, {
-                method: 'PUT',
-                body: JSON.stringify(personData)
-            });
+            data = await api.updatePerson(DOM.personId.value, personData);  // CAMBIADO: usar api.updatePerson()
         } else {
             // Crear nueva persona
-            data = await apiCall('/persons', {
-                method: 'POST',
-                body: JSON.stringify(personData)
-            });
+            data = await api.createPerson(personData);  // CAMBIADO: usar api.createPerson()
         }
         
         if (data.success) {
@@ -122,7 +116,7 @@ async function loadPersons() {
     try {
         console.log('👥 Cargando personas...');
         
-        const data = await apiCall('/persons');
+        const data = await api.getPersons();  // CAMBIADO: usar api.getPersons()
         
         if (data.success) {
             window.appState.persons = data.persons || [];
@@ -162,9 +156,7 @@ async function deletePerson(id) {
     try {
         console.log('🗑️ Eliminando persona:', id);
         
-        const data = await apiCall(`/persons/${id}`, {
-            method: 'DELETE'
-        });
+        const data = await api.deletePerson(id);  // CAMBIADO: usar api.deletePerson()
         
         if (data.success) {
             showAlert(data.message, 'success');

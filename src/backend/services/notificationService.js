@@ -1,4 +1,4 @@
-const Notification = require('./Notification');
+import Notification from '../models/Notification.js';
 
 // =============================================================================
 // 1. DEFINICIÓN DEL SERVICIO DE NOTIFICACIONES
@@ -43,7 +43,7 @@ class NotificationService {
     const nombrePersona = persona ? persona.nombre : 'Usuario';
     return await this.crear({
       tipo: 'documento_subido',
-      titulo: 'Documento subido',
+      titulo: '✅ Documento subido',
       mensaje: `${nombrePersona} subió el documento "${documento.nombre_original}" en la categoría ${documento.categoria}`,
       icono: 'file-upload',
       prioridad: 'media',
@@ -64,7 +64,7 @@ class NotificationService {
   static async documentoEliminado(nombreDocumento, categoria, usuario = 'Usuario') {
     return await this.crear({
       tipo: 'documento_eliminado',
-      titulo: 'Documento eliminado',
+      titulo: '❌ Documento eliminado',
       mensaje: `${usuario} eliminó el documento "${nombreDocumento}" de la categoría ${categoria}`,
       icono: 'trash',
       prioridad: 'baja',
@@ -96,7 +96,7 @@ class NotificationService {
 
   /**
    * 3.4 Notificar documento vencido
-   * Alerta crítica sobre documentos cuya fecha de vencimiento ha expirado.
+   * Alerta crítica sobre documentos cuya fecha de vencimiento ha expirado
    */
   static async documentoVencido(documento) {
     return await this.crear({
@@ -123,7 +123,7 @@ class NotificationService {
   static async personaAgregada(persona) {
     return await this.crear({
       tipo: 'persona_agregada',
-      titulo: 'Persona agregada',
+      titulo: '✅ Persona agregada',
       mensaje: `Se agregó a ${persona.nombre} (${persona.puesto}) al sistema`,
       icono: 'user-plus',
       prioridad: 'baja',
@@ -142,7 +142,7 @@ class NotificationService {
   static async personaEliminada(nombrePersona) {
     return await this.crear({
       tipo: 'persona_eliminada',
-      titulo: 'Persona eliminada',
+      titulo: '❌ Persona eliminada',
       mensaje: `Se eliminó a ${nombrePersona} del sistema`,
       icono: 'user-minus',
       prioridad: 'baja'
@@ -160,7 +160,7 @@ class NotificationService {
   static async categoriaAgregada(categoria) {
     return await this.crear({
       tipo: 'categoria_agregada',
-      titulo: 'Categoría agregada',
+      titulo: '✅ Categoría agregada',
       mensaje: `Se creó la categoría "${categoria.nombre}"`,
       icono: 'folder-plus',
       prioridad: 'baja',
@@ -187,7 +187,7 @@ class NotificationService {
 
     return await this.crear({
       tipo: 'reporte_generado',
-      titulo: 'Reporte generado',
+      titulo: '✅ Reporte generado',
       mensaje: `Se generó el reporte "${nombresReportes[tipoReporte] || tipoReporte}" en formato ${formato.toUpperCase()} con ${cantidadRegistros} registro(s)`,
       icono: 'file-chart',
       prioridad: 'baja',
@@ -336,4 +336,4 @@ class NotificationService {
   }
 }
 
-module.exports = NotificationService;
+export default NotificationService;

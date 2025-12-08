@@ -1,6 +1,6 @@
 import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
-import { apiCall } from '../api.js';
+import { apiCall } from '../services/api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
 import { updateTrashBadge } from './papelera.js';
 
