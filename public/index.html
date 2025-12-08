@@ -16,13 +16,13 @@
 
 <body>
     <!-- ===== APP LAYOUT ===== -->
-    <div class="app-layout">
+    <section class="app-layout">
         <!-- ===== SIDEBAR ===== -->
         <aside class="sidebar">
-            <div class="sidebar__header">
-                <img class="sidebar__logo" src="IMAGENES/cbtis051.png" alt="CBTIS051">
+            <section class="sidebar__header">
+                <img class="sidebar__logo" src="assets/images/cbtis051.png" alt="CBTIS051">
                 <h1 class="sidebar__title">CBTIS051</h1>
-            </div>
+            </section>
 
             <!-- Navigation Menu -->
             <nav class="sidebar__nav">
@@ -53,110 +53,110 @@
             </nav>
 
             <!-- Sidebar Footer -->
-            <div class="sidebar__footer">
+            <section class="sidebar__footer">
                 <button class="sidebar__theme-toggle" id="themeToggle" title="Cambiar tema">
                     <i class="fas fa-moon"></i>
                 </button>
-                <div class="sidebar__user">
-                    <div class="sidebar__user-avatar">
+                <section class="sidebar__user">
+                    <section class="sidebar__user-avatar">
                         <i class="fas fa-user"></i>
-                    </div>
-                    <div class="sidebar__user-info">
+                    </section>
+                    <section class="sidebar__user-info">
                         <p class="sidebar__user-name">Administrador</p>
                         <p class="sidebar__user-role">Sistema</p>
-                    </div>
-                </div>
-            </div>
+                    </section>
+                </section>
+            </section>
         </aside>
 
         <!-- ===== MAIN CONTENT AREA ===== -->
-        <div class="content-wrapper">
+        <section class="content-wrapper">
             <!-- ===== TOP BAR ===== -->
             <header class="topbar">
-                <div class="topbar__actions">
+                <section class="topbar__actions">
                     <button class="topbar__action" id="notificationsBtn" title="Notificaciones">
                         <i class="fas fa-bell"></i>
                         <span class="topbar__badge">3</span>
                     </button>
-                </div>
+                </section>
             </header>
 
             <!-- ===== MAIN CONTENT ===== -->
             <main class="main-content">
                 <!-- ===== DASHBOARD TAB ===== -->
                 <section id="dashboard" class="tab-content tab-content--active">
-                    <div class="section__header">
-                        <div>
+                    <section class="section__header">
+                        <section>
                             <h2 class="section__title">Dashboard</h2>
                             <p class="section__subtitle">Resumen general del sistema</p>
-                        </div>
+                        </section>
                         <button class="btn btn--primary" id="refreshDashboard">
                             <i class="fas fa-sync-alt"></i> Actualizar
                         </button>
-                    </div>
+                    </section>
 
                     <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <div class="stat-card stat-card--personas">
-                            <div class="stat-card__header">
-                                <div class="stat-card__icon">
+                    <section class="stats-grid">
+                        <section class="stat-card stat-card--personas">
+                            <section class="stat-card__header">
+                                <section class="stat-card__icon">
                                     <i class="fas fa-users"></i>
-                                </div>
-                                <div class="stat-card__trend stat-card__trend--up">
+                                </section>
+                                <section class="stat-card__trend stat-card__trend--up">
                                     <i class="fas fa-arrow-up"></i> 12%
-                                </div>
-                            </div>
-                            <div class="stat-card__body">
+                                </section>
+                            </section>
+                            <section class="stat-card__body">
                                 <h3 class="stat-card__value value" id="totalPersonas">0</h3>
                                 <p class="stat-card__label">Personas Registradas</p>
-                            </div>
-                        </div>
+                            </section>
+                        </section>
 
-                        <div class="stat-card stat-card--documentos">
-                            <div class="stat-card__header">
-                                <div class="stat-card__icon">
+                        <section class="stat-card stat-card--documentos">
+                            <section class="stat-card__header">
+                                <section class="stat-card__icon">
                                     <i class="fas fa-file-alt"></i>
-                                </div>
-                                <div class="stat-card__trend stat-card__trend--up">
+                                </section>
+                                <section class="stat-card__trend stat-card__trend--up">
                                     <i class="fas fa-arrow-up"></i> 8%
-                                </div>
-                            </div>
-                            <div class="stat-card__body">
+                                </section>
+                            </section>
+                            <section class="stat-card__body">
                                 <h3 class="stat-card__value value" id="totalDocumentos">0</h3>
                                 <p class="stat-card__label">Documentos Totales</p>
-                            </div>
-                        </div>
+                            </section>
+                        </section>
 
-                        <div class="stat-card stat-card--categorias">
-                            <div class="stat-card__header">
-                                <div class="stat-card__icon">
+                        <section class="stat-card stat-card--categorias">
+                            <section class="stat-card__header">
+                                <section class="stat-card__icon">
                                     <i class="fas fa-folder"></i>
-                                </div>
-                                <div class="stat-card__trend stat-card__trend--neutral">
+                                </section>
+                                <section class="stat-card__trend stat-card__trend--neutral">
                                     <i class="fas fa-minus"></i> 0%
-                                </div>
-                            </div>
-                            <div class="stat-card__body">
+                                </section>
+                            </section>
+                            <section class="stat-card__body">
                                 <h3 class="stat-card__value value" id="totalCategorias">0</h3>
                                 <p class="stat-card__label">Categorías Activas</p>
-                            </div>
-                        </div>
+                            </section>
+                        </section>
 
-                        <div class="stat-card stat-card--vencer">
-                            <div class="stat-card__header">
-                                <div class="stat-card__icon">
+                        <section class="stat-card stat-card--vencer">
+                            <section class="stat-card__header">
+                                <section class="stat-card__icon">
                                     <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="stat-card__trend stat-card__trend--down">
+                                </section>
+                                <section class="stat-card__trend stat-card__trend--down">
                                     <i class="fas fa-arrow-down"></i> 5%
-                                </div>
-                            </div>
-                            <div class="stat-card__body">
+                                </section>
+                            </section>
+                            <section class="stat-card__body">
                                 <h3 class="stat-card__value value" id="proximosVencer">0</h3>
                                 <p class="stat-card__label">Próximos a Vencer</p>
-                            </div>
-                        </div>
-                    </div>
+                            </section>
+                        </section>
+                    </section>
 
                     <!-- Quick Actions -->
                     <section class="quick-actions">
@@ -187,7 +187,7 @@
                         <header class="preview__header">
                             <h3 class="dashboard__subheading">Documentos Recientes</h3>
                         </header>
-                        <div class="documents__list" id="recentDocuments">
+                        <section class="documents__list" id="recentDocuments">
                             <!-- Los documentos recientes se cargarán aquí -->
                             <article class="empty-state">
                                 <i class="fas fa-file-alt empty-state__icon"></i>
@@ -197,199 +197,202 @@
                                     <i class="fas fa-plus"></i> Subir Documento
                                 </button>
                             </article>
-                        </div>
+                        </section>
                     </section>
                 </section>
 
                 <!-- ===== HISTORIAL TAB ===== -->
-<section id="historial" class="tab-content">
-    <div class="section__header">
-        <div>
-            <h2 class="section__title">Historial del Sistema</h2>
-            <p class="section__subtitle">Registro completo de todas las actividades</p>
-        </div>
-        <div class="historial__actions">
-            <button class="btn btn--outline" id="clearHistoryBtn">
-                <i class="fas fa-trash"></i> Limpiar Historial
-            </button>
-            <button class="btn btn--outline" id="exportHistoryBtn">
-                <i class="fas fa-download"></i> Exportar
-            </button>
-            <button class="btn btn--primary" id="refreshHistoryBtn">
-                <i class="fas fa-sync-alt"></i> Actualizar
-            </button>
-        </div>
-    </div>
+                <section id="historial" class="tab-content">
+                    <section class="section__header">
+                        <section>
+                            <h2 class="section__title">Historial del Sistema</h2>
+                            <p class="section__subtitle">Registro completo de todas las actividades</p>
+                        </section>
+                        <section class="historial__actions">
+                            <button class="btn btn--outline" id="clearHistoryBtn">
+                                <i class="fas fa-trash"></i> Limpiar Historial
+                            </button>
+                            <button class="btn btn--outline" id="exportHistoryBtn">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                            <button class="btn btn--primary" id="refreshHistoryBtn">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                        </section>
+                    </section>
 
-    <!-- Filtros avanzados -->
-    <div class="historial-filters">
-        <div class="historial-filters__title">
-            <i class="fas fa-filter"></i>
-            <span>Filtros de Búsqueda</span>
-        </div>
-        
-        <div class="filters__row">
-            <div class="form__group form__group--inline">
-                <label for="filterDateFrom" class="form__label">Rango de fechas</label>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="date" id="filterDateFrom" class="form__input form__input--date" placeholder="Desde">
-                    <span>a</span>
-                    <input type="date" id="filterDateTo" class="form__input form__input--date" placeholder="Hasta">
-                </div>
-            </div>
+                    <!-- Filtros avanzados -->
+                    <section class="historial-filters">
+                        <section class="historial-filters__title">
+                            <i class="fas fa-filter"></i>
+                            <span>Filtros de Búsqueda</span>
+                        </section>
 
-            <div class="form__group form__group--inline">
-                <label for="filterType" class="form__label">Tipo de actividad</label>
-                <select id="filterType" class="form__select">
-                    <option value="all">Todos los tipos</option>
-                    <option value="documento_subido">Documento subido</option>
-                    <option value="documento_eliminado">Documento eliminado</option>
-                    <option value="documento_proximo_vencer">Documento por vencer</option>
-                    <option value="documento_vencido">Documento vencido</option>
-                    <option value="persona_agregada">Persona agregada</option>
-                    <option value="persona_eliminada">Persona eliminada</option>
-                    <option value="categoria_agregada">Categoría agregada</option>
-                    <option value="reporte_generado">Reporte generado</option>
-                    <option value="sistema_iniciado">Sistema iniciado</option>
-                    <option value="error_sistema">Error del sistema</option>
-                </select>
-            </div>
-        </div>
+                        <section class="filters__row">
+                            <section class="form__group form__group--inline">
+                                <label for="filterDateFrom" class="form__label">Rango de fechas</label>
+                                <section style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="date" id="filterDateFrom" class="form__input form__input--date"
+                                        placeholder="Desde">
+                                    <span>a</span>
+                                    <input type="date" id="filterDateTo" class="form__input form__input--date"
+                                        placeholder="Hasta">
+                                </section>
+                            </section>
 
-        <div class="filters__row">
-            <div class="form__group form__group--inline">
-                <label for="filterPriority" class="form__label">Nivel de prioridad</label>
-                <select id="filterPriority" class="form__select">
-                    <option value="all">Todas las prioridades</option>
-                    <option value="critica">Crítica</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                </select>
-            </div>
+                            <section class="form__group form__group--inline">
+                                <label for="filterType" class="form__label">Tipo de actividad</label>
+                                <select id="filterType" class="form__select">
+                                    <option value="all">Todos los tipos</option>
+                                    <option value="documento_subido">Documento subido</option>
+                                    <option value="documento_eliminado">Documento eliminado</option>
+                                    <option value="documento_proximo_vencer">Documento por vencer</option>
+                                    <option value="documento_vencido">Documento vencido</option>
+                                    <option value="persona_agregada">Persona agregada</option>
+                                    <option value="persona_eliminada">Persona eliminada</option>
+                                    <option value="categoria_agregada">Categoría agregada</option>
+                                    <option value="reporte_generado">Reporte generado</option>
+                                    <option value="sistema_iniciado">Sistema iniciado</option>
+                                    <option value="error_sistema">Error del sistema</option>
+                                </select>
+                            </section>
+                        </section>
 
-            <div class="form__group form__group--inline">
-                <label for="filterRead" class="form__label">Estado de lectura</label>
-                <select id="filterRead" class="form__select">
-                    <option value="all">Todos los estados</option>
-                    <option value="read">Leídos</option>
-                    <option value="unread">No leídos</option>
-                </select>
-            </div>
-        </div>
+                        <section class="filters__row">
+                            <section class="form__group form__group--inline">
+                                <label for="filterPriority" class="form__label">Nivel de prioridad</label>
+                                <select id="filterPriority" class="form__select">
+                                    <option value="all">Todas las prioridades</option>
+                                    <option value="critica">Crítica</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="media">Media</option>
+                                    <option value="baja">Baja</option>
+                                </select>
+                            </section>
 
-        <div class="filters__row">
-            <div class="form__group form__group--inline">
-                <label for="itemsPerPage" class="form__label">Resultados por página</label>
-                <select id="itemsPerPage" class="form__select">
-                    <option value="10">10 registros</option>
-                    <option value="25" selected>25 registros</option>
-                    <option value="50">50 registros</option>
-                    <option value="100">100 registros</option>
-                </select>
-            </div>
-        </div>
-    </div>
+                            <section class="form__group form__group--inline">
+                                <label for="filterRead" class="form__label">Estado de lectura</label>
+                                <select id="filterRead" class="form__select">
+                                    <option value="all">Todos los estados</option>
+                                    <option value="read">Leídos</option>
+                                    <option value="unread">No leídos</option>
+                                </select>
+                            </section>
+                        </section>
 
-    <!-- Estadísticas -->
-    <div class="historial-stats">
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--history">
-                <i class="fas fa-history"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="totalHistory">0</h3>
-                <p class="stat-card__label">Registros totales</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--unread">
-                <i class="fas fa-exclamation-circle"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="unreadHistory">0</h3>
-                <p class="stat-card__label">No leídos</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--today">
-                <i class="fas fa-calendar-day"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="todayHistory">0</h3>
-                <p class="stat-card__label">Hoy</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--critical">
-                <i class="fas fa-fire"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="criticalHistory">0</h3>
-                <p class="stat-card__label">Críticos</p>
-            </div>
-        </div>
-    </div>
+                        <section class="filters__row">
+                            <section class="form__group form__group--inline">
+                                <label for="itemsPerPage" class="form__label">Resultados por página</label>
+                                <select id="itemsPerPage" class="form__select">
+                                    <option value="10">10 registros</option>
+                                    <option value="25" selected>25 registros</option>
+                                    <option value="50">50 registros</option>
+                                    <option value="100">100 registros</option>
+                                </select>
+                            </section>
+                        </section>
+                    </section>
 
-    <!-- Tabla de historial -->
-    <div class="table-container">
-        <table class="table table--history">
-            <thead>
-                <tr>
-                    <th class="table__header">Fecha</th>
-                    <th class="table__header">Tipo</th>
-                    <th class="table__header">Título</th>
-                    <th class="table__header">Mensaje</th>
-                    <th class="table__header">Prioridad</th>
-                    <th class="table__header">Estado</th>
-                    <th class="table__header">Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody">
-                <!-- El historial se cargará aquí -->
-                <tr>
-                    <td colspan="7" class="empty-state">
-                        <i class="fas fa-history empty-state__icon"></i>
-                        <h3 class="empty-state__title">No hay registros de historial</h3>
-                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí</p>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                    <!-- Estadísticas -->
+                    <section class="historial-stats">
+                        <section class="stat-card">
+                            <section class="stat-card__icon stat-card__icon--history">
+                                <i class="fas fa-history"></i>
+                            </section>
+                            <section class="stat-card__content">
+                                <h3 class="stat-card__value" id="totalHistory">0</h3>
+                                <p class="stat-card__label">Registros totales</p>
+                            </section>
+                        </section>
+                        <section class="stat-card">
+                            <section class="stat-card__icon stat-card__icon--unread">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </section>
+                            <section class="stat-card__content">
+                                <h3 class="stat-card__value" id="unreadHistory">0</h3>
+                                <p class="stat-card__label">No leídos</p>
+                            </section>
+                        </section>
+                        <section class="stat-card">
+                            <section class="stat-card__icon stat-card__icon--today">
+                                <i class="fas fa-calendar-day"></i>
+                            </section>
+                            <section class="stat-card__content">
+                                <h3 class="stat-card__value" id="todayHistory">0</h3>
+                                <p class="stat-card__label">Hoy</p>
+                            </section>
+                        </section>
+                        <section class="stat-card">
+                            <section class="stat-card__icon stat-card__icon--critical">
+                                <i class="fas fa-fire"></i>
+                            </section>
+                            <section class="stat-card__content">
+                                <h3 class="stat-card__value" id="criticalHistory">0</h3>
+                                <p class="stat-card__label">Críticos</p>
+                            </section>
+                        </section>
+                    </section>
 
-    <!-- Paginación -->
-    <div class="pagination" id="historyPagination">
-        <button class="pagination__btn pagination__btn--prev" disabled>
-            <i class="fas fa-chevron-left"></i> Anterior
-        </button>
-        <div class="pagination__info">
-            <span id="paginationInfo">Página 1 de 1</span>
-        </div>
-        <button class="pagination__btn pagination__btn--next" disabled>
-            Siguiente <i class="fas fa-chevron-right"></i>
-        </button>
-    </div>
-</section>
+                    <!-- Tabla de historial -->
+                    <section class="table-container">
+                        <table class="table table--history">
+                            <thead>
+                                <tr>
+                                    <th class="table__header">Fecha</th>
+                                    <th class="table__header">Tipo</th>
+                                    <th class="table__header">Título</th>
+                                    <th class="table__header">Mensaje</th>
+                                    <th class="table__header">Prioridad</th>
+                                    <th class="table__header">Estado</th>
+                                    <th class="table__header">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- El historial se cargará aquí -->
+                                <tr>
+                                    <td colspan="7" class="empty-state">
+                                        <i class="fas fa-history empty-state__icon"></i>
+                                        <h3 class="empty-state__title">No hay registros de historial</h3>
+                                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí
+                                        </p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+
+                    <!-- Paginación -->
+                    <section class="pagination" id="historyPagination">
+                        <button class="pagination__btn pagination__btn--prev" disabled>
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        <section class="pagination__info">
+                            <span id="paginationInfo">Página 1 de 1</span>
+                        </section>
+                        <button class="pagination__btn pagination__btn--next" disabled>
+                            Siguiente <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </section>
+                </section>
 
                 <!-- ===== PERSONAS TAB ===== -->
                 <section id="personas" class="tab-content">
-                    <div class="section__header">
-                        <div>
+                    <section class="section__header">
+                        <section>
                             <h2 class="section__title">Gestión de Personas</h2>
                             <p class="section__subtitle">Administra usuarios, estudiantes y personal</p>
-                        </div>
+                        </section>
                         <button class="btn btn--primary" id="addPersonBtn">
                             <i class="fas fa-user-plus"></i> Agregar Persona
                         </button>
-                    </div>
+                    </section>
 
                     <!-- Filters -->
-                    <div class="filters-bar">
-                        <div class="filters-bar__search">
+                    <section class="filters-bar">
+                        <section class="filters-bar__search">
                             <i class="fas fa-search"></i>
                             <input type="text" placeholder="Buscar personas..." id="personasSearch">
-                        </div>
+                        </section>
                         <select class="filters-bar__select">
                             <option>Todos los roles</option>
                             <option>Estudiantes</option>
@@ -400,10 +403,10 @@
                             <option>Ordenar por nombre</option>
                             <option>Ordenar por fecha</option>
                         </select>
-                    </div>
+                    </section>
 
                     <!-- Personas Table -->
-                    <div class="table-container">
+                    <section class="table-container">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -426,44 +429,44 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                    </section>
                 </section>
 
                 <!-- ===== DOCUMENTOS TAB ===== -->
                 <section id="documentos" class="tab-content">
-                    <div class="section__header">
-                        <div>
+                    <section class="section__header">
+                        <section>
                             <h2 class="section__title">Gestión de Documentos</h2>
                             <p class="section__subtitle">Organiza y administra todos los documentos</p>
-                        </div>
+                        </section>
                         <button class="btn btn--primary" id="addDocumentBtn">
                             <i class="fas fa-file-upload"></i> Subir Documento
                         </button>
-                    </div>
+                    </section>
 
                     <!-- Categories Chips -->
-                    <div class="categories-section">
+                    <section class="categories-section">
                         <h3 class="categories-section__title">Filtrar por Categoría</h3>
-                        <div class="category-chips" id="categoryChips">
+                        <section class="category-chips" id="categoryChips">
                             <button class="category-chip category-chip--all category-chip--active" data-category="all">
                                 <i class="fas fa-th"></i> Todos
                             </button>
                             <!-- Las categorías se cargarán dinámicamente -->
-                        </div>
-                    </div>
+                        </section>
+                    </section>
 
                     <!-- Filters -->
                     <section class="filters">
                         <h3 class="filters__title">Filtros</h3>
-                        <div class="filters__grid">
-                            <div class="form__group">
+                        <section class="filters__grid">
+                            <section class="form__group">
                                 <label class="form__label">Categoría</label>
                                 <select class="form__select" id="filterCategory">
                                     <option value="">Todas las categorías</option>
                                     <!-- Las categorías se cargarán dinámicamente -->
                                 </select>
-                            </div>
-                            <div class="form__group">
+                            </section>
+                            <section class="form__group">
                                 <label class="form__label">Tipo de Archivo</label>
                                 <select class="form__select" id="filterType">
                                     <option value="">Todos los tipos</option>
@@ -472,8 +475,8 @@
                                     <option value="XLSX">Excel</option>
                                     <option value="JPG">Imagen</option>
                                 </select>
-                            </div>
-                            <div class="form__group">
+                            </section>
+                            <section class="form__group">
                                 <label class="form__label">Fecha</label>
                                 <select class="form__select" id="filterDate">
                                     <option value="">Cualquier fecha</option>
@@ -481,8 +484,8 @@
                                     <option value="week">Esta semana</option>
                                     <option value="month">Este mes</option>
                                 </select>
-                            </div>
-                            <div class="form__group">
+                            </section>
+                            <section class="form__group">
                                 <label class="form__label">Estado</label>
                                 <select class="form__select" id="filterStatus">
                                     <option value="">Todos los estados</option>
@@ -490,12 +493,12 @@
                                     <option value="expired">Vencidos</option>
                                     <option value="expiring">Por vencer</option>
                                 </select>
-                            </div>
-                        </div>
+                            </section>
+                        </section>
                     </section>
 
                     <!-- Documentos Table -->
-                    <div class="table-container">
+                    <section class="table-container">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -520,602 +523,598 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                    </section>
                 </section>
 
                 <!-- ===== CATEGORIAS TAB ===== -->
                 <section id="categorias" class="tab-content">
-                    <div class="section__header">
-                        <div>
+                    <section class="section__header">
+                        <section>
                             <h2 class="section__title">Gestión de Categorías</h2>
                             <p class="section__subtitle">Organiza documentos por categorías</p>
-                        </div>
+                        </section>
                         <button class="btn btn--primary" id="addCategoryBtn">
                             <i class="fas fa-plus"></i> Nueva Categoría
                         </button>
-                    </div>
+                    </section>
 
                     <!-- Categories Grid -->
-                    <div class="dashboard__stats" id="categoriesStats">
+                    <section class="dashboard__stats" id="categoriesStats">
                         <!-- Las categorías se cargarán dinámicamente -->
-                    </div>
+                    </section>
                 </section>
 
                 <!-- ===== TAREAS TAB ===== -->
                 <section id="tareas" class="tab-content">
-                    <div class="section__header">
-                        <div>
+                    <section class="section__header">
+                        <section>
                             <h2 class="section__title">Gestión de Tareas</h2>
                             <p class="section__subtitle">Organiza tus tareas y actividades</p>
-                        </div>
+                        </section>
                         <button class="btn btn--primary" id="addTaskBtn">
                             <i class="fas fa-plus"></i> Nueva Tarea
                         </button>
-                    </div>
+                    </section>
 
                     <!-- Task Filters -->
-                    <div class="filters-bar">
-                        <div class="filters-bar__search">
+                    <section class="filters-bar">
+                        <section class="filters-bar__search">
                             <i class="fas fa-search"></i>
                             <input type="text" placeholder="Buscar tareas..." id="tasksSearch">
-                        </div>
+                        </section>
                         <select class="filters-bar__select" id="filterPriority">
                             <option value="all">Todas las prioridades</option>
                             <option value="alta">Alta prioridad</option>
                             <option value="media">Prioridad media</option>
                             <option value="baja">Baja prioridad</option>
                         </select>
-                    </div>
+                    </section>
 
                     <!-- Tasks Summary -->
-                    <div class="tasks-summary">
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--total">
+                    <section class="tasks-summary">
+                        <section class="summary-card">
+                            <section class="summary-card__icon summary-card__icon--total">
                                 <i class="fas fa-tasks"></i>
-                            </div>
-                            <div class="summary-card__content">
+                            </section>
+                            <section class="summary-card__content">
                                 <h3 class="summary-card__value" id="totalTasks">0</h3>
                                 <p class="summary-card__label">Total de tareas</p>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--pending">
+                            </section>
+                        </section>
+                        <section class="summary-card">
+                            <section class="summary-card__icon summary-card__icon--pending">
                                 <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="summary-card__content">
+                            </section>
+                            <section class="summary-card__content">
                                 <h3 class="summary-card__value" id="pendingTasks">0</h3>
                                 <p class="summary-card__label">Pendientes</p>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--progress">
+                            </section>
+                        </section>
+                        <section class="summary-card">
+                            <section class="summary-card__icon summary-card__icon--progress">
                                 <i class="fas fa-spinner"></i>
-                            </div>
-                            <div class="summary-card__content">
+                            </section>
+                            <section class="summary-card__content">
                                 <h3 class="summary-card__value" id="progressTasks">0</h3>
                                 <p class="summary-card__label">En progreso</p>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--completed">
+                            </section>
+                        </section>
+                        <section class="summary-card">
+                            <section class="summary-card__icon summary-card__icon--completed">
                                 <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="summary-card__content">
+                            </section>
+                            <section class="summary-card__content">
                                 <h3 class="summary-card__value" id="completedTasks">0</h3>
                                 <p class="summary-card__label">Completadas</p>
-                            </div>
-                        </div>
-                    </div>
+                            </section>
+                        </section>
+                    </section>
 
                     <!-- Tasks Container -->
-                    <div class="tasks-container" id="tasksContainer">
+                    <section class="tasks-container" id="tasksContainer">
                         <!-- Las tareas se cargarán aquí dinámicamente -->
-                        <div class="empty-state">
+                        <section class="empty-state">
                             <i class="fas fa-clipboard-list empty-state__icon"></i>
                             <h3 class="empty-state__title">No hay tareas registradas</h3>
                             <p class="empty-state__description">Crea tu primera tarea para comenzar</p>
                             <button class="btn btn--primary" id="addFirstTask">
                                 <i class="fas fa-plus"></i> Crear Tarea
                             </button>
-                        </div>
-                    </div>
+                        </section>
+                    </section>
                 </section>
             </main>
-        </div>
-    </div>
-    </main>
-    </div>
-    </div>
 
-    <!-- ===== MODALS ===== -->
+            <!-- ===== MODALS ===== -->
 
-    <!-- Add Person Modal -->
-    <dialog id="personModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title" id="personModalTitle">Agregar Persona</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="personForm">
-                    <input type="hidden" id="personId">
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="personName" class="form__label">Nombre *</label>
-                            <input type="text" id="personName" class="form__input" required>
-                        </div>
-                        <div class="form__group">
-                            <label for="personEmail" class="form__label">Email *</label>
-                            <input type="email" id="personEmail" class="form__input" required>
-                        </div>
-                    </div>
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="personPhone" class="form__label">Teléfono</label>
-                            <input type="text" id="personPhone" class="form__input">
-                        </div>
-                        <div class="form__group">
-                            <label for="personDepartment" class="form__label">Departamento</label>
-                            <input type="text" id="personDepartment" class="form__input">
-                        </div>
-                    </div>
-                    <div class="form__group">
-                        <label for="personPosition" class="form__label">Puesto</label>
-                        <input type="text" id="personPosition" class="form__input">
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelPersonBtn">Cancelar</button>
-                <button class="btn btn--primary" id="savePersonBtn">Guardar</button>
-            </footer>
-        </article>
-    </dialog>
+            <!-- Add Person Modal -->
+            <dialog id="personModal" class="modal">
+                <article class="modal__content">
+                    <header class="modal__header">
+                        <h3 class="modal__title" id="personModalTitle">Agregar Persona</h3>
+                        <button class="modal__close">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <form id="personForm">
+                            <input type="hidden" id="personId">
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="personName" class="form__label">Nombre *</label>
+                                    <input type="text" id="personName" class="form__input" required>
+                                </section>
+                                <section class="form__group">
+                                    <label for="personEmail" class="form__label">Email *</label>
+                                    <input type="email" id="personEmail" class="form__input" required>
+                                </section>
+                            </section>
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="personPhone" class="form__label">Teléfono</label>
+                                    <input type="text" id="personPhone" class="form__input">
+                                </section>
+                                <section class="form__group">
+                                    <label for="personDepartment" class="form__label">Departamento</label>
+                                    <input type="text" id="personDepartment" class="form__input">
+                                </section>
+                            </section>
+                            <section class="form__group">
+                                <label for="personPosition" class="form__label">Puesto</label>
+                                <input type="text" id="personPosition" class="form__input">
+                            </section>
+                        </form>
+                    </section>
+                    <footer class="modal__footer">
+                        <button class="btn btn--outline" id="cancelPersonBtn">Cancelar</button>
+                        <button class="btn btn--primary" id="savePersonBtn">Guardar</button>
+                    </footer>
+                </article>
+            </dialog>
 
-    <!-- Add Document Modal -->
-    <dialog id="documentModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Subir Documento</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="documentForm">
-                    <!-- Tabs para modo único/múltiple -->
-                    <div class="upload__tabs">
-                        <button type="button" class="upload__tab upload__tab--active" data-mode="single">
-                            <i class="fas fa-file-upload"></i> Subir Único
-                        </button>
-                        <button type="button" class="upload__tab" data-mode="multiple">
-                            <i class="fas fa-folder-open"></i> Subir Múltiple
-                        </button>
-                    </div>
+            <!-- Add Document Modal -->
+            <dialog id="documentModal" class="modal">
+                <article class="modal__content">
+                    <header class="modal__header">
+                        <h3 class="modal__title">Subir Documento</h3>
+                        <button class="modal__close">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <form id="documentForm">
+                            <!-- Tabs para modo único/múltiple -->
+                            <section class="upload__tabs">
+                                <button type="button" class="upload__tab upload__tab--active" data-mode="single">
+                                    <i class="fas fa-file-upload"></i> Subir Único
+                                </button>
+                                <button type="button" class="upload__tab" data-mode="multiple">
+                                    <i class="fas fa-folder-open"></i> Subir Múltiple
+                                </button>
+                            </section>
 
-                    <!-- Contenedor para modo único -->
-                    <div id="singleUploadContainer" class="upload__container upload__mode--active">
-                        <div class="upload__dropzone" id="fileUploadContainer">
-                            <i class="fas fa-cloud-upload-alt upload__icon"></i>
-                            <h3>Arrastra y suelta tu archivo aquí</h3>
-                            <p>o</p>
-                            <button type="button" class="btn btn--primary" id="browseFilesBtn">
-                                <i class="fas fa-folder-open"></i> Seleccionar Archivo
-                            </button>
-                            <input type="file" id="fileInput" class="upload__input"
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                            <div class="upload__info" id="fileInfo">
-                                <p><strong>Archivo:</strong> <span id="fileName"></span></p>
-                                <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
-                            </div>
-                        </div>
+                            <!-- Contenedor para modo único -->
+                            <section id="singleUploadContainer" class="upload__container upload__mode--active">
+                                <section class="upload__dropzone" id="fileUploadContainer">
+                                    <i class="fas fa-cloud-upload-alt upload__icon"></i>
+                                    <h3>Arrastra y suelta tu archivo aquí</h3>
+                                    <p>o</p>
+                                    <button type="button" class="btn btn--primary" id="browseFilesBtn">
+                                        <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                                    </button>
+                                    <input type="file" id="fileInput" class="upload__input"
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                                    <section class="upload__info" id="fileInfo">
+                                        <p><strong>Archivo:</strong> <span id="fileName"></span></p>
+                                        <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
+                                    </section>
+                                </section>
 
-                        <div class="form__group">
-                            <label for="documentDescription" class="form__label">Descripción</label>
-                            <textarea id="documentDescription" class="form__textarea" rows="3"></textarea>
-                        </div>
+                                <section class="form__group">
+                                    <label for="documentDescription" class="form__label">Descripción</label>
+                                    <textarea id="documentDescription" class="form__textarea" rows="3"></textarea>
+                                </section>
 
-                        <div class="form__row">
-                            <div class="form__group">
-                                <label for="documentCategory" class="form__label">Categoría</label>
-                                <select id="documentCategory" class="form__select">
-                                    <option value="">Seleccionar categoría</option>
-                                    <!-- Las categorías se cargarán dinámicamente -->
-                                </select>
-                            </div>
-                            <div class="form__group">
-                                <label for="documentExpiration" class="form__label">Fecha de Vencimiento</label>
-                                <input type="date" id="documentExpiration" class="form__input">
-                            </div>
-                        </div>
+                                <section class="form__row">
+                                    <section class="form__group">
+                                        <label for="documentCategory" class="form__label">Categoría</label>
+                                        <select id="documentCategory" class="form__select">
+                                            <option value="">Seleccionar categoría</option>
+                                            <!-- Las categorías se cargarán dinámicamente -->
+                                        </select>
+                                    </section>
+                                    <section class="form__group">
+                                        <label for="documentExpiration" class="form__label">Fecha de Vencimiento</label>
+                                        <input type="date" id="documentExpiration" class="form__input">
+                                    </section>
+                                </section>
 
-                        <div class="form__group">
-                            <label for="documentPerson" class="form__label">Asignar a Persona</label>
-                            <select id="documentPerson" class="form__select">
-                                <option value="">Seleccionar persona</option>
-                                <!-- Las opciones se cargarán dinámicamente -->
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Contenedor para modo múltiple -->
-                    <div id="multipleUploadContainer" class="upload__container">
-                        <div class="multiple-upload__header">
-                            <i class="fas fa-layer-group"></i>
-                            <h3>Subir Múltiples Documentos</h3>
-                            <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos juntos</p>
-                        </div>
-
-                        <div class="multiple-upload__dropzone" id="multipleFileUploadContainer">
-                            <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
-                            <h3>Arrastra y suelta múltiples archivos aquí</h3>
-                            <p>o</p>
-                            <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
-                                <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
-                            </button>
-                            <input type="file" id="multipleFileInput" class="upload__input" multiple
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                            <p class="upload__hint">Tamaño total permitido por archivo: 10 MB</p>
-                        </div>
-
-                        <!-- Configuración común para múltiples archivos -->
-                        <div class="multiple-upload__config">
-                            <h4><i class="fas fa-cog"></i> Configuración Común</h4>
-
-                            <div class="form__row">
-                                <div class="form__group">
-                                    <label for="multipleDocumentCategory" class="form__label">Categoría para
-                                        Todos</label>
-                                    <select id="multipleDocumentCategory" class="form__select">
-                                        <option value="">Seleccionar categoría común</option>
-                                        <!-- Las categorías se cargarán dinámicamente -->
-                                    </select>
-                                </div>
-                                <div class="form__group">
-                                    <label for="multipleDocumentPerson" class="form__label">Asignar a Persona</label>
-                                    <select id="multipleDocumentPerson" class="form__select">
+                                <section class="form__group">
+                                    <label for="documentPerson" class="form__label">Asignar a Persona</label>
+                                    <select id="documentPerson" class="form__select">
                                         <option value="">Seleccionar persona</option>
                                         <!-- Las opciones se cargarán dinámicamente -->
                                     </select>
-                                </div>
-                            </div>
+                                </section>
+                            </section>
 
-                            <div class="form__group">
-                                <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento
-                                    (opcional)</label>
-                                <input type="number" id="multipleExpirationDays" class="form__input" min="0"
-                                    placeholder="Ej: 30 (días desde hoy)">
-                            </div>
-                        </div>
+                            <!-- Contenedor para modo múltiple -->
+                            <section id="multipleUploadContainer" class="upload__container">
+                                <section class="multiple-upload__header">
+                                    <i class="fas fa-layer-group"></i>
+                                    <h3>Subir Múltiples Documentos</h3>
+                                    <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos juntos
+                                    </p>
+                                </section>
 
-                        <!-- Lista de archivos seleccionados -->
-                        <div class="multiple-upload__files" id="multipleFilesList">
-                            <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span
-                                    id="selectedFilesCount">0</span>)</h4>
-                            <div class="files__list" id="filesListContainer">
-                                <!-- Los archivos se agregarán dinámicamente aquí -->
-                                <div class="files__empty">
-                                    <i class="fas fa-file-alt"></i>
-                                    <p>No hay archivos seleccionados</p>
-                                </div>
-                            </div>
+                                <section class="multiple-upload__dropzone" id="multipleFileUploadContainer">
+                                    <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
+                                    <h3>Arrastra y suelta múltiples archivos aquí</h3>
+                                    <p>o</p>
+                                    <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
+                                        <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
+                                    </button>
+                                    <input type="file" id="multipleFileInput" class="upload__input" multiple
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                                    <p class="upload__hint">Tamaño total permitido por archivo: 10 MB</p>
+                                </section>
 
-                            <!-- Resumen -->
-                            <div class="files__summary" id="filesSummary">
-                                <div class="summary__item">
-                                    <i class="fas fa-file"></i>
-                                    <span>Total archivos: <strong>0</strong></span>
-                                </div>
-                                <div class="summary__item">
-                                    <i class="fas fa-hdd"></i>
-                                    <span>Tamaño total: <strong>0 MB</strong></span>
-                                </div>
-                                <div class="summary__item">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Tiempo estimado: <strong>0s</strong></span>
-                                </div>
-                            </div>
-                        </div>
+                                <!-- Configuración común para múltiples archivos -->
+                                <section class="multiple-upload__config">
+                                    <h4><i class="fas fa-cog"></i> Configuración Común</h4>
 
-                        <!-- Opciones avanzadas -->
-                        <div class="multiple-upload__advanced">
-                            <button type="button" class="btn btn--sm btn--outline" id="toggleAdvancedOptions">
-                                <i class="fas fa-sliders-h"></i> Opciones Avanzadas
-                            </button>
+                                    <section class="form__row">
+                                        <section class="form__group">
+                                            <label for="multipleDocumentCategory" class="form__label">Categoría para
+                                                Todos</label>
+                                            <select id="multipleDocumentCategory" class="form__select">
+                                                <option value="">Seleccionar categoría común</option>
+                                                <!-- Las categorías se cargarán dinámicamente -->
+                                            </select>
+                                        </section>
+                                        <section class="form__group">
+                                            <label for="multipleDocumentPerson" class="form__label">Asignar a
+                                                Persona</label>
+                                            <select id="multipleDocumentPerson" class="form__select">
+                                                <option value="">Seleccionar persona</option>
+                                                <!-- Las opciones se cargarán dinámicamente -->
+                                            </select>
+                                        </section>
+                                    </section>
 
-                            <div class="advanced__options" id="advancedOptions" style="display: none;">
-                                <div class="form__group">
-                                    <label class="form__label">
-                                        <input type="checkbox" id="autoGenerateDescriptions">
-                                        Generar descripciones automáticamente
-                                    </label>
-                                    <p class="form__hint">Usa el nombre del archivo como descripción</p>
-                                </div>
+                                    <section class="form__group">
+                                        <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento
+                                            (opcional)</label>
+                                        <input type="number" id="multipleExpirationDays" class="form__input" min="0"
+                                            placeholder="Ej: 30 (días desde hoy)">
+                                    </section>
+                                </section>
 
-                                <div class="form__group">
-                                    <label class="form__label">
-                                        <input type="checkbox" id="notifyPerson">
-                                        Notificar a la persona asignada
-                                    </label>
-                                </div>
+                                <!-- Lista de archivos seleccionados -->
+                                <section class="multiple-upload__files" id="multipleFilesList">
+                                    <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span
+                                            id="selectedFilesCount">0</span>)</h4>
+                                    <section class="files__list" id="filesListContainer">
+                                        <!-- Los archivos se agregarán dinámicamente aquí -->
+                                        <section class="files__empty">
+                                            <i class="fas fa-file-alt"></i>
+                                            <p>No hay archivos seleccionados</p>
+                                        </section>
+                                    </section>
 
-                                <div class="form__group">
-                                    <label for="uploadStrategy" class="form__label">Estrategia de Subida</label>
-                                    <select id="uploadStrategy" class="form__select">
-                                        <option value="sequential">Secuencial (más estable)</option>
-                                        <option value="parallel">Paralelo (más rápido)</option>
-                                        <option value="batch">Por lotes (equilibrado)</option>
+                                    <!-- Resumen -->
+                                    <section class="files__summary" id="filesSummary">
+                                        <section class="summary__item">
+                                            <i class="fas fa-file"></i>
+                                            <span>Total archivos: <strong>0</strong></span>
+                                        </section>
+                                        <section class="summary__item">
+                                            <i class="fas fa-hdd"></i>
+                                            <span>Tamaño total: <strong>0 MB</strong></span>
+                                        </section>
+                                        <section class="summary__item">
+                                            <i class="fas fa-clock"></i>
+                                            <span>Tiempo estimado: <strong>0s</strong></span>
+                                        </section>
+                                    </section>
+                                </section>
+
+                                <!-- Opciones avanzadas -->
+                                <section class="multiple-upload__advanced">
+                                    <button type="button" class="btn btn--sm btn--outline" id="toggleAdvancedOptions">
+                                        <i class="fas fa-sliders-h"></i> Opciones Avanzadas
+                                    </button>
+
+                                    <section class="advanced__options" id="advancedOptions" style="display: none;">
+                                        <section class="form__group">
+                                            <label class="form__label">
+                                                <input type="checkbox" id="autoGenerateDescriptions">
+                                                Generar descripciones automáticamente
+                                            </label>
+                                            <p class="form__hint">Usa el nombre del archivo como descripción</p>
+                                        </section>
+
+                                        <section class="form__group">
+                                            <label class="form__label">
+                                                <input type="checkbox" id="notifyPerson">
+                                                Notificar a la persona asignada
+                                            </label>
+                                        </section>
+
+                                        <section class="form__group">
+                                            <label for="uploadStrategy" class="form__label">Estrategia de Subida</label>
+                                            <select id="uploadStrategy" class="form__select">
+                                                <option value="sequential">Secuencial (más estable)</option>
+                                                <option value="parallel">Paralelo (más rápido)</option>
+                                                <option value="batch">Por lotes (equilibrado)</option>
+                                            </select>
+                                        </section>
+                                    </section>
+                                </section>
+                            </section>
+                        </form>
+                    </section>
+                    <footer class="modal__footer">
+                        <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
+                        <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
+                            <i class="fas fa-upload"></i> Subir Documento
+                        </button>
+                        <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
+                            <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
+                        </button>
+                    </footer>
+                </article>
+            </dialog>
+
+            <!-- Add Category Modal -->
+            <dialog id="categoryModal" class="modal">
+                <article class="modal__content">
+                    <header class="modal__header">
+                        <h3 class="modal__title" id="categoryModalTitle">Nueva Categoría</h3>
+                        <button class="modal__close">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <form id="categoryForm">
+                            <input type="hidden" id="categoryId">
+                            <section class="form__group">
+                                <label for="categoryName" class="form__label">Nombre *</label>
+                                <input type="text" id="categoryName" class="form__input" required>
+                            </section>
+                            <section class="form__group">
+                                <label for="categoryDescription" class="form__label">Descripción</label>
+                                <textarea id="categoryDescription" class="form__textarea" rows="3"></textarea>
+                            </section>
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="categoryColor" class="form__label">Color</label>
+                                    <input type="color" id="categoryColor" class="form__input form__input--color"
+                                        value="#4f46e5">
+                                </section>
+                                <section class="form__group">
+                                    <label for="categoryIcon" class="form__label">Icono</label>
+                                    <select id="categoryIcon" class="form__select">
+                                        <option value="folder">Carpeta</option>
+                                        <option value="file-contract">Contrato</option>
+                                        <option value="id-card">Identificación</option>
+                                        <option value="certificate">Certificado</option>
+                                        <option value="chart-line">Reporte</option>
+                                        <option value="file-invoice">Factura</option>
+                                        <option value="file-medical">Médico</option>
+                                        <option value="graduation-cap">Académico</option>
+                                        <option value="briefcase">Laboral</option>
+                                        <option value="home">Personal</option>
                                     </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
-                <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
-                    <i class="fas fa-upload"></i> Subir Documento
-                </button>
-                <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
-                    <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
-                </button>
-            </footer>
-        </article>
-    </dialog>
+                                </section>
+                            </section>
+                        </form>
+                    </section>
+                    <footer class="modal__footer">
+                        <button class="btn btn--outline" id="cancelCategoryBtn">Cancelar</button>
+                        <button class="btn btn--primary" id="saveCategoryBtn">Guardar</button>
+                    </footer>
+                </article>
+            </dialog>
 
-    <!-- Add Category Modal -->
-    <dialog id="categoryModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title" id="categoryModalTitle">Nueva Categoría</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="categoryForm">
-                    <input type="hidden" id="categoryId">
-                    <div class="form__group">
-                        <label for="categoryName" class="form__label">Nombre *</label>
-                        <input type="text" id="categoryName" class="form__input" required>
-                    </div>
-                    <div class="form__group">
-                        <label for="categoryDescription" class="form__label">Descripción</label>
-                        <textarea id="categoryDescription" class="form__textarea" rows="3"></textarea>
-                    </div>
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="categoryColor" class="form__label">Color</label>
-                            <input type="color" id="categoryColor" class="form__input form__input--color"
-                                value="#4f46e5">
-                        </div>
-                        <div class="form__group">
-                            <label for="categoryIcon" class="form__label">Icono</label>
-                            <select id="categoryIcon" class="form__select">
-                                <option value="folder">Carpeta</option>
-                                <option value="file-contract">Contrato</option>
-                                <option value="id-card">Identificación</option>
-                                <option value="certificate">Certificado</option>
-                                <option value="chart-line">Reporte</option>
-                                <option value="file-invoice">Factura</option>
-                                <option value="file-medical">Médico</option>
-                                <option value="graduation-cap">Académico</option>
-                                <option value="briefcase">Laboral</option>
-                                <option value="home">Personal</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelCategoryBtn">Cancelar</button>
-                <button class="btn btn--primary" id="saveCategoryBtn">Guardar</button>
-            </footer>
-        </article>
-    </dialog>
+            <!-- Advanced Search Modal -->
+            <dialog id="searchModal" class="modal modal--large">
+                <article class="modal__content">
+                    <header class="modal__header">
+                        <h3 class="modal__title">Búsqueda Avanzada</h3>
+                        <button class="modal__close">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <form id="searchForm">
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="searchKeyword" class="form__label">Palabra clave</label>
+                                    <input type="text" id="searchKeyword" class="form__input"
+                                        placeholder="Buscar en nombre, descripción...">
+                                </section>
+                                <section class="form__group">
+                                    <label for="searchCategory" class="form__label">Categoría</label>
+                                    <select id="searchCategory" class="form__select">
+                                        <option value="">Todas las categorías</option>
+                                        <!-- Las categorías se cargarán dinámicamente -->
+                                    </select>
+                                </section>
+                            </section>
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="searchDateFrom" class="form__label">Fecha desde</label>
+                                    <input type="date" id="searchDateFrom" class="form__input">
+                                </section>
+                                <section class="form__group">
+                                    <label for="searchDateTo" class="form__label">Fecha hasta</label>
+                                    <input type="date" id="searchDateTo" class="form__input">
+                                </section>
+                            </section>
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="searchPerson" class="form__label">Persona</label>
+                                    <select id="searchPerson" class="form__select">
+                                        <option value="">Todas las personas</option>
+                                        <!-- Las personas se cargarán dinámicamente -->
+                                    </select>
+                                </section>
+                                <section class="form__group">
+                                    <label for="searchStatus" class="form__label">Estado</label>
+                                    <select id="searchStatus" class="form__select">
+                                        <option value="">Todos los estados</option>
+                                        <option value="active">Activos</option>
+                                        <option value="expired">Vencidos</option>
+                                        <option value="expiring">Por vencer</option>
+                                    </select>
+                                </section>
+                            </section>
+                        </form>
+                        <section class="search-results" id="searchResults">
+                            <h4 class="search-results__title">Resultados de búsqueda</h4>
+                            <section class="search-results__list" id="searchResultsList">
+                                <!-- Los resultados se mostrarán aquí -->
+                            </section>
+                        </section>
+                    </section>
+                    <footer class="modal__footer">
+                        <button class="btn btn--outline" id="cancelSearchBtn">Cancelar</button>
+                        <button class="btn btn--primary" id="performSearchBtn">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </footer>
+                </article>
+            </dialog>
 
-    <!-- Advanced Search Modal -->
-    <dialog id="searchModal" class="modal modal--large">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Búsqueda Avanzada</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="searchForm">
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="searchKeyword" class="form__label">Palabra clave</label>
-                            <input type="text" id="searchKeyword" class="form__input"
-                                placeholder="Buscar en nombre, descripción...">
-                        </div>
-                        <div class="form__group">
-                            <label for="searchCategory" class="form__label">Categoría</label>
-                            <select id="searchCategory" class="form__select">
-                                <option value="">Todas las categorías</option>
-                                <!-- Las categorías se cargarán dinámicamente -->
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="searchDateFrom" class="form__label">Fecha desde</label>
-                            <input type="date" id="searchDateFrom" class="form__input">
-                        </div>
-                        <div class="form__group">
-                            <label for="searchDateTo" class="form__label">Fecha hasta</label>
-                            <input type="date" id="searchDateTo" class="form__input">
-                        </div>
-                    </div>
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="searchPerson" class="form__label">Persona</label>
-                            <select id="searchPerson" class="form__select">
-                                <option value="">Todas las personas</option>
-                                <!-- Las personas se cargarán dinámicamente -->
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label for="searchStatus" class="form__label">Estado</label>
-                            <select id="searchStatus" class="form__select">
-                                <option value="">Todos los estados</option>
-                                <option value="active">Activos</option>
-                                <option value="expired">Vencidos</option>
-                                <option value="expiring">Por vencer</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
-                <div class="search-results" id="searchResults">
-                    <h4 class="search-results__title">Resultados de búsqueda</h4>
-                    <div class="search-results__list" id="searchResultsList">
-                        <!-- Los resultados se mostrarán aquí -->
-                    </div>
-                </div>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelSearchBtn">Cancelar</button>
-                <button class="btn btn--primary" id="performSearchBtn">
-                    <i class="fas fa-search"></i> Buscar
-                </button>
-            </footer>
-        </article>
-    </dialog>
+            <!-- Report Modal -->
+            <dialog id="reportModal" class="modal modal--large">
+                <article class="modal__content">
+                    <header class="modal__header">
+                        <h3 class="modal__title">Generar Reporte</h3>
+                        <button class="modal__close">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <form id="reportForm">
+                            <section class="form__group">
+                                <label for="reportType" class="form__label">Tipo de Reporte</label>
+                                <select id="reportType" class="form__select">
+                                    <option value="general">Reporte General</option>
+                                    <option value="byCategory">Por Categoría</option>
+                                    <option value="byPerson">Por Persona</option>
+                                    <option value="expiring">Documentos por Vencer</option>
+                                    <option value="expired">Documentos Vencidos</option>
+                                </select>
+                            </section>
+                            <section class="form__row" id="reportSpecificFilters">
+                                <!-- Filtros específicos se cargarán dinámicamente -->
+                            </section>
+                            <section class="form__group">
+                                <label for="reportFormat" class="form__label">Formato</label>
+                                <select id="reportFormat" class="form__select">
+                                    <option value="pdf">PDF</option>
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </section>
+                        </form>
+                        <section class="report-preview" id="reportPreview">
+                            <h4 class="report-preview__title">Vista Previa del Reporte</h4>
+                            <section class="report-preview__content" id="reportPreviewContent">
+                                <!-- La vista previa se mostrará aquí -->
+                            </section>
+                        </section>
+                    </section>
+                    <footer class="modal__footer">
+                        <button class="btn btn--outline" id="cancelReportBtn">Cancelar</button>
+                        <button class="btn btn--primary" id="generateReportBtn">
+                            <i class="fas fa-download"></i> Generar Reporte
+                        </button>
+                    </footer>
+                </article>
+            </dialog>
 
-    <!-- Report Modal -->
-    <dialog id="reportModal" class="modal modal--large">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Generar Reporte</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="reportForm">
-                    <div class="form__group">
-                        <label for="reportType" class="form__label">Tipo de Reporte</label>
-                        <select id="reportType" class="form__select">
-                            <option value="general">Reporte General</option>
-                            <option value="byCategory">Por Categoría</option>
-                            <option value="byPerson">Por Persona</option>
-                            <option value="expiring">Documentos por Vencer</option>
-                            <option value="expired">Documentos Vencidos</option>
-                        </select>
-                    </div>
-                    <div class="form__row" id="reportSpecificFilters">
-                        <!-- Filtros específicos se cargarán dinámicamente -->
-                    </div>
-                    <div class="form__group">
-                        <label for="reportFormat" class="form__label">Formato</label>
-                        <select id="reportFormat" class="form__select">
-                            <option value="pdf">PDF</option>
-                            <option value="excel">Excel</option>
-                            <option value="csv">CSV</option>
-                        </select>
-                    </div>
-                </form>
-                <div class="report-preview" id="reportPreview">
-                    <h4 class="report-preview__title">Vista Previa del Reporte</h4>
-                    <div class="report-preview__content" id="reportPreviewContent">
-                        <!-- La vista previa se mostrará aquí -->
-                    </div>
-                </div>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelReportBtn">Cancelar</button>
-                <button class="btn btn--primary" id="generateReportBtn">
-                    <i class="fas fa-download"></i> Generar Reporte
-                </button>
-            </footer>
-        </article>
-    </dialog>
+            <!-- Add Task Modal -->
+            <dialog id="taskModal" class="modal">
+                <article class="modal__content">
+                    <header class="modal__header">
+                        <h3 class="modal__title" id="taskModalTitle">Nueva Tarea</h3>
+                        <button class="modal__close" id="closeTaskModal">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <form id="taskForm">
+                            <input type="hidden" id="taskId">
+                            <section class="form__group">
+                                <label for="taskTitle" class="form__label">Título *</label>
+                                <input type="text" id="taskTitle" class="form__input" placeholder="Título de la tarea"
+                                    required>
+                            </section>
+                            <section class="form__group">
+                                <label for="taskDescription" class="form__label">Descripción</label>
+                                <textarea id="taskDescription" class="form__textarea" rows="4"
+                                    placeholder="Descripción detallada de la tarea..."></textarea>
+                            </section>
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="taskPriority" class="form__label">Prioridad</label>
+                                    <select id="taskPriority" class="form__select">
+                                        <option value="baja">Baja</option>
+                                        <option value="media">Media</option>
+                                        <option value="alta">Alta</option>
+                                    </select>
+                                </section>
+                                <section class="form__group">
+                                    <label for="taskStatus" class="form__label">Estado</label>
+                                    <select id="taskStatus" class="form__select">
+                                        <option value="pendiente">Pendiente</option>
+                                        <option value="en-progreso">En progreso</option>
+                                        <option value="completada">Completada</option>
+                                    </select>
+                                </section>
+                            </section>
+                            <section class="form__row">
+                                <section class="form__group">
+                                    <label for="taskDueDate" class="form__label">Fecha límite</label>
+                                    <input type="date" id="taskDueDate" class="form__input">
+                                </section>
+                                <section class="form__group">
+                                    <label for="taskTime" class="form__label">Hora límite</label>
+                                    <input type="time" id="taskTime" class="form__input">
+                                </section>
+                            </section>
+                            <section class="form__group">
+                                <label for="taskCategory" class="form__label">Categoría</label>
+                                <input type="text" id="taskCategory" class="form__input"
+                                    placeholder="Ej: Personal, Trabajo, Estudio...">
+                            </section>
+                            <section class="form__group">
+                                <label class="form__label">
+                                    <input type="checkbox" id="taskReminder"> Recordatorio
+                                </label>
+                            </section>
+                        </form>
+                    </section>
+                    <footer class="modal__footer">
+                        <button class="btn btn--outline" id="cancelTaskBtn">Cancelar</button>
+                        <button class="btn btn--primary" id="saveTaskBtn">Guardar Tarea</button>
+                    </footer>
+                </article>
+            </dialog>
 
-    <!-- Add Task Modal -->
-    <dialog id="taskModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title" id="taskModalTitle">Nueva Tarea</h3>
-                <button class="modal__close" id="closeTaskModal">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="taskForm">
-                    <input type="hidden" id="taskId">
-                    <div class="form__group">
-                        <label for="taskTitle" class="form__label">Título *</label>
-                        <input type="text" id="taskTitle" class="form__input" placeholder="Título de la tarea" required>
-                    </div>
-                    <div class="form__group">
-                        <label for="taskDescription" class="form__label">Descripción</label>
-                        <textarea id="taskDescription" class="form__textarea" rows="4"
-                            placeholder="Descripción detallada de la tarea..."></textarea>
-                    </div>
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="taskPriority" class="form__label">Prioridad</label>
-                            <select id="taskPriority" class="form__select">
-                                <option value="baja">Baja</option>
-                                <option value="media">Media</option>
-                                <option value="alta">Alta</option>
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label for="taskStatus" class="form__label">Estado</label>
-                            <select id="taskStatus" class="form__select">
-                                <option value="pendiente">Pendiente</option>
-                                <option value="en-progreso">En progreso</option>
-                                <option value="completada">Completada</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="taskDueDate" class="form__label">Fecha límite</label>
-                            <input type="date" id="taskDueDate" class="form__input">
-                        </div>
-                        <div class="form__group">
-                            <label for="taskTime" class="form__label">Hora límite</label>
-                            <input type="time" id="taskTime" class="form__input">
-                        </div>
-                    </div>
-                    <div class="form__group">
-                        <label for="taskCategory" class="form__label">Categoría</label>
-                        <input type="text" id="taskCategory" class="form__input"
-                            placeholder="Ej: Personal, Trabajo, Estudio...">
-                    </div>
-                    <div class="form__group">
-                        <label class="form__label">
-                            <input type="checkbox" id="taskReminder"> Recordatorio
-                        </label>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelTaskBtn">Cancelar</button>
-                <button class="btn btn--primary" id="saveTaskBtn">Guardar Tarea</button>
-            </footer>
-        </article>
-    </dialog>
-
-    <!-- Modal de Acciones -->
-    <dialog id="actionModal" class="modal">
-        <article class="modal__content modal__content--sm">
-            <header class="modal__header">
-                <h3 class="modal__title" id="actionModalTitle">Confirmar acción</h3>
-            </header>
-            <section class="modal__body">
-                <div class="action-modal__content">
-                    <div class="action-modal__icon" id="actionModalIcon">
-                        <i class="fas fa-question-circle"></i>
-                    </div>
-                    <p class="action-modal__message" id="actionModalMessage">
-                        ¿Estás seguro de que quieres realizar esta acción?
-                    </p>
-                </div>
-            </section>
-            <footer class="modal__footer modal__footer--centered">
-                <button class="btn btn--outline" id="cancelActionBtn">Cancelar</button>
-                <button class="btn" id="confirmActionBtn">Confirmar</button>
-            </footer>
-        </article>
-    </dialog>
-
-    <script type="module" src="JAVASCRIPT/app.js"></script>
+            <!-- Modal de Acciones -->
+            <dialog id="actionModal" class="modal">
+                <article class="modal__content modal__content--sm">
+                    <header class="modal__header">
+                        <h3 class="modal__title" id="actionModalTitle">Confirmar acción</h3>
+                    </header>
+                    <section class="modal__body">
+                        <section class="action-modal__content">
+                            <section class="action-modal__icon" id="actionModalIcon">
+                                <i class="fas fa-question-circle"></i>
+                            </section>
+                            <p class="action-modal__message" id="actionModalMessage">
+                                ¿Estás seguro de que quieres realizar esta acción?
+                            </p>
+                        </section>
+                    </section>
+                    <footer class="modal__footer modal__footer--centered">
+                        <button class="btn btn--outline" id="cancelActionBtn">Cancelar</button>
+                        <button class="btn" id="confirmActionBtn">Confirmar</button>
+                    </footer>
+                </article>
+            </dialog>
+<script type="module" src="/src/frontend/app.js"></script>
 </body>
-
 </html>

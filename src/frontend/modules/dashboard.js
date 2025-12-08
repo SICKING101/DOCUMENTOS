@@ -1,5 +1,5 @@
 import { DOM } from '../dom.js';
-import { apiCall } from '../api.js';
+import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
 import { setLoadingState, showAlert, getFileIcon, formatDate } from '../utils.js';
 
 // =============================================================================
@@ -18,7 +18,7 @@ async function loadDashboardData(appState) {
         setLoadingState(true);
         console.log('📊 Cargando datos del dashboard...');
         
-        const data = await apiCall('/dashboard');
+        const data = await api.getDashboardData();  // CAMBIADO: usar api.getDashboardData()
         
         if (data.success) {
             appState.dashboardStats = data.stats;
