@@ -1,6 +1,6 @@
 import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
-import { apiCall } from '../api.js';
+import { api } from '../services/api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
 import { updateTrashBadge } from './papelera.js';
 
@@ -3013,7 +3013,7 @@ async function deleteDocument(id) {
         console.log('🗑️ Moviendo documento a la papelera:', id);
         console.log('📡 Haciendo llamada DELETE a:', `/documents/${id}`);
         
-        const data = await apiCall(`/documents/${id}`, { method: 'DELETE' });
+        const data = await api.call(`/documents/${id}`, { method: 'DELETE' });
         
         console.log('📦 Respuesta del servidor:', data);
         
@@ -3044,7 +3044,7 @@ async function loadDocuments() {
     try {
         console.log('📄 Cargando documentos...');
         
-        const data = await apiCall('/documents');
+        const data = await api.call('/documents');
         
         if (data.success) {
             window.appState.documents = (data.documents || []).map(doc => ({

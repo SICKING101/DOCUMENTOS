@@ -1,13 +1,19 @@
-const fs = require('fs');
-const path = require('path');
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-const ExcelJS = require('exceljs');
-const PDFDocument = require('pdfkit');
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
+import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // -----------------------------
 // Configuración
@@ -30,6 +36,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/src', express.static(path.join(__dirname, 'src')));
 
 // -----------------------------
 // Esquemas y Modelos
@@ -108,8 +115,8 @@ const Document = mongoose.model('Document', documentSchema);
 const Task = mongoose.model('Task', taskSchema);
 
 // Importar modelo y servicio de notificaciones
-const Notification = require('./public/JAVASCRIPT/modules/Notification');
-const NotificationService = require('./public/JAVASCRIPT/modules/notificationService');
+import Notification from './src/backend/models/Notification.js';
+import NotificationService from './src/backend/services/notificationService.js';
 
 // -----------------------------
 // Configuración de Multer
@@ -2565,8 +2572,12 @@ app.post('/api/notifications/cleanup', async (req, res) => {
   }
 });
 
-// Ruta para SPA
-app.get('*', (req, res) => {
+// Ruta para SPA - solo para rutas que no tienen extensión de archivo
+app.get('*', (req, res, next) => {
+  // Si la URL tiene una extensión de archivo, pasar al siguiente middleware
+  if (path.extname(req.path)) {
+    return next();
+  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

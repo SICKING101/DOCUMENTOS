@@ -1,6 +1,6 @@
 import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
-import { apiCall } from '../api.js';
+import { api } from '../services/api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
 
 // =============================================================================
@@ -62,7 +62,7 @@ export async function initPapelera() {
 // Exportar función para actualizar badge desde otros módulos
 export async function updateTrashBadge() {
     try {
-        const response = await apiCall('/trash', { method: 'GET' });
+        const response = await api.call('/trash', { method: 'GET' });
         if (response.success) {
             const badge = document.getElementById('trashBadge');
             if (badge) {
@@ -146,7 +146,7 @@ async function loadTrashDocuments() {
         const container = document.getElementById('trashContent');
         setLoadingState(true, container);
 
-        const response = await apiCall('/trash', { method: 'GET' });
+        const response = await api.call('/trash', { method: 'GET' });
 
         if (response.success) {
             trashState.documents = response.documents || [];
@@ -363,7 +363,7 @@ async function handleRestoreDocument(docId) {
     if (!confirmed) return;
 
     try {
-        const response = await apiCall(`/trash/${docId}/restore`, { method: 'POST' });
+        const response = await api.call(`/trash/${docId}/restore`, { method: 'POST' });
 
         if (response.success) {
             showAlert(`"${doc.nombre_original}" restaurado exitosamente`, 'success');
@@ -390,7 +390,7 @@ async function handleDeleteDocument(docId) {
     if (!confirmed) return;
 
     try {
-        const response = await apiCall(`/trash/${docId}`, { method: 'DELETE' });
+        const response = await api.call(`/trash/${docId}`, { method: 'DELETE' });
 
         if (response.success) {
             showAlert(response.message, 'success');
@@ -424,7 +424,7 @@ async function handleRestoreSelected() {
 
         for (const docId of trashState.selectedDocuments) {
             try {
-                const response = await apiCall(`/trash/${docId}/restore`, { method: 'POST' });
+                const response = await api.call(`/trash/${docId}/restore`, { method: 'POST' });
                 if (response.success) {
                     restoredCount++;
                 } else {
@@ -470,7 +470,7 @@ async function handleDeleteSelected() {
 
         for (const docId of trashState.selectedDocuments) {
             try {
-                const response = await apiCall(`/trash/${docId}`, { method: 'DELETE' });
+                const response = await api.call(`/trash/${docId}`, { method: 'DELETE' });
                 if (response.success) {
                     deletedCount++;
                 } else {
@@ -523,7 +523,7 @@ async function handleEmptyTrash() {
         const container = document.getElementById('trashContent');
         setLoadingState(true, container);
 
-        const response = await apiCall('/trash/empty-all', { method: 'DELETE' });
+        const response = await api.call('/trash/empty-all', { method: 'DELETE' });
 
         if (response.success) {
             showAlert(response.message, 'success');
@@ -593,7 +593,7 @@ function updateSelectionCounter() {
 export async function runAutoCleanup() {
     try {
         console.log('🔄 Ejecutando limpieza automática...');
-        const response = await apiCall('/trash/auto-cleanup', { method: 'POST' });
+        const response = await api.call('/trash/auto-cleanup', { method: 'POST' });
         
         if (response.success && response.deletedCount > 0) {
             console.log(`✅ Limpieza automática: ${response.deletedCount} documento(s) eliminado(s)`);

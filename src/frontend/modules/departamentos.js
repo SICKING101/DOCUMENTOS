@@ -1,5 +1,5 @@
 import { DOM } from '../dom.js';
-import { apiCall } from '../api.js';
+import { api } from '../services/api.js';
 import { setLoadingState, showAlert } from '../utils.js';
 
 // =============================================================================
@@ -73,12 +73,12 @@ async function saveDepartment() {
         
         let data;
         if (DOM.departmentId.value) {
-            data = await apiCall(`/departments/${DOM.departmentId.value}`, {
+            data = await api.call(`/departments/${DOM.departmentId.value}`, {
                 method: 'PUT',
                 body: JSON.stringify(departmentData)
             });
         } else {
-            data = await apiCall('/departments', {
+            data = await api.call('/departments', {
                 method: 'POST',
                 body: JSON.stringify(departmentData)
             });
@@ -109,7 +109,7 @@ async function loadDepartments() {
     try {
         console.log('🏢 Cargando departamentos...');
         
-        const data = await apiCall('/departments');
+        const data = await api.call('/departments');
         
         if (data.success) {
             window.appState.departments = data.departments || [];
@@ -147,7 +147,7 @@ async function deleteDepartment(id) {
     try {
         console.log('🗑️ Eliminando departamento:', id);
         
-        const data = await apiCall(`/departments/${id}`, {
+        const data = await api.call(`/departments/${id}`, {
             method: 'DELETE'
         });
         
