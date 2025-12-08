@@ -535,6 +535,7 @@ function setupEventListeners() {
         personModal: DOM.personModal,
         documentModal: DOM.documentModal,
         categoryModal: DOM.categoryModal,
+        departmentModal: DOM.departmentModal,
         searchModal: DOM.searchModal,
         reportModal: DOM.reportModal,
         taskModal: DOM.taskModal
@@ -824,6 +825,8 @@ function handleModalClose() {
             closeDocumentModal();
         } else if (modal.id === 'categoryModal') {
             closeCategoryModal();
+        } else if (modal.id === 'departmentModal') {
+            closeDepartmentModal();
         } else if (modal.id === 'searchModal') {
             closeSearchModal();
         } else if (modal.id === 'reportModal') {

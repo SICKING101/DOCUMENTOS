@@ -707,7 +707,13 @@ app.delete('/api/departments/:id', async (req, res) => {
 // -----------------------------
 app.get('/api/documents', async (req, res) => {
   try {
-    const documents = await Document.find({ activo: true, isDeleted: false })
+    const documents = await Document.find({ 
+      activo: true, 
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    })
       .populate('persona_id', 'nombre email departamento puesto')
       .sort({ fecha_subida: -1 });
 
