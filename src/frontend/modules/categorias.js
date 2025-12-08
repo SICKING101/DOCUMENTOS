@@ -1,5 +1,5 @@
 import { DOM } from '../dom.js';
-import { apiCall } from '../api.js';
+import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
 import { setLoadingState, showAlert, getIconName } from '../utils.js';
 
 // =============================================================================
@@ -73,15 +73,9 @@ async function saveCategory() {
         
         let data;
         if (DOM.categoryId.value) {
-            data = await apiCall(`/categories/${DOM.categoryId.value}`, {
-                method: 'PUT',
-                body: JSON.stringify(categoryData)
-            });
+            data = await api.updateCategory(DOM.categoryId.value, categoryData);  // CAMBIADO: usar api.updateCategory()
         } else {
-            data = await apiCall('/categories', {
-                method: 'POST',
-                body: JSON.stringify(categoryData)
-            });
+            data = await api.createCategory(categoryData);  // CAMBIADO: usar api.createCategory()
         }
         
         if (data.success) {
@@ -109,7 +103,7 @@ async function loadCategories() {
     try {
         console.log('🏷️ Cargando categorías...');
         
-        const data = await apiCall('/categories');
+        const data = await api.getCategories();  // CAMBIADO: usar api.getCategories()
         
         if (data.success) {
             window.appState.categories = data.categories || [];
@@ -147,9 +141,7 @@ async function deleteCategory(id) {
     try {
         console.log('🗑️ Eliminando categoría:', id);
         
-        const data = await apiCall(`/categories/${id}`, {
-            method: 'DELETE'
-        });
+        const data = await api.deleteCategory(id);  // CAMBIADO: usar api.deleteCategory()
         
         if (data.success) {
             showAlert(data.message, 'success');

@@ -1,6 +1,6 @@
 import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
-import { apiCall } from '../api.js';
+import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
 
 // =============================================================================
@@ -883,8 +883,6 @@ async function handleUploadDocument() {
         setLoadingState(true, DOM.uploadDocumentBtn);
         
         console.log('📋 Iniciando upload del documento...');
-        console.log('📋 Archivo:', window.appState.selectedFile.name);
-        console.log('📋 Tamaño:', formatFileSize(window.appState.selectedFile.size));
         
         const formData = new FormData();
         formData.append('file', window.appState.selectedFile);
@@ -895,20 +893,9 @@ async function handleUploadDocument() {
 
         console.log('📤 Enviando al servidor...');
 
-        const response = await fetch(`${CONFIG.API_BASE_URL}/documents`, {
-            method: 'POST',
-            body: formData
-        });
+        // CAMBIADO: usar api.uploadDocument() en lugar de fetch directo
+        const data = await api.uploadDocument(formData);  // CAMBIADO
 
-        console.log('📥 Respuesta:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Error del servidor:', errorText);
-            throw new Error(`Error del servidor (${response.status}): ${errorText}`);
-        }
-
-        const data = await response.json();
         console.log('📦 Datos de respuesta:', data);
 
         if (data.success) {
@@ -3008,9 +2995,7 @@ async function deleteDocument(id) {
     try {
         console.log('🗑️ Eliminando documento:', id);
         
-        const data = await apiCall(`/documents/${id}`, {
-            method: 'DELETE'
-        });
+        const data = await api.deleteDocument(id);  // CAMBIADO: usar api.deleteDocument()
         
         if (data.success) {
             showAlert(data.message, 'success');
@@ -3036,7 +3021,7 @@ async function loadDocuments() {
     try {
         console.log('📄 Cargando documentos...');
         
-        const data = await apiCall('/documents');
+        const data = await api.getDocuments();  // CAMBIADO: usar api.getDocuments()
         
         if (data.success) {
             window.appState.documents = (data.documents || []).map(doc => ({

@@ -1,6 +1,7 @@
 {
   "name": "sistema-documentos-cbtis051",
   "version": "1.0.0",
+  "type": "module",
   "description": "Sistema de gestión de documentos con MongoDB y Cloudinary",
   "main": "server.js",
   "scripts": {

@@ -3,6 +3,8 @@ import { AppState } from './state.js';
 import { DOM } from './dom.js';
 import { showAlert, setupModalBackdropClose } from './utils.js';
 import TaskManager from './task.js';
+// Importar servicios
+import { apiCall } from './services/api.js'; // Ruta correcta
 
 // Importar todos los módulos
 import {
@@ -757,7 +759,7 @@ function handleQuickAction(e) {
             showAdvancedSearch();
             break;
         default:
-            console.warn('Acción no reconocida:', action);
+        console.warn('Acción no reconocida:', action);
     }
 }
 
