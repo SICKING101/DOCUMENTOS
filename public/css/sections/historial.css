@@ -1,0 +1,481 @@
+/* ===== 28. SECCIÓN DE HISTORIAL - DISEÑO MEJORADO COMPACTO Y ORGANIZADO ===== */
+
+/* Contenedor principal para la pestaña de historial */
+#historial.tab-content {
+    padding: 1.25rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Cabecera compacta para sección de historial */
+#historial .section__header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color-light);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Título principal de la sección de historial */
+#historial .section__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Subtítulo descriptivo del historial */
+#historial .section__subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Contenedor de acciones principales del historial */
+.historial__actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Botones específicos para acciones del historial */
+.historial__actions .btn {
+    min-width: 0;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+/* Layout de filtros en grid responsive */
+.filters__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 0;
+}
+
+/* Estadísticas compactas del historial */
+.historial-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.historial-stats .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.historial-stats .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: var(--primary-dark);
+}
+
+/* Iconos para estadísticas del historial */
+.stat-card__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* Colores específicos para diferentes tipos de estadísticas */
+.stat-card__icon--history {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-card__icon--unread {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    color: white;
+}
+
+.stat-card__icon--today {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.stat-card__icon--critical {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.stat-card__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-card__value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.value {
+    font-size: 2rem;
+}
+
+.stat-card__label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Filas de historial con efectos hover */
+.history-item {
+    transition: all 0.2s ease;
+}
+
+.history-item:hover {
+    background: var(--hover-bg);
+}
+
+/* Estado no leído para items de historial */
+.history-item--unread {
+    background: linear-gradient(90deg, rgba(79, 70, 229, 0.04) 0%, transparent 100%);
+    border-left: 2px solid var(--primary-dark);
+}
+
+/* Contenedor para fecha y hora */
+.date-time {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.date-time .date {
+    font-weight: 500;
+    font-size: 0.8125rem;
+}
+
+.date-time .time {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+}
+
+/* Tipo de actividad en historial */
+.history-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 140px;
+}
+
+.history-type i {
+    color: var(--primary-dark);
+    font-size: 0.875rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: rgba(79, 70, 229, 0.1);
+    flex-shrink: 0;
+}
+
+.history-type span {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Contenido del registro de historial */
+.history-content {
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.history-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-message {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    line-clamp: 2;              
+    -webkit-line-clamp: 2;       
+    -webkit-box-orient: vertical;
+}
+
+/* Paginación compacta para historial */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    flex-wrap: wrap;
+}
+
+.pagination__btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.pagination__btn:hover:not(:disabled) {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+
+.pagination__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--disabled-bg);
+}
+
+.pagination__info {
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    background: var(--input-bg);
+    border-radius: 6px;
+    min-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Responsive para modal de detalles */
+@media (max-width: 768px) {
+    .history-detail {
+        gap: 1.25rem;
+        padding: 0.25rem;
+    }
+    
+    .detail-header {
+        gap: 0.875rem;
+        padding-bottom: 1rem;
+    }
+    
+    .detail-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .detail-title h4 {
+        font-size: 1.25rem;
+        min-width: 100%;
+    }
+    
+    .detail-meta {
+        padding: 0.875rem;
+        gap: 0.625rem;
+    }
+    
+    .detail-date,
+    .detail-type {
+        font-size: 0.875rem;
+        gap: 0.625rem;
+    }
+    
+    .detail-content {
+        gap: 1.25rem;
+    }
+    
+    .detail-content h5 {
+        font-size: 1.0625rem;
+        margin-bottom: 0.625rem;
+    }
+    
+    .detail-message {
+        padding: 0.875rem;
+        font-size: 0.9375rem;
+    }
+    
+    .detail-metadata {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 0.875rem;
+    }
+    
+    .metadata-item {
+        padding: 0.625rem;
+    }
+    
+    .detail-related {
+        padding: 0.875rem;
+    }
+    
+    .detail-related i {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    
+    .detail-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding-top: 1.25rem;
+    }
+    
+    .detail-status {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .history-detail {
+        gap: 1rem;
+    }
+    
+    .detail-title h4 {
+        font-size: 1.125rem;
+    }
+    
+    .detail-content h5 {
+        font-size: 1rem;
+    }
+    
+    .detail-message {
+        font-size: 0.875rem;
+        padding: 0.75rem;
+    }
+    
+    .metadata-item span {
+        font-size: 0.875rem;
+        padding-left: 1.25rem;
+    }
+    
+    .detail-title .priority-badge {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    .detail-status .status-badge {
+        padding: 0.5rem 1rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* Ajustes para modo oscuro en modal de detalles */
+body.dark-theme .detail-meta {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .detail-message {
+    background: var(--bg-tertiary);
+}
+
+body.dark-theme .detail-metadata {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .metadata-item {
+    background: var(--bg-secondary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .detail-related {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+}
+
+body.dark-theme .detail-related:hover {
+    background: var(--hover-dark);
+}
+
+/* Ajustes para modo oscuro en historial */
+.dark-theme .historial-filters {
+    background: var(--dark-card-bg);
+    border-color: var(--dark-border-color);
+}
+
+.dark-theme .pagination {
+    background: var(--dark-card-bg);
+    border-color: var(--dark-border-color);
+}
+
+.dark-theme .history-item--unread {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.12) 0%, transparent 100%);
+}
+
+/* Animaciones para tabla de historial */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table--history tbody tr {
+    animation: fadeIn 0.25s ease-out;
+}
+
+.stat-card {
+    animation: fadeIn 0.3s ease-out;
+}

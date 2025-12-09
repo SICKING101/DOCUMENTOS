@@ -5,10 +5,12 @@ const router = express.Router();
 import DashboardController from '../controllers/dashboardController.js';
 import PersonController from '../controllers/personController.js';
 import CategoryController from '../controllers/categoryController.js';
+import DepartmentController from '../controllers/departmentController.js';
 import DocumentController from '../controllers/documentController.js';
 import TaskController from '../controllers/taskController.js';
 import NotificationController from '../controllers/notificationController.js';
 import ReportController from '../controllers/reportController.js';
+import TrashController from '../controllers/trashController.js';
 
 // Importar middleware de Multer
 import upload from '../config/multerConfig.js';
@@ -42,6 +44,14 @@ router.get('/categories', CategoryController.getAll);
 router.post('/categories', CategoryController.create);
 router.put('/categories/:id', CategoryController.update);
 router.delete('/categories/:id', CategoryController.delete);
+
+// -----------------------------
+// DEPARTAMENTOS
+// -----------------------------
+router.get('/departments', DepartmentController.getAll);
+router.post('/departments', DepartmentController.create);
+router.put('/departments/:id', DepartmentController.update);
+router.delete('/departments/:id', DepartmentController.delete);
 
 // -----------------------------
 // DOCUMENTOS
@@ -81,6 +91,15 @@ router.patch('/notifications/:id/read', NotificationController.markAsRead);
 router.patch('/notifications/read-all', NotificationController.markAllAsRead);
 router.delete('/notifications/:id', NotificationController.delete);
 router.post('/notifications/cleanup', NotificationController.cleanup);
+
+// -----------------------------
+// PAPELERA
+// -----------------------------
+router.get('/trash', TrashController.getTrashDocuments);
+router.post('/trash/empty-all', TrashController.emptyTrash);
+router.post('/trash/auto-cleanup', TrashController.autoCleanup);
+router.post('/trash/:id/restore', TrashController.restoreDocument);
+router.delete('/trash/:id', TrashController.deletePermanently);
 
 // CORREGIR ESTA LÍNEA:
 export default router;  // CAMBIAR CategoryController por router

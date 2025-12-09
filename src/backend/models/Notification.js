@@ -8,6 +8,7 @@ const notificationSchema = new mongoose.Schema({
     enum: [
       'documento_subido',
       'documento_eliminado',
+      'documento_restaurado',
       'documento_proximo_vencer',
       'documento_vencido',
       'persona_agregada',

@@ -1,0 +1,361 @@
+/* ===== 18. TASKS COMPONENTS ===== */
+
+/* Grid para resumen de tareas */
+.tasks-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Tarjeta para resumen de tareas por estado */
+.summary-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Efecto hover para tarjetas de resumen */
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Icono en tarjeta de resumen */
+.summary-card__icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+/* Colores específicos para diferentes tipos de resumen */
+.summary-card__icon--total {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.summary-card__icon--pending {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.summary-card__icon--progress {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.summary-card__icon--completed {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+/* Contenido de la tarjeta de resumen */
+.summary-card__content {
+    flex: 1;
+}
+
+/* Valor principal en tarjeta de resumen */
+.summary-card__value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+/* Etiqueta descriptiva del valor */
+.summary-card__label {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Contenedor grid para tarjetas de tareas */
+.tasks-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+    min-height: 200px;
+}
+
+/* Tarjeta individual de tarea */
+.task-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    height: fit-content;
+}
+
+/* Efecto hover para tarjetas de tarea */
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+}
+
+/* Borde decorativo según prioridad */
+.task-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    transition: var(--transition);
+}
+
+/* Borde rojo para prioridad alta */
+.task-card--alta::before {
+    background: linear-gradient(to bottom, #ef4444, #dc2626);
+}
+
+/* Borde amarillo para prioridad media */
+.task-card--media::before {
+    background: linear-gradient(to bottom, #f59e0b, #d97706);
+}
+
+/* Borde verde para prioridad baja */
+.task-card--baja::before {
+    background: linear-gradient(to bottom, #10b981, #059669);
+}
+
+/* Cabecera de la tarjeta de tarea */
+.task-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+/* Título de la tarea */
+.task-card__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+/* Badge de prioridad de la tarea */
+.task-card__priority {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Estilos para prioridad alta */
+.task-card__priority--alta {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Estilos para prioridad media */
+.task-card__priority--media {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Estilos para prioridad baja */
+.task-card__priority--baja {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Descripción de la tarea */
+.task-card__description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 1;
+}
+
+/* Contenedor para metadatos de la tarea */
+.task-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Item individual de metadato */
+.task-card__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Icono en item de metadato */
+.task-card__meta-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+/* Badge de categoría de la tarea */
+.task-card__category {
+    background: rgba(79, 70, 229, 0.1);
+    color: #4f46e5;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid rgba(79, 70, 229, 0.2);
+}
+
+/* Badge de estado de la tarea */
+.task-card__status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    border: 1px solid;
+}
+
+/* Estado pendiente */
+.task-card__status--pendiente {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Estado en progreso */
+.task-card__status--en-progreso {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Estado completada */
+.task-card__status--completada {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Pie de la tarjeta de tarea */
+.task-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+}
+
+/* Fecha de la tarea */
+.task-card__date {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+/* Contenedor para botones de acción */
+.task-card__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Botones de acción individuales */
+.task-card__action {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+/* Efecto hover para botones de acción */
+.task-card__action:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Acción de editar */
+.task-card__action--edit:hover {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Acción de eliminar */
+.task-card__action--delete:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Acción de completar */
+.task-card__action--complete:hover {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+}
+
+/* Estilo para tareas completadas */
+.task-card--completed {
+    opacity: 0.8;
+    background: var(--bg-secondary);
+}
+
+/* Título tachado para tareas completadas */
+.task-card--completed .task-card__title {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+}
+
+/* Descripción atenuada para tareas completadas */
+.task-card--completed .task-card__description {
+    color: var(--text-tertiary);
+}
+
+/* Estilo para tareas vencidas */
+.task-card--overdue {
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.02);
+}
+
+/* Fecha resaltada para tareas vencidas */
+.task-card--overdue .task-card__due-date {
+    color: #ef4444;
+    font-weight: 600;
+}

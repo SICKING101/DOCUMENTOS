@@ -221,13 +221,19 @@ const DOM = {
     categoryModal: document.getElementById('categoryModal'),
     
     /**
-     * 12.4 Modal de búsqueda
+     * 12.4 Modal de departamento
+     * Ventana emergente para gestión de departamentos.
+     */
+    departmentModal: document.getElementById('departmentModal'),
+    
+    /**
+     * 12.5 Modal de búsqueda
      * Ventana emergente para búsqueda avanzada de documentos.
      */
     searchModal: document.getElementById('searchModal'),
     
     /**
-     * 12.5 Modal de reportes
+     * 12.6 Modal de reportes
      * Ventana emergente para generación y configuración de reportes.
      */
     reportModal: document.getElementById('reportModal'),
@@ -577,17 +583,87 @@ const DOM = {
     categoryModalTitle: document.getElementById('categoryModalTitle'),
     
     // =============================================================================
-    // 21. ELEMENTOS DE BÚSQUEDA AVANZADA
+    // 21. ELEMENTOS DE FORMULARIO - DEPARTAMENTOS
     // =============================================================================
     
     /**
-     * 21.1 Formulario de búsqueda
+     * 21.1 Formulario de departamento
+     * Formulario HTML para capturar datos de departamentos.
+     */
+    departmentForm: document.getElementById('departmentForm'),
+    
+    /**
+     * 21.2 ID oculto de departamento
+     * Campo hidden para identificar departamento en modo edición.
+     */
+    departmentId: document.getElementById('departmentId'),
+    
+    /**
+     * 21.3 Nombre de departamento
+     * Campo de entrada para nombre descriptivo de departamento.
+     */
+    departmentName: document.getElementById('departmentName'),
+    
+    /**
+     * 21.4 Descripción de departamento
+     * Campo de texto para detallar propósito del departamento.
+     */
+    departmentDescription: document.getElementById('departmentDescription'),
+    
+    /**
+     * 21.5 Color de departamento
+     * Selector de color para personalización visual.
+     */
+    departmentColor: document.getElementById('departmentColor'),
+    
+    /**
+     * 21.6 Ícono de departamento
+     * Dropdown para seleccionar ícono representativo.
+     */
+    departmentIcon: document.getElementById('departmentIcon'),
+    
+    /**
+     * 21.7 Botón de guardar departamento
+     * Ejecuta la acción de guardar/actualizar departamento.
+     */
+    saveDepartmentBtn: document.getElementById('saveDepartmentBtn'),
+    
+    /**
+     * 21.8 Botón de cancelar departamento
+     * Cierra el modal de departamento sin guardar cambios.
+     */
+    cancelDepartmentBtn: document.getElementById('cancelDepartmentBtn'),
+    
+    /**
+     * 21.9 Título del modal de departamento
+     * Elemento que muestra "Nuevo Departamento" o "Editar Departamento".
+     */
+    departmentModalTitle: document.getElementById('departmentModalTitle'),
+    
+    /**
+     * 21.10 Contenedor de estadísticas de departamentos
+     * Grid donde se muestran las tarjetas de departamentos.
+     */
+    departmentsStats: document.getElementById('departmentsStats'),
+    
+    /**
+     * 21.11 Botón de agregar departamento
+     * Abre el modal para crear un nuevo departamento.
+     */
+    addDepartmentBtn: document.getElementById('addDepartmentBtn'),
+    
+    // =============================================================================
+    // 22. ELEMENTOS DE BÚSQUEDA AVANZADA
+    // =============================================================================
+    
+    /**
+     * 22.1 Formulario de búsqueda
      * Formulario con múltiples criterios para búsqueda avanzada.
      */
     searchForm: document.getElementById('searchForm'),
     
     /**
-     * 21.2 Palabra clave
+     * 22.2 Palabra clave
      * Campo de texto para búsqueda por contenido textual.
      */
     searchKeyword: document.getElementById('searchKeyword'),
