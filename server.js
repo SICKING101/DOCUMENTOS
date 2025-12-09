@@ -188,15 +188,25 @@ app.get('/api/health', (req, res) => {
 app.get('/api/dashboard', async (req, res) => {
   try {
     const totalPersonas = await Person.countDocuments({ activo: true });
-    const totalDocumentos = await Document.countDocuments({ activo: true, isDeleted: false });
+    
+    // CORREGIDO: Contar documentos que NO estén eliminados (sin filtrar por activo)
+    const totalDocumentos = await Document.countDocuments({
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    });
+    
     const totalCategorias = await Category.countDocuments({ activo: true });
 
     // Documentos próximos a vencer (en los próximos 30 días)
     const fechaLimite = new Date();
     fechaLimite.setDate(fechaLimite.getDate() + 30);
     const proximosVencer = await Document.countDocuments({
-      activo: true,
-      isDeleted: false,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ],
       fecha_vencimiento: { 
         $gte: new Date(), 
         $lte: fechaLimite 
@@ -204,7 +214,12 @@ app.get('/api/dashboard', async (req, res) => {
     });
 
     // Documentos recientes
-    const recentDocuments = await Document.find({ activo: true, isDeleted: false })
+    const recentDocuments = await Document.find({
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    })
       .populate('persona_id', 'nombre')
       .sort({ fecha_subida: -1 })
       .limit(5)
@@ -714,8 +729,26 @@ app.delete('/api/departments/:id', async (req, res) => {
 // -----------------------------
 app.get('/api/documents', async (req, res) => {
   try {
+    console.log('📊 DEBUG: Obteniendo documentos...');
+    
+    // Contar todos los documentos
+    const totalDocs = await Document.countDocuments();
+    console.log(`📊 Total documentos en BD: ${totalDocs}`);
+    
+    // Contar documentos activos
+    const activeDocs = await Document.countDocuments({ activo: true });
+    console.log(`📊 Documentos activos: ${activeDocs}`);
+    
+    // Contar documentos con isDeleted
+    const deletedDocs = await Document.countDocuments({ isDeleted: true });
+    console.log(`📊 Documentos eliminados: ${deletedDocs}`);
+    
+    // Contar documentos sin isDeleted
+    const noDeletedField = await Document.countDocuments({ isDeleted: { $exists: false } });
+    console.log(`📊 Documentos sin campo isDeleted: ${noDeletedField}`);
+    
+    // QUERY CORREGIDO: Solo filtrar por isDeleted, NO por activo
     const documents = await Document.find({ 
-      activo: true, 
       $or: [
         { isDeleted: false },
         { isDeleted: { $exists: false } }
@@ -724,6 +757,7 @@ app.get('/api/documents', async (req, res) => {
       .populate('persona_id', 'nombre email departamento puesto')
       .sort({ fecha_subida: -1 });
 
+    console.log(`📊 Documentos retornados: ${documents.length}`);
     res.json({ success: true, documents });
   } catch (error) {
     console.error('Error obteniendo documentos:', error);
@@ -894,7 +928,14 @@ app.delete('/api/documents/:id', async (req, res) => {
       });
     }
 
-    const documento = await Document.findOne({ _id: id, activo: true, isDeleted: false });
+    // CORREGIDO: No filtrar por activo, solo por isDeleted
+    const documento = await Document.findOne({ 
+      _id: id, 
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    });
     
     console.log('📄 Documento encontrado:', documento ? 'SÍ' : 'NO');
     if (documento) {
