@@ -38,10 +38,6 @@
                     <i class="fas fa-file-alt"></i>
                     <span>Documentos</span>
                 </a>
-                <a href="#" class="sidebar__nav-link" data-tab="categorias">
-                    <i class="fas fa-tags"></i>
-                    <span>Categorías</span>
-                </a>
                 <a href="#" class="sidebar__nav-link" data-tab="tareas">
                     <i class="fa-solid fa-thumbtack"></i>
                     <span>Tareas</span>
@@ -540,6 +536,21 @@
                         </button>
                     </div>
 
+                    <!-- Categories Section -->
+                    <div class="categories-section">
+                        <div class="section__header section__header--compact">
+                            <h3 class="section__title section__title--small">
+                                <i class="fas fa-tags"></i> Categorías
+                            </h3>
+                            <button class="btn btn--primary btn--sm" id="addCategoryBtn">
+                                <i class="fas fa-plus"></i> Nueva Categoría
+                            </button>
+                        </div>
+                        <div class="stats__grid" id="categoriesStats">
+                            <!-- Las categorías se cargarán aquí -->
+                        </div>
+                    </div>
+
                     <!-- Categories Chips -->
                     <div class="categories-section">
                         <h3 class="categories-section__title">Filtrar por Categoría</h3>
@@ -619,24 +630,6 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
-                </section>
-
-                <!-- ===== CATEGORIAS TAB ===== -->
-                <section id="categorias" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title">Gestión de Categorías</h2>
-                            <p class="section__subtitle">Organiza documentos por categorías</p>
-                        </div>
-                        <button class="btn btn--primary" id="addCategoryBtn">
-                            <i class="fas fa-plus"></i> Nueva Categoría
-                        </button>
-                    </div>
-
-                    <!-- Categories Grid -->
-                    <div class="dashboard__stats" id="categoriesStats">
-                        <!-- Las categorías se cargarán dinámicamente -->
                     </div>
                 </section>
 

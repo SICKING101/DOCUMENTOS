@@ -178,6 +178,42 @@ li {
     color: var(--text-secondary);
 }
 
+/* ===== SUBSECTION STYLES ===== */
+/* Subsección dentro de una sección principal (como categorías dentro de documentos) */
+.subsection {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.subsection__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+}
+
+.subsection__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.subsection__title i {
+    color: var(--primary);
+}
+
+.subsection__subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
 /* ===== 3. SIDEBAR COMPONENTS ===== */
 
 /* Barra lateral fija con navegación y controles */
@@ -373,16 +409,18 @@ li {
     position: absolute;
     top: -4px;
     right: -4px;
-    width: 20px;
+    min-width: 20px;
     height: 20px;
+    padding: 0 5px;
     background: var(--danger);
     color: white;
     font-size: 0.625rem;
     font-weight: 700;
-    border-radius: 50%;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
 }
 
 /* ===== 5. BUTTON COMPONENTS ===== */
@@ -1400,9 +1438,18 @@ body.dark-theme .detail-related:hover {
 
 /* ===== 11. CATEGORY COMPONENTS ===== */
 
-/* Sección para mostrar categorías como chips */
+/* Sección para mostrar categorías */
 .categories-section {
     margin-bottom: var(--spacing-xl);
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+.categories-section .stats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
 }
 
 /* Sección para mostrar departamentos */
@@ -1810,6 +1857,54 @@ body.dark-theme .detail-related:hover {
 }
 
 .stats__card--department:hover .stats__actions {
+    opacity: 1;
+}
+
+/* Estilos específicos para tarjetas de categorías (idénticos a departamentos) */
+.stats__card--category {
+    position: relative;
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+    min-width: 150px;
+    max-width: 180px;
+}
+
+.stats__card--category .stats__icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.stats__card--category .stats__info {
+    width: 100%;
+}
+
+.stats__card--category .stats__info-value {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.stats__card--category .stats__info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stats__card--category .stats__actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.stats__card--category:hover .stats__actions {
     opacity: 1;
 }
 
