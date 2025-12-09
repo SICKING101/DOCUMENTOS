@@ -411,16 +411,18 @@ li {
     right: -4px;
     min-width: 20px;
     height: 20px;
-    padding: 0 5px;
+    padding: 0 6px;
     background: var(--danger);
     color: white;
-    font-size: 0.625rem;
+    font-size: 10px;
     font-weight: 700;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
+    line-height: 20px;
+    box-sizing: border-box;
+    text-align: center;
 }
 
 /* ===== 5. BUTTON COMPONENTS ===== */
