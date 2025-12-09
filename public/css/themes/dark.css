@@ -1,0 +1,78 @@
+/* Variables para el tema oscuro */
+body.dark-theme {
+    /* Colores invertidos para modo oscuro */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #64748b;
+    --border: #334155;
+    
+    /* Ajustes específicos para sidebar en modo oscuro */
+    --sidebar-bg: #020617;
+    --sidebar-hover: #1e293b;
+    
+    /* Variables adicionales para componentes específicos */
+    --card-bg: #1e293b;
+    --dark-card-bg: #0f172a;
+    --border-color: #334155;
+    --dark-border-color: #475569;
+    --border-color-light: #475569;
+    --dark-border-color-light: #64748b;
+    --input-bg: #1e293b;
+    --dark-input-bg: #0f172a;
+    --table-header-bg: #1e293b;
+    --dark-table-header-bg: #0f172a;
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --hover-dark: rgba(255, 255, 255, 0.08);
+    --disabled-bg: rgba(255, 255, 255, 0.1);
+    --scrollbar-track: #1e293b;
+    --scrollbar-thumb: #475569;
+}
+
+/* Ajustes específicos para modo oscuro */
+body.dark-theme .task-card {
+    background: var(--bg-secondary);
+}
+
+body.dark-theme .summary-card {
+    background: var(--bg-tertiary);
+}
+
+body.dark-theme #tareas .filters-bar {
+    background: var(--bg-tertiary);
+}
+
+body.dark-theme .modal__content {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+body.dark-theme .form__input,
+body.dark-theme .form__select,
+body.dark-theme .form__textarea {
+    background: var(--bg-primary);
+    border-color: var(--border);
+}
+
+body.dark-theme .form__input:focus,
+body.dark-theme .form__select:focus,
+body.dark-theme .form__textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+/* Ajustes para modo oscuro en subida múltiple */
+.dark-theme .file-item {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-theme .files__summary {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dark-theme .upload-progress {
+    background: var(--dark-card-bg);
+    border-color: rgba(255, 255, 255, 0.1);
+}

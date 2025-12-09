@@ -1,0 +1,389 @@
+/* ===== 11. CATEGORY COMPONENTS ===== */
+
+/* Sección para mostrar categorías */
+.categories-section {
+    margin-bottom: var(--spacing-xl);
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+/* Grid específico para tarjetas de categorías */
+.categories-section .stats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Sección para mostrar departamentos */
+.departments-section {
+    margin-bottom: var(--spacing-xl);
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+/* Grid específico para tarjetas de departamentos */
+.departments-section .stats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Título de sección de categorías */
+.categories-section__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-md);
+}
+
+/* Contenedor para chips de categorías */
+.category-chips {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+/* Chip individual para representar una categoría */
+.category-chip {
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Efecto hover para chips de categoría */
+.category-chip:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+/* Estado activo para chip de categoría */
+.category-chip--active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-color: var(--primary);
+    color: white;
+}
+
+/* Estilo específico para chip "Todas las categorías" */
+.category-chip--all.category-chip--active {
+    background: linear-gradient(135deg, #475569, #334155);
+    border-color: #475569;
+}
+
+/* Estilos específicos para tarjetas de categorías */
+.stats__card--category {
+    position: relative;
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+    min-width: 150px;
+    max-width: 180px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.stats__card--category:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.stats__card--category .stats__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.stats__card--category .stats__info {
+    width: 100%;
+}
+
+.stats__card--category .stats__info-value {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stats__card--category .stats__info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stats__card--category .stats__actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.stats__card--category:hover .stats__actions {
+    opacity: 1;
+}
+
+/* Estilos específicos para tarjetas de departamentos */
+.stats__card--department {
+    position: relative;
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+    min-width: 150px;
+    max-width: 180px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.stats__card--department:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.stats__card--department .stats__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.stats__card--department .stats__info {
+    width: 100%;
+}
+
+.stats__card--department .stats__info-value {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.stats__card--department .stats__info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stats__card--department .stats__actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.stats__card--department:hover .stats__actions {
+    opacity: 1;
+}
+
+/* Botón de icono pequeño para acciones */
+.btn-icon--sm {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-icon--sm:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: scale(1.1);
+}
+
+/* Header de secciones de categorías y departamentos */
+.categories-section__header,
+.departments-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.categories-section__title,
+.departments-section__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.categories-section__subtitle,
+.departments-section__subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* Botones de acción para secciones */
+.categories-section__actions,
+.departments-section__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Estado vacío para categorías y departamentos */
+.categories-empty,
+.departments-empty {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+}
+
+.categories-empty__icon,
+.departments-empty__icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-tertiary);
+    opacity: 0.5;
+}
+
+.categories-empty__title,
+.departments-empty__title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.categories-empty__description,
+.departments-empty__description {
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+}
+
+/* Responsive para categorías y departamentos */
+@media (max-width: 768px) {
+    .categories-section,
+    .departments-section {
+        padding: 1rem;
+    }
+    
+    .categories-section .stats__grid,
+    .departments-section .stats__grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .stats__card--category,
+    .stats__card--department {
+        padding: 1rem;
+        min-width: 130px;
+    }
+    
+    .stats__card--category .stats__icon,
+    .stats__card--department .stats__icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+    }
+    
+    .stats__card--category .stats__info-value,
+    .stats__card--department .stats__info-value {
+        font-size: 1.25rem;
+    }
+    
+    .category-chips {
+        gap: 0.5rem;
+    }
+    
+    .category-chip {
+        padding: 0.5rem 1rem;
+        font-size: 0.8125rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .categories-section .stats__grid,
+    .departments-section .stats__grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .categories-section__header,
+    .departments-section__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .categories-section__actions,
+    .departments-section__actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* Ajustes para modo oscuro en categorías y departamentos */
+body.dark-theme .stats__card--category,
+body.dark-theme .stats__card--department {
+    background: var(--bg-tertiary);
+    border-color: var(--border);
+}
+
+body.dark-theme .stats__card--category:hover,
+body.dark-theme .stats__card--department:hover {
+    border-color: var(--primary);
+}
+
+body.dark-theme .category-chip {
+    background: var(--bg-tertiary);
+    border-color: var(--border);
+}
+
+body.dark-theme .category-chip--active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-color: var(--primary);
+}

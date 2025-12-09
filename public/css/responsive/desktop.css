@@ -1,0 +1,81 @@
+/* ===== 21. RESPONSIVE DESIGN - DESKTOP ===== */
+
+/* Dispositivos desktop grandes (más de 1200px) */
+@media (min-width: 1201px) {
+    /* Optimizaciones para pantallas grandes */
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .dashboard__stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .tasks-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .modal--large .modal__content {
+        max-width: 1000px;
+    }
+    
+    /* Mejoras para pantallas muy grandes */
+    .content-wrapper {
+        margin-left: 300px;
+    }
+    
+    .sidebar {
+        width: 300px;
+    }
+    
+    .main-content {
+        padding: 2rem;
+    }
+}
+
+/* Pantallas medianas desktop (1025px a 1200px) */
+@media (min-width: 1025px) and (max-width: 1200px) {
+    /* Optimizaciones para pantallas medianas */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dashboard__stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .tasks-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Ajustes de sidebar */
+    .sidebar {
+        width: 260px;
+    }
+    
+    .content-wrapper {
+        margin-left: 260px;
+    }
+}
+
+/* Responsive para sección de historial en pantallas grandes */
+@media (min-width: 1200px) {
+    .filters__grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .historial-stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Pantallas medianas para historial */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .filters__grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .historial-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

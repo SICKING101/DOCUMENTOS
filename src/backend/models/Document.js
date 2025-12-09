@@ -12,7 +12,11 @@ const documentSchema = new mongoose.Schema({
   cloudinary_url: { type: String, required: true },
   public_id: { type: String, required: true },
   resource_type: { type: String, required: true },
-  activo: { type: Boolean, default: true }
+  activo: { type: Boolean, default: true },
+  // Campos para papelera
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
+  deletedBy: { type: String, default: null }
 }, { timestamps: true });
 
 // Usar export default

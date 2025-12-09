@@ -8,7 +8,13 @@ class DocumentController {
   // Obtener todos los documentos
   static async getAll(req, res) {
     try {
-      const documents = await Document.find({ activo: true })
+      const documents = await Document.find({ 
+        activo: true,
+        $or: [
+          { isDeleted: false },
+          { isDeleted: { $exists: false } }
+        ]
+      })
         .populate('persona_id', 'nombre email departamento puesto')
         .sort({ fecha_subida: -1 });
 
@@ -176,23 +182,17 @@ class DocumentController {
         });
       }
 
-      // Guardar datos para la notificación antes de eliminar
-      const nombreDocumento = documento.nombre_original;
-      const categoriaDocumento = documento.categoria;
+      // Soft delete - mover a papelera
+      documento.isDeleted = true;
+      documento.deletedAt = new Date();
+      documento.deletedBy = req.body.deletedBy || 'Usuario';
+      await documento.save();
 
-      // Eliminar de Cloudinary
+      console.log(`🗑️ Documento movido a papelera: ${documento.nombre_original}`);
+
+      // Crear notificación de documento movido a papelera
       try {
-        await FileService.deleteFromCloudinary(documento.public_id, documento.resource_type);
-      } catch (cloudinaryError) {
-        console.warn('No se pudo eliminar de Cloudinary:', cloudinaryError);
-      }
-
-      // Eliminar lógicamente de la base de datos
-      await Document.findByIdAndUpdate(id, { activo: false });
-
-      // Crear notificación de documento eliminado
-      try {
-        await NotificationService.documentoEliminado(nombreDocumento, categoriaDocumento);
+        await NotificationService.documentoEliminado(documento.nombre_original, documento.categoria);
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }

@@ -1,0 +1,41 @@
+/* ===== 1. CSS RESET & BASE STYLES ===== */
+
+/* Reset para eliminar márgenes y padding por defecto */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Estilos base para toda la aplicación */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Elimina estilos de lista por defecto */
+li {
+    list-style: none;
+}
+
+/* ===== CUSTOM SCROLLBAR ===== */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--text-tertiary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}

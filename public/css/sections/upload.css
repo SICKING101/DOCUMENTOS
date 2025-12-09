@@ -1,0 +1,582 @@
+/* ===== 12. FILE UPLOAD COMPONENTS ===== */
+
+/* Contenedor para área de subida de archivos */
+.upload__container {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    text-align: center;
+    transition: var(--transition);
+    margin-bottom: 1.5rem;
+    background-color: var(--bg-secondary);
+}
+
+/* Contenedores de modo de subida (inicialmente ocultos) */
+.upload__container {
+    display: none;
+}
+
+/* Estado activo para contenedor de modo de subida */
+.upload__mode--active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Efecto hover para área de subida */
+.upload__container:hover {
+    border-color: var(--primary);
+    background-color: rgba(220, 38, 38, 0.02);
+}
+
+/* Estado cuando se está arrastrando un archivo */
+.upload__container--dragover {
+    border-color: var(--primary);
+    background-color: rgba(220, 38, 38, 0.05);
+}
+
+/* Icono grande para área de subida */
+.upload__icon {
+    font-size: 3.5rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+/* Icono específico para subida múltiple */
+.upload__icon--multiple {
+    font-size: 48px;
+    color: var(--primary-dark);
+    margin-bottom: 16px;
+}
+
+/* Input de archivo oculto */
+.upload__input {
+    display: none;
+}
+
+/* Información de archivos subidos */
+.upload__info {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    display: none;
+    text-align: left;
+}
+
+/* Texto de ayuda para subida múltiple */
+.upload__hint {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 12px;
+}
+
+/* ===== 27. ESTILOS PARA SUBIDA MÚLTIPLE ===== */
+
+/* Área de dropzone para subida múltiple de archivos */
+.multiple-upload__dropzone {
+    border: 3px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+    background: var(--background-secondary);
+}
+
+/* Efecto hover para dropzone de subida múltiple */
+.multiple-upload__dropzone:hover {
+    border-color: var(--primary-dark);
+    background: rgba(var(--primary-rgb), 0.05);
+}
+
+/* Estado cuando se está arrastrando archivos sobre el dropzone */
+.multiple-upload__dropzone.upload__container--dragover {
+    border-color: var(--success-color);
+    background: rgba(var(--success-rgb), 0.1);
+    transform: scale(1.02);
+}
+
+/* Cabecera para sección de subida múltiple */
+.multiple-upload__header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.multiple-upload__header i {
+    font-size: 32px;
+    color: var(--primary-dark);
+    margin-bottom: 12px;
+}
+
+.multiple-upload__header h3 {
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.multiple-upload__subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Configuración común para subida múltiple */
+.multiple-upload__config {
+    background: var(--background-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.multiple-upload__config h4 {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.multiple-upload__config h4 i {
+    color: var(--primary-dark);
+}
+
+/* Lista de archivos en subida múltiple */
+.multiple-upload__files {
+    background: var(--background-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.multiple-upload__files h4 {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.multiple-upload__files h4 i {
+    color: var(--primary-dark);
+}
+
+/* Lista contenedora de archivos */
+.files__list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background: var(--background-primary);
+    padding: 12px;
+}
+
+/* Item individual de archivo en lista */
+.file-item {
+    background: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+/* Efecto hover para items de archivo */
+.file-item:hover {
+    border-color: var(--primary-dark);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Estado de subida en progreso */
+.file-item--uploading {
+    border-left: 4px solid var(--info-color);
+}
+
+/* Estado de subida completada */
+.file-item--completed {
+    border-left: 4px solid var(--success-color);
+}
+
+/* Estado de subida fallida */
+.file-item--failed {
+    border-left: 4px solid var(--danger-color);
+}
+
+/* Cabecera del item de archivo */
+.file-item__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+/* Icono del tipo de archivo */
+.file-item__icon {
+    width: 40px;
+    height: 40px;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--primary-dark);
+}
+
+/* Información del archivo */
+.file-item__info {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Nombre del archivo */
+.file-item__name {
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+/* Detalles del archivo (tamaño, tipo) */
+.file-item__details {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Acciones disponibles para el archivo */
+.file-item__actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Cuerpo del item de archivo */
+.file-item__body {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Estado de subida del archivo */
+.file-item__status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+/* Barra de progreso de subida */
+.file-item__progress {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Contenedor de barra de progreso */
+.progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--background-secondary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+/* Fill animado de barra de progreso */
+.progress-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--info-color), var(--primary-dark));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Texto de porcentaje de progreso */
+.progress-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 40px;
+}
+
+/* Configuración específica para archivo */
+.file-item__config {
+    padding: 12px;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    margin-top: 12px;
+}
+
+/* Mensaje de error en subida de archivo */
+.file-item__error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(var(--danger-rgb), 0.1);
+    border-radius: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--danger-color);
+}
+
+.file-item__error i {
+    font-size: 14px;
+}
+
+/* Resumen estadístico de archivos */
+.files__summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    background: var(--background-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+/* Item individual del resumen */
+.summary__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    background: var(--background-secondary);
+}
+
+.summary__item i {
+    color: var(--primary-dark);
+    font-size: 14px;
+}
+
+.summary__item span {
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.summary__item strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Opciones avanzadas para subida múltiple */
+.multiple-upload__advanced {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.advanced__options {
+    margin-top: 16px;
+    padding: 20px;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.advanced__options .form__group {
+    margin-bottom: 16px;
+}
+
+/* Contenedor flotante de progreso global */
+.upload-progress {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 400px;
+    max-width: 90vw;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    z-index: 9999;
+    overflow: hidden;
+    animation: slideInUp 0.3s ease;
+}
+
+/* Cabecera del progreso global */
+.upload-progress__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--background-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.upload-progress__header h4 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.upload-progress__header h4 i {
+    color: var(--primary-dark);
+}
+
+/* Cuerpo del progreso global */
+.upload-progress__body {
+    padding: 20px;
+}
+
+/* Progreso general de todas las subidas */
+.overall-progress {
+    margin-bottom: 20px;
+}
+
+.overall-progress__bar {
+    height: 10px;
+    background: var(--background-secondary);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.overall-progress__bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-dark), var(--success-color));
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+.overall-progress__text {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Estadísticas de la subida múltiple */
+.upload-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--background-secondary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-item__label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.stat-item__value {
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 20px;
+}
+
+/* Colores específicos para valores estadísticos */
+.stat-item__value--success {
+    color: var(--success-color);
+}
+
+.stat-item__value--danger {
+    color: var(--danger-color);
+}
+
+.stat-item__value--info {
+    color: var(--info-color);
+}
+
+/* Lista de subidas en curso */
+.current-uploads {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.current-upload-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.current-upload-item:last-child {
+    border-bottom: none;
+}
+
+.current-upload-item__icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--primary-dark);
+}
+
+.current-upload-item__name {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.current-upload-item__progress {
+    width: 60px;
+    height: 4px;
+    background: var(--background-secondary);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.current-upload-item__progress-fill {
+    height: 100%;
+    background: var(--primary-dark);
+    border-radius: 2px;
+}
+
+/* Pie del progreso global con información adicional */
+.upload-progress__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: var(--background-secondary);
+    border-top: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.upload-speed, .upload-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.upload-speed i, .upload-time i {
+    font-size: 14px;
+}
+
+.upload-speed span, .upload-time span {
+    font-weight: 500;
+}
+
+/* Animaciones para componentes de subida */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

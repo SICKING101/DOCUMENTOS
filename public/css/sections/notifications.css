@@ -1,0 +1,289 @@
+/* =============================================================================
+   26. NOTIFICATIONS DROPDOWN STYLES
+   ============================================================================= */
+
+/* Dropdown flotante para notificaciones */
+.notifications-dropdown {
+    position: fixed;
+    width: 380px;
+    max-height: 500px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 9999;
+}
+
+/* Estado activo del dropdown de notificaciones */
+.notifications-dropdown--active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Cabecera del dropdown de notificaciones */
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Título del dropdown de notificaciones */
+.notifications-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Contenedor de lista de notificaciones con scroll */
+.notifications-list {
+    overflow-y: auto;
+    max-height: 420px;
+    padding: 0.5rem;
+}
+
+/* Scrollbar personalizado para lista de notificaciones */
+.notifications-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notifications-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.notifications-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.notifications-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Estado vacío para lista de notificaciones */
+.notifications-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-tertiary);
+    text-align: center;
+}
+
+/* Icono para estado vacío de notificaciones */
+.notifications-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Texto para estado vacío de notificaciones */
+.notifications-empty p {
+    font-size: 0.9375rem;
+}
+
+/* Item individual de notificación */
+.notification-item {
+    position: relative;
+    display: flex;
+    gap: 0.875rem;
+    padding: 0.875rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+/* Efecto hover para items de notificación */
+.notification-item:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+/* Estado leído para notificaciones */
+.notification-item--read {
+    opacity: 0.7;
+}
+
+/* Restaurar opacidad en hover para notificaciones leídas */
+.notification-item--read:hover {
+    opacity: 1;
+}
+
+/* Icono de notificación con colores según prioridad */
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.125rem;
+}
+
+/* Colores específicos para diferentes niveles de prioridad */
+.notification-icon--baja {
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--info);
+}
+
+.notification-icon--media {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.notification-icon--alta {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.notification-icon--critica {
+    background: rgba(220, 38, 38, 0.15);
+    color: var(--primary);
+}
+
+/* Contenido de la notificación */
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Cabecera de la notificación con título y hora */
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Título de la notificación */
+.notification-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Hora de la notificación */
+.notification-time {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Mensaje de la notificación */
+.notification-message {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+}
+
+/* Detalles adicionales de la notificación */
+.notification-details {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin: 0.25rem 0 0 0;
+    font-style: italic;
+}
+
+/* Punto indicador de notificación no leída */
+.notification-unread-dot {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.875rem;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Animación de pulso para punto de notificación no leída */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+/* Ajustes para modo oscuro en dropdown de notificaciones */
+body.dark-theme .notifications-dropdown {
+    background: var(--sidebar-bg);
+    border-color: var(--sidebar-hover);
+}
+
+body.dark-theme .notifications-header {
+    background: var(--sidebar-hover);
+    border-color: var(--sidebar-hover);
+}
+
+body.dark-theme .notification-item:hover {
+    background: var(--sidebar-hover);
+    border-color: var(--border);
+}
+
+body.dark-theme .notifications-list::-webkit-scrollbar-thumb {
+    background: var(--sidebar-hover);
+}
+
+body.dark-theme .notifications-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Responsive para dropdown de notificaciones */
+@media (max-width: 768px) {
+    .notifications-dropdown {
+        width: calc(100vw - 2rem);
+        max-width: 380px;
+        right: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .notifications-dropdown {
+        width: calc(100vw - 1rem);
+        right: 0.5rem !important;
+        left: 0.5rem !important;
+        max-height: 70vh;
+    }
+
+    .notifications-list {
+        max-height: calc(70vh - 60px);
+    }
+
+    .notification-item {
+        padding: 0.75rem;
+    }
+
+    .notification-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 1rem;
+    }
+}

@@ -1,0 +1,194 @@
+/* =============================================================================
+   PAPELERA DE RECICLAJE
+   ============================================================================= */
+
+/* Contenedor principal de papelera */
+.trash-content {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+/* Header de papelera */
+.trash-header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* Estadísticas de papelera */
+.trash-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.trash-stat-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.trash-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.trash-stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.trash-stat-icon--primary { background: rgba(220, 38, 38, 0.1); color: var(--primary); }
+.trash-stat-icon--info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.trash-stat-icon--warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+
+.trash-stat-info { flex: 1; }
+.trash-stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem; }
+.trash-stat-label { font-size: 0.875rem; color: var(--text-secondary); font-weight: 500; }
+
+/* Controles de papelera */
+.trash-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.trash-controls-left, .trash-controls-right {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.trash-selection-counter {
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Lista de documentos */
+.trash-documents-list { display: flex; flex-direction: column; gap: 1rem; }
+
+/* Card de documento */
+.trash-document-card {
+    background: var(--bg-primary);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.trash-document-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateX(4px);
+}
+
+.trash-document-card--selected {
+    border-color: var(--primary);
+    background: rgba(220, 38, 38, 0.02);
+}
+
+.trash-document-checkbox { display: flex; align-items: center; }
+.trash-checkbox { width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary); }
+
+.trash-document-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: rgba(220, 38, 38, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.trash-document-info { flex: 1; min-width: 0; }
+.trash-document-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trash-document-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.trash-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Contador de días */
+.trash-document-days {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    min-width: 100px;
+}
+
+.trash-days--safe { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+.trash-days--warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+.trash-days--danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+.trash-days-number { font-size: 2rem; font-weight: 700; line-height: 1; }
+.trash-days-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+
+/* Botones */
+.trash-bulk-actions { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; padding: 0 1rem; }
+.trash-document-actions { display: flex; gap: 0.5rem; }
+
+.btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon--success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+.btn-icon--success:hover { background: var(--success); color: white; transform: scale(1.1); }
+.btn-icon--danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+.btn-icon--danger:hover { background: var(--danger); color: white; transform: scale(1.1); }
+
+.btn--danger { background: var(--danger); color: white; border: none; }
+.btn--danger:hover { background: #dc2626; transform: translateY(-2px); }
+.btn--success { background: var(--success); color: white; border: none; }
+.btn--success:hover { background: #059669; transform: translateY(-2px); }

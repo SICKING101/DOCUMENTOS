@@ -12,7 +12,7 @@ import { setLoadingState, showAlert, getFileIcon, formatDate } from '../utils.js
  * en el panel principal de la aplicación.
  */
 async function loadDashboardData(appState) {
-    if (appState.isLoading) return;
+    if (appState && appState.isLoading) return;
     
     try {
         setLoadingState(true);
@@ -21,7 +21,9 @@ async function loadDashboardData(appState) {
         const data = await api.getDashboardData();  // CAMBIADO: usar api.getDashboardData()
         
         if (data.success) {
-            appState.dashboardStats = data.stats;
+            if (appState) {
+                appState.dashboardStats = data.stats;
+            }
             updateDashboardStats(appState);
             loadRecentDocuments(data.recent_documents || [], appState);
             console.log('✅ Dashboard actualizado correctamente');
@@ -48,6 +50,8 @@ async function loadDashboardData(appState) {
  * del dashboard (personas, documentos, vencimientos, categorías).
  */
 function updateDashboardStats(appState) {
+    if (!appState || !appState.dashboardStats) return;
+    
     if (DOM.statsCards.totalPersonas) DOM.statsCards.totalPersonas.textContent = appState.dashboardStats.totalPersonas;
     if (DOM.statsCards.totalDocumentos) DOM.statsCards.totalDocumentos.textContent = appState.dashboardStats.totalDocumentos;
     if (DOM.statsCards.proximosVencer) DOM.statsCards.proximosVencer.textContent = appState.dashboardStats.proximosVencer;
@@ -66,7 +70,7 @@ function updateDashboardStats(appState) {
 function loadRecentDocuments(recentDocuments = [], appState) {
     if (!DOM.recentDocuments) return;
     
-    const docsToShow = recentDocuments.length > 0 ? recentDocuments : appState.documents.slice(0, 5);
+    const docsToShow = recentDocuments.length > 0 ? recentDocuments : (appState && appState.documents ? appState.documents.slice(0, 5) : []);
     
     DOM.recentDocuments.innerHTML = '';
     

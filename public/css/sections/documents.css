@@ -1,0 +1,295 @@
+/* ===== DOCUMENTS SECTION ===== */
+
+/* Sección principal de documentos */
+.documents-section {
+    margin-bottom: var(--spacing-xl);
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+}
+
+/* Header de sección de documentos */
+.documents-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.documents-section__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.documents-section__subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.documents-section__actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* Grid para estadísticas de documentos */
+.documents-section .stats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Lista de documentos */
+.documents__list {
+    display: grid;
+    gap: 16px;
+}
+
+/* Item individual de documento */
+.documents__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    transition: var(--transition);
+    border-left: 4px solid var(--primary);
+    border: 1px solid var(--border);
+}
+
+/* Efecto hover para documentos */
+.documents__item:hover {
+    background-color: var(--bg-tertiary);
+    transform: translateX(4px);
+}
+
+/* Información del documento */
+.documents__info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Icono del documento */
+.documents__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+/* Detalles del documento */
+.documents__details {
+    flex: 1;
+}
+
+.documents__details-name {
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.documents__details-meta {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.documents__details-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.documents__details-meta i {
+    font-size: 0.875rem;
+}
+
+/* Acciones del documento */
+.documents__actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Botones específicos para documentos */
+.documents__action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.875rem;
+}
+
+.documents__action-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.documents__action-btn--view:hover {
+    background: var(--info);
+    border-color: var(--info);
+}
+
+.documents__action-btn--download:hover {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.documents__action-btn--delete:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+}
+
+/* Estado vacío para documentos */
+.documents-empty {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+}
+
+.documents-empty__icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-tertiary);
+    opacity: 0.5;
+}
+
+.documents-empty__title {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.documents-empty__description {
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+}
+
+/* Filtros específicos para documentos */
+.documents-filters {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+}
+
+.documents-filters__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.documents-filters__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.documents-filters__clear {
+    font-size: 0.875rem;
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.documents-filters__clear:hover {
+    text-decoration: underline;
+}
+
+.documents-filters__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* Responsive para documentos */
+@media (max-width: 768px) {
+    .documents-section {
+        padding: 1rem;
+    }
+    
+    .documents-section__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .documents-section__actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .documents__item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .documents__actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .documents__details-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .documents-section .stats__grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .documents-filters__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Ajustes para modo oscuro en documentos */
+body.dark-theme .documents-section {
+    background: var(--bg-tertiary);
+    border-color: var(--border);
+}
+
+body.dark-theme .documents__item {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}
+
+body.dark-theme .documents__item:hover {
+    background: var(--sidebar-hover);
+}
+
+body.dark-theme .documents-filters {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+}

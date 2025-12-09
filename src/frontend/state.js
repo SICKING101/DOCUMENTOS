@@ -31,6 +31,12 @@ class AppState {
          */
         this.categories = [];
         
+        /**
+         * 2.4 Lista de departamentos
+         * Almacena los departamentos disponibles para organizar personas.
+         */
+        this.departments = [];
+        
         // =============================================================================
         // 3. ESTADÍSTICAS DEL DASHBOARD
         // =============================================================================
