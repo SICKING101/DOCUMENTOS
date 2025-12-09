@@ -1,7 +1,8 @@
 import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
-import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
+import { api } from '../services/api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
+import { updateTrashBadge } from './papelera.js';
 
 // =============================================================================
 // SECCIÓN 1: ESTADO DE SUBIDA MÚLTIPLE
@@ -883,6 +884,8 @@ async function handleUploadDocument() {
         setLoadingState(true, DOM.uploadDocumentBtn);
         
         console.log('📋 Iniciando upload del documento...');
+        console.log('📋 Archivo:', window.appState.selectedFile.name);
+        console.log('📋 Tamaño:', formatFileSize(window.appState.selectedFile.size));
         
         const formData = new FormData();
         formData.append('file', window.appState.selectedFile);
@@ -893,9 +896,20 @@ async function handleUploadDocument() {
 
         console.log('📤 Enviando al servidor...');
 
-        // CAMBIADO: usar api.uploadDocument() en lugar de fetch directo
-        const data = await api.uploadDocument(formData);  // CAMBIADO
+        const response = await fetch(`${CONFIG.API_BASE_URL}/documents`, {
+            method: 'POST',
+            body: formData
+        });
 
+        console.log('📥 Respuesta:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Error del servidor:', errorText);
+            throw new Error(`Error del servidor (${response.status}): ${errorText}`);
+        }
+
+        const data = await response.json();
         console.log('📦 Datos de respuesta:', data);
 
         if (data.success) {
@@ -2988,20 +3002,29 @@ function escapeHtml(unsafe) {
  * @param {string} id - ID del documento a eliminar
  */
 async function deleteDocument(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+    console.log('🔧 deleteDocument llamada con ID:', id);
+    
+    if (!confirm('¿Mover este documento a la papelera?')) {
+        console.log('⚠️ Usuario canceló la eliminación');
         return;
     }
     
     try {
-        console.log('🗑️ Eliminando documento:', id);
+        console.log('🗑️ Moviendo documento a la papelera:', id);
+        console.log('📡 Haciendo llamada DELETE a:', `/documents/${id}`);
         
-        const data = await api.deleteDocument(id);  // CAMBIADO: usar api.deleteDocument()
+        const data = await api.call(`/documents/${id}`, { method: 'DELETE' });
+        
+        console.log('📦 Respuesta del servidor:', data);
         
         if (data.success) {
-            showAlert(data.message, 'success');
+            showAlert(data.message || 'Documento movido a la papelera', 'success');
             await loadDocuments();
             
-            if (window.appState.currentTab === 'dashboard') {
+            // Actualizar badge de papelera
+            await updateTrashBadge();
+            
+            if (window.appState && window.appState.currentTab === 'dashboard') {
                 await window.loadDashboardData();
             }
         } else {
@@ -3009,8 +3032,8 @@ async function deleteDocument(id) {
         }
         
     } catch (error) {
-        console.error('❌ Error eliminando documento:', error);
-        showAlert('Error al eliminar documento: ' + error.message, 'error');
+        console.error('❌ Error moviendo documento a papelera:', error);
+        showAlert('Error al mover documento a la papelera: ' + error.message, 'error');
     }
 }
 
@@ -3021,7 +3044,7 @@ async function loadDocuments() {
     try {
         console.log('📄 Cargando documentos...');
         
-        const data = await api.getDocuments();  // CAMBIADO: usar api.getDocuments()
+        const data = await api.call('/documents');
         
         if (data.success) {
             window.appState.documents = (data.documents || []).map(doc => ({

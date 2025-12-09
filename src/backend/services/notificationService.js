@@ -76,7 +76,25 @@ class NotificationService {
   }
 
   /**
-   * 3.3 Notificar documento próximo a vencer
+   * 3.3 Notificar documento restaurado
+   * Alerta cuando se restaura un documento desde la papelera.
+   */
+  static async documentoRestaurado(nombreDocumento, categoria, usuario = 'Usuario') {
+    return await this.crear({
+      tipo: 'documento_restaurado',
+      titulo: '♻️ Documento restaurado',
+      mensaje: `${usuario} restauró el documento "${nombreDocumento}" de la categoría ${categoria}`,
+      icono: 'undo',
+      prioridad: 'media',
+      metadata: {
+        documento: nombreDocumento,
+        categoria: categoria
+      }
+    });
+  }
+
+  /**
+   * 3.4 Notificar documento próximo a vencer
    * Alerta preventiva sobre documentos con fecha de vencimiento cercana.
    */
   static async documentoProximoVencer(documento, diasRestantes) {

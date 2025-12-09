@@ -182,7 +182,7 @@ function renderCategories() {
         
         window.appState.categories.forEach(category => {
             const categoryCard = document.createElement('article');
-            categoryCard.className = 'stats__card';
+            categoryCard.className = 'stats__card stats__card--category';
             
             categoryCard.innerHTML = `
                 <div class="stats__icon" style="background: linear-gradient(135deg, ${category.color || '#4f46e5'}, #4338ca);">
@@ -191,6 +191,14 @@ function renderCategories() {
                 <div class="stats__info">
                     <h3 class="stats__info-value">${category.documentCount || 0}</h3>
                     <p class="stats__info-label">${category.nombre}</p>
+                </div>
+                <div class="stats__actions">
+                    <button class="btn-icon btn-icon--sm" onclick="editCategory('${category._id}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-icon--sm btn-icon--danger" onclick="deleteCategory('${category._id}')" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             `;
             

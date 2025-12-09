@@ -1,0 +1,425 @@
+/* ===== 17. DASHBOARD SPECIFIC COMPONENTS ===== */
+
+/* Sección de documentos recientes en dashboard */
+.dashboard__recent {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+}
+
+/* Subtítulo para secciones del dashboard */
+.dashboard__subheading {
+    font-size: 1.25rem;
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Lista de documentos recientes */
+.documents__list {
+    display: grid;
+    gap: 16px;
+}
+
+/* Item individual en lista de documentos */
+.documents__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-primary);
+    transition: var(--transition);
+    border-left: 4px solid var(--primary);
+    border: 1px solid var(--border);
+}
+
+/* Efecto hover para items de documentos */
+.documents__item:hover {
+    background-color: var(--bg-tertiary);
+    transform: translateX(4px);
+}
+
+/* Contenedor de información del documento */
+.documents__info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Icono representativo del documento */
+.documents__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+/* Nombre del documento */
+.documents__details-name {
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Metadatos del documento (fecha, tamaño, etc) */
+.documents__details-meta {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Acciones disponibles para el documento */
+.documents__actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Grid para estadísticas del dashboard */
+.dashboard__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 2.5rem;
+}
+
+/* Tarjeta de estadísticas del dashboard */
+.stats__card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+/* Borde decorativo a la izquierda de la tarjeta */
+.stats__card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--primary), var(--secondary));
+}
+
+/* Efecto hover para tarjetas de estadísticas */
+.stats__card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Variante de tarjeta para departamentos con acciones */
+.stats__card--department {
+    position: relative;
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+    min-width: 150px;
+    max-width: 180px;
+}
+
+.stats__card--department .stats__icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.stats__card--department .stats__info {
+    width: 100%;
+}
+
+.stats__card--department .stats__info-value {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.stats__card--department .stats__info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stats__card--department .stats__actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.stats__card--department:hover .stats__actions {
+    opacity: 1;
+}
+
+/* Estilos específicos para tarjetas de categorías (idénticos a departamentos) */
+.stats__card--category {
+    position: relative;
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+    min-width: 150px;
+    max-width: 180px;
+}
+
+.stats__card--category .stats__icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.stats__card--category .stats__info {
+    width: 100%;
+}
+
+.stats__card--category .stats__info-value {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.stats__card--category .stats__info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stats__card--category .stats__actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.stats__card--category:hover .stats__actions {
+    opacity: 1;
+}
+
+.btn-icon--sm {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.btn-icon--sm:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Icono en tarjeta de estadísticas */
+.stats__icon {
+    width: 70px;
+    height: 70px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+/* Colores específicos para diferentes tipos de estadísticas */
+.stats__icon--personas {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+
+.stats__icon--documentos {
+    background: linear-gradient(135deg, var(--secondary), #34d399);
+}
+
+.stats__icon--vencer {
+    background: linear-gradient(135deg, var(--warning), #fbbf24);
+}
+
+/* Valor principal en tarjeta de estadísticas */
+.stats__info-value {
+    font-size: 2rem;
+    margin-bottom: 5px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Etiqueta descriptiva del valor */
+.stats__info-label {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+/* Grid para tarjetas de estadísticas del dashboard */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Tarjeta para mostrar estadísticas con icono y valor */
+.stat-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    transition: var(--transition);
+}
+
+/* Efecto hover para tarjetas de estadísticas */
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Cabecera de tarjeta con icono y tendencia */
+.stat-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Icono decorativo para tarjetas de estadísticas */
+.stat-card__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+/* Colores específicos para diferentes tipos de estadísticas */
+.stat-card--personas .stat-card__icon {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.stat-card--documentos .stat-card__icon {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.stat-card--categorias .stat-card__icon {
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+}
+
+.stat-card--vencer .stat-card__icon {
+    background: linear-gradient(135deg, var(--warning), #d97706);
+}
+
+/* Indicador de tendencia (subida/bajada) */
+.stat-card__trend {
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Estilo para tendencia positiva */
+.stat-card__trend--up {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+/* Estilo para tendencia negativa */
+.stat-card__trend--down {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* Estilo para tendencia neutral */
+.stat-card__trend--neutral {
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--text-tertiary);
+}
+
+/* Valor principal en tarjeta de estadísticas */
+.stat-card__value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    line-height: 1;
+}
+
+/* Etiqueta descriptiva del valor */
+.stat-card__label {
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Grid para acciones rápidas en dashboard */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Tarjeta para acciones rápidas con icono y descripción */
+.action-card {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    transition: var(--transition);
+    cursor: pointer;
+    border: 1px solid var(--border);
+}
+
+/* Efecto hover para tarjetas de acción */
+.action-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Icono grande en tarjeta de acción */
+.action-card__icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+}
+
+/* Título de la acción rápida */
+.action-card__title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+/* Descripción breve de la acción */
+.action-card__description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
