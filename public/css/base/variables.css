@@ -45,6 +45,17 @@
     --priority-medium: linear-gradient(135deg, #f59e0b, #d97706);
     --priority-low: linear-gradient(135deg, #10b981, #059669);
     --priority-default: linear-gradient(135deg, #6b7280, #4b5563);
+
+     --success-light: #dcfce7;
+    --danger-light: #fee2e2;
+    --warning-light: #fef3c7;
+    --info-light: #e0f2fe;
+    
+    /* Espaciado adicional */
+    --spacing-xxl: 2.5rem;
+    
+    /* Bordes */
+    --border-dark: #374151;
     
     /* Estados de tareas */
     --status-pending: #ef4444;

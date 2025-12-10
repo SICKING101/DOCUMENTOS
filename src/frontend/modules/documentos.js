@@ -3172,18 +3172,14 @@ function renderDocumentsTable() {
             if (diferenciaDias <= 0) {
                 vencimientoClass = 'badge--danger';
                 vencimientoText = 'Vencido';
-                statusIndicator = '<span class="status-indicator status-indicator--danger"></span>';
             } else if (diferenciaDias <= 7) {
                 vencimientoClass = 'badge--warning';
                 vencimientoText = `Vence en ${diferenciaDias} días`;
-                statusIndicator = '<span class="status-indicator status-indicator--warning"></span>';
             } else if (diferenciaDias <= 30) {
                 vencimientoClass = 'badge--info';
                 vencimientoText = `Vence en ${diferenciaDias} días`;
-                statusIndicator = '<span class="status-indicator status-indicator--success"></span>';
             } else {
                 vencimientoText = formatDate(doc.fecha_vencimiento);
-                statusIndicator = '<span class="status-indicator status-indicator--success"></span>';
             }
         }
         
@@ -3209,7 +3205,7 @@ function renderDocumentsTable() {
         
         // Siempre agregar botón de eliminar
         actionButtons += `
-            <button class="btn btn--sm btn--danger" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
+            <button class="btn btn--sm btn--outline" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
                 <i class="fas fa-trash"></i>
             </button>
         `;

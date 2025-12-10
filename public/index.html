@@ -524,114 +524,133 @@
                     </div>
                 </section>
 
-                <!-- ===== DOCUMENTOS TAB ===== -->
-                <section id="documentos" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title">Gestión de Documentos</h2>
-                            <p class="section__subtitle">Organiza y administra todos los documentos</p>
-                        </div>
-                        <button class="btn btn--primary" id="addDocumentBtn">
-                            <i class="fas fa-file-upload"></i> Subir Documento
-                        </button>
-                    </div>
+<!-- ===== DOCUMENTOS TAB REDESIGN ===== -->
+<section id="documentos" class="tab-content">
+    <!-- Header Principal -->
+    <div class="documents-header">
+        <div>
+            <h2 class="documents-header__title">
+                <i class="fas fa-folder-open"></i>
+                Gestión de Documentos
+            </h2>
+            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema</p>
+        </div>
+        <div class="documents-header__actions">
+            <button class="btn btn--primary" id="addDocumentBtn">
+                <i class="fas fa-file-upload"></i>
+                <span>Subir Documento</span>
+            </button>
+        </div>
+    </div>
 
-                    <!-- Categories Section -->
-                    <div class="categories-section">
-                        <div class="section__header section__header--compact">
-                            <h3 class="section__title section__title--small">
-                                <i class="fas fa-tags icons"></i> Categorías
-                            </h3>
-                            <button class="btn btn--primary btn--sm" id="addCategoryBtn">
-                                <i class="fas fa-plus"></i> Nueva Categoría
+    <!-- Vista Rápida de Categorías -->
+    <div class="categories-overview">
+        <div class="categories-overview__header">
+            <h3 class="categories-overview__title">
+                <i class="fas fa-tags"></i>
+                Categorías Disponibles
+            </h3>
+            <button class="btn btn--secondary btn--sm" id="addCategoryBtn">
+                <i class="fas fa-plus"></i>
+                <span>Nueva Categoría</span>
+            </button>
+        </div>
+        <div class="compact-categories-grid" id="categoriesStats">
+            <!-- Categorías se cargarán aquí dinámicamente -->
+            <div class="compact-category-card">
+                <div class="compact-category-card__icon">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <h4 class="compact-category-card__name">Contratos</h4>
+                <span class="compact-category-card__count">15 documentos</span>
+            </div>
+            <!-- Más categorías se agregarán dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Filtros Avanzados -->
+    <div class="documents-filters">
+        <div class="filters-header">
+            <h3 class="filters-title">Filtrar Documentos</h3>
+        </div>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="filterCategory">Categoría</label>
+                <select class="filter-select" id="filterCategory">
+                    <option value="">Todas las categorías</option>
+                    <!-- Categorías dinámicas -->
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterType">Tipo de Archivo</label>
+                <select class="filter-select" id="filterType">
+                    <option value="">Todos los tipos</option>
+                    <option value="PDF">PDF</option>
+                    <option value="DOCX">Word</option>
+                    <option value="XLSX">Excel</option>
+                    <option value="JPG">Imagen</option>
+                    <option value="PPT">Presentación</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterDate">Fecha de Subida</label>
+                <select class="filter-select" id="filterDate">
+                    <option value="">Cualquier fecha</option>
+                    <option value="today">Hoy</option>
+                    <option value="week">Esta semana</option>
+                    <option value="month">Este mes</option>
+                    <option value="year">Este año</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Estado</label>
+                <select class="filter-select" id="filterStatus">
+                    <option value="">Todos los estados</option>
+                    <option value="active">Activos</option>
+                    <option value="expired">Vencidos</option>
+                    <option value="expiring">Por vencer</option>
+                    <option value="archived">Archivados</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Documentos -->
+    <div class="documents-table-container">
+        <table class="documents-table">
+            <thead>
+                <tr>
+                    <th>Documento</th>
+                    <th>Tipo</th>
+                    <th>Tamaño</th>
+                    <th>Persona</th>
+                    <th>Categoría</th>
+                    <th>Fecha Subida</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="documentosTableBody">
+                <!-- Documentos se cargarán aquí dinámicamente -->
+                <tr class="empty-row">
+                    <td colspan="8">
+                        <div class="documents-empty-state">
+                            <i class="fas fa-file-alt documents-empty-state__icon"></i>
+                            <h3 class="documents-empty-state__title">No hay documentos subidos</h3>
+                            <p class="documents-empty-state__description">
+                                Sube tu primer documento o importa desde una carpeta para comenzar
+                            </p>
+                            <button class="btn btn--primary" id="emptyStateUploadBtn">
+                                <i class="fas fa-file-upload"></i>
+                                Subir Primer Documento
                             </button>
                         </div>
-                        <div class="stats__grid" id="categoriesStats">
-                            <!-- Las categorías se cargarán aquí -->
-                        </div>
-                    </div>
-
-                    <!-- Categories Chips -->
-                    <div class="categories-section">
-                        <h3 class="categories-section__title">Filtrar por Categoría</h3>
-                        <div class="category-chips" id="categoryChips">
-                            <button class="category-chip category-chip--all category-chip--active" data-category="all">
-                                <i class="fas fa-th"></i> Todos
-                            </button>
-                            <!-- Las categorías se cargarán dinámicamente -->
-                        </div>
-                    </div>
-
-                    <!-- Filters -->
-                    <section class="filters">
-                        <h3 class="filters__title">Filtros</h3>
-                        <div class="filters__grid">
-                            <div class="form__group">
-                                <label for="filterCategory" class="form__label">Categoría</label>
-                                <select class="form__select" id="filterCategory">
-                                    <option value="">Todas las categorías</option>
-                                    <!-- Las categorías se cargarán dinámicamente -->
-                                </select>
-                            </div>
-                            <div class="form__group">
-                                <label for="filterType" class="form__label">Tipo de Archivo</label>
-                                <select class="form__select" id="filterType">
-                                    <option value="">Todos los tipos</option>
-                                    <option value="PDF">PDF</option>
-                                    <option value="DOCX">Word</option>
-                                    <option value="XLSX">Excel</option>
-                                    <option value="JPG">Imagen</option>
-                                </select>
-                            </div>
-                            <div class="form__group">
-                                <label for="filterDate" class="form__label">Fecha</label>
-                                <select class="form__select" id="filterDate">
-                                    <option value="">Cualquier fecha</option>
-                                    <option value="today">Hoy</option>
-                                    <option value="week">Esta semana</option>
-                                    <option value="month">Este mes</option>
-                                </select>
-                            </div>
-                            <div class="form__group">
-                                <label for="filterStatus" class="form__label">Estado</label>
-                                <select class="form__select" id="filterStatus">
-                                    <option value="">Todos los estados</option>
-                                    <option value="active">Activos</option>
-                                    <option value="expired">Vencidos</option>
-                                    <option value="expiring">Por vencer</option>
-                                </select>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Documentos Table -->
-                    <div class="table-container">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th class="table__header">Nombre</th>
-                                    <th class="table__header">Tipo</th>
-                                    <th class="table__header">Tamaño</th>
-                                    <th class="table__header">Persona</th>
-                                    <th class="table__header">Categoría</th>
-                                    <th class="table__header">Fecha Subida</th>
-                                    <th class="table__header">Estado</th>
-                                    <th class="table__header">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="documentosTableBody">
-                                <!-- Los documentos se cargarán aquí -->
-                                <tr>
-                                    <td colspan="8" class="empty-state">
-                                        <i class="fas fa-file-alt empty-state__icon"></i>
-                                        <h3 class="empty-state__title">No hay documentos subidos</h3>
-                                        <p class="empty-state__description">Sube tu primer documento para comenzar</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
 
                 <!-- ===== TAREAS TAB ===== -->
                 <section id="tareas" class="tab-content">
