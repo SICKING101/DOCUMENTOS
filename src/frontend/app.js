@@ -1,3 +1,7 @@
+// =============================================================================
+// src/frontend/app.js - SISTEMA COMPLETO
+// =============================================================================
+
 import { CONFIG } from './config.js';
 import { AppState } from './state.js';
 import { DOM } from './dom.js';
@@ -6,17 +10,23 @@ import TaskManager from './task.js';
 // Importar servicios
 import { api } from './services/api.js'; // Ruta correcta
 
-// Importar todos los módulos
+// =============================================================================
+// IMPORTAR TODOS LOS MÓDULOS ORGANIZADOS
+// =============================================================================
+
+// Dashboard
 import {
     loadDashboardData,
     handleRefreshDashboard
 } from './modules/dashboard.js';
 
+// Historial
 import {
     initHistorial,
     loadTabSpecificHistorial
 } from './modules/historial.js';
 
+// Personas
 import {
     openPersonModal,
     closePersonModal,
@@ -29,30 +39,10 @@ import {
     handleSavePerson
 } from './modules/personas.js';
 
-import {
-    openDocumentModal,
-    closeDocumentModal,
-    setupFileDragAndDrop,
-    handleFile,
-    handleUploadDocument,
-    loadDocuments,
-    renderDocumentsTable,
-    downloadDocument,
-    previewDocument,
-    deleteDocument,
-    downloadDocumentSimple,
-    downloadDocumentAlternative,
-    debugDocumentDownload,
-    testAllDownloads,
-    handleMultipleFileSelect,
-    switchUploadMode,
-    handleUploadMultipleDocuments,
-    debugMultipleUpload,
-    testMultipleUploadWithMockFiles,
-    cancelMultipleUpload,
-    handleFileSelect
-} from './modules/documentos.js';
+// Documentos (MÓDULO REORGANIZADO)
+import * as documentos from './modules/documentos/index.js';
 
+// Categorías
 import {
     openCategoryModal,
     closeCategoryModal,
@@ -65,6 +55,7 @@ import {
     handleSaveCategory
 } from './modules/categorias.js';
 
+// Departamentos
 import {
     openDepartmentModal,
     closeDepartmentModal,
@@ -77,6 +68,7 @@ import {
     handleSaveDepartment
 } from './modules/departamentos.js';
 
+// Búsqueda
 import {
     showAdvancedSearch,
     closeSearchModal,
@@ -86,6 +78,7 @@ import {
     handleAdvancedSearch
 } from './modules/search.js';
 
+// Reportes
 import {
     generateReport,
     closeReportModal,
@@ -93,10 +86,12 @@ import {
     handleReportTypeChange
 } from './modules/reports.js';
 
+// Notificaciones
 import {
     initNotificaciones
 } from './modules/notificaciones.js';
 
+// Papelera
 import {
     initPapelera
 } from './modules/papelera.js';
@@ -122,21 +117,30 @@ window.appState = appState;
 let taskManager = null;
 
 /**
- * 1.3 Evento DOMContentLoaded principal
+ * 1.3 Configurar compatibilidad para documentos
+ * Esto mantiene las funciones globales que tu sistema necesita
+ */
+documentos.setupCompatibilityGlobals();
+
+/**
+ * 1.4 Evento DOMContentLoaded principal
  * Punto de entrada de la aplicación cuando el DOM está completamente cargado.
  */
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 Inicializando Sistema de Gestión de Documentos - CBTIS051');
     console.log('📡 URL de la API:', CONFIG.API_BASE_URL);
+    console.log('📦 Versión del sistema:', CONFIG.APP_VERSION || '1.0.0');
 
     initializeApp();
     setupEventListeners();
     loadInitialData();
+    initHistorial(); // Inicializar historial
+    initNotificaciones(); // Inicializar notificaciones
 
-    initHistorial(); // Nueva línea
+    // Inicializar tema
+    initTheme();
 
-    // Inicializar módulo de notificaciones
-    initNotificaciones();
+    console.log('✅ Sistema inicializado correctamente');
 });
 
 // =============================================================================
@@ -148,6 +152,8 @@ document.addEventListener('DOMContentLoaded', function () {
  * Configura todos los componentes principales y verifica integridad del DOM.
  */
 function initializeApp() {
+    console.log('🔧 Inicializando aplicación...');
+
     // Verificar que todos los elementos DOM estén disponibles
     const missingElements = Object.keys(DOM).filter(key => {
         if (Array.isArray(DOM[key])) {
@@ -166,8 +172,13 @@ function initializeApp() {
     // Inicializar gestor de tareas
     initializeTaskManager();
 
+    // Inicializar módulo de documentos
+    documentos.initializeDocumentosModule();
+
     // Mostrar estado inicial
     appState.logState();
+
+    console.log('✅ Aplicación inicializada correctamente');
 }
 
 /**
@@ -227,78 +238,143 @@ function initializeActiveNavigation() {
 function setupEventListeners() {
     console.log('🔧 Configurando event listeners...');
 
-    /**
-     * 3.1.1 Manejador de acciones rápidas
-     * Procesa clics en las tarjetas de acciones rápidas del dashboard.
-     */
-    function handleQuickAction(e) {
-        const action = this.querySelector('.action-card__title')?.textContent;
-        console.log(`⚡ Acción rápida: ${action}`);
+    // =============================================================================
+    // 3.1 NAVEGACIÓN PRINCIPAL
+    // =============================================================================
 
-        switch (action) {
-            case 'Subir Documento':
-                openDocumentModal();
-                break;
-            case 'Subir Múltiples':
-                openDocumentModal();
-                // Cambiar automáticamente a modo múltiple
-                setTimeout(() => {
-                    switchUploadMode('multiple');
-                }, 100);
-                break;
-            case 'Agregar Persona':
-                openPersonModal();
-                break;
-            case 'Generar Reporte':
-                generateReport();
-                break;
-            case 'Búsqueda Avanzada':
-                showAdvancedSearch();
-                break;
-            default:
-                console.warn('Acción no reconocida:', action);
-        }
+    /**
+     * 3.1.1 Navegación entre pestañas
+     * Maneja clics en los enlaces de la barra lateral.
+     */
+    DOM.navLinks.forEach(link => {
+        link.addEventListener('click', handleTabNavigation);
+    });
+
+    /**
+     * 3.1.2 Botón de papelera en topbar
+     * Cambia a la pestaña de papelera al hacer clic
+     */
+    const trashBtn = document.getElementById('trashBtn');
+    if (trashBtn) {
+        trashBtn.addEventListener('click', async () => {
+            await switchTab('papelera');
+        });
     }
 
-    document.getElementById('historialBtn')?.addEventListener('click', () => {
-        switchTab('historial');
+    // =============================================================================
+    // 3.2 DASHBOARD
+    // =============================================================================
+
+    /**
+     * 3.2.1 Dashboard - Refrescar datos
+     * Actualiza todas las estadísticas del panel principal.
+     */
+    DOM.refreshDashboard?.addEventListener('click', () => handleRefreshDashboard(appState));
+
+    /**
+     * 3.2.2 Dashboard - Agregar primer documento
+     * Acceso rápido al formulario de subida desde estado vacío.
+     */
+    DOM.addFirstDocument?.addEventListener('click', () => documentos.openDocumentModal());
+
+    /**
+     * 3.2.3 Acciones rápidas del dashboard
+     */
+    DOM.quickActions.forEach(action => {
+        action.addEventListener('click', handleQuickAction);
     });
 
     // =============================================================================
-    // 3.2 EVENT LISTENERS PARA SUBIDA MÚLTIPLE
+    // 3.3 PERSONAS
     // =============================================================================
 
     /**
-     * 3.2.1 Tabs de modo de subida
+     * 3.3.1 Personas - Agregar
+     * Abre formulario para registrar nueva persona.
+     */
+    DOM.addPersonBtn?.addEventListener('click', () => openPersonModal());
+
+    /**
+     * 3.3.2 Personas - Guardar
+     * Ejecuta guardado/actualización de datos de persona.
+     */
+    DOM.savePersonBtn?.addEventListener('click', () => handleSavePerson());
+
+    /**
+     * 3.3.3 Personas - Cancelar
+     * Cierra formulario de persona sin guardar.
+     */
+    DOM.cancelPersonBtn?.addEventListener('click', () => closePersonModal());
+
+    // =============================================================================
+    // 3.4 DOCUMENTOS
+    // =============================================================================
+
+    /**
+     * 3.4.1 Documentos - Agregar
+     * Abre formulario para subir documento.
+     */
+    DOM.addDocumentBtn?.addEventListener('click', () => documentos.openDocumentModal());
+
+    /**
+     * 3.4.2 Documentos - Explorar archivos (modo individual)
+     * Abre selector de archivos del sistema.
+     */
+    DOM.browseFilesBtn?.addEventListener('click', () => DOM.fileInput?.click());
+
+    /**
+     * 3.4.3 Documentos - Selección de archivo (individual)
+     * Maneja selección de archivo único.
+     */
+    DOM.fileInput?.addEventListener('change', documentos.handleFileSelect);
+
+    /**
+     * 3.4.4 Documentos - Subir documento único
+     * Inicia subida de archivo individual.
+     */
+    DOM.uploadDocumentBtn?.addEventListener('click', () => documentos.handleUploadDocument());
+
+    /**
+     * 3.4.5 Documentos - Cancelar
+     * Cierra formulario de documento sin subir.
+     */
+    DOM.cancelDocumentBtn?.addEventListener('click', () => documentos.closeDocumentModal());
+
+    // =============================================================================
+    // 3.5 DOCUMENTOS - SUBIDA MÚLTIPLE
+    // =============================================================================
+
+    /**
+     * 3.5.1 Tabs de modo de subida
      * Alterna entre subida única y múltiple.
      */
     DOM.uploadTabs?.forEach(tab => {
         tab.addEventListener('click', function () {
             const mode = this.dataset.mode;
-            switchUploadMode(mode);
+            documentos.switchUploadMode(mode);
         });
     });
 
     /**
-     * 3.2.2 Botón para seleccionar múltiples archivos
+     * 3.5.2 Botón para seleccionar múltiples archivos
      * Dispara el input file con atributo multiple.
      */
     DOM.browseMultipleFilesBtn?.addEventListener('click', () => DOM.multipleFileInput?.click());
 
     /**
-     * 3.2.3 Input para múltiples archivos
+     * 3.5.3 Input para múltiples archivos
      * Maneja la selección de múltiples archivos.
      */
-    DOM.multipleFileInput?.addEventListener('change', handleMultipleFileSelect);
+    DOM.multipleFileInput?.addEventListener('change', documentos.handleMultipleFileSelect);
 
     /**
-     * 3.2.4 Botón para subir múltiples documentos
+     * 3.5.4 Botón para subir múltiples documentos
      * Inicia el proceso de subida de todos los archivos seleccionados.
      */
-    DOM.uploadMultipleDocumentsBtn?.addEventListener('click', () => handleUploadMultipleDocuments());
+    DOM.uploadMultipleDocumentsBtn?.addEventListener('click', () => documentos.handleUploadMultipleDocuments());
 
     /**
-     * 3.2.5 Toggle de opciones avanzadas
+     * 3.5.5 Toggle de opciones avanzadas
      * Muestra/oculta configuración adicional para subidas múltiples.
      */
     DOM.toggleAdvancedOptions?.addEventListener('click', function () {
@@ -313,110 +389,23 @@ function setupEventListeners() {
     });
 
     // =============================================================================
-    // 3.3 EVENT LISTENERS PRINCIPALES
+    // 3.6 BÚSQUEDA DE DOCUMENTOS
     // =============================================================================
 
     /**
-     * 3.3.1 Navegación entre pestañas
-     * Maneja clics en los enlaces de la barra lateral.
-     */
-    DOM.navLinks.forEach(link => {
-        link.addEventListener('click', handleTabNavigation);
-    });
-
-    /**
-     * 3.3.1b Botón de papelera en topbar
-     * Cambia a la pestaña de papelera al hacer clic
-     */
-    const trashBtn = document.getElementById('trashBtn');
-    if (trashBtn) {
-        trashBtn.addEventListener('click', async () => {
-            await switchTab('papelera');
-        });
-    }
-
-    /**
-     * 3.3.2 Dashboard - Refrescar datos
-     * Actualiza todas las estadísticas del panel principal.
-     */
-    DOM.refreshDashboard?.addEventListener('click', () => handleRefreshDashboard(appState));
-
-    /**
-     * 3.3.3 Dashboard - Agregar primer documento
-     * Acceso rápido al formulario de subida desde estado vacío.
-     */
-    DOM.addFirstDocument?.addEventListener('click', () => openDocumentModal());
-
-    /**
-     * 3.3.4 Acciones rápidas
-     * Procesa clics en tarjetas de acciones del dashboard.
-     */
-    DOM.quickActions.forEach(action => {
-        action.addEventListener('click', handleQuickAction);
-    });
-
-    /**
-     * 3.3.5 Personas - Agregar
-     * Abre formulario para registrar nueva persona.
-     */
-    DOM.addPersonBtn?.addEventListener('click', () => openPersonModal());
-
-    /**
-     * 3.3.6 Personas - Guardar
-     * Ejecuta guardado/actualización de datos de persona.
-     */
-    DOM.savePersonBtn?.addEventListener('click', () => handleSavePerson());
-
-    /**
-     * 3.3.7 Personas - Cancelar
-     * Cierra formulario de persona sin guardar.
-     */
-    DOM.cancelPersonBtn?.addEventListener('click', () => closePersonModal());
-
-    /**
-     * 3.3.8 Documentos - Agregar
-     * Abre formulario para subir documento.
-     */
-    DOM.addDocumentBtn?.addEventListener('click', () => openDocumentModal());
-
-    /**
-     * 3.3.9 Documentos - Explorar archivos
-     * Abre selector de archivos del sistema.
-     */
-    DOM.browseFilesBtn?.addEventListener('click', () => DOM.fileInput?.click());
-
-    /**
-     * 3.3.10 Documentos - Selección de archivo
-     * Maneja selección de archivo único.
-     */
-    DOM.fileInput?.addEventListener('change', handleFileSelect);
-
-    /**
-     * 3.3.11 Documentos - Subir documento único
-     * Inicia subida de archivo individual.
-     */
-    DOM.uploadDocumentBtn?.addEventListener('click', () => handleUploadDocument());
-
-    /**
-     * 3.3.12 Documentos - Cancelar
-     * Cierra formulario de documento sin subir.
-     */
-    DOM.cancelDocumentBtn?.addEventListener('click', () => closeDocumentModal());
-
-    /**
-     * 3.3.13 Búsqueda de documentos - Buscar
+     * 3.6.1 Búsqueda de documentos - Buscar
      * Ejecuta búsqueda básica por término.
      */
     DOM.searchDocumentsBtn?.addEventListener('click', () => handleDocumentSearch());
 
     /**
-     * 3.3.14 Búsqueda de documentos - Limpiar
+     * 3.6.2 Búsqueda de documentos - Limpiar
      * Remueve filtros y términos de búsqueda.
      */
     DOM.clearSearchBtn?.addEventListener('click', () => handleClearSearch());
 
     /**
-     * 3.3.15 Búsqueda de documentos - Enter
+     * 3.6.3 Búsqueda de documentos - Enter
      * Ejecuta búsqueda al presionar Enter en campo de texto.
      */
     DOM.documentSearch?.addEventListener('keypress', function (e) {
@@ -425,104 +414,128 @@ function setupEventListeners() {
         }
     });
 
+    // =============================================================================
+    // 3.7 FILTROS DE DOCUMENTOS
+    // =============================================================================
+
     /**
-     * 3.3.16 Filtros - Cambio de categoría
+     * 3.7.1 Filtros - Cambio de categoría
      * Actualiza filtro por categoría y refresca tabla.
      */
     DOM.filterCategory?.addEventListener('change', handleFilterChange);
 
     /**
-     * 3.3.17 Filtros - Cambio de tipo
+     * 3.7.2 Filtros - Cambio de tipo
      * Actualiza filtro por tipo de archivo y refresca tabla.
      */
     DOM.filterType?.addEventListener('change', handleFilterChange);
 
     /**
-     * 3.3.18 Filtros - Cambio de fecha
+     * 3.7.3 Filtros - Cambio de fecha
      * Actualiza filtro por rango de tiempo y refresca tabla.
      */
     DOM.filterDate?.addEventListener('change', handleFilterChange);
 
     /**
-     * 3.3.19 Filtros - Cambio de estado
+     * 3.7.4 Filtros - Cambio de estado
      * Actualiza filtro por estado de vencimiento y refresca tabla.
      */
     DOM.filterStatus?.addEventListener('change', handleFilterChange);
 
+    // =============================================================================
+    // 3.8 CATEGORÍAS
+    // =============================================================================
+
     /**
-     * 3.3.20 Categorías - Agregar
+     * 3.8.1 Categorías - Agregar
      * Abre formulario para crear nueva categoría.
      */
     DOM.addCategoryBtn?.addEventListener('click', () => openCategoryModal());
 
     /**
-     * 3.3.21 Categorías - Guardar
+     * 3.8.2 Categorías - Guardar
      * Ejecuta guardado/actualización de categoría.
      */
     DOM.saveCategoryBtn?.addEventListener('click', () => handleSaveCategory());
 
     /**
-     * 3.3.22 Categorías - Cancelar
+     * 3.8.3 Categorías - Cancelar
      * Cierra formulario de categoría sin guardar.
      */
     DOM.cancelCategoryBtn?.addEventListener('click', () => closeCategoryModal());
 
+    // =============================================================================
+    // 3.9 DEPARTAMENTOS
+    // =============================================================================
+
     /**
-     * 3.3.23 Departamentos - Agregar
+     * 3.9.1 Departamentos - Agregar
      * Abre formulario para crear nuevo departamento.
      */
     DOM.addDepartmentBtn?.addEventListener('click', () => openDepartmentModal());
 
     /**
-     * 3.3.24 Departamentos - Guardar
+     * 3.9.2 Departamentos - Guardar
      * Ejecuta guardado/actualización de departamento.
      */
     DOM.saveDepartmentBtn?.addEventListener('click', () => handleSaveDepartment());
 
     /**
-     * 3.3.25 Departamentos - Cancelar
+     * 3.9.3 Departamentos - Cancelar
      * Cierra formulario de departamento sin guardar.
      */
     DOM.cancelDepartmentBtn?.addEventListener('click', () => closeDepartmentModal());
 
+    // =============================================================================
+    // 3.10 BÚSQUEDA AVANZADA
+    // =============================================================================
+
     /**
-     * 3.3.26 Búsqueda avanzada - Ejecutar
+     * 3.10.1 Búsqueda avanzada - Ejecutar
      * Realiza búsqueda con múltiples criterios.
      */
     DOM.performSearchBtn?.addEventListener('click', () => handleAdvancedSearch());
 
     /**
-     * 3.3.24 Búsqueda avanzada - Cancelar
+     * 3.10.2 Búsqueda avanzada - Cancelar
      * Cierra modal de búsqueda avanzada.
      */
     DOM.cancelSearchBtn?.addEventListener('click', () => closeSearchModal());
 
+    // =============================================================================
+    // 3.11 REPORTES
+    // =============================================================================
+
     /**
-     * 3.3.25 Reportes - Cambio de tipo
+     * 3.11.1 Reportes - Cambio de tipo
      * Actualiza filtros específicos según tipo de reporte seleccionado.
      */
     DOM.reportType?.addEventListener('change', handleReportTypeChange);
 
     /**
-     * 3.3.26 Reportes - Generar
+     * 3.11.2 Reportes - Generar
      * Ejecuta generación y descarga de reporte.
      */
     DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
 
     /**
-     * 3.3.27 Reportes - Cancelar
+     * 3.11.3 Reportes - Cancelar
      * Cierra modal de reportes sin generar.
      */
     DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
 
-    /**
-     * 3.3.28 Drag and Drop
-     * Configura área de arrastrar y soltar archivos.
-     */
-    setupFileDragAndDrop();
+    // =============================================================================
+    // 3.12 DRAG AND DROP (configurado por el módulo de documentos)
+    // =============================================================================
+
+    // Nota: El drag and drop se configura automáticamente en initializeDocumentosModule()
+
+    // =============================================================================
+    // 3.13 BOTONES DE CIERRE DE MODALES
+    // =============================================================================
 
     /**
-     * 3.3.29 Botones de cierre de modales
+     * 3.13.1 Botones de cierre de modales
      * Asigna funcionalidad a botones de cerrar (×) de todos los modales.
      */
     DOM.modalCloseButtons.forEach(btn => {
@@ -530,7 +543,7 @@ function setupEventListeners() {
     });
 
     /**
-     * 3.3.30 Cerrar modales al hacer clic fuera
+     * 3.13.2 Cerrar modales al hacer clic fuera
      * Configura cierre de modales al hacer clic en el fondo oscuro.
      */
     const modals = {
@@ -544,6 +557,21 @@ function setupEventListeners() {
     };
     setupModalBackdropClose(modals);
 
+    // =============================================================================
+    // 3.14 TEMA OSCURO/CLARO
+    // =============================================================================
+
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+        themeToggle.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+    }
+
     console.log('✅ Event listeners configurados correctamente');
 }
 
@@ -552,14 +580,7 @@ function setupEventListeners() {
 // =============================================================================
 
 /**
- * 4.1 Configuración de toggle de tema
- * Controla la alternancia entre tema claro y oscuro con persistencia en localStorage.
- */
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = themeToggle?.querySelector('i');
-
-/**
- * 4.2 Obtener tema preferido
+ * 4.1 Obtener tema preferido
  * Determina tema basado en localStorage o preferencia del sistema.
  */
 const getPreferredTheme = () => {
@@ -571,25 +592,30 @@ const getPreferredTheme = () => {
 };
 
 /**
- * 4.3 Aplicar tema
+ * 4.2 Aplicar tema
  * Agrega/remueve clases CSS y actualiza ícono según tema seleccionado.
  */
 const applyTheme = (theme) => {
+    const themeIcon = document.getElementById('themeToggle')?.querySelector('i');
     if (theme === 'dark') {
         document.body.classList.add('dark-theme');
-        themeIcon?.classList.remove('fa-moon');
-        themeIcon?.classList.add('fa-sun');
+        if (themeIcon) {
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun');
+        }
         localStorage.setItem('theme', 'dark');
     } else {
         document.body.classList.remove('dark-theme');
-        themeIcon?.classList.remove('fa-sun');
-        themeIcon?.classList.add('fa-moon');
+        if (themeIcon) {
+            themeIcon.classList.remove('fa-sun');
+            themeIcon.classList.add('fa-moon');
+        }
         localStorage.setItem('theme', 'light');
     }
 };
 
 /**
- * 4.4 Inicializar tema
+ * 4.3 Inicializar tema
  * Aplica tema inicial al cargar la aplicación.
  */
 const initTheme = () => {
@@ -606,27 +632,13 @@ const initTheme = () => {
 };
 
 /**
- * 4.5 Alternar tema
+ * 4.4 Alternar tema
  * Cambia entre tema claro y oscuro al hacer clic en el botón.
  */
 const toggleTheme = () => {
     const isDark = document.body.classList.contains('dark-theme');
     applyTheme(isDark ? 'light' : 'dark');
 };
-
-// Configurar botón de tema si existe
-if (themeToggle) {
-    themeToggle.addEventListener('click', toggleTheme);
-    themeToggle.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleTheme();
-        }
-    });
-}
-
-// Inicializar tema al cargar
-document.addEventListener('DOMContentLoaded', initTheme);
 
 // =============================================================================
 // 5. FUNCIONES DE NAVEGACIÓN
@@ -712,28 +724,23 @@ async function loadTabSpecificData(tabId) {
                 break;
 
             case 'personas':
-                if (window.personManager && typeof personManager.loadData === 'function') {
-                    personManager.loadData();
-                }
+                await loadPersons();
+                renderPersonsTable();
                 break;
 
             case 'documentos':
-                if (window.documentManager && typeof documentManager.loadData === 'function') {
-                    documentManager.loadData();
-                }
+                await documentos.loadDocuments();
+                documentos.renderDocumentsTable();
                 break;
 
             case 'categorias':
-                if (window.categoryManager && typeof categoryManager.loadData === 'function') {
-                    categoryManager.loadData();
-                }
+                await loadCategories();
+                renderCategories();
                 break;
 
             case 'tareas':
-                if (window.taskManager && typeof taskManager.loadTasks === 'function') {
-                    taskManager.loadTasks();
-                } else if (window.taskManager) {
-                    // Fallback: simplemente renderizar las tareas existentes
+                if (taskManager && typeof taskManager.loadTasks === 'function') {
+                    await taskManager.loadTasks();
                     taskManager.renderTasks();
                     taskManager.updateSummary();
                 }
@@ -771,7 +778,7 @@ async function loadInitialData() {
         await Promise.all([
             loadDashboardData(appState),
             loadPersons(),
-            loadDocuments(),
+            documentos.loadDocuments(),
             loadCategories(),
             loadDepartments()
         ]);
@@ -798,7 +805,14 @@ function handleQuickAction(e) {
 
     switch (action) {
         case 'Subir Documento':
-            openDocumentModal();
+            documentos.openDocumentModal();
+            break;
+        case 'Subir Múltiples':
+            documentos.openDocumentModal();
+            // Cambiar automáticamente a modo múltiple
+            setTimeout(() => {
+                documentos.switchUploadMode('multiple');
+            }, 100);
             break;
         case 'Agregar Persona':
             openPersonModal();
@@ -810,7 +824,7 @@ function handleQuickAction(e) {
             showAdvancedSearch();
             break;
         default:
-        console.warn('Acción no reconocida:', action);
+            console.warn('Acción no reconocida:', action);
     }
 }
 
@@ -824,7 +838,7 @@ function handleModalClose() {
         if (modal.id === 'personModal') {
             closePersonModal();
         } else if (modal.id === 'documentModal') {
-            closeDocumentModal();
+            documentos.closeDocumentModal();
         } else if (modal.id === 'categoryModal') {
             closeCategoryModal();
         } else if (modal.id === 'departmentModal') {
@@ -1032,7 +1046,7 @@ function showAllDocuments() {
     if (DOM.filterStatus) DOM.filterStatus.value = '';
     if (DOM.documentSearch) DOM.documentSearch.value = '';
 
-    renderDocumentsTable();
+    documentos.renderDocumentsTable();
     showAlert('Mostrando todos los documentos', 'info');
 }
 
@@ -1040,26 +1054,79 @@ function showAllDocuments() {
 // 11. EXPORTACIÓN DE FUNCIONES GLOBALES
 // =============================================================================
 
-// Hacer todas las funciones necesarias disponibles globalmente
-window.downloadDocument = downloadDocument;
-window.previewDocument = previewDocument;
-window.deleteDocument = deleteDocument;
+// =============================================================================
+// 11.1 FUNCIONES DE DOCUMENTOS
+// =============================================================================
+
+// Hacer funciones de documentos disponibles globalmente
+window.downloadDocument = documentos.downloadDocument;
+window.previewDocument = documentos.previewDocument;
+window.deleteDocument = documentos.deleteDocument;
+window.openDocumentModal = documentos.openDocumentModal;
+window.closeDocumentModal = documentos.closeDocumentModal;
+window.switchUploadMode = documentos.switchUploadMode;
+window.handleUploadMultipleDocuments = documentos.handleUploadMultipleDocuments;
+
+// Funciones de subida múltiple
+window.debugMultipleUpload = documentos.debugMultipleUpload;
+window.testMultipleUploadWithMockFiles = documentos.testMultipleUploadWithMockFiles;
+window.cancelMultipleUpload = documentos.cancelMultipleUpload;
+
+// Funciones de descarga
+window.downloadDocumentSimple = documentos.downloadDocumentSimple;
+window.downloadDocumentAlternative = documentos.downloadDocumentAlternative;
+
+// Funciones de debug
+window.debugDownload = documentos.debugDocumentDownload;
+window.testAllDownloads = documentos.testAllDownloads;
+
+// Funciones auxiliares
+window.loadDocuments = documentos.loadDocuments;
+window.renderDocumentsTable = documentos.renderDocumentsTable;
+window.populateDocumentCategorySelect = documentos.populateDocumentCategorySelect;
+
+// =============================================================================
+// 11.2 FUNCIONES DE PERSONAS
+// =============================================================================
+
 window.editPerson = editPerson;
 window.deletePerson = deletePerson;
-window.openDocumentModal = openDocumentModal;
 window.openPersonModal = openPersonModal;
 window.closePersonModal = closePersonModal;
-window.closeDocumentModal = closeDocumentModal;
-window.closeCategoryModal = closeCategoryModal;
-window.closeSearchModal = closeSearchModal;
-window.closeReportModal = closeReportModal;
+window.populatePersonSelect = populatePersonSelect;
+
+// =============================================================================
+// 11.3 FUNCIONES DE CATEGORÍAS
+// =============================================================================
+
 window.openCategoryModal = openCategoryModal;
-window.showAdvancedSearch = showAdvancedSearch;
-window.generateReport = generateReport;
+window.closeCategoryModal = closeCategoryModal;
 window.editCategory = editCategory;
 window.deleteCategory = deleteCategory;
+window.populateCategorySelects = populateCategorySelects;
+
+// =============================================================================
+// 11.4 FUNCIONES DE DEPARTAMENTOS
+// =============================================================================
+
+window.openDepartmentModal = openDepartmentModal;
+window.closeDepartmentModal = closeDepartmentModal;
 window.editDepartment = editDepartment;
 window.deleteDepartment = deleteDepartment;
+
+// =============================================================================
+// 11.5 FUNCIONES DE BÚSQUEDA Y REPORTES
+// =============================================================================
+
+window.showAdvancedSearch = showAdvancedSearch;
+window.closeSearchModal = closeSearchModal;
+window.generateReport = generateReport;
+window.closeReportModal = closeReportModal;
+
+// =============================================================================
+// 11.6 FUNCIONES GENERALES
+// =============================================================================
+
 window.showAllDocuments = showAllDocuments;
 window.debugAppState = debugAppState;
 window.testAPIConnection = testAPIConnection;
@@ -1067,43 +1134,27 @@ window.testCloudinaryConnection = testCloudinaryConnection;
 window.testTaskManager = testTaskManager;
 window.resetApp = resetApp;
 
-// Funciones de navegación globales
+// Funciones de navegación
 window.switchTab = switchTab;
 window.loadTabSpecificData = loadTabSpecificData;
 
-// Funciones de tareas globales
+// Funciones de tareas
 window.openTaskModal = openTaskModal;
 window.createQuickTask = createQuickTask;
 window.getTasksStats = getTasksStats;
 
-// Funciones de subida múltiple globales
-window.switchUploadMode = switchUploadMode;
-window.handleUploadMultipleDocuments = handleUploadMultipleDocuments;
-window.debugMultipleUpload = debugMultipleUpload;
-window.testMultipleUploadWithMockFiles = testMultipleUploadWithMockFiles;
-window.cancelMultipleUpload = cancelMultipleUpload;
-
-// Funciones de descarga globales
-window.downloadDocument = downloadDocument;
-window.downloadDocumentSimple = downloadDocumentSimple;
-window.downloadDocumentAlternative = downloadDocumentAlternative;
-
-// Funciones de debug globales
-window.debugDownload = debugDocumentDownload;
-window.testAllDownloads = testAllDownloads;
-
-// Funciones auxiliares globales
-window.loadDashboardData = () => loadDashboardData(appState);
-window.renderDocumentsTable = renderDocumentsTable;
+// Función para poblar categorías (compatibilidad)
 window.populateCategorySelect = (selectElement) => {
     if (!selectElement) return;
     selectElement.innerHTML = '<option value="">Seleccionar categoría</option>';
-    appState.categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category.nombre;
-        option.textContent = category.nombre;
-        selectElement.appendChild(option);
-    });
+    if (appState.categories) {
+        appState.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.nombre;
+            option.textContent = category.nombre;
+            selectElement.appendChild(option);
+        });
+    }
 };
 
 // =============================================================================
@@ -1156,6 +1207,16 @@ setTimeout(() => {
         console.log('🔄 Re-bindeando eventos de tareas...');
         taskManager.bindEvents();
     }
+
+    // Inicializar filtros de documentos si están disponibles
+    if (typeof documentos.initializeTableFilters === 'function') {
+        try {
+            documentos.initializeTableFilters();
+            console.log('✅ Filtros de documentos inicializados');
+        } catch (error) {
+            console.error('❌ Error inicializando filtros:', error);
+        }
+    }
 }, 1000);
 
 console.log('✅ Script de aplicación cargado correctamente');
@@ -1170,5 +1231,7 @@ export {
     taskManager,
     openTaskModal,
     createQuickTask,
-    getTasksStats
+    getTasksStats,
+    appState,
+    initializeApp
 };

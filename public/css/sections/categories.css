@@ -337,6 +337,10 @@
     color: var(--danger);
 }
 
+.stats__grid {
+    margin-bottom: 20px;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .categories-main-grid {
