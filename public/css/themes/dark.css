@@ -12,6 +12,12 @@ body.dark-theme {
     /* Ajustes específicos para sidebar en modo oscuro */
     --sidebar-bg: #020617;
     --sidebar-hover: #1e293b;
+
+        --success-light: #064e3b;
+    --danger-light: #7f1d1d;
+    --warning-light: #78350f;
+    --info-light: #0c4a6e;
+    --border-dark: #4b5563;
     
     /* Variables adicionales para componentes específicos */
     --card-bg: #1e293b;
