@@ -1,0 +1,16 @@
+/* Tema claro (valores por defecto ya están en :root en variables.css) */
+/* Este archivo puede quedar vacío o contener sobreescrituras específicas para el tema claro */
+
+/* Ajustes específicos para modo claro */
+body.light-theme {
+    /* Asegurar que se usen los valores por defecto */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-tertiary: #64748b;
+    --border: #cbd5e1;
+    --sidebar-bg: #1e293b;
+    --sidebar-hover: #334155;
+}

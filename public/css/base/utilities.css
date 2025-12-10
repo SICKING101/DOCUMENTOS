@@ -1,0 +1,355 @@
+/* ===== UTILITY COMPONENTS ===== */
+
+/* Contenedor para resultados de búsqueda */
+.search-results {
+    margin-top: 1.5rem;
+}
+
+/* Título de resultados de búsqueda */
+.search-results__title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Lista de resultados de búsqueda */
+.search-results__list {
+    display: grid;
+    gap: 1rem;
+}
+
+/* Item individual de resultado de búsqueda */
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+/* Icono del resultado de búsqueda */
+.search-result-item__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+/* Contenido del resultado de búsqueda */
+.search-result-item__content {
+    flex: 1;
+}
+
+/* Título del resultado de búsqueda */
+.search-result-item__title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+/* Metadatos del resultado de búsqueda */
+.search-result-item__meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Descripción del resultado de búsqueda */
+.search-result-item__description {
+    margin-top: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Acciones para resultado de búsqueda */
+.search-result-item__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Vista previa de reportes */
+.report-preview {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+/* Título de vista previa de reporte */
+.report-preview__title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Contenido de vista previa de reporte */
+.report-preview__content {
+    color: var(--text-secondary);
+}
+
+/* Indicador visual de estado (punto de color) */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+/* Color verde para estado exitoso */
+.status-indicator--success {
+    background-color: var(--success);
+}
+
+/* Color amarillo para estado de advertencia */
+.status-indicator--warning {
+    background-color: var(--warning);
+}
+
+/* Color rojo para estado de error */
+.status-indicator--danger {
+    background-color: var(--danger);
+}
+
+/* Vista previa de color para selección */
+.color-preview {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* Spinner para estados de carga */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+/* Animación de rotación para spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== ANIMATIONS ===== */
+
+/* Animación de entrada para nuevas tareas */
+@keyframes taskSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Clase para aplicar animación de entrada a tareas */
+.task-card--new {
+    animation: taskSlideIn 0.3s ease-out;
+}
+
+/* ===== ACCESSIBILITY ===== */
+
+/* Enfoque visible para accesibilidad en botones de tarea */
+.task-card__action:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Enfoque visible para botón de cerrar modal */
+.modal__close:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ===== LOADING STATES ===== */
+
+/* Estado de carga para listas de tareas */
+.tasks-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem;
+    color: var(--text-tertiary);
+}
+
+/* Spinner para estado de carga */
+.tasks-loading::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top: 2px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 1rem;
+}
+
+/* Animación para fadeIn */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Utilidades para animaciones */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+.animate-slide-in-up {
+    animation: slideInUp 0.3s ease;
+}
+
+/* Utilidades para display */
+.d-none { display: none !important; }
+.d-flex { display: flex !important; }
+.d-block { display: block !important; }
+.d-inline-block { display: inline-block !important; }
+
+/* Utilidades para flexbox */
+.flex-column { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.align-start { align-items: flex-start; }
+.align-end { align-items: flex-end; }
+
+/* Utilidades para márgenes */
+.m-0 { margin: 0 !important; }
+.mt-1 { margin-top: var(--spacing-sm) !important; }
+.mt-2 { margin-top: var(--spacing-md) !important; }
+.mb-1 { margin-bottom: var(--spacing-sm) !important; }
+.mb-2 { margin-bottom: var(--spacing-md) !important; }
+.ml-auto { margin-left: auto !important; }
+.mr-auto { margin-right: auto !important; }
+
+/* Utilidades para padding */
+.p-0 { padding: 0 !important; }
+.p-1 { padding: var(--spacing-sm) !important; }
+.p-2 { padding: var(--spacing-md) !important; }
+.px-1 { padding-left: var(--spacing-sm) !important; padding-right: var(--spacing-sm) !important; }
+.py-1 { padding-top: var(--spacing-sm) !important; padding-bottom: var(--spacing-sm) !important; }
+
+/* Utilidades para texto */
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.text-right { text-align: right !important; }
+.text-bold { font-weight: 700 !important; }
+.text-semibold { font-weight: 600 !important; }
+.text-medium { font-weight: 500 !important; }
+.text-primary { color: var(--text-primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-tertiary { color: var(--text-tertiary) !important; }
+.text-success { color: var(--success) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-info { color: var(--info) !important; }
+
+/* Utilidades para backgrounds */
+.bg-primary { background-color: var(--bg-primary) !important; }
+.bg-secondary { background-color: var(--bg-secondary) !important; }
+.bg-tertiary { background-color: var(--bg-tertiary) !important; }
+.bg-success { background-color: rgba(16, 185, 129, 0.1) !important; }
+.bg-danger { background-color: rgba(239, 68, 68, 0.1) !important; }
+.bg-warning { background-color: rgba(245, 158, 11, 0.1) !important; }
+.bg-info { background-color: rgba(6, 182, 212, 0.1) !important; }
+
+/* Utilidades para bordes */
+.border { border: 1px solid var(--border) !important; }
+.border-top { border-top: 1px solid var(--border) !important; }
+.border-bottom { border-bottom: 1px solid var(--border) !important; }
+.border-left { border-left: 1px solid var(--border) !important; }
+.border-right { border-right: 1px solid var(--border) !important; }
+.border-none { border: none !important; }
+.rounded-sm { border-radius: var(--radius-sm) !important; }
+.rounded-md { border-radius: var(--radius-md) !important; }
+.rounded-lg { border-radius: var(--radius-lg) !important; }
+
+/* Utilidades para sombras */
+.shadow-sm { box-shadow: var(--shadow-sm) !important; }
+.shadow-md { box-shadow: var(--shadow-md) !important; }
+.shadow-lg { box-shadow: var(--shadow-lg) !important; }
+.shadow-none { box-shadow: none !important; }
+
+/* Utilidades para width/height */
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
+.w-auto { width: auto !important; }
+.h-auto { height: auto !important; }
+
+/* Utilidades para posición */
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+.position-fixed { position: fixed !important; }
+.position-sticky { position: sticky !important; }
+
+/* Utilidades para overflow */
+.overflow-hidden { overflow: hidden !important; }
+.overflow-auto { overflow: auto !important; }
+.overflow-x-auto { overflow-x: auto !important; }
+.overflow-y-auto { overflow-y: auto !important; }
+
+/* Utilidades para cursor */
+.cursor-pointer { cursor: pointer !important; }
+.cursor-default { cursor: default !important; }
+.cursor-not-allowed { cursor: not-allowed !important; }
+
+/* Utilidades para transición */
+.transition-all { transition: var(--transition) !important; }
+.transition-none { transition: none !important; }
+
+/* Utilidades para z-index */
+.z-0 { z-index: 0 !important; }
+.z-10 { z-index: 10 !important; }
+.z-20 { z-index: 20 !important; }
+.z-30 { z-index: 30 !important; }
+.z-40 { z-index: 40 !important; }
+.z-50 { z-index: 50 !important; }
+
+/* Utilidades para opacidad */
+.opacity-0 { opacity: 0 !important; }
+.opacity-25 { opacity: 0.25 !important; }
+.opacity-50 { opacity: 0.5 !important; }
+.opacity-75 { opacity: 0.75 !important; }
+.opacity-100 { opacity: 1 !important; }
+
+/* Utilidades para transform */
+.transform-none { transform: none !important; }
+.transform-scale-95 { transform: scale(0.95) !important; }
+.transform-scale-100 { transform: scale(1) !important; }
+.transform-scale-105 { transform: scale(1.05) !important; }
+.transform-translate-y-0 { transform: translateY(0) !important; }
+.transform-translate-y-2 { transform: translateY(2px) !important; }
+.transform-translate-y--2 { transform: translateY(-2px) !important; }
+.transform-translate-x-0 { transform: translateX(0) !important; }
+.transform-translate-x-2 { transform: translateX(2px) !important; }
+.transform-translate-x--2 { transform: translateX(-2px) !important; }

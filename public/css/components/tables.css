@@ -1,0 +1,100 @@
+/* ===== 7. TABLE COMPONENTS ===== */
+
+/* Contenedor para tablas con scroll horizontal */
+.table-container {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+}
+
+/* Scrollbar personalizado para tabla */
+.table-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+}
+
+/* Estructura base para tablas */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+/* Cabecera de tabla con estilo distintivo */
+.table__header {
+    padding: 1.25rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--bg-tertiary);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Celdas individuales de la tabla */
+.table__cell {
+    padding: 1.25rem 1rem;
+}
+
+/* Efecto hover para filas de tabla */
+.table__row:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* Estructura de tabla para historial */
+.table--history {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.table--history .table__header {
+    background: var(--table-header-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.table--history .table__cell {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color-light);
+    vertical-align: middle;
+    transition: background-color 0.2s ease;
+    font-size: 0.8125rem;
+}
+
+/* Celdas específicas para fecha */
+.table__cell--date {
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-weight: 500;
+    min-width: 120px;
+}
+
+/* Acciones de tabla para historial */
+.table__actions {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: flex-end;
+    min-width: 100px;
+}

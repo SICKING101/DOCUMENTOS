@@ -4,11 +4,15 @@ import { fileURLToPath } from 'url';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import dotenv from 'dotenv';
+
+// Importar rutas de autenticación
+import authRoutes from './src/backend/routes/auth.js';
 
 dotenv.config();
 
@@ -33,10 +37,14 @@ cloudinary.config({
 // Middlewares
 // -----------------------------
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/src', express.static(path.join(__dirname, 'src')));
+
+// Rutas de autenticación
+app.use('/api/auth', authRoutes);
 
 // -----------------------------
 // Esquemas y Modelos
