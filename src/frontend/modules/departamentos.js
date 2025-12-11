@@ -73,21 +73,22 @@ async function saveDepartment() {
         
         let data;
         if (DOM.departmentId.value) {
-            data = await api.call(`/departments/${DOM.departmentId.value}`, {
-                method: 'PUT',
-                body: JSON.stringify(departmentData)
-            });
+            // Cambia esto:
+            data = await api.updateDepartment(DOM.departmentId.value, departmentData);
         } else {
-            data = await api.call('/departments', {
-                method: 'POST',
-                body: JSON.stringify(departmentData)
-            });
+            // Cambia esto:
+            data = await api.createDepartment(departmentData);
         }
         
         if (data.success) {
             showAlert(data.message, 'success');
             await loadDepartments();
             closeDepartmentModal();
+            
+            // IMPORTANTE: Recargar el select en el modal de personas
+            if (window.refreshDepartmentSelect) {
+                window.refreshDepartmentSelect();
+            }
         } else {
             throw new Error(data.message);
         }

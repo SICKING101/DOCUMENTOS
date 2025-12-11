@@ -43,7 +43,9 @@ DOCUMENTOS/
 │   │   │   ├── badges.css
 │   │   │   ├── filters.css
 │   │   │   ├── tabs.css
-│   │   │   └── empty-states.css
+│   │   │   ├── empty-states.css
+|   |   |   └── preloader.css
+|   |   |
 │   │   ├── 📁 sections/                # Estilos por pagina o modulo
 │   │   │   ├── dashboard.css
 │   │   │   ├── tasks.css
@@ -76,16 +78,52 @@ DOCUMENTOS/
 │   │   │   ├── notificaciones.js
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
-│   │   │   └── search.js
+│   │   │   ├── search.js
+|   |   |   └──📁 documentos/
+|   |   |       ├── core/
+|   |   |       │   ├── constants.js
+|   |   |       │   ├── MultipleUploadState.js
+|   |   |       |
+|   │   |       ├── download/
+|   |   |       │   ├── downloadDiagnostics.js
+|   |   |       │   ├── downloadManager.js
+|   |   |       │   ├── downloadMethods.js
+|   |   |       |
+|   |   |       ├── modals/
+|   |   |       │   ├── documentModal.js
+|   |   |       │   ├── modalHelpers.js
+|   |   |       |
+|   |   |       ├── preview/
+|   |   |       │   ├── officePreview.js
+|   |   |       │   ├── previewManager.js
+|   |   |       │   ├── previewModals.js
+|   |   |       │   ├── textPreview.js
+|   |   |       |
+|   |   |       ├── table/
+|   |   |       │   ├── tableRenderer.js
+|   |   |       │   ├── tableFilters.js
+|   |   |       |
+|   |   |       ├── upload/
+|   |   |       │   ├── dragAndDrop.js
+|   |   |       │   ├── progressManager.js
+|   |   |       │   ├── uploadMultiple.js
+|   |   |       │   ├── uploadSingle.js
+|   |   |       |
+|   |   |       ├── index.js
+|   |   |       ├── compatibility.js
+|   |   |
 │   │   ├── 🔧 services/
 │   │   │   └── api.js                  # Cliente fetch para backend
 │   │   ├── 🚀 app.js                   # Inicializacion general
+│   │   ├── ⚙️ auth.js                  # Autenticacion 
+|   │   ├── ⚙️ authGuard.js             # Guardado de autenticación
 │   │   ├── ⚙️ config.js                # Config del frontend
 │   │   ├── 🧩 dom.js                   # Selectores y manip DOM
 │   │   ├── 🧭 navigation.js            # Navegacion SPA
 │   │   ├── 📊 state.js                 # Estado global
 │   │   ├── 📌 task.js                  # Manejo de tareas
 │   │   ├── 🎛️ ui.js                   # Render de UI
+|   │   ├── 🛠️ userMenu.js              # Menu de usuario
 │   │   └── 🛠️ utils.js                # Utilidades generales
 │   │
 │   ├── 🛠️ backend/                    # Servidor Express
