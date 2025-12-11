@@ -171,6 +171,7 @@
 .sidebar__footer {
     padding: var(--spacing-lg);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
 }
 
 /* Botón para alternar entre tema claro y oscuro */
@@ -231,6 +232,115 @@
     font-size: 0.75rem;
     color: var(--sidebar-text);
     opacity: 0.7;
+}
+
+/* Trigger del menú de usuario con cursor pointer */
+.sidebar__user {
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+    position: relative;
+}
+
+.sidebar__user:hover {
+    background: var(--sidebar-hover);
+}
+
+/* Chevron del menú desplegable */
+.sidebar__user-chevron {
+    color: var(--sidebar-text);
+    opacity: 0.7;
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.sidebar__user.active .sidebar__user-chevron {
+    transform: rotate(180deg);
+}
+
+/* Menú desplegable del usuario */
+.user-menu {
+    position: absolute;
+    bottom: 100%;
+    left: var(--spacing-lg);
+    right: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.user-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Header del menú con información del usuario */
+.user-menu__header {
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+}
+
+.user-menu__name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.125rem;
+}
+
+.user-menu__email {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+/* Divisor del menú */
+.user-menu__divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0;
+}
+
+/* Opciones del menú */
+.user-menu__option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.user-menu__option:hover {
+    background: var(--bg-tertiary);
+}
+
+.user-menu__option i {
+    font-size: 1.125rem;
+    width: 20px;
+    text-align: center;
+}
+
+.user-menu__option--danger {
+    color: var(--danger);
+}
+
+.user-menu__option--danger:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
 
 /* ===== 4. TOPBAR COMPONENTS ===== */

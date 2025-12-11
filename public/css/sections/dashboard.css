@@ -423,3 +423,26 @@
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
+
+/* ===== DEPARTMENTS & CATEGORIES SECTIONS ===== */
+
+/* Sección para mostrar departamentos */
+.departments-section {
+    margin-bottom: var(--spacing-xl);
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+.departments-section .stats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+/* Grid genérico para stats cards */
+.stats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}

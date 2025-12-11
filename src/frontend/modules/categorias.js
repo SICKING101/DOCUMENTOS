@@ -171,36 +171,46 @@ function renderCategories() {
         
         if (window.appState.categories.length === 0) {
             DOM.categoriesStats.innerHTML = `
-                <article class="empty-state">
+                <div class="empty-state">
                     <i class="fas fa-tags empty-state__icon"></i>
                     <h3 class="empty-state__title">No hay categorías creadas</h3>
                     <p class="empty-state__description">Crea tu primera categoría para organizar los documentos</p>
-                </article>
+                </div>
             `;
             return;
         }
         
         window.appState.categories.forEach(category => {
-            const categoryCard = document.createElement('article');
-            categoryCard.className = 'stats__card stats__card--category';
+            const categoryCard = document.createElement('div');
+            categoryCard.className = 'compact-category-card';
+            categoryCard.style.position = 'relative';
             
             categoryCard.innerHTML = `
-                <div class="stats__icon" style="background: linear-gradient(135deg, ${category.color || '#4f46e5'}, #4338ca);">
+                <div class="compact-category-card__icon" style="background: linear-gradient(135deg, ${category.color || '#4f46e5'}, #4338ca);">
                     <i class="fas fa-${category.icon || 'folder'}"></i>
                 </div>
-                <div class="stats__info">
-                    <h3 class="stats__info-value">${category.documentCount || 0}</h3>
-                    <p class="stats__info-label">${category.nombre}</p>
-                </div>
-                <div class="stats__actions">
-                    <button class="btn-icon btn-icon--sm" onclick="editCategory('${category._id}')" title="Editar">
+                <h4 class="compact-category-card__name">${category.nombre}</h4>
+                <span class="compact-category-card__count">${category.documentCount || 0} documentos</span>
+                <div class="category-card-actions" style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s;">
+                    <button class="btn-icon btn-icon--sm" onclick="editCategory('${category._id}')" title="Editar" style="width: 28px; height: 28px; padding: 4px;">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-icon btn-icon--sm btn-icon--danger" onclick="deleteCategory('${category._id}')" title="Eliminar">
+                    <button class="btn-icon btn-icon--sm btn-icon--danger" onclick="deleteCategory('${category._id}')" title="Eliminar" style="width: 28px; height: 28px; padding: 4px;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             `;
+            
+            // Mostrar acciones al hover
+            categoryCard.addEventListener('mouseenter', () => {
+                const actions = categoryCard.querySelector('.category-card-actions');
+                if (actions) actions.style.opacity = '1';
+            });
+            
+            categoryCard.addEventListener('mouseleave', () => {
+                const actions = categoryCard.querySelector('.category-card-actions');
+                if (actions) actions.style.opacity = '0';
+            });
             
             DOM.categoriesStats.appendChild(categoryCard);
         });

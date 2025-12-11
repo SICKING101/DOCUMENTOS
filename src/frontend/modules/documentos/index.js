@@ -7,7 +7,7 @@ import { setupFileDragAndDrop } from './upload/dragAndDrop.js';
 import { loadFilterState } from './table/tableFilters.js';
 import { initializeTableFilters } from './table/tableFilters.js';
 import { MultipleUploadState } from './core/MultipleUploadState.js';
-import { formatFileSize, getFileIcon, formatDate } from '../../utils.js';
+import { formatFileSize, getFileIcon } from '../../utils.js';
 
 // =============================================================================
 // Re-exportaciones
@@ -75,7 +75,8 @@ export {
     populateDocumentCategorySelect, 
     populateMultipleCategorySelect, 
     populateFileCategorySelect, 
-    populatePersonSelect 
+    populatePersonSelect,
+    populateAllPersonSelects
 } from './modals/modalHelpers.js';
 
 // Funciones que necesitan ser expuestas globalmente para compatibilidad
@@ -92,31 +93,16 @@ export {
 // =============================================================================
 
 /**
- * Actualiza la UI completa de subida múltiple.
- * Incluye contador, lista de archivos, resumen y configuración.
+ * Obtiene el texto legible para un estado de archivo.
  */
-export function updateMultipleUploadUI() {
-    console.log('🔄 Actualizando UI de subida múltiple');
-    
-    if (!window.multipleUploadState) {
-        console.error('❌ Estado de subida múltiple no inicializado');
-        return;
-    }
-    
-    // Actualizar contador
-    const countElement = document.getElementById('selectedFilesCount');
-    if (countElement) {
-        countElement.textContent = window.multipleUploadState.files.length;
-    }
-    
-    // Actualizar lista de archivos
-    renderFilesList();
-    
-    // Actualizar resumen
-    updateFilesSummary();
-    
-    // Actualizar botón de subida
-    updateUploadButton();
+function getStatusText(status) {
+    const statusMap = {
+        'pending': 'Pendiente',
+        'uploading': 'Subiendo',
+        'completed': 'Completado',
+        'failed': 'Fallido'
+    };
+    return statusMap[status] || status;
 }
 
 /**
@@ -207,26 +193,13 @@ function createFileElement(fileObj) {
     // Agregar event listeners
     const removeBtn = element.querySelector('.file-item__remove');
     removeBtn.addEventListener('click', () => {
-        if (window.multipleUploadState.removeFile(fileObj.id)) {
+        if (window.multipleUploadState && window.multipleUploadState.removeFile(fileObj.id)) {
             updateMultipleUploadUI();
             updateUploadButton();
         }
     });
     
     return element;
-}
-
-/**
- * Obtiene el texto legible para un estado de archivo.
- */
-function getStatusText(status) {
-    const statusMap = {
-        'pending': 'Pendiente',
-        'uploading': 'Subiendo',
-        'completed': 'Completado',
-        'failed': 'Fallido'
-    };
-    return statusMap[status] || status;
 }
 
 /**
@@ -273,6 +246,34 @@ function updateUploadButton() {
         uploadBtn.disabled = false;
         uploadCount.textContent = window.multipleUploadState.files.length;
     }
+}
+
+/**
+ * Actualiza la UI completa de subida múltiple.
+ * Incluye contador, lista de archivos, resumen y configuración.
+ */
+export function updateMultipleUploadUI() {
+    console.log('🔄 Actualizando UI de subida múltiple');
+    
+    if (!window.multipleUploadState) {
+        console.error('❌ Estado de subida múltiple no inicializado');
+        return;
+    }
+    
+    // Actualizar contador
+    const countElement = document.getElementById('selectedFilesCount');
+    if (countElement) {
+        countElement.textContent = window.multipleUploadState.files.length;
+    }
+    
+    // Actualizar lista de archivos
+    renderFilesList();
+    
+    // Actualizar resumen
+    updateFilesSummary();
+    
+    // Actualizar botón de subida
+    updateUploadButton();
 }
 
 // =============================================================================
@@ -370,6 +371,7 @@ export function getAllDocumentosFunctions() {
         populateMultipleCategorySelect,
         populateFileCategorySelect,
         populatePersonSelect,
+        populateAllPersonSelects,
         
         // UI Helpers
         updateMultipleUploadUI,
