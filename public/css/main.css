@@ -18,6 +18,7 @@
 @import url('components/filters.css');
 @import url('components/tabs.css');
 @import url('components/empty-states.css');
+@import url('components/preloader.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');
