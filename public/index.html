@@ -63,7 +63,7 @@
                     </div>
                     <i class="fas fa-chevron-up sidebar__user-chevron"></i>
                 </div>
-                
+
                 <!-- Menú desplegable del usuario -->
                 <div class="user-menu" id="userMenu">
                     <div class="user-menu__header">
@@ -222,7 +222,8 @@
                             <h2 class="section__title">
                                 <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
                             </h2>
-                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30 días</p>
+                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30
+                                días</p>
                         </div>
                         <div class="trash-header-actions">
                             <button class="btn btn--outline" id="refreshTrash">
@@ -299,172 +300,175 @@
 
                 <!-- ===== HISTORIAL TAB ===== -->
                 <section id="historial" class="tab-content">
-    <div class="section__header">
-        <div>
-            <h2 class="section__title">Historial del Sistema</h2>
-            <p class="section__subtitle">Registro completo de todas las actividades</p>
-        </div>
-        <div class="historial__actions">
-            <button class="btn btn--outline" id="clearHistoryBtn">
-                <i class="fas fa-trash"></i> Limpiar Historial
-            </button>
-            <button class="btn btn--outline" id="exportHistoryBtn">
-                <i class="fas fa-download"></i> Exportar
-            </button>
-            <button class="btn btn--primary" id="refreshHistoryBtn">
-                <i class="fas fa-sync-alt"></i> Actualizar
-            </button>
-        </div>
-    </div>    <!-- Filtros avanzados -->
-    <div class="historial-filters">
-        <div class="historial-filters__title">
-            <i class="fas fa-filter"></i>
-            <span>Filtros de Búsqueda</span>
-        </div>
-        
-        <div class="filters__row">
-            <div class="form__group form__group--inline">
-                <label for="filterDateFrom" class="form__label">Rango de fechas</label>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="date" id="filterDateFrom" class="form__input form__input--date" placeholder="Desde">
-                    <span>a</span>
-                    <input type="date" id="filterDateTo" class="form__input form__input--date" placeholder="Hasta">
-                </div>
-            </div>
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">Historial del Sistema</h2>
+                            <p class="section__subtitle">Registro completo de todas las actividades</p>
+                        </div>
+                        <div class="historial__actions">
+                            <button class="btn btn--outline" id="clearHistoryBtn">
+                                <i class="fas fa-trash"></i> Limpiar Historial
+                            </button>
+                            <button class="btn btn--outline" id="exportHistoryBtn">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                            <button class="btn btn--primary" id="refreshHistoryBtn">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
+                        </div>
+                    </div> <!-- Filtros avanzados -->
+                    <div class="historial-filters">
+                        <div class="historial-filters__title">
+                            <i class="fas fa-filter"></i>
+                            <span>Filtros de Búsqueda</span>
+                        </div>
 
-            <div class="form__group form__group--inline">
-                <label for="filterType" class="form__label">Tipo de actividad</label>
-                <select id="filterType" class="form__select">
-                    <option value="all">Todos los tipos</option>
-                    <option value="documento_subido">Documento subido</option>
-                    <option value="documento_eliminado">Documento eliminado</option>
-                    <option value="documento_proximo_vencer">Documento por vencer</option>
-                    <option value="documento_vencido">Documento vencido</option>
-                    <option value="persona_agregada">Persona agregada</option>
-                    <option value="persona_eliminada">Persona eliminada</option>
-                    <option value="categoria_agregada">Categoría agregada</option>
-                    <option value="reporte_generado">Reporte generado</option>
-                    <option value="sistema_iniciado">Sistema iniciado</option>
-                    <option value="error_sistema">Error del sistema</option>
-                </select>
-            </div>
-        </div>
+                        <div class="filters__row">
+                            <div class="form__group form__group--inline">
+                                <label for="filterDateFrom" class="form__label">Rango de fechas</label>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="date" id="filterDateFrom" class="form__input form__input--date"
+                                        placeholder="Desde">
+                                    <span>a</span>
+                                    <input type="date" id="filterDateTo" class="form__input form__input--date"
+                                        placeholder="Hasta">
+                                </div>
+                            </div>
 
-        <div class="filters__row">
-            <div class="form__group form__group--inline">
-                <label for="filterPriority" class="form__label">Nivel de prioridad</label>
-                <select id="filterPriority" class="form__select">
-                    <option value="all">Todas las prioridades</option>
-                    <option value="critica">Crítica</option>
-                    <option value="alta">Alta</option>
-                    <option value="media">Media</option>
-                    <option value="baja">Baja</option>
-                </select>
-            </div>
+                            <div class="form__group form__group--inline">
+                                <label for="filterType" class="form__label">Tipo de actividad</label>
+                                <select id="filterType" class="form__select">
+                                    <option value="all">Todos los tipos</option>
+                                    <option value="documento_subido">Documento subido</option>
+                                    <option value="documento_eliminado">Documento eliminado</option>
+                                    <option value="documento_proximo_vencer">Documento por vencer</option>
+                                    <option value="documento_vencido">Documento vencido</option>
+                                    <option value="persona_agregada">Persona agregada</option>
+                                    <option value="persona_eliminada">Persona eliminada</option>
+                                    <option value="categoria_agregada">Categoría agregada</option>
+                                    <option value="reporte_generado">Reporte generado</option>
+                                    <option value="sistema_iniciado">Sistema iniciado</option>
+                                    <option value="error_sistema">Error del sistema</option>
+                                </select>
+                            </div>
+                        </div>
 
-            <div class="form__group form__group--inline">
-                <label for="filterRead" class="form__label">Estado de lectura</label>
-                <select id="filterRead" class="form__select">
-                    <option value="all">Todos los estados</option>
-                    <option value="read">Leídos</option>
-                    <option value="unread">No leídos</option>
-                </select>
-            </div>
-        </div>
+                        <div class="filters__row">
+                            <div class="form__group form__group--inline">
+                                <label for="filterPriority" class="form__label">Nivel de prioridad</label>
+                                <select id="filterPriority" class="form__select">
+                                    <option value="all">Todas las prioridades</option>
+                                    <option value="critica">Crítica</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="media">Media</option>
+                                    <option value="baja">Baja</option>
+                                </select>
+                            </div>
 
-        <div class="filters__row">
-            <div class="form__group form__group--inline">
-                <label for="itemsPerPage" class="form__label">Resultados por página</label>
-                <select id="itemsPerPage" class="form__select">
-                    <option value="10">10 registros</option>
-                    <option value="25" selected>25 registros</option>
-                    <option value="50">50 registros</option>
-                    <option value="100">100 registros</option>
-                </select>
-            </div>
-        </div>
-    </div>
+                            <div class="form__group form__group--inline">
+                                <label for="filterRead" class="form__label">Estado de lectura</label>
+                                <select id="filterRead" class="form__select">
+                                    <option value="all">Todos los estados</option>
+                                    <option value="read">Leídos</option>
+                                    <option value="unread">No leídos</option>
+                                </select>
+                            </div>
+                        </div>
 
-    <!-- Estadísticas -->
-    <div class="historial-stats">
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--history">
-                <i class="fas fa-history"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="totalHistory">0</h3>
-                <p class="stat-card__label">Registros totales</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--unread">
-                <i class="fas fa-exclamation-circle"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="unreadHistory">0</h3>
-                <p class="stat-card__label">No leídos</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--today">
-                <i class="fas fa-calendar-day"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="todayHistory">0</h3>
-                <p class="stat-card__label">Hoy</p>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-card__icon stat-card__icon--critical">
-                <i class="fas fa-fire"></i>
-            </div>
-            <div class="stat-card__content">
-                <h3 class="stat-card__value" id="criticalHistory">0</h3>
-                <p class="stat-card__label">Críticos</p>
-            </div>
-        </div>
-    </div>
+                        <div class="filters__row">
+                            <div class="form__group form__group--inline">
+                                <label for="itemsPerPage" class="form__label">Resultados por página</label>
+                                <select id="itemsPerPage" class="form__select">
+                                    <option value="10">10 registros</option>
+                                    <option value="25" selected>25 registros</option>
+                                    <option value="50">50 registros</option>
+                                    <option value="100">100 registros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Tabla de historial -->
-    <div class="table-container">
-        <table class="table table--history">
-            <thead>
-                <tr>
-                    <th class="table__header">Fecha</th>
-                    <th class="table__header">Tipo</th>
-                    <th class="table__header">Título</th>
-                    <th class="table__header">Mensaje</th>
-                    <th class="table__header">Prioridad</th>
-                    <th class="table__header">Estado</th>
-                    <th class="table__header">Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody">
-                <!-- El historial se cargará aquí -->
-                <tr>
-                    <td colspan="7" class="empty-state">
-                        <i class="fas fa-history empty-state__icon"></i>
-                        <h3 class="empty-state__title">No hay registros de historial</h3>
-                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí</p>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                    <!-- Estadísticas -->
+                    <div class="historial-stats">
+                        <div class="stat-card">
+                            <div class="stat-card__icon stat-card__icon--history">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div class="stat-card__content">
+                                <h3 class="stat-card__value" id="totalHistory">0</h3>
+                                <p class="stat-card__label">Registros totales</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__icon stat-card__icon--unread">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="stat-card__content">
+                                <h3 class="stat-card__value" id="unreadHistory">0</h3>
+                                <p class="stat-card__label">No leídos</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__icon stat-card__icon--today">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                            <div class="stat-card__content">
+                                <h3 class="stat-card__value" id="todayHistory">0</h3>
+                                <p class="stat-card__label">Hoy</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__icon stat-card__icon--critical">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="stat-card__content">
+                                <h3 class="stat-card__value" id="criticalHistory">0</h3>
+                                <p class="stat-card__label">Críticos</p>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Paginación -->
-    <div class="pagination" id="historyPagination">
-        <button class="pagination__btn pagination__btn--prev" disabled>
-            <i class="fas fa-chevron-left"></i> Anterior
-        </button>
-        <div class="pagination__info">
-            <span id="paginationInfo">Página 1 de 1</span>
-        </div>
-        <button class="pagination__btn pagination__btn--next" disabled>
-            Siguiente <i class="fas fa-chevron-right"></i>
-        </button>
-    </div>
-</section>
+                    <!-- Tabla de historial -->
+                    <div class="table-container">
+                        <table class="table table--history">
+                            <thead>
+                                <tr>
+                                    <th class="table__header">Fecha</th>
+                                    <th class="table__header">Tipo</th>
+                                    <th class="table__header">Título</th>
+                                    <th class="table__header">Mensaje</th>
+                                    <th class="table__header">Prioridad</th>
+                                    <th class="table__header">Estado</th>
+                                    <th class="table__header">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- El historial se cargará aquí -->
+                                <tr>
+                                    <td colspan="7" class="empty-state">
+                                        <i class="fas fa-history empty-state__icon"></i>
+                                        <h3 class="empty-state__title">No hay registros de historial</h3>
+                                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí
+                                        </p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="pagination" id="historyPagination">
+                        <button class="pagination__btn pagination__btn--prev" disabled>
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        <div class="pagination__info">
+                            <span id="paginationInfo">Página 1 de 1</span>
+                        </div>
+                        <button class="pagination__btn pagination__btn--next" disabled>
+                            Siguiente <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </section>
 
                 <!-- ===== PERSONAS TAB ===== -->
                 <section id="personas" class="tab-content">
@@ -538,137 +542,138 @@
                     </div>
                 </section>
 
-<!-- ===== DOCUMENTOS TAB REDESIGN ===== -->
-<section id="documentos" class="tab-content">
-    <!-- Header Principal -->
-    <div class="documents-header">
-        <div>
-            <h2 class="documents-header__title">
-                <i class="fas fa-folder-open"></i>
-                Gestión de Documentos
-            </h2>
-            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema</p>
-        </div>
-        <div class="documents-header__actions">
-            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
-                <i class="fas fa-search"></i>
-                <span>Búsqueda Avanzada</span>
-            </button>
-            <button class="btn btn--primary" id="addDocumentBtn">
-                <i class="fas fa-file-upload"></i>
-                <span>Subir Documento</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Vista Rápida de Categorías -->
-    <div class="categories-overview">
-        <div class="categories-overview__header">
-            <h3 class="categories-overview__title">
-                <i class="fas fa-tags"></i>
-                Categorías Disponibles
-            </h3>
-            <button class="btn btn--secondary btn--sm" id="addCategoryBtn">
-                <i class="fas fa-plus"></i>
-                <span>Nueva Categoría</span>
-            </button>
-        </div>
-        <div class="compact-categories-grid" id="categoriesStats">
-            <!-- Categorías se cargarán aquí dinámicamente -->
-            <div class="compact-category-card">
-                <div class="compact-category-card__icon">
-                    <i class="fas fa-file-pdf"></i>
-                </div>
-                <h4 class="compact-category-card__name">Contratos</h4>
-                <span class="compact-category-card__count">15 documentos</span>
-            </div>
-            <!-- Más categorías se agregarán dinámicamente -->
-        </div>
-    </div>
-
-    <!-- Filtros Avanzados -->
-    <div class="documents-filters">
-        <div class="filters-header">
-            <h3 class="filters-title">Filtrar Documentos</h3>
-        </div>
-        <div class="filters-grid">
-            <div class="filter-group">
-                <label for="filterCategory">Categoría</label>
-                <select class="filter-select" id="filterCategory">
-                    <option value="">Todas las categorías</option>
-                    <!-- Categorías dinámicas -->
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterType">Tipo de Archivo</label>
-                <select class="filter-select" id="filterType">
-                    <option value="">Todos los tipos</option>
-                    <option value="PDF">PDF</option>
-                    <option value="DOCX">Word</option>
-                    <option value="XLSX">Excel</option>
-                    <option value="JPG">Imagen</option>
-                    <option value="PPT">Presentación</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterDate">Fecha de Subida</label>
-                <select class="filter-select" id="filterDate">
-                    <option value="">Cualquier fecha</option>
-                    <option value="today">Hoy</option>
-                    <option value="week">Esta semana</option>
-                    <option value="month">Este mes</option>
-                    <option value="year">Este año</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterStatus">Estado</label>
-                <select class="filter-select" id="filterStatus">
-                    <option value="">Todos los estados</option>
-                    <option value="active">Activos</option>
-                    <option value="expired">Vencidos</option>
-                    <option value="expiring">Por vencer</option>
-                    <option value="archived">Archivados</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabla de Documentos -->
-    <div class="documents-table-container">
-        <table class="documents-table">
-            <thead>
-                <tr>
-                    <th>Documento</th>
-                    <th>Tipo</th>
-                    <th>Tamaño</th>
-                    <th>Persona</th>
-                    <th>Categoría</th>
-                    <th>Fecha Subida</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="documentosTableBody">
-                <!-- Documentos se cargarán aquí dinámicamente -->
-                <tr class="empty-row">
-                    <td colspan="8">
-                        <div class="documents-empty-state">
-                            <i class="fas fa-file-alt documents-empty-state__icon"></i>
-                            <h3 class="documents-empty-state__title">No hay documentos subidos</h3>
-                            <p class="documents-empty-state__description">
-                                Sube tu primer documento o importa desde una carpeta para comenzar
+                <!-- ===== DOCUMENTOS TAB REDESIGN ===== -->
+                <section id="documentos" class="tab-content">
+                    <!-- Header Principal -->
+                    <div class="documents-header">
+                        <div>
+                            <h2 class="documents-header__title">
+                                <i class="fas fa-folder-open"></i>
+                                Gestión de Documentos
+                            </h2>
+                            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema
                             </p>
-                            <button class="btn btn--primary" id="emptyStateUploadBtn">
+                        </div>
+                        <div class="documents-header__actions">
+                            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
+                                <i class="fas fa-search"></i>
+                                <span>Búsqueda Avanzada</span>
+                            </button>
+                            <button class="btn btn--primary" id="addDocumentBtn">
                                 <i class="fas fa-file-upload"></i>
-                                Subir Primer Documento
+                                <span>Subir Documento</span>
                             </button>
                         </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</section>
+                    </div>
+
+                    <!-- Vista Rápida de Categorías -->
+                    <div class="categories-overview">
+                        <div class="categories-overview__header">
+                            <h3 class="categories-overview__title">
+                                <i class="fas fa-tags"></i>
+                                Categorías Disponibles
+                            </h3>
+                            <button class="btn btn--secondary btn--sm" id="addCategoryBtn">
+                                <i class="fas fa-plus"></i>
+                                <span>Nueva Categoría</span>
+                            </button>
+                        </div>
+                        <div class="compact-categories-grid" id="categoriesStats">
+                            <!-- Categorías se cargarán aquí dinámicamente -->
+                            <div class="compact-category-card">
+                                <div class="compact-category-card__icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <h4 class="compact-category-card__name">Contratos</h4>
+                                <span class="compact-category-card__count">15 documentos</span>
+                            </div>
+                            <!-- Más categorías se agregarán dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Filtros Avanzados -->
+                    <div class="documents-filters">
+                        <div class="filters-header">
+                            <h3 class="filters-title">Filtrar Documentos</h3>
+                        </div>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="filterCategory">Categoría</label>
+                                <select class="filter-select" id="filterCategory">
+                                    <option value="">Todas las categorías</option>
+                                    <!-- Categorías dinámicas -->
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filterType">Tipo de Archivo</label>
+                                <select class="filter-select" id="filterType">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="PDF">PDF</option>
+                                    <option value="DOCX">Word</option>
+                                    <option value="XLSX">Excel</option>
+                                    <option value="JPG">Imagen</option>
+                                    <option value="PPT">Presentación</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filterDate">Fecha de Subida</label>
+                                <select class="filter-select" id="filterDate">
+                                    <option value="">Cualquier fecha</option>
+                                    <option value="today">Hoy</option>
+                                    <option value="week">Esta semana</option>
+                                    <option value="month">Este mes</option>
+                                    <option value="year">Este año</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filterStatus">Estado</label>
+                                <select class="filter-select" id="filterStatus">
+                                    <option value="">Todos los estados</option>
+                                    <option value="active">Activos</option>
+                                    <option value="expired">Vencidos</option>
+                                    <option value="expiring">Por vencer</option>
+                                    <option value="archived">Archivados</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Documentos -->
+                    <div class="documents-table-container">
+                        <table class="documents-table">
+                            <thead>
+                                <tr>
+                                    <th>Documento</th>
+                                    <th>Tipo</th>
+                                    <th>Tamaño</th>
+                                    <th>Persona</th>
+                                    <th>Categoría</th>
+                                    <th>Fecha Subida</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documentosTableBody">
+                                <!-- Documentos se cargarán aquí dinámicamente -->
+                                <tr class="empty-row">
+                                    <td colspan="8">
+                                        <div class="documents-empty-state">
+                                            <i class="fas fa-file-alt documents-empty-state__icon"></i>
+                                            <h3 class="documents-empty-state__title">No hay documentos subidos</h3>
+                                            <p class="documents-empty-state__description">
+                                                Sube tu primer documento o importa desde una carpeta para comenzar
+                                            </p>
+                                            <button class="btn btn--primary" id="emptyStateUploadBtn">
+                                                <i class="fas fa-file-upload"></i>
+                                                Subir Primer Documento
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
                 <!-- ===== TAREAS TAB ===== -->
                 <section id="tareas" class="tab-content">
@@ -785,7 +790,10 @@
                         </div>
                         <div class="form__group">
                             <label for="personDepartment" class="form__label">Departamento</label>
-                            <input type="text" id="personDepartment" class="form__input">
+                            <select id="personDepartment" class="form__input">
+                                <option value="">Cargando departamentos...</option>
+                            </select>
+                            <small class="form__hint">Selecciona un departamento o crea uno</small>
                         </div>
                     </div>
                     <div class="form__group">
@@ -1052,11 +1060,13 @@
                     <input type="hidden" id="departmentId">
                     <div class="form__group">
                         <label for="departmentName" class="form__label">Nombre *</label>
-                        <input type="text" id="departmentName" class="form__input" placeholder="Ej: Recursos Humanos" required>
+                        <input type="text" id="departmentName" class="form__input" placeholder="Ej: Recursos Humanos"
+                            required>
                     </div>
                     <div class="form__group">
                         <label for="departmentDescription" class="form__label">Descripción</label>
-                        <textarea id="departmentDescription" class="form__textarea" rows="3" placeholder="Descripción del departamento..."></textarea>
+                        <textarea id="departmentDescription" class="form__textarea" rows="3"
+                            placeholder="Descripción del departamento..."></textarea>
                     </div>
                     <div class="form__row">
                         <div class="form__group">
@@ -1288,27 +1298,28 @@
                 <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
                     <i class="fas fa-exclamation-triangle"></i>
                     <div>
-                        <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un enlace de confirmación. Esta acción requiere autorización.
+                        <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un
+                        enlace de confirmación. Esta acción requiere autorización.
                     </div>
                 </div>
                 <form id="changeAdminForm">
                     <div class="form__group">
                         <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
-                        <input type="text" id="newAdminUser" class="form__input" 
-                               placeholder="Ingresa el nuevo nombre de usuario" required>
+                        <input type="text" id="newAdminUser" class="form__input"
+                            placeholder="Ingresa el nuevo nombre de usuario" required>
                     </div>
                     <div class="form__group">
                         <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
-                        <input type="email" id="newAdminEmail" class="form__input" 
-                               placeholder="correo@ejemplo.com" required>
+                        <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com"
+                            required>
                     </div>
                     <div class="form__group">
                         <label for="newAdminPassword" class="form__label">Contraseña</label>
                         <div class="form__password-wrapper">
-                            <input type="password" id="newAdminPassword" class="form__input" 
-                                   placeholder="Contraseña segura" required>
-                            <button type="button" class="form__password-toggle" 
-                                    onclick="togglePasswordVisibility('newAdminPassword')">
+                            <input type="password" id="newAdminPassword" class="form__input"
+                                placeholder="Contraseña segura" required>
+                            <button type="button" class="form__password-toggle"
+                                onclick="togglePasswordVisibility('newAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -1316,10 +1327,10 @@
                     <div class="form__group">
                         <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
                         <div class="form__password-wrapper">
-                            <input type="password" id="confirmAdminPassword" class="form__input" 
-                                   placeholder="Repite la contraseña" required>
-                            <button type="button" class="form__password-toggle" 
-                                    onclick="togglePasswordVisibility('confirmAdminPassword')">
+                            <input type="password" id="confirmAdminPassword" class="form__input"
+                                placeholder="Repite la contraseña" required>
+                            <button type="button" class="form__password-toggle"
+                                onclick="togglePasswordVisibility('confirmAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>

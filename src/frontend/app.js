@@ -36,7 +36,8 @@ import {
     populatePersonSelect,
     editPerson,
     deletePerson,
-    handleSavePerson
+    handleSavePerson,
+    refreshDepartmentSelect
 } from './modules/personas.js';
 
 // Documentos (MÓDULO REORGANIZADO)
@@ -936,6 +937,7 @@ window.deletePerson = deletePerson;
 window.openPersonModal = openPersonModal;
 window.closePersonModal = closePersonModal;
 window.populatePersonSelect = populatePersonSelect;
+window.refreshDepartmentSelect = refreshDepartmentSelect;
 
 // =============================================================================
 // 11.3 FUNCIONES DE CATEGORÍAS
