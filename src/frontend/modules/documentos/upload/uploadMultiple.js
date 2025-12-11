@@ -32,6 +32,216 @@ export function getMultipleUploadState() {
 }
 
 /**
+ * Muestra el preloader de subida
+ */
+function showUploadPreloader(state) {
+    console.log('🎬 Mostrando preloader de subida');
+    
+    // Verificar si ya existe un preloader
+    if (document.getElementById('documentUploadPreloader')) {
+        console.log('⚠️ Preloader ya existente, actualizando...');
+        updateUploadPreloader(state);
+        return;
+    }
+    
+    const preloader = document.createElement('div');
+    preloader.id = 'documentUploadPreloader';
+    preloader.className = 'document-upload-preloader';
+    
+    preloader.innerHTML = `
+        <div class="document-upload-preloader__header">
+            <div class="document-upload-preloader__title">
+                <i class="fas fa-upload"></i>
+                <span>Subiendo archivos...</span>
+            </div>
+            <button class="btn btn--sm btn--outline-light" id="cancelUploadPreloader">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="document-upload-preloader__content" id="uploadPreloaderContent">
+            <!-- Se llenará dinámicamente -->
+        </div>
+        <div class="document-upload-preloader__stats">
+            <span id="uploadStatsCurrent">0</span> / 
+            <span id="uploadStatsTotal">${state.files.length}</span> archivos
+            <span id="uploadStatsSpeed" style="margin-left: auto; font-size: 0.75rem;"></span>
+        </div>
+    `;
+    
+    document.body.appendChild(preloader);
+    
+    // Configurar cancelación
+    const cancelBtn = preloader.querySelector('#cancelUploadPreloader');
+    cancelBtn.addEventListener('click', () => {
+        console.log('⏹️ Cancelando subida desde preloader');
+        hideUploadPreloader();
+        
+        // Cancelar todas las subidas en progreso
+        state.files.forEach(fileObj => {
+            if (fileObj.status === 'uploading') {
+                fileObj.status = 'failed';
+                fileObj.error = 'Subida cancelada por el usuario';
+            }
+        });
+        
+        // Actualizar UI
+        updateMultipleUploadUI();
+        updateUploadPreloader(state);
+        
+        showAlert('Subida cancelada', 'warning');
+    });
+    
+    // Inicializar contenido del preloader
+    updateUploadPreloader(state);
+}
+
+/**
+ * Actualiza el contenido del preloader
+ */
+function updateUploadPreloader(state) {
+    const content = document.getElementById('uploadPreloaderContent');
+    if (!content) return;
+    
+    // Filtrar archivos para mostrar (solo los que están subiendo o tienen estado)
+    const filesToShow = state.files.filter(f => 
+        f.status === 'uploading' || f.status === 'completed' || f.status === 'failed'
+    );
+    
+    if (filesToShow.length === 0) {
+        content.innerHTML = `
+            <div class="preloader__text">
+                <i class="fas fa-hourglass-half"></i>
+                <p>Preparando archivos para subir...</p>
+            </div>
+        `;
+        return;
+    }
+    
+    content.innerHTML = filesToShow.map(fileObj => `
+        <div class="document-upload-preloader__file file-status--${fileObj.status}">
+            <div class="document-upload-preloader__file-icon">
+                <i class="fas fa-file-${getFileIconClass(fileObj.file)}"></i>
+            </div>
+            <div class="document-upload-preloader__file-info">
+                <div class="document-upload-preloader__file-name" title="${fileObj.file.name}">
+                    ${truncateFileName(fileObj.file.name, 30)}
+                </div>
+                <div class="document-upload-preloader__file-status">
+                    <span class="status-badge status-badge--${fileObj.status}">
+                        ${getStatusText(fileObj.status)}
+                    </span>
+                    ${fileObj.status === 'uploading' ? `
+                        <span class="progress-text">${fileObj.progress || 0}%</span>
+                    ` : ''}
+                </div>
+                <div class="document-upload-preloader__file-progress">
+                    <div class="document-upload-preloader__file-progress-bar" 
+                         style="width: ${fileObj.progress || 0}%"></div>
+                </div>
+                ${fileObj.error ? `
+                    <div class="document-upload-preloader__file-error">
+                        <small>${fileObj.error}</small>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    // Actualizar estadísticas
+    updateUploadStats(state);
+}
+
+/**
+ * Actualiza las estadísticas del preloader
+ */
+function updateUploadStats(state) {
+    const current = document.getElementById('uploadStatsCurrent');
+    const total = document.getElementById('uploadStatsTotal');
+    const speed = document.getElementById('uploadStatsSpeed');
+    
+    if (!current || !total || !speed) return;
+    
+    const completed = state.files.filter(f => f.status === 'completed').length;
+    const uploading = state.files.filter(f => f.status === 'uploading').length;
+    const failed = state.files.filter(f => f.status === 'failed').length;
+    
+    current.textContent = completed;
+    total.textContent = state.files.length;
+    
+    // Calcular velocidad promedio si hay archivos subiendo
+    if (uploading > 0) {
+        const uploadingFiles = state.files.filter(f => f.status === 'uploading');
+        const avgProgress = uploadingFiles.reduce((sum, f) => sum + (f.progress || 0), 0) / uploadingFiles.length;
+        speed.textContent = `${avgProgress.toFixed(0)}% promedio`;
+    } else {
+        speed.textContent = '';
+    }
+    
+    // Actualizar título si todo está completado
+    if (completed === state.files.length) {
+        const title = document.querySelector('.document-upload-preloader__title span');
+        if (title) {
+            title.textContent = 'Subida completada';
+            const icon = document.querySelector('.document-upload-preloader__title i');
+            if (icon) {
+                icon.className = 'fas fa-check-circle';
+            }
+        }
+    }
+}
+
+/**
+ * Oculta el preloader de subida
+ */
+function hideUploadPreloader() {
+    const preloader = document.getElementById('documentUploadPreloader');
+    if (preloader) {
+        console.log('🎬 Ocultando preloader de subida');
+        preloader.style.animation = 'slideOutDown 0.3s ease forwards';
+        setTimeout(() => {
+            if (preloader.parentNode) {
+                preloader.parentNode.removeChild(preloader);
+            }
+        }, 300);
+    }
+}
+
+/**
+ * Obtiene la clase del icono según el tipo de archivo
+ */
+function getFileIconClass(file) {
+    const extension = file.name.split('.').pop().toLowerCase();
+    const iconMap = {
+        'pdf': 'pdf',
+        'doc': 'word',
+        'docx': 'word',
+        'xls': 'excel',
+        'xlsx': 'excel',
+        'ppt': 'powerpoint',
+        'pptx': 'powerpoint',
+        'jpg': 'image',
+        'jpeg': 'image',
+        'png': 'image',
+        'gif': 'image',
+        'txt': 'alt',
+        'zip': 'archive',
+        'rar': 'archive'
+    };
+    return iconMap[extension] || 'alt';
+}
+
+/**
+ * Trunca el nombre del archivo si es muy largo
+ */
+function truncateFileName(name, maxLength) {
+    if (name.length <= maxLength) return name;
+    const extension = name.split('.').pop();
+    const nameWithoutExt = name.slice(0, name.length - extension.length - 1);
+    const truncateLength = maxLength - extension.length - 4; // -4 para "..." y "."
+    return nameWithoutExt.slice(0, truncateLength) + '...' + extension;
+}
+
+/**
  * Maneja la selección de múltiples archivos.
  * Valida cantidad máxima y agrega archivos al estado.
  * @param {File[]} files - Array de archivos seleccionados
@@ -224,7 +434,10 @@ export async function handleUploadMultipleDocuments() {
         // Configurar estado
         state.isUploading = true;
         
-        // Mostrar contenedor de progreso
+        // Mostrar preloader de subida
+        showUploadPreloader(state);
+        
+        // Mostrar contenedor de progreso (si se usa)
         showUploadProgressContainer();
         
         // Iniciar subida según estrategia
@@ -248,6 +461,11 @@ export async function handleUploadMultipleDocuments() {
         
         // Mostrar resultados
         showUploadResults(result, state);
+        
+        // Actualizar preloader con resultados finales
+        setTimeout(() => {
+            updateUploadPreloader(state);
+        }, 500);
         
         // Recargar documentos si hubo éxito
         if (result.successCount > 0) {
@@ -278,7 +496,17 @@ export async function handleUploadMultipleDocuments() {
         // Resetear estado
         state.isUploading = false;
         
-        // Ocultar progreso después de un tiempo
+        // Ocultar preloader después de un tiempo si todo está completado
+        setTimeout(() => {
+            const allCompleted = state.files.every(f => 
+                f.status === 'completed' || f.status === 'failed'
+            );
+            if (allCompleted) {
+                hideUploadPreloader();
+            }
+        }, 3000);
+        
+        // Ocultar contenedor de progreso después de un tiempo
         setTimeout(() => {
             hideUploadProgressContainer();
         }, 5000);
@@ -318,6 +546,7 @@ async function uploadSequentially(state) {
             fileObj.status = 'uploading';
             fileObj.progress = 0;
             updateFileUI(fileObj.id, state);
+            updateUploadPreloader(state);
             
             // Subir archivo
             const success = await uploadSingleFileWithProgress(fileObj, state);
@@ -342,6 +571,7 @@ async function uploadSequentially(state) {
             }
             
             updateFileUI(fileObj.id, state);
+            updateUploadPreloader(state);
             
             // Pequeña pausa entre archivos (excepto el último)
             if (i < state.files.length - 1) {
@@ -354,6 +584,7 @@ async function uploadSequentially(state) {
             fileObj.status = 'failed';
             fileObj.error = error.message;
             updateFileUI(fileObj.id, state);
+            updateUploadPreloader(state);
         }
     }
     
@@ -370,6 +601,7 @@ async function uploadSequentially(state) {
  * @returns {object} - Resultados de la subida
  */
 async function uploadInParallel(state) {
+    console.group('⚡ uploadInParallel');
     console.log('⚡ Subida paralela iniciada');
     
     const maxConcurrent = MULTIPLE_UPLOAD_CONFIG.MAX_CONCURRENT_UPLOADS;
@@ -392,12 +624,14 @@ async function uploadInParallel(state) {
         // Esperar si hay demasiadas subidas concurrentes
         while (activeUploads.size >= maxConcurrent) {
             await new Promise(resolve => setTimeout(resolve, 100));
+            updateUploadPreloader(state);
         }
         
         // Iniciar subida
         fileObj.status = 'uploading';
         fileObj.progress = 0;
         updateFileUI(fileObj.id, state);
+        updateUploadPreloader(state);
         
         activeUploads.add(fileObj.id);
         
@@ -421,6 +655,7 @@ async function uploadInParallel(state) {
                 }
                 
                 updateFileUI(fileObj.id, state);
+                updateUploadPreloader(state);
                 activeUploads.delete(fileObj.id);
                 
                 return success;
@@ -431,6 +666,7 @@ async function uploadInParallel(state) {
                 fileObj.status = 'failed';
                 fileObj.error = error.message;
                 updateFileUI(fileObj.id, state);
+                updateUploadPreloader(state);
                 activeUploads.delete(fileObj.id);
                 return false;
             });
@@ -443,6 +679,7 @@ async function uploadInParallel(state) {
     
     results.totalTime = Date.now() - startTime;
     console.log(`⏱️  Tiempo total paralelo: ${results.totalTime}ms`);
+    console.groupEnd();
     
     return results;
 }
@@ -453,6 +690,7 @@ async function uploadInParallel(state) {
  * @returns {object} - Resultados de la subida
  */
 async function uploadInBatches(state) {
+    console.group('📦 uploadInBatches');
     console.log('📦 Subida por lotes iniciada');
     
     const batchSize = MULTIPLE_UPLOAD_CONFIG.BATCH_SIZE;
@@ -484,6 +722,7 @@ async function uploadInBatches(state) {
             fileObj.status = 'uploading';
             fileObj.progress = 0;
             updateFileUI(fileObj.id, state);
+            updateUploadPreloader(state);
             
             return uploadSingleFileWithProgress(fileObj, state)
                 .then(success => {
@@ -505,6 +744,7 @@ async function uploadInBatches(state) {
                     }
                     
                     updateFileUI(fileObj.id, state);
+                    updateUploadPreloader(state);
                     return success;
                 })
                 .catch(error => {
@@ -513,6 +753,7 @@ async function uploadInBatches(state) {
                     fileObj.status = 'failed';
                     fileObj.error = error.message;
                     updateFileUI(fileObj.id, state);
+                    updateUploadPreloader(state);
                     return false;
                 });
         });
@@ -529,6 +770,7 @@ async function uploadInBatches(state) {
     
     results.totalTime = Date.now() - startTime;
     console.log(`⏱️  Tiempo total por lotes: ${results.totalTime}ms`);
+    console.groupEnd();
     
     return results;
 }
@@ -608,6 +850,7 @@ async function uploadSingleFileWithProgress(fileObj, state) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
                     fileObj.progress = percentComplete;
                     updateFileUI(fileObj.id, state);
+                    updateUploadPreloader(state);
                     
                     if (CONFIG.DEBUG.LOG_UPLOAD_PROGRESS) {
                         console.log(`📈 ${fileObj.file.name}: ${percentComplete}%`);
@@ -820,6 +1063,7 @@ function showUploadResults(results, state) {
         clearBtn.addEventListener('click', () => {
             state.cleanupFiles('failed');
             updateMultipleUploadUI();
+            updateUploadPreloader(state);
             resultsContainer.remove();
         });
     }
@@ -842,6 +1086,7 @@ function retryFailedUploads(state) {
     
     // Actualizar UI
     updateMultipleUploadUI();
+    updateUploadPreloader(state);
     
     // Volver a subir
     handleUploadMultipleDocuments();
@@ -893,4 +1138,4 @@ export function forceCommonCategory(category) {
 }
 
 // Exportar las funciones internas que puedan ser necesarias
-export { updateFileUI, getStatusText };
+export { updateFileUI, getStatusText, showUploadPreloader, hideUploadPreloader, updateUploadPreloader };
