@@ -96,6 +96,13 @@ import {
     initPapelera
 } from './modules/papelera.js';
 
+// Menú de usuario
+import {
+    inicializarMenuUsuario
+} from './userMenu.js';
+
+import { initializeDocumentosModule } from './modules/documentos/index.js';
+
 // =============================================================================
 // 1. INICIALIZACIÓN DE LA APLICACIÓN
 // =============================================================================
@@ -126,7 +133,7 @@ documentos.setupCompatibilityGlobals();
  * 1.4 Evento DOMContentLoaded principal
  * Punto de entrada de la aplicación cuando el DOM está completamente cargado.
  */
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     console.log('🚀 Inicializando Sistema de Gestión de Documentos - CBTIS051');
     console.log('📡 URL de la API:', CONFIG.API_BASE_URL);
     console.log('📦 Versión del sistema:', CONFIG.APP_VERSION || '1.0.0');
@@ -136,6 +143,23 @@ document.addEventListener('DOMContentLoaded', function () {
     loadInitialData();
     initHistorial(); // Inicializar historial
     initNotificaciones(); // Inicializar notificaciones
+    inicializarMenuUsuario(); // Inicializar menú de usuario
+
+        try {
+        // Inicializar módulo de documentos
+        initializeDocumentosModule();
+        
+        // Asegurar que el estado global esté disponible
+        if (!window.multipleUploadState) {
+            const { MultipleUploadState } = await import('./modules/documentos/index.js');
+            window.multipleUploadState = new MultipleUploadState();
+        }
+        
+        console.log('✅ Aplicación inicializada correctamente');
+    } catch (error) {
+        console.error('❌ Error inicializando aplicación:', error);
+        showGlobalAlert(`Error de inicialización: ${error.message}`);
+    }
 
     // Inicializar tema
     initTheme();
@@ -242,18 +266,10 @@ function setupEventListeners() {
     // 3.1 NAVEGACIÓN PRINCIPAL
     // =============================================================================
 
-    /**
-     * 3.1.1 Navegación entre pestañas
-     * Maneja clics en los enlaces de la barra lateral.
-     */
     DOM.navLinks.forEach(link => {
         link.addEventListener('click', handleTabNavigation);
     });
 
-    /**
-     * 3.1.2 Botón de papelera en topbar
-     * Cambia a la pestaña de papelera al hacer clic
-     */
     const trashBtn = document.getElementById('trashBtn');
     if (trashBtn) {
         trashBtn.addEventListener('click', async () => {
@@ -265,21 +281,10 @@ function setupEventListeners() {
     // 3.2 DASHBOARD
     // =============================================================================
 
-    /**
-     * 3.2.1 Dashboard - Refrescar datos
-     * Actualiza todas las estadísticas del panel principal.
-     */
     DOM.refreshDashboard?.addEventListener('click', () => handleRefreshDashboard(appState));
 
-    /**
-     * 3.2.2 Dashboard - Agregar primer documento
-     * Acceso rápido al formulario de subida desde estado vacío.
-     */
     DOM.addFirstDocument?.addEventListener('click', () => documentos.openDocumentModal());
 
-    /**
-     * 3.2.3 Acciones rápidas del dashboard
-     */
     DOM.quickActions.forEach(action => {
         action.addEventListener('click', handleQuickAction);
     });
@@ -288,126 +293,34 @@ function setupEventListeners() {
     // 3.3 PERSONAS
     // =============================================================================
 
-    /**
-     * 3.3.1 Personas - Agregar
-     * Abre formulario para registrar nueva persona.
-     */
     DOM.addPersonBtn?.addEventListener('click', () => openPersonModal());
 
-    /**
-     * 3.3.2 Personas - Guardar
-     * Ejecuta guardado/actualización de datos de persona.
-     */
     DOM.savePersonBtn?.addEventListener('click', () => handleSavePerson());
 
-    /**
-     * 3.3.3 Personas - Cancelar
-     * Cierra formulario de persona sin guardar.
-     */
     DOM.cancelPersonBtn?.addEventListener('click', () => closePersonModal());
 
     // =============================================================================
-    // 3.4 DOCUMENTOS
+    // 3.4 DOCUMENTOS - SOLO LOS BÁSICOS
     // =============================================================================
 
-    /**
-     * 3.4.1 Documentos - Agregar
-     * Abre formulario para subir documento.
-     */
+    // Solo configuraremos los listeners básicos aquí
+    // Los listeners específicos del modal se configuran EN EL MODAL
+
     DOM.addDocumentBtn?.addEventListener('click', () => documentos.openDocumentModal());
-
-    /**
-     * 3.4.2 Documentos - Explorar archivos (modo individual)
-     * Abre selector de archivos del sistema.
-     */
-    DOM.browseFilesBtn?.addEventListener('click', () => DOM.fileInput?.click());
-
-    /**
-     * 3.4.3 Documentos - Selección de archivo (individual)
-     * Maneja selección de archivo único.
-     */
-    DOM.fileInput?.addEventListener('change', documentos.handleFileSelect);
-
-    /**
-     * 3.4.4 Documentos - Subir documento único
-     * Inicia subida de archivo individual.
-     */
-    DOM.uploadDocumentBtn?.addEventListener('click', () => documentos.handleUploadDocument());
-
-    /**
-     * 3.4.5 Documentos - Cancelar
-     * Cierra formulario de documento sin subir.
-     */
-    DOM.cancelDocumentBtn?.addEventListener('click', () => documentos.closeDocumentModal());
 
     // =============================================================================
     // 3.5 DOCUMENTOS - SUBIDA MÚLTIPLE
+    // LOS LISTENERS ESPECÍFICOS SE CONFIGURAN EN EL MODAL PARA EVITAR DUPLICACIÓN
     // =============================================================================
-
-    /**
-     * 3.5.1 Tabs de modo de subida
-     * Alterna entre subida única y múltiple.
-     */
-    DOM.uploadTabs?.forEach(tab => {
-        tab.addEventListener('click', function () {
-            const mode = this.dataset.mode;
-            documentos.switchUploadMode(mode);
-        });
-    });
-
-    /**
-     * 3.5.2 Botón para seleccionar múltiples archivos
-     * Dispara el input file con atributo multiple.
-     */
-    DOM.browseMultipleFilesBtn?.addEventListener('click', () => DOM.multipleFileInput?.click());
-
-    /**
-     * 3.5.3 Input para múltiples archivos
-     * Maneja la selección de múltiples archivos.
-     */
-    DOM.multipleFileInput?.addEventListener('change', documentos.handleMultipleFileSelect);
-
-    /**
-     * 3.5.4 Botón para subir múltiples documentos
-     * Inicia el proceso de subida de todos los archivos seleccionados.
-     */
-    DOM.uploadMultipleDocumentsBtn?.addEventListener('click', () => documentos.handleUploadMultipleDocuments());
-
-    /**
-     * 3.5.5 Toggle de opciones avanzadas
-     * Muestra/oculta configuración adicional para subidas múltiples.
-     */
-    DOM.toggleAdvancedOptions?.addEventListener('click', function () {
-        const advancedOptions = DOM.advancedOptions;
-        if (advancedOptions) {
-            const isVisible = advancedOptions.style.display === 'block';
-            advancedOptions.style.display = isVisible ? 'none' : 'block';
-            this.innerHTML = isVisible ?
-                '<i class="fas fa-sliders-h"></i> Opciones Avanzadas' :
-                '<i class="fas fa-sliders-h"></i> Ocultar Opciones';
-        }
-    });
 
     // =============================================================================
     // 3.6 BÚSQUEDA DE DOCUMENTOS
     // =============================================================================
 
-    /**
-     * 3.6.1 Búsqueda de documentos - Buscar
-     * Ejecuta búsqueda básica por término.
-     */
     DOM.searchDocumentsBtn?.addEventListener('click', () => handleDocumentSearch());
 
-    /**
-     * 3.6.2 Búsqueda de documentos - Limpiar
-     * Remueve filtros y términos de búsqueda.
-     */
     DOM.clearSearchBtn?.addEventListener('click', () => handleClearSearch());
 
-    /**
-     * 3.6.3 Búsqueda de documentos - Enter
-     * Ejecuta búsqueda al presionar Enter en campo de texto.
-     */
     DOM.documentSearch?.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             handleDocumentSearch();
@@ -418,133 +331,62 @@ function setupEventListeners() {
     // 3.7 FILTROS DE DOCUMENTOS
     // =============================================================================
 
-    /**
-     * 3.7.1 Filtros - Cambio de categoría
-     * Actualiza filtro por categoría y refresca tabla.
-     */
     DOM.filterCategory?.addEventListener('change', handleFilterChange);
 
-    /**
-     * 3.7.2 Filtros - Cambio de tipo
-     * Actualiza filtro por tipo de archivo y refresca tabla.
-     */
     DOM.filterType?.addEventListener('change', handleFilterChange);
 
-    /**
-     * 3.7.3 Filtros - Cambio de fecha
-     * Actualiza filtro por rango de tiempo y refresca tabla.
-     */
     DOM.filterDate?.addEventListener('change', handleFilterChange);
 
-    /**
-     * 3.7.4 Filtros - Cambio de estado
-     * Actualiza filtro por estado de vencimiento y refresca tabla.
-     */
     DOM.filterStatus?.addEventListener('change', handleFilterChange);
 
     // =============================================================================
     // 3.8 CATEGORÍAS
     // =============================================================================
 
-    /**
-     * 3.8.1 Categorías - Agregar
-     * Abre formulario para crear nueva categoría.
-     */
     DOM.addCategoryBtn?.addEventListener('click', () => openCategoryModal());
 
-    /**
-     * 3.8.2 Categorías - Guardar
-     * Ejecuta guardado/actualización de categoría.
-     */
     DOM.saveCategoryBtn?.addEventListener('click', () => handleSaveCategory());
 
-    /**
-     * 3.8.3 Categorías - Cancelar
-     * Cierra formulario de categoría sin guardar.
-     */
     DOM.cancelCategoryBtn?.addEventListener('click', () => closeCategoryModal());
 
     // =============================================================================
     // 3.9 DEPARTAMENTOS
     // =============================================================================
 
-    /**
-     * 3.9.1 Departamentos - Agregar
-     * Abre formulario para crear nuevo departamento.
-     */
     DOM.addDepartmentBtn?.addEventListener('click', () => openDepartmentModal());
 
-    /**
-     * 3.9.2 Departamentos - Guardar
-     * Ejecuta guardado/actualización de departamento.
-     */
     DOM.saveDepartmentBtn?.addEventListener('click', () => handleSaveDepartment());
 
-    /**
-     * 3.9.3 Departamentos - Cancelar
-     * Cierra formulario de departamento sin guardar.
-     */
     DOM.cancelDepartmentBtn?.addEventListener('click', () => closeDepartmentModal());
 
     // =============================================================================
     // 3.10 BÚSQUEDA AVANZADA
     // =============================================================================
 
-    /**
-     * 3.10.1 Búsqueda avanzada - Ejecutar
-     * Realiza búsqueda con múltiples criterios.
-     */
     DOM.performSearchBtn?.addEventListener('click', () => handleAdvancedSearch());
 
-    /**
-     * 3.10.2 Búsqueda avanzada - Cancelar
-     * Cierra modal de búsqueda avanzada.
-     */
     DOM.cancelSearchBtn?.addEventListener('click', () => closeSearchModal());
 
     // =============================================================================
     // 3.11 REPORTES
     // =============================================================================
 
-    /**
-     * 3.11.1 Reportes - Cambio de tipo
-     * Actualiza filtros específicos según tipo de reporte seleccionado.
-     */
     DOM.reportType?.addEventListener('change', handleReportTypeChange);
 
-    /**
-     * 3.11.2 Reportes - Generar
-     * Ejecuta generación y descarga de reporte.
-     */
     DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
 
-    /**
-     * 3.11.3 Reportes - Cancelar
-     * Cierra modal de reportes sin generar.
-     */
     DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
-
-    // =============================================================================
-    // 3.12 DRAG AND DROP (configurado por el módulo de documentos)
-    // =============================================================================
-
-    // Nota: El drag and drop se configura automáticamente en initializeDocumentosModule()
 
     // =============================================================================
     // 3.13 BOTONES DE CIERRE DE MODALES
     // =============================================================================
 
-    /**
-     * 3.13.1 Botones de cierre de modales
-     * Asigna funcionalidad a botones de cerrar (×) de todos los modales.
-     */
     DOM.modalCloseButtons.forEach(btn => {
         btn.addEventListener('click', handleModalClose);
     });
 
     /**
      * 3.13.2 Cerrar modales al hacer clic fuera
-     * Configura cierre de modales al hacer clic en el fondo oscuro.
      */
     const modals = {
         personModal: DOM.personModal,

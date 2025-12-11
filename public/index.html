@@ -53,7 +53,7 @@
                 <button class="sidebar__theme-toggle" id="themeToggle" title="Cambiar tema">
                     <i class="fas fa-moon"></i>
                 </button>
-                <div class="sidebar__user">
+                <div class="sidebar__user" id="userMenuTrigger">
                     <div class="sidebar__user-avatar">
                         <i class="fas fa-user"></i>
                     </div>
@@ -61,6 +61,25 @@
                         <p class="sidebar__user-name">Administrador</p>
                         <p class="sidebar__user-role">Sistema</p>
                     </div>
+                    <i class="fas fa-chevron-up sidebar__user-chevron"></i>
+                </div>
+                
+                <!-- Menú desplegable del usuario -->
+                <div class="user-menu" id="userMenu">
+                    <div class="user-menu__header">
+                        <div class="user-menu__avatar">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div class="user-menu__info">
+                            <p class="user-menu__name">Administrador</p>
+                            <p class="user-menu__email" id="userEmail">admin@cbtis051.com</p>
+                        </div>
+                    </div>
+                    <div class="user-menu__divider"></div>
+                    <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Cerrar Sesión</span>
+                    </button>
                 </div>
             </div>
         </aside>
@@ -174,11 +193,6 @@
                             <i class="fas fa-chart-bar action-card__icon"></i>
                             <h3 class="action-card__title">Generar Reporte</h3>
                             <p class="action-card__description">Crear reporte de documentos</p>
-                        </article>
-                        <article class="action-card" onclick="showAdvancedSearch()">
-                            <i class="fas fa-search action-card__icon"></i>
-                            <h3 class="action-card__title">Búsqueda Avanzada</h3>
-                            <p class="action-card__description">Buscar documentos específicos</p>
                         </article>
                     </section>
 
@@ -536,6 +550,10 @@
             <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema</p>
         </div>
         <div class="documents-header__actions">
+            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
+                <i class="fas fa-search"></i>
+                <span>Búsqueda Avanzada</span>
+            </button>
             <button class="btn btn--primary" id="addDocumentBtn">
                 <i class="fas fa-file-upload"></i>
                 <span>Subir Documento</span>
@@ -1255,6 +1273,68 @@
     </dialog>
 
     <!-- Modal de Acciones -->
+    <!-- Modal para cambiar administrador -->
+    <dialog id="changeAdminModal" class="modal">
+        <article class="modal__content modal__content--md">
+            <header class="modal__header">
+                <h3 class="modal__title">
+                    <i class="fas fa-user-shield"></i> Cambiar Administrador
+                </h3>
+                <button class="modal__close" id="closeChangeAdminModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </header>
+            <section class="modal__body">
+                <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un enlace de confirmación. Esta acción requiere autorización.
+                    </div>
+                </div>
+                <form id="changeAdminForm">
+                    <div class="form__group">
+                        <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
+                        <input type="text" id="newAdminUser" class="form__input" 
+                               placeholder="Ingresa el nuevo nombre de usuario" required>
+                    </div>
+                    <div class="form__group">
+                        <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
+                        <input type="email" id="newAdminEmail" class="form__input" 
+                               placeholder="correo@ejemplo.com" required>
+                    </div>
+                    <div class="form__group">
+                        <label for="newAdminPassword" class="form__label">Contraseña</label>
+                        <div class="form__password-wrapper">
+                            <input type="password" id="newAdminPassword" class="form__input" 
+                                   placeholder="Contraseña segura" required>
+                            <button type="button" class="form__password-toggle" 
+                                    onclick="togglePasswordVisibility('newAdminPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form__group">
+                        <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
+                        <div class="form__password-wrapper">
+                            <input type="password" id="confirmAdminPassword" class="form__input" 
+                                   placeholder="Repite la contraseña" required>
+                            <button type="button" class="form__password-toggle" 
+                                    onclick="togglePasswordVisibility('confirmAdminPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelChangeAdmin">Cancelar</button>
+                <button class="btn btn--primary" id="confirmChangeAdmin">
+                    <i class="fas fa-paper-plane"></i> Enviar Solicitud
+                </button>
+            </footer>
+        </article>
+    </dialog>
+
     <dialog id="actionModal" class="modal">
         <article class="modal__content modal__content--sm">
             <header class="modal__header">
@@ -1277,6 +1357,8 @@
         </article>
     </dialog>
 
+    <!-- Guard de autenticación - DEBE CARGARSE PRIMERO -->
+    <script type="module" src="/src/frontend/authGuard.js"></script>
     <script type="module" src="/src/frontend/app.js"></script>
 </body>
 
