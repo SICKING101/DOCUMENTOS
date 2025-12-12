@@ -991,6 +991,98 @@
         </article>
     </dialog>
 
+    <!-- Edit Document Modal -->
+    <dialog id="editDocumentModal" class="modal">
+        <article class="modal__content">
+            <header class="modal__header">
+                <h3 class="modal__title">Editar Documento</h3>
+                <button class="modal__close">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="editDocumentForm">
+                    <input type="hidden" id="editDocumentId">
+                    
+                    <div class="form__group">
+                        <label class="form__label">Documento Actual</label>
+                        <div class="current-file-info">
+                            <i class="fas fa-file-alt"></i>
+                            <span id="currentFileName"></span>
+                            <span class="badge badge--info" id="currentFileSize"></span>
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label class="form__label">
+                            <input type="checkbox" id="replaceFileCheck">
+                            Reemplazar archivo
+                        </label>
+                    </div>
+
+                    <div id="newFileContainer" style="display: none;">
+                        <div class="upload__dropzone" id="editFileUploadContainer">
+                            <i class="fas fa-cloud-upload-alt upload__icon"></i>
+                            <h4>Selecciona el nuevo archivo</h4>
+                            <button type="button" class="btn btn--outline btn--sm" id="browseEditFileBtn">
+                                <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                            </button>
+                            <input type="file" id="editFileInput" class="upload__input"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                            <div class="upload__info" id="editFileInfo" style="display: none;">
+                                <p><strong>Nuevo archivo:</strong> <span id="newFileName"></span></p>
+                                <p><strong>Tamaño:</strong> <span id="newFileSize"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label for="editDocumentDescription" class="form__label">Descripción</label>
+                        <textarea id="editDocumentDescription" class="form__textarea" rows="3"></textarea>
+                    </div>
+
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="editDocumentCategory" class="form__label">Categoría</label>
+                            <select id="editDocumentCategory" class="form__select">
+                                <option value="">Seleccionar categoría</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="editDocumentExpiration" class="form__label">Fecha de Vencimiento</label>
+                            <input type="date" id="editDocumentExpiration" class="form__input">
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label for="editDocumentPerson" class="form__label">Asignar a Persona</label>
+                        <select id="editDocumentPerson" class="form__select">
+                            <option value="">Seleccionar persona</option>
+                        </select>
+                    </div>
+
+                    <div class="form__group">
+                        <label class="form__label">Información del documento</label>
+                        <div class="document-info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Fecha de subida:</span>
+                                <span id="editDocumentUploadDate" class="info-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Tipo:</span>
+                                <span id="editDocumentType" class="info-value"></span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelEditDocumentBtn">Cancelar</button>
+                <button class="btn btn--primary" id="saveEditDocumentBtn">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+            </footer>
+        </article>
+    </dialog>
+
     <!-- Add Category Modal -->
     <dialog id="categoryModal" class="modal">
         <article class="modal__content">

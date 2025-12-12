@@ -290,6 +290,7 @@
 .document-info {
     flex: 1;
     min-width: 0;
+    max-width: 100%;
 }
 
 .document-info__name {
@@ -299,6 +300,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .document-info__meta {
@@ -306,6 +308,7 @@
     color: var(--text-secondary);
     display: flex;
     gap: var(--spacing-md);
+    flex-wrap: wrap;
 }
 
 /* Estado del documento */
@@ -482,6 +485,49 @@ body.dark-theme .documents-table tbody tr:hover {
 
 body.dark-theme .category-card {
     background: var(--bg-secondary);
+}
+
+/* Edit Document Modal Styles */
+.current-file-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+.current-file-info i {
+    color: var(--primary);
+    font-size: 1.25rem;
+}
+
+.document-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.info-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.info-value {
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 body.dark-theme .filter-select {

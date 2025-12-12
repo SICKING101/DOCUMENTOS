@@ -138,6 +138,13 @@ export function renderDocumentsTable() {
             `;
         }
         
+        // Agregar botón de editar
+        actionButtons += `
+            <button class="btn btn--sm btn--outline" onclick="window.editDocument('${doc._id}')" title="Editar documento">
+                <i class="fas fa-edit"></i>
+            </button>
+        `;
+        
         // Siempre agregar botón de eliminar
         actionButtons += `
             <button class="btn btn--sm btn--outline" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
