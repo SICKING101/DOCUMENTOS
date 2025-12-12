@@ -1,22 +1,44 @@
 import nodemailer from 'nodemailer';
 
-// Debug: Verificar credenciales de email
-console.log('📧 Configuración de Email:');
-console.log('   HOST:', process.env.EMAIL_HOST || 'smtp.gmail.com');
-console.log('   PORT:', process.env.EMAIL_PORT || 587);
-console.log('   USER:', process.env.EMAIL_USER || '❌ NO CONFIGURADO');
-console.log('   PASS:', process.env.EMAIL_PASS ? '✅ Configurado (' + process.env.EMAIL_PASS.length + ' caracteres)' : '❌ NO CONFIGURADO');
+// Función para crear el transporter con las credenciales actuales
+const getTransporter = () => {
+    return nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false, // true para 465, false para otros puertos
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        },
+        tls: {
+            rejectUnauthorized: false // Para desarrollo
+        }
+    });
+};
 
-// Configuración del transporter de Nodemailer
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: process.env.EMAIL_PORT || 587,
-    secure: false, // true para 465, false para otros puertos
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+// Función para verificar la configuración de email
+export const verificarConfiguracionEmail = () => {
+    console.log('\n═══════════════════════════════════════════════════════');
+    console.log('📧 CONFIGURACIÓN DE EMAIL SERVICE');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('   HOST:', process.env.EMAIL_HOST || '❌ NO CONFIGURADO');
+    console.log('   PORT:', process.env.EMAIL_PORT || '❌ NO CONFIGURADO');
+    console.log('   USER:', process.env.EMAIL_USER || '❌ NO CONFIGURADO');
+    console.log('   PASS:', process.env.EMAIL_PASS ? '✅ Configurado (' + process.env.EMAIL_PASS.length + ' caracteres)' : '❌ NO CONFIGURADO');
+    console.log('   FROM:', process.env.EMAIL_FROM_ADDRESS || '❌ NO CONFIGURADO');
+    console.log('═══════════════════════════════════════════════════════\n');
+    
+    const emailConfigured = !!(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    
+    if (!emailConfigured) {
+        console.warn('⚠️  ADVERTENCIA: Email no está completamente configurado.');
+        console.warn('   Por favor verifica tu archivo .env');
+    } else {
+        console.log('✅ Email configurado correctamente\n');
     }
-});
+    
+    return emailConfigured;
+};
 
 /**
  * Enviar correo de recuperación de contraseña
@@ -72,6 +94,7 @@ export const enviarCorreoRecuperacion = async (correo, token, nombreUsuario) => 
     };
 
     try {
+        const transporter = getTransporter();
         await transporter.sendMail(mailOptions);
         console.log('✅ Correo de recuperación enviado a:', correo);
         return { success: true };
@@ -150,6 +173,7 @@ export const enviarCorreoCambioAdmin = async (correo, token, nombreUsuario, soli
     };
 
     try {
+        const transporter = getTransporter();
         await transporter.sendMail(mailOptions);
         console.log('✅ Correo de cambio de admin enviado a:', correo);
         return { success: true };
@@ -205,6 +229,7 @@ export const enviarCorreoBienvenida = async (correo, nombreUsuario) => {
     };
 
     try {
+        const transporter = getTransporter();
         await transporter.sendMail(mailOptions);
         console.log('✅ Correo de bienvenida enviado a:', correo);
     } catch (error) {

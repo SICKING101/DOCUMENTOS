@@ -1,3 +1,8 @@
+import dotenv from 'dotenv';
+
+// ⚠️ IMPORTANTE: Cargar variables de entorno PRIMERO antes de importar otros módulos
+dotenv.config();
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,15 +14,16 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
-import dotenv from 'dotenv';
 
-// Importar rutas de autenticación
+// Importar rutas de autenticación (después de cargar .env)
 import authRoutes from './src/backend/routes/auth.js';
-
-dotenv.config();
+import { verificarConfiguracionEmail } from './src/backend/services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Verificar configuración de email
+verificarConfiguracionEmail();
 
 // -----------------------------
 // Configuración
