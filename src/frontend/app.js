@@ -197,8 +197,12 @@ function initializeApp() {
     // Inicializar gestor de tareas
     initializeTaskManager();
 
-    // Inicializar módulo de documentos
-    documentos.initializeDocumentosModule();
+    // Inicializar módulo de documentos - FIX CRÍTICO: Asegurar que se inicialice correctamente
+    if (typeof documentos.initializeDocumentosModule === 'function') {
+        documentos.initializeDocumentosModule();
+    } else {
+        console.error('❌ documentos.initializeDocumentosModule no es una función');
+    }
 
     // Mostrar estado inicial
     appState.logState();
