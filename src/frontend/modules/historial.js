@@ -322,73 +322,184 @@ class HistorialManager {
         }
     }
 
-async deleteItem(id) {
-    try {
-        const item = this.historialData.find(n => n._id === id);
-        if (!item) return;
+    async deleteItem(id) {
+        try {
+            const item = this.historialData.find(n => n._id === id);
+            if (!item) return;
 
-        // Usar showConfirmation con el nuevo modal
-        const confirmed = await showConfirmation(
-            '¿Eliminar registro del historial?',
-            `Esta acción eliminará permanentemente el registro: "${item.titulo}"`,
-            { confirmText: 'Eliminar' }
-        );
-        
-        if (!confirmed) return;
+            // Usar showConfirmation con el nuevo modal
+            const confirmed = await showConfirmation(
+                '¿Eliminar registro del historial?',
+                `Esta acción eliminará permanentemente el registro: "${item.titulo}"`,
+                { confirmText: 'Eliminar' }
+            );
+            
+            if (!confirmed) return;
 
-        const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${id}`, {
-            method: 'DELETE'
-        });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${id}`, {
+                method: 'DELETE'
+            });
 
-        if (!response.ok) {
-            throw new Error('Error al eliminar registro');
+            if (!response.ok) {
+                throw new Error('Error al eliminar registro');
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('Registro eliminado correctamente', 'success');
+                this.loadHistorial();
+            }
+        } catch (error) {
+            console.error('❌ Error eliminando registro:', error);
+            showAlert('Error al eliminar registro', 'error');
         }
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Registro eliminado correctamente', 'success');
-            this.loadHistorial();
-        }
-    } catch (error) {
-        console.error('❌ Error eliminando registro:', error);
-        showAlert('Error al eliminar registro', 'error');
     }
-}
 
-async clearHistorial() {
-    try {
-        const confirmed = await showConfirmation(
-            '¿Limpiar todo el historial?',
-            'Esta acción eliminará permanentemente todos los registros del historial. Esta acción no se puede deshacer.',
-            { confirmText: 'Limpiar todo' }
-        );
-        
-        if (!confirmed) return;
+    /**
+     * CORREGIDO: Método para limpiar todo el historial
+     * Ahora intenta dos enfoques diferentes para garantizar la limpieza
+     */
+    async clearHistorial() {
+        try {
+            const confirmed = await showConfirmation(
+                '¿Limpiar todo el historial?',
+                'Esta acción eliminará permanentemente TODOS los registros del historial. Esta acción NO se puede deshacer.',
+                { confirmText: 'Limpiar todo', cancelText: 'Cancelar' }
+            );
+            
+            if (!confirmed) return;
 
-        const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/cleanup`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ dias: 0 }) // Eliminar todos
-        });
+            console.log('🧹 Iniciando limpieza completa del historial...');
+            showAlert('Limpiando historial...', 'info');
 
-        if (!response.ok) {
-            throw new Error('Error al limpiar historial');
+            // INTENTO 1: Eliminar todas las notificaciones individualmente
+            // Primero cargamos todas las notificaciones
+            const allNotificationsResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications?limite=10000`);
+            
+            if (!allNotificationsResponse.ok) {
+                throw new Error('Error al obtener notificaciones');
+            }
+
+            const allData = await allNotificationsResponse.json();
+            
+            if (allData.success && allData.data.notificaciones && allData.data.notificaciones.length > 0) {
+                console.log(`🗑️  Encontradas ${allData.data.notificaciones.length} notificaciones para eliminar`);
+                
+                // Opción A: Eliminar una por una (más seguro)
+                let deletedCount = 0;
+                let errorCount = 0;
+                
+                for (const notification of allData.data.notificaciones) {
+                    try {
+                        const deleteResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notification._id}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (deleteResponse.ok) {
+                            const deleteData = await deleteResponse.json();
+                            if (deleteData.success) {
+                                deletedCount++;
+                            } else {
+                                errorCount++;
+                                console.error(`❌ Error eliminando notificación ${notification._id}:`, deleteData.message);
+                            }
+                        } else {
+                            errorCount++;
+                            console.error(`❌ HTTP error eliminando notificación ${notification._id}`);
+                        }
+                    } catch (error) {
+                        errorCount++;
+                        console.error(`❌ Exception eliminando notificación ${notification._id}:`, error);
+                    }
+                    
+                    // Pequeña pausa para no sobrecargar el servidor
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+                
+                if (deletedCount > 0) {
+                    console.log(`✅ ${deletedCount} notificaciones eliminadas individualmente`);
+                    if (errorCount > 0) {
+                        console.warn(`⚠️ ${errorCount} errores durante la eliminación`);
+                    }
+                    
+                    showAlert(`Historial limpiado: ${deletedCount} registros eliminados`, 'success');
+                    
+                    // Recargar el historial
+                    this.currentPage = 1;
+                    await this.loadHistorial();
+                    return;
+                }
+            }
+            
+            // INTENTO 2: Usar el endpoint de cleanup con parámetro especial
+            console.log('🔄 Intentando limpieza masiva...');
+            
+            const cleanupResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/cleanup-all`, {
+                method: 'DELETE'
+            });
+
+            // Si no existe el endpoint especial, probar con POST
+            if (!cleanupResponse.ok) {
+                console.log('🔄 Probando con método POST...');
+                
+                const postResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/cleanup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        dias: 0,
+                        eliminar_todas: true,
+                        confirmar: true 
+                    })
+                });
+
+                if (!postResponse.ok) {
+                    throw new Error('Error en limpieza masiva');
+                }
+
+                const postData = await postResponse.json();
+                
+                if (postData.success) {
+                    console.log(`✅ Limpieza masiva completada: ${postData.data?.cantidad || 'todas'} registros eliminados`);
+                    showAlert(`Historial limpiado: ${postData.data?.cantidad || 'todas'} registros eliminados`, 'success');
+                    
+                    // Recargar el historial
+                    this.currentPage = 1;
+                    await this.loadHistorial();
+                    return;
+                }
+            } else {
+                const cleanupData = await cleanupResponse.json();
+                
+                if (cleanupData.success) {
+                    console.log(`✅ Limpieza masiva completada: ${cleanupData.data?.cantidad || 'todas'} registros eliminados`);
+                    showAlert(`Historial limpiado: ${cleanupData.data?.cantidad || 'todas'} registros eliminados`, 'success');
+                    
+                    // Recargar el historial
+                    this.currentPage = 1;
+                    await this.loadHistorial();
+                    return;
+                }
+            }
+            
+            // Si llegamos aquí, ambos métodos fallaron
+            throw new Error('No se pudo completar la limpieza del historial');
+            
+        } catch (error) {
+            console.error('❌ Error limpiando historial:', error);
+            
+            // Verificar si el error es específico de permisos
+            if (error.message.includes('401') || error.message.includes('403')) {
+                showAlert('No tienes permisos para limpiar el historial', 'error');
+            } else if (error.message.includes('No se pudo completar')) {
+                showAlert('No se pudo limpiar el historial completamente. Intenta eliminando registros individualmente.', 'warning');
+            } else {
+                showAlert(`Error al limpiar historial: ${error.message}`, 'error');
+            }
         }
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert(`Historial limpiado: ${data.data?.cantidad || 0} registros eliminados`, 'success');
-            this.loadHistorial();
-        }
-    } catch (error) {
-        console.error('❌ Error limpiando historial:', error);
-        showAlert('Error al limpiar historial', 'error');
     }
-}
 
     async exportHistorial() {
         try {
@@ -464,197 +575,197 @@ async clearHistorial() {
     }
 
     /**
- * Maneja la apertura y cierre de modales de manera consistente
- */
-handleModal(modal, action = 'open') {
-    if (action === 'open') {
+     * Maneja la apertura y cierre de modales de manera consistente
+     */
+    handleModal(modal, action = 'open') {
+        if (action === 'open') {
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.style.visibility = 'visible';
+            }, 10);
+        } else {
+            modal.style.opacity = '0';
+            modal.style.visibility = 'hidden';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                if (action === 'close-remove') {
+                    modal.remove();
+                }
+            }, 300);
+        }
+    }
+
+    viewDetails(id) {
+        const item = this.historialData.find(n => n._id === id);
+        if (!item) return;
+
+        const fecha = new Date(item.fecha_creacion || item.createdAt);
+        const fechaFormateada = fecha.toLocaleString('es-MX', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        const prioridadClass = this.getPriorityClass(item.prioridad);
+        const prioridadTexto = this.getPriorityText(item.prioridad);
+        const tipoTexto = this.getTypeText(item.tipo);
+        
+        // Crear modal de detalles
+        const modalHTML = `
+            <div id="historyDetailModal" class="modal">
+                <article class="modal__content">
+                    <header class="modal__header">
+                        <h3 class="modal__title">Detalles del Registro</h3>
+                        <button class="modal__close">&times;</button>
+                    </header>
+                    <section class="modal__body">
+                        <div class="history-detail">
+                            <div class="detail-header">
+                                <div class="detail-title">
+                                    <h4>${item.titulo}</h4>
+                                    <span class="priority-badge ${prioridadClass}">${prioridadTexto}</span>
+                                </div>
+                                <div class="detail-meta">
+                                    <span class="detail-date"><i class="far fa-calendar"></i> ${fechaFormateada}</span>
+                                    <span class="detail-type"><i class="fas fa-tag"></i> ${tipoTexto}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-content">
+                                <h5>Mensaje:</h5>
+                                <p class="detail-message">${item.mensaje}</p>
+                                
+                                ${item.metadata && Object.keys(item.metadata).length > 0 ? `
+                                    <h5>Información Adicional:</h5>
+                                    <div class="detail-metadata">
+                                        ${Object.entries(item.metadata).map(([key, value]) => `
+                                            <div class="metadata-item">
+                                                <strong>${this.formatMetadataKey(key)}:</strong>
+                                                <span>${this.formatMetadataValue(value)}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                                
+                                ${item.documento_id ? `
+                                    <h5>Documento Relacionado:</h5>
+                                    <div class="detail-related">
+                                        <i class="fas fa-file"></i>
+                                        <span>${item.documento_id.nombre_original || 'Documento'}</span>
+                                    </div>
+                                ` : ''}
+                                
+                                ${item.persona_id ? `
+                                    <h5>Persona Relacionada:</h5>
+                                    <div class="detail-related">
+                                        <i class="fas fa-user"></i>
+                                        <span>${item.persona_id.nombre || 'Persona'}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="detail-footer">
+                                <div class="detail-status">
+                                    <span class="status-badge ${item.leida ? 'status-badge--read' : 'status-badge--unread'}">
+                                        ${item.leida ? 'Leído' : 'No leído'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <footer class="modal__footer">
+                        ${!item.leida ? `
+                            <button class="btn btn--primary" id="markReadDetailBtn">
+                                <i class="fas fa-check"></i> Marcar como leído
+                            </button>
+                        ` : ''}
+                        <button class="btn btn--outline" id="closeDetailBtn">Cerrar</button>
+                    </footer>
+                </article>
+            </div>
+        `;
+
+        // Insertar modal en el DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer.firstElementChild);
+
+        const modal = document.getElementById('historyDetailModal');
+        const closeBtn = modal.querySelector('.modal__close');
+        const closeDetailBtn = modal.querySelector('#closeDetailBtn');
+        const markReadBtn = modal.querySelector('#markReadDetailBtn');
+
+        // Mostrar modal usando el mismo método que los otros modales
         modal.style.display = 'flex';
+        // Forzar reflow para que la animación funcione
+        modal.offsetHeight;
         setTimeout(() => {
             modal.style.opacity = '1';
             modal.style.visibility = 'visible';
         }, 10);
-    } else {
-        modal.style.opacity = '0';
-        modal.style.visibility = 'hidden';
-        setTimeout(() => {
-            modal.style.display = 'none';
-            if (action === 'close-remove') {
-                modal.remove();
+
+        // Función para cerrar el modal con animación
+        const closeModal = (remove = true) => {
+            modal.style.opacity = '0';
+            modal.style.visibility = 'hidden';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                if (remove) {
+                    modal.remove();
+                }
+            }, 300);
+        };
+
+        // Event listeners
+        closeBtn.addEventListener('click', () => closeModal());
+        closeDetailBtn.addEventListener('click', () => closeModal());
+
+        if (markReadBtn) {
+            markReadBtn.addEventListener('click', async () => {
+                await this.markAsRead(id);
+                closeModal();
+            });
+        }
+
+        // Cerrar al hacer clic fuera
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
             }
-        }, 300);
-    }
-}
+        });
 
-viewDetails(id) {
-    const item = this.historialData.find(n => n._id === id);
-    if (!item) return;
-
-    const fecha = new Date(item.fecha_creacion || item.createdAt);
-    const fechaFormateada = fecha.toLocaleString('es-MX', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-
-    const prioridadClass = this.getPriorityClass(item.prioridad);
-    const prioridadTexto = this.getPriorityText(item.prioridad);
-    const tipoTexto = this.getTypeText(item.tipo);
-    
-    // Crear modal de detalles
-    const modalHTML = `
-        <div id="historyDetailModal" class="modal">
-            <article class="modal__content">
-                <header class="modal__header">
-                    <h3 class="modal__title">Detalles del Registro</h3>
-                    <button class="modal__close">&times;</button>
-                </header>
-                <section class="modal__body">
-                    <div class="history-detail">
-                        <div class="detail-header">
-                            <div class="detail-title">
-                                <h4>${item.titulo}</h4>
-                                <span class="priority-badge ${prioridadClass}">${prioridadTexto}</span>
-                            </div>
-                            <div class="detail-meta">
-                                <span class="detail-date"><i class="far fa-calendar"></i> ${fechaFormateada}</span>
-                                <span class="detail-type"><i class="fas fa-tag"></i> ${tipoTexto}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="detail-content">
-                            <h5>Mensaje:</h5>
-                            <p class="detail-message">${item.mensaje}</p>
-                            
-                            ${item.metadata && Object.keys(item.metadata).length > 0 ? `
-                                <h5>Información Adicional:</h5>
-                                <div class="detail-metadata">
-                                    ${Object.entries(item.metadata).map(([key, value]) => `
-                                        <div class="metadata-item">
-                                            <strong>${this.formatMetadataKey(key)}:</strong>
-                                            <span>${this.formatMetadataValue(value)}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : ''}
-                            
-                            ${item.documento_id ? `
-                                <h5>Documento Relacionado:</h5>
-                                <div class="detail-related">
-                                    <i class="fas fa-file"></i>
-                                    <span>${item.documento_id.nombre_original || 'Documento'}</span>
-                                </div>
-                            ` : ''}
-                            
-                            ${item.persona_id ? `
-                                <h5>Persona Relacionada:</h5>
-                                <div class="detail-related">
-                                    <i class="fas fa-user"></i>
-                                    <span>${item.persona_id.nombre || 'Persona'}</span>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <div class="detail-footer">
-                            <div class="detail-status">
-                                <span class="status-badge ${item.leida ? 'status-badge--read' : 'status-badge--unread'}">
-                                    ${item.leida ? 'Leído' : 'No leído'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <footer class="modal__footer">
-                    ${!item.leida ? `
-                        <button class="btn btn--primary" id="markReadDetailBtn">
-                            <i class="fas fa-check"></i> Marcar como leído
-                        </button>
-                    ` : ''}
-                    <button class="btn btn--outline" id="closeDetailBtn">Cerrar</button>
-                </footer>
-            </article>
-        </div>
-    `;
-
-    // Insertar modal en el DOM
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHTML;
-    document.body.appendChild(modalContainer.firstElementChild);
-
-    const modal = document.getElementById('historyDetailModal');
-    const closeBtn = modal.querySelector('.modal__close');
-    const closeDetailBtn = modal.querySelector('#closeDetailBtn');
-    const markReadBtn = modal.querySelector('#markReadDetailBtn');
-
-    // Mostrar modal usando el mismo método que los otros modales
-    modal.style.display = 'flex';
-    // Forzar reflow para que la animación funcione
-    modal.offsetHeight;
-    setTimeout(() => {
-        modal.style.opacity = '1';
-        modal.style.visibility = 'visible';
-    }, 10);
-
-    // Función para cerrar el modal con animación
-    const closeModal = (remove = true) => {
-        modal.style.opacity = '0';
-        modal.style.visibility = 'hidden';
-        setTimeout(() => {
-            modal.style.display = 'none';
-            if (remove) {
-                modal.remove();
+        // Cerrar con ESC
+        const handleEscKey = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', handleEscKey);
             }
-        }, 300);
-    };
+        };
+        document.addEventListener('keydown', handleEscKey);
 
-    // Event listeners
-    closeBtn.addEventListener('click', () => closeModal());
-    closeDetailBtn.addEventListener('click', () => closeModal());
+        // Limpiar event listener cuando se cierre
+        const cleanup = () => {
+            document.removeEventListener('keydown', handleEscKey);
+            modal.removeEventListener('click', () => {});
+            closeBtn.removeEventListener('click', () => {});
+            closeDetailBtn.removeEventListener('click', () => {});
+            if (markReadBtn) {
+                markReadBtn.removeEventListener('click', () => {});
+            }
+        };
 
-    if (markReadBtn) {
-        markReadBtn.addEventListener('click', async () => {
-            await this.markAsRead(id);
-            closeModal();
+        // Ejecutar cleanup cuando se cierre el modal
+        modal.addEventListener('transitionend', (e) => {
+            if (e.propertyName === 'opacity' && modal.style.opacity === '0') {
+                cleanup();
+            }
         });
     }
-
-    // Cerrar al hacer clic fuera
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-
-    // Cerrar con ESC
-    const handleEscKey = (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', handleEscKey);
-        }
-    };
-    document.addEventListener('keydown', handleEscKey);
-
-    // Limpiar event listener cuando se cierre
-    const cleanup = () => {
-        document.removeEventListener('keydown', handleEscKey);
-        modal.removeEventListener('click', () => {});
-        closeBtn.removeEventListener('click', () => {});
-        closeDetailBtn.removeEventListener('click', () => {});
-        if (markReadBtn) {
-            markReadBtn.removeEventListener('click', () => {});
-        }
-    };
-
-    // Ejecutar cleanup cuando se cierre el modal
-    modal.addEventListener('transitionend', (e) => {
-        if (e.propertyName === 'opacity' && modal.style.opacity === '0') {
-            cleanup();
-        }
-    });
-}
 
     // =============================================================================
     // 5. PAGINACIÓN
@@ -693,36 +804,36 @@ viewDetails(id) {
     // 6. ESTADÍSTICAS
     // =============================================================================
 
-async updateStats() {
-    try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // Calcular estadísticas
-        const total = this.totalItems;
-        const unread = this.historialData.filter(item => !item.leida).length;
-        const todayCount = this.historialData.filter(item => {
-            const itemDate = new Date(item.fecha_creacion || item.createdAt);
-            itemDate.setHours(0, 0, 0, 0);
-            return itemDate.getTime() === today.getTime();
-        }).length;
-        const critical = this.historialData.filter(item => item.prioridad === 'critica').length;
-        
-        // Actualizar UI - SIN optional chaining en asignaciones
-        const totalHistoryEl = document.getElementById('totalHistory');
-        const unreadHistoryEl = document.getElementById('unreadHistory');
-        const todayHistoryEl = document.getElementById('todayHistory');
-        const criticalHistoryEl = document.getElementById('criticalHistory');
-        
-        if (totalHistoryEl) totalHistoryEl.textContent = total.toLocaleString();
-        if (unreadHistoryEl) unreadHistoryEl.textContent = unread.toLocaleString();
-        if (todayHistoryEl) todayHistoryEl.textContent = todayCount.toLocaleString();
-        if (criticalHistoryEl) criticalHistoryEl.textContent = critical.toLocaleString();
-        
-    } catch (error) {
-        console.error('❌ Error actualizando estadísticas:', error);
+    async updateStats() {
+        try {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Calcular estadísticas
+            const total = this.totalItems;
+            const unread = this.historialData.filter(item => !item.leida).length;
+            const todayCount = this.historialData.filter(item => {
+                const itemDate = new Date(item.fecha_creacion || item.createdAt);
+                itemDate.setHours(0, 0, 0, 0);
+                return itemDate.getTime() === today.getTime();
+            }).length;
+            const critical = this.historialData.filter(item => item.prioridad === 'critica').length;
+            
+            // Actualizar UI - SIN optional chaining en asignaciones
+            const totalHistoryEl = document.getElementById('totalHistory');
+            const unreadHistoryEl = document.getElementById('unreadHistory');
+            const todayHistoryEl = document.getElementById('todayHistory');
+            const criticalHistoryEl = document.getElementById('criticalHistory');
+            
+            if (totalHistoryEl) totalHistoryEl.textContent = total.toLocaleString();
+            if (unreadHistoryEl) unreadHistoryEl.textContent = unread.toLocaleString();
+            if (todayHistoryEl) todayHistoryEl.textContent = todayCount.toLocaleString();
+            if (criticalHistoryEl) criticalHistoryEl.textContent = critical.toLocaleString();
+            
+        } catch (error) {
+            console.error('❌ Error actualizando estadísticas:', error);
+        }
     }
-}
 
     // =============================================================================
     // 7. FUNCIONES AUXILIARES
