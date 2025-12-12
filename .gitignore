@@ -1,0 +1,36 @@
+# Variables de entorno (NUNCA subir a GitHub)
+.env
+.env.local
+.env.production
+
+# Node modules
+node_modules/
+
+# Archivos de logs
+*.log
+npm-debug.log*
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de uploads (si no quieres subirlos)
+uploads/*
+src/uploads/*
+
+# MongoDB
+*.mongodb
+
+# Testing
+test-email-config.js
