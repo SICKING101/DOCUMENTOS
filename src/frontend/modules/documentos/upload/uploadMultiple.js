@@ -255,7 +255,11 @@ export function handleMultipleFiles(files) {
     console.log('📊 Estado ANTES de agregar archivos:', {
         filesCount: state.files.length,
         commonCategory: state.commonCategory,
-        DOMCategory: DOM.multipleDocumentCategory ? DOM.multipleDocumentCategory.value : 'NO DISPONIBLE'
+        commonPersonId: state.commonPersonId,
+        expirationDays: state.expirationDays,
+        DOMCategory: DOM.multipleDocumentCategory ? DOM.multipleDocumentCategory.value : 'NO DISPONIBLE',
+        DOMPerson: DOM.multipleDocumentPerson ? DOM.multipleDocumentPerson.value : 'NO DISPONIBLE',
+        DOMExpiration: DOM.multipleExpirationDays ? DOM.multipleExpirationDays.value : 'NO DISPONIBLE'
     });
     
     // Validar cantidad máxima
@@ -265,22 +269,36 @@ export function handleMultipleFiles(files) {
         return;
     }
     
-    // Obtener categoría común del DOM si existe
-    let currentCategory = '';
-    if (DOM.multipleDocumentCategory) {
-        currentCategory = DOM.multipleDocumentCategory.value;
-        console.log(`🏷️ Categoría del DOM: "${currentCategory}"`);
-        
-        // Actualizar categoría común en el estado
-        if (currentCategory && currentCategory.trim() !== '') {
-            state.setCommonCategory(currentCategory);
-        }
-    } else {
-        console.warn('⚠️ DOM.multipleDocumentCategory no disponible');
-    }
+    // CRÍTICO: Actualizar estado con valores actuales del DOM ANTES de agregar archivos
+    console.log('🔄 Actualizando configuración común ANTES de agregar archivos...');
+    updateCommonSettings(true); // true = modo forzado
     
     // Agregar archivos al estado
-    state.addFiles(files);
+    const addedCount = state.addFiles(files);
+    
+    // FIX CRÍTICO: Aplicar configuración común inmediatamente a todos los archivos nuevos
+console.log('🔄 Aplicando configuración común a archivos nuevos...');
+// Verificar si el método existe antes de llamarlo
+if (typeof state.applyCommonSettingsToAllFiles === 'function') {
+    state.applyCommonSettingsToAllFiles();
+} else {
+    console.error('❌ ERROR: applyCommonSettingsToAllFiles no existe en state');
+    console.log('🔄 Usando lógica alternativa...');
+    // Lógica alternativa si el método no existe
+    state.files.forEach(fileObj => {
+        if (fileObj.status === 'pending') {
+            if (!fileObj.customCategory || fileObj.customCategory.trim() === '') {
+                fileObj.customCategory = state.commonCategory;
+            }
+            if (!fileObj.customPersonId || fileObj.customPersonId.trim() === '') {
+                fileObj.customPersonId = state.commonPersonId;
+            }
+            if (!fileObj.customExpirationDate && state.expirationDays) {
+                fileObj.customExpirationDate = state.calculateExpirationDate(state.expirationDays);
+            }
+        }
+    });
+}
     
     // Mostrar estado después de agregar
     console.log('📊 Estado DESPUÉS de agregar archivos:');
@@ -289,6 +307,14 @@ export function handleMultipleFiles(files) {
     // Verificar categorías
     const categoryCheck = state.checkCategories();
     console.log('🔍 Verificación de categorías:', categoryCheck);
+    
+    // Verificar personas
+    const personCheck = state.checkPersons();
+    console.log('🔍 Verificación de personas:', personCheck);
+    
+    // Verificar fechas de vencimiento
+    const expirationCheck = state.checkExpirations();
+    console.log('🔍 Verificación de fechas de vencimiento:', expirationCheck);
     
     // Actualizar UI
     if (typeof updateMultipleUploadUI === 'function') {
@@ -307,7 +333,7 @@ export function handleMultipleFiles(files) {
         console.log('🔼 Botón de subida habilitado');
     }
     
-    console.log(`✅ ${files.length} archivo(s) procesado(s)`);
+    console.log(`✅ ${addedCount} archivo(s) procesado(s) de ${files.length} seleccionados`);
     console.groupEnd();
 }
 
@@ -325,41 +351,90 @@ export function handleMultipleFileSelect(e) {
 
 /**
  * Actualiza la configuración común desde los controles de la UI.
+ * @param {boolean} force - Si es true, fuerza la actualización incluso si los valores parecen iguales
  */
-function updateCommonSettings() {
-    console.group('⚙️ updateCommonSettings');
+function updateCommonSettings(force = false) {
+    console.group('⚙️ ACTUALIZANDO CONFIGURACIÓN COMÚN');
     
     const state = getMultipleUploadState();
     
-    console.log('📊 Estado ANTES de actualizar configuración:', {
+    console.log('📊 Estado ANTES de actualizar:', {
         commonCategory: state.commonCategory,
-        commonPersonId: state.commonPersonId
+        commonPersonId: state.commonPersonId,
+        expirationDays: state.expirationDays
     });
     
-    // Actualizar estado con valores de los selects
+    // Actualizar categoría común
     if (DOM.multipleDocumentCategory) {
         const category = DOM.multipleDocumentCategory.value;
         console.log(`🏷️ Categoría del select: "${category}"`);
         
-        if (category && category.trim() !== '') {
-            state.setCommonCategory(category);
-            console.log(`✅ Categoría común actualizada: "${category}"`);
+        // Solo actualizar si es diferente o si force=true
+        if (force || category !== state.commonCategory) {
+            if (category && category.trim() !== '') {
+                state.setCommonCategory(category);
+                console.log(`✅ Categoría común actualizada: "${category}"`);
+            } else {
+                console.warn('⚠️ Categoría vacía o no seleccionada');
+                state.commonCategory = '';
+            }
         } else {
-            console.warn('⚠️ Categoría vacía o no seleccionada');
+            console.log(`🔄 Categoría sin cambios: "${category}"`);
         }
     } else {
         console.error('❌ DOM.multipleDocumentCategory no encontrado');
     }
     
+    // Actualizar persona común - FIX CRÍTICO: Validación mejorada
     if (DOM.multipleDocumentPerson) {
-        state.commonPersonId = DOM.multipleDocumentPerson.value;
-        console.log(`👤 Persona común actualizada: "${state.commonPersonId}"`);
+        const personId = DOM.multipleDocumentPerson.value;
+        console.log(`👤 Persona del select (raw value): "${personId}" (tipo: ${typeof personId})`);
+        
+        // Validación robusta del valor
+        const isValidPersonId = personId && 
+                               personId.trim() !== '' && 
+                               personId !== 'null' && 
+                               personId !== 'undefined' && 
+                               personId !== '0';
+        
+        // Solo actualizar si es diferente o si force=true
+        if (force || personId !== state.commonPersonId) {
+            if (isValidPersonId) {
+                state.setCommonPersonId(personId);
+                console.log(`✅ Persona común actualizada: "${personId}"`);
+            } else {
+                console.log('👤 Persona común: NO CONFIGURADA (valor vacío o inválido)');
+                state.commonPersonId = '';
+            }
+        } else {
+            console.log(`🔄 Persona sin cambios: "${personId}"`);
+        }
+    } else {
+        console.warn('⚠️ DOM.multipleDocumentPerson no encontrado');
     }
     
+    // Actualizar días de expiración - FIX CRÍTICO: Conversión a número
     if (DOM.multipleExpirationDays) {
-        state.expirationDays = DOM.multipleExpirationDays.value ? 
-            parseInt(DOM.multipleExpirationDays.value) : null;
-        console.log(`📅 Días de expiración: ${state.expirationDays}`);
+        const daysValue = DOM.multipleExpirationDays.value;
+        console.log(`📅 Valor de días de expiración del DOM: "${daysValue}" (tipo: ${typeof daysValue})`);
+        
+        // Convertir a número para comparación consistente
+        const daysNum = daysValue ? parseInt(daysValue, 10) : null;
+        
+        // Solo actualizar si es diferente o si force=true
+        if (force || daysNum !== state.expirationDays) {
+            if (daysNum !== null && !isNaN(daysNum) && daysNum > 0) {
+                state.setExpirationDays(daysNum);
+                console.log(`✅ Días de expiración actualizados: "${daysNum}"`);
+            } else {
+                console.log('📅 Días de expiración: NO CONFIGURADOS o inválidos');
+                state.expirationDays = null;
+            }
+        } else {
+            console.log(`🔄 Días de expiración sin cambios: "${daysNum}"`);
+        }
+    } else {
+        console.warn('⚠️ DOM.multipleExpirationDays no encontrado');
     }
     
     // Actualizar estrategia
@@ -380,8 +455,24 @@ function updateCommonSettings() {
     }
     
     // Verificar estado después de actualizar
-    console.log('📊 Estado DESPUÉS de actualizar configuración:');
-    state.logState();
+    console.log('📊 Estado DESPUÉS de actualizar:', {
+        commonCategory: state.commonCategory,
+        commonPersonId: state.commonPersonId,
+        expirationDays: state.expirationDays,
+        autoGenerateDescriptions: state.autoGenerateDescriptions,
+        notifyPerson: state.notifyPerson
+    });
+    
+    // FIX CRÍTICO: Aplicar inmediatamente a todos los archivos pendientes
+    if (state.files.length > 0) {
+        console.log('🔄 Aplicando configuración común a todos los archivos pendientes...');
+        state.applyCommonSettingsToAllFiles();
+    }
+    
+    // Actualizar UI después de aplicar configuración
+    if (typeof updateMultipleUploadUI === 'function') {
+        updateMultipleUploadUI();
+    }
     
     console.groupEnd();
 }
@@ -391,7 +482,7 @@ function updateCommonSettings() {
  * Coordina la subida según la estrategia seleccionada y muestra progreso.
  */
 export async function handleUploadMultipleDocuments() {
-    console.group('📤📤📤 handleUploadMultipleDocuments - INICIANDO');
+    console.group('📤📤📤 INICIANDO SUBIDA MÚLTIPLE DE DOCUMENTOS');
     
     const state = getMultipleUploadState();
     
@@ -399,75 +490,94 @@ export async function handleUploadMultipleDocuments() {
     console.log('📊 ESTADO INICIAL COMPLETO:');
     state.logState();
     
-    // Verificación detallada de categorías antes de proceder
-    const categoryCheck = state.checkCategories();
-    console.log('🔍 VERIFICACIÓN DE CATEGORÍAS PREVIA:');
-    console.table(categoryCheck.details);
+    // FIX CRÍTICO: Validar que todos los archivos tengan configuración aplicada
+    console.log('🔍 Verificando configuración de archivos antes de subir...');
+    state.files.forEach((fileObj, index) => {
+        console.log(`📄 Archivo ${index + 1}: ${fileObj.file.name}`, {
+            categoria: fileObj.customCategory || fileObj.commonCategory,
+            persona: fileObj.customPersonId || fileObj.commonPersonId,
+            expiracion: fileObj.customExpirationDate || state.getEffectiveExpirationDate(fileObj),
+            estado: fileObj.status
+        });
+    });
     
     try {
-        // Actualizar configuración común
-        console.log('🔄 Actualizando configuración común...');
-        updateCommonSettings();
+        // 1. Actualizar configuración común (forzada)
+        console.log('🔄 Paso 1: Actualizando configuración común...');
+        updateCommonSettings(true); // Forzar actualización
         
-        // Verificación después de actualizar
-        console.log('📊 ESTADO DESPUÉS DE updateCommonSettings:');
-        state.logState();
+        // 2. Aplicar configuración común a todos los archivos
+        console.log('🔄 Paso 2: Aplicando configuración común a todos los archivos...');
+        state.applyCommonSettingsToAllFiles();
         
-        // Validar antes de empezar
-        console.log('🔍 Ejecutando validateAllFiles()...');
+        // 3. Validar antes de empezar
+        console.log('🔍 Paso 3: Validando todos los archivos...');
         const isValid = state.validateAllFiles();
-        console.log(`✅ Resultado de validateAllFiles: ${isValid}`);
+        console.log(`✅ Resultado de validación: ${isValid}`);
         
         if (!isValid) {
             console.error('❌ Validación fallida - ABORTANDO');
-            
-            // Verificación adicional para debugging
-            const finalCheck = state.checkCategories();
-            console.error('❌ VERIFICACIÓN FINAL DE CATEGORÍAS FALLIDA:', finalCheck);
-            
+            showAlert('Hay errores en los archivos seleccionados. Por favor corrige los errores antes de continuar.', 'error');
             console.groupEnd();
             return;
         }
         
         console.log('🚀 Validación exitosa - Iniciando subida múltiple...');
         
-        // Configurar estado
+        // 4. Configurar estado
         state.isUploading = true;
         
-        // Mostrar preloader de subida
+        // 5. Mostrar preloader de subida
         showUploadPreloader(state);
         
-        // Mostrar contenedor de progreso (si se usa)
+        // 6. Mostrar contenedor de progreso (si se usa)
         showUploadProgressContainer();
         
-        // Iniciar subida según estrategia
+        // 7. Obtener archivos preparados para subida
+        console.log('📦 Paso 7: Preparando archivos para subida...');
+        const preparedFiles = state.prepareFilesForUpload();
+        console.log(`📤 ${preparedFiles.length} archivo(s) preparado(s) para subida`);
+        
+        // FIX CRÍTICO: Verificar que todos los archivos preparados tengan los datos correctos
+        preparedFiles.forEach((preparedFile, index) => {
+            console.log(`✅ Archivo ${index + 1} preparado: ${preparedFile.fileName}`, {
+                categoria: preparedFile.category,
+                personaId: preparedFile.personId,
+                expirationDate: preparedFile.expirationDate,
+                tieneCategoria: !!preparedFile.category,
+                tienePersona: !!preparedFile.personId,
+                tieneExpiracion: !!preparedFile.expirationDate
+            });
+        });
+        
+        // 8. Iniciar subida según estrategia
         const strategy = DOM.uploadStrategy ? DOM.uploadStrategy.value : 'sequential';
         console.log(`🔄 Usando estrategia: ${strategy}`);
         
         let result;
         switch(strategy) {
             case 'sequential':
-                result = await uploadSequentially(state);
+                result = await uploadSequentially(state, preparedFiles);
                 break;
             case 'parallel':
-                result = await uploadInParallel(state);
+                result = await uploadInParallel(state, preparedFiles);
                 break;
             case 'batch':
-                result = await uploadInBatches(state);
+                result = await uploadInBatches(state, preparedFiles);
                 break;
             default:
-                result = await uploadSequentially(state);
+                result = await uploadSequentially(state, preparedFiles);
         }
         
-        // Mostrar resultados
+        // 9. Mostrar resultados
         showUploadResults(result, state);
         
-        // Actualizar preloader con resultados finales
+        // 10. Actualizar preloader con resultados finales
         setTimeout(() => {
             updateUploadPreloader(state);
         }, 500);
         
-        // Recargar documentos si hubo éxito
+        // 11. Recargar documentos si hubo éxito
         if (result.successCount > 0) {
             console.log('🔄 Recargando documentos...');
             if (window.loadDocuments) {
@@ -502,7 +612,9 @@ export async function handleUploadMultipleDocuments() {
                 f.status === 'completed' || f.status === 'failed'
             );
             if (allCompleted) {
-                hideUploadPreloader();
+                setTimeout(() => {
+                    hideUploadPreloader();
+                }, 2000);
             }
         }, 3000);
         
@@ -516,11 +628,12 @@ export async function handleUploadMultipleDocuments() {
 /**
  * Sube archivos de forma secuencial, uno tras otro.
  * @param {MultipleUploadState} state - Estado de subida
+ * @param {Array} preparedFiles - Archivos preparados para subida
  * @returns {object} - Resultados de la subida
  */
-async function uploadSequentially(state) {
+async function uploadSequentially(state, preparedFiles) {
     console.group('🔀 uploadSequentially');
-    console.log(`📤 Subiendo ${state.files.length} archivos secuencialmente`);
+    console.log(`📤 Subiendo ${preparedFiles.length} archivos secuencialmente`);
     
     const results = {
         successCount: 0,
@@ -531,59 +644,100 @@ async function uploadSequentially(state) {
     
     const startTime = Date.now();
     
-    for (let i = 0; i < state.files.length; i++) {
-        const fileObj = state.files[i];
+    for (let i = 0; i < preparedFiles.length; i++) {
+        const preparedFile = preparedFiles[i];
+        const fileObj = state.files.find(f => f.file.name === preparedFile.fileName);
         
         try {
             // Mostrar información del archivo actual
-            console.log(`📤 Archivo ${i + 1}/${state.files.length}: ${fileObj.file.name}`, {
-                customCategory: fileObj.customCategory,
-                commonCategory: state.commonCategory,
-                effectiveCategory: state.getEffectiveCategory(fileObj)
+            console.log(`📤 Archivo ${i + 1}/${preparedFiles.length}: ${preparedFile.fileName}`, {
+                category: preparedFile.category,
+                personId: preparedFile.personId,
+                expirationDate: preparedFile.expirationDate,
+                notifyPerson: preparedFile.notifyPerson,
+                notifyExpiration: preparedFile.notifyExpiration
             });
             
-            // Actualizar estado
-            fileObj.status = 'uploading';
-            fileObj.progress = 0;
-            updateFileUI(fileObj.id, state);
-            updateUploadPreloader(state);
+            // VERIFICACIÓN CRÍTICA: Validar que todos los campos necesarios estén presentes
+            const validationErrors = [];
+            
+            if (!preparedFile.category || preparedFile.category.trim() === '') {
+                validationErrors.push('Falta categoría');
+            }
+            
+            // FIX CRÍTICO: Persona puede ser opcional dependiendo de tu lógica de negocio
+            // Si es requerida, descomenta la siguiente validación:
+            /*
+            if (!preparedFile.personId || preparedFile.personId.trim() === '') {
+                validationErrors.push('Falta persona asignada');
+            }
+            */
+            
+            if (validationErrors.length > 0) {
+                console.error(`❌ ERROR: ${preparedFile.fileName} - ${validationErrors.join(', ')} - SE OMITE`);
+                if (fileObj) {
+                    fileObj.status = 'failed';
+                    fileObj.error = validationErrors.join(', ');
+                    updateFileUI(fileObj.id, state);
+                }
+                results.failureCount++;
+                continue;
+            }
+            
+            if (fileObj) {
+                // Actualizar estado
+                fileObj.status = 'uploading';
+                fileObj.progress = 0;
+                updateFileUI(fileObj.id, state);
+                updateUploadPreloader(state);
+            }
             
             // Subir archivo
-            const success = await uploadSingleFileWithProgress(fileObj, state);
+            const success = await uploadSingleFileWithProgress(preparedFile, fileObj, state);
             
             if (success) {
                 results.successCount++;
-                fileObj.status = 'completed';
-                fileObj.progress = 100;
+                if (fileObj) {
+                    fileObj.status = 'completed';
+                    fileObj.progress = 100;
+                }
                 results.uploadedFiles.push({
-                    name: fileObj.file.name,
-                    size: fileObj.file.size,
-                    category: state.getEffectiveCategory(fileObj)
+                    name: preparedFile.fileName,
+                    size: preparedFile.fileSize,
+                    category: preparedFile.category,
+                    personId: preparedFile.personId,
+                    expirationDate: preparedFile.expirationDate
                 });
                 
-                console.log(`✅ ${fileObj.file.name} - Subida exitosa`);
+                console.log(`✅ ${preparedFile.fileName} - Subida exitosa`);
             } else {
                 results.failureCount++;
-                fileObj.status = 'failed';
-                fileObj.error = 'Error en la subida';
+                if (fileObj) {
+                    fileObj.status = 'failed';
+                    fileObj.error = 'Error en la subida';
+                }
                 
-                console.error(`❌ ${fileObj.file.name} - Error en subida`);
+                console.error(`❌ ${preparedFile.fileName} - Error en subida`);
             }
             
-            updateFileUI(fileObj.id, state);
+            if (fileObj) {
+                updateFileUI(fileObj.id, state);
+            }
             updateUploadPreloader(state);
             
             // Pequeña pausa entre archivos (excepto el último)
-            if (i < state.files.length - 1) {
+            if (i < preparedFiles.length - 1) {
                 await new Promise(resolve => setTimeout(resolve, MULTIPLE_UPLOAD_CONFIG.DELAY_BETWEEN_FILES));
             }
             
         } catch (error) {
-            console.error(`❌ Error crítico en archivo ${fileObj.file.name}:`, error);
+            console.error(`❌ Error crítico en archivo ${preparedFile.fileName}:`, error);
             results.failureCount++;
-            fileObj.status = 'failed';
-            fileObj.error = error.message;
-            updateFileUI(fileObj.id, state);
+            if (fileObj) {
+                fileObj.status = 'failed';
+                fileObj.error = error.message;
+                updateFileUI(fileObj.id, state);
+            }
             updateUploadPreloader(state);
         }
     }
@@ -598,9 +752,10 @@ async function uploadSequentially(state) {
 /**
  * Sube archivos en paralelo con límite de concurrencia.
  * @param {MultipleUploadState} state - Estado de subida
+ * @param {Array} preparedFiles - Archivos preparados para subida
  * @returns {object} - Resultados de la subida
  */
-async function uploadInParallel(state) {
+async function uploadInParallel(state, preparedFiles) {
     console.group('⚡ uploadInParallel');
     console.log('⚡ Subida paralela iniciada');
     
@@ -618,8 +773,26 @@ async function uploadInParallel(state) {
     const uploadPromises = [];
     const activeUploads = new Set();
     
-    for (let i = 0; i < state.files.length; i++) {
-        const fileObj = state.files[i];
+    for (let i = 0; i < preparedFiles.length; i++) {
+        const preparedFile = preparedFiles[i];
+        const fileObj = state.files.find(f => f.file.name === preparedFile.fileName);
+        
+        // Verificación CRÍTICA antes de agregar a la cola
+        const validationErrors = [];
+        if (!preparedFile.category || preparedFile.category.trim() === '') {
+            validationErrors.push('Falta categoría');
+        }
+        
+        if (validationErrors.length > 0) {
+            console.error(`❌ ERROR: ${preparedFile.fileName} - ${validationErrors.join(', ')} - SE OMITE`);
+            if (fileObj) {
+                fileObj.status = 'failed';
+                fileObj.error = validationErrors.join(', ');
+                updateFileUI(fileObj.id, state);
+            }
+            results.failureCount++;
+            continue;
+        }
         
         // Esperar si hay demasiadas subidas concurrentes
         while (activeUploads.size >= maxConcurrent) {
@@ -628,46 +801,58 @@ async function uploadInParallel(state) {
         }
         
         // Iniciar subida
-        fileObj.status = 'uploading';
-        fileObj.progress = 0;
-        updateFileUI(fileObj.id, state);
-        updateUploadPreloader(state);
+        if (fileObj) {
+            fileObj.status = 'uploading';
+            fileObj.progress = 0;
+            updateFileUI(fileObj.id, state);
+            updateUploadPreloader(state);
+            
+            activeUploads.add(fileObj.id);
+        }
         
-        activeUploads.add(fileObj.id);
-        
-        const uploadPromise = uploadSingleFileWithProgress(fileObj, state)
+        const uploadPromise = uploadSingleFileWithProgress(preparedFile, fileObj, state)
             .then(success => {
                 if (success) {
                     results.successCount++;
-                    fileObj.status = 'completed';
-                    fileObj.progress = 100;
+                    if (fileObj) {
+                        fileObj.status = 'completed';
+                        fileObj.progress = 100;
+                    }
                     results.uploadedFiles.push({
-                        name: fileObj.file.name,
-                        size: fileObj.file.size,
-                        category: state.getEffectiveCategory(fileObj)
+                        name: preparedFile.fileName,
+                        size: preparedFile.fileSize,
+                        category: preparedFile.category,
+                        personId: preparedFile.personId,
+                        expirationDate: preparedFile.expirationDate
                     });
-                    console.log(`✅ ${fileObj.file.name} - Completado`);
+                    console.log(`✅ ${preparedFile.fileName} - Completado`);
                 } else {
                     results.failureCount++;
-                    fileObj.status = 'failed';
-                    fileObj.error = 'Error en la subida';
-                    console.error(`❌ ${fileObj.file.name} - Fallado`);
+                    if (fileObj) {
+                        fileObj.status = 'failed';
+                        fileObj.error = 'Error en la subida';
+                    }
+                    console.error(`❌ ${preparedFile.fileName} - Fallado`);
                 }
                 
-                updateFileUI(fileObj.id, state);
+                if (fileObj) {
+                    updateFileUI(fileObj.id, state);
+                    activeUploads.delete(fileObj.id);
+                }
                 updateUploadPreloader(state);
-                activeUploads.delete(fileObj.id);
                 
                 return success;
             })
             .catch(error => {
-                console.error(`❌ Error en ${fileObj.file.name}:`, error);
+                console.error(`❌ Error en ${preparedFile.fileName}:`, error);
                 results.failureCount++;
-                fileObj.status = 'failed';
-                fileObj.error = error.message;
-                updateFileUI(fileObj.id, state);
+                if (fileObj) {
+                    fileObj.status = 'failed';
+                    fileObj.error = error.message;
+                    updateFileUI(fileObj.id, state);
+                    activeUploads.delete(fileObj.id);
+                }
                 updateUploadPreloader(state);
-                activeUploads.delete(fileObj.id);
                 return false;
             });
         
@@ -687,9 +872,10 @@ async function uploadInParallel(state) {
 /**
  * Sube archivos por lotes, con pausas entre lotes.
  * @param {MultipleUploadState} state - Estado de subida
+ * @param {Array} preparedFiles - Archivos preparados para subida
  * @returns {object} - Resultados de la subida
  */
-async function uploadInBatches(state) {
+async function uploadInBatches(state, preparedFiles) {
     console.group('📦 uploadInBatches');
     console.log('📦 Subida por lotes iniciada');
     
@@ -706,8 +892,8 @@ async function uploadInBatches(state) {
     
     // Dividir archivos en lotes
     const batches = [];
-    for (let i = 0; i < state.files.length; i += batchSize) {
-        batches.push(state.files.slice(i, i + batchSize));
+    for (let i = 0; i < preparedFiles.length; i += batchSize) {
+        batches.push(preparedFiles.slice(i, i + batchSize));
     }
     
     console.log(`📊 ${batches.length} lotes creados (tamaño: ${batchSize})`);
@@ -717,42 +903,82 @@ async function uploadInBatches(state) {
         const batch = batches[batchIndex];
         console.log(`📤 Procesando lote ${batchIndex + 1}/${batches.length}`);
         
-        // Subir archivos del lote en paralelo
-        const batchPromises = batch.map(fileObj => {
-            fileObj.status = 'uploading';
-            fileObj.progress = 0;
-            updateFileUI(fileObj.id, state);
-            updateUploadPreloader(state);
+        // Filtrar archivos válidos (con categoría)
+        const validBatch = batch.filter(f => {
+            const errors = [];
+            if (!f.category || f.category.trim() === '') {
+                errors.push('Falta categoría');
+            }
+            return errors.length === 0;
+        });
+        
+        const invalidCount = batch.length - validBatch.length;
+        
+        if (invalidCount > 0) {
+            console.warn(`⚠️ ${invalidCount} archivo(s) inválidos en lote ${batchIndex + 1}`);
             
-            return uploadSingleFileWithProgress(fileObj, state)
+            // Marcar archivos inválidos como fallados
+            batch.filter(f => !validBatch.includes(f)).forEach(invalidFile => {
+                const fileObj = state.files.find(f => f.file.name === invalidFile.fileName);
+                if (fileObj) {
+                    fileObj.status = 'failed';
+                    fileObj.error = 'Falta categoría';
+                    updateFileUI(fileObj.id, state);
+                    results.failureCount++;
+                }
+            });
+        }
+        
+        // Subir archivos del lote en paralelo
+        const batchPromises = validBatch.map(preparedFile => {
+            const fileObj = state.files.find(f => f.file.name === preparedFile.fileName);
+            
+            if (fileObj) {
+                fileObj.status = 'uploading';
+                fileObj.progress = 0;
+                updateFileUI(fileObj.id, state);
+                updateUploadPreloader(state);
+            }
+            
+            return uploadSingleFileWithProgress(preparedFile, fileObj, state)
                 .then(success => {
                     if (success) {
                         results.successCount++;
-                        fileObj.status = 'completed';
-                        fileObj.progress = 100;
+                        if (fileObj) {
+                            fileObj.status = 'completed';
+                            fileObj.progress = 100;
+                        }
                         results.uploadedFiles.push({
-                            name: fileObj.file.name,
-                            size: fileObj.file.size,
-                            category: state.getEffectiveCategory(fileObj)
+                            name: preparedFile.fileName,
+                            size: preparedFile.fileSize,
+                            category: preparedFile.category,
+                            personId: preparedFile.personId,
+                            expirationDate: preparedFile.expirationDate
                         });
-                        console.log(`✅ ${fileObj.file.name} - Completado`);
+                        console.log(`✅ ${preparedFile.fileName} - Completado`);
                     } else {
                         results.failureCount++;
-                        fileObj.status = 'failed';
-                        fileObj.error = 'Error en la subida';
-                        console.error(`❌ ${fileObj.file.name} - Fallado`);
+                        if (fileObj) {
+                            fileObj.status = 'failed';
+                            fileObj.error = 'Error en la subida';
+                        }
+                        console.error(`❌ ${preparedFile.fileName} - Fallado`);
                     }
                     
-                    updateFileUI(fileObj.id, state);
+                    if (fileObj) {
+                        updateFileUI(fileObj.id, state);
+                    }
                     updateUploadPreloader(state);
                     return success;
                 })
                 .catch(error => {
-                    console.error(`❌ Error en ${fileObj.file.name}:`, error);
+                    console.error(`❌ Error en ${preparedFile.fileName}:`, error);
                     results.failureCount++;
-                    fileObj.status = 'failed';
-                    fileObj.error = error.message;
-                    updateFileUI(fileObj.id, state);
+                    if (fileObj) {
+                        fileObj.status = 'failed';
+                        fileObj.error = error.message;
+                        updateFileUI(fileObj.id, state);
+                    }
                     updateUploadPreloader(state);
                     return false;
                 });
@@ -777,69 +1003,79 @@ async function uploadInBatches(state) {
 
 /**
  * Sube un archivo individual con seguimiento de progreso.
- * @param {object} fileObj - Objeto de archivo a subir
+ * @param {object} preparedFile - Archivo preparado para subida
+ * @param {object|null} fileObj - Objeto de archivo del estado (opcional)
  * @param {MultipleUploadState} state - Estado de subida
  * @returns {Promise<boolean>} - True si la subida fue exitosa
  */
-async function uploadSingleFileWithProgress(fileObj, state) {
+async function uploadSingleFileWithProgress(preparedFile, fileObj, state) {
     return new Promise(async (resolve, reject) => {
         try {
-            console.log(`📤 uploadSingleFileWithProgress: ${fileObj.file.name}`);
+            console.group(`📤 UPLOAD: ${preparedFile.fileName}`);
             
-            // Obtener categoría efectiva
-            const effectiveCategory = state.getEffectiveCategory(fileObj);
-            console.log(`🏷️ Categoría para ${fileObj.file.name}: "${effectiveCategory}"`, {
-                customCategory: fileObj.customCategory,
-                commonCategory: state.commonCategory
+            console.log(`🏷️ Configuración del archivo:`, {
+                categoría: preparedFile.category,
+                personaId: preparedFile.personId,
+                fechaVencimiento: preparedFile.expirationDate,
+                notifyPerson: preparedFile.notifyPerson,
+                notifyExpiration: preparedFile.notifyExpiration
             });
             
-            if (!effectiveCategory || effectiveCategory.trim() === '') {
-                console.error(`❌ ${fileObj.file.name} - NO TIENE CATEGORÍA`);
+            // VALIDACIÓN CRÍTICA: Asegurar que la categoría no esté vacía
+            if (!preparedFile.category || preparedFile.category.trim() === '') {
+                console.error(`❌ ${preparedFile.fileName} - NO TIENE CATEGORÍA`);
                 throw new Error('Categoría no definida para el archivo');
             }
             
             // Preparar FormData
             const formData = new FormData();
-            formData.append('file', fileObj.file);
+            formData.append('file', preparedFile.file);
             
-            // Determinar descripción
-            let description = fileObj.description;
-            if (!description && state.autoGenerateDescriptions) {
-                description = fileObj.file.name.replace(/\.[^/.]+$/, "");
-            }
-            formData.append('descripcion', description || '');
+            // Descripción
+            formData.append('descripcion', preparedFile.description || '');
+            console.log(`📝 Descripción: "${preparedFile.description}"`);
             
-            // Añadir categoría
-            formData.append('categoria', effectiveCategory);
+            // Categoría - CAMPO OBLIGATORIO
+            formData.append('categoria', preparedFile.category);
+            console.log(`🏷️ Categoría enviada: "${preparedFile.category}"`);
             
-            // Determinar persona
-            const persona_id = fileObj.customPersonId || state.commonPersonId;
-            if (persona_id) {
-                formData.append('persona_id', persona_id);
-            }
-            
-            // Determinar fecha de vencimiento
-            let fecha_vencimiento = fileObj.customExpirationDate;
-            if (!fecha_vencimiento && state.expirationDays) {
-                const expirationDate = new Date();
-                expirationDate.setDate(expirationDate.getDate() + state.expirationDays);
-                fecha_vencimiento = expirationDate.toISOString().split('T')[0];
-            }
-            if (fecha_vencimiento) {
-                formData.append('fecha_vencimiento', fecha_vencimiento);
+            // Persona - CAMPO OPCIONAL (solo si tiene valor)
+            if (preparedFile.personId && preparedFile.personId.trim() !== '') {
+                formData.append('persona_id', preparedFile.personId);
+                console.log(`👤 Persona asignada: "${preparedFile.personId}"`);
+            } else {
+                console.log('👤 No se asigna persona (persona_id vacío)');
+                // IMPORTANTE: Si en tu backend espera este campo siempre, envía una cadena vacía
+                formData.append('persona_id', '');
             }
             
-            // Configurar notificación
-            if (state.notifyPerson && persona_id) {
+            // Fecha de vencimiento - CAMPO OPCIONAL (solo si tiene valor)
+            if (preparedFile.expirationDate && preparedFile.expirationDate.trim() !== '') {
+                formData.append('fecha_vencimiento', preparedFile.expirationDate);
+                console.log(`📅 Fecha de vencimiento enviada: ${preparedFile.expirationDate}`);
+                
+                // Verificar formato de fecha
+                const dateObj = new Date(preparedFile.expirationDate);
+                if (isNaN(dateObj.getTime())) {
+                    console.warn(`⚠️ Posible formato de fecha inválido: ${preparedFile.expirationDate}`);
+                }
+            } else {
+                console.log('📅 No se agregará fecha de vencimiento (no configurada)');
+                // IMPORTANTE: Si en tu backend espera este campo siempre, envía una cadena vacía
+                formData.append('fecha_vencimiento', '');
+            }
+            
+            // Configurar notificación si está habilitada y hay persona
+            if (preparedFile.notifyPerson && preparedFile.personId && preparedFile.personId.trim() !== '') {
                 formData.append('notificar', 'true');
+                console.log('🔔 Notificación habilitada para la persona');
             }
             
-            console.log(`📋 Configuración para ${fileObj.file.name}:`, {
-                descripcion: description,
-                categoria: effectiveCategory,
-                persona_id: persona_id,
-                fecha_vencimiento: fecha_vencimiento
-            });
+            // Mostrar todo lo que se enviará
+            console.log('📤 Datos a enviar al servidor:');
+            for (let pair of formData.entries()) {
+                console.log(`   ${pair[0]}: ${pair[1]}`);
+            }
             
             // Crear XMLHttpRequest para tener progreso
             const xhr = new XMLHttpRequest();
@@ -848,59 +1084,145 @@ async function uploadSingleFileWithProgress(fileObj, state) {
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    fileObj.progress = percentComplete;
-                    updateFileUI(fileObj.id, state);
-                    updateUploadPreloader(state);
+                    if (fileObj) {
+                        fileObj.progress = percentComplete;
+                        updateFileUI(fileObj.id, state);
+                        updateUploadPreloader(state);
+                    }
                     
                     if (CONFIG.DEBUG.LOG_UPLOAD_PROGRESS) {
-                        console.log(`📈 ${fileObj.file.name}: ${percentComplete}%`);
+                        console.log(`📈 ${preparedFile.fileName}: ${percentComplete}%`);
                     }
                 }
             });
             
             xhr.addEventListener('load', () => {
+                console.log(`📥 Respuesta recibida:`, {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    archivo: preparedFile.fileName
+                });
+                
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const response = JSON.parse(xhr.responseText);
+                        console.log('📋 Respuesta del servidor:', {
+                            success: response.success,
+                            message: response.message,
+                            document: response.document ? {
+                                id: response.document._id,
+                                nombre: response.document.nombre_original,
+                                categoria: response.document.categoria,
+                                persona_id: response.document.persona_id,
+                                fecha_vencimiento: response.document.fecha_vencimiento,
+                                estado: response.document.estado || 'pendiente'
+                            } : 'No hay documento en respuesta'
+                        });
+                        
                         if (response.success) {
-                            console.log(`✅ ${fileObj.file.name} - Subida exitosa`);
+                            console.log(`✅ ${preparedFile.fileName} - Subida exitosa`);
+                            
+                            // Verificar que los datos se guardaron correctamente
+                            if (response.document) {
+                                console.log('✅ Documento creado en backend:', {
+                                    categoríaGuardada: response.document.categoria,
+                                    personaGuardada: response.document.persona_id,
+                                    fechaVencimientoGuardada: response.document.fecha_vencimiento,
+                                    estadoGuardado: response.document.estado
+                                });
+                                
+                                // Comparar con lo enviado
+                                const mismatches = [];
+                                if (response.document.categoria !== preparedFile.category) {
+                                    mismatches.push(`Categoría: ${preparedFile.category} -> ${response.document.categoria}`);
+                                }
+                                if (response.document.persona_id !== preparedFile.personId) {
+                                    mismatches.push(`Persona: ${preparedFile.personId || '(vacío)'} -> ${response.document.persona_id || '(vacío)'}`);
+                                }
+                                if (response.document.fecha_vencimiento !== preparedFile.expirationDate) {
+                                    mismatches.push(`Vencimiento: ${preparedFile.expirationDate || '(sin fecha)'} -> ${response.document.fecha_vencimiento || '(sin fecha)'}`);
+                                }
+                                
+                                if (mismatches.length > 0) {
+                                    console.warn('⚠️ Diferencias entre enviado y guardado:', mismatches);
+                                }
+                            }
+                            
                             resolve(true);
                         } else {
-                            console.error(`❌ ${fileObj.file.name} - Error del servidor:`, response.message);
-                            fileObj.error = response.message;
+                            console.error(`❌ ${preparedFile.fileName} - Error del servidor:`, response.message);
+                            console.log('⚠️ Datos enviados:');
+                            for (let pair of formData.entries()) {
+                                console.log(`   ${pair[0]}: ${pair[1]}`);
+                            }
+                            if (fileObj) {
+                                fileObj.error = response.message || 'Error desconocido del servidor';
+                            }
                             resolve(false);
                         }
                     } catch (parseError) {
-                        console.error(`❌ ${fileObj.file.name} - Error parseando respuesta:`, parseError);
-                        fileObj.error = 'Error en la respuesta del servidor';
+                        console.error(`❌ ${preparedFile.fileName} - Error parseando respuesta:`, parseError);
+                        console.log('Respuesta cruda:', xhr.responseText);
+                        if (fileObj) {
+                            fileObj.error = 'Error en la respuesta del servidor';
+                        }
                         resolve(false);
                     }
                 } else {
-                    console.error(`❌ ${fileObj.file.name} - HTTP ${xhr.status}: ${xhr.statusText}`);
-                    fileObj.error = `Error HTTP ${xhr.status}`;
+                    console.error(`❌ ${preparedFile.fileName} - HTTP ${xhr.status}: ${xhr.statusText}`);
+                    if (fileObj) {
+                        fileObj.error = `Error HTTP ${xhr.status}: ${xhr.statusText}`;
+                        
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            console.error('Detalles del error:', errorResponse);
+                            if (errorResponse.message) {
+                                fileObj.error += ` - ${errorResponse.message}`;
+                            }
+                        } catch (e) {
+                            // Ignorar error de parseo
+                        }
+                    }
+                    
                     resolve(false);
                 }
+                
+                console.groupEnd();
             });
             
             xhr.addEventListener('error', () => {
-                console.error(`❌ ${fileObj.file.name} - Error de red`);
-                fileObj.error = 'Error de conexión';
+                console.error(`❌ ${preparedFile.fileName} - Error de red`);
+                if (fileObj) {
+                    fileObj.error = 'Error de conexión con el servidor';
+                }
+                console.groupEnd();
                 resolve(false);
             });
             
             xhr.addEventListener('abort', () => {
-                console.warn(`⚠️ ${fileObj.file.name} - Subida cancelada`);
-                fileObj.error = 'Subida cancelada';
+                console.warn(`⚠️ ${preparedFile.fileName} - Subida cancelada`);
+                if (fileObj) {
+                    fileObj.error = 'Subida cancelada por el usuario';
+                }
+                console.groupEnd();
                 resolve(false);
             });
             
             // Enviar la petición
             xhr.open('POST', `${CONFIG.API_BASE_URL}/documents`);
+            
+            // Agregar headers
+            xhr.setRequestHeader('Accept', 'application/json');
+            
+            console.log(`📤 Enviando ${preparedFile.fileName} a ${CONFIG.API_BASE_URL}/documents...`);
             xhr.send(formData);
             
         } catch (error) {
-            console.error(`❌ Error preparando ${fileObj.file.name}:`, error);
-            fileObj.error = error.message;
+            console.error(`❌ Error preparando ${preparedFile.fileName}:`, error);
+            if (fileObj) {
+                fileObj.error = error.message;
+            }
+            console.groupEnd();
             resolve(false);
         }
     });
@@ -912,7 +1234,10 @@ async function uploadSingleFileWithProgress(fileObj, state) {
  * @param {MultipleUploadState} state - Estado de subida
  */
 function updateFileUI(fileId, state) {
-    console.log(`🎨 updateFileUI llamado para fileId: ${fileId}`);
+    if (!fileId || !state) {
+        console.warn('⚠️ updateFileUI: Parámetros inválidos');
+        return;
+    }
     
     const fileElement = document.querySelector(`.file-item[data-file-id="${fileId}"]`);
     if (!fileElement) {
@@ -934,7 +1259,6 @@ function updateFileUI(fileId, state) {
     if (statusBadge) {
         statusBadge.className = `status-badge status-badge--${fileObj.status}`;
         statusBadge.textContent = getStatusText(fileObj.status);
-        console.log(`📛 Badge actualizado: ${fileObj.status}`);
     }
     
     // Actualizar barra de progreso
@@ -946,7 +1270,6 @@ function updateFileUI(fileId, state) {
         if (progressText) {
             progressText.textContent = `${fileObj.progress}%`;
         }
-        console.log(`📈 Progreso actualizado: ${fileObj.progress}%`);
     }
     
     // Mostrar/ocultar sección de error
@@ -954,8 +1277,10 @@ function updateFileUI(fileId, state) {
     if (errorSection) {
         if (fileObj.error) {
             errorSection.style.display = 'flex';
-            errorSection.querySelector('span').textContent = fileObj.error;
-            console.log(`❌ Error mostrado: ${fileObj.error}`);
+            const errorText = errorSection.querySelector('span');
+            if (errorText) {
+                errorText.textContent = fileObj.error;
+            }
         } else {
             errorSection.style.display = 'none';
         }
@@ -966,7 +1291,31 @@ function updateFileUI(fileId, state) {
     if (categorySpan) {
         const effectiveCategory = state.getEffectiveCategory(fileObj);
         categorySpan.textContent = effectiveCategory || 'Sin categoría';
-        console.log(`🏷️ Categoría UI actualizada: ${effectiveCategory}`);
+        if (!effectiveCategory || effectiveCategory.trim() === '') {
+            categorySpan.style.color = 'var(--danger)';
+            categorySpan.style.fontWeight = 'bold';
+        }
+    }
+    
+    // Actualizar persona mostrada
+    const personSpan = fileElement.querySelector('.file-item__person');
+    if (personSpan) {
+        const effectivePersonId = state.getEffectivePersonId(fileObj);
+        personSpan.textContent = effectivePersonId ? `Persona: ${effectivePersonId}` : 'Sin persona asignada';
+    }
+    
+    // Actualizar fecha de vencimiento mostrada
+    const dateSpan = fileElement.querySelector('.file-item__expiration');
+    if (dateSpan) {
+        const effectiveExpirationDate = state.getEffectiveExpirationDate(fileObj);
+        if (effectiveExpirationDate) {
+            const date = new Date(effectiveExpirationDate);
+            dateSpan.textContent = `Vence: ${date.toLocaleDateString()}`;
+            dateSpan.style.display = 'block';
+            dateSpan.style.color = 'var(--warning-dark)';
+        } else {
+            dateSpan.style.display = 'none';
+        }
     }
 }
 
@@ -988,6 +1337,8 @@ function showUploadResults(results, state) {
         const progressContainer = document.getElementById('uploadProgressContainer');
         if (progressContainer) {
             progressContainer.appendChild(resultsContainer);
+        } else {
+            document.body.appendChild(resultsContainer);
         }
     }
     
@@ -1024,7 +1375,9 @@ function showUploadResults(results, state) {
                             <i class="fas fa-file-alt"></i> 
                             <span class="file-name">${file.name}</span>
                             <span class="file-size">(${formatFileSize(file.size)})</span>
-                            <span class="file-category">${file.category}</span>
+                            ${file.category ? `<span class="file-category">${file.category}</span>` : ''}
+                            ${file.personId ? `<span class="file-person">👤 ${file.personId}</span>` : ''}
+                            ${file.expirationDate ? `<span class="file-date">📅 ${file.expirationDate}</span>` : ''}
                         </li>
                     `).join('')}
                 </ul>
@@ -1055,6 +1408,7 @@ function showUploadResults(results, state) {
     if (retryBtn) {
         retryBtn.addEventListener('click', () => {
             retryFailedUploads(state);
+            resultsContainer.remove();
         });
     }
     
@@ -1082,6 +1436,7 @@ function retryFailedUploads(state) {
         file.status = 'pending';
         file.error = null;
         file.progress = 0;
+        file.retryCount = (file.retryCount || 0) + 1;
     });
     
     // Actualizar UI
@@ -1118,6 +1473,10 @@ export function debugState() {
     console.log('🔍 Verificación de DOM:');
     console.log('- DOM.multipleDocumentCategory:', DOM.multipleDocumentCategory ? 'EXISTE' : 'NO EXISTE');
     console.log('- Valor de categoría en DOM:', DOM.multipleDocumentCategory ? DOM.multipleDocumentCategory.value : 'N/A');
+    console.log('- DOM.multipleDocumentPerson:', DOM.multipleDocumentPerson ? 'EXISTE' : 'NO EXISTE');
+    console.log('- Valor de persona en DOM:', DOM.multipleDocumentPerson ? DOM.multipleDocumentPerson.value : 'N/A');
+    console.log('- DOM.multipleExpirationDays:', DOM.multipleExpirationDays ? 'EXISTE' : 'NO EXISTE');
+    console.log('- Valor de expiración en DOM:', DOM.multipleExpirationDays ? DOM.multipleExpirationDays.value : 'N/A');
     console.log('- DOM.uploadMultipleDocumentsBtn:', DOM.uploadMultipleDocumentsBtn ? 'EXISTE' : 'NO EXISTE');
     
     console.log('📊 Verificación de categorías:');
@@ -1137,5 +1496,70 @@ export function forceCommonCategory(category) {
     state.logState();
 }
 
+/**
+ * Configura todos los listeners para la subida múltiple
+ */
+export function setupMultipleUploadListeners() {
+    console.log('🔧 Configurando listeners de subida múltiple');
+    
+    // Listener para selección de archivos
+    if (DOM.multipleFileInput) {
+        DOM.multipleFileInput.addEventListener('change', handleMultipleFileSelect);
+        console.log('✅ Listener configurado para multipleFileInput');
+    }
+    
+    // Listener para botón de subida
+    if (DOM.uploadMultipleDocumentsBtn) {
+        DOM.uploadMultipleDocumentsBtn.addEventListener('click', handleUploadMultipleDocuments);
+        console.log('✅ Listener configurado para uploadMultipleDocumentsBtn');
+    }
+    
+    // Listeners para cambios en los selects - FIX: Usar función anónima para forzar actualización
+    if (DOM.multipleDocumentCategory) {
+        DOM.multipleDocumentCategory.addEventListener('change', () => {
+            console.log('🏷️ Cambio en categoría múltiple');
+            updateCommonSettings(true);
+        });
+        console.log('✅ Listener configurado para multipleDocumentCategory (forzado)');
+    }
+    
+    if (DOM.multipleDocumentPerson) {
+        DOM.multipleDocumentPerson.addEventListener('change', () => {
+            console.log('👤 Cambio en persona múltiple');
+            updateCommonSettings(true);
+        });
+        console.log('✅ Listener configurado para multipleDocumentPerson (forzado)');
+    }
+    
+    if (DOM.multipleExpirationDays) {
+        DOM.multipleExpirationDays.addEventListener('change', () => {
+            console.log('📅 Cambio en días de expiración');
+            updateCommonSettings(true);
+        });
+        console.log('✅ Listener configurado para multipleExpirationDays (forzado)');
+    }
+    
+    // Listeners para checkboxes
+    if (DOM.autoGenerateDescriptions) {
+        DOM.autoGenerateDescriptions.addEventListener('change', () => updateCommonSettings(true));
+        console.log('✅ Listener configurado para autoGenerateDescriptions (forzado)');
+    }
+    
+    if (DOM.notifyPerson) {
+        DOM.notifyPerson.addEventListener('change', () => updateCommonSettings(true));
+        console.log('✅ Listener configurado para notifyPerson (forzado)');
+    }
+    
+    console.log('✅ Todos los listeners configurados para subida múltiple');
+}
+
 // Exportar las funciones internas que puedan ser necesarias
-export { updateFileUI, getStatusText, showUploadPreloader, hideUploadPreloader, updateUploadPreloader };
+export { 
+    updateFileUI, 
+    getStatusText, 
+    showUploadPreloader, 
+    hideUploadPreloader, 
+    updateUploadPreloader,
+    updateCommonSettings,
+    uploadSingleFileWithProgress
+};
