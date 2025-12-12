@@ -438,6 +438,30 @@ class apiCall {
         });
     }
 
+   async getDepartments() {
+    return this.call('/departments');
+}
+
+async createDepartment(departmentData) {
+    return this.call('/departments', {
+        method: 'POST',
+        body: departmentData
+    });
+}
+
+async updateDepartment(id, departmentData) {
+    return this.call(`/departments/${id}`, {
+        method: 'PUT',
+        body: departmentData
+    });
+}
+
+async deleteDepartment(id) {
+    return this.call(`/departments/${id}`, {
+        method: 'DELETE'
+    });
+}
+
     // Reportes
     async generateExcelReport(reportData) {
         return this.call('/reports/excel', {

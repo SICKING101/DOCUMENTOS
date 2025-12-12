@@ -55,6 +55,40 @@
     cursor: pointer;
 }
 
+/* Contenedor para inputs de contraseña con botón de visibilidad */
+.form__password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.form__password-wrapper .form__input {
+    padding-right: 45px;
+}
+
+.form__password-toggle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    padding: 0 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form__password-toggle:hover {
+    color: var(--primary);
+}
+
+.form__password-toggle i {
+    font-size: 1rem;
+}
+
 /* Grupos de formulario compactos para filtros */
 .form__group--compact {
     display: flex;

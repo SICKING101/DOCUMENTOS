@@ -1,5 +1,5 @@
 import { DOM } from '../dom.js';
-import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
+import { api } from '../services/api.js';
 import { setLoadingState, showAlert, isValidEmail } from '../utils.js';
 
 // =============================================================================
@@ -8,51 +8,180 @@ import { setLoadingState, showAlert, isValidEmail } from '../utils.js';
 
 /**
  * 1.1 Abrir modal para crear/editar persona
- * Muestra el formulario de persona, pre-cargando datos si es edición
- * o limpiando campos si es creación nueva.
  */
-function openPersonModal(personId = null) {
+async function openPersonModal(personId = null) {
     console.log(`👤 Abriendo modal de persona: ${personId || 'Nueva'}`);
     
-    if (personId) {
-        DOM.personModalTitle.textContent = 'Editar Persona';
-        const person = window.appState.persons.find(p => p._id === personId);
-        if (person) {
-            DOM.personId.value = person._id;
-            DOM.personName.value = person.nombre;
-            DOM.personEmail.value = person.email;
-            DOM.personPhone.value = person.telefono || '';
-            DOM.personDepartment.value = person.departamento || '';
-            DOM.personPosition.value = person.puesto || '';
+    try {
+        // Cargar departamentos antes de abrir el modal
+        await loadDepartmentsForModal();
+        
+        if (personId) {
+            DOM.personModalTitle.textContent = 'Editar Persona';
+            const person = window.appState.persons.find(p => p._id === personId);
+            if (person) {
+                DOM.personId.value = person._id;
+                DOM.personName.value = person.nombre;
+                DOM.personEmail.value = person.email;
+                DOM.personPhone.value = person.telefono || '';
+                
+                // Establecer el valor del departamento
+                const departmentSelect = document.getElementById('personDepartment');
+                if (departmentSelect && person.departamento) {
+                    // Buscar si el departamento existe en las opciones
+                    const optionExists = Array.from(departmentSelect.options).some(
+                        option => option.value === person.departamento
+                    );
+                    
+                    if (optionExists) {
+                        departmentSelect.value = person.departamento;
+                    } else {
+                        // Si no existe, agregarlo como opción
+                        const option = document.createElement('option');
+                        option.value = person.departamento;
+                        option.textContent = person.departamento;
+                        option.selected = true;
+                        departmentSelect.appendChild(option);
+                    }
+                }
+                
+                DOM.personPosition.value = person.puesto || '';
+            }
+        } else {
+            DOM.personModalTitle.textContent = 'Agregar Persona';
+            DOM.personForm.reset();
+            DOM.personId.value = '';
+            
+            // Resetear el select de departamento
+            const departmentSelect = document.getElementById('personDepartment');
+            if (departmentSelect) {
+                departmentSelect.value = '';
+            }
         }
-    } else {
-        DOM.personModalTitle.textContent = 'Agregar Persona';
-        DOM.personForm.reset();
-        DOM.personId.value = '';
+        
+        DOM.personModal.style.display = 'flex';
+        
+    } catch (error) {
+        console.error('❌ Error abriendo modal de persona:', error);
+        showAlert('Error al cargar departamentos', 'error');
     }
-    
-    DOM.personModal.style.display = 'flex';
 }
 
 /**
- * 1.2 Cerrar modal de personas
- * Oculta el formulario modal para crear/editar personas.
+ * 1.2 Cargar departamentos para el modal
+ */
+async function loadDepartmentsForModal() {
+    try {
+        console.log('🏢 Cargando departamentos para el modal...');
+        
+        const data = await api.getDepartments();
+        
+        if (data.success && data.departments) {
+            populateDepartmentSelect(data.departments);
+            console.log(`✅ ${data.departments.length} departamentos cargados`);
+        } else {
+            // Si no hay departamentos, mostrar opción por defecto
+            const departmentSelect = document.getElementById('personDepartment');
+            if (departmentSelect) {
+                departmentSelect.innerHTML = `
+                    <option value="">No hay departamentos disponibles</option>
+                    <option value="Nuevo Departamento">+ Crear nuevo departamento</option>
+                `;
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cargando departamentos:', error);
+        const departmentSelect = document.getElementById('personDepartment');
+        if (departmentSelect) {
+            departmentSelect.innerHTML = `
+                <option value="">Error cargando departamentos</option>
+            `;
+        }
+    }
+}
+
+/**
+ * 1.3 Poblar el select de departamentos
+ */
+function populateDepartmentSelect(departments) {
+    const departmentSelect = document.getElementById('personDepartment');
+    if (!departmentSelect) return;
+    
+    // Guardar el valor actual
+    const currentValue = departmentSelect.value;
+    
+    // Limpiar y crear opciones
+    departmentSelect.innerHTML = `
+        <option value="">Seleccionar departamento</option>
+        <option value="Nuevo Departamento">+ Crear nuevo departamento</option>
+    `;
+    
+    departments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept.nombre;
+        option.textContent = dept.nombre;
+        if (dept.personCount > 0) {
+            option.textContent += ` (${dept.personCount})`;
+        }
+        departmentSelect.appendChild(option);
+    });
+    
+    // Restaurar el valor si existe
+    if (currentValue) {
+        departmentSelect.value = currentValue;
+    }
+    
+    // Agregar event listener para detectar "Crear nuevo"
+    departmentSelect.addEventListener('change', handleDepartmentSelection);
+}
+
+/**
+ * 1.4 Manejar selección de departamento
+ */
+function handleDepartmentSelection(e) {
+    if (e.target.value === "Nuevo Departamento") {
+        // Abrir modal para crear nuevo departamento
+        e.target.value = ""; // Resetear
+        
+        // Cerrar modal actual
+        closePersonModal();
+        
+        // Abrir modal de departamentos después de un breve delay
+        setTimeout(() => {
+            if (window.openDepartmentModal) {
+                window.openDepartmentModal();
+                
+                // Después de crear el departamento, se recargará automáticamente
+                // a través del evento en el modal de departamentos
+            }
+        }, 300);
+    }
+}
+
+/**
+ * 1.5 Cerrar modal de personas
  */
 function closePersonModal() {
     console.log('❌ Cerrando modal de persona');
     DOM.personModal.style.display = 'none';
+    
+    // Remover event listener temporal
+    const departmentSelect = document.getElementById('personDepartment');
+    if (departmentSelect) {
+        departmentSelect.removeEventListener('change', handleDepartmentSelection);
+    }
 }
 
 // =============================================================================
 // 2. OPERACIONES CRUD DE PERSONAS
 // =============================================================================
 
-/**
- * 2.1 Guardar persona (crear o actualizar)
- * Valida los datos del formulario y los envía a la API para persistir,
- * luego actualiza la interfaz y el estado de la aplicación.
- */
 async function savePerson() {
+    // Obtener el select de departamento
+    const departmentSelect = document.getElementById('personDepartment');
+    const selectedDepartment = departmentSelect ? departmentSelect.value : '';
+    
     // Validaciones
     if (!DOM.personName.value.trim() || !DOM.personEmail.value.trim()) {
         showAlert('Nombre y email son obligatorios', 'error');
@@ -64,6 +193,12 @@ async function savePerson() {
         return;
     }
     
+    // Validar departamento
+    if (!selectedDepartment || selectedDepartment === "Nuevo Departamento") {
+        showAlert('Por favor selecciona un departamento válido', 'error');
+        return;
+    }
+    
     try {
         setLoadingState(true, DOM.savePersonBtn);
         
@@ -71,7 +206,7 @@ async function savePerson() {
             nombre: DOM.personName.value.trim(),
             email: DOM.personEmail.value.trim(),
             telefono: DOM.personPhone.value.trim(),
-            departamento: DOM.personDepartment.value.trim(),
+            departamento: selectedDepartment,
             puesto: DOM.personPosition.value.trim()
         };
         
@@ -79,11 +214,9 @@ async function savePerson() {
         
         let data;
         if (DOM.personId.value) {
-            // Actualizar persona existente
-            data = await api.updatePerson(DOM.personId.value, personData);  // CAMBIADO: usar api.updatePerson()
+            data = await api.updatePerson(DOM.personId.value, personData);
         } else {
-            // Crear nueva persona
-            data = await api.createPerson(personData);  // CAMBIADO: usar api.createPerson()
+            data = await api.createPerson(personData);
         }
         
         if (data.success) {
@@ -107,16 +240,12 @@ async function savePerson() {
     }
 }
 
-/**
- * 2.2 Cargar lista de personas desde la API
- * Obtiene todas las personas registradas y actualiza el estado global,
- * luego llama a funciones de renderizado y poblamiento de selects.
- */
+// El resto de las funciones permanecen igual...
 async function loadPersons() {
     try {
         console.log('👥 Cargando personas...');
         
-        const data = await api.getPersons();  // CAMBIADO: usar api.getPersons()
+        const data = await api.getPersons();
         
         if (data.success) {
             window.appState.persons = data.persons || [];
@@ -134,20 +263,11 @@ async function loadPersons() {
     }
 }
 
-/**
- * 2.3 Editar persona existente
- * Prepara el modal para edición cargando los datos de la persona seleccionada.
- */
 function editPerson(id) {
     console.log('✏️ Editando persona:', id);
     openPersonModal(id);
 }
 
-/**
- * 2.4 Eliminar persona con confirmación
- * Solicita confirmación al usuario y elimina la persona mediante API,
- * luego recarga la lista y actualiza el dashboard si es necesario.
- */
 async function deletePerson(id) {
     if (!confirm('¿Estás seguro de que deseas eliminar esta persona?')) {
         return;
@@ -156,13 +276,12 @@ async function deletePerson(id) {
     try {
         console.log('🗑️ Eliminando persona:', id);
         
-        const data = await api.deletePerson(id);  // CAMBIADO: usar api.deletePerson()
+        const data = await api.deletePerson(id);
         
         if (data.success) {
             showAlert(data.message, 'success');
             await loadPersons();
             
-            // Actualizar dashboard si está visible
             if (window.appState.currentTab === 'dashboard') {
                 await window.loadDashboardData();
             }
@@ -180,10 +299,6 @@ async function deletePerson(id) {
 // 3. RENDERIZADO DE INTERFAZ
 // =============================================================================
 
-/**
- * 3.1 Renderizar tabla de personas
- * Muestra la lista de personas en formato de tabla en la sección correspondiente.
- */
 function renderPersonsTable() {
     if (!DOM.personasTableBody) return;
     
@@ -230,10 +345,6 @@ function renderPersonsTable() {
 // 4. MANEJO DE SELECTS/FILTROS
 // =============================================================================
 
-/**
- * 4.1 Poblar select de personas en formulario de documentos
- * Llena el dropdown de personas para asignar documentos a personas específicas.
- */
 function populatePersonSelect() {
     if (!DOM.documentPerson) return;
     
@@ -247,10 +358,6 @@ function populatePersonSelect() {
     });
 }
 
-/**
- * 4.2 Poblar select de personas en búsqueda avanzada
- * Llena el dropdown para filtrar documentos por persona en la sección de búsqueda.
- */
 function populateSearchPersonSelect() {
     if (!DOM.searchPerson) return;
     
@@ -268,13 +375,14 @@ function populateSearchPersonSelect() {
 // 5. HANDLERS/CONTROLADORES
 // =============================================================================
 
-/**
- * 5.1 Handler para guardar persona
- * Función wrapper para ser usada como event listener en el botón de guardar.
- */
 function handleSavePerson() {
     console.log('💾 Guardando persona...');
     savePerson();
+}
+
+// Función para refrescar el select de departamentos
+function refreshDepartmentSelect() {
+    loadDepartmentsForModal();
 }
 
 export { 
@@ -287,5 +395,6 @@ export {
     populateSearchPersonSelect, 
     editPerson, 
     deletePerson, 
-    handleSavePerson 
+    handleSavePerson,
+    refreshDepartmentSelect
 };

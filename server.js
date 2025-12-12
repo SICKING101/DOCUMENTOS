@@ -4,11 +4,15 @@ import { fileURLToPath } from 'url';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import dotenv from 'dotenv';
+
+// Importar rutas de autenticación
+import authRoutes from './src/backend/routes/auth.js';
 
 dotenv.config();
 
@@ -33,10 +37,14 @@ cloudinary.config({
 // Middlewares
 // -----------------------------
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/src', express.static(path.join(__dirname, 'src')));
+
+// Rutas de autenticación
+app.use('/api/auth', authRoutes);
 
 // -----------------------------
 // Esquemas y Modelos
@@ -1445,192 +1453,436 @@ app.post('/api/reports/excel', async (req, res) => {
   }
 });
 
+// =============================================================================
+// REPORTES - ENDPOINT PDF (CORREGIDO)
+// =============================================================================
+
 // Generar reporte en PDF
 app.post('/api/reports/pdf', async (req, res) => {
+  console.group('📊 REPORTE PDF - Iniciando generación');
+  
   try {
-    console.log('📊 Generando reporte en PDF...');
     const { reportType, category, person, days, dateFrom, dateTo } = req.body;
 
+    console.log('📋 Datos recibidos:', {
+      reportType,
+      category: category || '(todas)',
+      person: person || '(todas)',
+      days: days || 30
+    });
+
     // Obtener datos según el tipo de reporte
-    let documents = await Document.find({ activo: true, isDeleted: false })
-      .populate('persona_id', 'nombre email departamento puesto')
-      .sort({ fecha_subida: -1 });
+    let documents = [];
+    let reportTitle = '';
 
-    // Aplicar filtros (mismo código que Excel)
-    if (reportType === 'byCategory' && category) {
-      documents = documents.filter(doc => doc.categoria === category);
+    // CORREGIDO: Obtener documentos activos no eliminados
+    const baseQuery = { 
+      activo: true, 
+      isDeleted: { $ne: true } 
+    };
+
+    switch(reportType) {
+      case 'general':
+        reportTitle = 'Reporte General del Sistema';
+        documents = await Document.find(baseQuery)
+          .populate('persona_id', 'nombre email departamento puesto')
+          .sort({ fecha_subida: -1 });
+        break;
+        
+      case 'byCategory':
+        if (category) {
+          reportTitle = `Reporte por Categoría: ${category}`;
+          documents = await Document.find({ 
+            ...baseQuery,
+            categoria: category 
+          })
+          .populate('persona_id', 'nombre email departamento puesto')
+          .sort({ fecha_subida: -1 });
+        } else {
+          reportTitle = 'Reporte por Todas las Categorías';
+          documents = await Document.find(baseQuery)
+            .populate('persona_id', 'nombre email departamento puesto')
+            .sort({ categoria: 1, fecha_subida: -1 });
+        }
+        break;
+        
+      case 'byPerson':
+        if (person) {
+          const personaData = await Person.findById(person);
+          reportTitle = `Reporte por Persona: ${personaData ? personaData.nombre : 'Desconocida'}`;
+          documents = await Document.find({ 
+            ...baseQuery,
+            persona_id: person 
+          })
+          .populate('persona_id', 'nombre email departamento puesto')
+          .sort({ fecha_subida: -1 });
+        } else {
+          reportTitle = 'Reporte por Todas las Personas';
+          documents = await Document.find(baseQuery)
+            .populate('persona_id', 'nombre email departamento puesto')
+            .sort({ 'persona_id.nombre': 1, fecha_subida: -1 });
+        }
+        break;
+        
+      case 'expiring':
+        const daysToExpire = parseInt(days) || 30;
+        reportTitle = `Documentos que Vencen en Próximos ${daysToExpire} Días`;
+        
+        const today = new Date();
+        const futureDate = new Date();
+        futureDate.setDate(today.getDate() + daysToExpire);
+        
+        documents = await Document.find({
+          ...baseQuery,
+          fecha_vencimiento: {
+            $gte: today,
+            $lte: futureDate
+          }
+        })
+        .populate('persona_id', 'nombre email departamento puesto')
+        .sort({ fecha_vencimiento: 1 });
+        break;
+        
+      case 'expired':
+        reportTitle = 'Documentos Vencidos';
+        const now = new Date();
+        
+        documents = await Document.find({
+          ...baseQuery,
+          fecha_vencimiento: { $lt: now }
+        })
+        .populate('persona_id', 'nombre email departamento puesto')
+        .sort({ fecha_vencimiento: 1 });
+        break;
+        
+      default:
+        console.error('❌ Tipo de reporte no válido:', reportType);
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Tipo de reporte no válido' 
+        });
     }
 
-    if (reportType === 'byPerson' && person) {
-      documents = documents.filter(doc => doc.persona_id && doc.persona_id._id.toString() === person);
-    }
-
-    if (reportType === 'expiring' && days) {
-      const now = new Date();
-      const limitDate = new Date();
-      limitDate.setDate(limitDate.getDate() + parseInt(days));
-      documents = documents.filter(doc => {
-        if (!doc.fecha_vencimiento) return false;
-        const vencimiento = new Date(doc.fecha_vencimiento);
-        return vencimiento >= now && vencimiento <= limitDate;
-      });
-    }
-
-    if (reportType === 'expired') {
-      const now = new Date();
-      documents = documents.filter(doc => {
-        if (!doc.fecha_vencimiento) return false;
-        return new Date(doc.fecha_vencimiento) < now;
-      });
-    }
-
-    if (dateFrom || dateTo) {
-      const from = dateFrom ? new Date(dateFrom) : null;
-      const to = dateTo ? new Date(dateTo) : null;
-      documents = documents.filter(doc => {
-        const docDate = new Date(doc.fecha_subida);
-        if (from && docDate < from) return false;
-        if (to && docDate > to) return false;
-        return true;
-      });
-    }
+    console.log(`📄 Documentos encontrados: ${documents.length}`);
 
     // Crear documento PDF
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({ 
+      margin: 50, 
+      size: 'A4',
+      info: {
+        Title: reportTitle,
+        Author: 'Sistema de Gestión de Documentos CBTIS051',
+        Subject: 'Reporte de Documentos',
+        Keywords: 'documentos, reporte, sistema, CBTIS051',
+        CreationDate: new Date()
+      }
+    });
 
-    // Headers para descarga
+    // Configurar headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename="reporte_${reportType}_${Date.now()}.pdf"`);
 
+    // Pipe el documento a la respuesta
     doc.pipe(res);
 
-    // Encabezado del reporte
+    // =====================================================================
+    // ENCABEZADO
+    // =====================================================================
+    
+    // Logo/Título
     doc.fontSize(20)
+       .font('Helvetica-Bold')
        .fillColor('#4F46E5')
-       .text('Sistema de Gestión de Documentos', { align: 'center' })
-       .fontSize(16)
+       .text('Sistema de Gestión de Documentos', { align: 'center' });
+    
+    doc.fontSize(16)
        .text('CBTIS051', { align: 'center' })
        .moveDown(0.5);
-
-    doc.fontSize(12)
-       .fillColor('#000000')
-       .text(`Reporte generado el ${formatDate(new Date())}`, { align: 'center' })
-       .moveDown(1);
-
-    // Información del reporte
-    let reportTitle = 'Reporte General';
-    if (reportType === 'byCategory') reportTitle = `Reporte por Categoría${category ? ': ' + category : ''}`;
-    if (reportType === 'byPerson') reportTitle = 'Reporte por Persona';
-    if (reportType === 'expiring') reportTitle = `Documentos por Vencer (${days || 30} días)`;
-    if (reportType === 'expired') reportTitle = 'Documentos Vencidos';
-
+    
     doc.fontSize(14)
-       .fillColor('#4F46E5')
-       .text(reportTitle, { underline: true })
-       .moveDown(1);
-
-    // Estadísticas generales
-    doc.fontSize(11)
        .fillColor('#000000')
-       .text(`Total de documentos en este reporte: ${documents.length}`, { continued: false })
+       .text(reportTitle, { align: 'center' })
        .moveDown(0.5);
-
+    
+    doc.fontSize(10)
+       .fillColor('#6B7280')
+       .text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, { align: 'center' })
+       .moveDown();
+    
     // Línea separadora
     doc.moveTo(50, doc.y)
-       .lineTo(545, doc.y)
+       .lineTo(550, doc.y)
        .stroke()
-       .moveDown(1);
+       .moveDown();
 
-    // Lista de documentos
-    documents.forEach((document, index) => {
-      // Verificar si hay espacio suficiente, si no, agregar nueva página
-      if (doc.y > 700) {
-        doc.addPage();
-      }
-
-      const person = document.persona_id ? document.persona_id.nombre : 'No asignado';
-      const vencimiento = document.fecha_vencimiento ? formatDate(document.fecha_vencimiento) : 'Sin vencimiento';
+    // =====================================================================
+    // RESUMEN ESTADÍSTICO
+    // =====================================================================
+    
+    doc.fontSize(12)
+       .font('Helvetica-Bold')
+       .text('Resumen del Reporte:', { underline: true })
+       .moveDown(0.5);
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`• Total de documentos: ${documents.length}`)
+       .text(`• Fecha de generación: ${new Date().toLocaleDateString()}`)
+       .text(`• Tipo de reporte: ${getReportTypeName(reportType)}`);
+    
+    // Estadísticas adicionales si hay documentos
+    if (documents.length > 0) {
+      const categories = [...new Set(documents.map(d => d.categoria))];
+      const totalSizeMB = documents.reduce((sum, d) => sum + (d.tamano_archivo || 0), 0) / (1024 * 1024);
+      const expiredCount = documents.filter(d => {
+        if (!d.fecha_vencimiento) return false;
+        return new Date(d.fecha_vencimiento) < new Date();
+      }).length;
       
-      let estado = 'Activo';
-      let estadoColor = '#10B981';
-      if (document.fecha_vencimiento) {
-        const now = new Date();
-        const vencimientoDate = new Date(document.fecha_vencimiento);
-        const diff = Math.ceil((vencimientoDate - now) / (1000 * 60 * 60 * 24));
-        if (diff <= 0) {
-          estado = 'Vencido';
-          estadoColor = '#EF4444';
-        } else if (diff <= 7) {
-          estado = 'Por vencer';
-          estadoColor = '#F59E0B';
-        }
+      doc.text(`• Categorías incluidas: ${categories.length}`);
+      doc.text(`• Tamaño total: ${totalSizeMB.toFixed(2)} MB`);
+      
+      if (expiredCount > 0) {
+        doc.fillColor('red')
+           .text(`• Documentos vencidos: ${expiredCount}`)
+           .fillColor('#000000');
       }
+    }
+    
+    doc.moveDown();
 
-      // Número de documento
+    // =====================================================================
+    // VERIFICAR SI HAY DOCUMENTOS
+    // =====================================================================
+    
+    if (documents.length === 0) {
+      doc.fontSize(14)
+         .fillColor('#DC2626')
+         .text('No hay documentos para mostrar', { align: 'center' })
+         .moveDown();
+      
       doc.fontSize(10)
          .fillColor('#6B7280')
-         .text(`${index + 1}.`, 50, doc.y, { continued: true })
-         .fillColor('#000000')
-         .fontSize(11)
-         .text(` ${document.nombre_original}`, { bold: true });
+         .text('No se encontraron documentos con los criterios seleccionados.', { align: 'center' })
+         .moveDown(2);
+      
+      // Pie de página para documento vacío
+      doc.fontSize(8)
+         .fillColor('#9CA3AF')
+         .text(`Sistema de Gestión de Documentos CBTIS051 - Página 1 de 1`, 
+               50, 
+               doc.page.height - 50, 
+               { align: 'center' });
+      
+      doc.end();
+      console.log('✅ PDF vacío generado exitosamente');
+      console.groupEnd();
+      return;
+    }
 
-      doc.fontSize(9)
-         .fillColor('#6B7280')
-         .text(`   Tipo: ${document.tipo_archivo.toUpperCase()} | Tamaño: ${formatFileSize(document.tamano_archivo)}`, { indent: 15 })
-         .text(`   Categoría: ${document.categoria}`, { indent: 15 })
-         .text(`   Asignado a: ${person}`, { indent: 15 })
-         .text(`   Fecha de subida: ${formatDate(document.fecha_subida)}`, { indent: 15 })
-         .text(`   Vencimiento: ${vencimiento}`, { indent: 15 })
-         .fillColor(estadoColor)
-         .text(`   Estado: ${estado}`, { indent: 15 })
-         .fillColor('#000000')
-         .moveDown(0.8);
-    });
-
-    // Obtener el rango de páginas
-    const range = doc.bufferedPageRange();
-    const pageCount = range.count;
+    // =====================================================================
+    // TABLA DE DOCUMENTOS
+    // =====================================================================
     
-    console.log(`📄 Total de páginas generadas: ${pageCount}`);
-
-    // Agregar pie de página en cada página
-    for (let i = 0; i < pageCount; i++) {
+    // Verificar si necesitamos nueva página antes de la tabla
+    if (doc.y > 650) {
+      doc.addPage();
+    }
+    
+    doc.fontSize(12)
+       .font('Helvetica-Bold')
+       .fillColor('#000000')
+       .text('Detalle de Documentos:', { underline: true })
+       .moveDown(0.5);
+    
+    // Definir posiciones y anchos de columnas
+    const tableTop = doc.y;
+    const columnWidths = [30, 200, 100, 100, 120]; // Ajustado
+    const headers = ['#', 'Nombre', 'Categoría', 'Persona', 'Vencimiento'];
+    
+    // Encabezados de tabla
+    doc.font('Helvetica-Bold')
+       .fontSize(9);
+    
+    let x = 50;
+    headers.forEach((header, i) => {
+      doc.text(header, x, tableTop, {
+        width: columnWidths[i],
+        align: i === 0 ? 'center' : 'left'
+      });
+      x += columnWidths[i];
+    });
+    
+    // Línea debajo de los encabezados
+    doc.moveTo(50, tableTop + 15)
+       .lineTo(550, tableTop + 15)
+       .stroke();
+    
+    // Filas de datos
+    let y = tableTop + 25;
+    
+    doc.font('Helvetica')
+       .fontSize(8);
+    
+    documents.forEach((document, index) => {
+      // Verificar si necesitamos nueva página
+      if (y > 750) {
+        doc.addPage();
+        y = 50; // Reiniciar Y en nueva página
+        
+        // Volver a dibujar encabezados en nueva página
+        doc.font('Helvetica-Bold')
+           .fontSize(9);
+        
+        let newX = 50;
+        headers.forEach((header, i) => {
+          doc.text(header, newX, y, {
+            width: columnWidths[i],
+            align: i === 0 ? 'center' : 'left'
+          });
+          newX += columnWidths[i];
+        });
+        
+        doc.moveTo(50, y + 15)
+           .lineTo(550, y + 15)
+           .stroke();
+        
+        y += 25;
+        doc.font('Helvetica').fontSize(8);
+      }
+      
+      // Datos de la fila
+      const rowData = [
+        (index + 1).toString(),
+        truncateText(document.nombre_original, 35),
+        truncateText(document.categoria || 'Sin categoría', 15),
+        document.persona_id?.nombre || 'No asignado',
+        document.fecha_vencimiento 
+          ? formatDate(document.fecha_vencimiento)
+          : 'Sin fecha'
+      ];
+      
+      // Determinar color según estado
+      let rowColor = '#000000';
+      if (document.fecha_vencimiento) {
+        const fechaVencimiento = new Date(document.fecha_vencimiento);
+        const hoy = new Date();
+        if (fechaVencimiento < hoy) {
+          rowColor = '#DC2626'; // Rojo para vencidos
+        } else if ((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24) <= 7) {
+          rowColor = '#D97706'; // Naranja para por vencer
+        }
+      }
+      
+      // Dibujar fila
+      doc.fillColor(rowColor);
+      let cellX = 50;
+      rowData.forEach((cell, i) => {
+        doc.text(cell, cellX, y, {
+          width: columnWidths[i],
+          align: i === 0 ? 'center' : 'left',
+          height: 15,
+          ellipsis: true
+        });
+        cellX += columnWidths[i];
+      });
+      
+      // Resetear color
+      doc.fillColor('#000000');
+      y += 15;
+      
+      // Línea separadora entre filas (opcional)
+      if (index < documents.length - 1) {
+        doc.moveTo(50, y - 2)
+           .lineTo(550, y - 2)
+           .strokeColor('#E5E7EB')
+           .stroke();
+      }
+    });
+    
+    // =====================================================================
+    // PIE DE PÁGINA CORREGIDO
+    // =====================================================================
+    
+    // CORRECCIÓN CRÍTICA: Manejar correctamente las páginas
+    // Obtener el rango de páginas
+    const pageRange = doc.bufferedPageRange();
+    console.log(`📄 Total de páginas generadas: ${pageRange.count}`);
+    
+    // IMPORTANTE: No usar switchToPage() si hay 0 páginas
+    // En lugar de eso, agregar pie de página directamente en cada página
+    for (let i = 0; i < pageRange.count; i++) {
+      // En PDFKit, las páginas ya están en el buffer
+      // Solo necesitamos agregar texto al pie de página
+      
+      // Acceder a la página usando el método correcto
       doc.switchToPage(i);
       
-      // Guardar posición actual
-      const oldBottomMargin = doc.page.margins.bottom;
-      
-      // Posicionar en el footer
+      // Agregar pie de página en posición fija
       doc.fontSize(8)
-         .fillColor('#6B7280')
+         .fillColor('#9CA3AF')
          .text(
-           `Página ${i + 1} de ${pageCount} - Sistema de Gestión de Documentos CBTIS051`,
+           `Sistema de Gestión de Documentos CBTIS051 - Página ${i + 1} de ${pageRange.count}`,
            50,
            doc.page.height - 50,
-           { align: 'center', lineBreak: false }
+           { align: 'center', width: 500 }
          );
     }
-
-    // Finalizar documento
+    
+    // =====================================================================
+    // FINALIZAR DOCUMENTO
+    // =====================================================================
+    
     doc.end();
-
-    console.log('✅ Reporte PDF generado exitosamente');
-
-    // Crear notificación de reporte generado
-    try {
-      await NotificationService.reporteGenerado(reportType, 'pdf', documents.length);
-    } catch (notifError) {
-      console.error('⚠️ Error creando notificación:', notifError.message);
-    }
-
+    
+    console.log(`✅ PDF generado exitosamente con ${documents.length} documentos`);
+    console.groupEnd();
+    
   } catch (error) {
-    console.error('❌ Error generando reporte PDF:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al generar reporte PDF: ' + error.message 
-    });
+    console.error('❌ ERROR generando reporte PDF:', error);
+    console.error('📋 Stack trace:', error.stack);
+    
+    // IMPORTANTE: Verificar si los headers ya fueron enviados
+    if (res.headersSent) {
+      console.error('⚠️ Headers ya enviados, no se puede enviar error JSON');
+      try {
+        res.end();
+      } catch (endError) {
+        console.error('❌ Error finalizando respuesta:', endError);
+      }
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: `Error al generar reporte PDF: ${error.message}` 
+      });
+    }
+    
+    console.groupEnd();
   }
 });
+
+/**
+ * Truncar texto si es muy largo
+ */
+function truncateText(text, maxLength) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3) + '...';
+}
+
+/**
+ * Obtener nombre legible del tipo de reporte
+ */
+function getReportTypeName(reportType) {
+  const names = {
+    'general': 'General',
+    'byCategory': 'Por Categoría',
+    'byPerson': 'Por Persona',
+    'expiring': 'Por Vencer',
+    'expired': 'Vencidos'
+  };
+  return names[reportType] || reportType;
+}
 
 // Generar reporte en CSV
 app.post('/api/reports/csv', async (req, res) => {
