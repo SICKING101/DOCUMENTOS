@@ -532,6 +532,109 @@ class DocumentController {
       });
     }
   }
+
+  // Actualizar documento (renovar o editar)
+  static async update(req, res) {
+    try {
+      const { id } = req.params;
+      console.log('📝 Actualizando documento:', id);
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID inválido' 
+        });
+      }
+
+      const documento = await Document.findOne({ _id: id, activo: true });
+
+      if (!documento) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Documento no encontrado' 
+        });
+      }
+
+      // Si se envió un nuevo archivo, reemplazar en Cloudinary
+      if (req.file) {
+        console.log('📤 Nuevo archivo detectado, reemplazando en Cloudinary...');
+        
+        try {
+          // Eliminar archivo anterior de Cloudinary
+          if (documento.public_id) {
+            await cloudinary.uploader.destroy(documento.public_id, {
+              resource_type: documento.resource_type || 'auto'
+            });
+            console.log('🗑️ Archivo anterior eliminado de Cloudinary');
+          }
+
+          // Subir nuevo archivo
+          const cloudinaryResult = await FileService.uploadToCloudinary(req.file.path);
+          console.log('✅ Nuevo archivo subido a Cloudinary');
+
+          // Actualizar campos relacionados con el archivo
+          documento.nombre_original = req.file.originalname;
+          documento.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
+          documento.tamano_archivo = req.file.size;
+          documento.cloudinary_url = cloudinaryResult.secure_url;
+          documento.public_id = cloudinaryResult.public_id;
+          documento.resource_type = cloudinaryResult.resource_type;
+
+          // Limpiar archivo temporal
+          FileService.cleanTempFile(req.file.path);
+        } catch (uploadError) {
+          console.error('❌ Error subiendo nuevo archivo:', uploadError);
+          FileService.cleanTempFile(req.file && req.file.path);
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Error al subir el nuevo archivo: ' + uploadError.message 
+          });
+        }
+      }
+
+      // Actualizar campos permitidos (excepto fecha_subida)
+      const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
+      
+      if (descripcion !== undefined) documento.descripcion = descripcion;
+      if (categoria !== undefined) documento.categoria = categoria;
+      if (fecha_vencimiento !== undefined) documento.fecha_vencimiento = fecha_vencimiento || null;
+      if (persona_id !== undefined) documento.persona_id = persona_id || null;
+
+      await documento.save();
+      console.log('✅ Documento actualizado exitosamente');
+
+      // Obtener documento con datos de persona
+      const documentoActualizado = await Document.findById(documento._id)
+        .populate('persona_id', 'nombre');
+
+      // Crear notificación de documento actualizado
+      try {
+        await NotificationService.create({
+          titulo: 'Documento actualizado',
+          mensaje: `El documento "${documento.nombre_original}" ha sido actualizado`,
+          tipo: 'info',
+          categoria: 'documento'
+        });
+      } catch (notifError) {
+        console.error('⚠️ Error creando notificación:', notifError.message);
+      }
+
+      res.json({
+        success: true,
+        message: 'Documento actualizado correctamente',
+        document: documentoActualizado
+      });
+
+    } catch (error) {
+      console.error('❌ Error actualizando documento:', error);
+      FileService.cleanTempFile(req.file && req.file.path);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al actualizar documento: ' + error.message 
+      });
+    }
+  }
+  
 }
 
 export default DocumentController;

@@ -242,5 +242,11 @@ export function setupCompatibilityGlobals() {
     window.hideUploadProgress = hideUploadProgress;
     window.updateUploadProgress = updateUploadProgress;
     
+    // Agregar función de editar documento
+    window.editDocument = async (documentId) => {
+        const { openEditDocumentModal } = await import('./modals/editDocumentModal.js');
+        return openEditDocumentModal(documentId);
+    };
+    
     console.log('✅ Funciones globales de compatibilidad configuradas');
 }

@@ -1,6 +1,6 @@
 📁 Sistema Avanzado de Gestión Documental y Expedientes Electrónicos para Control Administrativo del Personal Laboral - CBTIS051
 
-Sistema completo para la gestion de documentos con backend en Node.js + Express, base de datos MongoDB y un frontend modular estructurado en carpetas.
+Sistema completo para la gestion y control de documentos laborales, construido con Node.js + Express, MongoDB, y un frontend modular ES Modules.
 
 🚀 Caracteristicas principales
 
@@ -27,8 +27,8 @@ DOCUMENTOS/
 ├── 🖥️ public/                          # Frontend estatico
 │   ├── 📄 index.html
 │   ├── 📁 css/
-│   │   ├── 🎨 main.css                 # Archivo maestro que importa todo
-│   │   ├── 📁 base/                    # Bases y configuraciones globales
+│   │   ├── 🎨 main.css                 # Archivo maestro global
+│   │   ├── 📁 base/                    # Configuracion base
 │   │   │   ├── reset.css
 │   │   │   ├── variables.css
 │   │   │   └── utilities.css
@@ -44,9 +44,8 @@ DOCUMENTOS/
 │   │   │   ├── filters.css
 │   │   │   ├── tabs.css
 │   │   │   ├── empty-states.css
-|   |   |   └── preloader.css
-|   |   |
-│   │   ├── 📁 sections/                # Estilos por pagina o modulo
+│   │   │   └── preloader.css
+│   │   ├── 📁 sections/                # Estilos por modulo/pagina
 │   │   │   ├── dashboard.css
 │   │   │   ├── tasks.css
 │   │   │   ├── documents.css
@@ -55,10 +54,10 @@ DOCUMENTOS/
 │   │   │   ├── historial.css
 │   │   │   ├── notifications.css
 │   │   │   └── trash.css
-│   │   ├── 📁 themes/                  # Temas globales
+│   │   ├── 📁 themes/                  # Temas (light/dark)
 │   │   │   ├── light.css
 │   │   │   └── dark.css
-│   │   └── 📁 responsive/              # Breakpoints responsivos
+│   │   └── 📁 responsive/              # Breakpoints
 │   │       ├── mobile.css
 │   │       ├── tablet.css
 │   │       └── desktop.css
@@ -70,7 +69,7 @@ DOCUMENTOS/
 │
 ├── 📁 src/
 │   ├── 🌐 frontend/                    # Logica del cliente
-│   │   ├── 📁 modules/                 # Modulos independientes
+│   │   ├── 📁 modules/                 # Modulos por funcion
 │   │   │   ├── categorias.js
 │   │   │   ├── dashboard.js
 │   │   │   ├── documentos.js
@@ -79,58 +78,51 @@ DOCUMENTOS/
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
 │   │   │   ├── search.js
-|   |   |   └──📁 documentos/
-|   |   |       ├── core/
-|   |   |       │   ├── constants.js
-|   |   |       │   ├── MultipleUploadState.js
-|   |   |       |
-|   │   |       ├── download/
-|   |   |       │   ├── downloadDiagnostics.js
-|   |   |       │   ├── downloadManager.js
-|   |   |       │   ├── downloadMethods.js
-|   |   |       |
-|   |   |       ├── modals/
-|   |   |       │   ├── documentModal.js
-|   |   |       │   ├── modalHelpers.js
-|   |   |       |
-|   |   |       ├── preview/
-|   |   |       │   ├── officePreview.js
-|   |   |       │   ├── previewManager.js
-|   |   |       │   ├── previewModals.js
-|   |   |       │   ├── textPreview.js
-|   |   |       |
-|   |   |       ├── table/
-|   |   |       │   ├── tableRenderer.js
-|   |   |       │   ├── tableFilters.js
-|   |   |       |
-|   |   |       ├── upload/
-|   |   |       │   ├── dragAndDrop.js
-|   |   |       │   ├── progressManager.js
-|   |   |       │   ├── uploadMultiple.js
-|   |   |       │   ├── uploadSingle.js
-|   |   |       |
-|   |   |       ├── index.js
-|   |   |       ├── compatibility.js
-|   |   |
+│   │   │   └── 📁 documentos/
+│   │   │       ├── core/
+│   │   │       │   ├── constants.js
+│   │   │       │   ├── MultipleUploadState.js
+│   │   │       ├── download/
+│   │   │       │   ├── downloadDiagnostics.js
+│   │   │       │   ├── downloadManager.js
+│   │   │       │   ├── downloadMethods.js
+│   │   │       ├── modals/
+│   │   │       │   ├── documentModal.js
+│   │   │       │   ├── modalHelpers.js
+│   │   │       ├── preview/
+│   │   │       │   ├── officePreview.js
+│   │   │       │   ├── previewManager.js
+│   │   │       │   ├── previewModals.js
+│   │   │       │   ├── textPreview.js
+│   │   │       ├── table/
+│   │   │       │   ├── tableRenderer.js
+│   │   │       │   ├── tableFilters.js
+│   │   │       ├── upload/
+│   │   │       │   ├── dragAndDrop.js
+│   │   │       │   ├── progressManager.js
+│   │   │       │   ├── uploadMultiple.js
+│   │   │       │   ├── uploadSingle.js
+│   │   │       ├── index.js
+│   │   │       ├── compatibility.js
 │   │   ├── 🔧 services/
-│   │   │   └── api.js                  # Cliente fetch para backend
-│   │   ├── 🚀 app.js                   # Inicializacion general
-│   │   ├── ⚙️ auth.js                  # Autenticacion 
-|   │   ├── ⚙️ authGuard.js             # Guardado de autenticación
+│   │   │   └── api.js                  # Cliente API
+│   │   ├── 🚀 app.js                   # Inicializacion global
+│   │   ├── 🔐 auth.js                  # Auth general
+│   │   ├── 🔐 authGuard.js             # Proteccion de rutas
 │   │   ├── ⚙️ config.js                # Config del frontend
-│   │   ├── 🧩 dom.js                   # Selectores y manip DOM
-│   │   ├── 🧭 navigation.js            # Navegacion SPA
+│   │   ├── 🧩 dom.js                   # Selectores DOM
+│   │   ├── 🧭 navigation.js            # SPA Router
 │   │   ├── 📊 state.js                 # Estado global
 │   │   ├── 📌 task.js                  # Manejo de tareas
 │   │   ├── 🎛️ ui.js                   # Render de UI
-|   │   ├── 🛠️ userMenu.js              # Menu de usuario
-│   │   └── 🛠️ utils.js                # Utilidades generales
+│   │   ├── 🛠️ userMenu.js              # Menu usuario
+│   │   └── 🛠️ utils.js                # Funciones utiles
 │   │
-│   ├── 🛠️ backend/                    # Servidor Express
+│   ├── 🛠️ backend/
 │   │   ├── ⚙️ config/
 │   │   │   ├── cloudinaryConfig.js
 │   │   │   └── multerConfig.js
-│   │   ├── 🎯 controllers/             # Controladores por entidad
+│   │   ├── 🎯 controllers/             # Controladores REST
 │   │   │   ├── categoryController.js
 │   │   │   ├── dashboardController.js
 │   │   │   ├── documentController.js
@@ -138,21 +130,22 @@ DOCUMENTOS/
 │   │   │   ├── personController.js
 │   │   │   ├── reportController.js
 │   │   │   └── taskController.js
-│   │   ├── 🧵 middleware/              # Pendiente
-│   │   ├── 🧬 models/                  # Modelos de MongoDB
+│   │   ├── 🧵 middleware/
+│   │   ├── 🧬 models/                  # Modelos MongoDB
 │   │   │   ├── Category.js
 │   │   │   ├── Document.js
 │   │   │   ├── Person.js
 │   │   │   ├── Notification.js
 │   │   │   └── Task.js
-│   │   ├── 🛎️ services/               # Servicios internos
+│   │   ├── 🛎️ services/
 │   │   │   ├── fileService.js
 │   │   │   └── notificationService.js
 │   │   └── 🚦 routes/
 │   │       └── apiRoutes.js
 │
-├── 🚀 server.js                        # Entrada del servidor
+├── 🚀 server.js                        # Punto de entrada del servidor
 ├── 📦 package.json
 ├── 📦 package-lock.json
 ├── 🔐 .env
 └── 📝 README.md
+

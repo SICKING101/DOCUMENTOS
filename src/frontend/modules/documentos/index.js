@@ -302,6 +302,13 @@ export function initializeDocumentosModule() {
         
         // Inicializar filtros de tabla
         initializeTableFilters();
+
+         // Inicializar modal de edición de documentos
+        import('./modals/editDocumentModal.js').then(module => {
+            module.initEditDocumentModal();
+        }).catch(err => {
+            console.error('Error cargando modal de edición:', err);
+        });
         
         console.log('✅ Módulo de documentos inicializado correctamente');
         
