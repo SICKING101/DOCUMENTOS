@@ -386,12 +386,21 @@ class apiCall {
         return this.call('/documents');
     }
 
-    async uploadDocument(formData) {
-        return this.call('/documents', {
-            method: 'POST',
-            body: formData,
-            headers: {} // No Content-Type para FormData, el navegador lo maneja
-        });
+    async uploadDocument(formData, documentId = null) {
+        if (documentId) {
+            // Para actualizar con archivo
+            return this.call(`/documents/${documentId}`, {
+                method: 'PUT',
+                body: formData
+                // No headers para FormData, el navegador lo maneja
+            });
+        } else {
+            // Para crear nuevo documento
+            return this.call('/documents', {
+                method: 'POST',
+                body: formData
+            });
+        }
     }
 
     async deleteDocument(id) {
@@ -411,6 +420,28 @@ class apiCall {
 
     async previewDocument(id) {
         return this.call(`/documents/${id}/preview`);
+    }
+
+    // Método específico para actualizar documento (sin archivo)
+    async updateDocument(id, documentData) {
+        return this.call(`/documents/${id}`, {
+            method: 'PUT',
+            body: documentData,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+
+    // Método para actualización parcial (PATCH)
+    async patchDocument(id, documentData) {
+        return this.call(`/documents/${id}`, {
+            method: 'PATCH',
+            body: documentData,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
     }
 
     // Categorías
@@ -438,29 +469,29 @@ class apiCall {
         });
     }
 
-   async getDepartments() {
-    return this.call('/departments');
-}
+    async getDepartments() {
+        return this.call('/departments');
+    }
 
-async createDepartment(departmentData) {
-    return this.call('/departments', {
-        method: 'POST',
-        body: departmentData
-    });
-}
+    async createDepartment(departmentData) {
+        return this.call('/departments', {
+            method: 'POST',
+            body: departmentData
+        });
+    }
 
-async updateDepartment(id, departmentData) {
-    return this.call(`/departments/${id}`, {
-        method: 'PUT',
-        body: departmentData
-    });
-}
+    async updateDepartment(id, departmentData) {
+        return this.call(`/departments/${id}`, {
+            method: 'PUT',
+            body: departmentData
+        });
+    }
 
-async deleteDepartment(id) {
-    return this.call(`/departments/${id}`, {
-        method: 'DELETE'
-    });
-}
+    async deleteDepartment(id) {
+        return this.call(`/departments/${id}`, {
+            method: 'DELETE'
+        });
+    }
 
     // Reportes
     async generateExcelReport(reportData) {

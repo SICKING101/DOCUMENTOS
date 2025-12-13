@@ -651,6 +651,7 @@
     display: flex;
     justify-content: space-between;
     margin-top: 1rem;
+    margin-left: 10px;
     padding-top: 1rem;
     border-top: 1px solid var(--border-color);
     font-size: 0.8rem;

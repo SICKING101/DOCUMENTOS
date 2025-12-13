@@ -36,7 +36,12 @@ cloudinary.config({
 // -----------------------------
 // Middlewares
 // -----------------------------
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:4000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -878,6 +883,322 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
   }
 });
 
+// =============================================================================
+// ACTUALIZAR DOCUMENTO (CORREGIDO COMPLETAMENTE)
+// =============================================================================
+
+app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
+  try {
+    console.log('📝 ========== ACTUALIZACIÓN DOCUMENTO ==========');
+    const { id } = req.params;
+    
+    console.log('📋 ID del documento:', id);
+    console.log('📋 Body recibido:', req.body);
+    console.log('📋 ¿Hay archivo?', req.file ? 'SÍ' : 'NO');
+
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID de documento inválido' 
+      });
+    }
+
+    // Buscar documento existente
+    const documentoExistente = await Document.findOne({ 
+      _id: id,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    });
+
+    if (!documentoExistente) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Documento no encontrado' 
+      });
+    }
+
+    console.log('📄 Documento encontrado:', documentoExistente.nombre_original);
+
+    // Extraer datos del cuerpo
+    const { 
+      descripcion, 
+      categoria, 
+      fecha_vencimiento, 
+      persona_id 
+    } = req.body;
+
+    console.log('📋 Datos recibidos para actualizar:', {
+      descripcion,
+      categoria,
+      fecha_vencimiento,
+      persona_id
+    });
+
+    // Preparar datos para actualizar
+    const datosActualizados = {
+      descripcion: descripcion !== undefined ? descripcion : documentoExistente.descripcion,
+      categoria: categoria !== undefined ? categoria : documentoExistente.categoria,
+      fecha_vencimiento: fecha_vencimiento !== undefined ? fecha_vencimiento : documentoExistente.fecha_vencimiento,
+      persona_id: persona_id !== undefined ? persona_id : documentoExistente.persona_id
+    };
+
+    let cloudinaryResult = null;
+    let public_id_antiguo = null;
+
+    // =========================================================================
+    // SI HAY ARCHIVO NUEVO (REEMPLAZAR)
+    // =========================================================================
+    if (req.file) {
+      console.log('🔄 Reemplazando archivo...');
+      console.log('📁 Archivo nuevo:', req.file.originalname);
+      console.log('📊 Tamaño:', req.file.size);
+
+      // Guardar info del archivo antiguo
+      public_id_antiguo = documentoExistente.public_id;
+
+      try {
+        // Subir nuevo archivo a Cloudinary
+        cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'documentos_cbtis051',
+          resource_type: 'auto'
+        });
+
+        console.log('✅ Nuevo archivo subido a Cloudinary:', cloudinaryResult.secure_url);
+
+        // Actualizar datos con nuevo archivo
+        datosActualizados.nombre_original = req.file.originalname;
+        datosActualizados.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
+        datosActualizados.tamano_archivo = req.file.size;
+        datosActualizados.cloudinary_url = cloudinaryResult.secure_url;
+        datosActualizados.public_id = cloudinaryResult.public_id;
+        datosActualizados.resource_type = cloudinaryResult.resource_type;
+
+      } catch (cloudinaryError) {
+        console.error('❌ Error subiendo archivo nuevo:', cloudinaryError);
+        // Limpiar archivo temporal
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error al subir nuevo archivo: ' + cloudinaryError.message 
+        });
+      }
+    }
+
+    // =========================================================================
+    // ACTUALIZAR EN BASE DE DATOS
+    // =========================================================================
+    console.log('💾 Actualizando en base de datos...');
+    
+    // Preparar campos a actualizar
+    const updateData = {};
+    
+    // Solo actualizar campos que tienen valores
+    if (datosActualizados.descripcion !== undefined) updateData.descripcion = datosActualizados.descripcion;
+    if (datosActualizados.categoria !== undefined) updateData.categoria = datosActualizados.categoria;
+    if (datosActualizados.fecha_vencimiento !== undefined) updateData.fecha_vencimiento = datosActualizados.fecha_vencimiento;
+    if (datosActualizados.persona_id !== undefined) updateData.persona_id = datosActualizados.persona_id;
+    
+    // Campos de archivo si hay archivo nuevo
+    if (req.file) {
+      updateData.nombre_original = datosActualizados.nombre_original;
+      updateData.tipo_archivo = datosActualizados.tipo_archivo;
+      updateData.tamano_archivo = datosActualizados.tamano_archivo;
+      updateData.cloudinary_url = datosActualizados.cloudinary_url;
+      updateData.public_id = datosActualizados.public_id;
+      updateData.resource_type = datosActualizados.resource_type;
+    }
+    
+    console.log('📋 Campos a actualizar:', updateData);
+    
+    const documentoActualizado = await Document.findByIdAndUpdate(
+      id,
+      updateData,
+      { 
+        new: true, 
+        runValidators: true 
+      }
+    ).populate('persona_id', 'nombre');
+
+    if (!documentoActualizado) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error al actualizar en base de datos' 
+      });
+    }
+
+    console.log('✅ Documento actualizado en BD:', documentoActualizado.nombre_original);
+
+    // =========================================================================
+    // LIMPIAR ARCHIVOS TEMPORALES Y ANTIGUOS
+    // =========================================================================
+    
+    // Limpiar archivo temporal si existe
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+      console.log('🧹 Archivo temporal eliminado');
+    }
+
+    // Eliminar archivo antiguo de Cloudinary si se reemplazó
+    if (req.file && public_id_antiguo) {
+      try {
+        await cloudinary.uploader.destroy(public_id_antiguo, {
+          resource_type: documentoExistente.resource_type
+        });
+        console.log('🗑️ Archivo antiguo eliminado de Cloudinary');
+      } catch (deleteError) {
+        console.warn('⚠️ No se pudo eliminar archivo antiguo:', deleteError.message);
+      }
+    }
+
+    // =========================================================================
+    // CREAR NOTIFICACIÓN
+    // =========================================================================
+    try {
+      await NotificationService.documentoActualizado(
+        documentoActualizado,
+        documentoActualizado.persona_id
+      );
+      console.log('✅ Notificación creada');
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
+    console.log('📝 ========== FIN ACTUALIZACIÓN ==========');
+
+    res.json({
+      success: true,
+      message: req.file ? 'Documento y archivo actualizados' : 'Documento actualizado',
+      document: documentoActualizado
+    });
+
+  } catch (error) {
+    console.error('❌ Error general actualizando documento:', error);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Limpiar archivos temporales en caso de error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al actualizar documento: ' + error.message 
+    });
+  }
+});
+
+// =============================================================================
+// ENDPOINT PATCH PARA ACTUALIZACIONES PARCIALES (PARA FRONTEND)
+// =============================================================================
+
+app.patch('/api/documents/:id', async (req, res) => {
+  try {
+    console.log('🔄 PATCH - Actualización parcial de documento');
+    const { id } = req.params;
+    
+    console.log('📋 ID del documento:', id);
+    console.log('📋 Body recibido:', req.body);
+
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID de documento inválido' 
+      });
+    }
+
+    // Buscar documento existente
+    const documentoExistente = await Document.findOne({ 
+      _id: id,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    });
+
+    if (!documentoExistente) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Documento no encontrado' 
+      });
+    }
+
+    console.log('📄 Documento encontrado para PATCH:', documentoExistente.nombre_original);
+
+    // Extraer datos del cuerpo
+    const { 
+      descripcion, 
+      categoria, 
+      fecha_vencimiento, 
+      persona_id 
+    } = req.body;
+
+    // Preparar datos para actualizar
+    const updateData = {};
+    
+    if (descripcion !== undefined) updateData.descripcion = descripcion;
+    if (categoria !== undefined) updateData.categoria = categoria;
+    if (fecha_vencimiento !== undefined) updateData.fecha_vencimiento = fecha_vencimiento;
+    if (persona_id !== undefined) updateData.persona_id = persona_id;
+
+    console.log('📋 Campos a actualizar en PATCH:', updateData);
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se proporcionaron datos para actualizar'
+      });
+    }
+
+    // Actualizar en base de datos
+    const documentoActualizado = await Document.findByIdAndUpdate(
+      id,
+      updateData,
+      { 
+        new: true, 
+        runValidators: true 
+      }
+    ).populate('persona_id', 'nombre');
+
+    if (!documentoActualizado) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Error al actualizar en base de datos' 
+      });
+    }
+
+    console.log('✅ Documento actualizado vía PATCH');
+
+    // Crear notificación
+    try {
+      await NotificationService.documentoActualizado(
+        documentoActualizado,
+        documentoActualizado.persona_id
+      );
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Documento actualizado correctamente',
+      document: documentoActualizado
+    });
+
+  } catch (error) {
+    console.error('❌ Error en PATCH:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al actualizar documento: ' + error.message 
+    });
+  }
+});
+
 // ENDPOINT DE VISTA PREVIA
 app.get('/api/documents/:id/preview', async (req, res) => {
   try {
@@ -1247,6 +1568,65 @@ app.delete('/api/trash/:id', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error al eliminar documento permanentemente' 
+    });
+  }
+});
+
+// =============================================================================
+// ENDPOINT PARA OBTENER INFORMACIÓN DEL DOCUMENTO
+// =============================================================================
+
+app.get('/api/documents/:id/info', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('📄 Obteniendo información del documento:', id);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const documento = await Document.findOne({ 
+      _id: id,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    }).populate('persona_id', 'nombre email departamento puesto');
+    
+    if (!documento) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Documento no encontrado' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      document: {
+        id: documento._id,
+        nombre_original: documento.nombre_original,
+        tipo_archivo: documento.tipo_archivo,
+        tamano_archivo: documento.tamano_archivo,
+        descripcion: documento.descripcion,
+        categoria: documento.categoria,
+        fecha_subida: documento.fecha_subida,
+        fecha_vencimiento: documento.fecha_vencimiento,
+        persona: documento.persona_id,
+        cloudinary_url: documento.cloudinary_url,
+        public_id: documento.public_id,
+        resource_type: documento.resource_type
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error obteniendo info del documento:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al obtener información del documento' 
     });
   }
 });
@@ -2409,51 +2789,6 @@ app.get('/api/documents/:id/content', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error al obtener contenido: ' + error.message
-        });
-    }
-});
-
-// =============================================================================
-// ENDPOINT PARA OBTENER INFORMACIÓN DEL ARCHIVO (OPCIONAL)
-// =============================================================================
-
-app.get('/api/documents/:id/info', async (req, res) => {
-    try {
-        const { id } = req.params;
-        
-        const documento = await Document.findOne({ _id: id, activo: true })
-            .populate('persona_id', 'nombre email departamento puesto');
-        
-        if (!documento) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Documento no encontrado' 
-            });
-        }
-        
-        res.json({
-            success: true,
-            document: {
-                id: documento._id,
-                nombre_original: documento.nombre_original,
-                tipo_archivo: documento.tipo_archivo,
-                tamano_archivo: documento.tamano_archivo,
-                descripcion: documento.descripcion,
-                categoria: documento.categoria,
-                fecha_subida: documento.fecha_subida,
-                fecha_vencimiento: documento.fecha_vencimiento,
-                persona: documento.persona_id,
-                cloudinary_url: documento.cloudinary_url,
-                public_id: documento.public_id,
-                resource_type: documento.resource_type
-            }
-        });
-        
-    } catch (error) {
-        console.error('Error obteniendo info del documento:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al obtener información del documento' 
         });
     }
 });

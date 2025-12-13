@@ -58,6 +58,7 @@ router.delete('/departments/:id', DepartmentController.delete);
 // -----------------------------
 router.get('/documents', DocumentController.getAll);
 router.post('/documents', upload.single('file'), DocumentController.create);
+router.put('/documents/:id', upload.single('file'), DocumentController.update);
 router.get('/documents/:id/preview', DocumentController.preview);
 router.get('/documents/:id/download', DocumentController.download);
 router.get('/documents/:id/content', DocumentController.getContent);

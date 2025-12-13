@@ -543,137 +543,100 @@
                 </section>
 
                 <!-- ===== DOCUMENTOS TAB REDESIGN ===== -->
-                <section id="documentos" class="tab-content">
-                    <!-- Header Principal -->
-                    <div class="documents-header">
-                        <div>
-                            <h2 class="documents-header__title">
-                                <i class="fas fa-folder-open"></i>
-                                Gestión de Documentos
-                            </h2>
-                            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema
-                            </p>
-                        </div>
-                        <div class="documents-header__actions">
-                            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
-                                <i class="fas fa-search"></i>
-                                <span>Búsqueda Avanzada</span>
-                            </button>
-                            <button class="btn btn--primary" id="addDocumentBtn">
-                                <i class="fas fa-file-upload"></i>
-                                <span>Subir Documento</span>
-                            </button>
-                        </div>
-                    </div>
+<section id="documentos" class="tab-content">
+    <!-- Header Principal -->
+    <div class="documents-header">
+        <div>
+            <h2 class="documents-header__title">
+                <i class="fas fa-folder-open"></i>
+                Gestión de Documentos
+            </h2>
+            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema</p>
+        </div>
+        <div class="documents-header__actions">
+            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
+                <i class="fas fa-search"></i>
+                <span>Búsqueda Avanzada</span>
+            </button>
+            <button class="btn btn--primary" id="addDocumentBtn">
+                <i class="fas fa-file-upload"></i>
+                <span>Subir Documento</span>
+            </button>
+        </div>
+    </div>
 
-                    <!-- Vista Rápida de Categorías -->
-                    <div class="categories-overview">
-                        <div class="categories-overview__header">
-                            <h3 class="categories-overview__title">
-                                <i class="fas fa-tags"></i>
-                                Categorías Disponibles
-                            </h3>
-                            <button class="btn btn--secondary btn--sm" id="addCategoryBtn">
-                                <i class="fas fa-plus"></i>
-                                <span>Nueva Categoría</span>
-                            </button>
-                        </div>
-                        <div class="compact-categories-grid" id="categoriesStats">
-                            <!-- Categorías se cargarán aquí dinámicamente -->
-                            <div class="compact-category-card">
-                                <div class="compact-category-card__icon">
-                                    <i class="fas fa-file-pdf"></i>
-                                </div>
-                                <h4 class="compact-category-card__name">Contratos</h4>
-                                <span class="compact-category-card__count">15 documentos</span>
-                            </div>
-                            <!-- Más categorías se agregarán dinámicamente -->
-                        </div>
-                    </div>
+    <!-- Vista Rápida de Categorías -->
+    <div class="categories-overview">
+        <div class="categories-overview__header">
+            <h3 class="categories-overview__title">
+                <i class="fas fa-tags"></i>
+                Categorías Disponibles
+            </h3>
+            <button class="btn btn--secondary btn--sm" id="addCategoryBtn">
+                <i class="fas fa-plus"></i>
+                <span>Nueva Categoría</span>
+            </button>
+        </div>
+        <div class="compact-categories-grid" id="categoriesStats">
+            <!-- Categorías se cargarán aquí dinámicamente -->
+        </div>
+    </div>
 
-                    <!-- Filtros Avanzados -->
-                    <div class="documents-filters">
-                        <div class="filters-header">
-                            <h3 class="filters-title">Filtrar Documentos</h3>
-                        </div>
-                        <div class="filters-grid">
-                            <div class="filter-group">
-                                <label for="filterCategory">Categoría</label>
-                                <select class="filter-select" id="filterCategory">
-                                    <option value="">Todas las categorías</option>
-                                    <!-- Categorías dinámicas -->
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="filterType">Tipo de Archivo</label>
-                                <select class="filter-select" id="filterType">
-                                    <option value="">Todos los tipos</option>
-                                    <option value="PDF">PDF</option>
-                                    <option value="DOCX">Word</option>
-                                    <option value="XLSX">Excel</option>
-                                    <option value="JPG">Imagen</option>
-                                    <option value="PPT">Presentación</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="filterDate">Fecha de Subida</label>
-                                <select class="filter-select" id="filterDate">
-                                    <option value="">Cualquier fecha</option>
-                                    <option value="today">Hoy</option>
-                                    <option value="week">Esta semana</option>
-                                    <option value="month">Este mes</option>
-                                    <option value="year">Este año</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="filterStatus">Estado</label>
-                                <select class="filter-select" id="filterStatus">
-                                    <option value="">Todos los estados</option>
-                                    <option value="active">Activos</option>
-                                    <option value="expired">Vencidos</option>
-                                    <option value="expiring">Por vencer</option>
-                                    <option value="archived">Archivados</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Filtros Avanzados -->
+    <div class="documents-filters">
+        <div class="filters-header">
+            <h3 class="filters-title">Filtrar Documentos</h3>
+        </div>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="filterCategory">Categoría</label>
+                <select class="filter-select" id="filterCategory">
+                    <option value="">Todas las categorías</option>
+                    <!-- Categorías dinámicas -->
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterType">Tipo de Archivo</label>
+                <select class="filter-select" id="filterType">
+                    <option value="">Todos los tipos</option>
+                    <option value="PDF">PDF</option>
+                    <option value="DOCX">Word</option>
+                    <option value="XLSX">Excel</option>
+                    <option value="JPG">Imagen</option>
+                    <option value="PPT">Presentación</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Estado</label>
+                <select class="filter-select" id="filterStatus">
+                    <option value="">Todos los estados</option>
+                    <option value="active">Activos</option>
+                    <option value="expired">Vencidos</option>
+                    <option value="expiring">Por vencer</option>
+                </select>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Tabla de Documentos -->
-                    <div class="documents-table-container">
-                        <table class="documents-table">
-                            <thead>
-                                <tr>
-                                    <th>Documento</th>
-                                    <th>Tipo</th>
-                                    <th>Tamaño</th>
-                                    <th>Persona</th>
-                                    <th>Categoría</th>
-                                    <th>Fecha Subida</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="documentosTableBody">
-                                <!-- Documentos se cargarán aquí dinámicamente -->
-                                <tr class="empty-row">
-                                    <td colspan="8">
-                                        <div class="documents-empty-state">
-                                            <i class="fas fa-file-alt documents-empty-state__icon"></i>
-                                            <h3 class="documents-empty-state__title">No hay documentos subidos</h3>
-                                            <p class="documents-empty-state__description">
-                                                Sube tu primer documento o importa desde una carpeta para comenzar
-                                            </p>
-                                            <button class="btn btn--primary" id="emptyStateUploadBtn">
-                                                <i class="fas fa-file-upload"></i>
-                                                Subir Primer Documento
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+    <!-- Tabla de Documentos -->
+    <div class="documents-table-container">
+        <table class="documents-table">
+            <thead>
+                <tr>
+                    <th>Documento</th>
+                    <th>Tipo</th>
+                    <th>Persona</th>
+                    <th>Categoría</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="documentosTableBody">
+                <!-- Documentos se cargarán aquí dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+</section>
 
                 <!-- ===== TAREAS TAB ===== -->
                 <section id="tareas" class="tab-content">
@@ -943,7 +906,7 @@
                                 </div>
                                 <div class="summary__item">
                                     <i class="fas fa-hdd"></i>
-                                    <span>Tamaño total: <strong>0 MB</strong></span>
+                                    <span>Tamaño: <strong>0 MB</strong></span>
                                 </div>
                                 <div class="summary__item">
                                     <i class="fas fa-clock"></i>
@@ -998,6 +961,108 @@
             </footer>
         </article>
     </dialog>
+
+     <!-- Edit Document Modal - VERSIÓN CORREGIDA -->
+<div id="editDocumentModal" class="modal">
+    <article class="modal__content">
+        <header class="modal__header">
+            <h3 class="modal__title">Editar Documento</h3>
+            <button class="modal__close" id="closeEditDocumentModal">&times;</button>
+        </header>
+        <section class="modal__body">
+            <form id="editDocumentForm">
+                <input type="hidden" id="editDocumentId">
+                
+                <div class="form__group">
+                    <label class="form__label">Documento Actual</label>
+                    <div class="current-file-info">
+                        <i class="fas fa-file-alt"></i>
+                        <div>
+                            <span id="currentFileName" class="file-name"></span>
+                            <span class="file-meta" id="currentFileSize"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form__group">
+                    <label class="form__label">
+                        <input type="checkbox" id="replaceFileCheck">
+                        Reemplazar archivo
+                    </label>
+                </div>
+
+                <div id="newFileContainer" class="file-upload-container" style="display: none;">
+                    <div class="upload__dropzone" id="editFileUploadContainer">
+                        <i class="fas fa-cloud-upload-alt upload__icon"></i>
+                        <h4>Selecciona el nuevo archivo</h4>
+                        <button type="button" class="btn btn--outline btn--sm" id="browseEditFileBtn">
+                            <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                        </button>
+                        <input type="file" id="editFileInput" class="upload__input"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                        <div class="upload__info" id="editFileInfo" style="display: none;">
+                            <p><strong>Nuevo archivo:</strong> <span id="newFileName"></span></p>
+                            <p><strong>Tamaño:</strong> <span id="newFileSize"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form__group">
+                    <label for="editDocumentDescription" class="form__label">Descripción</label>
+                    <textarea id="editDocumentDescription" class="form__textarea" rows="3" placeholder="Descripción del documento..."></textarea>
+                </div>
+
+                <div class="form__row">
+                    <div class="form__group">
+                        <label for="editDocumentCategory" class="form__label">Categoría *</label>
+                        <select id="editDocumentCategory" class="form__select" required>
+                            <option value="">Seleccionar categoría</option>
+                        </select>
+                    </div>
+                    <div class="form__group">
+                        <label for="editDocumentExpiration" class="form__label">Fecha de Vencimiento</label>
+                        <input type="date" id="editDocumentExpiration" class="form__input">
+                    </div>
+                </div>
+
+                <div class="form__group">
+                    <label for="editDocumentPerson" class="form__label">Asignar a Persona</label>
+                    <select id="editDocumentPerson" class="form__select">
+                        <option value="">Seleccionar persona</option>
+                    </select>
+                </div>
+
+                <div class="form__group">
+                    <label class="form__label">Información del documento</label>
+                    <div class="document-info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Fecha de subida:</span>
+                            <span id="editDocumentUploadDate" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Tipo:</span>
+                            <span id="editDocumentType" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Tamaño:</span>
+                            <span id="editDocumentFileSize" class="info-value"></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Subido por:</span>
+                            <span id="editDocumentUploadedBy" class="info-value">Sistema</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+        <footer class="modal__footer">
+            <button class="btn btn--outline" id="cancelEditDocumentBtn">Cancelar</button>
+            <button class="btn btn--primary" id="saveEditDocumentBtn">
+                <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+        </footer>
+    </article>
+</div>
 
     <!-- Add Category Modal -->
     <dialog id="categoryModal" class="modal">
