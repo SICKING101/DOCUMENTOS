@@ -33,28 +33,6 @@ export function renderDocumentsTable() {
         documentsToShow = documentsToShow.filter(doc => doc.tipo_archivo.toLowerCase() === window.appState.filters.type.toLowerCase());
     }
     
-    if (window.appState.filters.date) {
-        const now = new Date();
-        let startDate;
-        
-        switch(window.appState.filters.date) {
-            case 'today':
-                startDate = new Date(now.setHours(0, 0, 0, 0));
-                break;
-            case 'week':
-                startDate = new Date(now.setDate(now.getDate() - 7));
-                break;
-            case 'month':
-                startDate = new Date(now.setMonth(now.getMonth() - 1));
-                break;
-        }
-        
-        documentsToShow = documentsToShow.filter(doc => {
-            const docDate = new Date(doc.fecha_subida);
-            return docDate >= startDate;
-        });
-    }
-    
     if (window.appState.filters.status) {
         const now = new Date();
         documentsToShow = documentsToShow.filter(doc => {
@@ -79,10 +57,10 @@ export function renderDocumentsTable() {
     if (documentsToShow.length === 0) {
         DOM.documentosTableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-state">
+                <td colspan="6" class="empty-state">
                     <i class="fas fa-file-alt empty-state__icon"></i>
                     <h3 class="empty-state__title">No hay documentos</h3>
-                    <p class="empty-state__description">${window.appState.currentSearchQuery || window.appState.filters.category || window.appState.filters.type || window.appState.filters.date || window.appState.filters.status ? 'No hay documentos que coincidan con la búsqueda o filtros aplicados' : 'Sube tu primer documento para comenzar'}</p>
+                    <p class="empty-state__description">${window.appState.currentSearchQuery || window.appState.filters.category || window.appState.filters.type || window.appState.filters.status ? 'No hay documentos que coincidan con la búsqueda o filtros aplicados' : 'Sube tu primer documento para comenzar'}</p>
                 </td>
             </tr>
         `;
@@ -91,13 +69,11 @@ export function renderDocumentsTable() {
     
     documentsToShow.forEach(doc => {
         const person = doc.persona_id ? doc.persona_id : { nombre: 'No asignado' };
-        const fileSize = formatFileSize(doc.tamano_archivo);
-        const uploadDate = formatDate(doc.fecha_subida);
         
         // Determinar estado de vencimiento
         let vencimientoClass = '';
         let vencimientoText = '';
-        let statusIndicator = '';
+        let statusBadgeClass = 'badge--info';
         
         if (doc.fecha_vencimiento) {
             const fechaVencimiento = new Date(doc.fecha_vencimiento);
@@ -105,26 +81,36 @@ export function renderDocumentsTable() {
             const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
             
             if (diferenciaDias <= 0) {
-                vencimientoClass = 'badge--danger';
+                vencimientoClass = 'vencido';
                 vencimientoText = 'Vencido';
+                statusBadgeClass = 'badge--danger';
             } else if (diferenciaDias <= 7) {
-                vencimientoClass = 'badge--warning';
+                vencimientoClass = 'por-vencer';
                 vencimientoText = `Vence en ${diferenciaDias} días`;
+                statusBadgeClass = 'badge--warning';
             } else if (diferenciaDias <= 30) {
-                vencimientoClass = 'badge--info';
+                vencimientoClass = 'activo';
                 vencimientoText = `Vence en ${diferenciaDias} días`;
+                statusBadgeClass = 'badge--info';
             } else {
-                vencimientoText = formatDate(doc.fecha_vencimiento);
+                vencimientoClass = 'activo';
+                vencimientoText = 'Activo';
+                statusBadgeClass = 'badge--info';
             }
+        } else {
+            vencimientoClass = 'sin-vencimiento';
+            vencimientoText = 'Sin vencimiento';
+            statusBadgeClass = 'badge--info';
         }
         
         // Determinar si se puede previsualizar
         const fileExtension = doc.nombre_original.split('.').pop().toLowerCase();
         const previewInfo = canPreviewDocument(fileExtension);
+        const fileIcon = getFileIcon(doc.tipo_archivo);
         
-        // Crear botones de acciones
+        // Crear botones de acciones con clases específicas
         let actionButtons = `
-            <button class="btn btn--sm btn--outline" onclick="window.downloadDocument('${doc._id}')" title="Descargar">
+            <button class="btn btn--sm btn--outline btn--download" onclick="window.downloadDocument('${doc._id}')" title="Descargar">
                 <i class="fas fa-download"></i>
             </button>
         `;
@@ -132,15 +118,22 @@ export function renderDocumentsTable() {
         // Solo agregar botón de vista previa si se puede previsualizar
         if (previewInfo.canPreview) {
             actionButtons += `
-                <button class="btn btn--sm btn--outline" onclick="window.previewDocument('${doc._id}')" title="Vista previa">
+                <button class="btn btn--sm btn--outline btn--view" onclick="window.previewDocument('${doc._id}')" title="Vista previa">
                     <i class="fas fa-eye"></i>
                 </button>
             `;
         }
+
+        // Agregar botón de editar
+        actionButtons += `
+            <button class="btn btn--sm btn--outline btn--edit" onclick="window.editDocument('${doc._id}')" title="Editar documento">
+                <i class="fas fa-edit"></i>
+            </button>
+        `;
         
         // Siempre agregar botón de eliminar
         actionButtons += `
-            <button class="btn btn--sm btn--outline" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
+            <button class="btn btn--sm btn--outline btn--delete" onclick="window.deleteDocument('${doc._id}')" title="Eliminar">
                 <i class="fas fa-trash"></i>
             </button>
         `;
@@ -148,26 +141,40 @@ export function renderDocumentsTable() {
         const row = document.createElement('tr');
         row.className = 'table__row';
         
+        // Crear tooltips para nombres y descripciones largas
+        const nameTooltip = doc.nombre_original.length > 40 ? `title="${doc.nombre_original}"` : '';
+        const descTooltip = doc.descripcion && doc.descripcion.length > 40 ? `title="${doc.descripcion}"` : '';
+        const statusTooltip = vencimientoText.length > 15 ? `title="${vencimientoText}"` : '';
+        const personTooltip = person.nombre.length > 20 ? `title="${person.nombre}"` : '';
+        const categoryTooltip = doc.categoria.length > 15 ? `title="${doc.categoria}"` : '';
+        
         row.innerHTML = `
             <td class="table__cell">
                 <div class="documents__info documents__info--inline">
                     <div class="documents__icon documents__icon--sm">
-                        <i class="fas fa-file-${getFileIcon(doc.tipo_archivo)}"></i>
+                        <i class="fas fa-file-${fileIcon}"></i>
                     </div>
                     <div>
-                        <div class="documents__details-name">${doc.nombre_original}</div>
-                        ${doc.descripcion ? `<div class="documents__details-description">${doc.descripcion}</div>` : ''}
+                        <div class="documents__details-name" ${nameTooltip}>
+                            ${doc.nombre_original}
+                        </div>
+                        ${doc.descripcion ? `<div class="documents__details-description" ${descTooltip}>${doc.descripcion}</div>` : ''}
                     </div>
                 </div>
             </td>
-            <td class="table__cell"><span class="badge badge--info">${doc.tipo_archivo.toUpperCase()}</span></td>
-            <td class="table__cell">${fileSize}</td>
-            <td class="table__cell">${person.nombre}</td>
-            <td class="table__cell"><span class="badge badge--info">${doc.categoria}</span></td>
-            <td class="table__cell">${uploadDate}</td>
             <td class="table__cell">
-                ${statusIndicator}
-                ${vencimientoText ? `<span class="badge ${vencimientoClass}">${vencimientoText}</span>` : 'Sin vencimiento'}
+                <span class="badge badge--info">${doc.tipo_archivo.toUpperCase()}</span>
+            </td>
+            <td class="table__cell" ${personTooltip}>
+                ${person.nombre}
+            </td>
+            <td class="table__cell">
+                <span class="badge badge--info" ${categoryTooltip}>${doc.categoria}</span>
+            </td>
+            <td class="table__cell">
+                <span class="badge ${statusBadgeClass} document-status ${vencimientoClass}" ${statusTooltip}>
+                    ${vencimientoText}
+                </span>
             </td>
             <td class="table__cell">
                 <div class="action-buttons">
