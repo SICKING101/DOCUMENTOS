@@ -1265,5 +1265,6 @@ export {
     validateEmail,
     validatePhone,
     validateName,
+    showFloatingNotification,
     validateForm
 };
