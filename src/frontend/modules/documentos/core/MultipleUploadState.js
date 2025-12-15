@@ -286,9 +286,20 @@ export class MultipleUploadState {
         console.log(`📝 Valor recibido: "${personId}"`);
         console.log(`📝 Valor anterior: "${this.commonPersonId}"`);
         
+        // FIX CRÍTICO #1: Manejar correctamente los valores "null" y "undefined"
+        let processedPersonId = '';
+        
+        if (personId && personId.trim() !== '' && personId !== 'null' && personId !== 'undefined') {
+            processedPersonId = personId.trim();
+            console.log(`👤 Persona ID procesada: "${processedPersonId}"`);
+        } else {
+            console.log(`👤 Persona ID está vacía/inválida, se establecerá como cadena vacía`);
+            processedPersonId = '';
+        }
+        
         // Guardar nueva persona
         const oldPersonId = this.commonPersonId;
-        this.commonPersonId = personId ? personId.trim() : '';
+        this.commonPersonId = processedPersonId;
         
         console.log(`✅ Persona común ACTUALIZADA: "${oldPersonId}" → "${this.commonPersonId}"`);
         
