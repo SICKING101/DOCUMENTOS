@@ -40,6 +40,14 @@
     --sidebar-active: var(--primary);
     --sidebar-text: #e2e8f0;
 
+    --trash-primary: #dc2626;
+    --trash-primary-light: #fecaca;
+    --trash-danger: #ef4444;
+    --trash-warning: #f59e0b;
+    --trash-safe: #10b981;
+    --trash-bg: #fef2f2;
+    --trash-border: #fca5a5;
+
     /* Colores de prioridad */
     --priority-high: linear-gradient(135deg, #ef4444, #dc2626);
     --priority-medium: linear-gradient(135deg, #f59e0b, #d97706);

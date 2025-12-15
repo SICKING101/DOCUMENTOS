@@ -14,6 +14,12 @@ import dotenv from 'dotenv';
 // Importar rutas de autenticación
 import authRoutes from './src/backend/routes/auth.js';
 
+import Document from './backend/models/Document.js';
+import Person from './backend/models/Person.js';
+import Category from './backend/models/Category.js';
+import Department from './backend/models/Department.js';
+import Task from './backend/models/Task.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,82 +56,6 @@ app.use('/src', express.static(path.join(__dirname, 'src')));
 
 // Rutas de autenticación
 app.use('/api/auth', authRoutes);
-
-// -----------------------------
-// Esquemas y Modelos
-// -----------------------------
-const personSchema = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  email: { type: String, required: true },
-  telefono: String,
-  departamento: String,
-  puesto: String,
-  activo: { type: Boolean, default: true },
-  fecha_creacion: { type: Date, default: Date.now }
-}, { timestamps: true });
-
-const categorySchema = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  descripcion: String,
-  color: { type: String, default: '#4f46e5' },
-  icon: { type: String, default: 'folder' },
-  activo: { type: Boolean, default: true }
-}, { timestamps: true });
-
-const departmentSchema = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  descripcion: String,
-  color: { type: String, default: '#3b82f6' },
-  icon: { type: String, default: 'building' },
-  activo: { type: Boolean, default: true }
-}, { timestamps: true });
-
-const documentSchema = new mongoose.Schema({
-  nombre_original: { type: String, required: true },
-  tipo_archivo: { type: String, required: true },
-  tamano_archivo: { type: Number, required: true },
-  descripcion: String,
-  categoria: String,
-  fecha_subida: { type: Date, default: Date.now },
-  fecha_vencimiento: Date,
-  persona_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Person' },
-  cloudinary_url: { type: String, required: true },
-  public_id: { type: String, required: true },
-  resource_type: { type: String, required: true },
-  activo: { type: Boolean, default: true },
-  // Campos para papelera
-  isDeleted: { type: Boolean, default: false },
-  deletedAt: { type: Date, default: null },
-  deletedBy: { type: String, default: null }
-}, { timestamps: true });
-
-const taskSchema = new mongoose.Schema({
-    titulo: { type: String, required: true },
-    descripcion: String,
-    prioridad: { 
-        type: String, 
-        enum: ['baja', 'media', 'alta'], 
-        default: 'media' 
-    },
-    estado: { 
-        type: String, 
-        enum: ['pendiente', 'en-progreso', 'completada'], 
-        default: 'pendiente' 
-    },
-    categoria: String,
-    recordatorio: { type: Boolean, default: false },
-    fecha_limite: Date,
-    hora_limite: String,
-    fecha_creacion: { type: Date, default: Date.now },
-    fecha_actualizacion: { type: Date, default: Date.now },
-    activo: { type: Boolean, default: true }
-}, { timestamps: true });
-
-const Person = mongoose.model('Person', personSchema);
-const Category = mongoose.model('Category', categorySchema);
-const Department = mongoose.model('Department', departmentSchema);
-const Document = mongoose.model('Document', documentSchema);
-const Task = mongoose.model('Task', taskSchema);
 
 // Importar modelo y servicio de notificaciones
 import Notification from './src/backend/models/Notification.js';
@@ -742,25 +672,22 @@ app.delete('/api/departments/:id', async (req, res) => {
 // -----------------------------
 app.get('/api/documents', async (req, res) => {
   try {
-    console.log('📊 DEBUG: Obteniendo documentos...');
+    console.log('📊 ========== OBTENIENDO DOCUMENTOS ==========');
     
-    // Contar todos los documentos
+    // Estadísticas para debugging
     const totalDocs = await Document.countDocuments();
     console.log(`📊 Total documentos en BD: ${totalDocs}`);
     
-    // Contar documentos activos
     const activeDocs = await Document.countDocuments({ activo: true });
     console.log(`📊 Documentos activos: ${activeDocs}`);
     
-    // Contar documentos con isDeleted
     const deletedDocs = await Document.countDocuments({ isDeleted: true });
-    console.log(`📊 Documentos eliminados: ${deletedDocs}`);
+    console.log(`📊 Documentos en papelera: ${deletedDocs}`);
     
-    // Contar documentos sin isDeleted
     const noDeletedField = await Document.countDocuments({ isDeleted: { $exists: false } });
     console.log(`📊 Documentos sin campo isDeleted: ${noDeletedField}`);
-    
-    // QUERY CORREGIDO: Solo filtrar por isDeleted, NO por activo
+
+    // QUERY: Solo documentos no eliminados
     const documents = await Document.find({ 
       $or: [
         { isDeleted: false },
@@ -768,22 +695,93 @@ app.get('/api/documents', async (req, res) => {
       ]
     })
       .populate('persona_id', 'nombre email departamento puesto')
-      .sort({ fecha_subida: -1 });
+      .sort({ fecha_subida: -1 })
+      .lean(); // Usar lean() para objetos planos
 
-    console.log(`📊 Documentos retornados: ${documents.length}`);
-    res.json({ success: true, documents });
+    console.log(`📊 Documentos encontrados: ${documents.length}`);
+
+    // DEBUG: Verificar estructura de documentos
+    if (documents.length > 0) {
+      console.log('🔍 ESTRUCTURA DEL PRIMER DOCUMENTO:');
+      const primerDoc = documents[0];
+      console.log('- Campos existentes:', Object.keys(primerDoc));
+      console.log('- Tiene fecha_vencimiento?:', 'fecha_vencimiento' in primerDoc);
+      console.log('- Tiene estado?:', 'estado' in primerDoc, '(NO debería existir)');
+      console.log('- persona_id:', primerDoc.persona_id ? 'Populado' : 'Null/Vacío');
+    }
+
+    // Transformar documentos para asegurar consistencia
+    const documentosTransformados = documents.map(doc => {
+      // Crear un objeto limpio sin campos no deseados
+      const documentoLimpio = {
+        _id: doc._id,
+        nombre_original: doc.nombre_original,
+        tipo_archivo: doc.tipo_archivo,
+        tamano_archivo: doc.tamano_archivo,
+        descripcion: doc.descripcion || '',
+        categoria: doc.categoria || 'General',
+        fecha_subida: doc.fecha_subida,
+        fecha_vencimiento: doc.fecha_vencimiento || null,
+        persona_id: doc.persona_id || null,
+        cloudinary_url: doc.cloudinary_url,
+        public_id: doc.public_id,
+        resource_type: doc.resource_type,
+        activo: doc.activo !== false, // default true
+        isDeleted: doc.isDeleted || false,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt
+      };
+
+      // CALCULAR "estadoVirtual" basado en fecha_vencimiento (para el frontend si lo necesita)
+      // Esto es opcional, solo si el frontend espera algún tipo de estado
+      if (doc.fecha_vencimiento) {
+        const hoy = new Date();
+        const fechaVencimiento = new Date(doc.fecha_vencimiento);
+        const diasRestantes = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+        
+        if (diasRestantes < 0) {
+          documentoLimpio.estadoVirtual = 'vencido'; // Ya pasó la fecha
+        } else if (diasRestantes <= 7) {
+          documentoLimpio.estadoVirtual = 'por_vencer'; // Próximo a vencer
+        } else {
+          documentoLimpio.estadoVirtual = 'activo'; // Con fecha futura
+        }
+      } else {
+        documentoLimpio.estadoVirtual = 'sin_fecha'; // Sin fecha de vencimiento
+      }
+
+      return documentoLimpio;
+    });
+
+    console.log(`✅ ${documentosTransformados.length} documentos transformados y listos`);
+    console.log('📊 ========== FIN OBTENCIÓN DOCUMENTOS ==========');
+
+    res.json({ 
+      success: true, 
+      documents: documentosTransformados,
+      metadata: {
+        total: totalDocs,
+        activos: activeDocs,
+        enPapelera: deletedDocs
+      }
+    });
+
   } catch (error) {
-    console.error('Error obteniendo documentos:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener documentos' });
+    console.error('❌ ERROR obteniendo documentos:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al obtener documentos: ' + error.message 
+    });
   }
 });
 
 app.post('/api/documents', upload.single('file'), async (req, res) => {
   try {
-    console.log('📥 Recibiendo solicitud de upload de documento...');
+    console.log('📥 ========== CREACIÓN DE DOCUMENTO ==========');
     console.log('📋 Headers:', req.headers);
-    console.log('📋 Body:', req.body);
-    console.log('📋 File:', req.file);
+    console.log('📋 Body completo:', JSON.stringify(req.body, null, 2));
+    console.log('📋 File:', req.file ? req.file.originalname : 'NO FILE');
 
     if (!req.file) {
       console.error('❌ No se recibió archivo en la solicitud');
@@ -794,21 +792,113 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
     }
 
     console.log('✅ Archivo recibido:', req.file.originalname);
-    console.log('📊 Tamaño:', req.file.size);
+    console.log('📊 Tamaño:', req.file.size, 'bytes');
     console.log('📝 Tipo MIME:', req.file.mimetype);
 
-    const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
+    // EXTRAER TODOS LOS CAMPOS POSIBLES (incluyendo "estado" que viene del frontend)
+    const { 
+      descripcion, 
+      categoria, 
+      fecha_vencimiento, 
+      persona_id,
+      estado, // Este viene del frontend pero NO existe en el modelo
+      notificar_persona,
+      notificar_vencimiento 
+    } = req.body;
 
-    console.log('📤 Subiendo a Cloudinary...');
+    // DEBUG: Mostrar qué recibimos realmente
+    console.log('🔍 CAMPOS RECIBIDOS DEL FRONTEND:');
+    console.log('- descripcion:', descripcion);
+    console.log('- categoria:', categoria);
+    console.log('- fecha_vencimiento:', fecha_vencimiento);
+    console.log('- persona_id:', persona_id);
+    console.log('- estado (PROBLEMA):', estado, '(← este campo NO existe en el modelo Document)');
+    console.log('- notificar_persona:', notificar_persona);
+    console.log('- notificar_vencimiento:', notificar_vencimiento);
+
+    // FIX CRÍTICO #1: VALIDAR QUE TENEMOS CATEGORÍA
+    if (!categoria || categoria.trim() === '') {
+      console.error('❌ ERROR: Categoría es obligatoria');
+      return res.status(400).json({
+        success: false,
+        message: 'La categoría es obligatoria. Selecciona una categoría.'
+      });
+    }
+
+    // FIX CRÍTICO #2: PROCESAR PERSONA_ID CORRECTAMENTE
+    let personaIdProcesado = null;
+    if (persona_id) {
+      console.log('👤 Procesando persona_id recibido:', persona_id, 'tipo:', typeof persona_id);
+      
+      if (persona_id === '' || persona_id === 'null' || persona_id === 'undefined') {
+        console.log('👤 persona_id vacío - estableciendo como null');
+        personaIdProcesado = null;
+      } else if (mongoose.Types.ObjectId.isValid(persona_id)) {
+        // Si es un ObjectId válido
+        personaIdProcesado = persona_id;
+        console.log('✅ persona_id válido como ObjectId:', persona_id);
+      } else {
+        console.warn('⚠️ persona_id no es ObjectId válido, se establecerá como null');
+        personaIdProcesado = null;
+      }
+    } else {
+      console.log('👤 No se recibió persona_id - estableciendo como null');
+    }
+
+    // FIX CRÍTICO #3: PROCESAR FECHA_VENCIMIENTO (EL CAMPO REAL)
+    let fechaVencimientoProcesada = null;
+    if (fecha_vencimiento) {
+      console.log('📅 Procesando fecha_vencimiento recibida:', fecha_vencimiento);
+      
+      if (fecha_vencimiento === '' || fecha_vencimiento === 'null' || fecha_vencimiento === 'undefined') {
+        console.log('📅 fecha_vencimiento vacía - estableciendo como null');
+        fechaVencimientoProcesada = null;
+      } else {
+        try {
+          // Intentar parsear la fecha
+          const fecha = new Date(fecha_vencimiento);
+          if (!isNaN(fecha.getTime())) {
+            fechaVencimientoProcesada = fecha;
+            console.log('✅ fecha_vencimiento válida:', fecha.toISOString());
+          } else {
+            console.warn('⚠️ fecha_vencimiento inválida, se establecerá como null');
+            fechaVencimientoProcesada = null;
+          }
+        } catch (error) {
+          console.warn('⚠️ Error parseando fecha_vencimiento:', error);
+          fechaVencimientoProcesada = null;
+        }
+      }
+    } else {
+      console.log('📅 No se recibió fecha_vencimiento - estableciendo como null');
+    }
+
+    // EXPLICACIÓN: El campo "estado" viene del frontend pero NO existe en el modelo
+    // El frontend lo envía con valor 'pendiente' pero debemos IGNORARLO
+    console.log('ℹ️ INFORMACIÓN IMPORTANTE:');
+    console.log('   • El frontend envía campo "estado" con valor:', estado);
+    console.log('   • PERO el modelo Document.js NO tiene campo "estado"');
+    console.log('   • El modelo Document.js solo tiene "fecha_vencimiento" (Date)');
+    console.log('   • Se IGNORARÁ el campo "estado" del frontend');
+    console.log('   • Para determinar si un documento "está pendiente" usar fecha_vencimiento');
+
+    console.log('📤 Subiendo archivo a Cloudinary...');
 
     // Subir a Cloudinary
     let cloudinaryResult;
     try {
       cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
         folder: 'documentos_cbtis051',
-        resource_type: 'auto'
+        resource_type: 'auto',
+        timeout: 30000 // 30 segundos timeout
       });
       console.log('✅ Archivo subido a Cloudinary:', cloudinaryResult.secure_url);
+      console.log('📋 Cloudinary response:', {
+        public_id: cloudinaryResult.public_id,
+        resource_type: cloudinaryResult.resource_type,
+        format: cloudinaryResult.format,
+        bytes: cloudinaryResult.bytes
+      });
     } catch (cloudinaryError) {
       console.error('❌ Error subiendo a Cloudinary:', cloudinaryError);
       console.error('❌ Error detallado:', JSON.stringify(cloudinaryError, null, 2));
@@ -824,18 +914,30 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
 
     console.log('💾 Guardando documento en la base de datos...');
 
-    // Crear documento en la base de datos
+    // CREAR DOCUMENTO CON LOS CAMPOS CORRECTOS (sin "estado")
     const nuevoDocumento = new Document({
       nombre_original: req.file.originalname,
       tipo_archivo: req.file.originalname.split('.').pop().toLowerCase(),
       tamano_archivo: req.file.size,
       descripcion: descripcion || '',
-      categoria: categoria || 'General',
-      fecha_vencimiento: fecha_vencimiento || null,
-      persona_id: persona_id || null,
+      categoria: categoria, // Ya validamos que no esté vacía
+      fecha_vencimiento: fechaVencimientoProcesada, // Usar el valor procesado
+      persona_id: personaIdProcesado, // Usar el valor procesado
+      // NO INCLUIR: estado (porque no existe en el modelo)
       cloudinary_url: cloudinaryResult.secure_url,
       public_id: cloudinaryResult.public_id,
-      resource_type: cloudinaryResult.resource_type
+      resource_type: cloudinaryResult.resource_type,
+      activo: true
+    });
+
+    // DEBUG: Mostrar el documento que se va a guardar
+    console.log('📝 DOCUMENTO A GUARDAR (CORREGIDO):', {
+      nombre: nuevoDocumento.nombre_original,
+      categoria: nuevoDocumento.categoria,
+      persona_id: nuevoDocumento.persona_id,
+      fecha_vencimiento: nuevoDocumento.fecha_vencimiento,
+      // NO existe: estado
+      tiene_fecha_vencimiento: !!nuevoDocumento.fecha_vencimiento
     });
 
     await nuevoDocumento.save();
@@ -849,36 +951,98 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
 
     // Obtener documento con datos de persona
     const documentoConPersona = await Document.findById(nuevoDocumento._id)
-      .populate('persona_id', 'nombre');
+      .populate('persona_id', 'nombre email departamento puesto');
 
-    // Crear notificación de documento subido
-    try {
-      await NotificationService.documentoSubido(
-        documentoConPersona,
-        documentoConPersona.persona_id
-      );
-    } catch (notifError) {
-      console.error('⚠️ Error creando notificación:', notifError.message);
+    // DEBUG: Mostrar el documento guardado (como lo verá el frontend)
+    console.log('📊 DOCUMENTO CREADO EXITOSAMENTE:', {
+      _id: documentoConPersona._id,
+      nombre_original: documentoConPersona.nombre_original,
+      categoria: documentoConPersona.categoria,
+      persona_id: documentoConPersona.persona_id,
+      fecha_vencimiento: documentoConPersona.fecha_vencimiento,
+      // Importante: NO existe "estado" en la respuesta porque no existe en el modelo
+      cloudinary_url: documentoConPersona.cloudinary_url,
+      fecha_subida: documentoConPersona.fecha_subida
+    });
+
+    // Crear notificación de documento subido si corresponde
+    if (personaIdProcesado) {
+      try {
+        const shouldNotify = notificar_persona === 'true' || notificar_persona === true;
+        if (shouldNotify) {
+          await NotificationService.documentoSubido(
+            documentoConPersona,
+            documentoConPersona.persona_id
+          );
+          console.log('🔔 Notificación creada para la persona asignada');
+        }
+        
+        // Notificación para vencimiento si hay fecha
+        if (fechaVencimientoProcesada && (notificar_vencimiento === 'true' || notificar_vencimiento === true)) {
+          console.log('🔔 Notificación de vencimiento configurada');
+        }
+      } catch (notifError) {
+        console.error('⚠️ Error creando notificación:', notifError.message);
+      }
     }
 
-    console.log('✅ Upload completado exitosamente');
+    console.log('✅ ========== UPLOAD COMPLETADO EXITOSAMENTE ==========');
 
+    // RESPONDER AL FRONTEND
     res.json({
       success: true,
       message: 'Documento subido correctamente',
-      document: documentoConPersona
+      document: {
+        _id: documentoConPersona._id,
+        nombre_original: documentoConPersona.nombre_original,
+        tipo_archivo: documentoConPersona.tipo_archivo,
+        tamano_archivo: documentoConPersona.tamano_archivo,
+        descripcion: documentoConPersona.descripcion,
+        categoria: documentoConPersona.categoria,
+        fecha_subida: documentoConPersona.fecha_subida,
+        fecha_vencimiento: documentoConPersona.fecha_vencimiento,
+        // NO incluir "estado" porque no existe en el modelo
+        persona_id: documentoConPersona.persona_id,
+        cloudinary_url: documentoConPersona.cloudinary_url,
+        public_id: documentoConPersona.public_id,
+        activo: documentoConPersona.activo
+      }
     });
 
   } catch (error) {
-    console.error('❌ Error general subiendo documento:', error);
-    console.error('❌ Stack trace:', error.stack);
+    console.error('❌❌❌ ERROR GENERAL SUBIENDO DOCUMENTO ❌❌❌');
+    console.error('Mensaje:', error.message);
+    console.error('Stack trace:', error.stack);
+    
+    if (error.name === 'ValidationError') {
+      console.error('Error de validación de Mongoose:', error.errors);
+      return res.status(400).json({
+        success: false,
+        message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      console.error('Error de casteo (ObjectId inválido):', error);
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido: ' + error.message
+      });
+    }
+    
     // Limpiar archivo temporal si existe
     if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+      try {
+        fs.unlinkSync(req.file.path);
+        console.log('🧹 Archivo temporal eliminado después del error');
+      } catch (fsError) {
+        console.error('Error limpiando archivo temporal:', fsError);
+      }
     }
+    
     res.status(500).json({ 
       success: false, 
-      message: 'Error al subir documento: ' + error.message 
+      message: 'Error interno al subir documento: ' + error.message 
     });
   }
 });

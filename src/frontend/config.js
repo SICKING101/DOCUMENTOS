@@ -198,7 +198,10 @@ const CONFIG = {
          * 7.1.4 Mostrar estadísticas de subida
          * Activa la visualización de métricas de rendimiento de subida.
          */
-        SHOW_UPLOAD_STATS: true
+        SHOW_UPLOAD_STATS: true,
+
+        LOG_UPLOAD_DETAILS: true,
+        LOG_API_CALLS: true
     },
 
     // =============================================================================

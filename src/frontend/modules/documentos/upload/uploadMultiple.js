@@ -13,6 +13,14 @@ import { MULTIPLE_UPLOAD_CONFIG } from '../core/constants.js';
 // Instancia global del estado de subida múltiple
 export let multipleUploadState = null;
 
+// Estado del flujo de configuración
+const configFlowState = {
+    categorySelected: false,
+    canSelectPerson: false,
+    canSelectExpiration: false,
+    canAddDocuments: false
+};
+
 /**
  * Inicializa o obtiene el estado de subida múltiple
  */
@@ -29,6 +37,436 @@ export function getMultipleUploadState() {
         console.log('📋 Usando instancia existente de MultipleUploadState');
     }
     return multipleUploadState;
+}
+
+/**
+ * Muestra alerta en la página (no solo en consola)
+ */
+function showPageAlert(message, type = 'info', duration = 3000) {
+    console.log(`📢 ALERTA [${type.toUpperCase()}]: ${message}`);
+    showAlert(message, type, duration);
+}
+
+/**
+ * Actualiza el estado del flujo de configuración
+ */
+function updateConfigFlowState() {
+    console.log('🔄 Actualizando estado del flujo de configuración');
+    
+    // Verificar que los elementos DOM existan
+    if (!DOM.multipleDocumentCategory) {
+        console.warn('⚠️ DOM.multipleDocumentCategory no existe aún');
+        return;
+    }
+    
+    // 1. Verificar si se seleccionó categoría
+    const categoryValue = DOM.multipleDocumentCategory.value;
+    configFlowState.categorySelected = categoryValue && categoryValue.trim() !== '';
+    
+    // 2. Verificar si se puede seleccionar persona (solo si hay categoría)
+    configFlowState.canSelectPerson = configFlowState.categorySelected;
+    
+    // 3. Verificar si se puede seleccionar fecha (solo si hay categoría)
+    configFlowState.canSelectExpiration = configFlowState.categorySelected;
+    
+    // 4. Verificar si se pueden agregar documentos (solo si hay categoría)
+    configFlowState.canAddDocuments = configFlowState.categorySelected;
+    
+    console.log('📊 Estado del flujo:', configFlowState);
+    
+    // Mostrar alerta informativa
+    if (configFlowState.categorySelected) {
+        showPageAlert('✅ Categoría seleccionada. Ahora puedes configurar persona, fecha y agregar archivos.', 'success', 3000);
+    }
+    
+    // Actualizar controles UI
+    updateControlsState();
+}
+
+/**
+ * Actualiza el estado de los controles UI según el flujo
+ */
+function updateControlsState() {
+    console.log('🎛️ Actualizando estado de controles');
+    
+    // Control de categoría (siempre habilitado)
+    if (DOM.multipleDocumentCategory) {
+        DOM.multipleDocumentCategory.disabled = false;
+        DOM.multipleDocumentCategory.style.opacity = '1';
+        DOM.multipleDocumentCategory.style.cursor = 'pointer';
+        console.log('✅ Categoría: Habilitado');
+    }
+    
+    // Control de persona - BLOQUEADO si no hay categoría
+    if (DOM.multipleDocumentPerson) {
+        DOM.multipleDocumentPerson.disabled = !configFlowState.canSelectPerson;
+        if (configFlowState.canSelectPerson) {
+            DOM.multipleDocumentPerson.style.opacity = '1';
+            DOM.multipleDocumentPerson.style.cursor = 'pointer';
+            DOM.multipleDocumentPerson.title = 'Selecciona una persona (opcional)';
+            console.log('✅ Persona: Habilitado');
+        } else {
+            DOM.multipleDocumentPerson.style.opacity = '0.5';
+            DOM.multipleDocumentPerson.style.cursor = 'not-allowed';
+            DOM.multipleDocumentPerson.title = 'Primero selecciona una categoría';
+            console.log('❌ Persona: Deshabilitado');
+        }
+    }
+    
+    // Control de fecha de vencimiento - BLOQUEADO si no hay categoría
+    if (DOM.multipleExpirationDays) {
+        DOM.multipleExpirationDays.disabled = !configFlowState.canSelectExpiration;
+        if (configFlowState.canSelectExpiration) {
+            DOM.multipleExpirationDays.style.opacity = '1';
+            DOM.multipleExpirationDays.style.cursor = 'pointer';
+            DOM.multipleExpirationDays.title = 'Selecciona días de vencimiento (opcional)';
+            console.log('✅ Fecha vencimiento: Habilitado');
+        } else {
+            DOM.multipleExpirationDays.style.opacity = '0.5';
+            DOM.multipleExpirationDays.style.cursor = 'not-allowed';
+            DOM.multipleExpirationDays.title = 'Primero selecciona una categoría';
+            console.log('❌ Fecha vencimiento: Deshabilitado');
+        }
+    }
+    
+    // Input de archivos múltiples - BLOQUEADO si no hay categoría
+    if (DOM.multipleFileInput) {
+        DOM.multipleFileInput.disabled = !configFlowState.canAddDocuments;
+        if (configFlowState.canAddDocuments) {
+            DOM.multipleFileInput.style.opacity = '1';
+            DOM.multipleFileInput.style.cursor = 'pointer';
+            DOM.multipleFileInput.title = 'Haz clic para seleccionar archivos';
+            console.log('✅ Input archivos: Habilitado');
+        } else {
+            DOM.multipleFileInput.style.opacity = '0.5';
+            DOM.multipleFileInput.style.cursor = 'not-allowed';
+            DOM.multipleFileInput.title = 'Primero selecciona una categoría';
+            console.log('❌ Input archivos: Deshabilitado');
+        }
+    }
+    
+    // Botón de subida - BLOQUEADO si no hay categoría o archivos
+    if (DOM.uploadMultipleDocumentsBtn) {
+        const hasFiles = multipleUploadState && multipleUploadState.files.length > 0;
+        DOM.uploadMultipleDocumentsBtn.disabled = !(configFlowState.canAddDocuments && hasFiles);
+        
+        if (DOM.uploadMultipleDocumentsBtn.disabled) {
+            DOM.uploadMultipleDocumentsBtn.style.opacity = '0.5';
+            DOM.uploadMultipleDocumentsBtn.style.cursor = 'not-allowed';
+            DOM.uploadMultipleDocumentsBtn.title = hasFiles ? 'Selecciona categoría primero' : 'Agrega archivos primero';
+            console.log('❌ Botón subida: Deshabilitado');
+        } else {
+            DOM.uploadMultipleDocumentsBtn.style.opacity = '1';
+            DOM.uploadMultipleDocumentsBtn.style.cursor = 'pointer';
+            DOM.uploadMultipleDocumentsBtn.title = 'Subir archivos';
+            console.log('✅ Botón subida: Habilitado');
+        }
+    }
+    
+    // Mostrar mensaje informativo
+    showConfigFlowMessage();
+}
+
+/**
+ * Muestra mensajes informativos sobre el flujo de configuración
+ */
+function showConfigFlowMessage() {
+    // Eliminar mensaje anterior si existe
+    const existingMessage = document.getElementById('configFlowMessage');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Crear contenedor de mensaje
+    const messageContainer = document.createElement('div');
+    messageContainer.id = 'configFlowMessage';
+    messageContainer.className = 'config-flow-message';
+    messageContainer.style.margin = '10px 0';
+    messageContainer.style.padding = '10px';
+    messageContainer.style.borderRadius = '5px';
+    messageContainer.style.backgroundColor = '#f8f9fa';
+    messageContainer.style.border = '1px solid #dee2e6';
+    
+    let message = '';
+    let type = 'info';
+    
+    if (!configFlowState.categorySelected) {
+        message = '⚠️ <strong>PASO 1:</strong> Primero selecciona una <strong>categoría</strong> para habilitar las demás opciones.';
+        type = 'warning';
+        messageContainer.style.backgroundColor = '#fff3cd';
+        messageContainer.style.borderColor = '#ffeaa7';
+    } else if (!multipleUploadState || multipleUploadState.files.length === 0) {
+        message = '✅ <strong>PASO 2:</strong> Categoría seleccionada. Ahora puedes <strong>agregar archivos</strong>.';
+        type = 'success';
+        messageContainer.style.backgroundColor = '#d4edda';
+        messageContainer.style.borderColor = '#c3e6cb';
+    } else {
+        message = '🎯 <strong>PASO 3:</strong> ¡Listo! Puedes subir los archivos.';
+        type = 'success';
+        messageContainer.style.backgroundColor = '#d4edda';
+        messageContainer.style.borderColor = '#c3e6cb';
+    }
+    
+    messageContainer.innerHTML = `
+        <div style="display: flex; align-items: center;">
+            <i class="fas ${type === 'warning' ? 'fa-exclamation-triangle text-warning' : 
+                          type === 'error' ? 'fa-times-circle text-danger' : 
+                          type === 'success' ? 'fa-check-circle text-success' : 'fa-info-circle text-info'}" 
+               style="margin-right: 10px; font-size: 1.2rem;"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Insertar después del contenedor de configuración múltiple
+    const configContainer = document.querySelector('.multiple-upload-config');
+    if (configContainer) {
+        configContainer.appendChild(messageContainer);
+    } else {
+        // Si no existe el contenedor específico, ponerlo en un lugar visible
+        const uploadSection = document.querySelector('.upload-section');
+        if (uploadSection) {
+            uploadSection.prepend(messageContainer);
+        }
+    }
+}
+
+/**
+ * Valida el flujo de configuración antes de cualquier acción
+ */
+function validateConfigFlow(action = 'addFiles') {
+    console.log(`🔍 Validando flujo para acción: ${action}`);
+    
+    const errors = [];
+    
+    if (!configFlowState.categorySelected) {
+        errors.push('Debes seleccionar una categoría primero');
+    }
+    
+    if (action === 'addFiles' && !configFlowState.canAddDocuments) {
+        errors.push('No puedes agregar archivos sin antes configurar la categoría');
+    }
+    
+    if (action === 'upload' && (!configFlowState.canAddDocuments || !multipleUploadState || multipleUploadState.files.length === 0)) {
+        errors.push('No hay archivos para subir o la configuración no está completa');
+    }
+    
+    if (errors.length > 0) {
+        console.error('❌ Errores de validación:', errors);
+        
+        // Mostrar alerta en página
+        const errorMessage = errors.join('\n• ');
+        showPageAlert(`⚠️ ${errorMessage}`, 'warning');
+        
+        return {
+            isValid: false,
+            errors
+        };
+    }
+    
+    console.log('✅ Validación exitosa');
+    return {
+        isValid: true,
+        errors: []
+    };
+}
+
+/**
+ * FIX CRÍTICO #1: Validación y aplicación de configuración común
+ */
+function applyCommonSettingsToAllFiles(state) {
+    console.group('🔧 APLICANDO CONFIGURACIÓN COMÚN A TODOS LOS ARCHIVOS');
+    
+    // Validar que haya categoría seleccionada
+    if (!configFlowState.categorySelected) {
+        console.error('❌ No se puede aplicar configuración: categoría no seleccionada');
+        showPageAlert('⚠️ Primero selecciona una categoría', 'warning');
+        console.groupEnd();
+        return;
+    }
+    
+    // Obtener valores actuales del DOM
+    const category = DOM.multipleDocumentCategory ? DOM.multipleDocumentCategory.value : '';
+    const personValue = DOM.multipleDocumentPerson ? DOM.multipleDocumentPerson.value : '';
+    const daysValue = DOM.multipleExpirationDays ? DOM.multipleExpirationDays.value : '';
+    
+    console.log('📊 VALORES DEL DOM:', {
+        category,
+        personValue,
+        daysValue
+    });
+    
+    // 1. Procesar categoría (OBLIGATORIA)
+    if (category && category.trim() !== '') {
+        state.commonCategory = category.trim();
+        console.log(`✅ Categoría común establecida: "${state.commonCategory}"`);
+        showPageAlert(`🏷️ Categoría aplicada: ${state.commonCategory}`, 'success', 2000);
+    } else {
+        console.error('❌ ERROR: Categoría vacía');
+        showPageAlert('❌ La categoría es obligatoria. Por favor selecciona una.', 'error');
+        console.groupEnd();
+        return;
+    }
+    
+    // 2. Procesar persona ID (OPCIONAL)
+    let processedPersonId = '';
+    if (personValue && personValue.trim() !== '' && 
+        personValue !== 'null' && personValue !== 'undefined' && personValue !== '0') {
+        processedPersonId = personValue.trim();
+    }
+    state.commonPersonId = processedPersonId;
+    console.log(`✅ Persona común establecida: "${processedPersonId || '(cadena vacía)'}"`);
+    
+    // 3. Procesar días de expiración (OPCIONAL)
+    if (daysValue && daysValue.trim() !== '' && !isNaN(parseInt(daysValue))) {
+        state.expirationDays = parseInt(daysValue);
+        console.log(`✅ Días de expiración establecidos: ${state.expirationDays}`);
+    } else {
+        state.expirationDays = null;
+        console.log('ℹ️ Días de expiración no configurados');
+    }
+    
+    // 4. Aplicar a todos los archivos pendientes
+    let appliedCount = 0;
+    state.files.forEach(fileObj => {
+        if (fileObj.status === 'pending') {
+            console.log(`📄 Aplicando a ${fileObj.file.name}:`);
+            
+            // Aplicar categoría (OBLIGATORIA)
+            fileObj.customCategory = state.commonCategory;
+            console.log(`   🏷️ Categoría aplicada: "${state.commonCategory}"`);
+            
+            // Aplicar persona si está configurada
+            if (state.commonPersonId !== undefined) {
+                fileObj.customPersonId = state.commonPersonId;
+                console.log(`   👤 Persona aplicada: "${state.commonPersonId || '(vacía)'}"`);
+            }
+            
+            // Aplicar fecha de expiración si está configurada
+            if (state.expirationDays) {
+                const expirationDate = state.calculateExpirationDate(state.expirationDays);
+                fileObj.customExpirationDate = expirationDate;
+                console.log(`   📅 Fecha aplicada: ${expirationDate}`);
+            }
+            
+            appliedCount++;
+        }
+    });
+    
+    if (appliedCount > 0) {
+        showPageAlert(`✅ Configuración aplicada a ${appliedCount} archivo(s)`, 'success', 2000);
+    }
+    
+    console.log('📊 ESTADO DESPUÉS DE APLICAR:');
+    state.logState();
+    
+    console.groupEnd();
+}
+
+/**
+ * FIX CRÍTICO #2: Manejo de archivos con aplicación inmediata de configuración
+ */
+export function handleMultipleFiles(files) {
+    console.group(`📁 handleMultipleFiles - Procesando ${files.length} archivo(s)`);
+    
+    // 1. Validar flujo de configuración
+    const flowValidation = validateConfigFlow('addFiles');
+    if (!flowValidation.isValid) {
+        console.error('❌ Validación de flujo fallida');
+        console.groupEnd();
+        return 0;
+    }
+    
+    const state = getMultipleUploadState();
+    
+    // 2. Validar cantidad máxima
+    if (files.length > CONFIG.MAX_MULTIPLE_FILES) {
+        showPageAlert(`❌ Máximo ${CONFIG.MAX_MULTIPLE_FILES} archivos permitidos. Seleccionados: ${files.length}`, 'error');
+        console.groupEnd();
+        return 0;
+    }
+    
+    // 3. Agregar archivos al estado
+    const addedCount = state.addFiles(files);
+    
+    if (addedCount > 0) {
+        console.log(`✅ ${addedCount} archivo(s) agregado(s) al estado`);
+        showPageAlert(`📁 ${addedCount} archivo(s) agregado(s) correctamente`, 'success');
+    }
+    
+    // 4. Aplicar configuración común inmediatamente
+    applyCommonSettingsToAllFiles(state);
+    
+    // 5. Actualizar UI
+    if (typeof updateMultipleUploadUI === 'function') {
+        console.log('🎨 Actualizando UI...');
+        updateMultipleUploadUI();
+    }
+    
+    // 6. Actualizar estado del botón de subida
+    updateControlsState();
+    
+    console.groupEnd();
+    return addedCount;
+}
+
+/**
+ * Handler para el input de múltiples archivos.
+ */
+export function handleMultipleFileSelect(e) {
+    console.log('📁 handleMultipleFileSelect - Archivos seleccionados:', e.target.files.length);
+    
+    if (e.target.files.length === 0) {
+        showPageAlert('⚠️ No se seleccionaron archivos', 'info');
+        return;
+    }
+    
+    // Validar que esté habilitado
+    if (DOM.multipleFileInput && DOM.multipleFileInput.disabled) {
+        showPageAlert('❌ Primero selecciona una categoría para habilitar la selección de archivos', 'warning');
+        e.target.value = '';
+        return;
+    }
+    
+    const addedCount = handleMultipleFiles(Array.from(e.target.files));
+    
+    // Resetear input
+    e.target.value = '';
+}
+
+/**
+ * FIX CRÍTICO #3: Actualización de configuración común desde DOM
+ */
+function updateCommonSettingsFromDOM(force = false) {
+    console.group('⚙️ UPDATE COMMON SETTINGS FROM DOM');
+    
+    const state = getMultipleUploadState();
+    
+    // Actualizar estado del flujo primero
+    updateConfigFlowState();
+    
+    // Verificar que haya archivos
+    if (state.files.length === 0) {
+        console.warn('⚠️ No hay archivos para aplicar configuración');
+        console.groupEnd();
+        return;
+    }
+    
+    console.log('📊 Estado antes de actualizar:');
+    state.logState();
+    
+    // Aplicar configuración común a todos los archivos
+    applyCommonSettingsToAllFiles(state);
+    
+    // Actualizar UI
+    if (typeof updateMultipleUploadUI === 'function') {
+        console.log('🎨 Actualizando UI después de cambios...');
+        updateMultipleUploadUI();
+    }
+    
+    // Actualizar controles
+    updateControlsState();
+    
+    console.groupEnd();
 }
 
 /**
@@ -88,7 +526,7 @@ function showUploadPreloader(state) {
         updateMultipleUploadUI();
         updateUploadPreloader(state);
         
-        showAlert('Subida cancelada', 'warning');
+        showPageAlert('Subida cancelada por el usuario', 'warning');
     });
     
     // Inicializar contenido del preloader
@@ -242,317 +680,52 @@ function truncateFileName(name, maxLength) {
 }
 
 /**
- * Maneja la selección de múltiples archivos.
- * Valida cantidad máxima y agrega archivos al estado.
- * @param {File[]} files - Array de archivos seleccionados
+ * FIX CRÍTICO #5: Manejo principal de subida múltiple
  */
-export function handleMultipleFiles(files) {
-    console.group(`📁 handleMultipleFiles - Procesando ${files.length} archivo(s)`);
+export async function handleUploadMultipleDocuments() {
+    console.group('📤📤📤 HANDLE UPLOAD MULTIPLE DOCUMENTS');
     
-    const state = getMultipleUploadState();
-    
-    // Mostrar estado actual antes de agregar
-    console.log('📊 Estado ANTES de agregar archivos:', {
-        filesCount: state.files.length,
-        commonCategory: state.commonCategory,
-        commonPersonId: state.commonPersonId,
-        expirationDays: state.expirationDays,
-        DOMCategory: DOM.multipleDocumentCategory ? DOM.multipleDocumentCategory.value : 'NO DISPONIBLE',
-        DOMPerson: DOM.multipleDocumentPerson ? DOM.multipleDocumentPerson.value : 'NO DISPONIBLE',
-        DOMExpiration: DOM.multipleExpirationDays ? DOM.multipleExpirationDays.value : 'NO DISPONIBLE'
-    });
-    
-    // Validar cantidad máxima
-    if (files.length > CONFIG.MAX_MULTIPLE_FILES) {
-        showAlert(`Máximo ${CONFIG.MAX_MULTIPLE_FILES} archivos permitidos. Seleccionados: ${files.length}`, 'error');
+    // 1. Validar flujo de configuración
+    const flowValidation = validateConfigFlow('upload');
+    if (!flowValidation.isValid) {
+        console.error('❌ Validación de flujo fallida');
         console.groupEnd();
         return;
     }
     
-    // CRÍTICO: Actualizar estado con valores actuales del DOM ANTES de agregar archivos
-    console.log('🔄 Actualizando configuración común ANTES de agregar archivos...');
-    updateCommonSettings(true); // true = modo forzado
-    
-    // Agregar archivos al estado
-    const addedCount = state.addFiles(files);
-    
-    // FIX CRÍTICO: Aplicar configuración común inmediatamente a todos los archivos nuevos
-console.log('🔄 Aplicando configuración común a archivos nuevos...');
-// Verificar si el método existe antes de llamarlo
-if (typeof state.applyCommonSettingsToAllFiles === 'function') {
-    state.applyCommonSettingsToAllFiles();
-} else {
-    console.error('❌ ERROR: applyCommonSettingsToAllFiles no existe en state');
-    console.log('🔄 Usando lógica alternativa...');
-    // Lógica alternativa si el método no existe
-    state.files.forEach(fileObj => {
-        if (fileObj.status === 'pending') {
-            if (!fileObj.customCategory || fileObj.customCategory.trim() === '') {
-                fileObj.customCategory = state.commonCategory;
-            }
-            if (!fileObj.customPersonId || fileObj.customPersonId.trim() === '') {
-                fileObj.customPersonId = state.commonPersonId;
-            }
-            if (!fileObj.customExpirationDate && state.expirationDays) {
-                fileObj.customExpirationDate = state.calculateExpirationDate(state.expirationDays);
-            }
-        }
-    });
-}
-    
-    // Mostrar estado después de agregar
-    console.log('📊 Estado DESPUÉS de agregar archivos:');
-    state.logState();
-    
-    // Verificar categorías
-    const categoryCheck = state.checkCategories();
-    console.log('🔍 Verificación de categorías:', categoryCheck);
-    
-    // Verificar personas
-    const personCheck = state.checkPersons();
-    console.log('🔍 Verificación de personas:', personCheck);
-    
-    // Verificar fechas de vencimiento
-    const expirationCheck = state.checkExpirations();
-    console.log('🔍 Verificación de fechas de vencimiento:', expirationCheck);
-    
-    // Actualizar UI
-    if (typeof updateMultipleUploadUI === 'function') {
-        console.log('🎨 Actualizando UI...');
-        updateMultipleUploadUI();
-    }
-    
-    // Habilitar botón de subida si hay archivos
-    if (state.files.length > 0 && DOM.uploadMultipleDocumentsBtn) {
-        DOM.uploadMultipleDocumentsBtn.disabled = false;
-        const uploadCount = DOM.uploadMultipleDocumentsBtn.querySelector('#uploadCount');
-        if (uploadCount) {
-            uploadCount.textContent = state.files.length;
-            uploadCount.style.display = 'inline-block';
-        }
-        console.log('🔼 Botón de subida habilitado');
-    }
-    
-    console.log(`✅ ${addedCount} archivo(s) procesado(s) de ${files.length} seleccionados`);
-    console.groupEnd();
-}
-
-/**
- * Handler para el input de múltiples archivos.
- * @param {Event} e - Evento del input file múltiple
- */
-export function handleMultipleFileSelect(e) {
-    console.log('📁 handleMultipleFileSelect - Archivos seleccionados:', e.target.files.length);
-    handleMultipleFiles(Array.from(e.target.files));
-    
-    // Resetear input para permitir seleccionar los mismos archivos otra vez
-    e.target.value = '';
-}
-
-/**
- * Actualiza la configuración común desde los controles de la UI.
- * @param {boolean} force - Si es true, fuerza la actualización incluso si los valores parecen iguales
- */
-function updateCommonSettings(force = false) {
-    console.group('⚙️ ACTUALIZANDO CONFIGURACIÓN COMÚN');
-    
     const state = getMultipleUploadState();
     
-    console.log('📊 Estado ANTES de actualizar:', {
-        commonCategory: state.commonCategory,
-        commonPersonId: state.commonPersonId,
-        expirationDays: state.expirationDays
-    });
-    
-    // Actualizar categoría común
-    if (DOM.multipleDocumentCategory) {
-        const category = DOM.multipleDocumentCategory.value;
-        console.log(`🏷️ Categoría del select: "${category}"`);
-        
-        // Solo actualizar si es diferente o si force=true
-        if (force || category !== state.commonCategory) {
-            if (category && category.trim() !== '') {
-                state.setCommonCategory(category);
-                console.log(`✅ Categoría común actualizada: "${category}"`);
-            } else {
-                console.warn('⚠️ Categoría vacía o no seleccionada');
-                state.commonCategory = '';
-            }
-        } else {
-            console.log(`🔄 Categoría sin cambios: "${category}"`);
-        }
-    } else {
-        console.error('❌ DOM.multipleDocumentCategory no encontrado');
+    // 2. Validar que haya archivos
+    if (state.files.length === 0) {
+        console.error('❌ ERROR: No hay archivos para subir');
+        showPageAlert('⚠️ Primero selecciona los archivos que deseas subir.', 'warning');
+        console.groupEnd();
+        return;
     }
     
-    // Actualizar persona común - FIX CRÍTICO: Validación mejorada
-    if (DOM.multipleDocumentPerson) {
-        const personId = DOM.multipleDocumentPerson.value;
-        console.log(`👤 Persona del select (raw value): "${personId}" (tipo: ${typeof personId})`);
-        
-        // Validación robusta del valor
-        const isValidPersonId = personId && 
-                               personId.trim() !== '' && 
-                               personId !== 'null' && 
-                               personId !== 'undefined' && 
-                               personId !== '0';
-        
-        // Solo actualizar si es diferente o si force=true
-        if (force || personId !== state.commonPersonId) {
-            if (isValidPersonId) {
-                state.setCommonPersonId(personId);
-                console.log(`✅ Persona común actualizada: "${personId}"`);
-            } else {
-                console.log('👤 Persona común: NO CONFIGURADA (valor vacío o inválido)');
-                state.commonPersonId = '';
-            }
-        } else {
-            console.log(`🔄 Persona sin cambios: "${personId}"`);
-        }
-    } else {
-        console.warn('⚠️ DOM.multipleDocumentPerson no encontrado');
-    }
-    
-    // Actualizar días de expiración - FIX CRÍTICO: Conversión a número
-    if (DOM.multipleExpirationDays) {
-        const daysValue = DOM.multipleExpirationDays.value;
-        console.log(`📅 Valor de días de expiración del DOM: "${daysValue}" (tipo: ${typeof daysValue})`);
-        
-        // Convertir a número para comparación consistente
-        const daysNum = daysValue ? parseInt(daysValue, 10) : null;
-        
-        // Solo actualizar si es diferente o si force=true
-        if (force || daysNum !== state.expirationDays) {
-            if (daysNum !== null && !isNaN(daysNum) && daysNum > 0) {
-                state.setExpirationDays(daysNum);
-                console.log(`✅ Días de expiración actualizados: "${daysNum}"`);
-            } else {
-                console.log('📅 Días de expiración: NO CONFIGURADOS o inválidos');
-                state.expirationDays = null;
-            }
-        } else {
-            console.log(`🔄 Días de expiración sin cambios: "${daysNum}"`);
-        }
-    } else {
-        console.warn('⚠️ DOM.multipleExpirationDays no encontrado');
-    }
-    
-    // Actualizar estrategia
-    if (DOM.uploadStrategy) {
-        state.uploadStrategy = DOM.uploadStrategy.value;
-        console.log(`🔄 Estrategia: ${state.uploadStrategy}`);
-    }
-    
-    // Actualizar opciones avanzadas
-    if (DOM.autoGenerateDescriptions) {
-        state.autoGenerateDescriptions = DOM.autoGenerateDescriptions.checked;
-        console.log(`🤖 Auto-generar descripciones: ${state.autoGenerateDescriptions}`);
-    }
-    
-    if (DOM.notifyPerson) {
-        state.notifyPerson = DOM.notifyPerson.checked;
-        console.log(`🔔 Notificar persona: ${state.notifyPerson}`);
-    }
-    
-    // Verificar estado después de actualizar
-    console.log('📊 Estado DESPUÉS de actualizar:', {
-        commonCategory: state.commonCategory,
-        commonPersonId: state.commonPersonId,
-        expirationDays: state.expirationDays,
-        autoGenerateDescriptions: state.autoGenerateDescriptions,
-        notifyPerson: state.notifyPerson
-    });
-    
-    // FIX CRÍTICO: Aplicar inmediatamente a todos los archivos pendientes
-    if (state.files.length > 0) {
-        console.log('🔄 Aplicando configuración común a todos los archivos pendientes...');
-        state.applyCommonSettingsToAllFiles();
-    }
-    
-    // Actualizar UI después de aplicar configuración
-    if (typeof updateMultipleUploadUI === 'function') {
-        updateMultipleUploadUI();
-    }
-    
-    console.groupEnd();
-}
-
-/**
- * Maneja la subida múltiple de documentos.
- * Coordina la subida según la estrategia seleccionada y muestra progreso.
- */
-export async function handleUploadMultipleDocuments() {
-    console.group('📤📤📤 INICIANDO SUBIDA MÚLTIPLE DE DOCUMENTOS');
-    
-    const state = getMultipleUploadState();
-    
-    // Mostrar estado inicial completo
-    console.log('📊 ESTADO INICIAL COMPLETO:');
-    state.logState();
-    
-    // FIX CRÍTICO: Validar que todos los archivos tengan configuración aplicada
-    console.log('🔍 Verificando configuración de archivos antes de subir...');
-    state.files.forEach((fileObj, index) => {
-        console.log(`📄 Archivo ${index + 1}: ${fileObj.file.name}`, {
-            categoria: fileObj.customCategory || fileObj.commonCategory,
-            persona: fileObj.customPersonId || fileObj.commonPersonId,
-            expiracion: fileObj.customExpirationDate || state.getEffectiveExpirationDate(fileObj),
-            estado: fileObj.status
-        });
-    });
+    // 3. Aplicar configuración del DOM una última vez
+    console.log('\n🔄 APLICANDO CONFIGURACIÓN DEL DOM...');
+    applyCommonSettingsToAllFiles(state);
     
     try {
-        // 1. Actualizar configuración común (forzada)
-        console.log('🔄 Paso 1: Actualizando configuración común...');
-        updateCommonSettings(true); // Forzar actualización
+        // 4. Preparar archivos para subida
+        console.log('\n🔄 PREPARANDO ARCHIVOS PARA SUBIDA...');
+        const preparedFiles = state.prepareFilesForUpload();
         
-        // 2. Aplicar configuración común a todos los archivos
-        console.log('🔄 Paso 2: Aplicando configuración común a todos los archivos...');
-        state.applyCommonSettingsToAllFiles();
+        console.log(`📦 ${preparedFiles.length} archivo(s) preparado(s) para subida`);
+        showPageAlert(`📦 Preparando ${preparedFiles.length} archivo(s) para subida...`, 'info', 2000);
         
-        // 3. Validar antes de empezar
-        console.log('🔍 Paso 3: Validando todos los archivos...');
-        const isValid = state.validateAllFiles();
-        console.log(`✅ Resultado de validación: ${isValid}`);
-        
-        if (!isValid) {
-            console.error('❌ Validación fallida - ABORTANDO');
-            showAlert('Hay errores en los archivos seleccionados. Por favor corrige los errores antes de continuar.', 'error');
-            console.groupEnd();
-            return;
-        }
-        
-        console.log('🚀 Validación exitosa - Iniciando subida múltiple...');
-        
-        // 4. Configurar estado
+        // 5. Configurar estado de subida
         state.isUploading = true;
         
-        // 5. Mostrar preloader de subida
+        // 6. Mostrar preloader
         showUploadPreloader(state);
-        
-        // 6. Mostrar contenedor de progreso (si se usa)
         showUploadProgressContainer();
         
-        // 7. Obtener archivos preparados para subida
-        console.log('📦 Paso 7: Preparando archivos para subida...');
-        const preparedFiles = state.prepareFilesForUpload();
-        console.log(`📤 ${preparedFiles.length} archivo(s) preparado(s) para subida`);
-        
-        // FIX CRÍTICO: Verificar que todos los archivos preparados tengan los datos correctos
-        preparedFiles.forEach((preparedFile, index) => {
-            console.log(`✅ Archivo ${index + 1} preparado: ${preparedFile.fileName}`, {
-                categoria: preparedFile.category,
-                personaId: preparedFile.personId,
-                expirationDate: preparedFile.expirationDate,
-                tieneCategoria: !!preparedFile.category,
-                tienePersona: !!preparedFile.personId,
-                tieneExpiracion: !!preparedFile.expirationDate
-            });
-        });
-        
-        // 8. Iniciar subida según estrategia
+        // 7. Iniciar subida según estrategia
         const strategy = DOM.uploadStrategy ? DOM.uploadStrategy.value : 'sequential';
-        console.log(`🔄 Usando estrategia: ${strategy}`);
+        console.log(`\n🔄 INICIANDO SUBIDA CON ESTRATEGIA: ${strategy}`);
+        showPageAlert(`🔄 Iniciando subida (${strategy}) de ${preparedFiles.length} archivo(s)...`, 'info', 2000);
         
         let result;
         switch(strategy) {
@@ -569,44 +742,88 @@ export async function handleUploadMultipleDocuments() {
                 result = await uploadSequentially(state, preparedFiles);
         }
         
-        // 9. Mostrar resultados
+        // 8. Mostrar resultados
         showUploadResults(result, state);
         
-        // 10. Actualizar preloader con resultados finales
+        // 9. Actualizar preloader
         setTimeout(() => {
             updateUploadPreloader(state);
         }, 500);
         
-        // 11. Recargar documentos si hubo éxito
+        // 10. Recargar documentos si hubo éxito
         if (result.successCount > 0) {
-            console.log('🔄 Recargando documentos...');
+            console.log('\n🔄 RECARGANDO DOCUMENTOS...');
+            showPageAlert(`✅ ${result.successCount} archivo(s) subido(s) correctamente`, 'success');
+            
+            // Disparar evento de subida exitosa
+            window.dispatchEvent(new CustomEvent('documentsUploaded', {
+                detail: {
+                    count: result.successCount,
+                    files: result.uploadedFiles
+                }
+            }));
+            
+            // Recargar la lista de documentos
             if (window.loadDocuments) {
                 await window.loadDocuments();
+                console.log('✅ Lista de documentos recargada');
             }
             
-            if (window.appState && window.appState.currentTab === 'dashboard' && window.loadDashboardData) {
-                await window.loadDashboardData();
-            }
-            
-            // Resetear estado después de subida exitosa
-            console.log('🔄 Reseteando estado después de subida exitosa');
+            // Resetear estado
+            console.log('\n🔄 RESETEANDO ESTADO DESPUÉS DE SUBIDA EXITOSA');
             state.reset();
+            
+            // Resetear controles
+            resetConfigControls();
+            
+            // Actualizar UI
             if (typeof updateMultipleUploadUI === 'function') {
                 updateMultipleUploadUI();
+                console.log('✅ UI actualizada');
             }
+            
+            // Mostrar mensaje de éxito final
+            if (result.successCount === preparedFiles.length) {
+                showPageAlert(`🎉 ¡Éxito! Todos los ${result.successCount} archivos se subieron correctamente`, 'success', 5000);
+            } else {
+                showPageAlert(`✅ ${result.successCount} de ${preparedFiles.length} archivos se subieron correctamente`, 'success', 5000);
+            }
+        } else {
+            showPageAlert('❌ No se pudo subir ningún archivo. Revisa los errores.', 'error');
         }
         
-        console.log('✅ Subida múltiple completada exitosamente');
+        console.log('\n✅ SUBIDA MÚLTIPLE COMPLETADA');
         console.groupEnd();
         
     } catch (error) {
-        console.error('❌ Error en subida múltiple:', error);
-        showAlert('Error en subida múltiple: ' + error.message, 'error');
-    } finally {
-        // Resetear estado
+        console.error('❌ ERROR EN SUBIDA MÚLTIPLE:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Mostrar alerta detallada
+        let errorMessage = 'Error en subida múltiple: ';
+        
+        if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+            errorMessage += 'Error de conexión con el servidor. Verifica tu conexión a internet.';
+        } else if (error.message.includes('timeout')) {
+            errorMessage += 'La solicitud tardó demasiado. Intenta con menos archivos.';
+        } else if (error.message.includes('413')) {
+            errorMessage += 'Los archivos son demasiado grandes. Reduce el tamaño total.';
+        } else {
+            errorMessage += error.message;
+        }
+        
+        showPageAlert(errorMessage, 'error');
+        
+        // Actualizar estado
         state.isUploading = false;
         
-        // Ocultar preloader después de un tiempo si todo está completado
+    } finally {
+        // Finalizar estado
+        state.isUploading = false;
+        
+        console.log('🔚 FINALIZANDO PROCESO DE SUBIDA');
+        
+        // Ocultar preloader después de un tiempo
         setTimeout(() => {
             const allCompleted = state.files.every(f => 
                 f.status === 'completed' || f.status === 'failed'
@@ -618,7 +835,7 @@ export async function handleUploadMultipleDocuments() {
             }
         }, 3000);
         
-        // Ocultar contenedor de progreso después de un tiempo
+        // Ocultar contenedor de progreso
         setTimeout(() => {
             hideUploadProgressContainer();
         }, 5000);
@@ -626,13 +843,39 @@ export async function handleUploadMultipleDocuments() {
 }
 
 /**
- * Sube archivos de forma secuencial, uno tras otro.
- * @param {MultipleUploadState} state - Estado de subida
- * @param {Array} preparedFiles - Archivos preparados para subida
- * @returns {object} - Resultados de la subida
+ * Resetea los controles de configuración
+ */
+function resetConfigControls() {
+    console.log('🔄 Reseteando controles de configuración');
+    
+    // Resetear estado del flujo
+    configFlowState.categorySelected = false;
+    configFlowState.canSelectPerson = false;
+    configFlowState.canSelectExpiration = false;
+    configFlowState.canAddDocuments = false;
+    
+    // Resetear valores del DOM
+    if (DOM.multipleDocumentCategory) {
+        DOM.multipleDocumentCategory.value = '';
+    }
+    if (DOM.multipleDocumentPerson) {
+        DOM.multipleDocumentPerson.value = '';
+    }
+    if (DOM.multipleExpirationDays) {
+        DOM.multipleExpirationDays.value = '';
+    }
+    
+    // Actualizar controles
+    updateControlsState();
+    
+    showPageAlert('🔄 Configuración reseteada. Puedes comenzar un nuevo proceso.', 'info');
+}
+
+/**
+ * Sube archivos de forma secuencial
  */
 async function uploadSequentially(state, preparedFiles) {
-    console.group('🔀 uploadSequentially');
+    console.group('🔀 UPLOAD SEQUENTIALLY');
     console.log(`📤 Subiendo ${preparedFiles.length} archivos secuencialmente`);
     
     const results = {
@@ -648,68 +891,55 @@ async function uploadSequentially(state, preparedFiles) {
         const preparedFile = preparedFiles[i];
         const fileObj = state.files.find(f => f.file.name === preparedFile.fileName);
         
+        console.log(`\n📤 ARCHIVO ${i + 1}/${preparedFiles.length}: ${preparedFile.fileName}`);
+        showPageAlert(`📤 Subiendo archivo ${i + 1}/${preparedFiles.length}: ${preparedFile.fileName}`, 'info', 1000);
+        
         try {
-            // Mostrar información del archivo actual
-            console.log(`📤 Archivo ${i + 1}/${preparedFiles.length}: ${preparedFile.fileName}`, {
-                category: preparedFile.category,
-                personId: preparedFile.personId,
-                expirationDate: preparedFile.expirationDate,
-                notifyPerson: preparedFile.notifyPerson,
-                notifyExpiration: preparedFile.notifyExpiration
-            });
-            
-            // VERIFICACIÓN CRÍTICA: Validar que todos los campos necesarios estén presentes
-            const validationErrors = [];
-            
+            // Validación final
             if (!preparedFile.category || preparedFile.category.trim() === '') {
-                validationErrors.push('Falta categoría');
-            }
-            
-            // FIX CRÍTICO: Persona puede ser opcional dependiendo de tu lógica de negocio
-            // Si es requerida, descomenta la siguiente validación:
-            /*
-            if (!preparedFile.personId || preparedFile.personId.trim() === '') {
-                validationErrors.push('Falta persona asignada');
-            }
-            */
-            
-            if (validationErrors.length > 0) {
-                console.error(`❌ ERROR: ${preparedFile.fileName} - ${validationErrors.join(', ')} - SE OMITE`);
+                console.error(`   ❌ ERROR: ${preparedFile.fileName} - NO TIENE CATEGORÍA`);
+                
                 if (fileObj) {
                     fileObj.status = 'failed';
-                    fileObj.error = validationErrors.join(', ');
+                    fileObj.error = 'Falta categoría';
                     updateFileUI(fileObj.id, state);
                 }
+                
                 results.failureCount++;
                 continue;
             }
             
+            // Actualizar estado
             if (fileObj) {
-                // Actualizar estado
                 fileObj.status = 'uploading';
                 fileObj.progress = 0;
                 updateFileUI(fileObj.id, state);
                 updateUploadPreloader(state);
             }
             
-            // Subir archivo
-            const success = await uploadSingleFileWithProgress(preparedFile, fileObj, state);
+            console.log('   🚀 Iniciando subida...');
             
-            if (success) {
+            // Subir archivo
+            const uploadSuccess = await uploadSingleFileWithProgress(preparedFile, fileObj, state);
+            
+            if (uploadSuccess) {
                 results.successCount++;
                 if (fileObj) {
                     fileObj.status = 'completed';
                     fileObj.progress = 100;
                 }
+                
                 results.uploadedFiles.push({
                     name: preparedFile.fileName,
                     size: preparedFile.fileSize,
                     category: preparedFile.category,
                     personId: preparedFile.personId,
-                    expirationDate: preparedFile.expirationDate
+                    expirationDate: preparedFile.expirationDate,
+                    description: preparedFile.description
                 });
                 
-                console.log(`✅ ${preparedFile.fileName} - Subida exitosa`);
+                console.log(`   ✅ ${preparedFile.fileName} - SUBIDA EXITOSA`);
+                showPageAlert(`✅ ${preparedFile.fileName} - Subido correctamente`, 'success', 1000);
             } else {
                 results.failureCount++;
                 if (fileObj) {
@@ -717,47 +947,228 @@ async function uploadSequentially(state, preparedFiles) {
                     fileObj.error = 'Error en la subida';
                 }
                 
-                console.error(`❌ ${preparedFile.fileName} - Error en subida`);
+                console.error(`   ❌ ${preparedFile.fileName} - ERROR EN SUBIDA`);
+                showPageAlert(`❌ ${preparedFile.fileName} - Error en subida`, 'error', 1000);
             }
             
+            // Actualizar UI
             if (fileObj) {
                 updateFileUI(fileObj.id, state);
             }
             updateUploadPreloader(state);
             
-            // Pequeña pausa entre archivos (excepto el último)
+            // Pausa entre archivos
             if (i < preparedFiles.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, MULTIPLE_UPLOAD_CONFIG.DELAY_BETWEEN_FILES));
+                const delay = MULTIPLE_UPLOAD_CONFIG.DELAY_BETWEEN_FILES;
+                console.log(`   ⏸️  Pausa de ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
             
         } catch (error) {
-            console.error(`❌ Error crítico en archivo ${preparedFile.fileName}:`, error);
+            console.error(`   ❌ ERROR en archivo ${preparedFile.fileName}:`, error);
             results.failureCount++;
+            
             if (fileObj) {
                 fileObj.status = 'failed';
                 fileObj.error = error.message;
                 updateFileUI(fileObj.id, state);
             }
+            
+            showPageAlert(`❌ ${preparedFile.fileName} - Error: ${error.message}`, 'error');
             updateUploadPreloader(state);
         }
     }
     
     results.totalTime = Date.now() - startTime;
-    console.log(`⏱️  Tiempo total secuencial: ${results.totalTime}ms`);
-    console.groupEnd();
+    console.log(`\n⏱️  TIEMPO TOTAL: ${results.totalTime}ms`);
+    console.log(`📊 RESULTADOS: ${results.successCount} exitosos, ${results.failureCount} fallidos`);
     
+    console.groupEnd();
     return results;
 }
 
 /**
- * Sube archivos en paralelo con límite de concurrencia.
- * @param {MultipleUploadState} state - Estado de subida
- * @param {Array} preparedFiles - Archivos preparados para subida
- * @returns {object} - Resultados de la subida
+ * FIX CRÍTICO #6: Subida individual de archivo con validación extrema
+ */
+async function uploadSingleFileWithProgress(preparedFile, fileObj, state) {
+    return new Promise(async (resolve, reject) => {
+        console.group(`📤 UPLOAD SINGLE FILE: ${preparedFile.fileName}`);
+        
+        try {
+            // Validación final EXTREMA
+            if (!preparedFile.category || preparedFile.category.trim() === '') {
+                console.error('❌ ERROR: Categoría VACÍA - ABORTANDO');
+                showPageAlert(`❌ ${preparedFile.fileName} - Error: Categoría no definida`, 'error');
+                if (fileObj) {
+                    fileObj.error = 'Categoría no definida';
+                }
+                console.groupEnd();
+                resolve(false);
+                return;
+            }
+            
+            // Preparar FormData
+            const formData = new FormData();
+            
+            // 1. Archivo
+            formData.append('file', preparedFile.file);
+            
+            // 2. Descripción
+            formData.append('descripcion', preparedFile.description || '');
+            
+            // 3. Categoría (OBLIGATORIA)
+            formData.append('categoria', preparedFile.category);
+            console.log(`   ✅ Categoría enviada: "${preparedFile.category}"`);
+            
+            // 4. Persona ID (manejo correcto de valores vacíos)
+            let personaIdValue = '';
+            if (preparedFile.personId && 
+                preparedFile.personId.trim() !== '' && 
+                preparedFile.personId !== 'null' && 
+                preparedFile.personId !== 'undefined') {
+                personaIdValue = preparedFile.personId.trim();
+            }
+            formData.append('persona_id', personaIdValue);
+            console.log(`   👤 Persona ID enviada: "${personaIdValue || '(cadena vacía)'}"`);
+            
+            // 5. Fecha de vencimiento (manejo correcto)
+            let fechaVencimientoValue = '';
+            if (preparedFile.expirationDate && 
+                preparedFile.expirationDate !== 'null' && 
+                preparedFile.expirationDate !== 'undefined') {
+                try {
+                    const dateObj = new Date(preparedFile.expirationDate);
+                    if (!isNaN(dateObj.getTime())) {
+                        fechaVencimientoValue = dateObj.toISOString().split('T')[0];
+                    }
+                } catch (error) {
+                    console.log('   ⚠️ Error parseando fecha:', error);
+                }
+            }
+            
+            if (fechaVencimientoValue) {
+                formData.append('fecha_vencimiento', fechaVencimientoValue);
+                console.log(`   📅 Fecha vencimiento enviada: ${fechaVencimientoValue}`);
+            } else {
+                formData.append('fecha_vencimiento', '');
+                console.log('   📅 Fecha vencimiento: NO enviada (vacía/sin fecha)');
+            }
+            
+            // Crear XMLHttpRequest
+            const xhr = new XMLHttpRequest();
+            
+            // Configurar progreso
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable && fileObj) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    fileObj.progress = percentComplete;
+                    updateFileUI(fileObj.id, state);
+                    updateUploadPreloader(state);
+                    
+                    if (CONFIG.DEBUG.LOG_UPLOAD_PROGRESS) {
+                        console.log(`📈 ${preparedFile.fileName}: ${percentComplete}%`);
+                    }
+                }
+            });
+            
+            xhr.addEventListener('load', () => {
+                console.log(`📥 RESPUESTA - HTTP ${xhr.status}: ${xhr.statusText}`);
+                
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        
+                        if (response.success) {
+                            console.log(`✅ ${preparedFile.fileName} - SUBIDA EXITOSA`);
+                            showPageAlert(`✅ ${preparedFile.fileName} - Subido exitosamente`, 'success', 1000);
+                            resolve(true);
+                        } else {
+                            console.error(`❌ ${preparedFile.fileName} - Error del servidor:`, response.message);
+                            showPageAlert(`❌ ${preparedFile.fileName} - Error del servidor: ${response.message}`, 'error');
+                            
+                            if (fileObj) {
+                                fileObj.error = response.message || 'Error del servidor';
+                            }
+                            resolve(false);
+                        }
+                    } catch (parseError) {
+                        console.error(`❌ ${preparedFile.fileName} - Error parseando respuesta:`, parseError);
+                        showPageAlert(`❌ ${preparedFile.fileName} - Error en la respuesta del servidor`, 'error');
+                        
+                        if (fileObj) {
+                            fileObj.error = 'Error en la respuesta';
+                        }
+                        resolve(false);
+                    }
+                } else {
+                    console.error(`❌ ${preparedFile.fileName} - HTTP ${xhr.status}`);
+                    showPageAlert(`❌ ${preparedFile.fileName} - Error HTTP ${xhr.status}`, 'error');
+                    
+                    if (fileObj) {
+                        fileObj.error = `Error HTTP ${xhr.status}`;
+                    }
+                    
+                    resolve(false);
+                }
+                
+                console.groupEnd();
+            });
+            
+            xhr.addEventListener('error', () => {
+                console.error(`❌ ${preparedFile.fileName} - Error de red`);
+                showPageAlert(`❌ ${preparedFile.fileName} - Error de conexión de red`, 'error');
+                
+                if (fileObj) {
+                    fileObj.error = 'Error de conexión';
+                }
+                
+                console.groupEnd();
+                resolve(false);
+            });
+            
+            xhr.addEventListener('abort', () => {
+                console.warn(`⚠️ ${preparedFile.fileName} - Cancelado`);
+                showPageAlert(`⚠️ ${preparedFile.fileName} - Subida cancelada`, 'warning');
+                
+                if (fileObj) {
+                    fileObj.error = 'Cancelado por el usuario';
+                }
+                
+                console.groupEnd();
+                resolve(false);
+            });
+            
+            // Enviar petición
+            const url = `${CONFIG.API_BASE_URL}/documents`;
+            console.log(`🚀 Enviando POST a: ${url}`);
+            
+            xhr.open('POST', url);
+            xhr.setRequestHeader('Accept', 'application/json');
+            
+            // Enviar
+            xhr.send(formData);
+            
+        } catch (error) {
+            console.error(`❌ Error en ${preparedFile.fileName}:`, error);
+            showPageAlert(`❌ ${preparedFile.fileName} - Error: ${error.message}`, 'error');
+            
+            if (fileObj) {
+                fileObj.error = error.message;
+            }
+            
+            console.groupEnd();
+            resolve(false);
+        }
+    });
+}
+
+/**
+ * Sube archivos en paralelo
  */
 async function uploadInParallel(state, preparedFiles) {
-    console.group('⚡ uploadInParallel');
+    console.group('⚡ UPLOAD IN PARALLEL');
     console.log('⚡ Subida paralela iniciada');
+    showPageAlert('⚡ Iniciando subida paralela...', 'info', 2000);
     
     const maxConcurrent = MULTIPLE_UPLOAD_CONFIG.MAX_CONCURRENT_UPLOADS;
     const results = {
@@ -769,7 +1180,6 @@ async function uploadInParallel(state, preparedFiles) {
     
     const startTime = Date.now();
     
-    // Crear array de promesas
     const uploadPromises = [];
     const activeUploads = new Set();
     
@@ -777,25 +1187,24 @@ async function uploadInParallel(state, preparedFiles) {
         const preparedFile = preparedFiles[i];
         const fileObj = state.files.find(f => f.file.name === preparedFile.fileName);
         
-        // Verificación CRÍTICA antes de agregar a la cola
-        const validationErrors = [];
+        // Validación
         if (!preparedFile.category || preparedFile.category.trim() === '') {
-            validationErrors.push('Falta categoría');
-        }
-        
-        if (validationErrors.length > 0) {
-            console.error(`❌ ERROR: ${preparedFile.fileName} - ${validationErrors.join(', ')} - SE OMITE`);
+            console.error(`❌ ERROR: ${preparedFile.fileName} - NO TIENE CATEGORÍA`);
+            showPageAlert(`❌ ${preparedFile.fileName} - Error: Falta categoría`, 'error');
+            
             if (fileObj) {
                 fileObj.status = 'failed';
-                fileObj.error = validationErrors.join(', ');
+                fileObj.error = 'Falta categoría';
                 updateFileUI(fileObj.id, state);
             }
+            
             results.failureCount++;
             continue;
         }
         
-        // Esperar si hay demasiadas subidas concurrentes
+        // Esperar slot
         while (activeUploads.size >= maxConcurrent) {
+            console.log(`   ⏳ Esperando... (${activeUploads.size}/${maxConcurrent})`);
             await new Promise(resolve => setTimeout(resolve, 100));
             updateUploadPreloader(state);
         }
@@ -806,9 +1215,10 @@ async function uploadInParallel(state, preparedFiles) {
             fileObj.progress = 0;
             updateFileUI(fileObj.id, state);
             updateUploadPreloader(state);
-            
             activeUploads.add(fileObj.id);
         }
+        
+        console.log(`🚀 Iniciando subida paralela: ${preparedFile.fileName}`);
         
         const uploadPromise = uploadSingleFileWithProgress(preparedFile, fileObj, state)
             .then(success => {
@@ -825,14 +1235,14 @@ async function uploadInParallel(state, preparedFiles) {
                         personId: preparedFile.personId,
                         expirationDate: preparedFile.expirationDate
                     });
-                    console.log(`✅ ${preparedFile.fileName} - Completado`);
+                    console.log(`✅ ${preparedFile.fileName} - COMPLETADO`);
                 } else {
                     results.failureCount++;
                     if (fileObj) {
                         fileObj.status = 'failed';
-                        fileObj.error = 'Error en la subida';
+                        fileObj.error = 'Error en subida';
                     }
-                    console.error(`❌ ${preparedFile.fileName} - Fallado`);
+                    console.error(`❌ ${preparedFile.fileName} - FALLADO`);
                 }
                 
                 if (fileObj) {
@@ -840,7 +1250,6 @@ async function uploadInParallel(state, preparedFiles) {
                     activeUploads.delete(fileObj.id);
                 }
                 updateUploadPreloader(state);
-                
                 return success;
             })
             .catch(error => {
@@ -859,25 +1268,26 @@ async function uploadInParallel(state, preparedFiles) {
         uploadPromises.push(uploadPromise);
     }
     
-    // Esperar a que todas las subidas terminen
+    // Esperar todas las subidas
+    console.log(`⏳ Esperando ${uploadPromises.length} subidas...`);
+    showPageAlert(`⏳ Esperando ${uploadPromises.length} subidas paralelas...`, 'info', 2000);
     await Promise.all(uploadPromises);
     
     results.totalTime = Date.now() - startTime;
-    console.log(`⏱️  Tiempo total paralelo: ${results.totalTime}ms`);
-    console.groupEnd();
+    console.log(`⏱️  Tiempo total: ${results.totalTime}ms`);
+    console.log(`📊 Resultados: ${results.successCount} exitosos, ${results.failureCount} fallidos`);
     
+    console.groupEnd();
     return results;
 }
 
 /**
- * Sube archivos por lotes, con pausas entre lotes.
- * @param {MultipleUploadState} state - Estado de subida
- * @param {Array} preparedFiles - Archivos preparados para subida
- * @returns {object} - Resultados de la subida
+ * Sube archivos por lotes
  */
 async function uploadInBatches(state, preparedFiles) {
-    console.group('📦 uploadInBatches');
+    console.group('📦 UPLOAD IN BATCHES');
     console.log('📦 Subida por lotes iniciada');
+    showPageAlert('📦 Iniciando subida por lotes...', 'info', 2000);
     
     const batchSize = MULTIPLE_UPLOAD_CONFIG.BATCH_SIZE;
     const delayBetween = MULTIPLE_UPLOAD_CONFIG.DELAY_BETWEEN_BATCHES;
@@ -890,47 +1300,22 @@ async function uploadInBatches(state, preparedFiles) {
     
     const startTime = Date.now();
     
-    // Dividir archivos en lotes
+    // Crear lotes
     const batches = [];
     for (let i = 0; i < preparedFiles.length; i += batchSize) {
         batches.push(preparedFiles.slice(i, i + batchSize));
     }
     
-    console.log(`📊 ${batches.length} lotes creados (tamaño: ${batchSize})`);
+    console.log(`📊 ${batches.length} lotes creados`);
     
     // Procesar cada lote
     for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
         const batch = batches[batchIndex];
-        console.log(`📤 Procesando lote ${batchIndex + 1}/${batches.length}`);
+        console.log(`\n📤 PROCESANDO LOTE ${batchIndex + 1}/${batches.length}`);
+        showPageAlert(`📤 Procesando lote ${batchIndex + 1}/${batches.length}...`, 'info', 2000);
         
-        // Filtrar archivos válidos (con categoría)
-        const validBatch = batch.filter(f => {
-            const errors = [];
-            if (!f.category || f.category.trim() === '') {
-                errors.push('Falta categoría');
-            }
-            return errors.length === 0;
-        });
-        
-        const invalidCount = batch.length - validBatch.length;
-        
-        if (invalidCount > 0) {
-            console.warn(`⚠️ ${invalidCount} archivo(s) inválidos en lote ${batchIndex + 1}`);
-            
-            // Marcar archivos inválidos como fallados
-            batch.filter(f => !validBatch.includes(f)).forEach(invalidFile => {
-                const fileObj = state.files.find(f => f.file.name === invalidFile.fileName);
-                if (fileObj) {
-                    fileObj.status = 'failed';
-                    fileObj.error = 'Falta categoría';
-                    updateFileUI(fileObj.id, state);
-                    results.failureCount++;
-                }
-            });
-        }
-        
-        // Subir archivos del lote en paralelo
-        const batchPromises = validBatch.map(preparedFile => {
+        // Subir lote en paralelo
+        const batchPromises = batch.map(preparedFile => {
             const fileObj = state.files.find(f => f.file.name === preparedFile.fileName);
             
             if (fileObj) {
@@ -960,7 +1345,7 @@ async function uploadInBatches(state, preparedFiles) {
                         results.failureCount++;
                         if (fileObj) {
                             fileObj.status = 'failed';
-                            fileObj.error = 'Error en la subida';
+                            fileObj.error = 'Error en subida';
                         }
                         console.error(`❌ ${preparedFile.fileName} - Fallado`);
                     }
@@ -984,284 +1369,48 @@ async function uploadInBatches(state, preparedFiles) {
                 });
         });
         
-        // Esperar a que termine el lote
+        // Esperar lote
+        console.log(`⏳ Esperando ${batchPromises.length} archivos...`);
         await Promise.all(batchPromises);
         
-        // Pausa entre lotes (excepto el último)
+        // Pausa entre lotes
         if (batchIndex < batches.length - 1) {
-            console.log(`⏸️  Pausa entre lotes: ${delayBetween}ms`);
+            console.log(`⏸️  Pausa: ${delayBetween}ms`);
             await new Promise(resolve => setTimeout(resolve, delayBetween));
         }
     }
     
     results.totalTime = Date.now() - startTime;
-    console.log(`⏱️  Tiempo total por lotes: ${results.totalTime}ms`);
-    console.groupEnd();
+    console.log(`\n⏱️  Tiempo total: ${results.totalTime}ms`);
+    console.log(`📊 Resultados: ${results.successCount} exitosos, ${results.failureCount} fallidos`);
     
+    console.groupEnd();
     return results;
 }
 
 /**
- * Sube un archivo individual con seguimiento de progreso.
- * @param {object} preparedFile - Archivo preparado para subida
- * @param {object|null} fileObj - Objeto de archivo del estado (opcional)
- * @param {MultipleUploadState} state - Estado de subida
- * @returns {Promise<boolean>} - True si la subida fue exitosa
- */
-async function uploadSingleFileWithProgress(preparedFile, fileObj, state) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            console.group(`📤 UPLOAD: ${preparedFile.fileName}`);
-            
-            console.log(`🏷️ Configuración del archivo:`, {
-                categoría: preparedFile.category,
-                personaId: preparedFile.personId,
-                fechaVencimiento: preparedFile.expirationDate,
-                notifyPerson: preparedFile.notifyPerson,
-                notifyExpiration: preparedFile.notifyExpiration
-            });
-            
-            // VALIDACIÓN CRÍTICA: Asegurar que la categoría no esté vacía
-            if (!preparedFile.category || preparedFile.category.trim() === '') {
-                console.error(`❌ ${preparedFile.fileName} - NO TIENE CATEGORÍA`);
-                throw new Error('Categoría no definida para el archivo');
-            }
-            
-            // Preparar FormData
-            const formData = new FormData();
-            formData.append('file', preparedFile.file);
-            
-            // Descripción
-            formData.append('descripcion', preparedFile.description || '');
-            console.log(`📝 Descripción: "${preparedFile.description}"`);
-            
-            // Categoría - CAMPO OBLIGATORIO
-            formData.append('categoria', preparedFile.category);
-            console.log(`🏷️ Categoría enviada: "${preparedFile.category}"`);
-            
-            // Persona - CAMPO OPCIONAL (solo si tiene valor)
-            if (preparedFile.personId && preparedFile.personId.trim() !== '') {
-                formData.append('persona_id', preparedFile.personId);
-                console.log(`👤 Persona asignada: "${preparedFile.personId}"`);
-            } else {
-                console.log('👤 No se asigna persona (persona_id vacío)');
-                // IMPORTANTE: Si en tu backend espera este campo siempre, envía una cadena vacía
-                formData.append('persona_id', '');
-            }
-            
-            // Fecha de vencimiento - CAMPO OPCIONAL (solo si tiene valor)
-            if (preparedFile.expirationDate && preparedFile.expirationDate.trim() !== '') {
-                formData.append('fecha_vencimiento', preparedFile.expirationDate);
-                console.log(`📅 Fecha de vencimiento enviada: ${preparedFile.expirationDate}`);
-                
-                // Verificar formato de fecha
-                const dateObj = new Date(preparedFile.expirationDate);
-                if (isNaN(dateObj.getTime())) {
-                    console.warn(`⚠️ Posible formato de fecha inválido: ${preparedFile.expirationDate}`);
-                }
-            } else {
-                console.log('📅 No se agregará fecha de vencimiento (no configurada)');
-                // IMPORTANTE: Si en tu backend espera este campo siempre, envía una cadena vacía
-                formData.append('fecha_vencimiento', '');
-            }
-            
-            // Configurar notificación si está habilitada y hay persona
-            if (preparedFile.notifyPerson && preparedFile.personId && preparedFile.personId.trim() !== '') {
-                formData.append('notificar', 'true');
-                console.log('🔔 Notificación habilitada para la persona');
-            }
-            
-            // Mostrar todo lo que se enviará
-            console.log('📤 Datos a enviar al servidor:');
-            for (let pair of formData.entries()) {
-                console.log(`   ${pair[0]}: ${pair[1]}`);
-            }
-            
-            // Crear XMLHttpRequest para tener progreso
-            const xhr = new XMLHttpRequest();
-            
-            // Configurar eventos de progreso
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    if (fileObj) {
-                        fileObj.progress = percentComplete;
-                        updateFileUI(fileObj.id, state);
-                        updateUploadPreloader(state);
-                    }
-                    
-                    if (CONFIG.DEBUG.LOG_UPLOAD_PROGRESS) {
-                        console.log(`📈 ${preparedFile.fileName}: ${percentComplete}%`);
-                    }
-                }
-            });
-            
-            xhr.addEventListener('load', () => {
-                console.log(`📥 Respuesta recibida:`, {
-                    status: xhr.status,
-                    statusText: xhr.statusText,
-                    archivo: preparedFile.fileName
-                });
-                
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        console.log('📋 Respuesta del servidor:', {
-                            success: response.success,
-                            message: response.message,
-                            document: response.document ? {
-                                id: response.document._id,
-                                nombre: response.document.nombre_original,
-                                categoria: response.document.categoria,
-                                persona_id: response.document.persona_id,
-                                fecha_vencimiento: response.document.fecha_vencimiento,
-                                estado: response.document.estado || 'pendiente'
-                            } : 'No hay documento en respuesta'
-                        });
-                        
-                        if (response.success) {
-                            console.log(`✅ ${preparedFile.fileName} - Subida exitosa`);
-                            
-                            // Verificar que los datos se guardaron correctamente
-                            if (response.document) {
-                                console.log('✅ Documento creado en backend:', {
-                                    categoríaGuardada: response.document.categoria,
-                                    personaGuardada: response.document.persona_id,
-                                    fechaVencimientoGuardada: response.document.fecha_vencimiento,
-                                    estadoGuardado: response.document.estado
-                                });
-                                
-                                // Comparar con lo enviado
-                                const mismatches = [];
-                                if (response.document.categoria !== preparedFile.category) {
-                                    mismatches.push(`Categoría: ${preparedFile.category} -> ${response.document.categoria}`);
-                                }
-                                if (response.document.persona_id !== preparedFile.personId) {
-                                    mismatches.push(`Persona: ${preparedFile.personId || '(vacío)'} -> ${response.document.persona_id || '(vacío)'}`);
-                                }
-                                if (response.document.fecha_vencimiento !== preparedFile.expirationDate) {
-                                    mismatches.push(`Vencimiento: ${preparedFile.expirationDate || '(sin fecha)'} -> ${response.document.fecha_vencimiento || '(sin fecha)'}`);
-                                }
-                                
-                                if (mismatches.length > 0) {
-                                    console.warn('⚠️ Diferencias entre enviado y guardado:', mismatches);
-                                }
-                            }
-                            
-                            resolve(true);
-                        } else {
-                            console.error(`❌ ${preparedFile.fileName} - Error del servidor:`, response.message);
-                            console.log('⚠️ Datos enviados:');
-                            for (let pair of formData.entries()) {
-                                console.log(`   ${pair[0]}: ${pair[1]}`);
-                            }
-                            if (fileObj) {
-                                fileObj.error = response.message || 'Error desconocido del servidor';
-                            }
-                            resolve(false);
-                        }
-                    } catch (parseError) {
-                        console.error(`❌ ${preparedFile.fileName} - Error parseando respuesta:`, parseError);
-                        console.log('Respuesta cruda:', xhr.responseText);
-                        if (fileObj) {
-                            fileObj.error = 'Error en la respuesta del servidor';
-                        }
-                        resolve(false);
-                    }
-                } else {
-                    console.error(`❌ ${preparedFile.fileName} - HTTP ${xhr.status}: ${xhr.statusText}`);
-                    if (fileObj) {
-                        fileObj.error = `Error HTTP ${xhr.status}: ${xhr.statusText}`;
-                        
-                        try {
-                            const errorResponse = JSON.parse(xhr.responseText);
-                            console.error('Detalles del error:', errorResponse);
-                            if (errorResponse.message) {
-                                fileObj.error += ` - ${errorResponse.message}`;
-                            }
-                        } catch (e) {
-                            // Ignorar error de parseo
-                        }
-                    }
-                    
-                    resolve(false);
-                }
-                
-                console.groupEnd();
-            });
-            
-            xhr.addEventListener('error', () => {
-                console.error(`❌ ${preparedFile.fileName} - Error de red`);
-                if (fileObj) {
-                    fileObj.error = 'Error de conexión con el servidor';
-                }
-                console.groupEnd();
-                resolve(false);
-            });
-            
-            xhr.addEventListener('abort', () => {
-                console.warn(`⚠️ ${preparedFile.fileName} - Subida cancelada`);
-                if (fileObj) {
-                    fileObj.error = 'Subida cancelada por el usuario';
-                }
-                console.groupEnd();
-                resolve(false);
-            });
-            
-            // Enviar la petición
-            xhr.open('POST', `${CONFIG.API_BASE_URL}/documents`);
-            
-            // Agregar headers
-            xhr.setRequestHeader('Accept', 'application/json');
-            
-            console.log(`📤 Enviando ${preparedFile.fileName} a ${CONFIG.API_BASE_URL}/documents...`);
-            xhr.send(formData);
-            
-        } catch (error) {
-            console.error(`❌ Error preparando ${preparedFile.fileName}:`, error);
-            if (fileObj) {
-                fileObj.error = error.message;
-            }
-            console.groupEnd();
-            resolve(false);
-        }
-    });
-}
-
-/**
- * Actualiza la UI de un archivo específico en la lista.
- * @param {string} fileId - ID del archivo a actualizar
- * @param {MultipleUploadState} state - Estado de subida
+ * Actualiza la UI de un archivo
  */
 function updateFileUI(fileId, state) {
-    if (!fileId || !state) {
-        console.warn('⚠️ updateFileUI: Parámetros inválidos');
-        return;
-    }
+    if (!fileId || !state) return;
     
     const fileElement = document.querySelector(`.file-item[data-file-id="${fileId}"]`);
-    if (!fileElement) {
-        console.warn(`⚠️ No se encontró elemento para fileId: ${fileId}`);
-        return;
-    }
+    if (!fileElement) return;
     
     const fileObj = state.files.find(f => f.id === fileId);
-    if (!fileObj) {
-        console.error(`❌ No se encontró fileObj para fileId: ${fileId}`);
-        return;
-    }
+    if (!fileObj) return;
     
-    // Actualizar clase de estado
+    // Actualizar clase
     fileElement.className = `file-item file-item--${fileObj.status}`;
     
-    // Actualizar badge de estado
+    // Actualizar badge
     const statusBadge = fileElement.querySelector('.status-badge');
     if (statusBadge) {
         statusBadge.className = `status-badge status-badge--${fileObj.status}`;
         statusBadge.textContent = getStatusText(fileObj.status);
     }
     
-    // Actualizar barra de progreso
+    // Actualizar progreso
     const progressBar = fileElement.querySelector('.progress-bar__fill');
     const progressText = fileElement.querySelector('.progress-text');
     
@@ -1272,7 +1421,7 @@ function updateFileUI(fileId, state) {
         }
     }
     
-    // Mostrar/ocultar sección de error
+    // Actualizar error
     const errorSection = fileElement.querySelector('.file-item__error');
     if (errorSection) {
         if (fileObj.error) {
@@ -1286,10 +1435,10 @@ function updateFileUI(fileId, state) {
         }
     }
     
-    // Actualizar categoría mostrada
+    // Actualizar categoría
     const categorySpan = fileElement.querySelector('.file-item__category');
     if (categorySpan) {
-        const effectiveCategory = state.getEffectiveCategory(fileObj);
+        const effectiveCategory = fileObj.customCategory;
         categorySpan.textContent = effectiveCategory || 'Sin categoría';
         if (!effectiveCategory || effectiveCategory.trim() === '') {
             categorySpan.style.color = 'var(--danger)';
@@ -1297,22 +1446,21 @@ function updateFileUI(fileId, state) {
         }
     }
     
-    // Actualizar persona mostrada
+    // Actualizar persona
     const personSpan = fileElement.querySelector('.file-item__person');
     if (personSpan) {
-        const effectivePersonId = state.getEffectivePersonId(fileObj);
-        personSpan.textContent = effectivePersonId ? `Persona: ${effectivePersonId}` : 'Sin persona asignada';
+        const effectivePersonId = fileObj.customPersonId;
+        personSpan.textContent = effectivePersonId ? `Persona: ${effectivePersonId}` : 'Sin persona';
     }
     
-    // Actualizar fecha de vencimiento mostrada
+    // Actualizar fecha
     const dateSpan = fileElement.querySelector('.file-item__expiration');
     if (dateSpan) {
-        const effectiveExpirationDate = state.getEffectiveExpirationDate(fileObj);
+        const effectiveExpirationDate = fileObj.customExpirationDate;
         if (effectiveExpirationDate) {
             const date = new Date(effectiveExpirationDate);
             dateSpan.textContent = `Vence: ${date.toLocaleDateString()}`;
             dateSpan.style.display = 'block';
-            dateSpan.style.color = 'var(--warning-dark)';
         } else {
             dateSpan.style.display = 'none';
         }
@@ -1320,14 +1468,11 @@ function updateFileUI(fileId, state) {
 }
 
 /**
- * Muestra los resultados de la subida múltiple
- * @param {object} results - Resultados de la subida
- * @param {MultipleUploadState} state - Estado de subida
+ * Muestra resultados
  */
 function showUploadResults(results, state) {
-    console.log('📋 Mostrando resultados de subida');
+    console.log('📋 Mostrando resultados');
     
-    // Crear o actualizar contenedor de resultados
     let resultsContainer = document.getElementById('uploadResultsContainer');
     if (!resultsContainer) {
         resultsContainer = document.createElement('div');
@@ -1342,10 +1487,9 @@ function showUploadResults(results, state) {
         }
     }
     
-    // Generar HTML de resultados
     resultsContainer.innerHTML = `
         <div class="results-header">
-            <h4><i class="fas fa-clipboard-check"></i> Resultados de la Subida</h4>
+            <h4><i class="fas fa-clipboard-check"></i> Resultados</h4>
             <button class="btn btn--sm btn--outline" id="closeResultsBtn">
                 <i class="fas fa-times"></i>
             </button>
@@ -1368,7 +1512,7 @@ function showUploadResults(results, state) {
         
         ${results.successCount > 0 ? `
             <div class="results-files">
-                <h5>Archivos subidos exitosamente:</h5>
+                <h5>Archivos subidos:</h5>
                 <ul class="files-list">
                     ${results.uploadedFiles.map(file => `
                         <li>
@@ -1396,7 +1540,7 @@ function showUploadResults(results, state) {
         ` : ''}
     `;
     
-    // Configurar event listeners
+    // Event listeners
     const closeBtn = resultsContainer.querySelector('#closeResultsBtn');
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
@@ -1424,11 +1568,11 @@ function showUploadResults(results, state) {
 }
 
 /**
- * Reintenta los archivos que fallaron
- * @param {MultipleUploadState} state - Estado de subida
+ * Reintenta fallidos
  */
 function retryFailedUploads(state) {
-    console.log('🔄 Reintentando archivos fallidos');
+    console.log('🔄 Reintentando fallidos');
+    showPageAlert('🔄 Reintentando archivos fallidos...', 'info');
     
     const failedFiles = state.files.filter(f => f.status === 'failed');
     
@@ -1439,18 +1583,13 @@ function retryFailedUploads(state) {
         file.retryCount = (file.retryCount || 0) + 1;
     });
     
-    // Actualizar UI
     updateMultipleUploadUI();
     updateUploadPreloader(state);
-    
-    // Volver a subir
     handleUploadMultipleDocuments();
 }
 
 /**
- * Obtiene el texto legible para un estado de archivo.
- * @param {string} status - Estado del archivo
- * @returns {string} - Texto legible del estado
+ * Obtiene texto de estado
  */
 function getStatusText(status) {
     const statusMap = {
@@ -1463,103 +1602,283 @@ function getStatusText(status) {
 }
 
 /**
- * Depuración: Imprime el estado completo
- */
-export function debugState() {
-    const state = getMultipleUploadState();
-    console.group('🐛 DEBUG STATE - ESTADO COMPLETO');
-    state.logState();
-    
-    console.log('🔍 Verificación de DOM:');
-    console.log('- DOM.multipleDocumentCategory:', DOM.multipleDocumentCategory ? 'EXISTE' : 'NO EXISTE');
-    console.log('- Valor de categoría en DOM:', DOM.multipleDocumentCategory ? DOM.multipleDocumentCategory.value : 'N/A');
-    console.log('- DOM.multipleDocumentPerson:', DOM.multipleDocumentPerson ? 'EXISTE' : 'NO EXISTE');
-    console.log('- Valor de persona en DOM:', DOM.multipleDocumentPerson ? DOM.multipleDocumentPerson.value : 'N/A');
-    console.log('- DOM.multipleExpirationDays:', DOM.multipleExpirationDays ? 'EXISTE' : 'NO EXISTE');
-    console.log('- Valor de expiración en DOM:', DOM.multipleExpirationDays ? DOM.multipleExpirationDays.value : 'N/A');
-    console.log('- DOM.uploadMultipleDocumentsBtn:', DOM.uploadMultipleDocumentsBtn ? 'EXISTE' : 'NO EXISTE');
-    
-    console.log('📊 Verificación de categorías:');
-    const check = state.checkCategories();
-    console.table(check.details);
-    
-    console.groupEnd();
-}
-
-/**
- * Forzar categoría común (para debugging)
- */
-export function forceCommonCategory(category) {
-    const state = getMultipleUploadState();
-    console.log(`🔧 FORZANDO categoría común: "${category}"`);
-    state.setCommonCategory(category);
-    state.logState();
-}
-
-/**
- * Configura todos los listeners para la subida múltiple
+ * FIX CRÍTICO #7: Configuración de listeners mejorada
  */
 export function setupMultipleUploadListeners() {
-    console.log('🔧 Configurando listeners de subida múltiple');
+    console.log('🔧 CONFIGURANDO LISTENERS - VERSIÓN MEJORADA');
     
-    // Listener para selección de archivos
+    // Esperar a que el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeUploadSystem();
+        });
+    } else {
+        initializeUploadSystem();
+    }
+    
+    console.log('✅ LISTENERS CONFIGURADOS');
+}
+
+/**
+ * Inicializa el sistema de subida
+ */
+function initializeUploadSystem() {
+    console.log('🚀 INICIALIZANDO SISTEMA DE SUBIDA MÚLTIPLE');
+    
+    // Verificar que los elementos DOM existan
+    if (!DOM.multipleDocumentCategory || !DOM.multipleDocumentPerson || !DOM.multipleExpirationDays) {
+        console.error('❌ ERROR: Elementos DOM no encontrados. Verifica que existan:');
+        console.log('- multipleDocumentCategory:', DOM.multipleDocumentCategory);
+        console.log('- multipleDocumentPerson:', DOM.multipleDocumentPerson);
+        console.log('- multipleExpirationDays:', DOM.multipleExpirationDays);
+        
+        // Intentar nuevamente después de un tiempo
+        setTimeout(initializeUploadSystem, 1000);
+        return;
+    }
+    
+    console.log('✅ Elementos DOM encontrados');
+    
+    // Inicializar estado del flujo
+    updateConfigFlowState();
+    
+    // Mostrar mensaje inicial
+    showPageAlert('📋 Proceso de subida múltiple: 1) Selecciona categoría, 2) Configura opciones, 3) Agrega archivos, 4) Sube', 'info', 5000);
+    
+    // Configurar listeners
+    setupEventListeners();
+}
+
+/**
+ * Configura todos los event listeners
+ */
+function setupEventListeners() {
+    console.log('🔧 CONFIGURANDO EVENT LISTENERS');
+    
+    // 1. Input de archivos
     if (DOM.multipleFileInput) {
         DOM.multipleFileInput.addEventListener('change', handleMultipleFileSelect);
-        console.log('✅ Listener configurado para multipleFileInput');
+        console.log('✅ Listener para multipleFileInput');
     }
     
-    // Listener para botón de subida
+    // 2. Botón de subida
     if (DOM.uploadMultipleDocumentsBtn) {
         DOM.uploadMultipleDocumentsBtn.addEventListener('click', handleUploadMultipleDocuments);
-        console.log('✅ Listener configurado para uploadMultipleDocumentsBtn');
+        console.log('✅ Listener para uploadMultipleDocumentsBtn');
     }
     
-    // Listeners para cambios en los selects - FIX: Usar función anónima para forzar actualización
+    // 3. Categoría (OBLIGATORIA - desbloquea todo)
     if (DOM.multipleDocumentCategory) {
         DOM.multipleDocumentCategory.addEventListener('change', () => {
-            console.log('🏷️ Cambio en categoría múltiple');
-            updateCommonSettings(true);
+            console.log('🏷️ Cambio en categoría detectado');
+            console.log('Nuevo valor:', DOM.multipleDocumentCategory.value);
+            updateConfigFlowState();
+            updateCommonSettingsFromDOM(true);
         });
-        console.log('✅ Listener configurado para multipleDocumentCategory (forzado)');
+        console.log('✅ Listener para multipleDocumentCategory');
     }
     
+    // 4. Persona (OPCIONAL - bloqueado sin categoría)
     if (DOM.multipleDocumentPerson) {
         DOM.multipleDocumentPerson.addEventListener('change', () => {
-            console.log('👤 Cambio en persona múltiple');
-            updateCommonSettings(true);
+            console.log('👤 Cambio en persona detectado');
+            console.log('Nuevo valor:', DOM.multipleDocumentPerson.value);
+            
+            // Validar que no sea manipulado manualmente
+            if (!configFlowState.canSelectPerson) {
+                console.warn('⚠️ Intento de cambiar persona sin categoría seleccionada');
+                DOM.multipleDocumentPerson.value = '';
+                showPageAlert('⚠️ Primero selecciona una categoría para habilitar persona', 'warning');
+                return;
+            }
+            
+            updateConfigFlowState();
+            updateCommonSettingsFromDOM(true);
         });
-        console.log('✅ Listener configurado para multipleDocumentPerson (forzado)');
+        
+        // Prevenir clics cuando está deshabilitado
+        DOM.multipleDocumentPerson.addEventListener('click', (e) => {
+            if (!configFlowState.canSelectPerson) {
+                e.preventDefault();
+                showPageAlert('⚠️ Primero selecciona una categoría para habilitar persona', 'warning');
+            }
+        });
+        
+        console.log('✅ Listener para multipleDocumentPerson');
     }
     
+    // 5. Expiración (OPCIONAL - bloqueado sin categoría)
     if (DOM.multipleExpirationDays) {
         DOM.multipleExpirationDays.addEventListener('change', () => {
-            console.log('📅 Cambio en días de expiración');
-            updateCommonSettings(true);
+            console.log('📅 Cambio en expiración detectado');
+            console.log('Nuevo valor:', DOM.multipleExpirationDays.value);
+            
+            // Validar que no sea manipulado manualmente
+            if (!configFlowState.canSelectExpiration) {
+                console.warn('⚠️ Intento de cambiar expiración sin categoría seleccionada');
+                DOM.multipleExpirationDays.value = '';
+                showPageAlert('⚠️ Primero selecciona una categoría para habilitar fecha de vencimiento', 'warning');
+                return;
+            }
+            
+            updateConfigFlowState();
+            updateCommonSettingsFromDOM(true);
         });
-        console.log('✅ Listener configurado para multipleExpirationDays (forzado)');
+        
+        // Prevenir clics cuando está deshabilitado
+        DOM.multipleExpirationDays.addEventListener('click', (e) => {
+            if (!configFlowState.canSelectExpiration) {
+                e.preventDefault();
+                showPageAlert('⚠️ Primero selecciona una categoría para habilitar fecha de vencimiento', 'warning');
+            }
+        });
+        
+        console.log('✅ Listener para multipleExpirationDays');
     }
     
-    // Listeners para checkboxes
+    // 6. Estrategia
+    if (DOM.uploadStrategy) {
+        DOM.uploadStrategy.addEventListener('change', () => {
+            console.log('🔄 Cambio en estrategia detectado');
+            updateConfigFlowState();
+            updateCommonSettingsFromDOM(true);
+        });
+        console.log('✅ Listener para uploadStrategy');
+    }
+    
+    // 7. Checkboxes
     if (DOM.autoGenerateDescriptions) {
-        DOM.autoGenerateDescriptions.addEventListener('change', () => updateCommonSettings(true));
-        console.log('✅ Listener configurado para autoGenerateDescriptions (forzado)');
+        DOM.autoGenerateDescriptions.addEventListener('change', () => {
+            console.log('🤖 Cambio en autoGenerateDescriptions');
+            updateConfigFlowState();
+            updateCommonSettingsFromDOM(true);
+        });
+        console.log('✅ Listener para autoGenerateDescriptions');
     }
     
     if (DOM.notifyPerson) {
-        DOM.notifyPerson.addEventListener('change', () => updateCommonSettings(true));
-        console.log('✅ Listener configurado para notifyPerson (forzado)');
+        DOM.notifyPerson.addEventListener('change', () => {
+            console.log('🔔 Cambio en notifyPerson');
+            updateConfigFlowState();
+            updateCommonSettingsFromDOM(true);
+        });
+        console.log('✅ Listener para notifyPerson');
     }
     
-    console.log('✅ Todos los listeners configurados para subida múltiple');
+    // 8. Botón de reset
+    const resetBtn = document.getElementById('resetMultipleUpload');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            console.log('🔄 Reseteando configuración múltiple');
+            const state = getMultipleUploadState();
+            state.reset();
+            resetConfigControls();
+            updateMultipleUploadUI();
+            showPageAlert('🔄 Configuración reseteada', 'info');
+        });
+        console.log('✅ Listener para resetMultipleUpload');
+    }
+    
+    // 9. Prevenir clic en input de archivos deshabilitado
+    if (DOM.multipleFileInput) {
+        DOM.multipleFileInput.addEventListener('click', (e) => {
+            if (DOM.multipleFileInput.disabled) {
+                e.preventDefault();
+                showPageAlert('⚠️ Primero selecciona una categoría para habilitar la selección de archivos', 'warning');
+            }
+        });
+    }
+    
+    console.log('✅ TODOS LOS LISTENERS CONFIGURADOS');
 }
 
-// Exportar las funciones internas que puedan ser necesarias
+// Función para probar el flujo
+if (typeof window !== 'undefined') {
+    window.testUploadFlow = () => {
+        console.group('🧪 TEST UPLOAD FLOW');
+        console.log('📊 Estado actual:', configFlowState);
+        console.log('📁 Archivos:', multipleUploadState ? multipleUploadState.files.length : 0);
+        console.log('🏷️ Categoría DOM:', DOM.multipleDocumentCategory?.value || 'NO');
+        console.log('👤 Persona DOM:', DOM.multipleDocumentPerson?.value || 'NO');
+        console.log('📅 Expiración DOM:', DOM.multipleExpirationDays?.value || 'NO');
+        
+        // Mostrar alerta detallada
+        const message = `
+Estado del flujo:
+• Categoría seleccionada: ${configFlowState.categorySelected ? '✅' : '❌'}
+• Persona habilitada: ${configFlowState.canSelectPerson ? '✅' : '❌'}
+• Expiración habilitada: ${configFlowState.canSelectExpiration ? '✅' : '❌'}
+• Puede agregar archivos: ${configFlowState.canAddDocuments ? '✅' : '❌'}
+• Archivos en cola: ${multipleUploadState ? multipleUploadState.files.length : 0}
+        `;
+        
+        showPageAlert(message, 'info', 8000);
+        console.groupEnd();
+    };
+}
+
+// Funciones de debug
+if (typeof window !== 'undefined') {
+    window.debugUploadState = () => {
+        const state = getMultipleUploadState();
+        console.group('🐛 DEBUG UPLOAD STATE');
+        console.log('📊 FLOW STATE:', configFlowState);
+        console.log('📊 Archivos:', state.files.length);
+        console.log('🏷️ Categoría común:', state.commonCategory);
+        console.log('👤 Persona común:', state.commonPersonId || '(vacía)');
+        console.log('📅 Días expiración:', state.expirationDays);
+        
+        console.log('\n🔍 DOM ACTUAL:');
+        console.log('- Categoría:', DOM.multipleDocumentCategory?.value || 'NO EXISTE');
+        console.log('- Persona:', DOM.multipleDocumentPerson?.value || 'NO EXISTE');
+        console.log('- Expiración:', DOM.multipleExpirationDays?.value || 'NO EXISTE');
+        
+        console.log('\n📄 ARCHIVOS:');
+        state.files.forEach((file, idx) => {
+            console.log(`[${idx + 1}] ${file.file.name}:`, {
+                categoría: file.customCategory || '(sin categoría)',
+                persona: file.customPersonId || '(sin persona)',
+                expiracion: file.customExpirationDate || '(sin fecha)',
+                estado: file.status
+            });
+        });
+        console.groupEnd();
+    };
+    
+    window.forceApplySettings = () => {
+        console.log('🔧 FORZANDO APLICACIÓN DE CONFIGURACIÓN');
+        const state = getMultipleUploadState();
+        applyCommonSettingsToAllFiles(state);
+        updateMultipleUploadUI();
+        showPageAlert('🔧 Configuración forzada aplicada', 'info');
+    };
+    
+    window.resetUploadFlow = () => {
+        console.log('🔄 RESETEANDO FLUJO DE SUBIDA');
+        resetConfigControls();
+        showPageAlert('🔄 Flujo de subida reseteado', 'info');
+    };
+}
+
+// Inicializar automáticamente cuando se importa el módulo
+console.log('📦 MÓDULO uploadMultiple.js CARGADO');
+if (typeof window !== 'undefined') {
+    // Esperar un momento para que el DOM esté listo
+    setTimeout(() => {
+        setupMultipleUploadListeners();
+    }, 100);
+}
+
+// Exportar funciones
 export { 
     updateFileUI, 
     getStatusText, 
     showUploadPreloader, 
     hideUploadPreloader, 
     updateUploadPreloader,
-    updateCommonSettings,
-    uploadSingleFileWithProgress
+    uploadSingleFileWithProgress,
+    applyCommonSettingsToAllFiles,
+    updateCommonSettingsFromDOM,
+    updateConfigFlowState,
+    updateControlsState
 };
