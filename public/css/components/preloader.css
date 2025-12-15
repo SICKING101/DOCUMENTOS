@@ -2236,3 +2236,991 @@
 .notification__close:hover {
     opacity: 1;
 }
+
+/* =============================================================================
+ * src/frontend/css/components/preloader-documentos.css
+ * Preloaders profesionales específicos para el módulo de documentos
+ * ============================================================================= */
+
+/* =============================================================================
+ * 1. PRELOADER PARA MODAL DE EDICIÓN DE DOCUMENTOS
+ * ============================================================================= */
+
+/* Overlay principal para el modal */
+.modal-edit-preloader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    border-radius: inherit;
+    animation: modalPreloaderFadeIn 0.3s ease-out;
+}
+
+/* Contenido del preloader */
+.modal-edit-preloader__content {
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    padding: 2.5rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    animation: contentSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efecto de borde sutil */
+.modal-edit-preloader__content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+        #667eea 0%, 
+        #764ba2 25%, 
+        #f093fb 50%, 
+        #f5576c 75%, 
+        #667eea 100%);
+    background-size: 200% 100%;
+    animation: gradientBorder 2s linear infinite;
+}
+
+/* Spinner elegante */
+.document-edit-spinner {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 1.5rem;
+}
+
+.document-edit-spinner__outer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-top: 3px solid #667eea;
+    border-right: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.document-edit-spinner__inner {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 46px;
+    height: 46px;
+    border: 2px solid transparent;
+    border-top: 2px solid #764ba2;
+    border-radius: 50%;
+    animation: spinReverse 1.5s linear infinite;
+}
+
+.document-edit-spinner__dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    background: #667eea;
+    border-radius: 50%;
+    animation: pulseDot 2s ease-in-out infinite;
+}
+
+/* Contenido textual */
+.modal-edit-preloader__header {
+    margin-bottom: 1.25rem;
+}
+
+.modal-edit-preloader__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+}
+
+.modal-edit-preloader__subtitle {
+    font-size: 0.95rem;
+    color: #718096;
+    line-height: 1.4;
+    max-width: 280px;
+    margin: 0 auto;
+}
+
+/* Barra de progreso mejorada */
+.document-progress-container {
+    width: 100%;
+    margin: 1.5rem 0;
+}
+
+.document-progress-bar {
+    height: 6px;
+    background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.document-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, 
+        #667eea 0%, 
+        #764ba2 50%, 
+        #667eea 100%);
+    background-size: 200% 100%;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressGradient 2s linear infinite, progressGlow 1.5s ease-in-out infinite;
+    position: relative;
+}
+
+.document-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.4) 50%, 
+        transparent 100%);
+    animation: progressShine 1.5s ease-in-out infinite;
+}
+
+.document-progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #718096;
+    margin-top: 0.5rem;
+}
+
+/* Indicador de estado */
+.document-status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.document-status-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.document-status-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #667eea;
+    animation: dotSequence 1.4s ease-in-out infinite;
+}
+
+.document-status-dots span:nth-child(2) { animation-delay: 0.2s; }
+.document-status-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.document-status-text {
+    font-size: 0.85rem;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+/* =============================================================================
+ * 2. ESTADOS DE ÉXITO Y ERROR
+ * ============================================================================= */
+
+/* Estado de éxito */
+.document-success-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: successFadeIn 0.4s ease-out;
+}
+
+.document-success-content {
+    text-align: center;
+    padding: 2.5rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    max-width: 320px;
+    width: 90%;
+    animation: successScaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.success-checkmark {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+}
+
+.success-checkmark__circle {
+    stroke: #10b981;
+    stroke-width: 2;
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    fill: none;
+    animation: strokeSuccess 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.success-checkmark__check {
+    stroke: #10b981;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: strokeSuccess 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+.success-checkmark__circle-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(16, 185, 129, 0.05);
+    border-radius: 50%;
+    animation: pulseSuccess 2s ease-in-out infinite;
+}
+
+.document-success-message {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #065f46;
+    margin-bottom: 0.5rem;
+}
+
+.document-success-details {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* Estado de error */
+.document-error-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: errorFadeIn 0.4s ease-out;
+}
+
+.document-error-content {
+    text-align: center;
+    padding: 2.5rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    max-width: 320px;
+    width: 90%;
+    animation: errorShakeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.error-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-icon__circle {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 50%;
+    animation: pulseError 2s ease-in-out infinite;
+}
+
+.error-icon i {
+    font-size: 2.5rem;
+    color: #dc2626;
+    z-index: 1;
+    animation: errorPulse 1.5s ease-in-out infinite;
+}
+
+.document-error-message {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #7f1d1d;
+    margin-bottom: 0.5rem;
+}
+
+.document-error-details {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* =============================================================================
+ * 3. ANIMACIONES
+ * ============================================================================= */
+
+@keyframes modalPreloaderFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(10px);
+    }
+}
+
+@keyframes contentSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes gradientBorder {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes spinReverse {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
+}
+
+@keyframes pulseDot {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+@keyframes progressGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes progressGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 5px rgba(102, 126, 234, 0.3),
+            inset 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 0 15px rgba(102, 126, 234, 0.6),
+            inset 0 0 15px rgba(255, 255, 255, 0.3);
+    }
+}
+
+@keyframes progressShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes dotSequence {
+    0%, 100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes successFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes successScaleIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.05) translateY(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes strokeSuccess {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes pulseSuccess {
+    0%, 100% {
+        opacity: 0.05;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.1;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes errorFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes errorShakeIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    25% {
+        transform: translateX(5px);
+    }
+    50% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(2px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulseError {
+    0%, 100% {
+        opacity: 0.05;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.1;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes errorPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* =============================================================================
+ * 4. BOTONES CON PRELOADER
+ * ============================================================================= */
+
+.btn--document-saving {
+    position: relative;
+    color: transparent !important;
+    overflow: hidden;
+}
+
+.btn--document-saving::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.3), 
+        transparent);
+    animation: btnShine 1.5s ease-in-out infinite;
+}
+
+.btn--document-saving::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: btnSpin 0.8s linear infinite;
+    z-index: 1;
+}
+
+.btn--outline.btn--document-saving::after {
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    border-top-color: #667eea;
+}
+
+@keyframes btnShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+@keyframes btnSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+ * 5. PRELOADER PARA CARGA INICIAL DE MODAL
+ * ============================================================================= */
+
+.modal-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, 
+        rgba(247, 250, 252, 0.98) 0%, 
+        rgba(237, 242, 247, 0.98) 100%);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    border-radius: inherit;
+}
+
+.modal-loading-content {
+    text-align: center;
+    max-width: 280px;
+    width: 90%;
+}
+
+.document-loading-spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+}
+
+.document-loading-spinner__disk {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: diskSpin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.document-loading-spinner__doc {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: #667eea;
+    animation: docBounce 1s ease-in-out infinite;
+}
+
+.modal-loading-text {
+    font-size: 1rem;
+    color: #4a5568;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.modal-loading-subtext {
+    font-size: 0.85rem;
+    color: #718096;
+}
+
+@keyframes diskSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes docBounce {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -60%) scale(1.1);
+    }
+}
+
+/* =============================================================================
+ * 6. RESPONSIVE DESIGN
+ * ============================================================================= */
+
+@media (max-width: 768px) {
+    .modal-edit-preloader__content,
+    .document-success-content,
+    .document-error-content {
+        padding: 2rem 1.5rem;
+        max-width: 280px;
+    }
+    
+    .document-edit-spinner {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .document-edit-spinner__inner {
+        width: 40px;
+        height: 40px;
+        top: 10px;
+        left: 10px;
+    }
+    
+    .success-checkmark,
+    .error-icon {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .document-success-message,
+    .document-error-message {
+        font-size: 1rem;
+    }
+    
+    .modal-loading-content {
+        max-width: 240px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-edit-preloader__content,
+    .document-success-content,
+    .document-error-content {
+        padding: 1.75rem 1.25rem;
+        max-width: 250px;
+    }
+    
+    .modal-edit-preloader__title {
+        font-size: 1.1rem;
+    }
+    
+    .modal-edit-preloader__subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .document-edit-spinner {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .document-edit-spinner__inner {
+        width: 30px;
+        height: 30px;
+        top: 10px;
+        left: 10px;
+    }
+    
+    .success-checkmark,
+    .error-icon {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .document-loading-spinner {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* =============================================================================
+ * 7. UTILIDADES
+ * ============================================================================= */
+
+.preloader-enter {
+    animation: modalPreloaderFadeIn 0.3s ease-out forwards;
+}
+
+.preloader-exit {
+    animation: modalPreloaderFadeIn 0.3s ease-out reverse forwards;
+}
+
+.preloader-hidden {
+    display: none !important;
+}
+
+.preloader-visible {
+    display: flex !important;
+}
+
+/* Asegurar que el modal mantenga posición relativa */
+.modal--with-preloader {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Override para asegurar z-index correcto */
+#editDocumentModal {
+    position: fixed !important;
+    z-index: 1000 !important;
+}
+
+/* Asegurar que el preloader esté por encima del contenido */
+.modal-edit-preloader,
+.document-success-overlay,
+.document-error-overlay {
+    z-index: 9999 !important;
+}
+
+/* =============================================================================
+ * 8. EFECTOS DE SOMBRA Y PROFUNDIDAD
+ * ============================================================================= */
+
+.modal-edit-preloader__content::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: -10px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    z-index: -1;
+    filter: blur(10px);
+    opacity: 0.5;
+}
+
+/* Efecto de profundidad para contenido de éxito/error */
+.document-success-content::after,
+.document-error-content::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: -8px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    z-index: -1;
+    filter: blur(8px);
+    opacity: 0.4;
+}
+
+/* =============================================================================
+ * 9. PRELOADER PARA CARGA DE ARCHIVOS
+ * ============================================================================= */
+
+.file-upload-preloader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    border-radius: 8px;
+}
+
+.file-upload-content {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.file-upload-icon {
+    font-size: 2.5rem;
+    color: #667eea;
+    margin-bottom: 1rem;
+    animation: uploadFloat 2s ease-in-out infinite;
+}
+
+@keyframes uploadFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.file-upload-text {
+    font-size: 0.9rem;
+    color: #4a5568;
+    margin-bottom: 1rem;
+}
+
+.file-upload-progress {
+    width: 160px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.file-upload-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressGradient 2s linear infinite;
+}
+
+/* =============================================================================
+ * 10. ANIMACIONES DE TEXTO
+ * ============================================================================= */
+
+.typing-animation {
+    display: inline-block;
+    overflow: hidden;
+    border-right: 2px solid #667eea;
+    white-space: nowrap;
+    animation: 
+        typing 3.5s steps(40, end) infinite,
+        blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typing {
+    0% { width: 0; }
+    50% { width: 100%; }
+    100% { width: 100%; }
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: #667eea; }
+}
+
+/* =============================================================================
+ * 11. ESTILOS PARA DARK MODE
+ * ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .modal-edit-preloader {
+        background: rgba(26, 32, 44, 0.98);
+    }
+    
+    .modal-edit-preloader__content {
+        background: #2d3748;
+        box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.2),
+            0 8px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    
+    .modal-edit-preloader__title {
+        color: #e2e8f0;
+    }
+    
+    .modal-edit-preloader__subtitle {
+        color: #a0aec0;
+    }
+    
+    .document-progress-bar {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    }
+    
+    .document-status-indicator {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        border-color: #4a5568;
+    }
+    
+    .document-status-text {
+        color: #cbd5e0;
+    }
+    
+    .document-success-content,
+    .document-error-content {
+        background: #2d3748;
+    }
+    
+    .document-success-message {
+        color: #34d399;
+    }
+    
+    .document-error-message {
+        color: #f87171;
+    }
+    
+    .document-success-details,
+    .document-error-details {
+        color: #a0aec0;
+    }
+    
+    .modal-loading-overlay {
+        background: linear-gradient(135deg, 
+            rgba(26, 32, 44, 0.98) 0%, 
+            rgba(45, 55, 72, 0.98) 100%);
+    }
+    
+    .modal-loading-text {
+        color: #e2e8f0;
+    }
+    
+    .modal-loading-subtext {
+        color: #a0aec0;
+    }
+    
+    .document-loading-spinner__disk {
+        border-color: #4a5568;
+    }
+    
+    .file-upload-preloader {
+        background: rgba(26, 32, 44, 0.95);
+    }
+    
+    .file-upload-text {
+        color: #e2e8f0;
+    }
+    
+    .file-upload-progress {
+        background: #4a5568;
+    }
+}

@@ -378,7 +378,6 @@
 }
 
 .btn:hover {
-    background: var(--bg-secondary);
     transform: translateY(-1px);
 }
 
