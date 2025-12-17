@@ -14,11 +14,11 @@ import dotenv from 'dotenv';
 // Importar rutas de autenticación
 import authRoutes from './src/backend/routes/auth.js';
 
-import Document from './backend/models/Document.js';
-import Person from './backend/models/Person.js';
-import Category from './backend/models/Category.js';
-import Department from './backend/models/Department.js';
-import Task from './backend/models/Task.js';
+import Document from './src/backend/models/Document.js';
+import Person from './src/backend/models/Person.js';
+import Category from './src/backend/models/Category.js';
+import Department from './src/backend/models/Department.js';
+import Task from './src/backend/models/Task.js';
 
 dotenv.config();
 

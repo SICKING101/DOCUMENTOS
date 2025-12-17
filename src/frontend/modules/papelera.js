@@ -48,6 +48,16 @@ class TrashState {
             return total + (doc ? doc.tamano_archivo : 0);
         }, 0);
     }
+
+    // Nuevo método para obtener IDs seleccionados
+    getSelectedIds() {
+        return Array.from(this.selectedDocuments);
+    }
+
+    // Nuevo método para verificar si hay selección
+    hasSelection() {
+        return this.selectedDocuments.size > 0;
+    }
 }
 
 const trashState = new TrashState();
@@ -60,7 +70,7 @@ export async function initPapelera() {
     console.log('🗑️ Inicializando módulo de papelera...');
     setupEventListeners();
     await loadTrashDocuments();
-    
+
     // Ejecutar limpieza automática después de cargar los documentos
     setTimeout(() => {
         runAutoCleanup();
@@ -101,18 +111,13 @@ function setupEventListeners() {
         });
     }
 
-    // Botón de vaciar papelera
-    const emptyBtn = document.getElementById('emptyTrashBtn');
-    if (emptyBtn) {
-        emptyBtn.addEventListener('click', handleEmptyTrash);
-    }
-
     // Botones de selección
     const selectAllBtn = document.querySelector('#selectAllTrash');
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', () => {
             trashState.selectAll();
             updateTrashUI();
+            updateSelectionControls();
         });
     }
 
@@ -121,6 +126,7 @@ function setupEventListeners() {
         deselectAllBtn.addEventListener('click', () => {
             trashState.deselectAll();
             updateTrashUI();
+            updateSelectionControls();
         });
     }
 
@@ -150,7 +156,7 @@ function setupEventListeners() {
     // Cambiar vista (grid/list)
     const gridViewBtn = document.querySelector('#gridViewBtn');
     const listViewBtn = document.querySelector('#listViewBtn');
-    
+
     if (gridViewBtn) {
         gridViewBtn.addEventListener('click', () => {
             trashState.viewMode = 'grid';
@@ -159,7 +165,7 @@ function setupEventListeners() {
             updateTrashUI();
         });
     }
-    
+
     if (listViewBtn) {
         listViewBtn.addEventListener('click', () => {
             trashState.viewMode = 'list';
@@ -177,6 +183,16 @@ function setupEventListeners() {
             updateTrashUI();
         });
     }
+
+    // Event listener para checkboxes individuales (delegación de eventos)
+    document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('trash-checkbox')) {
+            const docId = e.target.id.replace('trash-check-', '');
+            trashState.toggleDocument(docId);
+            updateTrashUI();
+            updateSelectionControls();
+        }
+    });
 }
 
 // =============================================================================
@@ -192,7 +208,7 @@ async function loadTrashDocuments() {
 
         if (response.success) {
             trashState.documents = response.documents || [];
-            
+
             // Calcular días restantes si no viene del servidor
             trashState.documents.forEach(doc => {
                 if (!doc.daysRemaining && doc.deletedAt) {
@@ -204,19 +220,19 @@ async function loadTrashDocuments() {
                     doc.daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
                 }
             });
-            
+
             // Esperar un momento para que el DOM esté completamente disponible
             setTimeout(() => {
                 updateTrashUI();
                 updateTrashStats();
                 updateTopbarBadge();
+                updateSelectionControls(); // Añadir esta línea
             }, 100);
-            
+
             showAlert('Papelera actualizada', 'success', 2000);
         } else {
             showAlert('Error al cargar papelera: ' + response.message, 'error');
         }
-
     } catch (error) {
         console.error('Error cargando papelera:', error);
         showAlert('Error al cargar documentos de la papelera', 'error');
@@ -232,7 +248,7 @@ async function loadTrashDocuments() {
 
 function updateTrashUI() {
     const container = document.querySelector('#trashDocumentsList');
-    
+
     if (!container) {
         console.warn('⚠️ Contenedor de papelera no disponible todavía');
         return;
@@ -241,7 +257,7 @@ function updateTrashUI() {
     // Aplicar filtro de texto
     let filteredDocs = trashState.documents;
     if (trashState.filterText) {
-        filteredDocs = filteredDocs.filter(doc => 
+        filteredDocs = filteredDocs.filter(doc =>
             doc.nombre_original.toLowerCase().includes(trashState.filterText) ||
             (doc.categoria && doc.categoria.toLowerCase().includes(trashState.filterText))
         );
@@ -250,8 +266,8 @@ function updateTrashUI() {
     // Ordenar documentos
     filteredDocs = [...filteredDocs].sort((a, b) => {
         let valA, valB;
-        
-        switch(trashState.sortBy) {
+
+        switch (trashState.sortBy) {
             case 'name':
                 valA = a.nombre_original.toLowerCase();
                 valB = b.nombre_original.toLowerCase();
@@ -282,7 +298,7 @@ function updateTrashUI() {
 
     // Renderizar según el modo de vista
     if (filteredDocs.length === 0) {
-        const noResultsHtml = trashState.filterText ? 
+        const noResultsHtml = trashState.filterText ?
             `<div class="empty-state">
                 <i class="fas fa-search"></i>
                 <h3>No se encontraron resultados</h3>
@@ -308,14 +324,21 @@ function updateTrashUI() {
                     </div>
                 </div>
             </div>`;
-        
+
         container.innerHTML = noResultsHtml;
+        
+        // Ocultar acciones masivas si no hay documentos
+        const bulkActionsContainer = document.getElementById('bulkActionsContainer');
+        if (bulkActionsContainer) {
+            bulkActionsContainer.style.display = 'none';
+        }
+        
         return;
     }
 
     // Agregar clase al contenedor según el modo de vista
     container.className = `trash-documents-list ${trashState.viewMode}-view`;
-    
+
     if (trashState.viewMode === 'grid') {
         container.innerHTML = filteredDocs.map(doc => renderGridDocument(doc)).join('');
     } else {
@@ -327,8 +350,8 @@ function updateTrashUI() {
         attachDocumentEventListeners(doc._id);
     });
 
-    // Actualizar contador de selección
-    updateSelectionCounter();
+    // Actualizar controles de selección
+    updateSelectionControls();
 }
 
 function renderGridDocument(doc) {
@@ -336,12 +359,12 @@ function renderGridDocument(doc) {
     const icon = getFileIcon(doc.tipo_archivo);
     const deletedDate = formatDate(doc.deletedAt);
     const daysRemaining = doc.daysRemaining || 30;
-    
+
     // Determinar clase de urgencia según días restantes
     let urgencyClass = 'days-safe';
     let urgencyText = 'Seguro';
     let progress = 100;
-    
+
     if (daysRemaining <= 7) {
         urgencyClass = 'days-danger';
         urgencyText = 'Crítico';
@@ -363,9 +386,6 @@ function renderGridDocument(doc) {
                            ${isSelected ? 'checked' : ''}
                            class="trash-checkbox">
                     <label for="trash-check-${doc._id}"></label>
-                </div>
-                <div class="card-icon">
-                    <i class="${icon}"></i>
                 </div>
                 <div class="card-urgency ${urgencyClass}">
                     <span class="urgency-badge">${urgencyText}</span>
@@ -427,11 +447,11 @@ function renderListDocument(doc) {
     const icon = getFileIcon(doc.tipo_archivo);
     const deletedDate = formatDate(doc.deletedAt);
     const daysRemaining = doc.daysRemaining || 30;
-    
+
     // Determinar clase de urgencia según días restantes
     let urgencyClass = 'days-safe';
     let progress = 100;
-    
+
     if (daysRemaining <= 7) {
         urgencyClass = 'days-danger';
         progress = (daysRemaining / 30) * 100;
@@ -511,6 +531,7 @@ function attachDocumentEventListeners(docId) {
         checkbox.addEventListener('change', () => {
             trashState.toggleDocument(docId);
             updateTrashUI();
+            updateSelectionControls(); // Añadir esta línea
         });
     }
 
@@ -532,32 +553,125 @@ function attachDocumentEventListeners(docId) {
         });
     }
 
+    // Botón restaurar lista pequeña
+    const restoreBtnSmall = document.querySelector(`.btn-icon-small.btn-restore[data-doc-id="${docId}"]`);
+    if (restoreBtnSmall) {
+        restoreBtnSmall.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await handleRestoreDocument(docId);
+        });
+    }
+
+    // Botón eliminar lista pequeña
+    const deleteBtnSmall = document.querySelector(`.btn-icon-small.btn-delete[data-doc-id="${docId}"]`);
+    if (deleteBtnSmall) {
+        deleteBtnSmall.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await handleDeleteDocument(docId);
+        });
+    }
+
     // Click en la card para seleccionar
     const card = document.querySelector(`.trash-document-card[data-doc-id="${docId}"]`);
     if (card) {
         card.addEventListener('click', (e) => {
             // Evitar que el click en botones active la selección
-            if (e.target.closest('.btn-icon') || 
-                e.target.closest('.btn-icon-small') || 
+            if (
+                e.target.closest('.btn-icon') ||
+                e.target.closest('.btn-icon-small') ||
                 e.target.closest('.checkbox-container') ||
-                e.target.closest('.list-checkbox')) {
+                e.target.closest('.list-checkbox')
+            ) {
                 return;
             }
             trashState.toggleDocument(docId);
             updateTrashUI();
+            updateSelectionControls(); // Añadir esta línea
         });
     }
 }
 
 // =============================================================================
-// ACCIONES (Manteniendo la misma funcionalidad pero con mejoras visuales)
+// CONTROLES DE SELECCIÓN
+// =============================================================================
+
+function updateSelectionControls() {
+    const selectedCount = trashState.getSelectedCount();
+    const bulkActionsContainer = document.getElementById('bulkActionsContainer');
+    const selectionCounter = document.getElementById('trashSelectionCounter');
+    const selectAllBtn = document.getElementById('selectAllTrash');
+    const deselectAllBtn = document.getElementById('deselectAllTrash');
+    const restoreSelectedBtn = document.getElementById('restoreSelectedBtn');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    
+    // Actualizar contador
+    if (selectionCounter) {
+        const countSpan = selectionCounter.querySelector('.selection-count');
+        if (countSpan) {
+            countSpan.textContent = selectedCount;
+        }
+        
+        if (selectedCount > 0) {
+            selectionCounter.style.display = 'flex';
+            selectionCounter.classList.add('visible');
+        } else {
+            selectionCounter.style.display = 'none';
+            selectionCounter.classList.remove('visible');
+        }
+    }
+    
+    // Mostrar/ocultar acciones masivas
+    if (bulkActionsContainer) {
+        if (selectedCount > 0) {
+            bulkActionsContainer.style.display = 'flex';
+            bulkActionsContainer.classList.add('visible');
+        } else {
+            bulkActionsContainer.style.display = 'none';
+            bulkActionsContainer.classList.remove('visible');
+        }
+    }
+    
+    // Habilitar/deshabilitar botones según selección
+    if (selectAllBtn) {
+        const allDocsCount = trashState.documents.length;
+        const allSelected = selectedCount === allDocsCount && allDocsCount > 0;
+        
+        if (allDocsCount > 0 && !allSelected) {
+            selectAllBtn.disabled = false;
+            selectAllBtn.innerHTML = '<i class="fas fa-check-square"></i> Seleccionar Todo';
+        } else {
+            selectAllBtn.disabled = true;
+            selectAllBtn.innerHTML = '<i class="fas fa-check-square"></i> Todo Seleccionado';
+        }
+    }
+    
+    if (deselectAllBtn) {
+        deselectAllBtn.disabled = selectedCount === 0;
+    }
+    
+    if (restoreSelectedBtn) {
+        restoreSelectedBtn.disabled = selectedCount === 0;
+        restoreSelectedBtn.innerHTML = selectedCount > 0 
+            ? `<i class="fas fa-undo"></i> Restaurar (${selectedCount})`
+            : '<i class="fas fa-undo"></i> Restaurar Seleccionados';
+    }
+    
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.disabled = selectedCount === 0;
+        deleteSelectedBtn.innerHTML = selectedCount > 0 
+            ? `<i class="fas fa-trash-alt"></i> Eliminar (${selectedCount})`
+            : '<i class="fas fa-trash-alt"></i> Eliminar Seleccionados';
+    }
+}
+
+// =============================================================================
+// ACCIONES
 // =============================================================================
 
 async function handleRestoreDocument(docId) {
     const doc = trashState.documents.find(d => d._id === docId);
     if (!doc) return;
 
-    // Mostrar confirmación con modal mejorado
     const confirmed = await showConfirmationModal(
         'Restaurar documento',
         `¿Restaurar "${doc.nombre_original}"?`,
@@ -565,11 +679,10 @@ async function handleRestoreDocument(docId) {
         'success',
         'fas fa-undo'
     );
-    
+
     if (!confirmed) return;
 
     try {
-        // Mostrar loader en el botón
         const restoreBtn = document.querySelector(`.btn-restore[data-doc-id="${docId}"]`);
         const originalContent = restoreBtn ? restoreBtn.innerHTML : null;
         if (restoreBtn) {
@@ -587,7 +700,6 @@ async function handleRestoreDocument(docId) {
         if (response.success) {
             showAlert(`"${doc.nombre_original}" restaurado exitosamente`, 'success', 3000);
             await loadTrashDocuments();
-            // Animar la salida del documento
             animateDocumentRemoval(docId);
         } else {
             showAlert('Error al restaurar: ' + response.message, 'error');
@@ -596,8 +708,6 @@ async function handleRestoreDocument(docId) {
     } catch (error) {
         console.error('Error restaurando documento:', error);
         showAlert('Error al restaurar el documento', 'error');
-        
-        // Restaurar botón en caso de error
         const restoreBtn = document.querySelector(`.btn-restore[data-doc-id="${docId}"]`);
         if (restoreBtn) {
             restoreBtn.innerHTML = '<i class="fas fa-undo"></i><span>Restaurar</span>';
@@ -617,11 +727,10 @@ async function handleDeleteDocument(docId) {
         'danger',
         'fas fa-exclamation-triangle'
     );
-    
+
     if (!confirmed) return;
 
     try {
-        // Mostrar loader en el botón
         const deleteBtn = document.querySelector(`.btn-delete[data-doc-id="${docId}"]`);
         const originalContent = deleteBtn ? deleteBtn.innerHTML : null;
         if (deleteBtn) {
@@ -639,7 +748,6 @@ async function handleDeleteDocument(docId) {
         if (response.success) {
             showAlert(response.message, 'success', 3000);
             await loadTrashDocuments();
-            // Animar la salida del documento
             animateDocumentRemoval(docId);
         } else {
             showAlert('Error al eliminar: ' + response.message, 'error');
@@ -648,8 +756,6 @@ async function handleDeleteDocument(docId) {
     } catch (error) {
         console.error('Error eliminando documento:', error);
         showAlert('Error al eliminar el documento permanentemente', 'error');
-        
-        // Restaurar botón en caso de error
         const deleteBtn = document.querySelector(`.btn-delete[data-doc-id="${docId}"]`);
         if (deleteBtn) {
             deleteBtn.innerHTML = '<i class="fas fa-trash"></i><span>Eliminar</span>';
@@ -658,59 +764,74 @@ async function handleDeleteDocument(docId) {
     }
 }
 
+// =============================================================================
+// ACCIONES MASIVAS
+// =============================================================================
+
 async function handleRestoreSelected() {
     const selectedCount = trashState.getSelectedCount();
     if (selectedCount === 0) {
         showAlert('No hay documentos seleccionados', 'warning');
         return;
     }
-
+    
     const totalSize = formatFileSize(trashState.getSelectedSize());
+    const selectedIds = trashState.getSelectedIds();
+    
     const confirmed = await showConfirmationModal(
         'Restaurar documentos',
         `¿Restaurar ${selectedCount} documento(s) seleccionado(s)?`,
-        `Total: ${totalSize}. Los documentos volverán a estar disponibles.`,
+        `Total: ${totalSize}. Los documentos volverán a estar disponibles en su ubicación original.`,
         'success',
         'fas fa-undo'
     );
-    
+
     if (!confirmed) return;
 
     try {
-        // Mostrar progreso
         showProgressModal('Restaurando documentos...', selectedCount);
-        
+
         let restoredCount = 0;
         let errorCount = 0;
-        const selectedIds = Array.from(trashState.selectedDocuments);
+        const errors = [];
 
         for (let i = 0; i < selectedIds.length; i++) {
             const docId = selectedIds[i];
-            updateProgressModal(i + 1, selectedIds.length, `Restaurando documento ${i + 1} de ${selectedIds.length}`);
+            const doc = trashState.documents.find(d => d._id === docId);
             
+            updateProgressModal(i + 1, selectedIds.length, 
+                `Restaurando: ${doc?.nombre_original || 'documento'}`);
+
             try {
                 const response = await api.call(`/trash/${docId}/restore`, { method: 'POST' });
                 if (response.success) {
                     restoredCount++;
                 } else {
                     errorCount++;
+                    errors.push(`${doc?.nombre_original || 'Documento'}: ${response.message}`);
                 }
             } catch (error) {
                 console.error(`Error restaurando ${docId}:`, error);
                 errorCount++;
+                errors.push(`${doc?.nombre_original || 'Documento'}: Error de conexión`);
             }
         }
 
         closeProgressModal();
-        
+
         if (errorCount === 0) {
             showAlert(`✓ Restaurados ${restoredCount} documento(s) exitosamente`, 'success', 4000);
         } else {
             showAlert(`Restaurados: ${restoredCount}, Errores: ${errorCount}`, 'warning', 4000);
+            if (errors.length > 0) {
+                console.error('Errores detallados:', errors);
+            }
         }
 
+        // Limpiar selección y recargar
         trashState.deselectAll();
         await loadTrashDocuments();
+        updateSelectionControls();
 
     } catch (error) {
         console.error('Error restaurando seleccionados:', error);
@@ -725,8 +846,10 @@ async function handleDeleteSelected() {
         showAlert('No hay documentos seleccionados', 'warning');
         return;
     }
-
+    
     const totalSize = formatFileSize(trashState.getSelectedSize());
+    const selectedIds = trashState.getSelectedIds();
+    
     const confirmed = await showConfirmationModal(
         'Eliminar permanentemente',
         `¿Eliminar ${selectedCount} documento(s) permanentemente?`,
@@ -735,44 +858,54 @@ async function handleDeleteSelected() {
         'fas fa-exclamation-triangle',
         true // Doble confirmación
     );
-    
+
     if (!confirmed) return;
 
     try {
-        // Mostrar progreso
         showProgressModal('Eliminando documentos...', selectedCount);
-        
+
         let deletedCount = 0;
         let errorCount = 0;
+        const errors = [];
         const selectedIds = Array.from(trashState.selectedDocuments);
 
         for (let i = 0; i < selectedIds.length; i++) {
             const docId = selectedIds[i];
-            updateProgressModal(i + 1, selectedIds.length, `Eliminando documento ${i + 1} de ${selectedIds.length}`);
+            const doc = trashState.documents.find(d => d._id === docId);
             
+            updateProgressModal(i + 1, selectedIds.length, 
+                `Eliminando: ${doc?.nombre_original || 'documento'}`);
+
             try {
                 const response = await api.call(`/trash/${docId}`, { method: 'DELETE' });
                 if (response.success) {
                     deletedCount++;
                 } else {
                     errorCount++;
+                    errors.push(`${doc?.nombre_original || 'Documento'}: ${response.message}`);
                 }
             } catch (error) {
                 console.error(`Error eliminando ${docId}:`, error);
                 errorCount++;
+                errors.push(`${doc?.nombre_original || 'Documento'}: Error de conexión`);
             }
         }
 
         closeProgressModal();
-        
+
         if (errorCount === 0) {
             showAlert(`✓ Eliminados ${deletedCount} documento(s) permanentemente`, 'success', 4000);
         } else {
             showAlert(`Eliminados: ${deletedCount}, Errores: ${errorCount}`, 'warning', 4000);
+            if (errors.length > 0) {
+                console.error('Errores detallados:', errors);
+            }
         }
 
+        // Limpiar selección y recargar
         trashState.deselectAll();
         await loadTrashDocuments();
+        updateSelectionControls();
 
     } catch (error) {
         console.error('Error eliminando seleccionados:', error);
@@ -781,50 +914,9 @@ async function handleDeleteSelected() {
     }
 }
 
-async function handleEmptyTrash() {
-    const docCount = trashState.documents.length;
-    
-    if (docCount === 0) {
-        showAlert('La papelera ya está vacía', 'info');
-        return;
-    }
-
-    const totalSize = formatFileSize(trashState.documents.reduce((sum, doc) => sum + (doc.tamano_archivo || 0), 0));
-    
-    const confirmed = await showConfirmationModal(
-        'Vaciar papelera',
-        `¿Vaciar completamente la papelera?`,
-        `Se eliminarán permanentemente ${docCount} documento(s) (${totalSize}).\nEsta acción NO puede deshacerse.`,
-        'danger',
-        'fas fa-skull-crossbones',
-        true
-    );
-    
-    if (!confirmed) return;
-
-    try {
-        const container = document.getElementById('trashContent');
-        setLoadingState(true, container);
-
-        const response = await api.call('/trash/empty-all', { method: 'DELETE' });
-
-        if (response.success) {
-            showAlert(`✓ Papelera vaciada: ${docCount} documento(s) eliminados`, 'success', 4000);
-            trashState.reset();
-            await loadTrashDocuments();
-        } else {
-            showAlert('Error al vaciar papelera: ' + response.message, 'error');
-        }
-
-    } catch (error) {
-        console.error('Error vaciando papelera:', error);
-        showAlert('Error al vaciar la papelera', 'error');
-    } finally {
-        const container = document.getElementById('trashContent');
-        setLoadingState(false, container);
-    }
-}
-
+// =============================================================================
+// ESTADÍSTICAS Y UI
+// =============================================================================
 // =============================================================================
 // ESTADÍSTICAS Y UI
 // =============================================================================
@@ -838,26 +930,68 @@ function updateTrashStats() {
         return days > 7 && days <= 14;
     }).length;
 
+    console.log('📊 Estadísticas calculadas:', {
+        totalDocs,
+        totalSize: formatFileSize(totalSize),
+        criticalDocs,
+        warningDocs
+    });
+
     // Actualizar tarjetas de estadísticas
     const totalElement = document.getElementById('trashTotalDocs');
     if (totalElement) {
         totalElement.textContent = totalDocs;
+        console.log('✅ Actualizado trushTotalDocs:', totalDocs);
+    } else {
+        console.warn('❌ Elemento trushTotalDocs no encontrado');
     }
 
     const sizeElement = document.getElementById('trashTotalSize');
     if (sizeElement) {
         sizeElement.textContent = formatFileSize(totalSize);
+        console.log('✅ Actualizado trushTotalSize:', formatFileSize(totalSize));
+    } else {
+        console.warn('❌ Elemento trushTotalSize no encontrado');
     }
 
     const criticalElement = document.getElementById('trashCriticalDocs');
     if (criticalElement) {
         criticalElement.textContent = criticalDocs;
-        criticalElement.parentElement.style.display = criticalDocs > 0 ? 'flex' : 'none';
+        console.log('✅ Actualizado trushCriticalDocs:', criticalDocs);
+        
+        // Mostrar u ocultar tarjeta según haya documentos críticos
+        const criticalCard = criticalElement.closest('.trash-stat-card');
+        if (criticalCard) {
+            if (criticalDocs > 0) {
+                criticalCard.style.display = 'flex';
+                criticalCard.classList.add('has-items');
+            } else {
+                criticalCard.style.display = 'none';
+                criticalCard.classList.remove('has-items');
+            }
+        }
+    } else {
+        console.warn('❌ Elemento trushCriticalDocs no encontrado');
     }
 
     const warningElement = document.getElementById('trashWarningDocs');
     if (warningElement) {
         warningElement.textContent = warningDocs;
+        console.log('✅ Actualizado trushWarningDocs:', warningDocs);
+        
+        // Mostrar u ocultar tarjeta según haya documentos con advertencia
+        const warningCard = warningElement.closest('.trash-stat-card');
+        if (warningCard) {
+            if (warningDocs > 0) {
+                warningCard.style.display = 'flex';
+                warningCard.classList.add('has-items');
+            } else {
+                warningCard.style.display = 'none';
+                warningCard.classList.remove('has-items');
+            }
+        }
+    } else {
+        console.warn('❌ Elemento trushWarningDocs no encontrado');
     }
 
     // Actualizar badge del topbar
@@ -870,11 +1004,11 @@ function updateTopbarBadge() {
 
     const count = trashState.documents.length;
     const criticalCount = trashState.documents.filter(doc => (doc.daysRemaining || 30) <= 7).length;
-    
+
     if (count > 0) {
         badge.textContent = count > 99 ? '99+' : count;
         badge.style.display = 'flex';
-        
+
         // Cambiar color si hay documentos críticos
         if (criticalCount > 0) {
             badge.classList.add('badge-critical');
@@ -895,7 +1029,7 @@ function updateSelectionCounter() {
 
     const selectedCount = trashState.getSelectedCount();
     const selectedSize = formatFileSize(trashState.getSelectedSize());
-    
+
     if (selectedCount === 0) {
         counter.style.display = 'none';
     } else {
@@ -918,7 +1052,7 @@ function showConfirmationModal(title, subtitle, message, type, icon, doubleConfi
         // Crear modal
         const modalId = 'confirmationModal';
         let modal = document.getElementById(modalId);
-        
+
         if (!modal) {
             modal = document.createElement('div');
             modal.id = modalId;
@@ -958,14 +1092,15 @@ function showConfirmationModal(title, subtitle, message, type, icon, doubleConfi
         `;
 
         modal.style.display = 'block';
-        
+
         // Event listeners
         const confirmBtn = modal.querySelector('.modal-confirm');
         const cancelBtn = modal.querySelector('.modal-cancel');
         const overlay = modal.querySelector('.modal-overlay');
-        
+
         const closeModal = () => {
             modal.style.display = 'none';
+            document.removeEventListener('keydown', handleEscape);
         };
 
         const handleConfirm = () => {
@@ -1007,21 +1142,13 @@ function showConfirmationModal(title, subtitle, message, type, icon, doubleConfi
             }
         };
         document.addEventListener('keydown', handleEscape);
-        
-        // Limpiar event listener
-        const cleanUp = () => {
-            document.removeEventListener('keydown', handleEscape);
-        };
-        
-        cancelBtn.addEventListener('click', cleanUp);
-        overlay.addEventListener('click', cleanUp);
     });
 }
 
 function showProgressModal(message, total) {
     const modalId = 'progressModal';
     let modal = document.getElementById(modalId);
-    
+
     if (!modal) {
         modal = document.createElement('div');
         modal.id = modalId;
@@ -1060,12 +1187,12 @@ function updateProgressModal(current, total, message) {
     if (!modal) return;
 
     const percentage = Math.round((current / total) * 100);
-    
+
     const progressFill = modal.querySelector('.progress-fill');
     const progressPercentage = modal.querySelector('.progress-percentage');
     const progressCount = modal.querySelector('.progress-count');
     const progressMessage = modal.querySelector('.progress-message');
-    
+
     if (progressFill) progressFill.style.width = `${percentage}%`;
     if (progressPercentage) progressPercentage.textContent = `${percentage}%`;
     if (progressCount) progressCount.textContent = `${current}/${total}`;
@@ -1101,10 +1228,10 @@ export async function runAutoCleanup() {
     try {
         console.log('🔄 Ejecutando limpieza automática...');
         const response = await api.call('/trash/auto-cleanup', { method: 'POST' });
-        
+
         if (response.success && response.deletedCount > 0) {
             console.log(`✅ Limpieza automática: ${response.deletedCount} documento(s) eliminado(s)`);
-            
+
             // Mostrar notificación si se eliminaron documentos
             if (response.deletedCount > 0) {
                 showAlert(
@@ -1112,7 +1239,7 @@ export async function runAutoCleanup() {
                     'info',
                     5000
                 );
-                
+
                 // Actualizar si estamos en la vista de papelera
                 if (document.getElementById('trashContent')) {
                     await loadTrashDocuments();
@@ -1123,6 +1250,33 @@ export async function runAutoCleanup() {
         console.error('Error en limpieza automática:', error);
     }
 }
+
+// Exportar funciones para uso global
+window.handleRestoreSelected = handleRestoreSelected;
+window.handleDeleteSelected = handleDeleteSelected;
+
+// Función de ayuda para limpiar selección
+window.clearSelection = function() {
+    trashState.deselectAll();
+    updateTrashUI();
+    updateSelectionControls();
+};
+
+// Función de ayuda para seleccionar todos los visibles
+window.selectAllVisible = function() {
+    const container = document.querySelector('#trashDocumentsList');
+    if (!container) return;
+    
+    // Obtener solo los documentos visibles (después de filtro)
+    const visibleCards = container.querySelectorAll('.trash-document-card');
+    visibleCards.forEach(card => {
+        const docId = card.getAttribute('data-doc-id');
+        trashState.selectedDocuments.add(docId);
+    });
+    
+    updateTrashUI();
+    updateSelectionControls();
+};
 
 // Exportar para acceso global
 window.trashState = trashState;

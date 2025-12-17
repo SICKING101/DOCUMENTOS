@@ -479,3 +479,15 @@ body.dark-theme .detail-related:hover {
 .stat-card {
     animation: fadeIn 0.3s ease-out;
 }
+
+.table--history {
+    min-width: 900px; /* Reducido de 1000px */
+}
+
+/* Ajusta los anchos de las columnas después de eliminar "Título" */
+.table--history th:nth-child(1) { width: 15%; } /* Fecha */
+.table--history th:nth-child(2) { width: 20%; } /* Tipo */
+.table--history th:nth-child(3) { width: 35%; } /* Detalles */
+.table--history th:nth-child(4) { width: 10%; } /* Prioridad */
+.table--history th:nth-child(5) { width: 10%; } /* Estado */
+.table--history th:nth-child(6) { width: 10%; } /* Acciones */

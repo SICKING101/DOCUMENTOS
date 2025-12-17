@@ -215,88 +215,178 @@
                     </section>
                 </section>
 
-                <!-- ===== PAPELERA TAB ===== -->
-                <section id="papelera" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title">
-                                <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
-                            </h2>
-                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30
-                                días</p>
-                        </div>
-                        <div class="trash-header-actions">
-                            <button class="btn btn--outline" id="refreshTrash">
-                                <i class="fas fa-sync-alt"></i> Actualizar
-                            </button>
-                            <button class="btn btn--danger" id="emptyTrashBtn">
-                                <i class="fas fa-trash"></i> Vaciar Papelera
-                            </button>
-                        </div>
-                    </div>
+               <!-- ===== PAPELERA TAB ===== -->
+<section id="papelera" class="tab-content">
+    <div class="section__header">
+        <div>
+            <h2 class="section__title">
+                <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
+            </h2>
+            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30 días</p>
+        </div>
+    </div>
 
-                    <!-- Estadísticas de papelera -->
-                    <div class="trash-stats">
-                        <div class="trash-stat-card">
-                            <div class="trash-stat-icon trash-stat-icon--primary">
-                                <i class="fas fa-file-alt"></i>
-                            </div>
-                            <div class="trash-stat-info">
-                                <div class="trash-stat-value" id="trashTotalDocs">0</div>
-                                <div class="trash-stat-label">Documentos en Papelera</div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Estadísticas de papelera -->
+    <div class="trash-stats">
+        <div class="trash-stat-card stat-total">
+            <div class="trash-stat-icon stat-total">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashTotalDocs">0</div>
+                <div class="trash-stat-label">Documentos en Papelera</div>
+            </div>
+        </div>
+        
+        <div class="trash-stat-card stat-size">
+            <div class="trash-stat-icon stat-size">
+                <i class="fas fa-hdd"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashTotalSize">0 KB</div>
+                <div class="trash-stat-label">Espacio total</div>
+            </div>
+        </div>
+        
+        <div class="trash-stat-card stat-critical">
+            <div class="trash-stat-icon stat-critical">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashCriticalDocs">0</div>
+                <div class="trash-stat-label">Por expirar</div>
+                <div class="trash-stat-subtitle">(≤ 7 días)</div>
+            </div>
+        </div>
+        
+        <div class="trash-stat-card stat-warning">
+            <div class="trash-stat-icon stat-warning">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashWarningDocs">0</div>
+                <div class="trash-stat-label">Próximos</div>
+                <div class="trash-stat-subtitle">(8-14 días)</div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Controles de papelera -->
-                    <div class="trash-controls">
-                        <div class="trash-controls-left">
-                            <button class="btn btn--outline btn--sm" id="selectAllTrash">
-                                <i class="fas fa-check-square"></i> Seleccionar Todo
-                            </button>
-                            <button class="btn btn--outline btn--sm" id="deselectAllTrash">
-                                <i class="fas fa-square"></i> Deseleccionar
-                            </button>
-                            <div class="trash-selection-counter" id="trashSelectionCounter" style="display: none;">
-                                0 seleccionado(s)
-                            </div>
-                        </div>
+    <!-- Barra de búsqueda y vista -->
+    <div class="trash-controls">
+        <div class="trash-controls-left">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" 
+                       id="trashSearchInput" 
+                       placeholder="Buscar en papelera..."
+                       autocomplete="off">
+            </div>
+            
+            <div class="view-toggle">
+                <button id="gridViewBtn" class="active" title="Vista cuadrícula">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button id="listViewBtn" title="Vista lista">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="trash-controls-right">
+            <select id="trashSortSelect" class="sort-select">
+                <option value="deletedAt-desc">Más recientes primero</option>
+                <option value="deletedAt-asc">Más antiguos primero</option>
+                <option value="daysRemaining-asc">Menos días restantes</option>
+                <option value="daysRemaining-desc">Más días restantes</option>
+                <option value="name-asc">Nombre (A-Z)</option>
+                <option value="name-desc">Nombre (Z-A)</option>
+                <option value="size-desc">Mayor tamaño</option>
+                <option value="size-asc">Menor tamaño</option>
+            </select>
+        </div>
+    </div>
 
-                        <div class="trash-controls-right">
-                            <select id="trashSortSelect" class="sort-select">
-                                <option value="deletedAt-desc">Más recientes primero</option>
-                                <option value="deletedAt-asc">Más antiguos primero</option>
-                                <option value="daysRemaining-asc">Menos días restantes</option>
-                                <option value="daysRemaining-desc">Más días restantes</option>
-                                <option value="name-asc">Nombre (A-Z)</option>
-                                <option value="name-desc">Nombre (Z-A)</option>
-                                <option value="size-desc">Mayor tamaño</option>
-                                <option value="size-asc">Menor tamaño</option>
-                            </select>
-                        </div>
-                    </div>
+    <!-- Controles de selección -->
+<div class="trash-selection-controls">
+    <div class="selection-controls-left">
+        <button class="btn btn--outline btn--sm" id="selectAllTrash">
+            <i class="fas fa-check-square"></i> Seleccionar Todo
+        </button>
+        <button class="btn btn--outline btn--sm" id="deselectAllTrash">
+            <i class="fas fa-square"></i> Deseleccionar
+        </button>
+        <div class="trash-selection-counter" id="trashSelectionCounter" style="display: none;">
+            <span class="selection-count">0</span> seleccionado(s)
+        </div>
+    </div>
+    
+    <div class="selection-controls-right" id="bulkActionsContainer" style="display: none;">
+        <button class="btn btn--success btn--sm" id="restoreSelectedBtn">
+            <i class="fas fa-undo"></i> Restaurar Seleccionados
+        </button>
+        <button class="btn btn--danger btn--sm" id="deleteSelectedBtn">
+            <i class="fas fa-trash-alt"></i> Eliminar Seleccionados
+        </button>
+    </div>
+</div>
 
-                    <!-- Acciones masivas -->
-                    <div class="trash-bulk-actions">
-                        <button class="btn btn--success" id="restoreSelectedBtn">
-                            <i class="fas fa-undo"></i> Restaurar Seleccionados
-                        </button>
-                        <button class="btn btn--danger" id="deleteSelectedBtn">
-                            <i class="fas fa-times"></i> Eliminar Seleccionados
-                        </button>
-                    </div>
+    <!-- Acciones masivas (solo visible cuando hay selección) -->
+    <div class="trash-bulk-actions" id="trashBulkActions" style="display: none;">
+        <button class="btn btn--success" id="restoreSelectedBtn">
+            <i class="fas fa-undo"></i> Restaurar Seleccionados
+        </button>
+        <button class="btn btn--danger" id="deleteSelectedBtn">
+            <i class="fas fa-times"></i> Eliminar Seleccionados
+        </button>
+    </div>
 
-                    <!-- Lista de documentos en papelera -->
-                    <div class="trash-content" id="trashContent">
-                        <div id="trashDocumentsList" class="trash-documents-list">
-                            <div class="empty-state">
-                                <i class="fas fa-trash-alt"></i>
-                                <h3>La papelera está vacía</h3>
-                                <p>Los documentos eliminados aparecerán aquí</p>
-                            </div>
-                        </div>
+    <!-- Lista de documentos en papelera -->
+    <div class="trash-content" id="trashContent">
+        <div id="trashDocumentsList" class="trash-documents-list grid-view">
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <h3>La papelera está vacía</h3>
+                <p>Los documentos eliminados aparecerán aquí por 30 días</p>
+                <div class="empty-state-tips">
+                    <div class="tip">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Los documentos se eliminan automáticamente después de 30 días</span>
                     </div>
-                </section>
+                    <div class="tip">
+                        <i class="fas fa-undo"></i>
+                        <span>Puedes restaurar documentos antes de que sean eliminados permanentemente</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de progreso mejorado -->
+    <div id="operationProgress" class="operation-progress" style="display: none;">
+        <div class="progress-overlay"></div>
+        <div class="progress-content">
+            <div class="progress-spinner">
+                <div class="spinner-circle"></div>
+            </div>
+            <div class="progress-info">
+                <h4 class="progress-title">Procesando...</h4>
+                <p class="progress-message" id="progressMessage"></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-details">
+                    <span class="progress-counter" id="progressCounter">0/0</span>
+                    <span class="progress-percentage" id="progressPercentage">0%</span>
+                </div>
+            </div>
+            <button class="btn btn--text btn--sm progress-cancel" id="progressCancelBtn">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</section>
 
                 <!-- ===== HISTORIAL TAB ===== -->
                 <section id="historial" class="tab-content">
@@ -435,7 +525,6 @@
                                 <tr>
                                     <th class="table__header">Fecha</th>
                                     <th class="table__header">Tipo</th>
-                                    <th class="table__header">Título</th>
                                     <th class="table__header">Mensaje</th>
                                     <th class="table__header">Prioridad</th>
                                     <th class="table__header">Estado</th>
