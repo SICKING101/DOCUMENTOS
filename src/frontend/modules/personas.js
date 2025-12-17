@@ -1192,9 +1192,6 @@ function renderPersonsTable() {
                     <button class="btn btn--sm btn--danger btn--icon" onclick="deletePerson('${person._id}')" title="Eliminar">
                         <i class="fas fa-trash"></i>
                     </button>
-                    <button class="btn btn--sm btn--primary btn--icon" title="Ver detalles">
-                        <i class="fas fa-eye"></i>
-                    </button>
                 </div>
             </td>
         `;

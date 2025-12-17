@@ -1,5 +1,5 @@
 // =============================================================================
-// MÓDULO DE HISTORIAL DEL SISTEMA
+// MÓDULO DE HISTORIAL DEL SISTEMA CON PRELOADERS
 // =============================================================================
 
 import { CONFIG } from '../config.js';
@@ -20,6 +20,7 @@ class HistorialManager {
             busqueda: ''
         };
         this.historialData = [];
+        this.activePreloaders = new Set(); // Para rastrear preloaders activos
     }
 
     // =============================================================================
@@ -36,7 +37,7 @@ class HistorialManager {
     }
 
     bindEvents() {
-        // Botones de acción
+        // Botones de acción con preloader
         document.getElementById('refreshHistoryBtn')?.addEventListener('click', () => this.loadHistorial());
         document.getElementById('clearHistoryBtn')?.addEventListener('click', () => this.clearHistorial());
         document.getElementById('exportHistoryBtn')?.addEventListener('click', () => this.exportHistorial());
@@ -79,18 +80,271 @@ class HistorialManager {
             this.loadHistorial();
         });
         
-        // Paginación
+        // Paginación con preloader
         document.querySelector('.pagination__btn--prev')?.addEventListener('click', () => this.previousPage());
         document.querySelector('.pagination__btn--next')?.addEventListener('click', () => this.nextPage());
     }
 
     // =============================================================================
-    // 2. CARGAR HISTORIAL
+    // 2. PRELOADER UTILITIES
+    // =============================================================================
+
+    /**
+     * Muestra un preloader de overlay en una tabla
+     */
+    showTablePreloader(tableId, message = 'Cargando datos...') {
+        const table = document.getElementById(tableId);
+        if (!table) return null;
+        
+        // Crear overlay de preloader
+        const preloaderId = `preloader-${tableId}-${Date.now()}`;
+        const preloaderHTML = `
+            <div class="table-preloader-overlay" id="${preloaderId}">
+                <div class="table-preloader-content">
+                    <div class="elegant-spinner">
+                        <div class="elegant-spinner__ring"></div>
+                        <div class="elegant-spinner__ring"></div>
+                        <div class="elegant-spinner__ring"></div>
+                    </div>
+                    <div class="table-preloader-message">${message}</div>
+                </div>
+            </div>
+        `;
+        
+        table.style.position = 'relative';
+        table.insertAdjacentHTML('beforeend', preloaderHTML);
+        this.activePreloaders.add(preloaderId);
+        
+        return preloaderId;
+    }
+
+    /**
+     * Muestra un preloader en un botón
+     */
+    showButtonPreloader(button, text = 'Procesando...') {
+        if (!button) return;
+        
+        button.setAttribute('data-original-text', button.textContent);
+        button.innerHTML = `
+            <span class="preloader-inline">
+                <div class="preloader-inline__spinner"></div>
+                <span>${text}</span>
+            </span>
+        `;
+        button.disabled = true;
+        button.classList.add('btn--loading');
+        
+        return button;
+    }
+
+    /**
+     * Oculta un preloader específico
+     */
+    hidePreloader(preloaderId) {
+        const preloader = document.getElementById(preloaderId);
+        if (preloader) {
+            preloader.style.opacity = '0';
+            setTimeout(() => preloader.remove(), 300);
+        }
+        this.activePreloaders.delete(preloaderId);
+    }
+
+    /**
+     * Restaura un botón a su estado original
+     */
+restoreButton(button) {
+    if (!button) {
+        console.warn('restoreButton: button es null');
+        return;
+    }
+    
+    console.log('Restaurando botón:', button.id, button);
+    
+    // Restaurar el HTML original
+    const originalHTML = button.getAttribute('data-original-html');
+    if (originalHTML) {
+        console.log('HTML original encontrado:', originalHTML);
+        button.innerHTML = originalHTML;
+        button.removeAttribute('data-original-html');
+    } else {
+        console.warn('No se encontró data-original-html, restaurando texto genérico');
+        // Si no hay HTML guardado, poner texto por defecto
+        button.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizar';
+    }
+    
+    // Restaurar estado
+    button.disabled = false;
+    button.classList.remove('btn--loading');
+    
+    console.log('Botón restaurado exitosamente');
+}
+
+    /**
+     * Muestra un preloader de acción en una fila específica
+     */
+    showRowActionPreloader(rowId, action = 'processing') {
+        const row = document.querySelector(`[data-id="${rowId}"]`);
+        if (!row) return null;
+        
+        const preloaderId = `row-action-${rowId}-${Date.now()}`;
+        const actionTexts = {
+            'delete': 'Eliminando...',
+            'mark-read': 'Marcando como leído...',
+            'view': 'Cargando...',
+            'processing': 'Procesando...'
+        };
+        
+        const actionClasses = {
+            'delete': 'task-action-indicator--delete',
+            'mark-read': 'task-action-indicator--complete',
+            'view': 'task-action-indicator--edit',
+            'processing': 'task-action-indicator'
+        };
+        
+        const preloaderHTML = `
+            <div class="task-action-indicator ${actionClasses[action] || ''}" id="${preloaderId}">
+                <div class="task-action-indicator__content">
+                    <div class="task-action-indicator__icon">
+                        ${action === 'delete' ? '<i class="fas fa-trash"></i>' : 
+                          action === 'mark-read' ? '<i class="fas fa-check"></i>' : 
+                          action === 'view' ? '<i class="fas fa-eye"></i>' : 
+                          '<i class="fas fa-cog"></i>'}
+                    </div>
+                    <div class="task-action-indicator__dots">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        row.style.position = 'relative';
+        row.insertAdjacentHTML('beforeend', preloaderHTML);
+        this.activePreloaders.add(preloaderId);
+        
+        return preloaderId;
+    }
+
+    /**
+     * Muestra preloader global para limpieza completa
+     */
+    showClearAllPreloader(count) {
+        const preloaderId = `clear-all-preloader-${Date.now()}`;
+        const preloaderHTML = `
+            <div class="clear-tasks-indicator" id="${preloaderId}">
+                <div class="clear-tasks-indicator__content">
+                    <div class="clear-tasks-indicator__header">
+                        <i class="fas fa-broom clear-tasks-indicator__icon"></i>
+                        <h3 class="clear-tasks-indicator__title">Limpiando Historial</h3>
+                    </div>
+                    <div class="clear-tasks-indicator__body">
+                        <div class="clear-tasks-indicator__count">${count}</div>
+                        <div class="clear-tasks-indicator__progress">
+                            <div class="clear-tasks-indicator__progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', preloaderHTML);
+        this.activePreloaders.add(preloaderId);
+        
+        // Animar la barra de progreso
+        setTimeout(() => {
+            const progressBar = document.querySelector(`#${preloaderId} .clear-tasks-indicator__progress-bar`);
+            if (progressBar) {
+                progressBar.style.width = '100%';
+            }
+        }, 100);
+        
+        return preloaderId;
+    }
+
+    /**
+     * Muestra preloader para exportación
+     */
+    showExportPreloader() {
+        const preloaderId = `export-preloader-${Date.now()}`;
+        const preloaderHTML = `
+            <div class="document-upload-preloader" id="${preloaderId}" style="position: fixed; bottom: 20px; right: 20px;">
+                <div class="document-upload-preloader__content">
+                    <div class="document-upload-preloader__header">
+                        <h3 class="document-upload-preloader__title">
+                            <i class="fas fa-file-export"></i> Exportando Historial
+                        </h3>
+                    </div>
+                    <div class="document-upload-preloader__content">
+                        <div class="upload-preloader">
+                            <div class="upload-preloader__dropzone">
+                                <div class="upload-preloader__icon">
+                                    <i class="fas fa-file-csv"></i>
+                                </div>
+                                <div class="upload-preloader__text">
+                                    Generando archivo CSV...
+                                </div>
+                                <div class="upload-preloader__file">
+                                    <div class="upload-preloader__file-info">
+                                        <i class="fas fa-file-csv upload-preloader__file-icon"></i>
+                                        <div>
+                                            <div class="upload-preloader__file-name">historial_sistema.csv</div>
+                                            <div class="upload-preloader__file-progress">
+                                                <div class="upload-preloader__file-progress-bar"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', preloaderHTML);
+        this.activePreloaders.add(preloaderId);
+        
+        // Animar la barra de progreso
+        setTimeout(() => {
+            const progressBar = document.querySelector(`#${preloaderId} .upload-preloader__file-progress-bar`);
+            if (progressBar) {
+                progressBar.style.width = '100%';
+            }
+        }, 100);
+        
+        return preloaderId;
+    }
+
+    /**
+     * Limpia todos los preloaders activos
+     */
+    cleanupPreloaders() {
+        this.activePreloaders.forEach(preloaderId => {
+            this.hidePreloader(preloaderId);
+        });
+        this.activePreloaders.clear();
+    }
+
+    // =============================================================================
+    // 3. CARGAR HISTORIAL
     // =============================================================================
 
     async loadHistorial() {
+        let preloaderId = null;
+        let refreshButton = null;
+        
         try {
             console.log('📥 Cargando historial...');
+            
+            // Mostrar preloader en la tabla
+            preloaderId = this.showTablePreloader('historyTableBody', 'Cargando registros...');
+            
+            // Mostrar preloader en botón de refresh si está activo
+            refreshButton = document.getElementById('refreshHistoryBtn');
+            if (refreshButton) {
+                this.showButtonPreloader(refreshButton, 'Actualizando...');
+            }
             
             const params = new URLSearchParams({
                 pagina: this.currentPage,
@@ -118,22 +372,34 @@ class HistorialManager {
                 this.totalItems = data.data.total || 0;
                 this.totalPages = data.data.totalPaginas || 1;
                 
+                // Pequeña pausa para que se vea el preloader
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
                 this.renderHistorial();
                 this.updateStats();
                 this.updatePagination();
                 
                 console.log(`✅ Historial cargado: ${this.historialData.length} registros`);
+                
+                // Mostrar notificación sutil si hay resultados
+                if (this.historialData.length > 0) {
+                    this.showNotification(`Cargados ${this.historialData.length} registros`, 'success');
+                }
             } else {
                 throw new Error(data.message || 'Error al cargar historial');
             }
         } catch (error) {
             console.error('❌ Error cargando historial:', error);
-            showAlert('Error al cargar el historial', 'error');
+            this.showNotification('Error al cargar el historial', 'error');
+        } finally {
+            // Ocultar preloaders
+            if (preloaderId) this.hidePreloader(preloaderId);
+            if (refreshButton) this.restoreButton(refreshButton);
         }
     }
 
     // =============================================================================
-    // 3. RENDERIZAR HISTORIAL
+    // 4. RENDERIZAR HISTORIAL
     // =============================================================================
 
     renderHistorial() {
@@ -143,7 +409,7 @@ class HistorialManager {
         if (this.historialData.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="empty-state">
+                    <td colspan="6" class="empty-state">
                         <i class="fas fa-history empty-state__icon"></i>
                         <h3 class="empty-state__title">No hay registros de historial</h3>
                         <p class="empty-state__description">${this.hasFilters() ? 'Intenta con otros filtros' : 'Las actividades del sistema aparecerán aquí'}</p>
@@ -187,15 +453,14 @@ class HistorialManager {
                     </div>
                 </td>
                 <td class="table__cell">
-                    <strong class="history-title">${item.titulo}</strong>
-                </td>
-                <td class="table__cell table__cell--message">
-                    <p class="history-message">${item.mensaje}</p>
-                    ${item.metadata && Object.keys(item.metadata).length > 0 ? `
-                        <div class="history-metadata">
-                            <small>${this.formatMetadata(item.metadata)}</small>
-                        </div>
-                    ` : ''}
+                    <div class="history-details">
+                        <p class="detail-message">${item.mensaje}</p>
+                        ${item.metadata && Object.keys(item.metadata).length > 0 ? `
+                            <div class="detail-metadata">
+                                <small>${this.formatMetadata(item.metadata)}</small>
+                            </div>
+                        ` : ''}
+                    </div>
                 </td>
                 <td class="table__cell">
                     <span class="priority-badge ${prioridadClass}">
@@ -258,11 +523,23 @@ class HistorialManager {
     }
 
     // =============================================================================
-    // 4. ACCIONES DEL HISTORIAL
+    // 5. ACCIONES DEL HISTORIAL
     // =============================================================================
 
     async markAsRead(id) {
+        let preloaderId = null;
+        let button = null;
+        
         try {
+            // Encontrar el botón que disparó la acción
+            button = document.querySelector(`[data-id="${id}"] [data-action="mark-read"]`);
+            if (button) {
+                this.showButtonPreloader(button, 'Marcando...');
+            }
+            
+            // Mostrar preloader en la fila
+            preloaderId = this.showRowActionPreloader(id, 'mark-read');
+            
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${id}/read`, {
                 method: 'PATCH'
             });
@@ -274,7 +551,17 @@ class HistorialManager {
             const data = await response.json();
             
             if (data.success) {
-                showAlert('Registro marcado como leído', 'success');
+                // Mostrar estado de éxito
+                const row = document.querySelector(`[data-id="${id}"]`);
+                if (row) {
+                    row.classList.add('task-card--completing');
+                    setTimeout(() => row.classList.remove('task-card--completing'), 600);
+                }
+                
+                // Pequeña pausa para mostrar el preloader
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                this.showNotification('Registro marcado como leído', 'success');
                 this.loadHistorial();
                 
                 // Actualizar contador en notificaciones si existe
@@ -284,7 +571,10 @@ class HistorialManager {
             }
         } catch (error) {
             console.error('❌ Error marcando como leído:', error);
-            showAlert('Error al marcar como leído', 'error');
+            this.showNotification('Error al marcar como leído', 'error');
+        } finally {
+            if (preloaderId) this.hidePreloader(preloaderId);
+            if (button) this.restoreButton(button);
         }
     }
 
@@ -297,6 +587,8 @@ class HistorialManager {
             
             if (!confirmed) return;
 
+            const preloaderId = this.showTablePreloader('historyTableBody', 'Marcando todos como leídos...');
+            
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/read-all`, {
                 method: 'PATCH'
             });
@@ -308,7 +600,10 @@ class HistorialManager {
             const data = await response.json();
             
             if (data.success) {
-                showAlert(`${data.data?.cantidad || 0} registros marcados como leídos`, 'success');
+                // Pequeña pausa para mostrar el preloader
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                this.showNotification(`${data.data?.cantidad || 0} registros marcados como leídos`, 'success');
                 this.loadHistorial();
                 
                 // Actualizar contador en notificaciones
@@ -318,11 +613,16 @@ class HistorialManager {
             }
         } catch (error) {
             console.error('❌ Error marcando todos como leídos:', error);
-            showAlert('Error al marcar todos como leídos', 'error');
+            this.showNotification('Error al marcar todos como leídos', 'error');
+        } finally {
+            if (preloaderId) this.hidePreloader(preloaderId);
         }
     }
 
     async deleteItem(id) {
+        let preloaderId = null;
+        let button = null;
+        
         try {
             const item = this.historialData.find(n => n._id === id);
             if (!item) return;
@@ -336,6 +636,21 @@ class HistorialManager {
             
             if (!confirmed) return;
 
+            // Encontrar el botón que disparó la acción
+            button = document.querySelector(`[data-id="${id}"] [data-action="delete"]`);
+            if (button) {
+                this.showButtonPreloader(button, 'Eliminando...');
+            }
+            
+            // Mostrar preloader en la fila
+            preloaderId = this.showRowActionPreloader(id, 'delete');
+            
+            // Añadir clase de eliminación a la fila
+            const row = document.querySelector(`[data-id="${id}"]`);
+            if (row) {
+                row.classList.add('table__row--deleting');
+            }
+
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${id}`, {
                 method: 'DELETE'
             });
@@ -347,20 +662,34 @@ class HistorialManager {
             const data = await response.json();
             
             if (data.success) {
-                showAlert('Registro eliminado correctamente', 'success');
+                // Animación de eliminación
+                if (row) {
+                    row.classList.add('task-card--removing');
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                }
+                
+                this.showNotification('Registro eliminado correctamente', 'success');
                 this.loadHistorial();
             }
         } catch (error) {
             console.error('❌ Error eliminando registro:', error);
-            showAlert('Error al eliminar registro', 'error');
+            this.showNotification('Error al eliminar registro', 'error');
+            
+            // Remover clase de eliminación si hay error
+            const row = document.querySelector(`[data-id="${id}"]`);
+            if (row) {
+                row.classList.remove('table__row--deleting');
+            }
+        } finally {
+            if (preloaderId) this.hidePreloader(preloaderId);
+            if (button) this.restoreButton(button);
         }
     }
 
-    /**
-     * CORREGIDO: Método para limpiar todo el historial
-     * Ahora intenta dos enfoques diferentes para garantizar la limpieza
-     */
     async clearHistorial() {
+        let preloaderId = null;
+        let button = null;
+        
         try {
             const confirmed = await showConfirmation(
                 '¿Limpiar todo el historial?',
@@ -371,10 +700,18 @@ class HistorialManager {
             if (!confirmed) return;
 
             console.log('🧹 Iniciando limpieza completa del historial...');
-            showAlert('Limpiando historial...', 'info');
+            
+            // Mostrar preloader en botón
+            button = document.getElementById('clearHistoryBtn');
+            if (button) {
+                this.showButtonPreloader(button, 'Limpiando...');
+            }
+
+            // Obtener conteo actual para mostrar en preloader
+            const count = this.totalItems;
+            preloaderId = this.showClearAllPreloader(count);
 
             // INTENTO 1: Eliminar todas las notificaciones individualmente
-            // Primero cargamos todas las notificaciones
             const allNotificationsResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications?limite=10000`);
             
             if (!allNotificationsResponse.ok) {
@@ -386,44 +723,52 @@ class HistorialManager {
             if (allData.success && allData.data.notificaciones && allData.data.notificaciones.length > 0) {
                 console.log(`🗑️  Encontradas ${allData.data.notificaciones.length} notificaciones para eliminar`);
                 
-                // Opción A: Eliminar una por una (más seguro)
+                // Eliminar en lotes para mostrar progreso
+                const batchSize = 10;
+                const notifications = allData.data.notificaciones;
                 let deletedCount = 0;
                 let errorCount = 0;
                 
-                for (const notification of allData.data.notificaciones) {
-                    try {
-                        const deleteResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notification._id}`, {
-                            method: 'DELETE'
-                        });
-                        
-                        if (deleteResponse.ok) {
-                            const deleteData = await deleteResponse.json();
-                            if (deleteData.success) {
-                                deletedCount++;
-                            } else {
-                                errorCount++;
-                                console.error(`❌ Error eliminando notificación ${notification._id}:`, deleteData.message);
+                for (let i = 0; i < notifications.length; i += batchSize) {
+                    const batch = notifications.slice(i, i + batchSize);
+                    const promises = batch.map(async (notification) => {
+                        try {
+                            const deleteResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notification._id}`, {
+                                method: 'DELETE'
+                            });
+                            
+                            if (deleteResponse.ok) {
+                                const deleteData = await deleteResponse.json();
+                                if (deleteData.success) {
+                                    deletedCount++;
+                                    return true;
+                                }
                             }
-                        } else {
                             errorCount++;
-                            console.error(`❌ HTTP error eliminando notificación ${notification._id}`);
+                            return false;
+                        } catch (error) {
+                            errorCount++;
+                            return false;
                         }
-                    } catch (error) {
-                        errorCount++;
-                        console.error(`❌ Exception eliminando notificación ${notification._id}:`, error);
-                    }
+                    });
                     
-                    // Pequeña pausa para no sobrecargar el servidor
-                    await new Promise(resolve => setTimeout(resolve, 10));
+                    await Promise.all(promises);
+                    
+                    // Actualizar progreso visualmente
+                    const progress = Math.min(Math.round(((i + batchSize) / notifications.length) * 100), 100);
+                    console.log(`📊 Progreso: ${progress}% (${deletedCount} eliminados)`);
+                    
+                    // Pequeña pausa para no sobrecargar
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 }
                 
                 if (deletedCount > 0) {
                     console.log(`✅ ${deletedCount} notificaciones eliminadas individualmente`);
-                    if (errorCount > 0) {
-                        console.warn(`⚠️ ${errorCount} errores durante la eliminación`);
-                    }
                     
-                    showAlert(`Historial limpiado: ${deletedCount} registros eliminados`, 'success');
+                    // Esperar para que se complete la animación
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    
+                    this.showNotification(`Historial limpiado: ${deletedCount} registros eliminados`, 'success');
                     
                     // Recargar el historial
                     this.currentPage = 1;
@@ -432,14 +777,13 @@ class HistorialManager {
                 }
             }
             
-            // INTENTO 2: Usar el endpoint de cleanup con parámetro especial
+            // INTENTO 2: Usar endpoint de cleanup
             console.log('🔄 Intentando limpieza masiva...');
             
             const cleanupResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/cleanup-all`, {
                 method: 'DELETE'
             });
 
-            // Si no existe el endpoint especial, probar con POST
             if (!cleanupResponse.ok) {
                 console.log('🔄 Probando con método POST...');
                 
@@ -463,7 +807,11 @@ class HistorialManager {
                 
                 if (postData.success) {
                     console.log(`✅ Limpieza masiva completada: ${postData.data?.cantidad || 'todas'} registros eliminados`);
-                    showAlert(`Historial limpiado: ${postData.data?.cantidad || 'todas'} registros eliminados`, 'success');
+                    
+                    // Esperar para que se complete la animación
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    
+                    this.showNotification(`Historial limpiado: ${postData.data?.cantidad || 'todas'} registros eliminados`, 'success');
                     
                     // Recargar el historial
                     this.currentPage = 1;
@@ -475,7 +823,11 @@ class HistorialManager {
                 
                 if (cleanupData.success) {
                     console.log(`✅ Limpieza masiva completada: ${cleanupData.data?.cantidad || 'todas'} registros eliminados`);
-                    showAlert(`Historial limpiado: ${cleanupData.data?.cantidad || 'todas'} registros eliminados`, 'success');
+                    
+                    // Esperar para que se complete la animación
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    
+                    this.showNotification(`Historial limpiado: ${cleanupData.data?.cantidad || 'todas'} registros eliminados`, 'success');
                     
                     // Recargar el historial
                     this.currentPage = 1;
@@ -492,18 +844,29 @@ class HistorialManager {
             
             // Verificar si el error es específico de permisos
             if (error.message.includes('401') || error.message.includes('403')) {
-                showAlert('No tienes permisos para limpiar el historial', 'error');
+                this.showNotification('No tienes permisos para limpiar el historial', 'error');
             } else if (error.message.includes('No se pudo completar')) {
-                showAlert('No se pudo limpiar el historial completamente. Intenta eliminando registros individualmente.', 'warning');
+                this.showNotification('No se pudo limpiar el historial completamente. Intenta eliminando registros individualmente.', 'warning');
             } else {
-                showAlert(`Error al limpiar historial: ${error.message}`, 'error');
+                this.showNotification(`Error al limpiar historial: ${error.message}`, 'error');
             }
+        } finally {
+            if (preloaderId) this.hidePreloader(preloaderId);
+            if (button) this.restoreButton(button);
         }
     }
 
     async exportHistorial() {
+        let preloaderId = null;
+        let button = null;
+        
         try {
-            showAlert('Generando exportación...', 'info');
+            button = document.getElementById('exportHistoryBtn');
+            if (button) {
+                this.showButtonPreloader(button, 'Exportando...');
+            }
+            
+            preloaderId = this.showExportPreloader();
             
             const params = new URLSearchParams();
             if (this.filters.tipo !== 'all') params.append('tipo', this.filters.tipo);
@@ -523,13 +886,19 @@ class HistorialManager {
             const data = await response.json();
             
             if (data.success && data.data.notificaciones) {
+                // Esperar un momento para mostrar el preloader
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
                 this.exportToCSV(data.data.notificaciones);
             } else {
                 throw new Error('No hay datos para exportar');
             }
         } catch (error) {
             console.error('❌ Error exportando historial:', error);
-            showAlert('Error al exportar historial', 'error');
+            this.showNotification('Error al exportar historial', 'error');
+        } finally {
+            if (preloaderId) this.hidePreloader(preloaderId);
+            if (button) this.restoreButton(button);
         }
     }
 
@@ -571,29 +940,61 @@ class HistorialManager {
         link.click();
         document.body.removeChild(link);
         
-        showAlert('Historial exportado correctamente', 'success');
+        this.showNotification('Historial exportado correctamente', 'success');
     }
 
     /**
-     * Maneja la apertura y cierre de modales de manera consistente
+     * Muestra notificación flotante
      */
-    handleModal(modal, action = 'open') {
-        if (action === 'open') {
-            modal.style.display = 'flex';
-            setTimeout(() => {
-                modal.style.opacity = '1';
-                modal.style.visibility = 'visible';
-            }, 10);
-        } else {
-            modal.style.opacity = '0';
-            modal.style.visibility = 'hidden';
-            setTimeout(() => {
-                modal.style.display = 'none';
-                if (action === 'close-remove') {
-                    modal.remove();
-                }
-            }, 300);
+    showNotification(message, type = 'info') {
+        const notificationId = `notification-${Date.now()}`;
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+        
+        const notificationHTML = `
+            <div class="floating-notification floating-notification--${type}" id="${notificationId}">
+                <div class="floating-notification__content">
+                    <i class="${icons[type] || icons.info}"></i>
+                    <span>${message}</span>
+                </div>
+                <button class="floating-notification__close" onclick="document.getElementById('${notificationId}').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Crear contenedor si no existe
+        let notificationsContainer = document.querySelector('.notifications');
+        if (!notificationsContainer) {
+            notificationsContainer = document.createElement('div');
+            notificationsContainer.className = 'notifications';
+            document.body.appendChild(notificationsContainer);
         }
+        
+        notificationsContainer.insertAdjacentHTML('afterbegin', notificationHTML);
+        
+        // Mostrar animación
+        setTimeout(() => {
+            const notification = document.getElementById(notificationId);
+            if (notification) {
+                notification.classList.add('floating-notification--visible');
+            }
+        }, 10);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            const notification = document.getElementById(notificationId);
+            if (notification) {
+                notification.classList.remove('floating-notification--visible');
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 5000);
+        
+        return notificationId;
     }
 
     viewDetails(id) {
@@ -768,7 +1169,7 @@ class HistorialManager {
     }
 
     // =============================================================================
-    // 5. PAGINACIÓN
+    // 6. PAGINACIÓN
     // =============================================================================
 
     updatePagination() {
@@ -786,22 +1187,22 @@ class HistorialManager {
         paginationInfo.textContent = `Página ${this.currentPage} de ${this.totalPages} (${this.totalItems} registros)`;
     }
 
-    previousPage() {
+    async previousPage() {
         if (this.currentPage > 1) {
             this.currentPage--;
-            this.loadHistorial();
+            await this.loadHistorial();
         }
     }
 
-    nextPage() {
+    async nextPage() {
         if (this.currentPage < this.totalPages) {
             this.currentPage++;
-            this.loadHistorial();
+            await this.loadHistorial();
         }
     }
 
     // =============================================================================
-    // 6. ESTADÍSTICAS
+    // 7. ESTADÍSTICAS
     // =============================================================================
 
     async updateStats() {
@@ -819,7 +1220,7 @@ class HistorialManager {
             }).length;
             const critical = this.historialData.filter(item => item.prioridad === 'critica').length;
             
-            // Actualizar UI - SIN optional chaining en asignaciones
+            // Actualizar UI
             const totalHistoryEl = document.getElementById('totalHistory');
             const unreadHistoryEl = document.getElementById('unreadHistory');
             const todayHistoryEl = document.getElementById('todayHistory');
@@ -836,7 +1237,7 @@ class HistorialManager {
     }
 
     // =============================================================================
-    // 7. FUNCIONES AUXILIARES
+    // 8. FUNCIONES AUXILIARES
     // =============================================================================
 
     getPriorityClass(priority) {
@@ -879,6 +1280,7 @@ class HistorialManager {
         const texts = {
             documento_subido: 'Documento Subido',
             documento_eliminado: 'Documento Eliminado',
+            documento_restaurado: 'Documento Restaurado',
             documento_proximo_vencer: 'Documento por Vencer',
             documento_vencido: 'Documento Vencido',
             persona_agregada: 'Persona Agregada',
@@ -930,10 +1332,19 @@ class HistorialManager {
             value !== 'all' && value !== '' && value !== null && value !== undefined
         );
     }
+
+    // =============================================================================
+    // 9. LIMPIEZA AL DESTRUIR
+    // =============================================================================
+
+    destroy() {
+        this.cleanupPreloaders();
+        console.log('🧹 Módulo de historial limpiado');
+    }
 }
 
 // =============================================================================
-// 8. INICIALIZACIÓN GLOBAL
+// 10. INICIALIZACIÓN GLOBAL
 // =============================================================================
 
 let historialManager = null;
