@@ -7,7 +7,6 @@ import { CONFIG } from '../../../config.js';
 import { showAlert, formatFileSize } from '../../../utils.js';
 import { MultipleUploadState } from '../core/MultipleUploadState.js';
 import { updateMultipleUploadUI } from '../index.js';
-import { showUploadProgressContainer, hideUploadProgressContainer } from './progressManager.js';
 import { MULTIPLE_UPLOAD_CONFIG } from '../core/constants.js';
 
 // Instancia global del estado de subida múltiple
@@ -470,10 +469,51 @@ function updateCommonSettingsFromDOM(force = false) {
 }
 
 /**
- * Muestra el preloader de subida
+ * Ocultar todos los otros preloaders del sistema
+ */
+function hideAllOtherPreloaders() {
+    console.log('🧹 Ocultando otros preloaders...');
+    
+    // Ocultar el preloader de progressManager (si existe)
+    const progressContainer = document.getElementById('uploadProgressContainer');
+    if (progressContainer) {
+        console.log('✅ Ocultando uploadProgressContainer');
+        progressContainer.style.display = 'none';
+        // También removerlo del DOM para asegurar
+        progressContainer.remove();
+    }
+    
+    // Ocultar cualquier elemento con clase que contenga "preloader" o "progress"
+    const otherPreloaders = document.querySelectorAll(
+        '.upload-progress-container, .progress-container, [class*="preloader"], [class*="progress"]'
+    );
+    
+    otherPreloaders.forEach(el => {
+        if (el.id !== 'documentUploadPreloader' && 
+            el.id !== 'uploadPreloaderContent' &&
+            !el.closest('#documentUploadPreloader')) {
+            console.log('⚠️ Ocultando elemento:', el.className || el.id);
+            el.style.display = 'none';
+        }
+    });
+    
+    // Remover cualquier overlay existente
+    const existingOverlays = document.querySelectorAll('.modal-overlay, .overlay');
+    existingOverlays.forEach(overlay => {
+        if (!overlay.closest('#documentUploadPreloader')) {
+            overlay.remove();
+        }
+    });
+}
+
+/**
+ * Muestra el preloader de subida (SOLO UNO)
  */
 function showUploadPreloader(state) {
-    console.log('🎬 Mostrando preloader de subida');
+    console.log('🎬 Mostrando preloader de subida (ÚNICO)');
+    
+    // Ocultar cualquier otro preloader existente primero
+    hideAllOtherPreloaders();
     
     // Verificar si ya existe un preloader
     if (document.getElementById('documentUploadPreloader')) {
@@ -497,13 +537,39 @@ function showUploadPreloader(state) {
             </button>
         </div>
         <div class="document-upload-preloader__content" id="uploadPreloaderContent">
-            <!-- Se llenará dinámicamente -->
+            <div class="preloader-initial">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Preparando archivos para subir...</p>
+            </div>
         </div>
         <div class="document-upload-preloader__stats">
             <span id="uploadStatsCurrent">0</span> / 
             <span id="uploadStatsTotal">${state.files.length}</span> archivos
             <span id="uploadStatsSpeed" style="margin-left: auto; font-size: 0.75rem;"></span>
         </div>
+        <div class="document-upload-preloader__progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="overallProgressFill" style="width: 0%"></div>
+            </div>
+            <div class="progress-percentage" id="overallProgressPercentage">0%</div>
+        </div>
+    `;
+    
+    // Agregar estilos inline para asegurar visibilidad
+    preloader.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        max-width: 90vw;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        z-index: 99999;
+        animation: fadeIn 0.3s ease;
+        overflow: hidden;
+        border: 1px solid #dee2e6;
     `;
     
     document.body.appendChild(preloader);
@@ -540,29 +606,46 @@ function updateUploadPreloader(state) {
     const content = document.getElementById('uploadPreloaderContent');
     if (!content) return;
     
-    // Filtrar archivos para mostrar (solo los que están subiendo o tienen estado)
+    // Calcular progreso total
+    const completed = state.files.filter(f => f.status === 'completed').length;
+    const total = state.files.length;
+    const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    // Actualizar barra de progreso general
+    const overallProgressFill = document.getElementById('overallProgressFill');
+    const overallProgressPercentage = document.getElementById('overallProgressPercentage');
+    if (overallProgressFill) overallProgressFill.style.width = `${progressPercent}%`;
+    if (overallProgressPercentage) overallProgressPercentage.textContent = `${progressPercent}%`;
+    
+    // Filtrar archivos para mostrar
     const filesToShow = state.files.filter(f => 
         f.status === 'uploading' || f.status === 'completed' || f.status === 'failed'
     );
     
     if (filesToShow.length === 0) {
         content.innerHTML = `
-            <div class="preloader__text">
-                <i class="fas fa-hourglass-half"></i>
+            <div class="preloader-initial">
+                <i class="fas fa-hourglass-half fa-spin"></i>
                 <p>Preparando archivos para subir...</p>
             </div>
         `;
         return;
     }
     
-    content.innerHTML = filesToShow.map(fileObj => `
+    // Ordenar archivos: primero subiendo, luego completados, luego fallidos
+    const sortedFiles = [...filesToShow].sort((a, b) => {
+        const order = { 'uploading': 0, 'completed': 1, 'failed': 2 };
+        return order[a.status] - order[b.status];
+    });
+    
+    content.innerHTML = sortedFiles.map(fileObj => `
         <div class="document-upload-preloader__file file-status--${fileObj.status}">
             <div class="document-upload-preloader__file-icon">
                 <i class="fas fa-file-${getFileIconClass(fileObj.file)}"></i>
             </div>
             <div class="document-upload-preloader__file-info">
                 <div class="document-upload-preloader__file-name" title="${fileObj.file.name}">
-                    ${truncateFileName(fileObj.file.name, 30)}
+                    ${truncateFileName(fileObj.file.name, 25)}
                 </div>
                 <div class="document-upload-preloader__file-status">
                     <span class="status-badge status-badge--${fileObj.status}">
@@ -578,7 +661,7 @@ function updateUploadPreloader(state) {
                 </div>
                 ${fileObj.error ? `
                     <div class="document-upload-preloader__file-error">
-                        <small>${fileObj.error}</small>
+                        <small><i class="fas fa-exclamation-circle"></i> ${fileObj.error}</small>
                     </div>
                 ` : ''}
             </div>
@@ -612,7 +695,7 @@ function updateUploadStats(state) {
         const avgProgress = uploadingFiles.reduce((sum, f) => sum + (f.progress || 0), 0) / uploadingFiles.length;
         speed.textContent = `${avgProgress.toFixed(0)}% promedio`;
     } else {
-        speed.textContent = '';
+        speed.textContent = completed === state.files.length ? 'Completado ✓' : '';
     }
     
     // Actualizar título si todo está completado
@@ -632,16 +715,24 @@ function updateUploadStats(state) {
  * Oculta el preloader de subida
  */
 function hideUploadPreloader() {
+    console.log('🎬 Ocultando preloader de subida');
+    
     const preloader = document.getElementById('documentUploadPreloader');
     if (preloader) {
-        console.log('🎬 Ocultando preloader de subida');
-        preloader.style.animation = 'slideOutDown 0.3s ease forwards';
+        // Animación de salida
+        preloader.style.animation = 'fadeOut 0.3s ease forwards';
+        
+        // Esperar animación y remover
         setTimeout(() => {
             if (preloader.parentNode) {
                 preloader.parentNode.removeChild(preloader);
+                console.log('✅ Preloader removido del DOM');
             }
         }, 300);
     }
+    
+    // También asegurar que no haya otros preloaders visibles
+    hideAllOtherPreloaders();
 }
 
 /**
@@ -663,7 +754,8 @@ function getFileIconClass(file) {
         'gif': 'image',
         'txt': 'alt',
         'zip': 'archive',
-        'rar': 'archive'
+        'rar': 'archive',
+        'csv': 'file-csv'
     };
     return iconMap[extension] || 'alt';
 }
@@ -676,7 +768,7 @@ function truncateFileName(name, maxLength) {
     const extension = name.split('.').pop();
     const nameWithoutExt = name.slice(0, name.length - extension.length - 1);
     const truncateLength = maxLength - extension.length - 4; // -4 para "..." y "."
-    return nameWithoutExt.slice(0, truncateLength) + '...' + extension;
+    return nameWithoutExt.slice(0, Math.max(truncateLength, 1)) + '...' + extension;
 }
 
 /**
@@ -718,9 +810,9 @@ export async function handleUploadMultipleDocuments() {
         // 5. Configurar estado de subida
         state.isUploading = true;
         
-        // 6. Mostrar preloader
+        // 6. MOSTRAR SOLO NUESTRO PRELOADER - NO LLAMAR A showUploadProgressContainer()
+        console.log('🎬 Mostrando nuestro preloader personalizado (ÚNICO)...');
         showUploadPreloader(state);
-        showUploadProgressContainer();
         
         // 7. Iniciar subida según estrategia
         const strategy = DOM.uploadStrategy ? DOM.uploadStrategy.value : 'sequential';
@@ -745,7 +837,7 @@ export async function handleUploadMultipleDocuments() {
         // 8. Mostrar resultados
         showUploadResults(result, state);
         
-        // 9. Actualizar preloader
+        // 9. Actualizar preloader final
         setTimeout(() => {
             updateUploadPreloader(state);
         }, 500);
@@ -795,6 +887,17 @@ export async function handleUploadMultipleDocuments() {
         console.log('\n✅ SUBIDA MÚLTIPLE COMPLETADA');
         console.groupEnd();
         
+        // 11. Ocultar preloader después de 3 segundos
+        setTimeout(() => {
+            const allCompleted = state.files.every(f => 
+                f.status === 'completed' || f.status === 'failed'
+            );
+            if (allCompleted) {
+                console.log('🕒 Ocultando preloader después de completar...');
+                hideUploadPreloader();
+            }
+        }, 3000);
+        
     } catch (error) {
         console.error('❌ ERROR EN SUBIDA MÚLTIPLE:', error);
         console.error('Stack trace:', error.stack);
@@ -817,28 +920,16 @@ export async function handleUploadMultipleDocuments() {
         // Actualizar estado
         state.isUploading = false;
         
+        // Ocultar preloader en caso de error
+        setTimeout(() => {
+            hideUploadPreloader();
+        }, 1000);
+        
     } finally {
         // Finalizar estado
         state.isUploading = false;
         
         console.log('🔚 FINALIZANDO PROCESO DE SUBIDA');
-        
-        // Ocultar preloader después de un tiempo
-        setTimeout(() => {
-            const allCompleted = state.files.every(f => 
-                f.status === 'completed' || f.status === 'failed'
-            );
-            if (allCompleted) {
-                setTimeout(() => {
-                    hideUploadPreloader();
-                }, 2000);
-            }
-        }, 3000);
-        
-        // Ocultar contenedor de progreso
-        setTimeout(() => {
-            hideUploadProgressContainer();
-        }, 5000);
     }
 }
 
@@ -1479,9 +1570,10 @@ function showUploadResults(results, state) {
         resultsContainer.id = 'uploadResultsContainer';
         resultsContainer.className = 'upload-results';
         
-        const progressContainer = document.getElementById('uploadProgressContainer');
-        if (progressContainer) {
-            progressContainer.appendChild(resultsContainer);
+        // Insertar después del preloader o en el body
+        const preloader = document.getElementById('documentUploadPreloader');
+        if (preloader) {
+            preloader.appendChild(resultsContainer);
         } else {
             document.body.appendChild(resultsContainer);
         }
