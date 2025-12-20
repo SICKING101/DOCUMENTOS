@@ -2,6 +2,13 @@ import { DOM } from '../dom.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, isValidEmail } from '../utils.js';
 
+// Variables globales para filtros
+let currentFilters = {
+    search: '',
+    puesto: '',
+    sort: 'nombre-asc'
+};
+
 // =============================================================================
 // 1. MANEJO DEL MODAL DE PERSONAS
 // =============================================================================
@@ -518,7 +525,223 @@ function validateForm() {
 }
 
 // =============================================================================
-// 3. OPERACIONES CRUD DE PERSONAS CON PRELOADER MEJORADO
+// 3. FILTROS Y ORDENAMIENTO
+// =============================================================================
+
+/**
+ * 3.1 Inicializar filtros
+ */
+function initializeFilters() {
+    // Inicializar búsqueda
+    const searchInput = document.getElementById('personasSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            currentFilters.search = e.target.value.toLowerCase();
+            applyFilters();
+        });
+    }
+    
+    // Inicializar filtro de puestos
+    const puestoFilter = document.getElementById('personasPuestoFilter');
+    if (puestoFilter) {
+        puestoFilter.addEventListener('change', function(e) {
+            currentFilters.puesto = e.target.value;
+            applyFilters();
+        });
+    }
+    
+    // Inicializar ordenamiento
+    const sortFilter = document.getElementById('personasSortFilter');
+    if (sortFilter) {
+        sortFilter.addEventListener('change', function(e) {
+            currentFilters.sort = e.target.value;
+            applyFilters();
+        });
+    }
+}
+
+/**
+ * 3.2 Aplicar filtros
+ */
+function applyFilters() {
+    console.log('🔍 Aplicando filtros:', currentFilters);
+    
+    if (!window.appState.persons || window.appState.persons.length === 0) {
+        return;
+    }
+    
+    let filteredPersons = [...window.appState.persons];
+    
+    // Aplicar búsqueda
+    if (currentFilters.search) {
+        filteredPersons = filteredPersons.filter(person => 
+            person.nombre.toLowerCase().includes(currentFilters.search) ||
+            person.email.toLowerCase().includes(currentFilters.search) ||
+            (person.puesto && person.puesto.toLowerCase().includes(currentFilters.search)) ||
+            (person.departamento && person.departamento.toLowerCase().includes(currentFilters.search)) ||
+            (person.telefono && person.telefono.includes(currentFilters.search))
+        );
+    }
+    
+    // Aplicar filtro de puesto
+    if (currentFilters.puesto) {
+        filteredPersons = filteredPersons.filter(person => 
+            person.puesto === currentFilters.puesto
+        );
+    }
+    
+    // Aplicar ordenamiento
+    filteredPersons.sort((a, b) => {
+        switch(currentFilters.sort) {
+            case 'nombre-desc':
+                return b.nombre.localeCompare(a.nombre);
+            case 'nombre-asc':
+            default:
+                return a.nombre.localeCompare(b.nombre);
+        }
+    });
+    
+    // Actualizar tabla con las personas filtradas
+    renderFilteredPersonsTable(filteredPersons);
+}
+
+/**
+ * 3.3 Renderizar tabla filtrada
+ */
+function renderFilteredPersonsTable(persons) {
+    if (!DOM.personasTableBody) return;
+    
+    DOM.personasTableBody.innerHTML = '';
+    
+    if (persons.length === 0) {
+        DOM.personasTableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-state">
+                    <div class="empty-state__icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3 class="empty-state__title">No se encontraron resultados</h3>
+                    <p class="empty-state__description">No hay personas que coincidan con los filtros aplicados</p>
+                    <div class="empty-state__actions" style="margin-top: 1rem;">
+                        <button class="btn btn--outline" onclick="clearFilters()">
+                            <i class="fas fa-times"></i> Limpiar filtros
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    persons.forEach(person => {
+        const row = document.createElement('tr');
+        row.className = 'table__row';
+        row.dataset.personId = person._id;
+        
+        row.innerHTML = `
+            <td class="table__cell">
+                <div class="person-info">
+                    <span class="person-name">${person.nombre}</span>
+                    ${person.puesto ? `<span class="person-position">${person.puesto}</span>` : ''}
+                </div>
+            </td>
+            <td class="table__cell">
+                <div class="person-email">
+                    <i class="fas fa-envelope" style="margin-right: 8px; color: var(--text-muted); font-size: 0.9em;"></i>
+                    ${person.email}
+                </div>
+            </td>
+            <td class="table__cell">
+                ${person.telefono ? `
+                    <div class="person-phone">
+                        <i class="fas fa-phone" style="margin-right: 8px; color: var(--text-muted); font-size: 0.9em;"></i>
+                        ${person.telefono}
+                    </div>
+                ` : '-'}
+            </td>
+            <td class="table__cell">
+                ${person.departamento ? `
+                    <span class="department-badge">${person.departamento}</span>
+                ` : '-'}
+            </td>
+            <td class="table__cell">
+                <div class="table-actions">
+                    <button class="btn btn--sm btn--outline btn--icon" onclick="editPerson('${person._id}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn--sm btn--danger btn--icon" onclick="deletePerson('${person._id}')" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        DOM.personasTableBody.appendChild(row);
+    });
+}
+
+/**
+ * 3.4 Actualizar lista de puestos en el filtro
+ */
+function updatePuestosFilter() {
+    const puestoFilter = document.getElementById('personasPuestoFilter');
+    if (!puestoFilter) return;
+    
+    // Obtener puestos únicos de todas las personas
+    const puestos = new Set();
+    window.appState.persons.forEach(person => {
+        if (person.puesto && person.puesto.trim() !== '') {
+            puestos.add(person.puesto);
+        }
+    });
+    
+    // Guardar el valor actual
+    const currentValue = puestoFilter.value;
+    
+    // Limpiar y agregar opción "Todos los puestos"
+    puestoFilter.innerHTML = '<option value="">Todos los puestos</option>';
+    
+    // Agregar puestos únicos
+    Array.from(puestos).sort().forEach(puesto => {
+        const option = document.createElement('option');
+        option.value = puesto;
+        option.textContent = puesto;
+        puestoFilter.appendChild(option);
+    });
+    
+    // Restaurar el valor si existe
+    if (currentValue && Array.from(puestos).includes(currentValue)) {
+        puestoFilter.value = currentValue;
+    }
+}
+
+/**
+ * 3.5 Limpiar filtros
+ */
+function clearFilters() {
+    // Resetear valores de los filtros
+    currentFilters = {
+        search: '',
+        puesto: '',
+        sort: 'nombre-asc'
+    };
+    
+    // Resetear elementos del DOM
+    const searchInput = document.getElementById('personasSearch');
+    if (searchInput) searchInput.value = '';
+    
+    const puestoFilter = document.getElementById('personasPuestoFilter');
+    if (puestoFilter) puestoFilter.value = '';
+    
+    const sortFilter = document.getElementById('personasSortFilter');
+    if (sortFilter) sortFilter.value = 'nombre-asc';
+    
+    // Renderizar tabla original
+    renderPersonsTable();
+}
+
+// =============================================================================
+// 4. OPERACIONES CRUD DE PERSONAS CON PRELOADER MEJORADO
 // =============================================================================
 
 async function savePerson() {
@@ -722,6 +945,7 @@ async function loadPersons() {
                 skeletonRow.innerHTML = `
                     <td>
                         <div class="skeleton-loader skeleton-text skeleton-text--large" style="width: 80%"></div>
+                        <div class="skeleton-loader skeleton-text skeleton-text--small" style="width: 60%; margin-top: 8px;"></div>
                     </td>
                     <td>
                         <div class="skeleton-loader skeleton-text" style="width: 90%"></div>
@@ -731,9 +955,6 @@ async function loadPersons() {
                     </td>
                     <td>
                         <div class="skeleton-loader skeleton-text" style="width: 60%"></div>
-                    </td>
-                    <td>
-                        <div class="skeleton-loader skeleton-text skeleton-text--small" style="width: 50%"></div>
                     </td>
                     <td>
                         <div style="display: flex; gap: 8px;">
@@ -763,9 +984,17 @@ async function loadPersons() {
         
         if (data.success) {
             window.appState.persons = data.persons || [];
-            renderPersonsTable();
+            
+            // Actualizar filtro de puestos
+            updatePuestosFilter();
+            
+            // Aplicar filtros actuales
+            applyFilters();
+            
+            // Actualizar selects
             populatePersonSelect();
             populateSearchPersonSelect();
+            
             console.log(`✅ ${window.appState.persons.length} personas cargadas`);
         } else {
             throw new Error(data.message);
@@ -782,7 +1011,7 @@ async function loadPersons() {
         if (DOM.personasTableBody) {
             DOM.personasTableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty-state error-state">
+                    <td colspan="5" class="empty-state error-state">
                         <div class="error-state__icon">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
@@ -962,7 +1191,7 @@ async function deletePerson(id) {
 }
 
 // =============================================================================
-// 4. FUNCIONES AUXILIARES
+// 5. FUNCIONES AUXILIARES
 // =============================================================================
 
 /**
@@ -1119,7 +1348,7 @@ function showFloatingNotification(message, type = 'success') {
 }
 
 // =============================================================================
-// 5. RENDERIZADO DE INTERFAZ
+// 6. RENDERIZADO DE INTERFAZ
 // =============================================================================
 
 function renderPersonsTable() {
@@ -1130,7 +1359,7 @@ function renderPersonsTable() {
     if (window.appState.persons.length === 0) {
         DOM.personasTableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="empty-state">
+                <td colspan="5" class="empty-state">
                     <div class="empty-state__icon">
                         <i class="fas fa-users"></i>
                     </div>
@@ -1179,12 +1408,6 @@ function renderPersonsTable() {
                 ` : '-'}
             </td>
             <td class="table__cell">
-                <span class="status-badge status-badge--active">
-                    <i class="fas fa-circle" style="font-size: 0.5em; margin-right: 6px;"></i>
-                    Activo
-                </span>
-            </td>
-            <td class="table__cell">
                 <div class="table-actions">
                     <button class="btn btn--sm btn--outline btn--icon" onclick="editPerson('${person._id}')" title="Editar">
                         <i class="fas fa-edit"></i>
@@ -1201,7 +1424,7 @@ function renderPersonsTable() {
 }
 
 // =============================================================================
-// 6. MANEJO DE SELECTS/FILTROS
+// 7. MANEJO DE SELECTS/FILTROS
 // =============================================================================
 
 function populatePersonSelect() {
@@ -1234,7 +1457,7 @@ function populateSearchPersonSelect() {
 }
 
 // =============================================================================
-// 7. HANDLERS/CONTROLADORES
+// 8. HANDLERS/CONTROLADORES
 // =============================================================================
 
 function handleSavePerson() {
@@ -1246,6 +1469,14 @@ function handleSavePerson() {
 function refreshDepartmentSelect() {
     loadDepartmentsForModal();
 }
+
+// Inicializar filtros cuando se cargue el módulo
+document.addEventListener('DOMContentLoaded', function() {
+    // Esperar un momento para asegurar que el DOM esté completamente cargado
+    setTimeout(() => {
+        initializeFilters();
+    }, 100);
+});
 
 export { 
     openPersonModal, 
@@ -1263,5 +1494,8 @@ export {
     validatePhone,
     validateName,
     showFloatingNotification,
-    validateForm
+    validateForm,
+    initializeFilters,
+    applyFilters,
+    clearFilters
 };
