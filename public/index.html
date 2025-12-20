@@ -587,22 +587,20 @@
                     </div>
 
                     <!-- Filters -->
-                    <div class="filters-bar">
-                        <div class="filters-bar__search">
-                            <i class="fas fa-search"></i>
-                            <input type="text" placeholder="Buscar personas..." id="personasSearch">
-                        </div>
-                        <select class="filters-bar__select" id="personasRoleFilter" name="roleFilter">
-                            <option>Todos los roles</option>
-                            <option>Estudiantes</option>
-                            <option>Docentes</option>
-                            <option>Personal</option>
-                        </select>
-                        <select class="filters-bar__select" id="personasSortFilter" name="sortFilter">
-                            <option>Ordenar por nombre</option>
-                            <option>Ordenar por fecha</option>
-                        </select>
-                    </div>
+<div class="filters-bar">
+    <div class="filters-bar__search">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar personas..." id="personasSearch">
+    </div>
+    <select class="filters-bar__select" id="personasPuestoFilter" name="puestoFilter">
+        <option value="">Todos los puestos</option>
+        <!-- Los puestos se cargarán dinámicamente desde JavaScript -->
+    </select>
+    <select class="filters-bar__select" id="personasSortFilter" name="sortFilter">
+        <option value="nombre-asc">Ordenar por nombre (A-Z)</option>
+        <option value="nombre-desc">Ordenar por nombre (Z-A)</option>
+    </select>
+</div>
 
                     <!-- Personas Table -->
                     <div class="table-container">
@@ -613,7 +611,6 @@
                                     <th class="table__header">Email</th>
                                     <th class="table__header">Teléfono</th>
                                     <th class="table__header">Departamento</th>
-                                    <th class="table__header">Puesto</th>
                                     <th class="table__header">Acciones</th>
                                 </tr>
                             </thead>
@@ -671,41 +668,43 @@
         </div>
     </div>
 
-    <!-- Filtros Avanzados -->
-    <div class="documents-filters">
-        <div class="filters-header">
-            <h3 class="filters-title">Filtrar Documentos</h3>
+   <!-- Filtros Avanzados -->
+<div class="documents-filters">
+    <div class="filters-header">
+        <h3 class="filters-title">Filtrar Documentos</h3>
+        <button id="clearAllFilters" class="btn btn-secondary btn-sm">Limpiar Filtros</button>
+    </div>
+    <div class="filters-grid">
+        <div class="filter-group">
+            <label for="filterCategory">Categoría</label>
+            <select class="filter-select" id="filterCategory">
+                <option value="">Todas las categorías</option>
+                <!-- Categorías dinámicas -->
+            </select>
         </div>
-        <div class="filters-grid">
-            <div class="filter-group">
-                <label for="filterCategory">Categoría</label>
-                <select class="filter-select" id="filterCategory">
-                    <option value="">Todas las categorías</option>
-                    <!-- Categorías dinámicas -->
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterType">Tipo de Archivo</label>
-                <select class="filter-select" id="filterType">
-                    <option value="">Todos los tipos</option>
-                    <option value="PDF">PDF</option>
-                    <option value="DOCX">Word</option>
-                    <option value="XLSX">Excel</option>
-                    <option value="JPG">Imagen</option>
-                    <option value="PPT">Presentación</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterStatus">Estado</label>
-                <select class="filter-select" id="filterStatus">
-                    <option value="">Todos los estados</option>
-                    <option value="active">Activos</option>
-                    <option value="expired">Vencidos</option>
-                    <option value="expiring">Por vencer</option>
-                </select>
+        <div class="filter-group">
+            <label for="filterStatus">Estado</label>
+            <select class="filter-select" id="filterStatus">
+                <option value="">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="expiring">Por vencer (≤7 días)</option>
+                <option value="expired">Vencidos</option>
+                <option value="no_expiration">Sin vencimiento</option>
+            </select>
+        </div>
+        <div class="filter-group full-width">
+            <label for="searchInput">Buscar</label>
+            <div class="search-wrapper">
+                <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, categoría, descripción...">
+                <button class="search-clear" id="clearSearch">×</button>
             </div>
         </div>
     </div>
+    <div class="filters-footer">
+        <span id="resultsCount">0 documentos</span>
+        <span id="activeFiltersBadge" class="badge badge-primary" style="display: none;">0</span>
+    </div>
+</div>
 
     <!-- Tabla de Documentos -->
     <div class="documents-table-container">
@@ -1348,7 +1347,6 @@
                     <div class="form__group">
                         <label for="reportFormat" class="form__label">Formato</label>
                         <select id="reportFormat" class="form__select">
-                            <option value="pdf">PDF</option>
                             <option value="excel">Excel</option>
                             <option value="csv">CSV</option>
                         </select>

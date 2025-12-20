@@ -16,13 +16,11 @@ let currentReportToken = null;
 
 /**
  * 1.1 Abrir modal de generación de reportes
- * Muestra el formulario de configuración de reportes con opciones de filtrado.
  */
 function generateReport() {
     console.group('📊 generateReport - Abriendo generador de reportes');
     
     try {
-        // Verificar datos necesarios
         if (!window.appState || !window.appState.documents) {
             console.error('❌ appState no disponible o documentos no cargados');
             showAlert('Los datos del sistema no están disponibles. Intente recargar la página.', 'warning');
@@ -35,14 +33,12 @@ function generateReport() {
             categorias: window.appState.categories?.length || 0
         });
         
-        // Actualizar filtros específicos según el tipo de reporte
         const reportType = DOM.reportType.value || 'general';
         updateReportFilters(reportType);
         
         DOM.reportModal.style.display = 'flex';
         console.log('✅ Modal de reportes abierto');
         
-        // Enfocar el primer elemento
         setTimeout(() => {
             DOM.reportType?.focus();
         }, 100);
@@ -57,17 +53,14 @@ function generateReport() {
 
 /**
  * 1.2 Cerrar modal de reportes
- * Oculta el formulario de configuración de reportes.
  */
 function closeReportModal() {
     console.log('❌ closeReportModal - Cerrando modal de reportes');
     
     try {
-        // Resetear estado
         reportGenerationInProgress = false;
         currentReportToken = null;
         
-        // Limpiar vista previa
         if (DOM.reportPreviewContent) {
             DOM.reportPreviewContent.innerHTML = `
                 <div class="report-preview-placeholder">
@@ -77,7 +70,6 @@ function closeReportModal() {
             `;
         }
         
-        // Ocultar modal
         DOM.reportModal.style.display = 'none';
         console.log('✅ Modal cerrado exitosamente');
         
@@ -92,7 +84,6 @@ function closeReportModal() {
 
 /**
  * 2.1 Actualizar filtros específicos por tipo de reporte
- * Muestra controles de filtrado dinámicos según el tipo de reporte seleccionado.
  */
 function updateReportFilters(reportType) {
     console.group(`📊 updateReportFilters - Actualizando para: ${reportType}`);
@@ -103,7 +94,6 @@ function updateReportFilters(reportType) {
             return;
         }
         
-        // Limpiar contenido actual
         DOM.reportSpecificFilters.innerHTML = '';
         
         switch(reportType) {
@@ -135,7 +125,6 @@ function updateReportFilters(reportType) {
                         </div>
                     `;
                     
-                    // Agregar event listener
                     setTimeout(() => {
                         const categorySelect = document.getElementById('reportCategory');
                         if (categorySelect) {
@@ -174,7 +163,6 @@ function updateReportFilters(reportType) {
                         </div>
                     `;
                     
-                    // Agregar event listener
                     setTimeout(() => {
                         const personSelect = document.getElementById('reportPerson');
                         if (personSelect) {
@@ -198,7 +186,6 @@ function updateReportFilters(reportType) {
                     </div>
                 `;
                 
-                // Agregar event listener
                 setTimeout(() => {
                     const daysInput = document.getElementById('reportDays');
                     if (daysInput) {
@@ -210,7 +197,6 @@ function updateReportFilters(reportType) {
                 
             case 'expired':
                 console.log('🔧 Configurando filtros para documentos vencidos');
-                // No se necesitan filtros adicionales
                 DOM.reportSpecificFilters.innerHTML = `
                     <div class="form__group">
                         <div class="alert alert--warning">
@@ -236,8 +222,6 @@ function updateReportFilters(reportType) {
         }
         
         console.log('✅ Filtros actualizados exitosamente');
-        
-        // Actualizar vista previa
         updateReportPreview();
         
     } catch (error) {
@@ -249,7 +233,6 @@ function updateReportFilters(reportType) {
 
 /**
  * 2.2 Actualizar vista previa del reporte
- * Muestra una previsualización de los datos que incluirá el reporte seleccionado.
  */
 function updateReportPreview() {
     console.group('📋 updateReportPreview - Actualizando vista previa');
@@ -476,14 +459,14 @@ function updateReportPreview() {
                         </div>
                         <div class="preview-details">
                             <h5>Distribución por categoría:</h5>
-                            <ul class="category-list">
-                                ${Object.entries(
-                                    expiringDocs.reduce((acc, doc) => {
-                                        acc[doc.categoria] = (acc[doc.categoria] || 0) + 1;
-                                        return acc;
-                                    }, {})
-                                ).map(([categoria, count]) => `<li><strong>${categoria}:</strong> ${count} documentos</li>`).join('') || '<li>No hay documentos por vencer</li>'}
-                            </ul>
+                                <ul class="category-list">
+                                    ${Object.entries(
+                                        expiringDocs.reduce((acc, doc) => {
+                                            acc[doc.categoria] = (acc[doc.categoria] || 0) + 1;
+                                            return acc;
+                                        }, {})
+                                    ).map(([categoria, count]) => `<li><strong>${categoria}:</strong> ${count} documentos</li>`).join('') || '<li>No hay documentos por vencer</li>'}
+                                </ul>
                             <div class="preview-note">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <span>Estos documentos requieren atención prioritaria</span>
@@ -520,14 +503,14 @@ function updateReportPreview() {
                         </div>
                         <div class="preview-details">
                             <h5>Distribución por categoría:</h5>
-                            <ul class="category-list">
-                                ${Object.entries(
-                                    expiredDocs.reduce((acc, doc) => {
-                                        acc[doc.categoria] = (acc[doc.categoria] || 0) + 1;
-                                        return acc;
-                                    }, {})
-                                ).map(([categoria, count]) => `<li><strong>${categoria}:</strong> ${count} documentos</li>`).join('') || '<li>No hay documentos vencidos</li>'}
-                            </ul>
+                                <ul class="category-list">
+                                    ${Object.entries(
+                                        expiredDocs.reduce((acc, doc) => {
+                                            acc[doc.categoria] = (acc[doc.categoria] || 0) + 1;
+                                            return acc;
+                                        }, {})
+                                    ).map(([categoria, count]) => `<li><strong>${categoria}:</strong> ${count} documentos</li>`).join('') || '<li>No hay documentos vencidos</li>'}
+                                </ul>
                             <div class="preview-note preview-note--danger">
                                 <i class="fas fa-exclamation-circle"></i>
                                 <span>¡ATENCIÓN! Estos documentos requieren acción inmediata</span>
@@ -548,17 +531,20 @@ function updateReportPreview() {
                 break;
         }
         
-        // Actualizar contenido de la vista previa
         DOM.reportPreviewContent.innerHTML = previewContent;
         
-        // Actualizar estimación de registros en el botón
         if (DOM.generateReportBtn) {
-            const format = DOM.reportFormat?.value || 'pdf';
+            const format = DOM.reportFormat?.value || 'excel';
+            
+            let buttonText = `Generar Reporte ${format.toUpperCase()} (${estimatedRecords} registros)`;
+            
             DOM.generateReportBtn.innerHTML = `
-                <i class="fas fa-file-${format === 'pdf' ? 'pdf' : format === 'excel' ? 'excel' : 'csv'}"></i>
-                Generar Reporte (${estimatedRecords} registros)
+                <i class="fas fa-file-${format === 'excel' ? 'excel' : 'csv'}"></i>
+                ${buttonText}
             `;
-            DOM.generateReportBtn.title = `Generar reporte ${format.toUpperCase()} con ${estimatedRecords} registros estimados`;
+            
+            DOM.generateReportBtn.classList.remove('btn--warning');
+            DOM.generateReportBtn.title = `Generar reporte ${format.toUpperCase()} con ${estimatedRecords} registros`;
         }
         
         console.log('✅ Vista previa actualizada:', {
@@ -587,53 +573,37 @@ function updateReportPreview() {
 
 /**
  * 3.1 Handler para iniciar generación de reporte
- * Función wrapper para ser usada como event listener en el botón de generación.
  */
-function handleGenerateReport() {
+async function handleGenerateReport() {
     console.group('📄 handleGenerateReport - Iniciando generación de reporte');
     
     try {
-        // Verificar si ya hay una generación en progreso
         if (reportGenerationInProgress) {
-            console.warn('⚠️ Ya hay una generación de reporte en progreso');
-            showAlert('Ya hay una generación de reporte en curso. Por favor espere.', 'warning');
+            showAlert('Ya hay una generación en curso. Espere por favor.', 'warning');
             return;
         }
         
-        // Verificar datos necesarios
         if (!window.appState || !window.appState.documents) {
-            console.error('❌ appState no disponible o documentos no cargados');
-            showAlert('Los datos del sistema no están disponibles. Intente recargar la página.', 'error');
+            showAlert('Los datos no están disponibles. Recargue la página.', 'error');
             return;
         }
         
-        // Validar que haya datos para generar el reporte
-        const reportType = DOM.reportType?.value || 'general';
-        const documents = window.appState.documents || [];
-        const documentsCount = documents.length;
-        
+        const documentsCount = window.appState.documents.length;
         if (documentsCount === 0) {
-            console.warn('⚠️ No hay documentos para generar reporte');
-            showAlert('No hay documentos disponibles para generar el reporte.', 'warning');
+            showAlert('No hay documentos para generar reporte.', 'warning');
             return;
         }
         
-        console.log('✅ Datos validados:', {
-            tipoReporte: reportType,
-            totalDocumentos: documentsCount,
-            estado: 'listo para generar'
-        });
-        
-        // Generar token único para esta generación
+        // Generar token único
         currentReportToken = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         reportGenerationInProgress = true;
         
-        // Iniciar generación
-        generateReportDownload();
+        // Llamar directamente a la función de generación
+        await generateReportDownload();
         
     } catch (error) {
         console.error('❌ Error en handleGenerateReport:', error);
-        showAlert('Error al iniciar generación de reporte: ' + error.message, 'error');
+        showAlert('Error al iniciar reporte: ' + error.message, 'error');
         reportGenerationInProgress = false;
         currentReportToken = null;
     } finally {
@@ -642,30 +612,29 @@ function handleGenerateReport() {
 }
 
 /**
- * 3.2 Generar y descargar reporte
- * Proceso principal que prepara datos, llama a la API y maneja la descarga del archivo.
+ * 3.2 Generar y descargar reporte (solo Excel y CSV)
  */
 async function generateReportDownload() {
     console.group('📊 GENERACIÓN DE REPORTE - PROCESO COMPLETO');
     
-    // Token para identificar esta generación específica
     const generationToken = currentReportToken;
     
     try {
         const reportType = DOM.reportType.value;
-        const reportFormat = DOM.reportFormat.value;
+        const format = DOM.reportFormat.value;
+        const documents = window.appState?.documents || [];
 
         console.log('📋 Configuración inicial:', {
             tipo: reportType,
-            formato: reportFormat,
-            token: generationToken
+            formato: format,
+            token: generationToken,
+            totalDocumentos: documents.length
         });
 
-        // Validar formato
-        const validFormats = ['pdf', 'excel', 'csv'];
-        if (!validFormats.includes(reportFormat)) {
-            console.error('❌ Formato no válido:', reportFormat);
-            console.error('✅ Formatos válidos:', validFormats.join(', '));
+        // Validar formato (solo Excel y CSV)
+        const validFormats = ['excel', 'csv'];
+        if (!validFormats.includes(format)) {
+            console.error('❌ Formato no válido:', format);
             showAlert(`Formato de reporte no válido. Formatos permitidos: ${validFormats.join(', ')}`, 'error');
             return;
         }
@@ -674,31 +643,24 @@ async function generateReportDownload() {
         setLoadingState(true, DOM.generateReportBtn);
         console.time('⏱️ Tiempo total de generación');
         
-        // Preparar datos del reporte con validación
+        // Preparar datos del reporte
         const reportData = {
             reportType: reportType,
             category: '',
             person: '',
             days: 30,
-            dateFrom: '',
-            dateTo: '',
             token: generationToken,
             timestamp: new Date().toISOString()
         };
 
         console.log('🔧 Datos base del reporte:', reportData);
 
-        // Obtener valores específicos según el tipo de reporte
-        let specificDataValid = true;
-        
+        // Obtener valores específicos
         if (reportType === 'byCategory') {
             const categorySelect = document.getElementById('reportCategory');
             if (categorySelect) {
                 reportData.category = categorySelect.value || '';
                 console.log('🏷️ Categoría seleccionada:', reportData.category || '(Todas)');
-            } else {
-                console.warn('⚠️ No se encontró el selector de categoría');
-                specificDataValid = false;
             }
         }
 
@@ -707,9 +669,6 @@ async function generateReportDownload() {
             if (personSelect) {
                 reportData.person = personSelect.value || '';
                 console.log('👤 Persona seleccionada:', reportData.person || '(Todas)');
-            } else {
-                console.warn('⚠️ No se encontró el selector de persona');
-                specificDataValid = false;
             }
         }
 
@@ -720,53 +679,38 @@ async function generateReportDownload() {
                 if (daysValue && daysValue > 0 && daysValue <= 365) {
                     reportData.days = daysValue;
                     console.log('📅 Días hasta vencimiento:', reportData.days);
-                } else {
-                    console.warn('⚠️ Valor de días inválido:', daysInput.value);
-                    reportData.days = 30; // Valor por defecto
                 }
-            } else {
-                console.warn('⚠️ No se encontró el input de días');
-                specificDataValid = false;
             }
-        }
-
-        // Validación adicional para evitar datos vacíos
-        if (!specificDataValid) {
-            console.warn('⚠️ Algunos datos específicos no pudieron obtenerse, usando valores por defecto');
         }
 
         console.log('📦 Datos finales del reporte:', reportData);
 
         // Determinar endpoint según formato
         let endpoint = '';
-        if (reportFormat === 'pdf') {
-            endpoint = '/reports/pdf';
-        } else if (reportFormat === 'excel') {
+        if (format === 'excel') {
             endpoint = '/reports/excel';
-        } else if (reportFormat === 'csv') {
+        } else if (format === 'csv') {
             endpoint = '/reports/csv';
         }
 
         const fullUrl = `${CONFIG.API_BASE_URL}${endpoint}`;
         console.log('🌐 URL del endpoint:', fullUrl);
         console.log('📤 Método: POST');
-        console.log('📋 Headers:', { 
-            'Content-Type': 'application/json',
-            'X-Report-Token': generationToken
-        });
 
         // Hacer la solicitud con timeout
         console.log('🚀 Enviando solicitud al servidor...');
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutos timeout
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutos
         
         try {
             const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Report-Token': generationToken
+                    'X-Report-Token': generationToken,
+                    'Accept': format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 
+                              'text/csv'
                 },
                 body: JSON.stringify(reportData),
                 signal: controller.signal
@@ -777,46 +721,31 @@ async function generateReportDownload() {
             console.log('📥 Respuesta recibida:', {
                 status: response.status,
                 statusText: response.statusText,
-                ok: response.ok,
-                headers: {
-                    contentType: response.headers.get('content-type'),
-                    contentDisposition: response.headers.get('content-disposition'),
-                    contentLength: response.headers.get('content-length')
-                }
+                ok: response.ok
             });
 
             if (!response.ok) {
                 let errorMessage = `Error del servidor (${response.status}): ${response.statusText}`;
                 
-                try {
-                    const errorData = await response.json();
-                    console.error('❌ Error detallado del servidor:', errorData);
-                    
-                    // Manejar errores específicos del PDF
-                    if (errorData.message && errorData.message.includes('out of bounds')) {
-                        errorMessage = 'Error al generar PDF: El documento no tiene páginas. Verifique que hay datos para generar el reporte.';
-                    } else if (errorData.message && errorData.message.includes('PDF')) {
-                        errorMessage = `Error al generar PDF: ${errorData.message.split('Error al generar reporte PDF: ')[1] || errorData.message}`;
-                    } else {
-                        errorMessage = errorData.message || errorMessage;
+                // Leer el error del servidor
+                const errorText = await response.text();
+                console.error('❌ Error texto del servidor:', errorText.substring(0, 500));
+                
+                // Intentar parsear como JSON si parece JSON
+                if (errorText.trim().startsWith('{') || errorText.trim().startsWith('[')) {
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        console.error('❌ Error JSON del servidor:', errorData);
+                        errorMessage = errorData.message || errorData.error || errorMessage;
+                    } catch (jsonError) {
+                        // No es JSON válido, usar el texto como está
+                        errorMessage = `Error: ${errorText.substring(0, 200)}`;
                     }
-                } catch (jsonError) {
-                    const errorText = await response.text();
-                    console.error('❌ Error texto del servidor:', errorText);
-                    errorMessage += ` - ${errorText.substring(0, 200)}`;
+                } else {
+                    errorMessage = `Error: ${errorText.substring(0, 200)}`;
                 }
                 
                 throw new Error(errorMessage);
-            }
-
-            // Verificar tipo de contenido
-            const contentType = response.headers.get('content-type');
-            console.log('📄 Content-Type recibido:', contentType);
-            
-            if (!contentType || (!contentType.includes('application/pdf') && 
-                                 !contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') &&
-                                 !contentType.includes('text/csv'))) {
-                console.warn('⚠️ Content-Type inesperado:', contentType);
             }
 
             console.log('✅ Respuesta OK, obteniendo blob...');
@@ -843,10 +772,7 @@ async function generateReportDownload() {
             
             // Determinar nombre y extensión del archivo
             let fileName = `reporte_${reportType}_${new Date().toISOString().split('T')[0]}_${Date.now()}`;
-            let extension = reportFormat;
-            if (reportFormat === 'excel') {
-                extension = 'xlsx';
-            }
+            let extension = format === 'excel' ? 'xlsx' : 'csv';
             const fullFileName = `${fileName}.${extension}`;
             a.download = fullFileName;
             
@@ -870,9 +796,9 @@ async function generateReportDownload() {
             console.log('✅ Reporte descargado exitosamente');
             
             // Mostrar mensaje de éxito
-            const successMessage = reportFormat === 'pdf' 
-                ? `✅ Reporte PDF generado exitosamente (${formatBytes(blob.size)})`
-                : `✅ Reporte ${reportFormat.toUpperCase()} generado exitosamente (${formatBytes(blob.size)})`;
+            const successMessage = format === 'excel'
+                ? `✅ Reporte Excel generado exitosamente (${formatBytes(blob.size)})`
+                : `✅ Reporte CSV generado exitosamente (${formatBytes(blob.size)})`;
             
             showAlert(successMessage, 'success');
             
@@ -891,34 +817,17 @@ async function generateReportDownload() {
         }
 
     } catch (error) {
-        console.error('❌ ERROR CRÍTICO en generateReportDownload:');
+        console.error('❌ ERROR en generateReportDownload:');
         console.error('📋 Detalles del error:', {
             message: error.message,
-            stack: error.stack,
             name: error.name,
             token: generationToken,
-            tipo: DOM.reportType?.value,
-            formato: DOM.reportFormat?.value,
+            tipo: reportType,
+            formato: format,
             timestamp: new Date().toISOString()
         });
         
-        // Mensaje de error amigable
-        let userMessage = error.message;
-        if (error.message.includes('out of bounds')) {
-            userMessage = 'No hay datos suficientes para generar el reporte PDF. Verifique que existan documentos con los criterios seleccionados.';
-        } else if (error.message.includes('PDF')) {
-            userMessage = 'Error técnico al generar el PDF. El servidor reportó un problema interno.';
-        }
-        
-        showAlert(`Error al generar reporte: ${userMessage}`, 'error');
-        
-        // Loguear para debugging del servidor
-        console.error('🐛 DEBUG - Información para el servidor:', {
-            reportType: DOM.reportType?.value,
-            reportFormat: DOM.reportFormat?.value,
-            documentsCount: window.appState?.documents?.length || 0,
-            error: error.message
-        });
+        showAlert(`Error al generar reporte: ${error.message}`, 'error');
         
     } finally {
         // Solo resetear si es la misma generación
@@ -964,16 +873,129 @@ function handleReportFormatChange() {
     const format = this.value;
     console.log(`📄 handleReportFormatChange - Cambiando formato a: ${format}`);
     
-    // Actualizar ícono del botón
-    if (DOM.generateReportBtn) {
-        const iconClass = format === 'pdf' ? 'fa-file-pdf' : 
-                         format === 'excel' ? 'fa-file-excel' : 'fa-file-csv';
-        DOM.generateReportBtn.querySelector('i')?.classList.replace(
-            DOM.generateReportBtn.querySelector('i')?.classList[1] || 'fa-file-pdf',
-            iconClass
-        );
+    // Actualizar vista previa
+    updateReportPreview();
+}
+
+/**
+ * Generar reporte CSV local como fallback
+ */
+function generateLocalCSV(reportData) {
+    console.log('📝 Generando CSV local...');
+    
+    try {
+        const documents = window.appState?.documents || [];
+        let filteredDocs = [...documents];
+        
+        // Aplicar filtros según tipo de reporte
+        switch(reportData.reportType) {
+            case 'byCategory':
+                if (reportData.category) {
+                    filteredDocs = filteredDocs.filter(doc => doc.categoria === reportData.category);
+                }
+                break;
+            case 'byPerson':
+                if (reportData.person) {
+                    filteredDocs = filteredDocs.filter(doc => doc.persona_id && doc.persona_id._id === reportData.person);
+                }
+                break;
+            case 'expiring':
+                filteredDocs = filteredDocs.filter(doc => {
+                    if (!doc.fecha_vencimiento) return false;
+                    const fechaVencimiento = new Date(doc.fecha_vencimiento);
+                    const hoy = new Date();
+                    const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                    return diferenciaDias <= reportData.days && diferenciaDias > 0;
+                });
+                break;
+            case 'expired':
+                filteredDocs = filteredDocs.filter(doc => {
+                    if (!doc.fecha_vencimiento) return false;
+                    return new Date(doc.fecha_vencimiento) < new Date();
+                });
+                break;
+        }
+        
+        if (filteredDocs.length === 0) {
+            console.warn('⚠️ No hay documentos después de aplicar filtros');
+            showAlert('No hay documentos que coincidan con los criterios seleccionados.', 'warning');
+            return false;
+        }
+        
+        // Crear contenido CSV
+        const headers = [
+            'ID',
+            'Nombre del Archivo',
+            'Descripción',
+            'Categoría',
+            'Persona Asignada',
+            'Email Persona',
+            'Fecha de Vencimiento',
+            'Fecha de Creación',
+            'Tamaño (bytes)',
+            'Tipo de Archivo',
+            'Estado',
+            'Fecha Vencimiento ISO',
+            'URL Archivo'
+        ];
+        
+        const rows = filteredDocs.map(doc => {
+            const fechaVencimiento = doc.fecha_vencimiento ? 
+                new Date(doc.fecha_vencimiento).toLocaleDateString() : 'No especificada';
+            
+            const estado = doc.fecha_vencimiento ? 
+                (new Date(doc.fecha_vencimiento) < new Date() ? 'VENCIDO' : 'VIGENTE') : 
+                'SIN FECHA';
+            
+            return [
+                doc._id || '',
+                doc.nombre_archivo || '',
+                doc.descripcion || '',
+                doc.categoria || '',
+                doc.persona_id?.nombre || 'No asignada',
+                doc.persona_id?.email || '',
+                fechaVencimiento,
+                new Date(doc.createdAt || Date.now()).toLocaleDateString(),
+                doc.size || 0,
+                doc.tipo_archivo || 'Desconocido',
+                estado,
+                doc.fecha_vencimiento || '',
+                doc.url_archivo || ''
+            ].map(cell => {
+                const cellStr = String(cell || '');
+                if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n') || cellStr.includes('\r')) {
+                    return `"${cellStr.replace(/"/g, '""')}"`;
+                }
+                return cellStr;
+            }).join(',');
+        });
+        
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        
+        // Crear y descargar archivo
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `reporte_${reportData.reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        console.log(`✅ CSV local generado con ${filteredDocs.length} registros`);
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error generando CSV local:', error);
+        showAlert('Error al generar CSV local: ' + error.message, 'error');
+        return false;
     }
 }
+
+// =============================================================================
+// 5. INICIALIZACIÓN
+// =============================================================================
 
 /**
  * Inicializar módulo de reportes
@@ -1003,6 +1025,12 @@ export function initReportsModule() {
             console.log('✅ Listener agregado a closeReportModalBtn');
         }
         
+        // Establecer Excel como formato por defecto
+        if (DOM.reportFormat) {
+            DOM.reportFormat.value = 'excel';
+            console.log('✅ Formato por defecto establecido a Excel');
+        }
+        
         // Inicializar vista previa por defecto
         setTimeout(() => {
             updateReportFilters('general');
@@ -1018,7 +1046,7 @@ export function initReportsModule() {
 }
 
 // =============================================================================
-// 5. EXPORTACIONES
+// 6. EXPORTACIONES
 // =============================================================================
 
 export { 
@@ -1030,4 +1058,5 @@ export {
     generateReportDownload, 
     handleReportTypeChange,
     handleReportFormatChange,
+    generateLocalCSV
 };

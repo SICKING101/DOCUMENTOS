@@ -118,24 +118,33 @@ class HistorialManager {
         return preloaderId;
     }
 
-    /**
-     * Muestra un preloader en un botón
-     */
-    showButtonPreloader(button, text = 'Procesando...') {
-        if (!button) return;
-        
-        button.setAttribute('data-original-text', button.textContent);
-        button.innerHTML = `
-            <span class="preloader-inline">
-                <div class="preloader-inline__spinner"></div>
-                <span>${text}</span>
-            </span>
-        `;
-        button.disabled = true;
-        button.classList.add('btn--loading');
-        
-        return button;
-    }
+/**
+ * Muestra un preloader en un botón (VERSIÓN CORREGIDA)
+ */
+showButtonPreloader(button, text = 'Procesando...') {
+    if (!button) return button;
+    
+    // GUARDAR EL CONTENIDO COMPLETO DEL BOTÓN
+    button.setAttribute('data-original-html', button.innerHTML);
+    button.setAttribute('data-original-text', button.textContent);
+    
+    // Guardar también el ID del botón para referencia
+    const buttonId = button.id || `btn-${Date.now()}`;
+    button.setAttribute('data-original-id', buttonId);
+    
+    // Crear contenido del preloader
+    button.innerHTML = `
+        <span class="preloader-inline">
+            <div class="preloader-inline__spinner"></div>
+            <span>${text}</span>
+        </span>
+    `;
+    button.disabled = true;
+    button.classList.add('btn--loading');
+    
+    console.log(`Preloader activado para botón: ${buttonId}`);
+    return button;
+}
 
     /**
      * Oculta un preloader específico
@@ -150,33 +159,67 @@ class HistorialManager {
     }
 
     /**
-     * Restaura un botón a su estado original
-     */
+ * Restaura un botón a su estado original (VERSIÓN CORREGIDA)
+ */
 restoreButton(button) {
     if (!button) {
         console.warn('restoreButton: button es null');
         return;
     }
     
-    console.log('Restaurando botón:', button.id, button);
+    const buttonId = button.id || button.getAttribute('data-original-id');
+    console.log(`Restaurando botón: ${buttonId}`);
     
-    // Restaurar el HTML original
+    // OBTENER CONTENIDO ORIGINAL ESPECÍFICO DE CADA BOTÓN
     const originalHTML = button.getAttribute('data-original-html');
+    
     if (originalHTML) {
-        console.log('HTML original encontrado:', originalHTML);
+        // Restaurar el contenido HTML exacto que tenía antes
         button.innerHTML = originalHTML;
+        
+        // Remover atributos temporales
         button.removeAttribute('data-original-html');
+        button.removeAttribute('data-original-text');
+        button.removeAttribute('data-original-id');
+        
+        console.log(`Botón ${buttonId} restaurado con contenido original`);
     } else {
-        console.warn('No se encontró data-original-html, restaurando texto genérico');
-        // Si no hay HTML guardado, poner texto por defecto
-        button.innerHTML = '<i class="fas fa-sync-alt"></i> Actualizar';
+        // Si no hay HTML guardado, restaurar basado en el ID del botón
+        console.warn(`No se encontró data-original-html para botón: ${buttonId}, restaurando por ID`);
+        
+        // Restaurar contenido basado en el tipo de botón
+        this.restoreButtonByType(button);
     }
     
     // Restaurar estado
     button.disabled = false;
     button.classList.remove('btn--loading');
     
-    console.log('Botón restaurado exitosamente');
+    console.log(`Botón ${buttonId} restaurado exitosamente`);
+}
+
+/**
+ * Restaura un botón basado en su tipo/función
+ */
+restoreButtonByType(button) {
+    const buttonId = button.id;
+    
+    // Contenido específico para cada tipo de botón
+    const buttonContents = {
+        'refreshHistoryBtn': '<i class="fas fa-sync-alt"></i> Actualizar',
+        'clearHistoryBtn': '<i class="fas fa-broom"></i> Limpiar Historial',
+        'exportHistoryBtn': '<i class="fas fa-file-export"></i> Exportar CSV',
+        'markAllReadBtn': '<i class="fas fa-check-double"></i> Marcar Todo como Leído',
+        // Agregar más botones según sea necesario
+    };
+    
+    // Restaurar contenido basado en el ID
+    if (buttonId && buttonContents[buttonId]) {
+        button.innerHTML = buttonContents[buttonId];
+    } else {
+        // Contenido por defecto si no se reconoce el botón
+        button.innerHTML = '<i class="fas fa-check"></i> Listo';
+    }
 }
 
     /**
