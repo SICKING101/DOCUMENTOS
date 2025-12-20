@@ -7,104 +7,109 @@ import { renderDocumentsTable } from './tableRenderer.js';
 export function initializeTableFilters() {
     console.log('🔧 Inicializando filtros de tabla...');
     
+    // Inicializar el estado de la aplicación si no existe
+    if (!window.appState) {
+        console.log('⚠️  window.appState no existe, inicializando...');
+        window.appState = {
+            documents: [],
+            filters: {
+                category: '',
+                status: ''
+            },
+            currentSearchQuery: ''
+        };
+    }
+    
+    // Verificar que tenemos documentos
+    if (!window.appState.documents) {
+        console.log('⚠️  window.appState.documents no existe, inicializando array vacío');
+        window.appState.documents = [];
+    }
+    
+    console.log(`📊 Estado actual: ${window.appState.documents.length} documentos cargados`);
+    
     // Inicializar filtros individuales
     initializeCategoryFilter();
-    initializeTypeFilter();
-    initializeDateFilter();
     initializeStatusFilter();
     initializeSearchFilter();
+    
+    // Botón para limpiar todos los filtros
+    const clearAllBtn = document.getElementById('clearAllFilters');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearAllFilters);
+    }
+    
+    // Cargar estado guardado
+    loadFilterState();
     
     console.log('✅ Filtros de tabla inicializados');
 }
 
 /**
  * Inicializa el filtro por categoría.
+ * ¡CORREGIDO! - Ahora maneja correctamente mayúsculas/minúsculas
  */
 function initializeCategoryFilter() {
-    if (!DOM.filterCategory) return;
+    console.log('📊 Inicializando filtro por categoría...');
+    
+    if (!DOM.filterCategory) {
+        console.warn('❌ Elemento filterCategory no encontrado en el DOM');
+        return;
+    }
     
     // Limpiar opciones existentes
     DOM.filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
     
-    // Obtener categorías únicas de los documentos
-    const categories = [...new Set(window.appState.documents.map(doc => doc.categoria))].sort();
-    
-    // Agregar opciones
-    categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        DOM.filterCategory.appendChild(option);
-    });
+    // Verificar que hay documentos
+    if (!window.appState || !window.appState.documents || window.appState.documents.length === 0) {
+        console.warn('⚠️  No hay documentos para inicializar filtro por categoría');
+        
+        // Agregar algunas categorías por defecto
+        const defaultCategories = ['General', 'Legal', 'Finanzas', 'Recursos Humanos', 'Marketing', 'Técnico'];
+        defaultCategories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category; // Guardar el valor original (con mayúsculas)
+            option.textContent = category;
+            DOM.filterCategory.appendChild(option);
+        });
+    } else {
+        try {
+            // Obtener categorías únicas de los documentos
+            const categories = window.appState.documents
+                .map(doc => {
+                    if (!doc) return null;
+                    // Buscar categoría en diferentes propiedades posibles
+                    return doc.categoria || doc.categoria_id?.nombre || doc.category || '';
+                })
+                .filter(categoria => categoria && categoria.trim() !== '')
+                .map(cat => cat.trim())
+                .filter((categoria, index, array) => {
+                    // Comparación case-sensitive para mantener formato original
+                    return array.findIndex(item => item.toLowerCase() === categoria.toLowerCase()) === index;
+                })
+                .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+            
+            console.log('📊 Categorías encontradas en documentos:', categories);
+            
+            // Agregar opciones
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category; // Guardar el valor original
+                option.textContent = category;
+                DOM.filterCategory.appendChild(option);
+            });
+            
+            console.log(`✅ Agregadas ${categories.length} categorías al filtro`);
+        } catch (error) {
+            console.error('❌ Error procesando categorías:', error);
+        }
+    }
     
     // Event listener para cambios
     DOM.filterCategory.addEventListener('change', function() {
-        window.appState.filters.category = this.value;
-        applyFilters();
-    });
-}
-
-/**
- * Inicializa el filtro por tipo de archivo.
- */
-function initializeTypeFilter() {
-    if (!DOM.filterType) return;
-    
-    // Limpiar opciones existentes
-    DOM.filterType.innerHTML = '<option value="">Todos los tipos</option>';
-    
-    // Obtener tipos únicos de archivos
-    const fileTypes = [...new Set(window.appState.documents.map(doc => doc.tipo_archivo.toLowerCase()))].sort();
-    
-    // Agregar opciones
-    fileTypes.forEach(type => {
-        const option = document.createElement('option');
-        option.value = type;
-        option.textContent = type.toUpperCase();
-        DOM.filterType.appendChild(option);
-    });
-    
-    // Event listener para cambios
-    DOM.filterType.addEventListener('change', function() {
-        window.appState.filters.type = this.value;
-        applyFilters();
-    });
-}
-
-/**
- * Inicializa el filtro por fecha.
- */
-function initializeDateFilter() {
-    if (!DOM.filterDate) return;
-    
-    // Opciones predefinidas
-    const dateOptions = [
-        { value: '', label: 'Todas las fechas' },
-        { value: 'today', label: 'Hoy' },
-        { value: 'week', label: 'Última semana' },
-        { value: 'month', label: 'Último mes' },
-        { value: 'quarter', label: 'Último trimestre' },
-        { value: 'year', label: 'Último año' },
-        { value: 'custom', label: 'Rango personalizado' }
-    ];
-    
-    // Limpiar y poblar opciones
-    DOM.filterDate.innerHTML = '';
-    dateOptions.forEach(option => {
-        const optElement = document.createElement('option');
-        optElement.value = option.value;
-        optElement.textContent = option.label;
-        DOM.filterDate.appendChild(optElement);
-    });
-    
-    // Event listener para cambios
-    DOM.filterDate.addEventListener('change', function() {
-        window.appState.filters.date = this.value;
-        
-        // Si es personalizado, mostrar selector de fechas
-        if (this.value === 'custom') {
-            showCustomDateRangeSelector();
-        } else {
+        console.log(`🎯 Filtro categoría cambiado a: "${this.value}"`);
+        if (window.appState && window.appState.filters) {
+            window.appState.filters.category = this.value;
             applyFilters();
         }
     });
@@ -114,7 +119,12 @@ function initializeDateFilter() {
  * Inicializa el filtro por estado (vencimiento).
  */
 function initializeStatusFilter() {
-    if (!DOM.filterStatus) return;
+    console.log('📊 Inicializando filtro por estado...');
+    
+    if (!DOM.filterStatus) {
+        console.warn('❌ Elemento filterStatus no encontrado en el DOM');
+        return;
+    }
     
     // Opciones predefinidas
     const statusOptions = [
@@ -122,7 +132,7 @@ function initializeStatusFilter() {
         { value: 'active', label: 'Activos' },
         { value: 'expiring', label: 'Por vencer (≤7 días)' },
         { value: 'expired', label: 'Vencidos' },
-        { value: 'no-expiration', label: 'Sin fecha de vencimiento' }
+        { value: 'no_expiration', label: 'Sin vencimiento' }
     ];
     
     // Limpiar y poblar opciones
@@ -136,16 +146,24 @@ function initializeStatusFilter() {
     
     // Event listener para cambios
     DOM.filterStatus.addEventListener('change', function() {
-        window.appState.filters.status = this.value;
-        applyFilters();
+        console.log(`🎯 Filtro estado cambiado a: "${this.value}"`);
+        if (window.appState && window.appState.filters) {
+            window.appState.filters.status = this.value;
+            applyFilters();
+        }
     });
 }
 
 /**
- * Inicializa el filtro de búsqueda.
+ * Inicializa el filtro de búsqueda avanzado.
  */
 function initializeSearchFilter() {
-    if (!DOM.searchInput) return;
+    console.log('🔍 Inicializando filtro de búsqueda avanzado...');
+    
+    if (!DOM.searchInput) {
+        console.warn('❌ Elemento searchInput no encontrado en el DOM');
+        return;
+    }
     
     // Configurar búsqueda con debounce
     let searchTimeout;
@@ -153,117 +171,40 @@ function initializeSearchFilter() {
         clearTimeout(searchTimeout);
         
         searchTimeout = setTimeout(() => {
-            const searchTerm = this.value.trim().toLowerCase();
-            window.appState.currentSearchQuery = searchTerm;
-            applyFilters();
+            const searchTerm = this.value.trim();
+            console.log(`🔍 Buscando: "${searchTerm}"`);
+            
+            if (window.appState) {
+                window.appState.currentSearchQuery = searchTerm;
+                applyFilters();
+            }
         }, 300); // 300ms de delay
     });
     
     // Botón de limpiar búsqueda
-    const clearButton = DOM.searchInput.parentElement?.querySelector('.search-clear');
+    const clearButton = document.getElementById('clearSearch');
     if (clearButton) {
         clearButton.addEventListener('click', function() {
+            console.log('🧹 Limpiando búsqueda...');
             DOM.searchInput.value = '';
-            window.appState.currentSearchQuery = '';
-            applyFilters();
+            
+            if (window.appState) {
+                window.appState.currentSearchQuery = '';
+                applyFilters();
+            }
         });
     }
-}
-
-/**
- * Muestra el selector de rango de fechas personalizado.
- */
-function showCustomDateRangeSelector() {
-    // Crear modal para selector de fechas
-    const modal = document.createElement('div');
-    modal.className = 'modal modal--date-range';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-    `;
     
-    modal.innerHTML = `
-        <div class="modal__content" style="
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-        ">
-            <h3 style="margin-top: 0;">Seleccionar rango de fechas</h3>
+    // Permitir búsqueda con Enter
+    DOM.searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const searchTerm = this.value.trim();
+            console.log(`🔍 Buscando (Enter): "${searchTerm}"`);
             
-            <div class="form__group" style="margin-bottom: 1rem;">
-                <label>Fecha de inicio</label>
-                <input type="date" id="customDateStart" class="form__input" style="width: 100%;">
-            </div>
-            
-            <div class="form__group" style="margin-bottom: 1.5rem;">
-                <label>Fecha de fin</label>
-                <input type="date" id="customDateEnd" class="form__input" style="width: 100%;">
-            </div>
-            
-            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                <button id="cancelCustomDate" class="btn btn--outline" style="padding: 0.5rem 1rem;">
-                    Cancelar
-                </button>
-                <button id="applyCustomDate" class="btn btn--primary" style="padding: 0.5rem 1rem;">
-                    Aplicar
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Setear fechas por defecto (últimos 30 días)
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    
-    document.getElementById('customDateStart').valueAsDate = startDate;
-    document.getElementById('customDateEnd').valueAsDate = endDate;
-    
-    // Event listeners
-    document.getElementById('cancelCustomDate').addEventListener('click', () => {
-        document.body.removeChild(modal);
-        DOM.filterDate.value = '';
-        window.appState.filters.date = '';
-        applyFilters();
-    });
-    
-    document.getElementById('applyCustomDate').addEventListener('click', () => {
-        const start = document.getElementById('customDateStart').value;
-        const end = document.getElementById('customDateEnd').value;
-        
-        if (!start || !end) {
-            alert('Por favor selecciona ambas fechas');
-            return;
-        }
-        
-        window.appState.filters.customDateRange = {
-            start: new Date(start),
-            end: new Date(end)
-        };
-        
-        document.body.removeChild(modal);
-        applyFilters();
-    });
-    
-    // Cerrar al hacer clic fuera
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
-            DOM.filterDate.value = '';
-            window.appState.filters.date = '';
-            applyFilters();
+            if (window.appState) {
+                window.appState.currentSearchQuery = searchTerm;
+                applyFilters();
+            }
         }
     });
 }
@@ -274,16 +215,140 @@ function showCustomDateRangeSelector() {
 export function applyFilters() {
     console.log('🔍 Aplicando filtros...');
     
-    // Guardar estado de filtros en localStorage
-    saveFilterState();
+    try {
+        if (!window.appState) {
+            console.error('❌ window.appState no está definido');
+            return;
+        }
+        
+        if (!window.appState.documents || window.appState.documents.length === 0) {
+            console.warn('⚠️  No hay documentos para filtrar');
+            return;
+        }
+        
+        console.log('📊 Filtros activos:', window.appState.filters);
+        console.log('🔍 Término de búsqueda:', window.appState.currentSearchQuery || '(vacío)');
+        
+        // Guardar estado de filtros en localStorage
+        saveFilterState();
+        
+        // Obtener documentos filtrados
+        const filteredDocuments = filterDocuments();
+        
+        // Actualizar appState con documentos filtrados
+        window.appState.filteredDocuments = filteredDocuments;
+        
+        // Renderizar tabla con filtros aplicados
+        if (typeof renderDocumentsTable === 'function') {
+            renderDocumentsTable(filteredDocuments);
+        } else {
+            console.error('❌ renderDocumentsTable no es una función');
+        }
+        
+        // Actualizar contador de resultados
+        updateResultsCount(filteredDocuments);
+        
+        console.log(`✅ Filtros aplicados: ${filteredDocuments.length} de ${window.appState.documents.length} Documentos`);
+        
+    } catch (error) {
+        console.error('❌ Error aplicando filtros:', error);
+    }
+}
+
+/**
+ * Filtra los documentos según los criterios activos.
+ * ¡CORREGIDO! - Comparación de categorías mejorada
+ */
+function filterDocuments() {
+    const { documents, filters, currentSearchQuery } = window.appState;
     
-    // Renderizar tabla con filtros aplicados
-    renderDocumentsTable();
-    
-    // Actualizar contador de resultados
-    updateResultsCount();
-    
-    console.log('✅ Filtros aplicados');
+    return documents.filter(doc => {
+        // Filtro por categoría (¡CORREGIDO!)
+        if (filters.category && filters.category !== '') {
+            // Obtener categoría del documento
+            const docCategory = doc.categoria || doc.categoria_id?.nombre || '';
+            
+            // Comparar ignorando mayúsculas/minúsculas y espacios
+            const normalizedDocCategory = docCategory.toString().toLowerCase().trim();
+            const normalizedFilterCategory = filters.category.toString().toLowerCase().trim();
+            
+            console.log(`📊 Comparando categorías - Documento: "${docCategory}" (normalizado: "${normalizedDocCategory}") vs Filtro: "${filters.category}" (normalizado: "${normalizedFilterCategory}")`);
+            
+            if (normalizedDocCategory !== normalizedFilterCategory) {
+                console.log(`❌ Categoría no coincide: ${docCategory} != ${filters.category}`);
+                return false;
+            }
+            
+            console.log(`✅ Categoría coincide: ${docCategory} == ${filters.category}`);
+        }
+        
+        // Filtro por estado
+        if (filters.status && filters.status !== '') {
+            if (doc.fecha_vencimiento) {
+                const fechaVencimiento = new Date(doc.fecha_vencimiento);
+                const hoy = new Date();
+                const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                
+                switch (filters.status) {
+                    case 'active':
+                        if (diferenciaDias <= 0 || diferenciaDias <= 7) {
+                            console.log(`❌ Estado no coincide (active): diferencia días = ${diferenciaDias}`);
+                            return false;
+                        }
+                        break;
+                    case 'expiring':
+                        if (diferenciaDias > 7 || diferenciaDias <= 0) {
+                            console.log(`❌ Estado no coincide (expiring): diferencia días = ${diferenciaDias}`);
+                            return false;
+                        }
+                        break;
+                    case 'expired':
+                        if (diferenciaDias > 0) {
+                            console.log(`❌ Estado no coincide (expired): diferencia días = ${diferenciaDias}`);
+                            return false;
+                        }
+                        break;
+                    case 'no_expiration':
+                        console.log(`❌ Estado no coincide (no_expiration): documento tiene fecha de vencimiento`);
+                        return false; // Si tiene fecha, no es "sin vencimiento"
+                }
+            } else {
+                // Documento sin fecha de vencimiento
+                if (filters.status !== 'no_expiration') {
+                    console.log(`❌ Estado no coincide: documento sin fecha pero filtro es ${filters.status}`);
+                    return false;
+                }
+            }
+        }
+        
+        // Filtro por búsqueda avanzada
+        if (currentSearchQuery && currentSearchQuery.trim() !== '') {
+            const searchTerm = currentSearchQuery.toLowerCase().trim();
+            
+            // Campos donde buscar
+            const searchFields = [
+                doc.nombre_original,
+                doc.nombre,
+                doc.descripcion,
+                doc.categoria,
+                doc.categoria_id?.nombre,
+                doc.tipo_archivo,
+                doc.extension
+            ].filter(Boolean).map(field => field.toString().toLowerCase());
+            
+            // Buscar en múltiples campos
+            const found = searchFields.some(field => field.includes(searchTerm));
+            
+            if (!found) {
+                console.log(`❌ Búsqueda no coincide: "${searchTerm}" no encontrado en campos del documento`);
+                return false;
+            }
+            
+            console.log(`✅ Búsqueda coincide: "${searchTerm}" encontrado en el documento`);
+        }
+        
+        return true;
+    });
 }
 
 /**
@@ -291,10 +356,14 @@ export function applyFilters() {
  */
 function saveFilterState() {
     try {
-        localStorage.setItem('documentFilters', JSON.stringify(window.appState.filters));
-        localStorage.setItem('documentSearchQuery', window.appState.currentSearchQuery || '');
+        if (window.appState && window.appState.filters) {
+            localStorage.setItem('documentFilters', JSON.stringify(window.appState.filters));
+        }
+        if (window.appState && window.appState.currentSearchQuery !== undefined) {
+            localStorage.setItem('documentSearchQuery', window.appState.currentSearchQuery || '');
+        }
     } catch (error) {
-        console.warn('No se pudo guardar el estado de filtros:', error);
+        console.warn('⚠️  No se pudo guardar el estado de filtros:', error);
     }
 }
 
@@ -302,48 +371,126 @@ function saveFilterState() {
  * Carga el estado de los filtros desde localStorage.
  */
 export function loadFilterState() {
+    console.log('📥 Cargando estado de filtros desde localStorage...');
+    
     try {
         const savedFilters = localStorage.getItem('documentFilters');
         const savedSearch = localStorage.getItem('documentSearchQuery');
         
+        console.log('📥 Filtros guardados en localStorage:', savedFilters);
+        console.log('📥 Búsqueda guardada en localStorage:', savedSearch);
+        
         if (savedFilters) {
-            window.appState.filters = JSON.parse(savedFilters);
+            if (!window.appState) {
+                window.appState = {
+                    documents: [],
+                    filters: {
+                        category: '',
+                        status: ''
+                    },
+                    currentSearchQuery: ''
+                };
+            }
+            
+            if (!window.appState.filters) {
+                window.appState.filters = {
+                    category: '',
+                    status: ''
+                };
+            }
+            
+            const parsedFilters = JSON.parse(savedFilters);
+            console.log('📥 Filtros parseados:', parsedFilters);
+            
+            // Actualizar filtros
+            if (parsedFilters.category !== undefined) {
+                window.appState.filters.category = parsedFilters.category;
+            }
+            if (parsedFilters.status !== undefined) {
+                window.appState.filters.status = parsedFilters.status;
+            }
+            
+            // Restaurar valores en los inputs
             restoreFilterInputs();
         }
         
-        if (savedSearch) {
+        if (savedSearch !== null) {
+            if (!window.appState) {
+                window.appState = {
+                    documents: [],
+                    filters: {
+                        category: '',
+                        status: ''
+                    },
+                    currentSearchQuery: ''
+                };
+            }
+            
             window.appState.currentSearchQuery = savedSearch;
             if (DOM.searchInput) {
                 DOM.searchInput.value = savedSearch;
+                console.log(`🔍 Búsqueda restaurada: "${savedSearch}"`);
             }
         }
         
-        console.log('📥 Estado de filtros cargado desde localStorage');
+        console.log('📥 Estado final de filtros:', window.appState.filters);
+        
     } catch (error) {
-        console.warn('No se pudo cargar el estado de filtros:', error);
+        console.warn('⚠️  No se pudo cargar el estado de filtros:', error);
     }
 }
 
 /**
  * Restaura los valores de los inputs de filtro desde el estado.
+ * ¡CORREGIDO! - Busca opción por texto si no encuentra por value
  */
 function restoreFilterInputs() {
+    if (!window.appState || !window.appState.filters) {
+        console.warn('⚠️  No hay filtros para restaurar');
+        return;
+    }
+    
     const { filters } = window.appState;
+    console.log('🔄 Restaurando valores de filtros:', filters);
     
-    if (DOM.filterCategory && filters.category) {
-        DOM.filterCategory.value = filters.category;
-    }
-    
-    if (DOM.filterType && filters.type) {
-        DOM.filterType.value = filters.type;
-    }
-    
-    if (DOM.filterDate && filters.date) {
-        DOM.filterDate.value = filters.date;
-    }
-    
-    if (DOM.filterStatus && filters.status) {
-        DOM.filterStatus.value = filters.status;
+    try {
+        // Restaurar categoría
+        if (DOM.filterCategory && filters.category !== undefined && filters.category !== '') {
+            // Primero intentar por valor exacto
+            const exactMatch = Array.from(DOM.filterCategory.options).find(
+                option => option.value.toLowerCase() === filters.category.toLowerCase()
+            );
+            
+            if (exactMatch) {
+                DOM.filterCategory.value = exactMatch.value;
+                console.log(`🔄 Categoría restaurada por valor exacto: "${filters.category}"`);
+            } else {
+                // Si no hay match exacto, buscar por texto
+                const textMatch = Array.from(DOM.filterCategory.options).find(
+                    option => option.textContent.toLowerCase() === filters.category.toLowerCase()
+                );
+                
+                if (textMatch) {
+                    DOM.filterCategory.value = textMatch.value;
+                    console.log(`🔄 Categoría restaurada por texto: "${filters.category}" -> "${textMatch.value}"`);
+                } else {
+                    console.warn(`⚠️  No se encontró la categoría "${filters.category}" en las opciones disponibles`);
+                    DOM.filterCategory.value = '';
+                    window.appState.filters.category = '';
+                }
+            }
+        } else if (DOM.filterCategory) {
+            DOM.filterCategory.value = '';
+        }
+        
+        // Restaurar estado (más simple)
+        if (DOM.filterStatus && filters.status !== undefined) {
+            DOM.filterStatus.value = filters.status || '';
+            console.log(`🔄 Estado restaurado: "${filters.status}"`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error restaurando filtros:', error);
     }
 }
 
@@ -353,70 +500,58 @@ function restoreFilterInputs() {
 export function clearAllFilters() {
     console.log('🧹 Limpiando todos los filtros...');
     
-    // Resetear estado
-    window.appState.filters = {
-        category: '',
-        type: '',
-        date: '',
-        status: '',
-        customDateRange: null
-    };
-    window.appState.currentSearchQuery = '';
-    
-    // Resetear inputs
-    if (DOM.filterCategory) DOM.filterCategory.value = '';
-    if (DOM.filterType) DOM.filterType.value = '';
-    if (DOM.filterDate) DOM.filterDate.value = '';
-    if (DOM.filterStatus) DOM.filterStatus.value = '';
-    if (DOM.searchInput) DOM.searchInput.value = '';
-    
-    // Aplicar cambios
-    applyFilters();
-    
-    console.log('✅ Filtros limpiados');
+    try {
+        // Resetear estado
+        if (window.appState) {
+            window.appState.filters = {
+                category: '',
+                status: ''
+            };
+            window.appState.currentSearchQuery = '';
+        }
+        
+        // Resetear inputs
+        if (DOM.filterCategory) {
+            DOM.filterCategory.value = '';
+            console.log('🧹 Categoría limpiada');
+        }
+        if (DOM.filterStatus) {
+            DOM.filterStatus.value = '';
+            console.log('🧹 Estado limpiado');
+        }
+        if (DOM.searchInput) {
+            DOM.searchInput.value = '';
+            console.log('🧹 Búsqueda limpiada');
+        }
+        
+        // Aplicar cambios
+        applyFilters();
+        
+        console.log('✅ Filtros limpiados');
+    } catch (error) {
+        console.error('❌ Error limpiando filtros:', error);
+    }
 }
 
 /**
  * Actualiza el contador de resultados.
  */
-function updateResultsCount() {
+function updateResultsCount(filteredDocuments) {
     const countElement = document.getElementById('resultsCount');
-    if (!countElement) return;
+    if (!countElement) {
+        console.warn('⚠️  Elemento resultsCount no encontrado');
+        return;
+    }
     
-    const tableBody = DOM.documentosTableBody;
-    if (!tableBody) return;
+    const totalDocuments = window.appState?.documents?.length || 0;
+    const filteredCount = filteredDocuments?.length || 0;
     
-    // Contar filas visibles (excluyendo el mensaje de vacío)
-    const visibleRows = Array.from(tableBody.querySelectorAll('tr'))
-        .filter(row => !row.classList.contains('empty-state') && row.style.display !== 'none');
-    
-    const totalDocuments = window.appState.documents.length;
-    const filteredCount = visibleRows.length;
+    console.log(`📊 Resultados: ${filteredCount} de ${totalDocuments} documentos`);
     
     countElement.textContent = filteredCount === totalDocuments ? 
         `${totalDocuments} documentos` : 
         `${filteredCount} de ${totalDocuments} documentos`;
     
-    // Mostrar/ocultar badge de filtros activos
-    const activeFiltersBadge = document.getElementById('activeFiltersBadge');
-    if (activeFiltersBadge) {
-        const hasActiveFilters = filteredCount !== totalDocuments || 
-                                Object.values(window.appState.filters).some(val => val) ||
-                                window.appState.currentSearchQuery;
-        
-        if (hasActiveFilters) {
-            activeFiltersBadge.style.display = 'inline-flex';
-            
-            // Contar filtros activos
-            const activeFilterCount = Object.values(window.appState.filters)
-                .filter(val => val && val !== '' && val !== null).length + 
-                (window.appState.currentSearchQuery ? 1 : 0);
-            
-            activeFiltersBadge.textContent = activeFilterCount;
-        } else {
-            activeFiltersBadge.style.display = 'none';
-        }
-    }
 }
 
 /**
@@ -424,112 +559,229 @@ function updateResultsCount() {
  * @returns {object} - Estadísticas de los documentos
  */
 export function getFilteredDocumentStats() {
-    const tableBody = DOM.documentosTableBody;
-    if (!tableBody) return null;
+    console.log('📈 Obteniendo estadísticas de documentos filtrados...');
     
-    const visibleRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-state)'))
-        .filter(row => row.style.display !== 'none');
+    if (!window.appState?.documents || !window.appState?.filteredDocuments) {
+        console.warn('⚠️  No hay documentos para calcular estadísticas');
+        return null;
+    }
     
-    const stats = {
-        total: visibleRows.length,
-        byType: {},
-        byCategory: {},
-        byStatus: {},
-        totalSize: 0,
-        expiringSoon: 0,
-        expired: 0
-    };
-    
-    // Obtener documentos visibles
-    const visibleDocuments = window.appState.documents.filter(doc => {
-        // Esta es una simplificación - en realidad deberíamos usar la misma lógica de filtro
-        const row = tableBody.querySelector(`tr[data-document-id="${doc._id}"]`);
-        return row && row.style.display !== 'none';
-    });
-    
-    // Calcular estadísticas
-    visibleDocuments.forEach(doc => {
-        // Por tipo
-        stats.byType[doc.tipo_archivo] = (stats.byType[doc.tipo_archivo] || 0) + 1;
+    try {
+        const filteredDocuments = window.appState.filteredDocuments;
         
-        // Por categoría
-        stats.byCategory[doc.categoria] = (stats.byCategory[doc.categoria] || 0) + 1;
+        const stats = {
+            total: filteredDocuments.length,
+            byCategory: {},
+            byStatus: {},
+            totalSize: 0
+        };
         
-        // Tamaño total
-        stats.totalSize += doc.tamano_archivo || 0;
-        
-        // Estado de vencimiento
-        if (doc.fecha_vencimiento) {
-            const fechaVencimiento = new Date(doc.fecha_vencimiento);
-            const hoy = new Date();
-            const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+        // Calcular estadísticas
+        filteredDocuments.forEach(doc => {
+            // Por categoría
+            const category = doc.categoria || doc.categoria_id?.nombre || 'Sin categoría';
+            stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
             
-            if (diferenciaDias <= 0) {
-                stats.expired++;
-                stats.byStatus['vencido'] = (stats.byStatus['vencido'] || 0) + 1;
-            } else if (diferenciaDias <= 7) {
-                stats.expiringSoon++;
-                stats.byStatus['por vencer'] = (stats.byStatus['por vencer'] || 0) + 1;
+            // Tamaño total
+            stats.totalSize += doc.tamano_archivo || 0;
+            
+            // Estado de vencimiento
+            if (doc.fecha_vencimiento) {
+                const fechaVencimiento = new Date(doc.fecha_vencimiento);
+                const hoy = new Date();
+                const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                
+                if (diferenciaDias <= 0) {
+                    stats.byStatus['vencido'] = (stats.byStatus['vencido'] || 0) + 1;
+                } else if (diferenciaDias <= 7) {
+                    stats.byStatus['por vencer'] = (stats.byStatus['por vencer'] || 0) + 1;
+                } else {
+                    stats.byStatus['activo'] = (stats.byStatus['activo'] || 0) + 1;
+                }
             } else {
-                stats.byStatus['activo'] = (stats.byStatus['activo'] || 0) + 1;
+                stats.byStatus['sin vencimiento'] = (stats.byStatus['sin vencimiento'] || 0) + 1;
             }
-        } else {
-            stats.byStatus['sin vencimiento'] = (stats.byStatus['sin vencimiento'] || 0) + 1;
-        }
-    });
-    
-    return stats;
+        });
+        
+        console.log('📈 Estadísticas calculadas:', stats);
+        return stats;
+    } catch (error) {
+        console.error('❌ Error obteniendo estadísticas:', error);
+        return null;
+    }
 }
 
 /**
  * Exporta los documentos filtrados a CSV.
  */
 export function exportFilteredToCSV() {
-    const tableBody = DOM.documentosTableBody;
-    if (!tableBody) return;
+    console.log('📤 Exportando documentos a CSV...');
     
-    const visibleRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-state)'))
-        .filter(row => row.style.display !== 'none');
-    
-    if (visibleRows.length === 0) {
+    if (!window.appState?.filteredDocuments || window.appState.filteredDocuments.length === 0) {
         alert('No hay documentos para exportar');
         return;
     }
     
-    // Obtener documentos visibles
-    const visibleDocumentIds = visibleRows
-        .map(row => row.dataset.documentId)
-        .filter(id => id);
+    try {
+        const documentsToExport = window.appState.filteredDocuments;
+        
+        console.log(`📤 Exportando ${documentsToExport.length} documentos`);
+        
+        // Crear CSV
+        const headers = ['Nombre', 'Categoría', 'Fecha Subida', 'Fecha Vencimiento', 'Tamaño', 'Descripción'];
+        const csvRows = [
+            headers.join(','),
+            ...documentsToExport.map(doc => [
+                `"${(doc.nombre_original || '').replace(/"/g, '""')}"`,
+                `"${doc.categoria || doc.categoria_id?.nombre || ''}"`,
+                doc.fecha_subida ? new Date(doc.fecha_subida).toLocaleDateString() : '',
+                doc.fecha_vencimiento ? new Date(doc.fecha_vencimiento).toLocaleDateString() : '',
+                doc.tamano_archivo || 0,
+                `"${(doc.descripcion || '').replace(/"/g, '""')}"`
+            ].join(','))
+        ];
+        
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        // Descargar
+        const link = document.createElement('a');
+        link.href = url;
+        const fecha = new Date().toISOString().split('T')[0];
+        link.download = `documentos_${fecha}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Limpiar
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        
+        console.log('✅ Exportación completada');
+    } catch (error) {
+        console.error('❌ Error exportando CSV:', error);
+        alert('Error al exportar los documentos');
+    }
+}
+
+/**
+ * Actualiza los filtros con nuevos documentos.
+ * @param {Array} documents - Array de documentos
+ */
+export function updateFilters(documents) {
+    console.log('🔄 Actualizando filtros con nuevos documentos...');
     
-    const documentsToExport = window.appState.documents
-        .filter(doc => visibleDocumentIds.includes(doc._id));
+    if (!window.appState) {
+        window.appState = {
+            documents: [],
+            filters: {
+                category: '',
+                status: ''
+            },
+            currentSearchQuery: ''
+        };
+    }
     
-    // Crear CSV
-    const headers = ['Nombre', 'Tipo', 'Tamaño', 'Categoría', 'Persona', 'Fecha Subida', 'Fecha Vencimiento', 'Descripción'];
-    const csvRows = [
-        headers.join(','),
-        ...documentsToExport.map(doc => [
-            `"${doc.nombre_original.replace(/"/g, '""')}"`,
-            doc.tipo_archivo,
-            doc.tamano_archivo,
-            `"${doc.categoria}"`,
-            `"${doc.persona_id?.nombre || 'No asignado'}"`,
-            new Date(doc.fecha_subida).toLocaleDateString(),
-            doc.fecha_vencimiento ? new Date(doc.fecha_vencimiento).toLocaleDateString() : '',
-            `"${(doc.descripcion || '').replace(/"/g, '""')}"`
-        ].join(','))
-    ];
+    window.appState.documents = documents || [];
     
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    // Re-inicializar filtro de categorías con los nuevos documentos
+    initializeCategoryFilter();
     
-    // Descargar
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `documentos_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    // Restaurar el valor seleccionado anteriormente si existe
+    const currentCategory = window.appState.filters.category;
+    if (currentCategory && DOM.filterCategory) {
+        const optionExists = Array.from(DOM.filterCategory.options).some(
+            option => option.value.toLowerCase() === currentCategory.toLowerCase()
+        );
+        
+        if (optionExists) {
+            DOM.filterCategory.value = currentCategory;
+            console.log(`🔄 Categoría preservada: "${currentCategory}"`);
+        } else {
+            window.appState.filters.category = '';
+            DOM.filterCategory.value = '';
+            console.log(`⚠️  Categoría anterior "${currentCategory}" ya no existe, limpiando filtro`);
+        }
+    }
     
-    // Limpiar
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    // Aplicar filtros actuales a los nuevos documentos
+    applyFilters();
+}
+
+/**
+ * Función para debuggear el estado actual
+ */
+export function debugFilters() {
+    console.log('=== DEBUG DE FILTROS ===');
+    console.log('Total documentos:', window.appState?.documents?.length);
+    console.log('Documentos filtrados:', window.appState?.filteredDocuments?.length);
+    console.log('Filtros activos:', window.appState?.filters);
+    console.log('Búsqueda actual:', window.appState?.currentSearchQuery);
+    
+    if (window.appState?.documents?.length > 0) {
+        console.log('Primeros 3 documentos (categorías):');
+        window.appState.documents.slice(0, 3).forEach((doc, i) => {
+            console.log(`  ${i + 1}: ${doc.nombre_original} - Categoría: "${doc.categoria}" (tipo: ${typeof doc.categoria})`);
+        });
+    }
+    
+    if (DOM.filterCategory) {
+        console.log('Opciones en filtro de categoría:');
+        Array.from(DOM.filterCategory.options).forEach((opt, i) => {
+            console.log(`  ${i}: value="${opt.value}" text="${opt.textContent}"`);
+        });
+    }
+    
+    console.log('=== FIN DEBUG ===');
+}
+
+// Asegurar que el objeto DOM tenga los elementos necesarios
+if (!DOM.filterCategory) {
+    DOM.filterCategory = document.getElementById('filterCategory');
+}
+
+if (!DOM.filterStatus) {
+    DOM.filterStatus = document.getElementById('filterStatus');
+}
+
+if (!DOM.searchInput) {
+    DOM.searchInput = document.getElementById('searchInput');
+}
+
+// Función para diagnosticar problemas de categorías
+export function diagnoseCategoryFilter() {
+    console.log('=== DIAGNÓSTICO DE FILTRO CATEGORÍA ===');
+    
+    if (!window.appState?.documents) {
+        console.log('❌ No hay documentos en appState');
+        return;
+    }
+    
+    // Analizar todas las categorías en los documentos
+    const allCategories = window.appState.documents
+        .map(doc => ({
+            nombre: doc.nombre_original,
+            categoria: doc.categoria,
+            categoria_id_nombre: doc.categoria_id?.nombre,
+            categoria_raw: doc.categoria,
+            categoria_type: typeof doc.categoria
+        }))
+        .filter(item => item.categoria || item.categoria_id_nombre);
+    
+    console.log('📊 Análisis de categorías en documentos:');
+    console.table(allCategories);
+    
+    // Verificar opciones en el select
+    if (DOM.filterCategory) {
+        const selectOptions = Array.from(DOM.filterCategory.options).map(opt => ({
+            value: opt.value,
+            text: opt.textContent,
+            selected: opt.selected
+        }));
+        
+        console.log('📊 Opciones en el select:');
+        console.table(selectOptions);
+    }
+    
+    console.log('=== FIN DIAGNÓSTICO ===');
 }
