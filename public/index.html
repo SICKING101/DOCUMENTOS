@@ -215,178 +215,178 @@
                     </section>
                 </section>
 
-               <!-- ===== PAPELERA TAB ===== -->
-<section id="papelera" class="tab-content">
-    <div class="section__header">
-        <div>
-            <h2 class="section__title">
-                <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
-            </h2>
-            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30 días</p>
-        </div>
-    </div>
-
-    <!-- Estadísticas de papelera -->
-    <div class="trash-stats">
-        <div class="trash-stat-card stat-total">
-            <div class="trash-stat-icon stat-total">
-                <i class="fas fa-file-alt"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashTotalDocs">0</div>
-                <div class="trash-stat-label">Documentos en Papelera</div>
-            </div>
-        </div>
-        
-        <div class="trash-stat-card stat-size">
-            <div class="trash-stat-icon stat-size">
-                <i class="fas fa-hdd"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashTotalSize">0 KB</div>
-                <div class="trash-stat-label">Espacio total</div>
-            </div>
-        </div>
-        
-        <div class="trash-stat-card stat-critical">
-            <div class="trash-stat-icon stat-critical">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashCriticalDocs">0</div>
-                <div class="trash-stat-label">Por expirar</div>
-                <div class="trash-stat-subtitle">(≤ 7 días)</div>
-            </div>
-        </div>
-        
-        <div class="trash-stat-card stat-warning">
-            <div class="trash-stat-icon stat-warning">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashWarningDocs">0</div>
-                <div class="trash-stat-label">Próximos</div>
-                <div class="trash-stat-subtitle">(8-14 días)</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barra de búsqueda y vista -->
-    <div class="trash-controls">
-        <div class="trash-controls-left">
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" 
-                       id="trashSearchInput" 
-                       placeholder="Buscar en papelera..."
-                       autocomplete="off">
-            </div>
-            
-            <div class="view-toggle">
-                <button id="gridViewBtn" class="active" title="Vista cuadrícula">
-                    <i class="fas fa-th-large"></i>
-                </button>
-                <button id="listViewBtn" title="Vista lista">
-                    <i class="fas fa-list"></i>
-                </button>
-            </div>
-        </div>
-        
-        <div class="trash-controls-right">
-            <select id="trashSortSelect" class="sort-select">
-                <option value="deletedAt-desc">Más recientes primero</option>
-                <option value="deletedAt-asc">Más antiguos primero</option>
-                <option value="daysRemaining-asc">Menos días restantes</option>
-                <option value="daysRemaining-desc">Más días restantes</option>
-                <option value="name-asc">Nombre (A-Z)</option>
-                <option value="name-desc">Nombre (Z-A)</option>
-                <option value="size-desc">Mayor tamaño</option>
-                <option value="size-asc">Menor tamaño</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- Controles de selección -->
-<div class="trash-selection-controls">
-    <div class="selection-controls-left">
-        <button class="btn btn--outline btn--sm" id="selectAllTrash">
-            <i class="fas fa-check-square"></i> Seleccionar Todo
-        </button>
-        <button class="btn btn--outline btn--sm" id="deselectAllTrash">
-            <i class="fas fa-square"></i> Deseleccionar
-        </button>
-        <div class="trash-selection-counter" id="trashSelectionCounter" style="display: none;">
-            <span class="selection-count">0</span> seleccionado(s)
-        </div>
-    </div>
-    
-    <div class="selection-controls-right" id="bulkActionsContainer" style="display: none;">
-        <button class="btn btn--success btn--sm" id="restoreSelectedBtn">
-            <i class="fas fa-undo"></i> Restaurar Seleccionados
-        </button>
-        <button class="btn btn--danger btn--sm" id="deleteSelectedBtn">
-            <i class="fas fa-trash-alt"></i> Eliminar Seleccionados
-        </button>
-    </div>
-</div>
-
-    <!-- Acciones masivas (solo visible cuando hay selección) -->
-    <div class="trash-bulk-actions" id="trashBulkActions" style="display: none;">
-        <button class="btn btn--success" id="restoreSelectedBtn">
-            <i class="fas fa-undo"></i> Restaurar Seleccionados
-        </button>
-        <button class="btn btn--danger" id="deleteSelectedBtn">
-            <i class="fas fa-times"></i> Eliminar Seleccionados
-        </button>
-    </div>
-
-    <!-- Lista de documentos en papelera -->
-    <div class="trash-content" id="trashContent">
-        <div id="trashDocumentsList" class="trash-documents-list grid-view">
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-trash-alt"></i>
-                </div>
-                <h3>La papelera está vacía</h3>
-                <p>Los documentos eliminados aparecerán aquí por 30 días</p>
-                <div class="empty-state-tips">
-                    <div class="tip">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Los documentos se eliminan automáticamente después de 30 días</span>
+                <!-- ===== PAPELERA TAB ===== -->
+                <section id="papelera" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">
+                                <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
+                            </h2>
+                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30
+                                días</p>
+                        </div>
                     </div>
-                    <div class="tip">
-                        <i class="fas fa-undo"></i>
-                        <span>Puedes restaurar documentos antes de que sean eliminados permanentemente</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal de progreso mejorado -->
-    <div id="operationProgress" class="operation-progress" style="display: none;">
-        <div class="progress-overlay"></div>
-        <div class="progress-content">
-            <div class="progress-spinner">
-                <div class="spinner-circle"></div>
-            </div>
-            <div class="progress-info">
-                <h4 class="progress-title">Procesando...</h4>
-                <p class="progress-message" id="progressMessage"></p>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-details">
-                    <span class="progress-counter" id="progressCounter">0/0</span>
-                    <span class="progress-percentage" id="progressPercentage">0%</span>
-                </div>
-            </div>
-            <button class="btn btn--text btn--sm progress-cancel" id="progressCancelBtn">
-                Cancelar
-            </button>
-        </div>
-    </div>
-</section>
+                    <!-- Estadísticas de papelera -->
+                    <div class="trash-stats">
+                        <div class="trash-stat-card stat-total">
+                            <div class="trash-stat-icon stat-total">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashTotalDocs">0</div>
+                                <div class="trash-stat-label">Documentos en Papelera</div>
+                            </div>
+                        </div>
+
+                        <div class="trash-stat-card stat-size">
+                            <div class="trash-stat-icon stat-size">
+                                <i class="fas fa-hdd"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashTotalSize">0 KB</div>
+                                <div class="trash-stat-label">Espacio total</div>
+                            </div>
+                        </div>
+
+                        <div class="trash-stat-card stat-critical">
+                            <div class="trash-stat-icon stat-critical">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashCriticalDocs">0</div>
+                                <div class="trash-stat-label">Por expirar</div>
+                                <div class="trash-stat-subtitle">(≤ 7 días)</div>
+                            </div>
+                        </div>
+
+                        <div class="trash-stat-card stat-warning">
+                            <div class="trash-stat-icon stat-warning">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashWarningDocs">0</div>
+                                <div class="trash-stat-label">Próximos</div>
+                                <div class="trash-stat-subtitle">(8-14 días)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barra de búsqueda y vista -->
+                    <div class="trash-controls">
+                        <div class="trash-controls-left">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="trashSearchInput" placeholder="Buscar en papelera..."
+                                    autocomplete="off">
+                            </div>
+
+                            <div class="view-toggle">
+                                <button id="gridViewBtn" class="active" title="Vista cuadrícula">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button id="listViewBtn" title="Vista lista">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="trash-controls-right">
+                            <select id="trashSortSelect" class="sort-select">
+                                <option value="deletedAt-desc">Más recientes primero</option>
+                                <option value="deletedAt-asc">Más antiguos primero</option>
+                                <option value="daysRemaining-asc">Menos días restantes</option>
+                                <option value="daysRemaining-desc">Más días restantes</option>
+                                <option value="name-asc">Nombre (A-Z)</option>
+                                <option value="name-desc">Nombre (Z-A)</option>
+                                <option value="size-desc">Mayor tamaño</option>
+                                <option value="size-asc">Menor tamaño</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Controles de selección -->
+                    <div class="trash-selection-controls">
+                        <div class="selection-controls-left">
+                            <button class="btn btn--outline btn--sm" id="selectAllTrash">
+                                <i class="fas fa-check-square"></i> Seleccionar Todo
+                            </button>
+                            <button class="btn btn--outline btn--sm" id="deselectAllTrash">
+                                <i class="fas fa-square"></i> Deseleccionar
+                            </button>
+                            <div class="trash-selection-counter" id="trashSelectionCounter" style="display: none;">
+                                <span class="selection-count">0</span> seleccionado(s)
+                            </div>
+                        </div>
+
+                        <div class="selection-controls-right" id="bulkActionsContainer" style="display: none;">
+                            <button class="btn btn--success btn--sm" id="restoreSelectedBtn">
+                                <i class="fas fa-undo"></i> Restaurar Seleccionados
+                            </button>
+                            <button class="btn btn--danger btn--sm" id="deleteSelectedBtn">
+                                <i class="fas fa-trash-alt"></i> Eliminar Seleccionados
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Acciones masivas (solo visible cuando hay selección) -->
+                    <div class="trash-bulk-actions" id="trashBulkActions" style="display: none;">
+                        <button class="btn btn--success" id="restoreSelectedBtn">
+                            <i class="fas fa-undo"></i> Restaurar Seleccionados
+                        </button>
+                        <button class="btn btn--danger" id="deleteSelectedBtn">
+                            <i class="fas fa-times"></i> Eliminar Seleccionados
+                        </button>
+                    </div>
+
+                    <!-- Lista de documentos en papelera -->
+                    <div class="trash-content" id="trashContent">
+                        <div id="trashDocumentsList" class="trash-documents-list grid-view">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-trash-alt"></i>
+                                </div>
+                                <h3>La papelera está vacía</h3>
+                                <p>Los documentos eliminados aparecerán aquí por 30 días</p>
+                                <div class="empty-state-tips">
+                                    <div class="tip">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>Los documentos se eliminan automáticamente después de 30 días</span>
+                                    </div>
+                                    <div class="tip">
+                                        <i class="fas fa-undo"></i>
+                                        <span>Puedes restaurar documentos antes de que sean eliminados
+                                            permanentemente</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal de progreso mejorado -->
+                    <div id="operationProgress" class="operation-progress" style="display: none;">
+                        <div class="progress-overlay"></div>
+                        <div class="progress-content">
+                            <div class="progress-spinner">
+                                <div class="spinner-circle"></div>
+                            </div>
+                            <div class="progress-info">
+                                <h4 class="progress-title">Procesando...</h4>
+                                <p class="progress-message" id="progressMessage"></p>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <div class="progress-details">
+                                    <span class="progress-counter" id="progressCounter">0/0</span>
+                                    <span class="progress-percentage" id="progressPercentage">0%</span>
+                                </div>
+                            </div>
+                            <button class="btn btn--text btn--sm progress-cancel" id="progressCancelBtn">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- ===== HISTORIAL TAB ===== -->
                 <section id="historial" class="tab-content">
@@ -587,20 +587,20 @@
                     </div>
 
                     <!-- Filters -->
-<div class="filters-bar">
-    <div class="filters-bar__search">
-        <i class="fas fa-search"></i>
-        <input type="text" placeholder="Buscar personas..." id="personasSearch">
-    </div>
-    <select class="filters-bar__select" id="personasPuestoFilter" name="puestoFilter">
-        <option value="">Todos los puestos</option>
-        <!-- Los puestos se cargarán dinámicamente desde JavaScript -->
-    </select>
-    <select class="filters-bar__select" id="personasSortFilter" name="sortFilter">
-        <option value="nombre-asc">Ordenar por nombre (A-Z)</option>
-        <option value="nombre-desc">Ordenar por nombre (Z-A)</option>
-    </select>
-</div>
+                    <div class="filters-bar">
+                        <div class="filters-bar__search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Buscar personas..." id="personasSearch">
+                        </div>
+                        <select class="filters-bar__select" id="personasPuestoFilter" name="puestoFilter">
+                            <option value="">Todos los puestos</option>
+                            <!-- Los puestos se cargarán dinámicamente desde JavaScript -->
+                        </select>
+                        <select class="filters-bar__select" id="personasSortFilter" name="sortFilter">
+                            <option value="nombre-asc">Ordenar por nombre (A-Z)</option>
+                            <option value="nombre-desc">Ordenar por nombre (Z-A)</option>
+                        </select>
+                    </div>
 
                     <!-- Personas Table -->
                     <div class="table-container">
@@ -628,7 +628,7 @@
                     </div>
                 </section>
 
-                <!-- ===== DOCUMENTOS TAB REDESIGN ===== -->
+<!-- ===== DOCUMENTOS TAB REDESIGN ===== -->
 <section id="documentos" class="tab-content">
     <!-- Header Principal -->
     <div class="documents-header">
@@ -640,10 +640,19 @@
             <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema</p>
         </div>
         <div class="documents-header__actions">
-            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
+            <!-- Botón de Búsqueda Avanzada -->
+            <button class="btn btn--secondary" id="advancedSearchBtn">
                 <i class="fas fa-search"></i>
                 <span>Búsqueda Avanzada</span>
             </button>
+            
+            <!-- Botón de Eliminación Múltiple -->
+            <button class="btn btn--danger" id="bulkDeleteTriggerBtn">
+                <i class="fas fa-trash-alt"></i>
+                <span>Eliminar Múltiple</span>
+            </button>
+            
+            <!-- Botón de Subir Documento -->
             <button class="btn btn--primary" id="addDocumentBtn">
                 <i class="fas fa-file-upload"></i>
                 <span>Subir Documento</span>
@@ -658,53 +667,65 @@
                 <i class="fas fa-tags"></i>
                 Categorías Disponibles
             </h3>
-            <button class="btn btn--secondary btn--sm" id="addCategoryBtn">
-                <i class="fas fa-plus"></i>
-                <span>Nueva Categoría</span>
-            </button>
         </div>
         <div class="compact-categories-grid" id="categoriesStats">
             <!-- Categorías se cargarán aquí dinámicamente -->
         </div>
     </div>
 
-   <!-- Filtros Avanzados -->
-<div class="documents-filters">
-    <div class="filters-header">
-        <h3 class="filters-title">Filtrar Documentos</h3>
-        <button id="clearAllFilters" class="btn btn-secondary btn-sm">Limpiar Filtros</button>
+    <!-- Barra de Información de Selección - INICIALMENTE OCULTA -->
+    <div class="selection-info-bar" id="selectionInfoBar" style="display: none;">
+        <div class="selection-info-content">
+            <i class="fas fa-check-circle"></i>
+            <span id="selectedCountText">0</span> documentos seleccionados
+            <button class="btn btn--link btn--sm" id="selectAllBtn">
+                <i class="far fa-square"></i>
+                Seleccionar todos en esta página
+            </button>
+            <button class="btn btn--link btn--sm" id="deselectAllBtn">
+                <i class="fas fa-ban"></i>
+                Deseleccionar todos
+            </button>
+        </div>
     </div>
-    <div class="filters-grid">
-        <div class="filter-group">
-            <label for="filterCategory">Categoría</label>
-            <select class="filter-select" id="filterCategory">
-                <option value="">Todas las categorías</option>
-                <!-- Categorías dinámicas -->
-            </select>
+
+    <!-- Filtros Avanzados -->
+    <div class="documents-filters">
+        <div class="filters-header">
+            <h3 class="filters-title">Filtrar Documentos</h3>
+            <button id="clearAllFilters" class="btn btn-secondary btn-sm">Limpiar Filtros</button>
         </div>
-        <div class="filter-group">
-            <label for="filterStatus">Estado</label>
-            <select class="filter-select" id="filterStatus">
-                <option value="">Todos los estados</option>
-                <option value="active">Activos</option>
-                <option value="expiring">Por vencer (≤7 días)</option>
-                <option value="expired">Vencidos</option>
-                <option value="no_expiration">Sin vencimiento</option>
-            </select>
-        </div>
-        <div class="filter-group full-width">
-            <label for="searchInput">Buscar</label>
-            <div class="search-wrapper">
-                <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, categoría, descripción...">
-                <button class="search-clear" id="clearSearch">×</button>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="filterCategory">Categoría</label>
+                <select class="filter-select" id="filterCategory">
+                    <option value="">Todas las categorías</option>
+                    <!-- Categorías dinámicas -->
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterStatus">Estado</label>
+                <select class="filter-select" id="filterStatus">
+                    <option value="">Todos los estados</option>
+                    <option value="active">Activos</option>
+                    <option value="expiring">Por vencer (≤7 días)</option>
+                    <option value="expired">Vencidos</option>
+                    <option value="no_expiration">Sin vencimiento</option>
+                </select>
+            </div>
+            <div class="filter-group full-width">
+                <label for="searchInput">Buscar</label>
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, categoría, descripción...">
+                    <button class="search-clear" id="clearSearch">×</button>
+                </div>
             </div>
         </div>
+        <div class="filters-footer">
+            <span id="resultsCount">0 documentos</span>
+            <span id="activeFiltersBadge" class="badge badge-primary" style="display: none;">0</span>
+        </div>
     </div>
-    <div class="filters-footer">
-        <span id="resultsCount">0 documentos</span>
-        <span id="activeFiltersBadge" class="badge badge-primary" style="display: none;">0</span>
-    </div>
-</div>
 
     <!-- Tabla de Documentos -->
     <div class="documents-table-container">
@@ -725,6 +746,143 @@
         </table>
     </div>
 </section>
+
+<!-- Modal de Eliminación Múltiple (similar al de búsqueda avanzada) -->
+<div class="modal advanced-modal" id="bulkDeleteModal" style="display: none;">
+    <div class="modal__overlay" onclick="window.bulkDeleteModal?.close()"></div>
+    <div class="modal__content modal--lg modal-bulk">
+        <div class="modal__header">
+            <h3 class="modal__title">
+                <i class="fas fa-trash-alt text-danger"></i>
+                Eliminar Documentos
+            </h3>
+            <p class="modal__subtitle">Selecciona los documentos que deseas mover a la papelera</p>
+            <button class="modal__close" onclick="window.bulkDeleteModal?.close()">&times;</button>
+        </div>
+        
+        <div class="modal__body">
+            <!-- Panel de selección rápida -->
+            <div class="bulk-selection-panel">
+                <div class="selection-actions">
+                    <button class="btn btn--secondary btn--sm" id="bulkSelectAllBtn">
+                        <i class="fas fa-check-square"></i>
+                        Seleccionar todos
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="bulkDeselectAllBtn">
+                        <i class="fas fa-square"></i>
+                        Deseleccionar todos
+                    </button>
+                    <button class="btn btn--secondary btn--sm" id="bulkSelectByFilterBtn">
+                        <i class="fas fa-filter"></i>
+                        Seleccionar por filtro
+                    </button>
+                </div>
+                
+                <div class="selection-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total documentos:</span>
+                        <span class="stat-value" id="totalDocumentsCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Seleccionados:</span>
+                        <span class="stat-value text-danger" id="selectedDocumentsCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Filtrados:</span>
+                        <span class="stat-value" id="filteredDocumentsCount">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filtros dentro del modal -->
+            <div class="modal-filters">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="modalFilterCategory">Categoría</label>
+                        <select class="filter-select" id="modalFilterCategory">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="modalFilterType">Tipo</label>
+                        <select class="filter-select" id="modalFilterType">
+                            <option value="">Todos los tipos</option>
+                            <option value="pdf">PDF</option>
+                            <option value="word">Word</option>
+                            <option value="excel">Excel</option>
+                            <option value="image">Imagen</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="modalFilterStatus">Estado</label>
+                        <select class="filter-select" id="modalFilterStatus">
+                            <option value="">Todos los estados</option>
+                            <option value="active">Activos</option>
+                            <option value="expiring">Por vencer</option>
+                            <option value="expired">Vencidos</option>
+                        </select>
+                    </div>
+                    <div class="filter-group full-width">
+                        <label for="modalSearch">Buscar</label>
+                        <div class="search-wrapper">
+                            <input type="text" class="search-input" id="modalSearch" placeholder="Buscar documentos...">
+                            <button class="search-clear" id="modalSearchClear">×</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de documentos en el modal -->
+            <div class="modal-documents-list" id="modalDocumentsList">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando documentos...</p>
+                </div>
+            </div>
+            
+            <!-- Confirmación de eliminación -->
+            <div class="delete-confirmation" id="deleteConfirmation" style="display: none;">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>¡Atención!</strong> Estás a punto de mover <span id="deleteCount" class="text-danger">0</span> documentos a la papelera.
+                        Esta acción no se puede deshacer directamente. Los documentos podrán ser restaurados desde la papelera.
+                    </div>
+                </div>
+                
+                <div class="confirmation-checkbox">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="confirmDeleteCheckbox">
+                        <span class="checkmark"></span>
+                        <span>Confirmo que deseo mover estos documentos a la papelera</span>
+                    </label>
+                </div>
+                
+                <div class="selected-documents-summary" id="selectedDocumentsSummary">
+                    <!-- Resumen de documentos seleccionados -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal__footer">
+            <div class="footer-actions">
+                <button class="btn btn--secondary" onclick="window.bulkDeleteModal?.close()">
+                    <i class="fas fa-times"></i>
+                    Cancelar
+                </button>
+                <button class="btn btn--primary" id="bulkConfirmSelectionBtn">
+                    <i class="fas fa-check"></i>
+                    Confirmar selección
+                </button>
+                <button class="btn btn--danger" id="bulkExecuteDeleteBtn" disabled>
+                    <i class="fas fa-trash-alt"></i>
+                    Mover a Papelera
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+                </section>
 
                 <!-- ===== TAREAS TAB ===== -->
                 <section id="tareas" class="tab-content">
@@ -1050,107 +1208,108 @@
         </article>
     </dialog>
 
-     <!-- Edit Document Modal - VERSIÓN CORREGIDA -->
-<div id="editDocumentModal" class="modal">
-    <article class="modal__content">
-        <header class="modal__header">
-            <h3 class="modal__title">Editar Documento</h3>
-            <button class="modal__close" id="closeEditDocumentModal">&times;</button>
-        </header>
-        <section class="modal__body">
-            <form id="editDocumentForm">
-                <input type="hidden" id="editDocumentId">
-                
-                <div class="form__group">
-                    <label class="form__label">Documento Actual</label>
-                    <div class="current-file-info">
-                        <i class="fas fa-file-alt"></i>
-                        <div>
-                            <span id="currentFileName" class="file-name"></span>
-                            <span class="file-meta" id="currentFileSize"></span>
-                        </div>
-                    </div>
-                </div>
+    <!-- Edit Document Modal - VERSIÓN CORREGIDA -->
+    <div id="editDocumentModal" class="modal">
+        <article class="modal__content">
+            <header class="modal__header">
+                <h3 class="modal__title">Editar Documento</h3>
+                <button class="modal__close" id="closeEditDocumentModal">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="editDocumentForm">
+                    <input type="hidden" id="editDocumentId">
 
-                <div class="form__group">
-                    <label class="form__label">
-                        <input type="checkbox" id="replaceFileCheck">
-                        Reemplazar archivo
-                    </label>
-                </div>
-
-                <div id="newFileContainer" class="file-upload-container" style="display: none;">
-                    <div class="upload__dropzone" id="editFileUploadContainer">
-                        <i class="fas fa-cloud-upload-alt upload__icon"></i>
-                        <h4>Selecciona el nuevo archivo</h4>
-                        <button type="button" class="btn btn--outline btn--sm" id="browseEditFileBtn">
-                            <i class="fas fa-folder-open"></i> Seleccionar Archivo
-                        </button>
-                        <input type="file" id="editFileInput" class="upload__input"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                        <div class="upload__info" id="editFileInfo" style="display: none;">
-                            <p><strong>Nuevo archivo:</strong> <span id="newFileName"></span></p>
-                            <p><strong>Tamaño:</strong> <span id="newFileSize"></span></p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form__group">
-                    <label for="editDocumentDescription" class="form__label">Descripción</label>
-                    <textarea id="editDocumentDescription" class="form__textarea" rows="3" placeholder="Descripción del documento..."></textarea>
-                </div>
-
-                <div class="form__row">
                     <div class="form__group">
-                        <label for="editDocumentCategory" class="form__label">Categoría *</label>
-                        <select id="editDocumentCategory" class="form__select" required>
-                            <option value="">Seleccionar categoría</option>
+                        <label class="form__label">Documento Actual</label>
+                        <div class="current-file-info">
+                            <i class="fas fa-file-alt"></i>
+                            <div>
+                                <span id="currentFileName" class="file-name"></span>
+                                <span class="file-meta" id="currentFileSize"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label class="form__label">
+                            <input type="checkbox" id="replaceFileCheck">
+                            Reemplazar archivo
+                        </label>
+                    </div>
+
+                    <div id="newFileContainer" class="file-upload-container" style="display: none;">
+                        <div class="upload__dropzone" id="editFileUploadContainer">
+                            <i class="fas fa-cloud-upload-alt upload__icon"></i>
+                            <h4>Selecciona el nuevo archivo</h4>
+                            <button type="button" class="btn btn--outline btn--sm" id="browseEditFileBtn">
+                                <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                            </button>
+                            <input type="file" id="editFileInput" class="upload__input"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                            <div class="upload__info" id="editFileInfo" style="display: none;">
+                                <p><strong>Nuevo archivo:</strong> <span id="newFileName"></span></p>
+                                <p><strong>Tamaño:</strong> <span id="newFileSize"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label for="editDocumentDescription" class="form__label">Descripción</label>
+                        <textarea id="editDocumentDescription" class="form__textarea" rows="3"
+                            placeholder="Descripción del documento..."></textarea>
+                    </div>
+
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="editDocumentCategory" class="form__label">Categoría *</label>
+                            <select id="editDocumentCategory" class="form__select" required>
+                                <option value="">Seleccionar categoría</option>
+                            </select>
+                        </div>
+                        <div class="form__group">
+                            <label for="editDocumentExpiration" class="form__label">Fecha de Vencimiento</label>
+                            <input type="date" id="editDocumentExpiration" class="form__input">
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label for="editDocumentPerson" class="form__label">Asignar a Persona</label>
+                        <select id="editDocumentPerson" class="form__select">
+                            <option value="">Seleccionar persona</option>
                         </select>
                     </div>
+
                     <div class="form__group">
-                        <label for="editDocumentExpiration" class="form__label">Fecha de Vencimiento</label>
-                        <input type="date" id="editDocumentExpiration" class="form__input">
-                    </div>
-                </div>
-
-                <div class="form__group">
-                    <label for="editDocumentPerson" class="form__label">Asignar a Persona</label>
-                    <select id="editDocumentPerson" class="form__select">
-                        <option value="">Seleccionar persona</option>
-                    </select>
-                </div>
-
-                <div class="form__group">
-                    <label class="form__label">Información del documento</label>
-                    <div class="document-info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Fecha de subida:</span>
-                            <span id="editDocumentUploadDate" class="info-value"></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Tipo:</span>
-                            <span id="editDocumentType" class="info-value"></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Tamaño:</span>
-                            <span id="editDocumentFileSize" class="info-value"></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Subido por:</span>
-                            <span id="editDocumentUploadedBy" class="info-value">Sistema</span>
+                        <label class="form__label">Información del documento</label>
+                        <div class="document-info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Fecha de subida:</span>
+                                <span id="editDocumentUploadDate" class="info-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Tipo:</span>
+                                <span id="editDocumentType" class="info-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Tamaño:</span>
+                                <span id="editDocumentFileSize" class="info-value"></span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Subido por:</span>
+                                <span id="editDocumentUploadedBy" class="info-value">Sistema</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </form>
-        </section>
-        <footer class="modal__footer">
-            <button class="btn btn--outline" id="cancelEditDocumentBtn">Cancelar</button>
-            <button class="btn btn--primary" id="saveEditDocumentBtn">
-                <i class="fas fa-save"></i> Guardar Cambios
-            </button>
-        </footer>
-    </article>
-</div>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelEditDocumentBtn">Cancelar</button>
+                <button class="btn btn--primary" id="saveEditDocumentBtn">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+            </footer>
+        </article>
+    </div>
 
     <!-- Add Category Modal -->
     <dialog id="categoryModal" class="modal">
