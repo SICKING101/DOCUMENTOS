@@ -9,12 +9,17 @@ import { initializeTableFilters } from './table/tableFilters.js';
 import { MultipleUploadState } from './core/MultipleUploadState.js';
 import { formatFileSize, getFileIcon } from '../../utils.js';
 
+// IMPORTAR NUEVO MODAL DE ELIMINACIÓN MÚLTIPLE
+import { bulkDeleteModal } from './modals/bulkDeleteModal.js';
+import { bulkDeleteState } from './core/BulkDeleteState.js';
+
 // =============================================================================
 // Re-exportaciones
 // =============================================================================
 
 // Core
 export { MultipleUploadState } from './core/MultipleUploadState.js';
+export { bulkDeleteState } from './core/BulkDeleteState.js';
 export * from './core/constants.js';
 
 // Upload
@@ -277,45 +282,85 @@ export function updateMultipleUploadUI() {
 }
 
 // =============================================================================
-// Inicialización global
+// Inicialización global mejorada
 // =============================================================================
 
 /**
- * Inicializa el módulo de documentos.
+ * Inicializa el módulo de documentos con todas las funcionalidades.
  * Debe llamarse cuando el DOM esté listo.
  */
 export function initializeDocumentosModule() {
-    console.log('🚀 Inicializando módulo de documentos...');
+    console.group('🚀 INICIALIZANDO MÓDULO DE DOCUMENTOS');
     
     try {
-        // Inicializar estado de subida múltiple si no existe
+        // 1. Inicializar estado de subida múltiple si no existe
         if (!window.multipleUploadState) {
             window.multipleUploadState = new MultipleUploadState();
             console.log('✅ Estado de subida múltiple inicializado');
         }
         
-        // Configurar drag and drop
+        // 2. Configurar drag and drop
         setupFileDragAndDrop();
         
-        // Cargar estado de filtros si existe
+        // 3. Cargar estado de filtros si existe
         loadFilterState();
         
-        // Inicializar filtros de tabla
+        // 4. Inicializar filtros de tabla
         initializeTableFilters();
-
-         // Inicializar modal de edición de documentos
+        
+        // 5. Inicializar modal de eliminación múltiple
+        bulkDeleteModal.init();
+        
+        // 6. Inicializar modal de edición de documentos
         import('./modals/editDocumentModal.js').then(module => {
             module.initEditDocumentModal();
+            console.log('✅ Modal de edición inicializado');
         }).catch(err => {
-            console.error('Error cargando modal de edición:', err);
+            console.error('❌ Error cargando modal de edición:', err);
         });
         
+        // 7. Configurar funciones globales
+        setupGlobalFunctions();
+        
         console.log('✅ Módulo de documentos inicializado correctamente');
+        console.log('📋 Funcionalidades disponibles:');
+        console.table({
+            'Subida múltiple': '✓',
+            'Eliminación múltiple': '✓',
+            'Vista previa': '✓',
+            'Descargas': '✓',
+            'Filtros': '✓',
+            'Edición': '✓'
+        });
         
     } catch (error) {
-        console.error('❌ Error inicializando módulo de documentos:', error);
+        console.error('❌ Error crítico inicializando módulo de documentos:', error);
+        showAlert('Error inicializando módulo de documentos. Revisa la consola.', 'error');
         throw error;
     }
+    
+    console.groupEnd();
+}
+
+/**
+ * CONFIGURAR FUNCIONES GLOBALES
+ */
+function setupGlobalFunctions() {
+    console.log('🔧 Configurando funciones globales...');
+    
+    // Modal de eliminación múltiple
+    window.bulkDeleteModal = bulkDeleteModal;
+    window.bulkDeleteState = bulkDeleteState;
+    
+    // Funciones de debugging
+    window.debugBulkDelete = () => bulkDeleteModal.debug();
+    window.testBulkDelete = () => bulkDeleteModal.test();
+    
+    // Funciones de utilidad
+    window.openBulkDelete = () => bulkDeleteModal.open();
+    window.closeBulkDelete = () => bulkDeleteModal.close();
+    
+    console.log('✅ Funciones globales configuradas');
 }
 
 /**
@@ -326,6 +371,7 @@ export function getAllDocumentosFunctions() {
     return {
         // Core
         MultipleUploadState,
+        bulkDeleteState,
         
         // Upload
         handleFile,
@@ -370,6 +416,9 @@ export function getAllDocumentosFunctions() {
         getFilteredDocumentStats,
         exportFilteredToCSV,
         
+        // Modal de eliminación múltiple
+        bulkDeleteModal,
+        
         // Modals
         openDocumentModal,
         closeDocumentModal,
@@ -393,3 +442,38 @@ export function getAllDocumentosFunctions() {
         initializeDocumentosModule
     };
 }
+
+// Auto-inicializar cuando se carga la pestaña de documentos
+document.addEventListener('DOMContentLoaded', () => {
+    // Verificar si estamos en la pestaña de documentos
+    const documentosTab = document.getElementById('documentos');
+    if (documentosTab && documentosTab.classList.contains('active')) {
+        console.log('📁 Pestaña de documentos activa, inicializando...');
+        setTimeout(() => {
+            initializeDocumentosModule();
+        }, 500);
+    }
+    
+    // También inicializar cuando se cambie a la pestaña
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const documentosTab = document.getElementById('documentos');
+                if (documentosTab && documentosTab.classList.contains('active')) {
+                    console.log('🔄 Cambiando a pestaña de documentos, inicializando...');
+                    setTimeout(() => {
+                        initializeDocumentosModule();
+                    }, 300);
+                }
+            }
+        });
+    });
+    
+    // Observar cambios en la pestaña de documentos
+    if (documentosTab) {
+        observer.observe(documentosTab, { attributes: true });
+    }
+});
+
+// Exportar la función de inicialización por si se necesita llamar manualmente
+export default initializeDocumentosModule;

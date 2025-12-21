@@ -2,11 +2,8 @@
 // src/frontend/modules/documentos/compatibility.js
 // =============================================================================
 
-// Este archivo mantiene compatibilidad con el código existente
-// que espera estas funciones en el objeto global window
-
-import { api } from '../../services/api.js';           // Corregido: 3 niveles
-import { showAlert, formatFileSize } from '../../utils.js'; // Corregido: 3 niveles
+import { api } from '../../services/api.js';           
+import { showAlert, formatFileSize } from '../../utils.js'; 
 import { updateTrashBadge } from '../papelera.js';
 
 // Importar TODO desde progressManager.js en una sola línea

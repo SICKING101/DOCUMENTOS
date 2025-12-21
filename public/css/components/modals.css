@@ -49,6 +49,12 @@
     position: relative;
 }
 
+.modal-bulk {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 35px;
+}
+
 /* Variante grande para modales con más contenido */
 .modal--large .modal__content {
     max-width: 800px;

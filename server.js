@@ -64,10 +64,6 @@ import NotificationService from './src/backend/services/notificationService.js';
 // -----------------------------
 // Configuración de Multer
 // -----------------------------
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -1254,6 +1250,96 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
       message: 'Error al actualizar documento: ' + error.message 
     });
   }
+});
+
+app.delete('/documents/bulk-delete', async (req, res) => {
+    try {
+        const { document_ids } = req.body;
+        
+        console.log(`🗑️ Solicitud de eliminación masiva para ${document_ids?.length || 0} documentos`);
+        
+        // Validar entrada
+        if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Debe proporcionar una lista de IDs de documentos'
+            });
+        }
+        
+        // Validar que no exceda el límite (opcional)
+        if (document_ids.length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se pueden eliminar más de 100 documentos a la vez'
+            });
+        }
+        
+        // Mover documentos a la papelera
+        const results = [];
+        
+        for (const documentId of document_ids) {
+            try {
+                // Buscar documento
+                const document = await Document.findByPk(documentId);
+                
+                if (!document) {
+                    results.push({
+                        id: documentId,
+                        success: false,
+                        message: 'Documento no encontrado'
+                    });
+                    continue;
+                }
+                
+                // Verificar que no esté ya en la papelera
+                if (document.deleted_at) {
+                    results.push({
+                        id: documentId,
+                        success: false,
+                        message: 'El documento ya está en la papelera'
+                    });
+                    continue;
+                }
+                
+                // Mover a papelera (soft delete)
+                document.deleted_at = new Date();
+                await document.save();
+                
+                results.push({
+                    id: documentId,
+                    success: true,
+                    message: 'Documento movido a la papelera'
+                });
+                
+            } catch (error) {
+                results.push({
+                    id: documentId,
+                    success: false,
+                    message: error.message
+                });
+            }
+        }
+        
+        // Calcular estadísticas
+        const successful = results.filter(r => r.success).length;
+        const failed = results.filter(r => !r.success).length;
+        
+        return res.json({
+            success: true,
+            message: `${successful} documentos movidos a la papelera${failed > 0 ? `, ${failed} fallaron` : ''}`,
+            total: document_ids.length,
+            successful,
+            failed,
+            results
+        });
+        
+    } catch (error) {
+        console.error('Error en eliminación masiva:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
+    }
 });
 
 // =============================================================================
