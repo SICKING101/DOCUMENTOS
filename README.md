@@ -26,6 +26,9 @@ DOCUMENTOS/
 │
 ├── 🖥️ public/                          # Frontend estatico
 │   ├── 📄 index.html
+|   ├── 📄 login.html
+|   ├── 📄 forgot-password.html
+|   ├── 📄 forgot-password-step1.html
 │   ├── 📁 css/
 │   │   ├── 🎨 main.css                 # Archivo maestro global
 │   │   ├── 📁 base/                    # Configuracion base
@@ -124,24 +127,30 @@ DOCUMENTOS/
 │   │   │   └── multerConfig.js
 │   │   ├── 🎯 controllers/             # Controladores REST
 │   │   │   ├── categoryController.js
+|   │   │   ├── authController.js
 │   │   │   ├── dashboardController.js
+|   │   │   ├── departmentController.js
 │   │   │   ├── documentController.js
 │   │   │   ├── notificationController.js
 │   │   │   ├── personController.js
 │   │   │   ├── reportController.js
+|   │   │   ├── trashController.js
 │   │   │   └── taskController.js
 │   │   ├── 🧵 middleware/
+│   │   │   ├── auth.js
 │   │   ├── 🧬 models/                  # Modelos MongoDB
 │   │   │   ├── Category.js
 │   │   │   ├── Document.js
 │   │   │   ├── Person.js
+|   │   │   ├── Department.js
 │   │   │   ├── Notification.js
-│   │   │   └── Task.js
+│   │   │   └── User.js
 │   │   ├── 🛎️ services/
 │   │   │   ├── fileService.js
 │   │   │   └── notificationService.js
 │   │   └── 🚦 routes/
-│   │       └── apiRoutes.js
+│   │       ├── apiRoutes.js
+│   │       └── authRoutes.js
 │
 ├── 🚀 server.js                        # Punto de entrada del servidor
 ├── 📦 package.json
