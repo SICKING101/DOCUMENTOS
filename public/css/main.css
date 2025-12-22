@@ -28,6 +28,7 @@
 @import url('sections/historial.css');
 @import url('sections/notifications.css');
 @import url('sections/trash.css');
+@import url('sections/auth.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');
