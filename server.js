@@ -3459,6 +3459,27 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Verificar configuración de email al iniciar
+console.log('');
+console.log('🔍 ========== CONFIGURACIÓN DEL SISTEMA ==========');
+console.log(`🚀 Puerto: ${process.env.PORT || 4000}`);
+console.log(`🗄️ MongoDB: ${process.env.MONGODB_URI ? '✅ Configurado' : '❌ No configurado'}`);
+console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ ' + process.env.EMAIL_USER : '❌ No configurado'}`);
+console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:4000'}`);
+console.log('🔍 ===============================================');
+console.log('');
+
+// Si no hay email configurado, mostrar mensaje
+if (!process.env.EMAIL_USER && !process.env.SMTP_USER) {
+  console.log('');
+  console.log('⚠️  IMPORTANTE: Credenciales de Email no encontradas');
+  console.log('   Los códigos de recuperación aparecerán en la consola del servidor');
+  console.log('   Para enviar emails reales, configura las variables en .env:');
+  console.log('   EMAIL_USER=tu_correo@gmail.com');
+  console.log('   EMAIL_PASS=tu_app_password');
+  console.log('');
+}
+
 // -----------------------------
 // Iniciar servidor
 // -----------------------------

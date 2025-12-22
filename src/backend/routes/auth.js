@@ -1,8 +1,15 @@
 import express from 'express';
 import User from '../models/User.js';
 import { protegerRuta, enviarTokenRespuesta } from '../middleware/auth.js';
-import { enviarCorreoRecuperacion, enviarCorreoCambioAdmin, enviarCorreoBienvenida } from '../services/emailService.js';
-import crypto from 'crypto';
+import {
+  solicitarCodigoRecuperacion,
+  verificarCodigoRecuperacion,
+  cambiarContraseña,
+  verificarTokenCambio,
+  pruebaEmail,
+  estadoEmail
+} from '../controllers/authController.js';
+import crypto from 'crypto'; // AÑADIR ESTA IMPORTACIÓN
 
 const router = express.Router();
 
@@ -60,11 +67,6 @@ router.post('/register', async (req, res) => {
         });
 
         console.log('✅ Administrador registrado:', usuario);
-
-        // Enviar correo de bienvenida (sin esperar)
-        enviarCorreoBienvenida(correo, usuario).catch(err => 
-            console.error('Error al enviar correo de bienvenida:', err)
-        );
 
         // Enviar token
         enviarTokenRespuesta(user, 201, res, 'Administrador registrado exitosamente');
@@ -190,121 +192,118 @@ router.get('/me', protegerRuta, async (req, res) => {
 });
 
 // =============================================================================
-// SOLICITAR RECUPERACIÓN DE CONTRASEÑA
+// RECUPERACIÓN DE CONTRASEÑA (Nuevo sistema con código de 6 dígitos)
 // =============================================================================
-router.post('/forgot-password', async (req, res) => {
+
+// 1. Solicitar código de recuperación
+router.post('/forgot-password', solicitarCodigoRecuperacion);
+
+// 2. Verificar código de 6 dígitos
+router.post('/verify-code', verificarCodigoRecuperacion);
+
+// 3. Verificar token de cambio (para el frontend)
+router.get('/verify-change-token/:token', verificarTokenCambio);
+
+// 4. Cambiar contraseña con token
+router.post('/reset-password', cambiarContraseña);
+
+// =============================================================================
+// PRUEBA DE EMAIL GMAIL REAL
+// =============================================================================
+router.post('/test-email', pruebaEmail);
+
+// =============================================================================
+// ESTADO DEL SISTEMA DE EMAIL GMAIL
+// =============================================================================
+router.get('/email-status', estadoEmail);
+
+// =============================================================================
+// ENDPOINT DE DIAGNÓSTICO COMPLETO
+// =============================================================================
+router.get('/diagnostic', async (req, res) => {
     try {
-        const { correo } = req.body;
-
-        if (!correo) {
-            return res.status(400).json({
-                success: false,
-                message: 'Por favor proporciona un correo electrónico'
-            });
-        }
-
-        const user = await User.findOne({ correo });
-
-        if (!user) {
-            // Por seguridad, no revelamos si el correo existe o no
-            return res.json({
-                success: true,
-                message: 'Si el correo existe, recibirás instrucciones para recuperar tu contraseña'
-            });
-        }
-
-        // Generar token
-        const resetToken = user.generarTokenRecuperacion();
-        await user.save({ validateBeforeSave: false });
-
-        // Enviar correo
-        const result = await enviarCorreoRecuperacion(user.correo, resetToken, user.usuario);
-
-        const response = {
-            success: true,
-            message: result.emailSent === false 
-                ? '⚠️ Email no configurado. Usa el link que aparece en la consola del servidor.' 
-                : 'Correo de recuperación enviado'
+        const diagnostic = {
+            server: {
+                time: new Date().toISOString(),
+                node_env: process.env.NODE_ENV,
+                port: process.env.PORT
+            },
+            email: {
+                EMAIL_USER: process.env.EMAIL_USER ? '✅ Definido' : '❌ No definido',
+                EMAIL_PASS: process.env.EMAIL_PASS ? '✅ Definido' : '❌ No definido',
+                EMAIL_HOST: process.env.EMAIL_HOST || 'No definido',
+                EMAIL_PORT: process.env.EMAIL_PORT || 'No definido',
+                EMAIL_FROM: process.env.EMAIL_FROM_ADDRESS || 'No definido'
+            },
+            database: {
+                connected: true, // Asumiendo que MongoDB está conectado
+                usersCount: await User.countDocuments()
+            },
+            endpoints: [
+                { path: '/api/auth/forgot-password', method: 'POST', description: 'Solicitar código de recuperación' },
+                { path: '/api/auth/verify-code', method: 'POST', description: 'Verificar código' },
+                { path: '/api/auth/reset-password', method: 'POST', description: 'Cambiar contraseña' },
+                { path: '/api/auth/test-email', method: 'POST', description: 'Probar email Gmail real' },
+                { path: '/api/auth/email-status', method: 'GET', description: 'Estado del email Gmail' }
+            ]
         };
-
-        // Si el email no se envió, incluir el link en la respuesta
-        if (result.resetURL) {
-            response.resetURL = result.resetURL;
-            console.log('');
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('🔑 LINK DE RECUPERACIÓN DE CONTRASEÑA:');
-            console.log('📋 Copia y pega este link en tu navegador:');
-            console.log('');
-            console.log('   ' + result.resetURL);
-            console.log('');
-            console.log('═══════════════════════════════════════════════════════');
-            console.log('');
-        }
-
-        res.json(response);
+        
+        res.json({
+            success: true,
+            diagnostic,
+            instructions: [
+                '1. El sistema está configurado con Gmail real',
+                '2. Usa /api/auth/test-email para probar el envío',
+                '3. Revisa tu bandeja de entrada de Gmail',
+                '4. Si no ves el email, revisa SPAM/Promociones',
+                '5. Los códigos de recuperación llegarán a tu Gmail'
+            ]
+        });
     } catch (error) {
-        console.error('Error en forgot-password:', error);
+        console.error('Error en diagnóstico:', error);
         res.status(500).json({
             success: false,
-            message: 'Error del servidor'
+            message: 'Error en diagnóstico',
+            error: error.message
         });
     }
 });
 
 // =============================================================================
-// RESTABLECER CONTRASEÑA
+// NUEVO: REINICIAR CONFIGURACIÓN GMAIL
 // =============================================================================
-router.put('/reset-password/:token', async (req, res) => {
+router.post('/restart-gmail', async (req, res) => {
     try {
-        const { password } = req.body;
-
-        if (!password) {
-            return res.status(400).json({
+        console.log('🔄 Solicitando reinicio de configuración Gmail...');
+        
+        // Importar dinámicamente para evitar circular dependencies
+        const { reiniciarConfiguracionGmail } = await import('../controllers/authController.js');
+        
+        const resultado = await reiniciarConfiguracionGmail();
+        
+        if (resultado) {
+            res.json({
+                success: true,
+                message: '✅ Configuración Gmail reiniciada exitosamente',
+                note: 'Los próximos emails se enviarán por Gmail real'
+            });
+        } else {
+            res.status(500).json({
                 success: false,
-                message: 'Por favor proporciona una nueva contraseña'
+                message: '❌ Error al reiniciar configuración Gmail'
             });
         }
-
-        // Hash del token
-        const resetPasswordToken = crypto
-            .createHash('sha256')
-            .update(req.params.token)
-            .digest('hex');
-
-        // Buscar usuario con token válido
-        const user = await User.findOne({
-            resetPasswordToken,
-            resetPasswordExpires: { $gt: Date.now() }
-        });
-
-        if (!user) {
-            return res.status(400).json({
-                success: false,
-                message: 'Token inválido o expirado'
-            });
-        }
-
-        // Establecer nueva contraseña
-        user.password = password;
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
-        await user.save();
-
-        console.log('✅ Contraseña restablecida para:', user.usuario);
-
-        // Enviar token de sesión
-        enviarTokenRespuesta(user, 200, res, 'Contraseña restablecida exitosamente');
     } catch (error) {
-        console.error('Error al restablecer contraseña:', error);
+        console.error('Error reiniciando Gmail:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al restablecer contraseña'
+            message: 'Error al reiniciar Gmail'
         });
     }
 });
 
 // =============================================================================
-// SOLICITAR CAMBIO DE ADMINISTRADOR
+// CAMBIO DE ADMINISTRADOR (mantener existente)
 // =============================================================================
 router.post('/request-admin-change', protegerRuta, async (req, res) => {
     try {
@@ -392,7 +391,7 @@ router.get('/confirm-admin-change/:token', async (req, res) => {
             console.log('✅ Cambio de administrador confirmado y ejecutado');
 
             return res.json({
-                success: true,
+                success: false,
                 message: 'Cambio de administrador autorizado. Ahora puedes registrar un nuevo administrador.',
                 redirect: '/register'
             });

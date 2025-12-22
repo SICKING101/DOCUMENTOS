@@ -24,7 +24,8 @@ function showLoginForm() {
     document.getElementById('authSubtitle').textContent = 'Accede al sistema de gestión';
     document.getElementById('loginForm').classList.remove('hidden');
     document.getElementById('registerForm').classList.add('hidden');
-    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    // ELIMINADO: document.getElementById('forgotPasswordForm').classList.add('hidden');
+    
     // Ocultar enlace de registro cuando ya hay admin
     const registerLink = document.getElementById('registerLinkContainer');
     if (registerLink) registerLink.style.display = 'none';
@@ -35,19 +36,15 @@ function showRegisterForm() {
     document.getElementById('authSubtitle').textContent = 'Crea la cuenta del primer administrador';
     document.getElementById('loginForm').classList.add('hidden');
     document.getElementById('registerForm').classList.remove('hidden');
-    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    // ELIMINADO: document.getElementById('forgotPasswordForm').classList.add('hidden');
+    
     // Mostrar enlace de registro solo cuando NO hay admin
     const registerLink = document.getElementById('registerLinkContainer');
     if (registerLink) registerLink.style.display = 'block';
 }
 
-function showForgotPasswordForm() {
-    document.getElementById('authTitle').textContent = 'Recuperar Contraseña';
-    document.getElementById('authSubtitle').textContent = 'Te enviaremos un enlace a tu correo';
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.add('hidden');
-    document.getElementById('forgotPasswordForm').classList.remove('hidden');
-}
+// ELIMINADA: Función showForgotPasswordForm ya no es necesaria
+// function showForgotPasswordForm() { ... }
 
 // Mostrar alertas
 function showAlert(message, type = 'success') {
@@ -150,49 +147,24 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     }
 });
 
-// Recuperación de contraseña
-document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('forgotBtn');
-    btn.disabled = true;
-    
-    try {
-        const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                correo: document.getElementById('forgotEmail').value
-            })
-        });
-        
-        const data = await response.json();
-        showAlert(data.message, data.success ? 'success' : 'error');
-        
-        if (data.success) {
-            setTimeout(showLoginForm, 3000);
-        }
-    } catch (error) {
-        showAlert('Error al enviar correo', 'error');
-    } finally {
-        btn.disabled = false;
-    }
-});
+// ELIMINADO: Formulario de recuperación de contraseña interno
+// document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => { ... });
 
 // Event listeners
-document.getElementById('showForgotPassword').addEventListener('click', (e) => {
-    e.preventDefault();
-    showForgotPasswordForm();
-});
+// ELIMINADO: Ya no hay formulario interno de recuperación
+// document.getElementById('showForgotPassword').addEventListener('click', (e) => { ... });
 
-document.getElementById('backToLogin').addEventListener('click', (e) => {
-    e.preventDefault();
-    showLoginForm();
-});
+// ELIMINADO: Ya no hay botón "Volver al inicio de sesión" en formulario interno
+// document.getElementById('backToLogin').addEventListener('click', (e) => { ... });
 
-document.getElementById('showRegisterFromLogin')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showRegisterForm();
-});
+// Solo agregar event listener si el elemento existe
+const showRegisterFromLogin = document.getElementById('showRegisterFromLogin');
+if (showRegisterFromLogin) {
+    showRegisterFromLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        showRegisterForm();
+    });
+}
 
 // Inicializar
 setupPasswordToggles();

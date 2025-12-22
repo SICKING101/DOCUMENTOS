@@ -32,8 +32,14 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    // Para código de 6 dígitos
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    
+    // Para token de cambio de contraseña (después de verificar código)
+    changePasswordToken: String,
+    changePasswordExpires: Date,
+    
     changeAdminToken: String,
     changeAdminExpires: Date,
     ultimoAcceso: {
@@ -65,17 +71,32 @@ userSchema.methods.compararPassword = async function(passwordIngresada) {
     return await bcrypt.compare(passwordIngresada, this.password);
 };
 
-// Método para generar token de recuperación
-userSchema.methods.generarTokenRecuperacion = function() {
-    const token = crypto.randomBytes(20).toString('hex');
+// Método para generar token de recuperación de 6 dígitos
+userSchema.methods.generarCodigoRecuperacion = function() {
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
     
     this.resetPasswordToken = crypto
+        .createHash('sha256')
+        .update(codigo)
+        .digest('hex');
+    
+    // Código expira en 15 minutos
+    this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+    
+    return codigo;
+};
+
+// Método para generar token de cambio de contraseña (después de verificar código)
+userSchema.methods.generarTokenCambioPassword = function() {
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    this.changePasswordToken = crypto
         .createHash('sha256')
         .update(token)
         .digest('hex');
     
-    // Token expira en 1 hora
-    this.resetPasswordExpires = Date.now() + 3600000;
+    // Token expira en 30 minutos
+    this.changePasswordExpires = Date.now() + 30 * 60 * 1000;
     
     return token;
 };

@@ -102,5 +102,5 @@ router.post('/trash/auto-cleanup', TrashController.autoCleanup);
 router.post('/trash/:id/restore', TrashController.restoreDocument);
 router.delete('/trash/:id', TrashController.deletePermanently);
 
-// CORREGIR ESTA LÍNEA:
-export default router;  // CAMBIAR CategoryController por router
+// CORREGIR ESTA LÍNEA - CAMBIAR CategoryController por router:
+export default router;  // ✅ CORREGIDO
