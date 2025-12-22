@@ -8,8 +8,8 @@ import { updateTrashBadge } from '../../papelera.js';
 import { bulkDeleteState } from '../core/BulkDeleteState.js';
 
 /**
- * MODAL DE ELIMINACIÓN MÚLTIPLE
- * Interfaz similar a búsqueda avanzada para seleccionar y eliminar documentos
+ * MODAL DE ELIMINACIÓN MÚLTIPLE - VERSIÓN MEJORADA
+ * Interfaz moderna para selección y eliminación de documentos en lote
  */
 export class BulkDeleteModal {
     constructor() {
@@ -17,7 +17,8 @@ export class BulkDeleteModal {
         this.isOpen = false;
         this.isInitialized = false;
         this.documents = [];
-        this.filteredDocuments = []; // Almacenar documentos filtrados
+        this.filteredDocuments = [];
+        this.compactView = false;
     }
 
     /**
@@ -26,7 +27,7 @@ export class BulkDeleteModal {
     init() {
         if (this.isInitialized) return;
         
-        console.log('🚀 Inicializando BulkDeleteModal...');
+        console.log('🚀 Inicializando BulkDeleteModal mejorado...');
         
         this.createModal();
         this.setupEventListeners();
@@ -39,21 +40,20 @@ export class BulkDeleteModal {
      * CREAR ESTRUCTURA DEL MODAL
      */
     createModal() {
-        // El modal ya está en el HTML, solo obtener referencia
         this.modal = document.getElementById('bulkDeleteModal');
         if (!this.modal) {
             console.error('❌ Modal no encontrado en el DOM');
             return;
         }
         
-        console.log('✅ Modal encontrado en el DOM');
+        console.log('✅ Modal mejorado encontrado en el DOM');
     }
 
     /**
      * CONFIGURAR EVENT LISTENERS
      */
     setupEventListeners() {
-        console.log('🔧 Configurando event listeners...');
+        console.log('🔧 Configurando event listeners mejorados...');
         
         // Botón de abrir modal
         const triggerBtn = document.getElementById('bulkDeleteTriggerBtn');
@@ -62,52 +62,48 @@ export class BulkDeleteModal {
             console.log('✅ Listener para botón de trigger configurado');
         }
         
-        // Botón de cerrar modal
-        const closeBtns = this.modal.querySelectorAll('[data-dismiss="modal"], .modal-close');
-        closeBtns.forEach(btn => {
-            btn.addEventListener('click', () => this.close());
-        });
+        // Botones de control
+        this.setupControlListeners();
         
-        // Cerrar al hacer clic fuera del modal
-        this.modal.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.close();
-            }
-        });
+        // Filtros del modal
+        this.setupFilterListeners();
         
-        // Botones de selección
+        // Botones de acción
+        this.setupActionListeners();
+        
+        console.log('✅ Todos los event listeners configurados');
+    }
+
+    /**
+     * CONFIGURAR LISTENERS DE CONTROL
+     */
+    setupControlListeners() {
         const bulkSelectAllBtn = document.getElementById('bulkSelectAllBtn');
         const bulkDeselectAllBtn = document.getElementById('bulkDeselectAllBtn');
-        const bulkSelectByFilterBtn = document.getElementById('bulkSelectByFilterBtn');
-        const bulkConfirmSelectionBtn = document.getElementById('bulkConfirmSelectionBtn');
-        const bulkExecuteDeleteBtn = document.getElementById('bulkExecuteDeleteBtn');
+        const toggleSelectionView = document.getElementById('toggleSelectionView');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
         
         if (bulkSelectAllBtn) {
             bulkSelectAllBtn.addEventListener('click', () => this.selectAll());
-            console.log('✅ Listener para bulkSelectAllBtn configurado');
         }
         
         if (bulkDeselectAllBtn) {
             bulkDeselectAllBtn.addEventListener('click', () => this.deselectAll());
-            console.log('✅ Listener para bulkDeselectAllBtn configurado');
         }
         
-        if (bulkSelectByFilterBtn) {
-            bulkSelectByFilterBtn.addEventListener('click', () => this.selectByCurrentFilter());
-            console.log('✅ Listener para bulkSelectByFilterBtn configurado');
+        if (toggleSelectionView) {
+            toggleSelectionView.addEventListener('click', () => this.toggleView());
         }
         
-        if (bulkConfirmSelectionBtn) {
-            bulkConfirmSelectionBtn.addEventListener('click', () => this.confirmSelection());
-            console.log('✅ Listener para bulkConfirmSelectionBtn configurado');
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', () => this.clearFilters());
         }
-        
-        if (bulkExecuteDeleteBtn) {
-            bulkExecuteDeleteBtn.addEventListener('click', () => this.executeDelete());
-            console.log('✅ Listener para bulkExecuteDeleteBtn configurado');
-        }
-        
-        // Filtros del modal
+    }
+
+    /**
+     * CONFIGURAR LISTENERS DE FILTROS
+     */
+    setupFilterListeners() {
         const filterIds = [
             'modalFilterCategory',
             'modalFilterType', 
@@ -119,11 +115,10 @@ export class BulkDeleteModal {
             const element = document.getElementById(id);
             if (element) {
                 element.addEventListener('change', () => this.applyFilters());
-                console.log(`✅ Listener para ${id} configurado`);
             }
         });
         
-        // Input de búsqueda - también escuchar input para búsqueda en tiempo real
+        // Búsqueda en tiempo real
         const modalSearch = document.getElementById('modalSearch');
         if (modalSearch) {
             modalSearch.addEventListener('input', () => this.applyFilters());
@@ -137,77 +132,85 @@ export class BulkDeleteModal {
                 this.applyFilters();
             });
         }
-        
-        // Checkbox de confirmación
+    }
+
+    /**
+     * CONFIGURAR LISTENERS DE ACCIÓN
+     */
+    setupActionListeners() {
+        const bulkConfirmSelectionBtn = document.getElementById('bulkConfirmSelectionBtn');
+        const bulkExecuteDeleteBtn = document.getElementById('bulkExecuteDeleteBtn');
         const confirmCheckbox = document.getElementById('confirmDeleteCheckbox');
+        
+        if (bulkConfirmSelectionBtn) {
+            bulkConfirmSelectionBtn.addEventListener('click', () => this.confirmSelection());
+        }
+        
+        if (bulkExecuteDeleteBtn) {
+            bulkExecuteDeleteBtn.addEventListener('click', () => this.executeDelete());
+        }
+        
         if (confirmCheckbox) {
             confirmCheckbox.addEventListener('change', (e) => {
                 const deleteBtn = document.getElementById('bulkExecuteDeleteBtn');
                 if (deleteBtn) {
                     deleteBtn.disabled = !e.target.checked;
+                    if (e.target.checked) {
+                        deleteBtn.classList.add('btn--danger-active');
+                    } else {
+                        deleteBtn.classList.remove('btn--danger-active');
+                    }
                 }
             });
         }
-        
-        console.log('✅ Todos los event listeners configurados');
     }
 
     /**
      * ABRIR MODAL
      */
     async open() {
-        console.group('📋 ABRIENDO MODAL DE ELIMINACIÓN MÚLTIPLE');
+        console.group('📋 ABRIENDO MODAL DE ELIMINACIÓN MÚLTIPLE MEJORADO');
         
         if (!this.modal) {
             this.init();
         }
         
-        // Cargar documentos si no están cargados
-        if (this.documents.length === 0) {
-            await this.loadDocuments();
-        }
+        // Resetear estado
+        this.resetModalState();
+        
+        // Cargar documentos
+        await this.loadDocuments();
         
         // Aplicar filtros iniciales
         this.applyFilters();
         
-        // Actualizar estadísticas
-        this.updateStats();
+        // Actualizar UI
+        this.updateUI();
         
         // Mostrar modal
-        this.modal.style.display = 'block';
-        document.body.classList.add('modal-open');
-        setTimeout(() => {
-            this.modal.classList.add('show');
-            this.isOpen = true;
-            
-            // Enfocar campo de búsqueda
-            const searchInput = document.getElementById('modalSearch');
-            if (searchInput) searchInput.focus();
-        }, 10);
+        this.showModal();
         
-        console.log('✅ Modal abierto');
+        console.log('✅ Modal mejorado abierto');
         console.groupEnd();
     }
 
     /**
-     * CERRAR MODAL
+     * RESETEAR ESTADO DEL MODAL
      */
-    close() {
-        console.log('📋 Cerrando modal de eliminación múltiple');
+    resetModalState() {
+        this.compactView = false;
+        bulkDeleteState.deselectAll();
         
-        if (!this.modal) return;
+        const confirmCheckbox = document.getElementById('confirmDeleteCheckbox');
+        if (confirmCheckbox) {
+            confirmCheckbox.checked = false;
+        }
         
-        this.modal.classList.remove('show');
-        setTimeout(() => {
-            this.modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-            this.isOpen = false;
-            
-            // Limpiar selección si se cerró sin eliminar
-            if (bulkDeleteState.getSelectedCount() > 0) {
-                this.showCloseConfirmation();
-            }
-        }, 300);
+        const deleteBtn = document.getElementById('bulkExecuteDeleteBtn');
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.classList.remove('btn--danger-active');
+        }
     }
 
     /**
@@ -217,12 +220,10 @@ export class BulkDeleteModal {
         console.log('📄 Cargando documentos para el modal...');
         
         try {
-            // Usar documentos del appState o cargar desde API
             if (window.appState?.documents) {
                 this.documents = window.appState.documents;
                 console.log(`✅ ${this.documents.length} documentos cargados del appState`);
             } else {
-                // Cargar desde API si no están en appState
                 const response = await api.call('/api/documents');
                 if (response.success) {
                     this.documents = response.documents || [];
@@ -232,7 +233,6 @@ export class BulkDeleteModal {
                 }
             }
             
-            // Cargar categorías en el select
             this.loadCategories();
             
         } catch (error) {
@@ -243,25 +243,24 @@ export class BulkDeleteModal {
     }
 
     /**
-     * CARGAR CATEGORÍAS EN EL SELECT
+     * CARGAR CATEGORÍAS
      */
     loadCategories() {
         const categorySelect = document.getElementById('modalFilterCategory');
         if (!categorySelect) return;
         
-        // Limpiar opciones excepto la primera
         categorySelect.innerHTML = '<option value="">Todas las categorías</option>';
         
-        // Obtener categorías únicas
-        const categories = [...new Set(this.documents.map(doc => doc.categoria))].sort();
+        const categories = [...new Set(this.documents
+            .map(doc => doc.categoria)
+            .filter(category => category && category.trim())
+        )].sort();
         
         categories.forEach(category => {
-            if (category) {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                categorySelect.appendChild(option);
-            }
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
         });
         
         console.log(`✅ ${categories.length} categorías cargadas`);
@@ -271,36 +270,40 @@ export class BulkDeleteModal {
      * APLICAR FILTROS
      */
     applyFilters() {
-        console.log('🎯 Aplicando filtros...');
+        console.log('🎯 Aplicando filtros mejorados...');
         
-        // Obtener valores de filtros
         const category = document.getElementById('modalFilterCategory')?.value || '';
         const type = document.getElementById('modalFilterType')?.value || '';
         const status = document.getElementById('modalFilterStatus')?.value || '';
         const search = document.getElementById('modalSearch')?.value || '';
         
-        // Filtrar documentos
         this.filteredDocuments = this.documents.filter(doc => {
-            // Filtro de categoría
             if (category && doc.categoria !== category) return false;
             
-            // Filtro de tipo
-            if (type && doc.tipo_archivo.toLowerCase() !== type.toLowerCase()) return false;
+            if (type) {
+                const docType = doc.tipo_archivo?.toLowerCase();
+                const filterType = type.toLowerCase();
+                if (docType !== filterType) return false;
+            }
             
-            // Filtro de estado
             if (status) {
                 const docStatus = this.getDocumentStatus(doc);
                 if (status !== docStatus) return false;
             }
             
-            // Filtro de búsqueda
             if (search) {
                 const query = search.toLowerCase();
-                const matches = 
-                    doc.nombre_original.toLowerCase().includes(query) ||
-                    (doc.descripcion && doc.descripcion.toLowerCase().includes(query)) ||
-                    doc.categoria.toLowerCase().includes(query) ||
-                    (doc.persona_id?.nombre && doc.persona_id.nombre.toLowerCase().includes(query));
+                const searchFields = [
+                    doc.nombre_original,
+                    doc.descripcion,
+                    doc.categoria,
+                    doc.persona_id?.nombre,
+                    doc.tipo_archivo
+                ];
+                
+                const matches = searchFields.some(field => 
+                    field && field.toString().toLowerCase().includes(query)
+                );
                 
                 if (!matches) return false;
             }
@@ -308,28 +311,50 @@ export class BulkDeleteModal {
             return true;
         });
         
-        // Renderizar documentos filtrados
         this.renderDocumentsList();
-        
-        // Actualizar estadísticas
         this.updateStats();
         
         console.log(`✅ Filtros aplicados: ${this.filteredDocuments.length} documentos mostrados`);
     }
 
     /**
-     * OBTENER ESTADO DEL DOCUMENTO PARA FILTROS
+     * LIMPIAR FILTROS
      */
-    getDocumentStatus(doc) {
-        if (!doc.fecha_vencimiento) return 'active';
+    clearFilters() {
+        console.log('🧹 Limpiando filtros...');
         
-        const fechaVencimiento = new Date(doc.fecha_vencimiento);
-        const hoy = new Date();
-        const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+        document.getElementById('modalFilterCategory').value = '';
+        document.getElementById('modalFilterType').value = '';
+        document.getElementById('modalFilterStatus').value = '';
+        document.getElementById('modalSearch').value = '';
         
-        if (diferenciaDias <= 0) return 'expired';
-        if (diferenciaDias <= 7) return 'expiring';
-        return 'active';
+        this.applyFilters();
+        showAlert('Filtros limpiados', 'info');
+    }
+
+    /**
+     * TOGGLE VISTA COMPACTA
+     */
+    toggleView() {
+        this.compactView = !this.compactView;
+        const toggleBtn = document.getElementById('toggleSelectionView');
+        const listContainer = document.querySelector('.documents-list');
+        
+        if (this.compactView) {
+            listContainer?.classList.add('compact-view');
+            if (toggleBtn) {
+                toggleBtn.innerHTML = '<i class="fas fa-th-large"></i> Vista normal';
+                toggleBtn.title = 'Cambiar a vista normal';
+            }
+        } else {
+            listContainer?.classList.remove('compact-view');
+            if (toggleBtn) {
+                toggleBtn.innerHTML = '<i class="fas fa-th-list"></i> Vista compacta';
+                toggleBtn.title = 'Cambiar a vista compacta';
+            }
+        }
+        
+        console.log(`👁️ Vista cambiada a: ${this.compactView ? 'compacta' : 'normal'}`);
     }
 
     /**
@@ -342,25 +367,31 @@ export class BulkDeleteModal {
         if (this.filteredDocuments.length === 0) {
             listContainer.innerHTML = `
                 <div class="no-documents">
-                    <i class="fas fa-file-alt"></i>
-                    <p>No hay documentos que coincidan con los filtros</p>
+                    <i class="fas fa-file-search"></i>
+                    <p>No se encontraron documentos con los filtros actuales</p>
+                    <button class="btn btn--text btn--sm mt-2" onclick="window.bulkDeleteModal.clearFilters()">
+                        Limpiar filtros
+                    </button>
                 </div>
             `;
             return;
         }
         
-        let html = '<div class="documents-list-container">';
+        let html = `<div class="documents-list ${this.compactView ? 'compact-view' : ''}">`;
         
         this.filteredDocuments.forEach(doc => {
             const docId = doc._id || doc.id;
             const isSelected = bulkDeleteState.isSelected(docId);
             const fileIcon = getFileIcon(doc.tipo_archivo);
-            const statusClass = this.getStatusClass(doc);
+            const statusClass = this.getDocumentStatus(doc);
             const statusText = this.getStatusText(doc);
+            const fileSize = formatFileSize(doc.tamano_archivo);
+            const expireDate = doc.fecha_vencimiento ? formatDate(doc.fecha_vencimiento) : null;
             
             html += `
                 <div class="document-modal-item ${isSelected ? 'selected' : ''}" 
-                     data-document-id="${docId}">
+                     data-document-id="${docId}"
+                     title="${doc.nombre_original}">
                     <label class="document-modal-checkbox-container">
                         <input type="checkbox" 
                                class="document-modal-checkbox"
@@ -375,14 +406,14 @@ export class BulkDeleteModal {
                         </div>
                         
                         <div class="document-modal-details">
-                            <div class="document-modal-name" title="${doc.nombre_original}">
+                            <div class="document-modal-name">
                                 ${doc.nombre_original}
                             </div>
                             <div class="document-modal-meta">
-                                <span>${doc.tipo_archivo.toUpperCase()}</span>
-                                <span>${doc.categoria}</span>
-                                ${doc.fecha_vencimiento ? 
-                                    `<span>Vence: ${formatDate(doc.fecha_vencimiento)}</span>` : ''}
+                                <span>${doc.tipo_archivo?.toUpperCase() || 'N/A'}</span>
+                                <span>${doc.categoria || 'Sin categoría'}</span>
+                                ${fileSize ? `<span>${fileSize}</span>` : ''}
+                                ${expireDate ? `<span title="Vence el ${expireDate}">${expireDate}</span>` : ''}
                             </div>
                         </div>
                         
@@ -397,27 +428,25 @@ export class BulkDeleteModal {
         html += '</div>';
         listContainer.innerHTML = html;
         
-        // Agregar event listeners a los checkboxes
         this.setupCheckboxListeners();
         
         console.log(`✅ ${this.filteredDocuments.length} documentos renderizados`);
     }
 
     /**
-     * CONFIGURAR LISTENERS PARA CHECKBOXES
+     * CONFIGURAR LISTENERS DE CHECKBOXES
      */
     setupCheckboxListeners() {
         const checkboxes = document.querySelectorAll('.document-modal-checkbox');
+        const items = document.querySelectorAll('.document-modal-item');
         
+        // Clonar para remover listeners antiguos
         checkboxes.forEach(checkbox => {
-            // Remover listeners anteriores
             checkbox.replaceWith(checkbox.cloneNode(true));
         });
         
-        // Re-seleccionar después de clonar
-        const newCheckboxes = document.querySelectorAll('.document-modal-checkbox');
-        
-        newCheckboxes.forEach(checkbox => {
+        // Agregar nuevos listeners
+        document.querySelectorAll('.document-modal-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
                 e.stopPropagation();
                 const documentId = checkbox.getAttribute('data-document-id');
@@ -425,11 +454,11 @@ export class BulkDeleteModal {
             });
         });
         
-        // También permitir clic en toda la fila
-        const items = document.querySelectorAll('.document-modal-item');
+        // Clic en toda la fila
         items.forEach(item => {
             item.addEventListener('click', (e) => {
-                if (e.target.type !== 'checkbox' && !e.target.closest('.document-modal-checkbox-container')) {
+                if (!e.target.closest('.document-modal-checkbox-container') && 
+                    !e.target.classList.contains('document-modal-checkbox')) {
                     const documentId = item.getAttribute('data-document-id');
                     this.toggleDocument(documentId);
                 }
@@ -438,41 +467,9 @@ export class BulkDeleteModal {
     }
 
     /**
-     * OBTENER CLASE CSS PARA EL ESTADO
-     */
-    getStatusClass(doc) {
-        if (!doc.fecha_vencimiento) return 'active';
-        
-        const fechaVencimiento = new Date(doc.fecha_vencimiento);
-        const hoy = new Date();
-        const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
-        
-        if (diferenciaDias <= 0) return 'expired';
-        if (diferenciaDias <= 7) return 'expiring';
-        return 'active';
-    }
-
-    /**
-     * OBTENER TEXTO PARA EL ESTADO
-     */
-    getStatusText(doc) {
-        if (!doc.fecha_vencimiento) return 'Activo';
-        
-        const fechaVencimiento = new Date(doc.fecha_vencimiento);
-        const hoy = new Date();
-        const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
-        
-        if (diferenciaDias <= 0) return 'Vencido';
-        if (diferenciaDias <= 7) return `Vence en ${diferenciaDias}d`;
-        return 'Activo';
-    }
-
-    /**
-     * TOGGLE SELECCIÓN DE DOCUMENTO
+     * TOGGLE DOCUMENTO
      */
     toggleDocument(documentId) {
-        console.log(`🔄 Toggle documento: ${documentId}`);
-        
         const wasSelected = bulkDeleteState.isSelected(documentId);
         
         if (wasSelected) {
@@ -481,26 +478,35 @@ export class BulkDeleteModal {
             bulkDeleteState.addDocument(documentId);
         }
         
-        // Actualizar UI del item
+        // Actualizar UI
         const item = document.querySelector(`.document-modal-item[data-document-id="${documentId}"]`);
         const checkbox = document.querySelector(`.document-modal-checkbox[data-document-id="${documentId}"]`);
         
-        if (item) {
-            item.classList.toggle('selected', !wasSelected);
-        }
+        if (item) item.classList.toggle('selected', !wasSelected);
+        if (checkbox) checkbox.checked = !wasSelected;
         
-        if (checkbox) {
-            checkbox.checked = !wasSelected;
-        }
-        
-        // Actualizar estadísticas
         this.updateStats();
         
-        console.log(`✅ Documento ${documentId} ${wasSelected ? 'deseleccionado' : 'seleccionado'}`);
+        // Feedback visual
+        if (!wasSelected) {
+            this.showSelectionFeedback(item);
+        }
     }
 
     /**
-     * SELECCIONAR TODOS LOS DOCUMENTOS
+     * MOSTRAR FEEDBACK DE SELECCIÓN
+     */
+    showSelectionFeedback(element) {
+        if (!element) return;
+        
+        element.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            element.style.transform = '';
+        }, 150);
+    }
+
+    /**
+     * SELECCIONAR TODOS
      */
     selectAll() {
         console.log('📋 Seleccionando todos los documentos visibles');
@@ -514,10 +520,11 @@ export class BulkDeleteModal {
         
         this.renderDocumentsList();
         this.updateStats();
+        showAlert(`Seleccionados ${this.filteredDocuments.length} documentos`, 'info');
     }
 
     /**
-     * DESELECCIONAR TODOS LOS DOCUMENTOS
+     * DESELECCIONAR TODOS
      */
     deselectAll() {
         console.log('📋 Deseleccionando todos los documentos');
@@ -528,7 +535,7 @@ export class BulkDeleteModal {
     }
 
     /**
-     * SELECCIONAR POR FILTRO ACTUAL
+     * SELECCIONAR POR FILTRO
      */
     selectByCurrentFilter() {
         console.log('🎯 Seleccionando documentos por filtro actual');
@@ -536,113 +543,127 @@ export class BulkDeleteModal {
     }
 
     /**
-     * ACTUALIZAR ESTADÍSTICAS
+     * ACTUALIZAR ESTADÍSTICAS Y UI
      */
     updateStats() {
-        console.log('📊 Actualizando estadísticas...');
-        
         const selectedCount = bulkDeleteState.getSelectedCount();
         const filteredCount = this.filteredDocuments.length;
         const totalCount = this.documents.length;
         
-        console.log('📊 Datos para estadísticas:', {
-            selectedCount,
-            filteredCount,
-            totalCount
-        });
+        // Actualizar contadores
+        this.updateCounter('totalDocumentsCount', totalCount);
+        this.updateCounter('filteredDocumentsCount', filteredCount);
+        this.updateCounter('selectedDocumentsCount', selectedCount);
+        this.updateCounter('deleteCount', selectedCount);
         
-        // Actualizar contadores - SOLO si los elementos existen
-        const elements = [
-            { id: 'totalDocumentsCount', value: totalCount },
-            { id: 'selectedDocumentsCount', value: selectedCount },
-            { id: 'filteredDocumentsCount', value: filteredCount },
-            { id: 'deleteCount', value: selectedCount }
-        ];
+        // Actualizar badge de documentos visibles
+        const visibleBadge = document.getElementById('visibleDocumentsBadge');
+        if (visibleBadge) {
+            visibleBadge.textContent = filteredCount;
+        }
         
-        elements.forEach(({ id, value }) => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value;
-                console.log(`✅ Actualizado ${id}: ${value}`);
-            }
-        });
-        
-        // Actualizar badge en botón de trigger si existe
-        const triggerBadge = document.querySelector('#bulkDeleteTriggerBtn .badge');
-        if (triggerBadge) {
-            triggerBadge.textContent = selectedCount;
-            triggerBadge.style.display = selectedCount > 0 ? 'inline-block' : 'none';
+        // Actualizar badge del botón de eliminar
+        const deleteBtnBadge = document.getElementById('deleteBtnBadge');
+        if (deleteBtnBadge) {
+            deleteBtnBadge.textContent = selectedCount;
+            deleteBtnBadge.style.display = selectedCount > 0 ? 'inline-block' : 'none';
         }
         
         // Mostrar/ocultar panel de confirmación
         const confirmPanel = document.getElementById('deleteConfirmation');
         if (confirmPanel) {
             confirmPanel.style.display = selectedCount > 0 ? 'block' : 'none';
-            console.log(`✅ Panel de confirmación: ${selectedCount > 0 ? 'visible' : 'oculto'}`);
         }
         
-        // Actualizar resumen de documentos seleccionados
+        // Actualizar badge del botón trigger
+        const triggerBadge = document.querySelector('#bulkDeleteTriggerBtn .badge');
+        if (triggerBadge) {
+            triggerBadge.textContent = selectedCount;
+            triggerBadge.style.display = selectedCount > 0 ? 'inline-block' : 'none';
+        }
+        
+        // Actualizar resumen
         if (selectedCount > 0) {
             this.updateSelectedSummary();
         }
         
-        console.log(`✅ Estadísticas actualizadas: ${selectedCount} seleccionados, ${filteredCount} filtrados, ${totalCount} totales`);
+        console.log(`📊 Estadísticas: ${selectedCount} seleccionados`);
     }
 
     /**
-     * ACTUALIZAR RESUMEN DE DOCUMENTOS SELECCIONADOS
+     * ACTUALIZAR CONTADOR
+     */
+    updateCounter(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = value;
+            // Animación para cambios
+            if (elementId.includes('selected') || elementId.includes('delete')) {
+                element.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    element.style.transform = '';
+                }, 200);
+            }
+        }
+    }
+
+    /**
+     * ACTUALIZAR RESUMEN DE SELECCIONADOS
      */
     updateSelectedSummary() {
         const summaryContainer = document.getElementById('selectedDocumentsSummary');
         if (!summaryContainer) return;
         
-        // Obtener información de documentos seleccionados
-        const selectedDocs = [];
         const selectedIds = bulkDeleteState.getSelectedIds();
-        
-        selectedIds.forEach(docId => {
-            const doc = this.documents.find(d => (d._id || d.id) === docId);
-            if (doc) {
-                selectedDocs.push(doc);
-            }
-        });
+        const selectedDocs = this.documents.filter(doc => 
+            selectedIds.includes(doc._id || doc.id)
+        );
         
         if (selectedDocs.length === 0) {
-            summaryContainer.innerHTML = '<p class="text-muted">No hay documentos seleccionados</p>';
+            summaryContainer.innerHTML = `
+                <div class="preview-placeholder">
+                    <i class="fas fa-files"></i>
+                    <p>No hay documentos seleccionados</p>
+                </div>
+            `;
             return;
         }
         
         let html = '';
-        
-        // Mostrar máximo 5 documentos en el resumen
         const docsToShow = selectedDocs.slice(0, 5);
         
         docsToShow.forEach(doc => {
             const fileIcon = getFileIcon(doc.tipo_archivo);
+            const fileSize = formatFileSize(doc.tamano_archivo);
+            
             html += `
                 <div class="selected-summary-item">
                     <div class="selected-summary-icon">
                         <i class="fas fa-file-${fileIcon}"></i>
                     </div>
                     <div class="selected-summary-info">
-                        <div class="selected-summary-name">${doc.nombre_original}</div>
+                        <div class="selected-summary-name" title="${doc.nombre_original}">
+                            ${doc.nombre_original}
+                        </div>
                         <div class="selected-summary-meta">
-                            ${doc.tipo_archivo} • ${doc.categoria} • ${formatFileSize(doc.tamano_archivo)}
+                            ${doc.tipo_archivo} • ${fileSize}
                         </div>
                     </div>
                     <div class="selected-summary-action">
-                        <i class="fas fa-trash-alt text-danger"></i>
+                        <i class="fas fa-trash-alt"></i>
                     </div>
                 </div>
             `;
         });
         
-        // Si hay más de 5 documentos, mostrar contador
+        // Si hay más documentos
         if (selectedDocs.length > 5) {
             const remaining = selectedDocs.length - 5;
             html += `
                 <div class="selected-summary-item text-center">
-                    <span class="text-muted">...y ${remaining} documento${remaining !== 1 ? 's' : ''} más</span>
+                    <span class="text-muted">
+                        ...y ${remaining} documento${remaining !== 1 ? 's' : ''} más
+                    </span>
                 </div>
             `;
         }
@@ -651,7 +672,7 @@ export class BulkDeleteModal {
     }
 
     /**
-     * CONFIRMAR SELECCIÓN (mostrar panel de confirmación)
+     * CONFIRMAR SELECCIÓN
      */
     confirmSelection() {
         const selectedCount = bulkDeleteState.getSelectedCount();
@@ -663,17 +684,29 @@ export class BulkDeleteModal {
         
         console.log(`✅ ${selectedCount} documentos confirmados para eliminación`);
         
-        // Hacer scroll al panel de confirmación
+        // Scroll al panel de confirmación
         const confirmPanel = document.getElementById('deleteConfirmation');
         if (confirmPanel) {
-            confirmPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            confirmPanel.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+            });
+            
+            // Efecto de highlight
+            confirmPanel.style.boxShadow = '0 0 0 2px rgba(255, 193, 7, 0.3)';
+            setTimeout(() => {
+                confirmPanel.style.boxShadow = '';
+            }, 1000);
         }
         
-        // Enfocar checkbox de confirmación
+        // Enfocar checkbox
         const confirmCheckbox = document.getElementById('confirmDeleteCheckbox');
         if (confirmCheckbox) {
             confirmCheckbox.focus();
         }
+        
+        showAlert(`Listo para eliminar ${selectedCount} documentos`, 'info');
     }
 
     /**
@@ -687,123 +720,38 @@ export class BulkDeleteModal {
             return;
         }
         
-        // Verificar confirmación
         const confirmCheckbox = document.getElementById('confirmDeleteCheckbox');
         if (!confirmCheckbox?.checked) {
             showAlert('Debes confirmar la acción marcando la casilla', 'warning');
+            confirmCheckbox?.focus();
             return;
         }
         
         const documentIds = bulkDeleteState.getSelectedIds();
         
-        console.group('🗑️ EJECUTANDO ELIMINACIÓN MÚLTIPLE');
+        console.group('🗑️ EJECUTANDO ELIMINACIÓN MÚLTIPLE MEJORADA');
         console.log('📋 IDs a eliminar:', documentIds);
-        console.log('📊 Cantidad:', selectedCount);
         
-        // Confirmación final
-        const userConfirmed = confirm(`¿Estás seguro de mover ${selectedCount} documentos a la papelera?`);
-        if (!userConfirmed) {
-            console.log('⚠️ Usuario canceló la eliminación');
-            console.groupEnd();
-            return;
-        }
+        // Mostrar preloader directamente
+        this.showPreloader(selectedCount);
         
         try {
-            // Mostrar loading
-            const loadingAlertId = `bulk-delete-${Date.now()}`;
-            showAlert(`Moviendo ${selectedCount} documentos a la papelera...`, 'info', 0, loadingAlertId);
+            // Mostrar estado de carga
+            this.showDeletingState(true);
             
-            // Deshabilitar botón durante la operación
-            const deleteBtn = document.getElementById('bulkExecuteDeleteBtn');
-            if (deleteBtn) {
-                deleteBtn.disabled = true;
-                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
-            }
-            
-            // CORRECCIÓN CRÍTICA: Usar la ruta correcta sin /api duplicado
-            // Dependiendo de tu config.js, usa:
-            // Si CONFIG.API_BASE_URL es 'http://localhost:4000' → '/api/documents/bulk-delete'
-            // Si CONFIG.API_BASE_URL es 'http://localhost:4000/api' → '/documents/bulk-delete'
-            
-            // Vamos a probar ambas opciones
-            let response;
-            let endpoint;
-            
-            try {
-                // Intentar primera opción (la más común)
-                endpoint = '/api/documents/bulk-delete';
-                console.log(`📡 Intentando con endpoint: ${endpoint}`);
-                response = await api.call(endpoint, {
-                    method: 'DELETE',
-                    body: JSON.stringify({ document_ids: documentIds }),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-            } catch (error) {
-                // Si falla, probar sin /api
-                console.log('⚠️ Primera opción falló, probando alternativa...');
-                endpoint = '/documents/bulk-delete';
-                console.log(`📡 Intentando con endpoint: ${endpoint}`);
-                response = await api.call(endpoint, {
-                    method: 'DELETE',
-                    body: JSON.stringify({ document_ids: documentIds }),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-            }
-            
-            // Ocultar alerta de carga
-            const loadingAlert = document.querySelector(`[data-alert-id="${loadingAlertId}"]`);
-            if (loadingAlert) loadingAlert.remove();
-            
-            // Rehabilitar botón
-            if (deleteBtn) {
-                deleteBtn.disabled = false;
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Ejecutar eliminación';
-            }
-            
-            console.log('📦 Respuesta del servidor:', response);
+            // Intentar eliminación masiva
+            const response = await this.performBulkDelete(documentIds);
             
             if (response.success) {
-                // Éxito
-                showAlert(response.message || `${selectedCount} documentos movidos a la papelera`, 'success');
-                
-                // Cerrar modal
-                this.close();
-                
-                // Limpiar selección
-                bulkDeleteState.deselectAll();
-                
-                // Recargar documentos globales
-                if (window.loadDocuments) {
-                    await window.loadDocuments();
-                }
-                
-                // Actualizar papelera
-                if (updateTrashBadge) {
-                    await updateTrashBadge();
-                }
-                
-                // Limpiar checkbox de confirmación
-                if (confirmCheckbox) {
-                    confirmCheckbox.checked = false;
-                }
-                
-                // Deshabilitar botón de eliminación
-                if (deleteBtn) {
-                    deleteBtn.disabled = true;
-                }
-                
-                console.log(`✅ ${selectedCount} documentos eliminados exitosamente`);
+                await this.handleSuccess(selectedCount, response.message);
             } else {
                 throw new Error(response.message || 'Error en la eliminación masiva');
             }
             
         } catch (error) {
             console.error('❌ Error en eliminación múltiple:', error);
-            showAlert(`Error al eliminar documentos: ${error.message}`, 'error');
+            this.hidePreloader();
+            this.showDeletingState(false);
             
             // Intentar eliminación individual como fallback
             await this.deleteIndividually(documentIds);
@@ -813,90 +761,350 @@ export class BulkDeleteModal {
     }
 
     /**
+     * MOSTRAR PRELOADER PROFESIONAL
+     */
+    showPreloader(selectedCount) {
+        // Crear o mostrar overlay de preloader
+        let preloader = document.getElementById('bulkDeletePreloader');
+        
+        if (!preloader) {
+            preloader = document.createElement('div');
+            preloader.id = 'bulkDeletePreloader';
+            preloader.className = 'bulk-delete-preloader';
+            preloader.innerHTML = `
+                <div class="preloader-container">
+                    <div class="preloader-spinner">
+                        <div class="spinner-circle"></div>
+                        <div class="spinner-circle"></div>
+                        <div class="spinner-circle"></div>
+                        <div class="spinner-circle"></div>
+                    </div>
+                    <div class="preloader-content">
+                        <h3 class="preloader-title">Moviendo documentos a la papelera</h3>
+                        <p class="preloader-message">
+                            Procesando <span class="count-highlight">${selectedCount}</span> documento${selectedCount !== 1 ? 's' : ''}...
+                        </p>
+                        <div class="preloader-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span class="progress-percentage">0%</span>
+                                <span class="progress-status">Iniciando...</span>
+                            </div>
+                        </div>
+                        <p class="preloader-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Esta acción puede tomar algunos segundos
+                        </p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(preloader);
+        } else {
+            // Actualizar contador si ya existe
+            const countElement = preloader.querySelector('.count-highlight');
+            if (countElement) {
+                countElement.textContent = selectedCount;
+            }
+            
+            // Resetear progreso
+            const percentageElement = preloader.querySelector('.progress-percentage');
+            const statusElement = preloader.querySelector('.progress-status');
+            const progressFill = preloader.querySelector('.progress-fill');
+            
+            if (percentageElement) percentageElement.textContent = '0%';
+            if (statusElement) statusElement.textContent = 'Iniciando...';
+            if (progressFill) progressFill.style.width = '0%';
+            
+            preloader.style.display = 'flex';
+        }
+        
+        // Animar el preloader
+        setTimeout(() => {
+            preloader.classList.add('active');
+        }, 10);
+        
+        console.log('🔄 Preloader mostrado para eliminación múltiple');
+    }
+
+    /**
+     * OCULTAR PRELOADER
+     */
+    hidePreloader() {
+        const preloader = document.getElementById('bulkDeletePreloader');
+        if (preloader) {
+            preloader.classList.remove('active');
+            
+            // Esperar a que termine la animación antes de ocultar
+            setTimeout(() => {
+                preloader.style.display = 'none';
+            }, 300);
+            
+            console.log('✅ Preloader ocultado');
+        }
+    }
+
+    /**
+     * ACTUALIZAR PROGRESO DEL PRELOADER
+     */
+    updatePreloaderProgress(percentage, status) {
+        const preloader = document.getElementById('bulkDeletePreloader');
+        if (!preloader) return;
+        
+        const percentageElement = preloader.querySelector('.progress-percentage');
+        const statusElement = preloader.querySelector('.progress-status');
+        const progressFill = preloader.querySelector('.progress-fill');
+        
+        if (percentageElement) {
+            percentageElement.textContent = `${Math.min(100, Math.max(0, percentage))}%`;
+        }
+        
+        if (statusElement && status) {
+            statusElement.textContent = status;
+        }
+        
+        if (progressFill) {
+            progressFill.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+            progressFill.style.transition = 'width 0.3s ease';
+        }
+    }
+
+    /**
+     * MOSTRAR ESTADO DE ELIMINACIÓN
+     */
+    showDeletingState(isDeleting) {
+        const deleteBtn = document.getElementById('bulkExecuteDeleteBtn');
+        if (!deleteBtn) return;
+        
+        if (isDeleting) {
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+            deleteBtn.classList.add('btn--loading');
+        } else {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Mover a papelera';
+            deleteBtn.classList.remove('btn--loading');
+        }
+    }
+
+    /**
+     * REALIZAR ELIMINACIÓN MASIVA
+     */
+    async performBulkDelete(documentIds) {
+        const endpoints = [
+            '/api/documents/bulk-delete',
+            '/documents/bulk-delete'
+        ];
+        
+        let lastError;
+        
+        // Actualizar preloader
+        this.updatePreloaderProgress(30, 'Conectando con el servidor...');
+        
+        for (const endpoint of endpoints) {
+            try {
+                console.log(`📡 Intentando endpoint: ${endpoint}`);
+                
+                this.updatePreloaderProgress(50, 'Enviando solicitud...');
+                
+                const response = await api.call(endpoint, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ document_ids: documentIds }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response && response.success !== undefined) {
+                    this.updatePreloaderProgress(80, 'Procesando respuesta...');
+                    return response;
+                }
+            } catch (error) {
+                lastError = error;
+                console.warn(`⚠️ Endpoint falló: ${endpoint}`, error);
+            }
+        }
+        
+        throw lastError || new Error('No se pudo conectar con el servidor');
+    }
+
+    /**
+     * MANEJAR ÉXITO DE ELIMINACIÓN
+     */
+    async handleSuccess(count, message) {
+        // Completar el progreso
+        this.updatePreloaderProgress(100, '¡Completado!');
+        
+        // Esperar un momento para mostrar el 100%
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        this.hidePreloader();
+        this.showDeletingState(false);
+        
+        showAlert(message || `${count} documentos movidos a la papelera`, 'success');
+        
+        // Cerrar modal
+        this.close();
+        
+        // Limpiar estado
+        bulkDeleteState.deselectAll();
+        
+        // Recargar documentos globales
+        if (window.loadDocuments) {
+            await window.loadDocuments();
+        }
+        
+        // Actualizar papelera
+        if (updateTrashBadge) {
+            await updateTrashBadge();
+        }
+        
+        console.log(`✅ ${count} documentos eliminados exitosamente`);
+    }
+
+    /**
      * ELIMINACIÓN INDIVIDUAL (FALLBACK)
      */
     async deleteIndividually(documentIds) {
-        console.log('🔄 Intentando eliminación individual...');
+        console.log('🔄 Intentando eliminación individual como fallback...');
         
+        const total = documentIds.length;
         let successCount = 0;
-        let errorCount = 0;
         
-        // Mostrar progreso
-        showAlert(`Eliminando documentos uno por uno...`, 'info');
+        // Mostrar nuevo preloader para eliminación individual
+        this.showPreloader(total);
+        this.updatePreloaderProgress(0, 'Iniciando eliminación individual...');
         
-        for (const documentId of documentIds) {
+        for (let i = 0; i < documentIds.length; i++) {
+            const docId = documentIds[i];
+            const progress = Math.round(((i + 1) / total) * 100);
+            
             try {
-                let response;
+                this.updatePreloaderProgress(
+                    progress, 
+                    `Eliminando documento ${i + 1} de ${total}...`
+                );
                 
-                // Intentar con diferentes endpoints
-                try {
-                    response = await api.call(`/api/documents/${documentId}`, {
-                        method: 'DELETE'
-                    });
-                } catch (error) {
-                    console.log('⚠️ Intentando alternativa sin /api...');
-                    response = await api.call(`/documents/${documentId}`, {
-                        method: 'DELETE'
-                    });
+                const endpoints = [
+                    `/api/documents/${docId}`,
+                    `/documents/${docId}`
+                ];
+                
+                let deleted = false;
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await api.call(endpoint, { method: 'DELETE' });
+                        if (response.success) {
+                            successCount++;
+                            deleted = true;
+                            break;
+                        }
+                    } catch (error) {
+                        // Continuar con siguiente endpoint
+                    }
                 }
                 
-                if (response.success) {
-                    successCount++;
-                    console.log(`✅ Documento ${documentId} movido a papelera`);
-                } else {
-                    errorCount++;
-                    console.error(`❌ Error con documento ${documentId}:`, response.message);
+                if (!deleted) {
+                    console.warn(`⚠️ No se pudo eliminar documento ${docId}`);
                 }
                 
             } catch (error) {
-                errorCount++;
-                console.error(`❌ Error con documento ${documentId}:`, error);
+                console.error(`❌ Error con documento ${docId}:`, error);
             }
+            
+            // Pequeña pausa para no saturar
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         // Mostrar resultados
         if (successCount > 0) {
-            showAlert(`${successCount} documentos movidos a la papelera${errorCount > 0 ? `, ${errorCount} fallaron` : ''}`, 
-                     errorCount > 0 ? 'warning' : 'success');
-            
-            // Cerrar modal
-            this.close();
-            
-            // Limpiar selección
-            bulkDeleteState.deselectAll();
-            
-            // Recargar documentos
-            if (window.loadDocuments) {
-                await window.loadDocuments();
-            }
-            
-            // Actualizar papelera
-            if (updateTrashBadge) {
-                await updateTrashBadge();
-            }
+            await this.handleSuccess(successCount, 
+                `${successCount} de ${total} documentos eliminados`);
         } else {
-            showAlert(`No se pudo eliminar ningún documento.`, 'error');
+            this.hidePreloader();
+            showAlert('No se pudo eliminar ningún documento', 'error');
         }
-        
-        console.log(`📊 Resultados: ${successCount} éxitos, ${errorCount} errores`);
     }
 
     /**
-     * MOSTRAR CONFIRMACIÓN AL CERRAR CON DOCUMENTOS SELECCIONADOS
+     * OBTENER ESTADO DEL DOCUMENTO
      */
-    showCloseConfirmation() {
-        const selectedCount = bulkDeleteState.getSelectedCount();
+    getDocumentStatus(doc) {
+        if (!doc.fecha_vencimiento) return 'active';
         
-        if (selectedCount > 0) {
-            const confirmClose = confirm(
-                `Tienes ${selectedCount} documento${selectedCount !== 1 ? 's' : ''} seleccionado${selectedCount !== 1 ? 's' : ''}. ` +
-                `¿Deseas mantener la selección o limpiarla?`
-            );
+        const fechaVencimiento = new Date(doc.fecha_vencimiento);
+        const hoy = new Date();
+        const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+        
+        if (diferenciaDias <= 0) return 'expired';
+        if (diferenciaDias <= 7) return 'expiring';
+        return 'active';
+    }
+
+    /**
+     * OBTENER TEXTO DE ESTADO
+     */
+    getStatusText(doc) {
+        if (!doc.fecha_vencimiento) return 'Activo';
+        
+        const fechaVencimiento = new Date(doc.fecha_vencimiento);
+        const hoy = new Date();
+        const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+        
+        if (diferenciaDias <= 0) return 'Vencido';
+        if (diferenciaDias <= 7) return `${diferenciaDias}d`;
+        return 'Activo';
+    }
+
+    /**
+     * MOSTRAR MODAL
+     */
+    showModal() {
+        this.modal.style.display = 'block';
+        document.body.classList.add('modal-open');
+        
+        setTimeout(() => {
+            this.modal.classList.add('show');
+            this.isOpen = true;
             
-            if (!confirmClose) {
-                bulkDeleteState.deselectAll();
-                console.log('✅ Selección limpiada al cerrar modal');
+            // Enfocar campo de búsqueda
+            const searchInput = document.getElementById('modalSearch');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
             }
+        }, 10);
+    }
+
+    /**
+     * CERRAR MODAL
+     */
+    close() {
+        if (!this.modal || !this.isOpen) return;
+        
+        console.log('📋 Cerrando modal de eliminación múltiple');
+        
+        this.modal.classList.remove('show');
+        
+        setTimeout(() => {
+            this.modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            this.isOpen = false;
+        }, 300);
+    }
+
+    /**
+     * ACTUALIZAR UI COMPLETA
+     */
+    updateUI() {
+        this.updateStats();
+        
+        // Actualizar texto del botón de vista
+        const toggleBtn = document.getElementById('toggleSelectionView');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = this.compactView ? 
+                '<i class="fas fa-th-large"></i> Vista normal' : 
+                '<i class="fas fa-th-list"></i> Vista compacta';
         }
     }
 
@@ -904,22 +1112,22 @@ export class BulkDeleteModal {
      * DEBUG: MOSTRAR ESTADO DEL MODAL
      */
     debug() {
-        console.group('🐛 DEBUG - BulkDeleteModal');
+        console.group('🐛 DEBUG - BulkDeleteModal Mejorado');
         
         console.log('📊 Estado:', {
             abierto: this.isOpen,
             inicializado: this.isInitialized,
+            vistaCompacta: this.compactView,
             documentosCargados: this.documents.length,
             documentosFiltrados: this.filteredDocuments.length,
-            modalPresente: !!this.modal
+            seleccionados: bulkDeleteState.getSelectedCount()
         });
         
-        console.log('👁️ Elementos UI:');
-        console.table({
-            'Lista de documentos': document.getElementById('modalDocumentsList') ? 'Presente' : 'Ausente',
+        console.log('👁️ Elementos UI:', {
+            'Modal': this.modal ? 'Presente' : 'Ausente',
+            'Lista documentos': document.getElementById('modalDocumentsList') ? 'Presente' : 'Ausente',
             'Panel confirmación': document.getElementById('deleteConfirmation') ? 'Presente' : 'Ausente',
-            'Botón ejecutar': document.getElementById('bulkExecuteDeleteBtn') ? 'Presente' : 'Ausente',
-            'Checkbox confirmación': document.getElementById('confirmDeleteCheckbox') ? 'Presente' : 'Ausente'
+            'Botón eliminar': document.getElementById('bulkExecuteDeleteBtn') ? 'Presente' : 'Ausente'
         });
         
         bulkDeleteState.debug();
@@ -930,17 +1138,25 @@ export class BulkDeleteModal {
     }
 
     /**
-     * TEST: SIMULAR SELECCIÓN DE DOCUMENTOS
+     * TEST: SIMULAR SELECCIÓN
      */
     test() {
-        console.group('🧪 TEST - BulkDeleteModal');
+        console.group('🧪 TEST - BulkDeleteModal Mejorado');
         
-        // Abrir modal si no está abierto
         if (!this.isOpen) {
             this.open();
+            setTimeout(() => this.performTest(), 500);
+        } else {
+            this.performTest();
         }
         
-        // Seleccionar primeros 3 documentos
+        console.groupEnd();
+    }
+
+    /**
+     * EJECUTAR TEST
+     */
+    performTest() {
         const documents = this.documents || [];
         if (documents.length >= 3) {
             const testIds = documents.slice(0, 3)
@@ -958,14 +1174,19 @@ export class BulkDeleteModal {
             this.renderDocumentsList();
             this.updateStats();
             
+            // Mostrar panel de confirmación
+            const confirmPanel = document.getElementById('deleteConfirmation');
+            if (confirmPanel) {
+                confirmPanel.style.display = 'block';
+                confirmPanel.scrollIntoView({ behavior: 'smooth' });
+            }
+            
             console.log('✅ Test configurado: 3 documentos seleccionados');
-            showAlert('Test configurado: 3 documentos seleccionados. Usa el panel de confirmación.', 'info');
+            showAlert('Test configurado: 3 documentos seleccionados', 'info');
         } else {
             console.warn('⚠️ No hay suficientes documentos para el test');
             showAlert('Necesitas al menos 3 documentos para probar', 'warning');
         }
-        
-        console.groupEnd();
     }
 }
 
@@ -975,7 +1196,6 @@ export const bulkDeleteModal = new BulkDeleteModal();
 // Auto-inicializar cuando se carga el DOM
 if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
-        // Inicializar con delay para asegurar que el DOM esté listo
         setTimeout(() => {
             bulkDeleteModal.init();
         }, 1000);

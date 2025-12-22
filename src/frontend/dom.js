@@ -171,12 +171,6 @@ const DOM = {
     filterType: document.getElementById('filterType'),
     
     /**
-     * 10.3 Filtro por fecha
-     * Dropdown para filtrar documentos por rango de tiempo.
-     */
-    filterDate: document.getElementById('filterDate'),
-    
-    /**
      * 10.4 Filtro por estado
      * Dropdown para filtrar documentos por estado de vencimiento.
      */
