@@ -188,6 +188,27 @@
         .input-wrapper {
             position: relative;
         }
+
+        /* Estilos para el enlace de recuperación */
+        .forgot-password-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .forgot-password-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+
+        .forgot-password-link a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -222,8 +243,11 @@
                     <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
                 </button>
 
-                <div class="auth-link">
-                    <a href="#" id="showForgotPassword">¿Olvidaste tu contraseña?</a>
+                <!-- CORRECCIÓN: Enlace directo a la página de recuperación -->
+                <div class="forgot-password-link">
+                    <a href="forgot-password-step1.html">
+                        <i class="fas fa-key"></i> ¿Olvidaste tu contraseña?
+                    </a>
                 </div>
                 
                 <div class="auth-link" id="registerLinkContainer" style="margin-top: 10px; text-align: center; display: none;">
@@ -265,21 +289,8 @@
                 </button>
             </form>
 
-            <!-- Formulario de Recuperación -->
-            <form id="forgotPasswordForm" class="auth-form hidden">
-                <div class="form-group">
-                    <label for="forgotEmail" class="form-label">Correo Electrónico</label>
-                    <input type="email" id="forgotEmail" class="form-input" placeholder="tu@correo.com" required>
-                </div>
-
-                <button type="submit" class="btn-primary" id="forgotBtn">
-                    <i class="fas fa-paper-plane"></i> Enviar Enlace de Recuperación
-                </button>
-
-                <div class="auth-link">
-                    <a href="#" id="backToLogin">Volver al inicio de sesión</a>
-                </div>
-            </form>
+            <!-- CORRECCIÓN: Eliminado el formulario de recuperación interno -->
+            <!-- Ya no es necesario porque redirigimos a otra página -->
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
@@ -289,5 +300,32 @@
     </div>
 
     <script type="module" src="/src/frontend/auth.js"></script>
+    <script>
+        // Script para manejar la visibilidad de contraseñas
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle password visibility
+            const togglePassword = (buttonId, inputId) => {
+                const button = document.getElementById(buttonId);
+                const input = document.getElementById(inputId);
+                
+                if (button && input) {
+                    button.addEventListener('click', function() {
+                        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                        input.setAttribute('type', type);
+                        this.classList.toggle('fa-eye');
+                        this.classList.toggle('fa-eye-slash');
+                    });
+                }
+            };
+
+            // Configurar toggles de contraseña
+            togglePassword('toggleLoginPassword', 'loginPassword');
+            togglePassword('toggleRegisterPassword', 'registerPassword');
+            togglePassword('toggleRegisterPasswordConfirm', 'registerPasswordConfirm');
+
+            // Eliminar eventos de formularios de recuperación que ya no existen
+            // Los formularios de recuperación están en páginas separadas
+        });
+    </script>
 </body>
 </html>
