@@ -1,8 +1,49 @@
-// auth.js - Manejo de autenticación en el frontend
+// src/frontend/auth.js
+// Módulo ES6 para autenticación
+
 const API_URL = window.location.origin;
 
+// Exportar funciones principales que necesiten ser accesibles globalmente
+export function showAlert(message, type = 'success') {
+    const container = document.getElementById('alertContainer');
+    if (!container) return;
+    
+    const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+    
+    container.innerHTML = `
+        <div class="alert alert-${type}">
+            <i class="fas fa-${icon}"></i>
+            ${message}
+        </div>
+    `;
+    
+    setTimeout(() => {
+        if (container.innerHTML.includes('alert')) {
+            container.innerHTML = '';
+        }
+    }, 5000);
+}
+
+export function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const buttonId = `toggle${inputId.charAt(0).toUpperCase() + inputId.slice(1)}`;
+    const button = document.getElementById(buttonId);
+    
+    if (input && button) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            button.classList.remove('fa-eye');
+            button.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            button.classList.remove('fa-eye-slash');
+            button.classList.add('fa-eye');
+        }
+    }
+}
+
 // Verificar si ya existe un administrador
-async function checkAdminExists() {
+export async function checkAdminExists() {
     try {
         const response = await fetch(`${API_URL}/api/auth/check-admin`);
         const data = await response.json();
@@ -19,50 +60,30 @@ async function checkAdminExists() {
 }
 
 // Mostrar formularios
-function showLoginForm() {
+export function showLoginForm() {
     document.getElementById('authTitle').textContent = 'Iniciar Sesión';
     document.getElementById('authSubtitle').textContent = 'Accede al sistema de gestión';
     document.getElementById('loginForm').classList.remove('hidden');
     document.getElementById('registerForm').classList.add('hidden');
-    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    
     // Ocultar enlace de registro cuando ya hay admin
     const registerLink = document.getElementById('registerLinkContainer');
     if (registerLink) registerLink.style.display = 'none';
 }
 
-function showRegisterForm() {
+export function showRegisterForm() {
     document.getElementById('authTitle').textContent = 'Registrar Administrador';
     document.getElementById('authSubtitle').textContent = 'Crea la cuenta del primer administrador';
     document.getElementById('loginForm').classList.add('hidden');
     document.getElementById('registerForm').classList.remove('hidden');
-    document.getElementById('forgotPasswordForm').classList.add('hidden');
+    
     // Mostrar enlace de registro solo cuando NO hay admin
     const registerLink = document.getElementById('registerLinkContainer');
     if (registerLink) registerLink.style.display = 'block';
 }
 
-function showForgotPasswordForm() {
-    document.getElementById('authTitle').textContent = 'Recuperar Contraseña';
-    document.getElementById('authSubtitle').textContent = 'Te enviaremos un enlace a tu correo';
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.add('hidden');
-    document.getElementById('forgotPasswordForm').classList.remove('hidden');
-}
-
-// Mostrar alertas
-function showAlert(message, type = 'success') {
-    const container = document.getElementById('alertContainer');
-    container.innerHTML = `
-        <div class="alert alert-${type}">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-            ${message}
-        </div>
-    `;
-    setTimeout(() => container.innerHTML = '', 5000);
-}
-
 // Alternar visibilidad de contraseña
-function setupPasswordToggles() {
+export function setupPasswordToggles() {
     document.querySelectorAll('.password-toggle').forEach(toggle => {
         toggle.addEventListener('click', function() {
             const input = this.previousElementSibling;
@@ -74,11 +95,12 @@ function setupPasswordToggles() {
     });
 }
 
-// Login
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+// Login handler
+export async function handleLogin(e) {
     e.preventDefault();
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
     
     try {
         const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -99,16 +121,19 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             setTimeout(() => window.location.href = '/', 1500);
         } else {
             showAlert(data.message || 'Error al iniciar sesión', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
         }
     } catch (error) {
+        console.error('Error en login:', error);
         showAlert('Error al iniciar sesión', 'error');
-    } finally {
         btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
     }
-});
+}
 
-// Registro
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
+// Registro handler
+export async function handleRegister(e) {
     e.preventDefault();
     const btn = document.getElementById('registerBtn');
     
@@ -121,6 +146,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     }
     
     btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
     
     try {
         const response = await fetch(`${API_URL}/api/auth/register`, {
@@ -142,58 +168,57 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
             setTimeout(() => window.location.href = '/', 1500);
         } else {
             showAlert(data.message || 'Error al registrar', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
         }
     } catch (error) {
+        console.error('Error en registro:', error);
         showAlert('Error al registrar', 'error');
-    } finally {
         btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
     }
-});
+}
 
-// Recuperación de contraseña
-document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('forgotBtn');
-    btn.disabled = true;
+// Inicialización del módulo
+export function initializeAuth() {
+    // Configurar eventos
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const showRegisterLink = document.getElementById('showRegisterFromLogin');
     
-    try {
-        const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                correo: document.getElementById('forgotEmail').value
-            })
-        });
-        
-        const data = await response.json();
-        showAlert(data.message, data.success ? 'success' : 'error');
-        
-        if (data.success) {
-            setTimeout(showLoginForm, 3000);
-        }
-    } catch (error) {
-        showAlert('Error al enviar correo', 'error');
-    } finally {
-        btn.disabled = false;
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
     }
-});
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegister);
+    }
+    
+    if (showRegisterLink) {
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showRegisterForm();
+        });
+    }
+    
+    // Configurar toggles de contraseña
+    setupPasswordToggles();
+    
+    // Verificar si existe administrador
+    checkAdminExists();
+}
 
-// Event listeners
-document.getElementById('showForgotPassword').addEventListener('click', (e) => {
-    e.preventDefault();
-    showForgotPasswordForm();
-});
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', initializeAuth);
 
-document.getElementById('backToLogin').addEventListener('click', (e) => {
-    e.preventDefault();
-    showLoginForm();
-});
-
-document.getElementById('showRegisterFromLogin')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showRegisterForm();
-});
-
-// Inicializar
-setupPasswordToggles();
-checkAdminExists();
+// Exportar por defecto en dado caso que se necesite en otros módulos (opcional eh)
+export default {
+    showAlert,
+    togglePassword,
+    checkAdminExists,
+    showLoginForm,
+    showRegisterForm,
+    handleLogin,
+    handleRegister,
+    initializeAuth
+};

@@ -12,13 +12,12 @@ import PDFDocument from 'pdfkit';
 import dotenv from 'dotenv';
 
 // Importar rutas de autenticación
-import authRoutes from './src/backend/routes/auth.js';
+import authRoutes from './src/backend/routes/authRoutes.js';
 
 import Document from './src/backend/models/Document.js';
 import Person from './src/backend/models/Person.js';
 import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
-import Task from './src/backend/models/Task.js';
 
 dotenv.config();
 
@@ -64,10 +63,6 @@ import NotificationService from './src/backend/services/notificationService.js';
 // -----------------------------
 // Configuración de Multer
 // -----------------------------
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -1254,6 +1249,96 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
       message: 'Error al actualizar documento: ' + error.message 
     });
   }
+});
+
+app.delete('/documents/bulk-delete', async (req, res) => {
+    try {
+        const { document_ids } = req.body;
+        
+        console.log(`🗑️ Solicitud de eliminación masiva para ${document_ids?.length || 0} documentos`);
+        
+        // Validar entrada
+        if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Debe proporcionar una lista de IDs de documentos'
+            });
+        }
+        
+        // Validar que no exceda el límite (opcional)
+        if (document_ids.length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se pueden eliminar más de 100 documentos a la vez'
+            });
+        }
+        
+        // Mover documentos a la papelera
+        const results = [];
+        
+        for (const documentId of document_ids) {
+            try {
+                // Buscar documento
+                const document = await Document.findByPk(documentId);
+                
+                if (!document) {
+                    results.push({
+                        id: documentId,
+                        success: false,
+                        message: 'Documento no encontrado'
+                    });
+                    continue;
+                }
+                
+                // Verificar que no esté ya en la papelera
+                if (document.deleted_at) {
+                    results.push({
+                        id: documentId,
+                        success: false,
+                        message: 'El documento ya está en la papelera'
+                    });
+                    continue;
+                }
+                
+                // Mover a papelera (soft delete)
+                document.deleted_at = new Date();
+                await document.save();
+                
+                results.push({
+                    id: documentId,
+                    success: true,
+                    message: 'Documento movido a la papelera'
+                });
+                
+            } catch (error) {
+                results.push({
+                    id: documentId,
+                    success: false,
+                    message: error.message
+                });
+            }
+        }
+        
+        // Calcular estadísticas
+        const successful = results.filter(r => r.success).length;
+        const failed = results.filter(r => !r.success).length;
+        
+        return res.json({
+            success: true,
+            message: `${successful} documentos movidos a la papelera${failed > 0 ? `, ${failed} fallaron` : ''}`,
+            total: document_ids.length,
+            successful,
+            failed,
+            results
+        });
+        
+    } catch (error) {
+        console.error('Error en eliminación masiva:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error interno del servidor'
+        });
+    }
 });
 
 // =============================================================================
@@ -2531,78 +2616,6 @@ app.post('/api/reports/csv', async (req, res) => {
   }
 });
 
-// -----------------------------
-// TAREAS
-// -----------------------------
-
-// Obtener todas las tareas
-app.get('/api/tasks', async (req, res) => {
-    try {
-        const tasks = await Task.find({ activo: true })
-            .sort({ fecha_creacion: -1 })
-            .lean();
-
-        res.json({ 
-            success: true, 
-            tasks 
-        });
-    } catch (error) {
-        console.error('Error obteniendo tareas:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al obtener tareas' 
-        });
-    }
-});
-
-// Crear nueva tarea
-app.post('/api/tasks', async (req, res) => {
-    try {
-        const { 
-            titulo, 
-            descripcion, 
-            prioridad, 
-            estado, 
-            categoria, 
-            recordatorio, 
-            fecha_limite, 
-            hora_limite 
-        } = req.body;
-
-        if (!titulo) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'El título es obligatorio' 
-            });
-        }
-
-        const nuevaTarea = new Task({
-            titulo,
-            descripcion: descripcion || '',
-            prioridad: prioridad || 'media',
-            estado: estado || 'pendiente',
-            categoria: categoria || '',
-            recordatorio: recordatorio || false,
-            fecha_limite: fecha_limite || null,
-            hora_limite: hora_limite || null
-        });
-
-        await nuevaTarea.save();
-
-        res.json({ 
-            success: true, 
-            message: 'Tarea creada correctamente',
-            task: nuevaTarea 
-        });
-    } catch (error) {
-        console.error('Error creando tarea:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al crear tarea' 
-        });
-    }
-});
-
 // ============================================================================
 // DESCARGA DE DOCUMENTOS (FUNCIONA PDF, IMÁGENES, OFFICE, TXT, TODO)
 // ============================================================================
@@ -2957,209 +2970,6 @@ app.get('/api/documents/:id/content', async (req, res) => {
     }
 });
 
-// Actualizar tarea
-app.put('/api/tasks/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { 
-            titulo, 
-            descripcion, 
-            prioridad, 
-            estado, 
-            categoria, 
-            recordatorio, 
-            fecha_limite, 
-            hora_limite 
-        } = req.body;
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'ID inválido' 
-            });
-        }
-
-        if (!titulo) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'El título es obligatorio' 
-            });
-        }
-
-        const tareaActualizada = await Task.findByIdAndUpdate(
-            id,
-            {
-                titulo,
-                descripcion,
-                prioridad,
-                estado,
-                categoria,
-                recordatorio,
-                fecha_limite,
-                hora_limite,
-                fecha_actualizacion: new Date()
-            },
-            { new: true, runValidators: true }
-        );
-
-        if (!tareaActualizada) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Tarea no encontrada' 
-            });
-        }
-
-        res.json({ 
-            success: true, 
-            message: 'Tarea actualizada correctamente',
-            task: tareaActualizada 
-        });
-    } catch (error) {
-        console.error('Error actualizando tarea:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al actualizar tarea' 
-        });
-    }
-});
-
-// Eliminar tarea (eliminación lógica)
-app.delete('/api/tasks/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'ID inválido' 
-            });
-        }
-
-        const tareaEliminada = await Task.findByIdAndUpdate(
-            id,
-            { activo: false },
-            { new: true }
-        );
-
-        if (!tareaEliminada) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Tarea no encontrada' 
-            });
-        }
-
-        res.json({ 
-            success: true, 
-            message: 'Tarea eliminada correctamente' 
-        });
-    } catch (error) {
-        console.error('Error eliminando tarea:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al eliminar tarea' 
-        });
-    }
-});
-
-// Cambiar estado de tarea
-app.patch('/api/tasks/:id/status', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { estado } = req.body;
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'ID inválido' 
-            });
-        }
-
-        const estadosPermitidos = ['pendiente', 'en-progreso', 'completada'];
-        if (!estadosPermitidos.includes(estado)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Estado no válido' 
-            });
-        }
-
-        const tareaActualizada = await Task.findByIdAndUpdate(
-            id,
-            { 
-                estado,
-                fecha_actualizacion: new Date()
-            },
-            { new: true }
-        );
-
-        if (!tareaActualizada) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Tarea no encontrada' 
-            });
-        }
-
-        res.json({ 
-            success: true, 
-            message: `Tarea marcada como ${estado}`,
-            task: tareaActualizada 
-        });
-    } catch (error) {
-        console.error('Error cambiando estado de tarea:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al cambiar estado de tarea' 
-        });
-    }
-});
-
-// Obtener estadísticas de tareas
-app.get('/api/tasks/stats', async (req, res) => {
-    try {
-        const totalTareas = await Task.countDocuments({ activo: true });
-        const tareasPendientes = await Task.countDocuments({ 
-            activo: true, 
-            estado: 'pendiente' 
-        });
-        const tareasEnProgreso = await Task.countDocuments({ 
-            activo: true, 
-            estado: 'en-progreso' 
-        });
-        const tareasCompletadas = await Task.countDocuments({ 
-            activo: true, 
-            estado: 'completada' 
-        });
-
-        // Tareas próximas a vencer (en los próximos 7 días)
-        const fechaLimite = new Date();
-        fechaLimite.setDate(fechaLimite.getDate() + 7);
-        const tareasPorVencer = await Task.countDocuments({
-            activo: true,
-            estado: { $ne: 'completada' },
-            fecha_limite: { 
-                $gte: new Date(), 
-                $lte: fechaLimite 
-            }
-        });
-
-        res.json({
-            success: true,
-            stats: {
-                total: totalTareas,
-                pendientes: tareasPendientes,
-                enProgreso: tareasEnProgreso,
-                completadas: tareasCompletadas,
-                porVencer: tareasPorVencer
-            }
-        });
-    } catch (error) {
-        console.error('Error obteniendo estadísticas de tareas:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al obtener estadísticas' 
-        });
-    }
-});
-
 // -----------------------------
 // Manejo de errores
 // -----------------------------
@@ -3372,6 +3182,27 @@ app.get('*', (req, res, next) => {
   }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Verificar configuración de email al iniciar
+console.log('');
+console.log('🔍 ========== CONFIGURACIÓN DEL SISTEMA ==========');
+console.log(`🚀 Puerto: ${process.env.PORT || 4000}`);
+console.log(`🗄️ MongoDB: ${process.env.MONGODB_URI ? '✅ Configurado' : '❌ No configurado'}`);
+console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ ' + process.env.EMAIL_USER : '❌ No configurado'}`);
+console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:4000'}`);
+console.log('🔍 ===============================================');
+console.log('');
+
+// Si no hay email configurado, mostrar mensaje
+if (!process.env.EMAIL_USER && !process.env.SMTP_USER) {
+  console.log('');
+  console.log('⚠️  IMPORTANTE: Credenciales de Email no encontradas');
+  console.log('   Los códigos de recuperación aparecerán en la consola del servidor');
+  console.log('   Para enviar emails reales, configura las variables en .env:');
+  console.log('   EMAIL_USER=tu_correo@gmail.com');
+  console.log('   EMAIL_PASS=tu_app_password');
+  console.log('');
+}
 
 // -----------------------------
 // Iniciar servidor
