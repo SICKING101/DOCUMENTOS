@@ -1,0 +1,256 @@
+/* Estilos para los controles alineados */
+.vencidos-header-controls .filter-select {
+  background: #fff;
+  color: #23272f;
+  border: 1px solid #d1d5db;
+  font-weight: 500;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+  /* Show dropdown arrow clearly in light mode */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23333" height="16" viewBox="0 0 20 20" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M5.516 7.548a.75.75 0 0 1 1.06 0L10 10.97l3.424-3.423a.75.75 0 1 1 1.06 1.06l-3.954 3.954a.75.75 0 0 1-1.06 0L5.516 8.608a.75.75 0 0 1 0-1.06z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.1em;
+  padding-right: 2.2em;
+}
+body.dark-theme .vencidos-header-controls .filter-select {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  /* Use a light arrow in dark mode */
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23fff" height="16" viewBox="0 0 20 20" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M5.516 7.548a.75.75 0 0 1 1.06 0L10 10.97l3.424-3.423a.75.75 0 1 1 1.06 1.06l-3.954 3.954a.75.75 0 0 1-1.06 0L5.516 8.608a.75.75 0 0 1 0-1.06z"/></svg>');
+}
+
+/* Estilos inspirados en documentos-filters para vencidos */
+.vencidos-panel {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Unificar estilo con panel de filtros de documentos */
+.vencidos-panel {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.vencidos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.vencidos-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--danger);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.vencidos-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.vencidos-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+.vencidos-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    margin-right: 2rem;
+    flex-wrap: nowrap;
+}
+/* Ensure button is to the right of dropdown */
+.vencidos-header-controls select.filter-select {
+  order: 1;
+    min-width: 160px;
+}
+.vencidos-header-controls .btn {
+  order: 2;
+  margin-left: 0.75rem;
+  min-width: 100px;
+}
+.vencidos-list {
+  margin-top: var(--spacing-md);
+}
+/* ===== DOCUMENTOS VENCIDOS ===== */
+
+.vencidos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+/* CARD VENCIDO MODERNO Y DESTACADO */
+.vencido-card {
+  background: linear-gradient(120deg, #fee2e2 0%, #f8fafc 100%);
+  border: 2px solid var(--danger);
+  border-radius: 1.25rem;
+  padding: 2.2rem 2.5rem 2.2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 32px 0 rgba(239,68,68,0.10), 0 1.5px 8px 0 rgba(0,0,0,0.04);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: var(--spacing-lg);
+  gap: 2.2rem;
+  animation: fadeInVencidoCard 0.7s cubic-bezier(0.4,0,0.2,1);
+  transition: box-shadow 0.25s, border-color 0.25s, transform 0.18s;
+}
+.vencido-card::before {
+  content: '';
+  position: absolute;
+  left: -60px;
+  top: -60px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, #ef4444 0%, #fee2e2 80%, transparent 100%);
+  opacity: 0.13;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(2px);
+}
+.vencido-card:hover {
+  box-shadow: 0 12px 40px 0 rgba(239,68,68,0.18), 0 2px 12px 0 rgba(0,0,0,0.10);
+  border-color: #b91c1c;
+  transform: translateY(-3px) scale(1.025);
+}
+@keyframes fadeInVencidoCard {
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Info y icono grande */
+.vencido-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  z-index: 1;
+}
+.vencido-icon {
+  color: #ef4444;
+  font-size: 2.8rem;
+  margin-right: 1.2rem;
+  background: linear-gradient(135deg, #ef4444 60%, #f59e0b 100%);
+  border-radius: 1.5rem;
+  padding: 0.7rem 1.1rem 0.7rem 0.9rem;
+  box-shadow: 0 2px 12px 0 rgba(239,68,68,0.13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Nombre y detalles destacados */
+.vencido-nombre {
+  font-weight: 800;
+  color: #b91c1c;
+  font-size: 1.22rem;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 #fff, 0 2px 8px #fee2e2;
+  margin-bottom: 0.1rem;
+}
+.vencido-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.2rem;
+  font-size: 0.97rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.2rem;
+}
+.vencido-badge {
+  display: inline-block;
+  background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 1rem;
+  padding: 0.22em 0.95em;
+  letter-spacing: 0.04em;
+  box-shadow: 0 1px 4px 0 rgba(239,68,68,0.10);
+  margin-left: 0.5rem;
+  text-shadow: 0 1px 2px #b91c1c33;
+}
+/* Acciones con animación y separación */
+.vencido-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.1rem;
+  margin-left: 2.2rem;
+  z-index: 1;
+}
+.vencido-actions .btn {
+  min-width: 120px;
+  font-size: 1.01rem;
+  border-radius: 1.2rem;
+  box-shadow: 0 2px 8px 0 rgba(239,68,68,0.07);
+  padding: 0.65rem 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+}
+.vencido-actions .btn--success {
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  color: #fff;
+}
+.vencido-actions .btn--danger {
+  background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
+  color: #fff;
+}
+.vencido-actions .btn:hover {
+  transform: scale(1.06) translateY(-2px);
+  box-shadow: 0 4px 16px 0 rgba(239,68,68,0.13);
+}
+body.dark-theme .vencido-card {
+  background: linear-gradient(120deg, #1e293b 0%, #0f172a 100%);
+  border-color: #ef4444;
+  box-shadow: 0 8px 32px 0 rgba(239,68,68,0.13), 0 1.5px 8px 0 rgba(0,0,0,0.10);
+}
+body.dark-theme .vencido-card::before {
+  background: radial-gradient(circle, #ef4444 0%, #1e293b 80%, transparent 100%);
+}
+body.dark-theme .vencido-nombre {
+  color: #f87171;
+  text-shadow: 0 1px 0 #23272f, 0 2px 8px #1e293b;
+}
+body.dark-theme .vencido-badge {
+  background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+  color: #fff;
+  text-shadow: 0 1px 2px #23272f99;
+}

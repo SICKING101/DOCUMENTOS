@@ -1,3 +1,110 @@
+/* Corrección: Iconos de historial y papelera en modo oscuro */
+body.dark-theme .stat-card__icon,
+body.dark-theme .trash-stat-icon {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+}
+body.dark-theme .stat-card__icon--history {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+    color: #38bdf8 !important;
+}
+body.dark-theme .stat-card__icon--unread {
+    background: linear-gradient(135deg, #facc15 0%, #f59e42 100%) !important;
+    color: #23272f !important;
+}
+body.dark-theme .stat-card__icon--today {
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%) !important;
+    color: #23272f !important;
+}
+body.dark-theme .stat-card__icon--critical {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+    color: #fff !important;
+}
+/* Corrección: Sección de papelera en modo oscuro */
+body.dark-theme #papelera.tab-content,
+body.dark-theme .trash-stat-card {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+body.dark-theme .section__title,
+body.dark-theme .section__subtitle {
+    color: var(--text-primary) !important;
+}
+body.dark-theme .section__title i,
+body.dark-theme .trash-stat-icon {
+    background: var(--bg-secondary) !important;
+    color: var(--trash-primary) !important;
+}
+body.dark-theme .trash-stat-icon.stat-size {
+    color: var(--trash-info) !important;
+}
+body.dark-theme .trash-stat-icon.stat-danger {
+    color: var(--trash-danger) !important;
+}
+/* Corrección: Spinner preloader en modo oscuro */
+body.dark-theme .preloader__spinner,
+body.dark-theme .preloader-inline__spinner {
+    border: 3px solid var(--border-color-light) !important;
+    border-top-color: var(--primary) !important;
+}
+body.dark-theme .preloader__text {
+    color: var(--text-secondary) !important;
+}
+/* Corrección: Modales de acción de tareas en modo oscuro */
+body.dark-theme .action-modal__content,
+body.dark-theme .action-modal__message {
+    color: var(--text-primary) !important;
+    background: var(--bg-secondary) !important;
+}
+body.dark-theme .action-modal__icon--success {
+    color: #22c55e !important;
+}
+body.dark-theme .action-modal__icon--warning {
+    color: #facc15 !important;
+}
+body.dark-theme .action-modal__icon--error {
+    color: #ef4444 !important;
+}
+body.dark-theme .action-modal__icon--info {
+    color: #38bdf8 !important;
+}
+/* Corrección: Forzar color claro en el buscador de tareas y sus inputs/selects en modo oscuro */
+body.dark-theme #tareas .filters-bar,
+body.dark-theme #tareas .filters-bar input,
+body.dark-theme #tareas .filters-bar select {
+    color: var(--text-primary) !important;
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border) !important;
+}
+body.dark-theme #tareas .filters-bar .search-icon,
+body.dark-theme #tareas .filters-bar .search-clear {
+    color: var(--text-secondary) !important;
+}
+/* Corrección: Forzar color de texto claro en inputs, labels y botones dentro de modales en modo oscuro */
+body.dark-theme .modal__content,
+body.dark-theme .modal__body,
+body.dark-theme .modal__footer,
+body.dark-theme .modal__header {
+    color: var(--text-primary) !important;
+}
+body.dark-theme .modal__content input,
+body.dark-theme .modal__content textarea,
+body.dark-theme .modal__content select {
+    color: var(--text-primary) !important;
+    background: var(--bg-primary) !important;
+    border-color: var(--border) !important;
+}
+body.dark-theme .modal__content label {
+    color: var(--text-secondary) !important;
+}
+body.dark-theme .modal__content button,
+body.dark-theme .modal__footer button {
+    color: var(--text-primary) !important;
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border) !important;
+}
 /* Variables para el tema oscuro */
 body.dark-theme {
     /* Colores invertidos para modo oscuro */

@@ -292,47 +292,41 @@ function getDocumentStatus(doc) {
 /**
  * CREAR BOTONES DE ACCIONES
  */
+// Solo mostrar los botones de Renovar y Eliminar para documentos vencidos
 function createActionButtons(doc, canPreview) {
     const docId = doc._id || doc.id;
     if (!docId) return '';
-    
+    // Si el documento está vencido, solo mostrar Renovar y Eliminar
     let buttons = `
-        <button class="btn btn--sm btn--outline btn--download" 
-                onclick="if (window.downloadDocument) window.downloadDocument('${docId}')" 
-                title="Descargar">
-            <i class="fas fa-download"></i>
+        <button class=\"btn btn--sm btn--outline btn--download\" 
+                onclick=\"if (window.downloadDocument) window.downloadDocument('${docId}')\" 
+                title=\"Descargar\">
+            <i class=\"fas fa-download\"></i>
         </button>
     `;
-    
-    // Solo agregar botón de vista previa si se puede previsualizar
     if (canPreview) {
         buttons += `
-            <button class="btn btn--sm btn--outline btn--view" 
-                    onclick="if (window.previewDocument) window.previewDocument('${docId}')" 
-                    title="Vista previa">
-                <i class="fas fa-eye"></i>
+            <button class=\"btn btn--sm btn--outline btn--view\" 
+                    onclick=\"if (window.previewDocument) window.previewDocument('${docId}')\" 
+                    title=\"Vista previa\">
+                <i class=\"fas fa-eye\"></i>
             </button>
         `;
     }
-
-    // Agregar botón de editar
     buttons += `
-        <button class="btn btn--sm btn--outline btn--edit" 
-                onclick="if (window.editDocument) window.editDocument('${docId}')" 
-                title="Editar documento">
-            <i class="fas fa-edit"></i>
+        <button class=\"btn btn--sm btn--outline btn--edit\" 
+                onclick=\"if (window.editDocument) window.editDocument('${docId}')\" 
+                title=\"Editar documento\">
+            <i class=\"fas fa-edit\"></i>
         </button>
     `;
-    
-    // Siempre agregar botón de eliminar individual
     buttons += `
-        <button class="btn btn--sm btn--outline btn--delete" 
-                onclick="if (window.deleteDocument) window.deleteDocument('${docId}')" 
-                title="Eliminar">
-            <i class="fas fa-trash"></i>
+        <button class=\"btn btn--sm btn--outline btn--delete\" 
+                onclick=\"if (window.deleteDocument) window.deleteDocument('${docId}')\" 
+                title=\"Eliminar\">
+            <i class=\"fas fa-trash\"></i>
         </button>
     `;
-    
     return buttons;
 }
 

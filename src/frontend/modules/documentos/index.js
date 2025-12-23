@@ -1,3 +1,5 @@
+// Documentos vencidos
+export { renderVencidosList } from './vencidos.js';
 // =============================================================================
 // src/frontend/modules/documentos/index.js
 // =============================================================================
@@ -356,6 +358,21 @@ export function renderExpiredDocuments() {
             const persona = (doc.persona && (doc.persona.nombre || doc.persona.name)) ? (doc.persona.nombre || doc.persona.name) : (doc.persona_id ? doc.persona_id : '—');
             const estado = doc.estadoVirtual || '';
 
+            let actionsHTML = '';
+            if (mode === 'expired') {
+                actionsHTML = `
+                    <button class="btn btn--success" title="Renovar" data-id="${doc._id}" data-action="renew"><i class="fas fa-redo"></i> Renovar</button>
+                    <button class="btn btn--danger" title="Eliminar" data-id="${doc._id}" data-action="delete"><i class="fas fa-trash"></i> Eliminar</button>
+                `;
+            } else {
+                actionsHTML = `
+                    <button class="btn btn--sm btn--outline btn--icon btn--view" title="Ver" data-id="${doc._id}" data-action="view"><i class="fas fa-eye"></i></button>
+                    <button class="btn btn--sm btn--outline btn--icon btn--download" title="Descargar" data-id="${doc._id}" data-action="download"><i class="fas fa-download"></i></button>
+                    <button class="btn btn--sm btn--outline btn--icon btn--edit" title="Editar" data-id="${doc._id}" data-action="edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn--sm btn--outline btn--icon btn--delete" title="Eliminar" data-id="${doc._id}" data-action="delete"><i class="fas fa-trash-alt"></i></button>
+                `;
+            }
+
             item.innerHTML = `
                 <div class="expired-item__main">
                     <div class="expired-item__title">${doc.nombre_original || 'Documento sin nombre'}</div>
@@ -368,10 +385,7 @@ export function renderExpiredDocuments() {
                     </div>
                 </div>
                 <div class="expired-item__actions">
-                    <button class="btn btn--sm btn--outline btn--icon btn--view" title="Ver" data-id="${doc._id}" data-action="view"><i class="fas fa-eye"></i></button>
-                    <button class="btn btn--sm btn--outline btn--icon btn--download" title="Descargar" data-id="${doc._id}" data-action="download"><i class="fas fa-download"></i></button>
-                    <button class="btn btn--sm btn--outline btn--icon btn--edit" title="Editar" data-id="${doc._id}" data-action="edit"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn--sm btn--outline btn--icon btn--delete" title="Eliminar" data-id="${doc._id}" data-action="delete"><i class="fas fa-trash-alt"></i></button>
+                    ${actionsHTML}
                 </div>
             `;
 
@@ -380,10 +394,16 @@ export function renderExpiredDocuments() {
                 btn.addEventListener('click', (e) => {
                     const action = btn.getAttribute('data-action');
                     const id = btn.getAttribute('data-id');
+                    if (action === 'renew') {
+                        if (window.renovarDocumento) return window.renovarDocumento(id);
+                    }
                     if (action === 'view' && window.previewDocument) return window.previewDocument(id);
                     if (action === 'download' && window.downloadDocument) return window.downloadDocument(id);
                     if (action === 'edit' && window.editDocument) return window.editDocument(id);
-                    if (action === 'delete' && window.deleteDocument) return window.deleteDocument(id);
+                    if (action === 'delete') {
+                        if (mode === 'expired' && window.eliminarDocumento) return window.eliminarDocumento(id);
+                        if (window.deleteDocument) return window.deleteDocument(id);
+                    }
                 });
             });
 

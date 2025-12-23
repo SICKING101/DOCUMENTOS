@@ -12,6 +12,7 @@
     <title>Sistema de Gestión de Documentos - CBTIS051</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/sections/vencidos.css">
 </head>
 
 <body>
@@ -100,7 +101,26 @@
                 </div>
             </header>
 
-            <!-- ===== MAIN CONTENT ===== -->
+                <!-- ===== MAIN CONTENT ===== -->
+                <!-- ===== DOCUMENTOS VENCIDOS ===== -->
+                <section id="documentos-vencidos" class="tab-content" style="display:none;">
+                    <div class="vencidos-panel">
+                        <div class="vencidos-header">
+                            <div class="vencidos-title">
+                                <i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i>
+                                Documentos Vencidos
+                            </div>
+                            <!-- Eliminado el dropdown de filtro, solo botón de ver todos si se requiere -->
+                            <div class="vencidos-header-controls">
+                                <button id="verTodosVencidosBtn" class="btn btn--link">Ver todos</button>
+                            </div>
+                        </div>
+                        <p class="section__subtitle">Lista de documentos que han superado su fecha de vencimiento. Puedes renovarlos o eliminarlos.</p>
+                        <div id="vencidosList" class="vencidos-list">
+                            <!-- Los documentos vencidos se renderizan aquí -->
+                        </div>
+                    </div>
+                </section>
             <main class="main-content">
                 <!-- ===== DASHBOARD TAB ===== -->
                 <section id="dashboard" class="tab-content tab-content--active">
@@ -678,11 +698,7 @@
                                 Documentos Vencidos
                             </h3>
                             <div class="expired-documents-actions">
-                                <select id="expiredViewMode" class="filter-select" aria-label="Modo vista vencidos">
-                                    <option value="expired">Vencidos</option>
-                                    <option value="expiring">Por vencer (≤7 días)</option>
-                                    <option value="all">Todos</option>
-                                </select>
+                                <!-- Eliminado el dropdown de filtro, solo badge y botón -->
                                 <span class="badge badge-danger" id="expiredCount">0</span>
                                 <button class="btn btn--link" id="viewAllExpiredBtn">Ver todos</button>
                             </div>
