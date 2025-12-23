@@ -81,12 +81,20 @@ export async function loadDocuments() {
             if (window.renderDocumentsTable) {
                 window.renderDocumentsTable();
             }
-            
+
+            // Renderizar panel de documentos vencidos si está disponible
+            if (window.renderExpiredDocuments) {
+                try {
+                    window.renderExpiredDocuments();
+                } catch (e) {
+                    console.error('Error al renderizar documentos vencidos:', e);
+                }
+            }
+
             console.log(`✅ ${window.appState.documents.length} documentos cargados`);
         } else {
             throw new Error(data.message);
         }
-        
     } catch (error) {
         console.error('❌ Error cargando documentos:', error);
         showAlert('Error al cargar documentos: ' + error.message, 'error');

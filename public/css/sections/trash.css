@@ -20,7 +20,7 @@
    ============================================================================= */
 
 #papelera.tab-content {
-    background: #ffffff;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 2rem;
     margin: 1.5rem 0;
@@ -43,13 +43,13 @@
     gap: 0.75rem;
     font-size: 1.5rem;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-primary);
     margin: 0 0 0.25rem 0;
 }
 
 .section__title i {
     color: var(--trash-primary);
-    background: #fef2f2;
+    background: var(--card-bg);
     padding: 0.5rem;
     border-radius: 8px;
     font-size: 1.25rem;
@@ -80,8 +80,8 @@
 }
 
 .trash-stat-card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1.25rem;
     display: flex;
@@ -107,15 +107,15 @@
 }
 
 .trash-stat-icon.stat-total {
-    background: #fef2f2;
+    background: var(--bg-secondary);
     color: var(--trash-primary);
-    border: 1px solid #fecaca;
+    border: 1px solid var(--border);
 }
 
 .trash-stat-icon.stat-size {
-    background: #eff6ff;
+    background: var(--bg-secondary);
     color: var(--trash-info);
-    border: 1px solid #bfdbfe;
+    border: 1px solid var(--border);
 }
 
 .trash-stat-icon.stat-critical {
@@ -676,8 +676,8 @@
 }
 
 .days-display.days-warning {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
 }
 
 .days-display.days-safe {

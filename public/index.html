@@ -670,6 +670,32 @@
                         </div>
                     </div>
 
+                    <!-- Panel: Documentos Vencidos -->
+                    <div class="expired-documents-panel" id="expiredDocumentsPanel">
+                        <div class="expired-documents-header">
+                            <h3 class="expired-documents-title">
+                                <i class="fas fa-exclamation-circle text-danger"></i>
+                                Documentos Vencidos
+                            </h3>
+                            <div class="expired-documents-actions">
+                                <select id="expiredViewMode" class="filter-select" aria-label="Modo vista vencidos">
+                                    <option value="expired">Vencidos</option>
+                                    <option value="expiring">Por vencer (≤7 días)</option>
+                                    <option value="all">Todos</option>
+                                </select>
+                                <span class="badge badge-danger" id="expiredCount">0</span>
+                                <button class="btn btn--link" id="viewAllExpiredBtn">Ver todos</button>
+                            </div>
+                        </div>
+                        <div class="expired-documents-list" id="expiredDocumentsList">
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <h4 class="empty-state__title">No hay documentos vencidos</h4>
+                                <p class="empty-state__description">Los documentos vencidos aparecerán aquí</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Barra de Información de Selección - INICIALMENTE OCULTA -->
                     <div class="selection-info-bar" id="selectionInfoBar" style="display: none;">
                         <div class="selection-info-content">
@@ -690,7 +716,7 @@
                     <div class="documents-filters">
                         <div class="filters-header">
                             <h3 class="filters-title">Filtrar Documentos</h3>
-                            <button id="clearAllFilters" class="btn btn-secondary btn-sm">Limpiar Filtros</button>
+                            <button id="clearAllFilters" class="btn btn--secondary btn--sm">Limpiar Filtros</button>
                         </div>
                         <div class="filters-grid">
                             <div class="filter-group">

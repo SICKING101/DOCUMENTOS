@@ -286,6 +286,116 @@ export function updateMultipleUploadUI() {
 // =============================================================================
 
 /**
+ * Renderiza la lista reducida de documentos vencidos en el panel y añade interacciones.
+ */
+export function renderExpiredDocuments() {
+    try {
+        if (!window.appState || !window.appState.documents) return;
+
+        const modeEl = document.getElementById('expiredViewMode');
+        const mode = modeEl ? modeEl.value : 'expired'; // 'expired' | 'expiring' | 'all'
+        const now = new Date();
+
+        // Filtrar según modo
+        let filtered = [];
+        if (mode === 'expired') {
+            filtered = window.appState.documents.filter(doc => {
+                if (!doc.fecha_vencimiento) return false;
+                try { return new Date(doc.fecha_vencimiento) < now; } catch (e) { return false; }
+            });
+        } else if (mode === 'expiring') {
+            filtered = window.appState.documents.filter(doc => {
+                if (!doc.fecha_vencimiento) return false;
+                try {
+                    const diffDays = Math.ceil((new Date(doc.fecha_vencimiento) - now) / (1000 * 60 * 60 * 24));
+                    return diffDays > 0 && diffDays <= 7;
+                } catch (e) { return false; }
+            });
+        } else {
+            // 'all' -> incluir todos los documentos (con o sin fecha)
+            filtered = window.appState.documents.slice();
+        }
+
+        filtered.sort((a,b) => new Date(b.fecha_vencimiento || 0) - new Date(a.fecha_vencimiento || 0));
+
+        const list = document.getElementById('expiredDocumentsList');
+        const count = document.getElementById('expiredCount');
+
+        if (!list || !count) return;
+
+        count.textContent = String(filtered.length);
+
+        if (filtered.length === 0) {
+            let title = 'No hay documentos';
+            let desc = 'Los documentos aparecerán aquí';
+            if (mode === 'expired') { title = 'No hay documentos vencidos'; desc = 'Los documentos vencidos aparecerán aquí'; }
+            else if (mode === 'expiring') { title = 'No hay documentos por vencer'; desc = 'Los documentos que expiran en los próximos 7 días aparecerán aquí'; }
+            else if (mode === 'all') { title = 'No hay documentos'; desc = 'No se encontraron documentos con los criterios seleccionados'; }
+
+            list.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h4 class="empty-state__title">${title}</h4>
+                    <p class="empty-state__description">${desc}</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Mostrar hasta 5 documentos
+        const toShow = filtered.slice(0,5);
+        list.innerHTML = '';
+
+        toShow.forEach(doc => {
+            const fecha = doc.fecha_vencimiento ? new Date(doc.fecha_vencimiento) : null;
+            const item = document.createElement('div');
+            item.className = 'expired-item';
+
+            const sizeText = doc.tamano_archivo ? formatFileSize(doc.tamano_archivo) : null;
+            const tipo = doc.tipo_archivo || '';
+            const persona = (doc.persona && (doc.persona.nombre || doc.persona.name)) ? (doc.persona.nombre || doc.persona.name) : (doc.persona_id ? doc.persona_id : '—');
+            const estado = doc.estadoVirtual || '';
+
+            item.innerHTML = `
+                <div class="expired-item__main">
+                    <div class="expired-item__title">${doc.nombre_original || 'Documento sin nombre'}</div>
+                    <div class="expired-item__meta">
+                        ${doc.categoria || 'General'} • ${fecha ? fecha.toLocaleDateString() : 'Sin fecha'}
+                        ${sizeText ? ` • ${sizeText}` : ''}
+                        ${tipo ? ` • ${tipo}` : ''}
+                        ${persona ? ` • ${persona}` : ''}
+                        ${estado ? ` • ${estado}` : ''}
+                    </div>
+                </div>
+                <div class="expired-item__actions">
+                    <button class="btn btn--sm btn--outline btn--icon btn--view" title="Ver" data-id="${doc._id}" data-action="view"><i class="fas fa-eye"></i></button>
+                    <button class="btn btn--sm btn--outline btn--icon btn--download" title="Descargar" data-id="${doc._id}" data-action="download"><i class="fas fa-download"></i></button>
+                    <button class="btn btn--sm btn--outline btn--icon btn--edit" title="Editar" data-id="${doc._id}" data-action="edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn--sm btn--outline btn--icon btn--delete" title="Eliminar" data-id="${doc._id}" data-action="delete"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            `;
+
+            // Action listeners
+            item.querySelectorAll('button[data-action]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const action = btn.getAttribute('data-action');
+                    const id = btn.getAttribute('data-id');
+                    if (action === 'view' && window.previewDocument) return window.previewDocument(id);
+                    if (action === 'download' && window.downloadDocument) return window.downloadDocument(id);
+                    if (action === 'edit' && window.editDocument) return window.editDocument(id);
+                    if (action === 'delete' && window.deleteDocument) return window.deleteDocument(id);
+                });
+            });
+
+            list.appendChild(item);
+        });
+
+    } catch (error) {
+        console.error('Error renderExpiredDocuments:', error);
+    }
+}
+
+/**
  * Inicializa el módulo de documentos con todas las funcionalidades.
  * Debe llamarse cuando el DOM esté listo.
  */
@@ -321,6 +431,44 @@ export function initializeDocumentosModule() {
         
         // 7. Configurar funciones globales
         setupGlobalFunctions();
+
+        // 8. Inicializar panel de documentos vencidos
+        const viewAllBtn = document.getElementById('viewAllExpiredBtn');
+        const modeSelect = document.getElementById('expiredViewMode');
+
+        if (modeSelect) {
+            modeSelect.addEventListener('change', () => {
+                try { renderExpiredDocuments(); } catch (e) { console.error('Error re-renderizando panel vencidos tras cambio de modo:', e); }
+            });
+        }
+
+        if (viewAllBtn) {
+            viewAllBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const statusSelect = document.getElementById('filterStatus');
+                const currentMode = modeSelect ? modeSelect.value : 'expired';
+                let statusValue = '';
+                if (currentMode === 'expired') statusValue = 'expired';
+                else if (currentMode === 'expiring') statusValue = 'expiring';
+                else statusValue = '';
+
+                if (statusSelect) {
+                    statusSelect.value = statusValue;
+                    statusSelect.dispatchEvent(new Event('change'));
+                    // Scroll to table for better UX
+                    const table = document.getElementById('documentosTableBody');
+                    if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        }
+
+        // Exponer la función para compatibilidad y llamarla ahora
+        window.renderExpiredDocuments = renderExpiredDocuments;
+        try {
+            renderExpiredDocuments();
+        } catch (e) {
+            console.error('Error inicializando panel vencidos:', e);
+        }
         
         console.log('✅ Módulo de documentos inicializado correctamente');
         console.log('📋 Funcionalidades disponibles:');

@@ -1,5 +1,10 @@
 /* ===== UTILITY COMPONENTS ===== */
 
+/* Prevent any accidental horizontal scrolling across the entire app */
+html, body {
+    overflow-x: hidden;
+}
+
 /* Contenedor para resultados de búsqueda */
 .search-results {
     margin-top: 1.5rem;

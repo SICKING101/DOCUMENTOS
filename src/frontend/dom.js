@@ -153,6 +153,14 @@ const DOM = {
      * Abre el formulario para subir nuevo documento.
      */
     addDocumentBtn: document.getElementById('addDocumentBtn'),
+
+    /**
+     * 9.3 Panel de Documentos Vencidos
+     */
+    expiredDocumentsPanel: document.getElementById('expiredDocumentsPanel'),
+    expiredDocumentsList: document.getElementById('expiredDocumentsList'),
+    expiredCount: document.getElementById('expiredCount'),
+    viewAllExpiredBtn: document.getElementById('viewAllExpiredBtn'),
     
     // =============================================================================
     // 10. ELEMENTOS DE FILTROS

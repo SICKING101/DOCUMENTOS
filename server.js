@@ -64,6 +64,12 @@ import NotificationService from './src/backend/services/notificationService.js';
 // Configuración de Multer
 // -----------------------------
 
+// Directorio de subida local (asegurar existencia)
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);

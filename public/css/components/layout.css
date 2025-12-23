@@ -20,6 +20,7 @@
     flex: 1;
     padding: var(--spacing-xl);
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrolling caused by overflowing children */
 }
 
 /* Cabeceras de sección con título y subtítulo */

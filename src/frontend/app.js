@@ -444,11 +444,16 @@ const getPreferredTheme = () => {
  */
 const applyTheme = (theme) => {
     const themeIcon = document.getElementById('themeToggle')?.querySelector('i');
+    const themeToggleBtn = document.getElementById('themeToggle');
     if (theme === 'dark') {
         document.body.classList.add('dark-theme');
         if (themeIcon) {
             themeIcon.classList.remove('fa-moon');
             themeIcon.classList.add('fa-sun');
+        }
+        if (themeToggleBtn) {
+            themeToggleBtn.setAttribute('aria-pressed', 'true');
+            themeToggleBtn.title = 'Tema: Oscuro';
         }
         localStorage.setItem('theme', 'dark');
     } else {
@@ -456,6 +461,10 @@ const applyTheme = (theme) => {
         if (themeIcon) {
             themeIcon.classList.remove('fa-sun');
             themeIcon.classList.add('fa-moon');
+        }
+        if (themeToggleBtn) {
+            themeToggleBtn.setAttribute('aria-pressed', 'false');
+            themeToggleBtn.title = 'Tema: Claro';
         }
         localStorage.setItem('theme', 'light');
     }
