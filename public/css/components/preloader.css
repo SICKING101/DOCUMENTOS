@@ -763,7 +763,7 @@
 /* Barra de progreso general mejorada */
 .document-upload-preloader__overall-progress {
     padding: 0 1.5rem 1.5rem;
-    background: #ffffff;
+    background: var(--bg-primary);
 }
 
 .document-upload-preloader__overall-header {
@@ -2080,6 +2080,21 @@
 
 .floating-notification__close:hover {
     opacity: 1;
+}
+
+/* Dark theme: floating notification should match dark UI */
+body.dark-theme .floating-notification {
+    background: var(--bg-secondary);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
+}
+
+/* Ensure floating notifications never cause horizontal overflow */
+.floating-notification {
+    box-sizing: border-box;
+    max-width: calc(100% - 40px);
+    left: auto; /* prefer right positioning on large screens */
 }
 
 /* Animaciones de fade */
@@ -4117,14 +4132,14 @@
 
 .file-upload-text {
     font-size: 0.9rem;
-    color: #4a5568;
+    color: var(--text-tertiary);
     margin-bottom: 1rem;
 }
 
 .file-upload-progress {
     width: 160px;
     height: 4px;
-    background: #e2e8f0;
+    background: var(--bg-secondary);
     border-radius: 2px;
     overflow: hidden;
     margin: 0 auto;

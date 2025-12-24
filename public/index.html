@@ -12,6 +12,7 @@
     <title>Sistema de Gestión de Documentos - CBTIS051</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/sections/vencidos.css">
 </head>
 
 <body>
@@ -100,7 +101,26 @@
                 </div>
             </header>
 
-            <!-- ===== MAIN CONTENT ===== -->
+                <!-- ===== MAIN CONTENT ===== -->
+                <!-- ===== DOCUMENTOS VENCIDOS ===== -->
+                <section id="documentos-vencidos" class="tab-content" style="display:none;">
+                    <div class="vencidos-panel">
+                        <div class="vencidos-header">
+                            <div class="vencidos-title">
+                                <i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i>
+                                Documentos Vencidos
+                            </div>
+                            <!-- Eliminado el dropdown de filtro, solo botón de ver todos si se requiere -->
+                            <div class="vencidos-header-controls">
+                                <button id="verTodosVencidosBtn" class="btn btn--link">Ver todos</button>
+                            </div>
+                        </div>
+                        <p class="section__subtitle">Lista de documentos que han superado su fecha de vencimiento. Puedes renovarlos o eliminarlos.</p>
+                        <div id="vencidosList" class="vencidos-list">
+                            <!-- Los documentos vencidos se renderizan aquí -->
+                        </div>
+                    </div>
+                </section>
             <main class="main-content">
                 <!-- ===== DASHBOARD TAB ===== -->
                 <section id="dashboard" class="tab-content tab-content--active">
@@ -630,7 +650,7 @@
                         </div>
                         <div class="documents-header__actions">
                             <!-- Botón de Búsqueda Avanzada -->
-                            <button class="btn btn--secondary" id="advancedSearchBtn">
+                            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
                                 <i class="fas fa-search"></i>
                                 <span>Búsqueda Avanzada</span>
                             </button>
@@ -670,6 +690,28 @@
                         </div>
                     </div>
 
+                    <!-- Panel: Documentos Vencidos -->
+                    <div class="expired-documents-panel" id="expiredDocumentsPanel">
+                        <div class="expired-documents-header">
+                            <h3 class="expired-documents-title">
+                                <i class="fas fa-exclamation-circle text-danger"></i>
+                                Documentos Vencidos
+                            </h3>
+                            <div class="expired-documents-actions">
+                                <!-- Eliminado el dropdown de filtro, solo badge y botón -->
+                                <span class="badge badge-danger" id="expiredCount">0</span>
+                                <button class="btn btn--link" id="viewAllExpiredBtn">Ver todos</button>
+                            </div>
+                        </div>
+                        <div class="expired-documents-list" id="expiredDocumentsList">
+                            <div class="empty-state">
+                                <i class="fas fa-check-circle"></i>
+                                <h4 class="empty-state__title">No hay documentos vencidos</h4>
+                                <p class="empty-state__description">Los documentos vencidos aparecerán aquí</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Barra de Información de Selección - INICIALMENTE OCULTA -->
                     <div class="selection-info-bar" id="selectionInfoBar" style="display: none;">
                         <div class="selection-info-content">
@@ -690,7 +732,7 @@
                     <div class="documents-filters">
                         <div class="filters-header">
                             <h3 class="filters-title">Filtrar Documentos</h3>
-                            <button id="clearAllFilters" class="btn btn-secondary btn-sm">Limpiar Filtros</button>
+                            <button id="clearAllFilters" class="btn btn--secondary btn--sm">Limpiar Filtros</button>
                         </div>
                         <div class="filters-grid">
                             <div class="filter-group">

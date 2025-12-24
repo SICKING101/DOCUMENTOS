@@ -63,7 +63,6 @@ import NotificationService from './src/backend/services/notificationService.js';
 // -----------------------------
 // Configuración de Multer
 // -----------------------------
-
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);

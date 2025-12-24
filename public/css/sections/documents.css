@@ -2,7 +2,8 @@
 
 .documents-section {
     margin-bottom: var(--spacing-xxl);
-}
+    overflow-x: hidden; /* Prevent page horizontal scroll from this section */
+} 
 
 /* Header mejorado */
 .documents-header {
@@ -135,6 +136,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--spacing-md);
+    position: relative;
+    z-index: 2; /* Ensure header controls sit above other elements */
 }
 
 .filters-title {
@@ -172,13 +175,17 @@
     color: var(--text-primary);
     font-size: 0.9375rem;
     transition: var(--transition);
+    -webkit-appearance: none;
+    -moz-appearance: none;
     appearance: none;
+    /* SVG caret (single icon, no repeat) */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
-    background-size: 1rem;
+    background-size: 12px 12px;
     padding-right: 2.5rem;
     cursor: pointer;
+    overflow: hidden;
 }
 
 .filter-select:focus {
@@ -399,6 +406,74 @@
     color: var(--primary);
 }
 
+/* Expired documents panel styles */
+.expired-documents-panel {
+  border: 1px solid var(--border);
+  padding: 12px;
+  margin: 12px 0;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.expired-documents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.expired-documents-actions select {
+  margin-right: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 12px 12px;
+}
+
+.expired-documents-list {
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure empty-state inside expired panel does not produce a floating white box */
+.expired-documents-list .empty-state {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 2.5rem 1rem;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+body.dark-theme .expired-documents-list .empty-state {
+  color: var(--text-secondary);
+}
+
+.expired-documents-list .expired-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid #f1f1f1;
+  box-sizing: border-box;
+} 
+
+.expired-documents-list .expired-item:first-child { border-top: none; }
+
+.expired-item__title { font-weight: 600; }
+.expired-item__meta { font-size: 12px; color: #6b7280; }
+
+
 .btn--outline:hover.btn--download {
     border-color: var(--success);
     color: var(--success);
@@ -417,6 +492,37 @@
 .btn--outline:hover.btn--delete {
     border-color: var(--danger);
     color: var(--danger);
+}
+
+/* Acciones en elementos vencidos */
+.expired-item__actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.btn--icon {
+    padding: 6px 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.btn--icon i {
+    font-size: 0.9rem;
+}
+
+/* Ajustes para responsividad: en pantallas pequeñas mostrar acciones en nueva línea */
+@media (max-width: 520px) {
+    .expired-documents-list .expired-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .expired-item__actions {
+        width: 100%;
+    }
 }
 
 /* Estado vacío */
@@ -599,6 +705,9 @@ body.dark-theme .filter-select {
     background: var(--bg-secondary);
     border-color: var(--border-dark);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    background-position: right 0.75rem center;
 }
 
 /* Tooltip para nombres largos */

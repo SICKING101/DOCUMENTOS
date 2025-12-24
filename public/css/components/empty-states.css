@@ -5,7 +5,21 @@
     text-align: center;
     padding: 3rem 2rem;
     color: var(--text-secondary);
-    transform: translateX(100%);
+    transform: none; /* Remove default off-screen translation that caused horizontal overflow */
+    max-width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    /* Look like a card to avoid white blocks leaking in dark mode */
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+/* Dark theme override for empty states */
+body.dark-theme .empty-state {
+    background: var(--bg-secondary);
+    border-color: var(--border-dark);
+    color: var(--text-secondary);
 }
 
 /* Icono grande para estado vacío */

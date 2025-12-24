@@ -136,10 +136,14 @@
     color: var(--text-primary);
     font-size: 0.8125rem;
     cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     appearance: none;
+    /* Prevent repeating caret icon and ensure correct sizing/alignment */
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
-    background-size: 12px;
+    background-size: 12px 12px;
+    overflow: hidden;
     transition: all 0.2s ease;
     box-sizing: border-box;
 }
