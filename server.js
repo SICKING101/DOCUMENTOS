@@ -18,6 +18,7 @@ import Document from './src/backend/models/Document.js';
 import Person from './src/backend/models/Person.js';
 import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
+import adminRoutes from './src/backend/routes/adminRoutes.js';
 
 dotenv.config();
 
@@ -55,6 +56,8 @@ app.use('/src', express.static(path.join(__dirname, 'src')));
 
 // Rutas de autenticación
 app.use('/api/auth', authRoutes);
+
+app.use('/api/admin', adminRoutes);
 
 // Importar modelo y servicio de notificaciones
 import Notification from './src/backend/models/Notification.js';

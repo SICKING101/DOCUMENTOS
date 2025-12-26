@@ -134,31 +134,63 @@ function setupChangeAdminModal() {
 async function handleChangeAdmin(e) {
     e.preventDefault();
 
+    console.log('🔐 DEBUG: Iniciando handleChangeAdmin...');
+    
     // Obtener valores del formulario
-    const newUser = document.getElementById('newAdminUser').value.trim();
-    const newEmail = document.getElementById('newAdminEmail').value.trim();
-    const newPassword = document.getElementById('newAdminPassword').value;
-    const confirmPassword = document.getElementById('confirmAdminPassword').value;
-
-    // Validaciones
+    const newUser = document.getElementById('newAdminUser');
+    const newEmail = document.getElementById('newAdminEmail');
+    const newPassword = document.getElementById('newAdminPassword');
+    const confirmPassword = document.getElementById('confirmAdminPassword');
+    
+    // Debug: verificar elementos
+    console.log('🔍 Elementos del formulario:', {
+        newAdminUser: newUser ? 'EXISTE' : 'NO EXISTE',
+        newAdminEmail: newEmail ? 'EXISTE' : 'NO EXISTE',
+        newAdminPassword: newPassword ? 'EXISTE' : 'NO EXISTE',
+        confirmAdminPassword: confirmPassword ? 'EXISTE' : 'NO EXISTE'
+    });
+    
     if (!newUser || !newEmail || !newPassword || !confirmPassword) {
+        console.error('❌ ERROR: Elementos del formulario no encontrados');
+        mostrarAlerta('Error en el formulario. Recarga la página.', 'error');
+        return;
+    }
+    
+    const newUserValue = newUser.value.trim();
+    const newEmailValue = newEmail.value.trim();
+    const newPasswordValue = newPassword.value;
+    const confirmPasswordValue = confirmPassword.value;
+    
+    console.log('📋 Valores obtenidos:', {
+        newUser: newUserValue,
+        newEmail: newEmailValue,
+        newPasswordLength: newPasswordValue.length,
+        confirmPasswordLength: confirmPasswordValue.length
+    });
+
+    // Validaciones frontend
+    if (!newUserValue || !newEmailValue || !newPasswordValue || !confirmPasswordValue) {
+        console.error('❌ ERROR: Campos vacíos');
         mostrarAlerta('Por favor completa todos los campos', 'error');
         return;
     }
 
-    if (newPassword !== confirmPassword) {
+    if (newPasswordValue !== confirmPasswordValue) {
+        console.error('❌ ERROR: Contraseñas no coinciden');
         mostrarAlerta('Las contraseñas no coinciden', 'error');
         return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPasswordValue.length < 6) {
+        console.error('❌ ERROR: Contraseña muy corta');
         mostrarAlerta('La contraseña debe tener al menos 6 caracteres', 'error');
         return;
     }
 
     // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail)) {
+    if (!emailRegex.test(newEmailValue)) {
+        console.error('❌ ERROR: Email inválido');
         mostrarAlerta('Por favor ingresa un correo electrónico válido', 'error');
         return;
     }
@@ -166,43 +198,82 @@ async function handleChangeAdmin(e) {
     // Deshabilitar botón
     const confirmBtn = e.target;
     confirmBtn.disabled = true;
+    const originalText = confirmBtn.innerHTML;
     confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
 
     try {
-        const response = await fetch('/api/auth/request-admin-change', {
+        // Obtener token
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('No estás autenticado. Por favor inicia sesión nuevamente.');
+        }
+
+        console.log('📤 Enviando solicitud al servidor...');
+        console.log('🔑 Token disponible:', token ? 'SÍ' : 'NO');
+        
+        // ¡IMPORTANTE: Usar los nombres CORRECTOS que espera el backend!
+        const requestBody = {
+            nuevoUsuario: newUserValue,
+            nuevoCorreo: newEmailValue,
+            nuevaPassword: newPasswordValue,
+            confirmarPassword: confirmPasswordValue  // ¡CON "r"!
+        };
+        
+        console.log('📦 Request body a enviar:', requestBody);
+
+        const response = await fetch('/api/admin/request-change', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({
-                nuevoUsuario: newUser,
-                nuevoCorreo: newEmail,
-                nuevaPassword: newPassword
-            })
+            body: JSON.stringify(requestBody)
         });
 
-        const data = await response.json();
+        // DEBUG: Mostrar respuesta completa
+        const responseText = await response.text();
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response text:', responseText);
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('❌ No es JSON válido:', responseText);
+            throw new Error('Respuesta inválida del servidor');
+        }
 
         if (response.ok) {
             // Cerrar modal
-            changeAdminModal.close();
-            changeAdminForm.reset();
+            const changeAdminModal = document.getElementById('changeAdminModal');
+            if (changeAdminModal) {
+                changeAdminModal.close();
+            }
+            
+            // Resetear formulario
+            const changeAdminForm = document.getElementById('changeAdminForm');
+            if (changeAdminForm) {
+                changeAdminForm.reset();
+            }
             
             // Mostrar mensaje de éxito
             mostrarAlerta(
-                'Se ha enviado un correo de verificación. Por favor revisa tu bandeja de entrada y confirma el cambio.',
+                '✅ Solicitud enviada exitosamente. Se ha enviado un correo de verificación al nuevo administrador.',
                 'success'
             );
+            
+            console.log('✅ Solicitud procesada exitosamente:', data);
         } else {
-            mostrarAlerta(data.mensaje || 'Error al solicitar cambio de administrador', 'error');
+            console.error('❌ Error del servidor:', data);
+            mostrarAlerta(data.message || 'Error al solicitar cambio de administrador', 'error');
         }
     } catch (error) {
-        console.error('Error al solicitar cambio de administrador:', error);
-        mostrarAlerta('Error de conexión. Por favor intenta nuevamente.', 'error');
+        console.error('🔥 Error en handleChangeAdmin:', error);
+        mostrarAlerta(`Error: ${error.message}`, 'error');
     } finally {
         // Restaurar botón
         confirmBtn.disabled = false;
-        confirmBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Solicitud';
+        confirmBtn.innerHTML = originalText;
     }
 }
 
