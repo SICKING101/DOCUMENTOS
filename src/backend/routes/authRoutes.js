@@ -7,6 +7,7 @@ import {
   cambiarContraseña,
   verificarTokenCambio,
   pruebaEmail,
+  verifyPassword,
   estadoEmail
 } from '../controllers/authController.js';
 import crypto from 'crypto'; // AÑADIR ESTA IMPORTACIÓN
@@ -409,5 +410,7 @@ router.get('/confirm-admin-change/:token', async (req, res) => {
         });
     }
 });
+
+router.post('/verify-password', protegerRuta, verifyPassword);
 
 export default router;

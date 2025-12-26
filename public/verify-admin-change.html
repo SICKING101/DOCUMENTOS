@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Cambio de Administrador - CBTIS051</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .verification-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .verification-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+        }
+        
+        .verification-header {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+        
+        .verification-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .verification-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 0 10px;
+        }
+        
+        .verification-subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .verification-body {
+            padding: 40px;
+        }
+        
+        .info-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3b82f6;
+        }
+        
+        .info-title {
+            color: #374151;
+            font-size: 20px;
+            margin: 0 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-grid {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .info-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            color: #111827;
+            font-weight: 600;
+        }
+        
+        .warning-section {
+            background: #fef3c7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 2px solid #fbbf24;
+        }
+        
+        .warning-title {
+            color: #92400e;
+            margin: 0 0 10px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .warning-text {
+            color: #92400e;
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .password-confirm {
+            margin-bottom: 30px;
+        }
+        
+        .password-input-group {
+            position: relative;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn--danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn--danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+        
+        .btn--success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn--success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            color: white;
+        }
+        
+        .spinner-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            display: none;
+        }
+        
+        .result-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .result-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .result-icon.success {
+            color: #10b981;
+        }
+        
+        .result-icon.error {
+            color: #ef4444;
+        }
+        
+        .result-title {
+            font-size: 28px;
+            margin: 0 0 15px;
+            color: #1f2937;
+        }
+        
+        .result-message {
+            color: #6b7280;
+            margin: 0 0 30px;
+            line-height: 1.6;
+        }
+        
+        .timer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .timer-value {
+            font-weight: 700;
+            color: #ef4444;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="verification-card" id="verificationCard">
+            <!-- Header -->
+            <div class="verification-header">
+                <i class="fas fa-user-shield verification-icon"></i>
+                <h1 class="verification-title">Cambio de Administrador</h1>
+                <p class="verification-subtitle">Sistema de Gestión Documental CBTIS051</p>
+            </div>
+            
+            <!-- Body -->
+            <div class="verification-body">
+                <!-- Información de la solicitud -->
+                <div class="info-section">
+                    <h2 class="info-title">
+                        <i class="fas fa-info-circle"></i>
+                        Detalles de la solicitud
+                    </h2>
+                    <div class="info-grid" id="requestDetails">
+                        <!-- Se llenará dinámicamente -->
+                        <div class="info-row">
+                            <span class="info-label">Cargando información...</span>
+                            <span class="info-value">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advertencia importante -->
+                <div class="warning-section">
+                    <h3 class="warning-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        ADVERTENCIA IMPORTANTE
+                    </h3>
+                    <p class="warning-text">
+                        Al aceptar esta solicitud, el administrador actual será <strong>desactivado permanentemente</strong> 
+                        y tú obtendrás control total del sistema. Esta acción <strong>NO SE PUEDE DESHACER</strong> automáticamente 
+                        y requiere intervención manual para revertir.
+                    </p>
+                </div>
+                
+                <!-- Confirmación de contraseña -->
+                <div class="password-confirm">
+                    <h3 class="info-title">
+                        <i class="fas fa-key"></i>
+                        Confirmación de seguridad
+                    </h3>
+                    <p style="color: #6b7280; margin-bottom: 20px;">
+                        Para confirmar que entiendes las implicaciones, por favor escribe <strong>"ACEPTO"</strong> en el siguiente campo:
+                    </p>
+                    <div class="form__group">
+                        <div class="password-input-group">
+                            <input type="text" 
+                                   id="passwordConfirmation" 
+                                   class="form__input" 
+                                   placeholder="Escribe 'ACEPTO' para confirmar"
+                                   style="padding-right: 45px;">
+                            <button type="button" class="password-toggle" onclick="togglePasswordConfirmation()">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="form__hint">Debes escribir exactamente "ACEPTO" en mayúsculas</small>
+                    </div>
+                </div>
+                
+                <!-- Temporizador -->
+                <div class="timer" id="timerSection">
+                    <i class="fas fa-clock"></i>
+                    Esta solicitud expira en: 
+                    <span class="timer-value" id="countdown">--:--:--</span>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="action-buttons">
+                    <button class="btn btn--danger btn--lg" id="rejectBtn" style="flex: 1;">
+                        <i class="fas fa-times"></i> Rechazar
+                    </button>
+                    <button class="btn btn--success btn--lg" id="acceptBtn" style="flex: 1;" disabled>
+                        <i class="fas fa-check"></i> Aceptar Administración
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overlay de carga -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin spinner-icon"></i>
+            <h3 style="color: white;">Procesando solicitud...</h3>
+        </div>
+    </div>
+    
+    <!-- Modal de resultado -->
+    <div class="result-modal" id="resultModal">
+        <div class="result-content">
+            <i class="fas result-icon" id="resultIcon"></i>
+            <h2 class="result-title" id="resultTitle"></h2>
+            <p class="result-message" id="resultMessage"></p>
+            <div id="resultActions"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Obtener token de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        let requestData = null;
+        let countdownInterval = null;
+        
+        // Elementos del DOM
+        const requestDetails = document.getElementById('requestDetails');
+        const countdownElement = document.getElementById('countdown');
+        const acceptBtn = document.getElementById('acceptBtn');
+        const rejectBtn = document.getElementById('rejectBtn');
+        const passwordConfirmation = document.getElementById('passwordConfirmation');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const resultModal = document.getElementById('resultModal');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultMessage = document.getElementById('resultMessage');
+        const resultActions = document.getElementById('resultActions');
+        
+        // =========================================================================
+        // 1. FUNCIONES AUXILIARES
+        // =========================================================================
+        
+        function togglePasswordConfirmation() {
+            const toggleBtn = document.querySelector('.password-toggle i');
+            if (passwordConfirmation.type === 'text') {
+                passwordConfirmation.type = 'password';
+                toggleBtn.classList.remove('fa-eye-slash');
+                toggleBtn.classList.add('fa-eye');
+            } else {
+                passwordConfirmation.type = 'text';
+                toggleBtn.classList.remove('fa-eye');
+                toggleBtn.classList.add('fa-eye-slash');
+            }
+        }
+        
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+        }
+        
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+        
+        function showResult(type, title, message, actionsHTML = '') {
+            resultIcon.className = `fas result-icon ${type}`;
+            resultIcon.classList.add(type === 'success' ? 'fa-check-circle' : 'fa-times-circle');
+            resultTitle.textContent = title;
+            resultMessage.textContent = message;
+            resultActions.innerHTML = actionsHTML;
+            resultModal.style.display = 'flex';
+        }
+        
+        function updateCountdown(expiresAt) {
+            const now = new Date().getTime();
+            const expires = new Date(expiresAt).getTime();
+            const distance = expires - now;
+            
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                countdownElement.textContent = 'EXPIRADO';
+                acceptBtn.disabled = true;
+                acceptBtn.innerHTML = '<i class="fas fa-ban"></i> Expirado';
+                return;
+            }
+            
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            countdownElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // =========================================================================
+        // 2. CARGAR INFORMACIÓN DE LA SOLICITUD
+        // =========================================================================
+        
+        async function loadRequestInfo() {
+            if (!token) {
+                showResult('error', 'Error', 'No se proporcionó token de verificación');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(`/api/admin/verify-token/${token}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Error al verificar token');
+                }
+                
+                requestData = data.requestData;
+                
+                // Actualizar UI con información
+                requestDetails.innerHTML = `
+                    <div class="info-row">
+                        <span class="info-label">Administrador actual:</span>
+                        <span class="info-value">${requestData.currentAdmin.name}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Correo actual:</span>
+                        <span class="info-value">${requestData.currentAdmin.email}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nuevo administrador:</span>
+                        <span class="info-value">${requestData.newAdmin.name}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Correo nuevo:</span>
+                        <span class="info-value">${requestData.newAdmin.email}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Solicitado el:</span>
+                        <span class="info-value">${new Date(requestData.requestedAt).toLocaleString('es-MX')}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Expira el:</span>
+                        <span class="info-value">${new Date(requestData.expiresAt).toLocaleString('es-MX')}</span>
+                    </div>
+                `;
+                
+                // Iniciar contador
+                updateCountdown(requestData.expiresAt);
+                countdownInterval = setInterval(() => updateCountdown(requestData.expiresAt), 1000);
+                
+                // Habilitar validación de campo de confirmación
+                passwordConfirmation.addEventListener('input', validateConfirmation);
+                
+            } catch (error) {
+                showResult('error', 'Error', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // =========================================================================
+        // 3. VALIDACIÓN DE CONFIRMACIÓN
+        // =========================================================================
+        
+        function validateConfirmation() {
+            const isValid = passwordConfirmation.value.toUpperCase() === 'ACEPTO';
+            acceptBtn.disabled = !isValid;
+            
+            if (isValid) {
+                passwordConfirmation.style.borderColor = '#10b981';
+                passwordConfirmation.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+            } else {
+                passwordConfirmation.style.borderColor = '';
+                passwordConfirmation.style.boxShadow = '';
+            }
+        }
+        
+        // =========================================================================
+        // 4. MANEJAR ACEPTACIÓN
+        // =========================================================================
+        
+        async function handleAccept() {
+            if (!token || !requestData) {
+                showResult('error', 'Error', 'Datos de solicitud no disponibles');
+                return;
+            }
+            
+            // Confirmación final
+            const finalConfirmation = confirm(
+                '⚠️ CONFIRMACIÓN FINAL\n\n' +
+                '¿Estás completamente seguro de que deseas aceptar la administración?\n\n' +
+                'Esta acción:\n' +
+                '1. Desactivará permanentemente al administrador actual\n' +
+                '2. Te dará control total del sistema\n' +
+                '3. NO se puede deshacer automáticamente\n\n' +
+                '¿Continuar?'
+            );
+            
+            if (!finalConfirmation) {
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/admin/confirm-change', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: token,
+                        passwordConfirmation: 'ACEPTO'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Error al confirmar cambio');
+                }
+                
+                // Éxito
+                showResult('success', 
+                    '¡Éxito!', 
+                    `Has sido confirmado como nuevo administrador del sistema CBTIS051. 
+                    Tus credenciales han sido enviadas a tu correo electrónico.`,
+                    `
+                        <div style="margin-top: 30px;">
+                            <a href="/login.html" class="btn btn--primary btn--lg" style="width: 100%;">
+                                <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                            </a>
+                            <p style="margin-top: 15px; color: #6b7280; font-size: 14px;">
+                                <i class="fas fa-lightbulb"></i> Recomendación: Cambia tu contraseña después del primer inicio de sesión.
+                            </p>
+                        </div>
+                    `
+                );
+                
+                clearInterval(countdownInterval);
+                
+            } catch (error) {
+                showResult('error', 'Error', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // =========================================================================
+        // 5. MANEJAR RECHAZO
+        // =========================================================================
+        
+        function handleReject() {
+            const confirmation = confirm(
+                '¿Estás seguro de que deseas rechazar la administración?\n\n' +
+                'Esta acción notificará al administrador actual que has rechazado la solicitud.'
+            );
+            
+            if (confirmation) {
+                showResult('info',
+                    'Solicitud Rechazada',
+                    'Has rechazado la administración del sistema. El administrador actual será notificado.',
+                    `
+                        <div style="margin-top: 30px;">
+                            <button class="btn btn--outline" onclick="window.location.href = '/'">
+                                <i class="fas fa-home"></i> Volver al inicio
+                            </button>
+                        </div>
+                    `
+                );
+            }
+        }
+        
+        // =========================================================================
+        // 6. EVENT LISTENERS
+        // =========================================================================
+        
+        acceptBtn.addEventListener('click', handleAccept);
+        rejectBtn.addEventListener('click', handleReject);
+        
+        // Cerrar modal de resultado al hacer clic fuera
+        resultModal.addEventListener('click', (e) => {
+            if (e.target === resultModal) {
+                resultModal.style.display = 'none';
+            }
+        });
+        
+        // =========================================================================
+        // 7. INICIALIZACIÓN
+        // =========================================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!token) {
+                showResult('error', 'Token no encontrado', 'El enlace de verificación no contiene un token válido.');
+                return;
+            }
+            
+            loadRequestInfo();
+        });
+        
+        // Debug en consola
+        console.log('🔐 Página de verificación de cambio de administrador cargada');
+        console.log('🔑 Token:', token ? `${token.substring(0, 10)}...` : 'No encontrado');
+    </script>
+</body>
+</html>

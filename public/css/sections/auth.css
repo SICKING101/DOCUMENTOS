@@ -58,12 +58,6 @@
     margin-bottom: 10px;
 }
 
-.reset-subtitle {
-    color: #718096;
-    font-size: 0.95rem;
-    line-height: 1.5;
-}
-
 .form-group {
     margin-bottom: 20px;
 }
@@ -280,6 +274,14 @@
     color: #718096;
     font-size: 0.95rem;
     line-height: 1.5;
+}
+
+.reset-subtitle-2 {
+    color: #718096;
+    font-size: 0.75rem;
+    margin-top: 20px;
+    line-height: 1.5;
+    text-align: center;
 }
 
 .form-group {
@@ -752,11 +754,6 @@
     font-weight: 700;
     color: #1a202c;
     margin-bottom: 10px;
-}
-
-.reset-subtitle {
-    color: #718096;
-    font-size: 0.95rem;
 }
 
 .form-group {
