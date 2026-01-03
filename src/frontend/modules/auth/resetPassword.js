@@ -39,6 +39,7 @@ const resetPasswordModule = (function() {
         }
         
         await verifyToken();
+        setupPasswordToggles(); // <-- AÑADIR ESTA LÍNEA
         bindEvents();
     }
     
@@ -65,12 +66,40 @@ const resetPasswordModule = (function() {
         if (btn) btn.disabled = true;
     }
     
-    // Toggle password visibility
+    // NUEVA FUNCIÓN: Configurar toggles de contraseña (igual que en auth.js)
+    function setupPasswordToggles() {
+        document.querySelectorAll('.password-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                // Encontrar el input correspondiente (hermano anterior)
+                const inputWrapper = this.closest('.input-wrapper');
+                if (!inputWrapper) return;
+                
+                // Buscar el input dentro del wrapper
+                const input = inputWrapper.querySelector('input[type="password"], input[type="text"]');
+                if (!input) return;
+                
+                // Alternar tipo de input
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                
+                // Alternar icono
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        });
+    }
+    
+    // Toggle password visibility (mantener por compatibilidad)
     function togglePassword(inputId) {
         const input = document.getElementById(inputId);
         if (!input) return;
         
-        const button = input.parentElement.querySelector('.toggle-password i');
+        // Encontrar el icono del ojo correspondiente
+        const inputWrapper = input.closest('.input-wrapper');
+        if (!inputWrapper) return;
+        
+        const button = inputWrapper.querySelector('.password-toggle');
+        if (!button) return;
         
         if (input.type === 'password') {
             input.type = 'text';

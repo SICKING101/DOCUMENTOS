@@ -10,7 +10,7 @@ let transporter = null;
 
 // Configuración GMAIL FIJA - SIN ETHEREAL
 const emailUser = 'riosnavarretejared@gmail.com';
-const emailPass = 'srxjggcnztvspsob'; // Tu contraseña de aplicación
+const emailPass = 'emdkqnupuzzzucnw'; // Tu contraseña de aplicación
 const emailHost = 'smtp.gmail.com';
 const emailPort = 587;
 const emailFrom = 'riosnavarretejared@gmail.com';
