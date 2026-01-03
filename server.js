@@ -24,6 +24,7 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 // -----------------------------
 // Configuración
@@ -68,11 +69,25 @@ import NotificationService from './src/backend/services/notificationService.js';
 // -----------------------------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadDir);
+    // Verificar y crear directorio en cada upload por seguridad
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    }
+    cb(null, UPLOADS_DIR);
   },
   filename: function (req, file, cb) {
-    const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + file.originalname;
-    cb(null, safeName);
+    // Limpiar nombre de archivo y mantener extensión
+    const originalName = file.originalname;
+    const ext = path.extname(originalName);
+    const name = path.basename(originalName, ext);
+    
+    // Crear nombre seguro (reemplazar caracteres especiales y espacios)
+    const safeName = name
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .substring(0, 100); // Limitar longitud
+    
+    const finalName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${safeName}${ext}`;
+    cb(null, finalName);
   }
 });
 
