@@ -659,27 +659,6 @@
                         </div>
                     </div>
 
-                    <!-- Panel de documentos vencidos -->
-                    <div class="expired-documents-panel" id="expiredDocumentsPanel">
-                        <div class="expired-documents-header">
-                            <h3 class="expired-documents-title">
-                                <i class="fas fa-exclamation-circle text-danger"></i>
-                                Documentos Vencidos
-                            </h3>
-                            <div class="expired-documents-actions">
-                                <span class="badge badge-danger" id="expiredCount">0</span>
-                                <button class="btn btn--link" id="viewAllExpiredBtn">Ver todos</button>
-                            </div>
-                        </div>
-                        <div class="expired-documents-list" id="expiredDocumentsList">
-                            <div class="empty-state">
-                                <i class="fas fa-check-circle"></i>
-                                <h4 class="empty-state__title">No hay documentos vencidos</h4>
-                                <p class="empty-state__description">Los documentos vencidos aparecerán aquí</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Barra de información de selección -->
                     <div class="selection-info-bar" id="selectionInfoBar" style="display: none;">
                         <div class="selection-info-content">
@@ -1402,7 +1381,7 @@
                     </div>
                     <div class="form__group">
                         <label for="taskDescription" class="form__label">Descripción</label>
-                        <textarea id="taskDescription" class="form__textarea" rows="4" placeholder="Descripción detallada de la tarea..."></textarea>
+                        <textarea id="taskDescription" class="form__textarea" rows="4" placeholder="Descripción detallada de la tarea..." required></textarea>
                     </div>
                     <div class="form__row">
                         <div class="form__group">

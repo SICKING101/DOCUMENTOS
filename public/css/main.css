@@ -29,6 +29,7 @@
 @import url('sections/notifications.css');
 @import url('sections/trash.css');
 @import url('sections/auth.css');
+@import url('sections/vencidos.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');

@@ -1,5 +1,3 @@
-// Documentos vencidos
-export { renderVencidosList } from './vencidos.js';
 // =============================================================================
 // src/frontend/modules/documentos/index.js
 // =============================================================================

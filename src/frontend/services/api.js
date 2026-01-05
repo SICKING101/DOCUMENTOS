@@ -387,19 +387,62 @@ class apiCall {
     }
 
     async uploadDocument(formData, documentId = null) {
-        if (documentId) {
-            // Para actualizar con archivo
-            return this.call(`/documents/${documentId}`, {
-                method: 'PUT',
-                body: formData
-                // No headers para FormData, el navegador lo maneja
-            });
-        } else {
-            // Para crear nuevo documento
-            return this.call('/documents', {
-                method: 'POST',
-                body: formData
-            });
+        console.group('📤 UPLOAD DOCUMENT API');
+        console.log('📋 Parámetros:', { 
+            documentId, 
+            hasFile: formData.has('file'),
+            isUpdate: !!documentId 
+        });
+        
+        try {
+            let endpoint = '/documents';
+            let method = 'POST';
+            
+            if (documentId) {
+                // Para actualizar con archivo
+                endpoint = `/documents/${documentId}`;
+                method = 'PUT';
+                
+                console.log('🔄 Modo actualización con archivo');
+                
+                // IMPORTANTE: Cuando es FormData, NO establecer Content-Type manualmente
+                // El navegador lo hará automáticamente con el boundary correcto
+                const options = {
+                    method: method,
+                    body: formData,
+                    credentials: 'include'
+                    // NO headers para FormData
+                };
+                
+                console.log('📡 Enviando FormData al servidor...');
+                const response = await fetch(`${this.baseURL}${endpoint}`, options);
+                
+                console.log(`📥 Respuesta: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Error del servidor:', errorText);
+                    throw new Error(`Error HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Upload exitoso:', data);
+                console.groupEnd();
+                return data;
+                
+            } else {
+                // Para crear nuevo documento (mantener la lógica original)
+                return this.call('/documents', {
+                    method: method,
+                    body: formData
+                    // NO headers para FormData
+                });
+            }
+            
+        } catch (error) {
+            console.error('💥 Error en uploadDocument:', error);
+            console.groupEnd();
+            throw error;
         }
     }
 

@@ -813,7 +813,9 @@ body.dark-theme .empty-state p {
     border: 1px dashed var(--trash-border);
     margin: 1rem 0;
     color: var(--text-secondary);
+    transform: translateX(100%);
 }
+
 body.dark-theme .empty-state {
     background: #23293a;
     border: 1px dashed #374151;
