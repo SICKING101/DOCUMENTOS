@@ -14,6 +14,9 @@ let editPreloaderOverlay = null;
 let successOverlay = null;
 let errorOverlay = null;
 
+// Variable global para texto original del botón
+let originalBtnText = null;
+
 /**
  * Inicializar el modal de edición de documentos
  */
@@ -578,7 +581,7 @@ async function saveDocumentChanges() {
         // Deshabilitar botón y mostrar preloader en botón
         saveBtn.disabled = true;
         saveBtn.classList.add('btn--document-saving');
-        const originalBtnText = saveBtn.innerHTML;
+        originalBtnText = saveBtn.innerHTML; // Guardar texto original GLOBALMENTE
         saveBtn.innerHTML = '<span style="opacity: 0;">Guardando Cambios</span>';
         
         // Mostrar preloader en el modal
@@ -687,12 +690,10 @@ async function saveDocumentChanges() {
             'Hubo un problema al actualizar el documento. Intenta nuevamente.'
         );
         
-        // Restaurar botón
-        setTimeout(() => {
-            saveBtn.disabled = false;
-            saveBtn.classList.remove('btn--document-saving');
-            saveBtn.innerHTML = originalBtnText || '<i class="fas fa-save"></i> Guardar Cambios';
-        }, 3000);
+        // Restaurar botón usando la variable GLOBAL
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('btn--document-saving');
+        saveBtn.innerHTML = originalBtnText || '<i class="fas fa-save"></i> Guardar Cambios';
         
         // Mostrar alerta adicional con detalles
         let errorMessage = 'Error al guardar cambios: ';
@@ -707,6 +708,8 @@ async function saveDocumentChanges() {
             errorMessage += 'El archivo es demasiado grande.';
         } else if (error.message.includes('415')) {
             errorMessage += 'Tipo de archivo no soportado.';
+        } else if (error.message.includes('500')) {
+            errorMessage += 'Error interno del servidor. Intenta nuevamente.';
         } else {
             errorMessage += error.message;
         }
