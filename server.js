@@ -18,11 +18,13 @@ import Document from './src/backend/models/Document.js';
 import Person from './src/backend/models/Person.js';
 import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
+import adminRoutes from './src/backend/routes/adminRoutes.js';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 // -----------------------------
 // Configuración
@@ -56,6 +58,8 @@ app.use('/src', express.static(path.join(__dirname, 'src')));
 // Rutas de autenticación
 app.use('/api/auth', authRoutes);
 
+app.use('/api/admin', adminRoutes);
+
 // Importar modelo y servicio de notificaciones
 import Notification from './src/backend/models/Notification.js';
 import NotificationService from './src/backend/services/notificationService.js';
@@ -65,11 +69,25 @@ import NotificationService from './src/backend/services/notificationService.js';
 // -----------------------------
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadDir);
+    // Verificar y crear directorio en cada upload por seguridad
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    }
+    cb(null, UPLOADS_DIR);
   },
   filename: function (req, file, cb) {
-    const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + file.originalname;
-    cb(null, safeName);
+    // Limpiar nombre de archivo y mantener extensión
+    const originalName = file.originalname;
+    const ext = path.extname(originalName);
+    const name = path.basename(originalName, ext);
+    
+    // Crear nombre seguro (reemplazar caracteres especiales y espacios)
+    const safeName = name
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .substring(0, 100); // Limitar longitud
+    
+    const finalName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${safeName}${ext}`;
+    cb(null, finalName);
   }
 });
 
@@ -1042,212 +1060,255 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
 });
 
 // =============================================================================
-// ACTUALIZAR DOCUMENTO (CORREGIDO COMPLETAMENTE)
+// ACTUALIZAR DOCUMENTO (CORREGIDO COMPLETAMENTE) - SOLO ESTA RUTA
 // =============================================================================
 
 app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
-  try {
-    console.log('📝 ========== ACTUALIZACIÓN DOCUMENTO ==========');
-    const { id } = req.params;
-    
-    console.log('📋 ID del documento:', id);
-    console.log('📋 Body recibido:', req.body);
-    console.log('📋 ¿Hay archivo?', req.file ? 'SÍ' : 'NO');
-
-    // Validar ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de documento inválido' 
-      });
-    }
-
-    // Buscar documento existente
-    const documentoExistente = await Document.findOne({ 
-      _id: id,
-      $or: [
-        { isDeleted: false },
-        { isDeleted: { $exists: false } }
-      ]
-    });
-
-    if (!documentoExistente) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
-      });
-    }
-
-    console.log('📄 Documento encontrado:', documentoExistente.nombre_original);
-
-    // Extraer datos del cuerpo
-    const { 
-      descripcion, 
-      categoria, 
-      fecha_vencimiento, 
-      persona_id 
-    } = req.body;
-
-    console.log('📋 Datos recibidos para actualizar:', {
-      descripcion,
-      categoria,
-      fecha_vencimiento,
-      persona_id
-    });
-
-    // Preparar datos para actualizar
-    const datosActualizados = {
-      descripcion: descripcion !== undefined ? descripcion : documentoExistente.descripcion,
-      categoria: categoria !== undefined ? categoria : documentoExistente.categoria,
-      fecha_vencimiento: fecha_vencimiento !== undefined ? fecha_vencimiento : documentoExistente.fecha_vencimiento,
-      persona_id: persona_id !== undefined ? persona_id : documentoExistente.persona_id
-    };
-
-    let cloudinaryResult = null;
-    let public_id_antiguo = null;
-
-    // =========================================================================
-    // SI HAY ARCHIVO NUEVO (REEMPLAZAR)
-    // =========================================================================
-    if (req.file) {
-      console.log('🔄 Reemplazando archivo...');
-      console.log('📁 Archivo nuevo:', req.file.originalname);
-      console.log('📊 Tamaño:', req.file.size);
-
-      // Guardar info del archivo antiguo
-      public_id_antiguo = documentoExistente.public_id;
-
-      try {
-        // Subir nuevo archivo a Cloudinary
-        cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
-          folder: 'documentos_cbtis051',
-          resource_type: 'auto'
-        });
-
-        console.log('✅ Nuevo archivo subido a Cloudinary:', cloudinaryResult.secure_url);
-
-        // Actualizar datos con nuevo archivo
-        datosActualizados.nombre_original = req.file.originalname;
-        datosActualizados.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
-        datosActualizados.tamano_archivo = req.file.size;
-        datosActualizados.cloudinary_url = cloudinaryResult.secure_url;
-        datosActualizados.public_id = cloudinaryResult.public_id;
-        datosActualizados.resource_type = cloudinaryResult.resource_type;
-
-      } catch (cloudinaryError) {
-        console.error('❌ Error subiendo archivo nuevo:', cloudinaryError);
-        // Limpiar archivo temporal
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Error al subir nuevo archivo: ' + cloudinaryError.message 
-        });
-      }
-    }
-
-    // =========================================================================
-    // ACTUALIZAR EN BASE DE DATOS
-    // =========================================================================
-    console.log('💾 Actualizando en base de datos...');
-    
-    // Preparar campos a actualizar
-    const updateData = {};
-    
-    // Solo actualizar campos que tienen valores
-    if (datosActualizados.descripcion !== undefined) updateData.descripcion = datosActualizados.descripcion;
-    if (datosActualizados.categoria !== undefined) updateData.categoria = datosActualizados.categoria;
-    if (datosActualizados.fecha_vencimiento !== undefined) updateData.fecha_vencimiento = datosActualizados.fecha_vencimiento;
-    if (datosActualizados.persona_id !== undefined) updateData.persona_id = datosActualizados.persona_id;
-    
-    // Campos de archivo si hay archivo nuevo
-    if (req.file) {
-      updateData.nombre_original = datosActualizados.nombre_original;
-      updateData.tipo_archivo = datosActualizados.tipo_archivo;
-      updateData.tamano_archivo = datosActualizados.tamano_archivo;
-      updateData.cloudinary_url = datosActualizados.cloudinary_url;
-      updateData.public_id = datosActualizados.public_id;
-      updateData.resource_type = datosActualizados.resource_type;
-    }
-    
-    console.log('📋 Campos a actualizar:', updateData);
-    
-    const documentoActualizado = await Document.findByIdAndUpdate(
-      id,
-      updateData,
-      { 
-        new: true, 
-        runValidators: true 
-      }
-    ).populate('persona_id', 'nombre');
-
-    if (!documentoActualizado) {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Error al actualizar en base de datos' 
-      });
-    }
-
-    console.log('✅ Documento actualizado en BD:', documentoActualizado.nombre_original);
-
-    // =========================================================================
-    // LIMPIAR ARCHIVOS TEMPORALES Y ANTIGUOS
-    // =========================================================================
-    
-    // Limpiar archivo temporal si existe
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-      console.log('🧹 Archivo temporal eliminado');
-    }
-
-    // Eliminar archivo antiguo de Cloudinary si se reemplazó
-    if (req.file && public_id_antiguo) {
-      try {
-        await cloudinary.uploader.destroy(public_id_antiguo, {
-          resource_type: documentoExistente.resource_type
-        });
-        console.log('🗑️ Archivo antiguo eliminado de Cloudinary');
-      } catch (deleteError) {
-        console.warn('⚠️ No se pudo eliminar archivo antiguo:', deleteError.message);
-      }
-    }
-
-    // =========================================================================
-    // CREAR NOTIFICACIÓN
-    // =========================================================================
     try {
-      await NotificationService.documentoActualizado(
-        documentoActualizado,
-        documentoActualizado.persona_id
-      );
-      console.log('✅ Notificación creada');
-    } catch (notifError) {
-      console.error('⚠️ Error creando notificación:', notifError.message);
+        console.log('📝 ========== ACTUALIZACIÓN DOCUMENTO ==========');
+        const { id } = req.params;
+        
+        console.log('📋 ID del documento:', id);
+        console.log('📋 Body recibido:', JSON.stringify(req.body, null, 2));
+        console.log('📋 ¿Hay archivo?', req.file ? `SÍ: ${req.file.originalname}` : 'NO');
+        console.log('📋 Headers Content-Type:', req.headers['content-type']);
+
+        // Validar ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'ID de documento inválido' 
+            });
+        }
+
+        // Buscar documento existente
+        const documentoExistente = await Document.findOne({ 
+            _id: id,
+            $or: [
+                { isDeleted: false },
+                { isDeleted: { $exists: false } }
+            ]
+        });
+
+        if (!documentoExistente) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Documento no encontrado' 
+            });
+        }
+
+        console.log('📄 Documento encontrado:', {
+            nombre: documentoExistente.nombre_original,
+            categoria: documentoExistente.categoria,
+            persona: documentoExistente.persona_id
+        });
+
+        // Preparar datos para actualizar
+        const updateData = {};
+        
+        // Extraer datos del body (multipart/form-data)
+        const { 
+            descripcion, 
+            categoria, 
+            fecha_vencimiento, 
+            persona_id 
+        } = req.body;
+
+        console.log('📋 Datos recibidos para actualizar:', {
+            descripcion,
+            categoria,
+            fecha_vencimiento,
+            persona_id
+        });
+
+        // Validar que se haya proporcionado categoría
+        if (categoria !== undefined) {
+            if (!categoria || categoria.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'La categoría es obligatoria'
+                });
+            }
+            updateData.categoria = categoria;
+        }
+
+        // Procesar descripción
+        if (descripcion !== undefined) {
+            updateData.descripcion = descripcion;
+        }
+
+        // Procesar fecha de vencimiento
+        if (fecha_vencimiento !== undefined) {
+            if (fecha_vencimiento === '' || fecha_vencimiento === 'null' || fecha_vencimiento === 'undefined') {
+                updateData.fecha_vencimiento = null;
+            } else {
+                try {
+                    const fecha = new Date(fecha_vencimiento);
+                    if (!isNaN(fecha.getTime())) {
+                        updateData.fecha_vencimiento = fecha;
+                    } else {
+                        updateData.fecha_vencimiento = null;
+                    }
+                } catch (error) {
+                    updateData.fecha_vencimiento = null;
+                }
+            }
+        }
+
+        // Procesar persona_id
+        if (persona_id !== undefined) {
+            if (persona_id === '' || persona_id === 'null' || persona_id === 'undefined') {
+                updateData.persona_id = null;
+            } else if (mongoose.Types.ObjectId.isValid(persona_id)) {
+                updateData.persona_id = persona_id;
+            } else {
+                updateData.persona_id = null;
+            }
+        }
+
+        let cloudinaryResult = null;
+        let public_id_antiguo = null;
+
+        // =========================================================================
+        // SI HAY ARCHIVO NUEVO (REEMPLAZAR)
+        // =========================================================================
+        if (req.file) {
+            console.log('🔄 Reemplazando archivo...');
+            console.log('📁 Archivo nuevo:', req.file.originalname);
+            console.log('📊 Tamaño:', req.file.size, 'bytes');
+
+            // Guardar info del archivo antiguo
+            public_id_antiguo = documentoExistente.public_id;
+
+            try {
+                // Subir nuevo archivo a Cloudinary
+                cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+                    folder: 'documentos_cbtis051',
+                    resource_type: 'auto',
+                    timeout: 30000
+                });
+
+                console.log('✅ Nuevo archivo subido a Cloudinary:', cloudinaryResult.secure_url);
+
+                // Actualizar datos con nuevo archivo
+                updateData.nombre_original = req.file.originalname;
+                updateData.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
+                updateData.tamano_archivo = req.file.size;
+                updateData.cloudinary_url = cloudinaryResult.secure_url;
+                updateData.public_id = cloudinaryResult.public_id;
+                updateData.resource_type = cloudinaryResult.resource_type;
+
+            } catch (cloudinaryError) {
+                console.error('❌ Error subiendo archivo nuevo:', cloudinaryError);
+                // Limpiar archivo temporal
+                if (fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
+                }
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Error al subir nuevo archivo: ' + cloudinaryError.message 
+                });
+            }
+        }
+
+        console.log('📋 Campos finales a actualizar:', updateData);
+
+        // =========================================================================
+        // ACTUALIZAR EN BASE DE DATOS
+        // =========================================================================
+        console.log('💾 Actualizando en base de datos...');
+        
+        const documentoActualizado = await Document.findByIdAndUpdate(
+            id,
+            updateData,
+            { 
+                new: true, 
+                runValidators: true 
+            }
+        ).populate('persona_id', 'nombre email departamento');
+
+        if (!documentoActualizado) {
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error al actualizar en base de datos' 
+            });
+        }
+
+        console.log('✅ Documento actualizado en BD:', documentoActualizado.nombre_original);
+
+        // =========================================================================
+        // LIMPIAR ARCHIVOS TEMPORALES Y ANTIGUOS
+        // =========================================================================
+        
+        // Limpiar archivo temporal si existe
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+            console.log('🧹 Archivo temporal eliminado');
+        }
+
+        // Eliminar archivo antiguo de Cloudinary si se reemplazó
+        if (req.file && public_id_antiguo) {
+            try {
+                await cloudinary.uploader.destroy(public_id_antiguo, {
+                    resource_type: documentoExistente.resource_type
+                });
+                console.log('🗑️ Archivo antiguo eliminado de Cloudinary');
+            } catch (deleteError) {
+                console.warn('⚠️ No se pudo eliminar archivo antiguo:', deleteError.message);
+            }
+        }
+
+        // =========================================================================
+        // CREAR NOTIFICACIÓN
+        // =========================================================================
+        try {
+            await NotificationService.documentoActualizado(
+                documentoActualizado,
+                documentoActualizado.persona_id
+            );
+            console.log('✅ Notificación creada');
+        } catch (notifError) {
+            console.error('⚠️ Error creando notificación:', notifError.message);
+        }
+
+        console.log('📝 ========== FIN ACTUALIZACIÓN ==========');
+
+        res.json({
+            success: true,
+            message: req.file ? 'Documento y archivo actualizados' : 'Documento actualizado',
+            document: documentoActualizado
+        });
+
+    } catch (error) {
+        console.error('❌ Error general actualizando documento:', error);
+        console.error('❌ Stack trace:', error.stack);
+        
+        if (error.name === 'ValidationError') {
+            console.error('Error de validación de Mongoose:', error.errors);
+            return res.status(400).json({
+                success: false,
+                message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
+            });
+        }
+        
+        if (error.name === 'CastError') {
+            console.error('Error de casteo (ObjectId inválido):', error);
+            return res.status(400).json({
+                success: false,
+                message: 'ID inválido: ' + error.message
+            });
+        }
+        
+        // Limpiar archivos temporales en caso de error
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al actualizar documento: ' + error.message 
+        });
     }
-
-    console.log('📝 ========== FIN ACTUALIZACIÓN ==========');
-
-    res.json({
-      success: true,
-      message: req.file ? 'Documento y archivo actualizados' : 'Documento actualizado',
-      document: documentoActualizado
-    });
-
-  } catch (error) {
-    console.error('❌ Error general actualizando documento:', error);
-    console.error('❌ Stack trace:', error.stack);
-    
-    // Limpiar archivos temporales en caso de error
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al actualizar documento: ' + error.message 
-    });
-  }
 });
 
 app.delete('/documents/bulk-delete', async (req, res) => {

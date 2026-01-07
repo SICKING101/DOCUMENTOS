@@ -10,7 +10,7 @@ let transporter = null;
 
 // Configuración GMAIL FIJA - SIN ETHEREAL
 const emailUser = 'riosnavarretejared@gmail.com';
-const emailPass = 'srxjggcnztvspsob'; // Tu contraseña de aplicación
+const emailPass = 'emdkqnupuzzzucnw'; // Tu contraseña de aplicación
 const emailHost = 'smtp.gmail.com';
 const emailPort = 587;
 const emailFrom = 'riosnavarretejared@gmail.com';
@@ -634,6 +634,74 @@ export const cambiarContraseña = async (req, res) => {
 };
 
 // =============================================================================
+// VERIFICAR CONTRASEÑA ACTUAL
+// =============================================================================
+
+export const verifyPassword = async (req, res) => {
+    try {
+        console.log('🔐 ========== VERIFICACIÓN DE CONTRASEÑA ==========');
+        console.log('📅 Hora:', new Date().toLocaleString('es-MX'));
+        
+        const { password } = req.body;
+        const userId = req.user.id;
+        
+        console.log('👤 Usuario ID:', userId);
+        console.log('🔑 Contraseña recibida:', password ? '***' + password.slice(-2) : 'No proporcionada');
+
+        if (!password) {
+            console.log('❌ No se proporcionó contraseña');
+            return res.status(400).json({
+                success: false,
+                message: 'La contraseña es requerida'
+            });
+        }
+
+        // Buscar usuario
+        const user = await User.findById(userId);
+        
+        if (!user) {
+            console.log('❌ Usuario no encontrado');
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+        }
+        
+        console.log('✅ Usuario encontrado:', user.usuario);
+        
+        // Verificar contraseña
+        const isValid = await user.compararPassword(password);
+        
+        if (!isValid) {
+            console.log('❌ Contraseña incorrecta');
+            return res.status(400).json({
+                success: false,
+                message: 'Contraseña actual incorrecta'
+            });
+        }
+        
+        console.log('✅ Contraseña verificada correctamente');
+        console.log('🔐 ========== FIN VERIFICACIÓN ==========\n');
+        
+        res.json({
+            success: true,
+            message: 'Contraseña verificada correctamente',
+            usuario: user.usuario,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('🔥 ERROR en verifyPassword:', error.message);
+        console.error('🔧 Stack:', error.stack);
+        res.status(500).json({
+            success: false,
+            message: 'Error del servidor al verificar contraseña',
+            timestamp: new Date().toISOString()
+        });
+    }
+};
+
+// =============================================================================
 // VERIFICAR TOKEN DE CAMBIO
 // =============================================================================
 export const verificarTokenCambio = async (req, res) => {
@@ -923,6 +991,10 @@ export const estadoEmail = async (req, res) => {
     });
   }
 };
+
+export { transporter };
+
+console.log('✅ Transporter exportado para uso en otros controladores');
 
 // =============================================================================
 // INICIALIZACIÓN FINAL

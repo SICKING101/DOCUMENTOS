@@ -22,20 +22,26 @@ Sistema completo para la gestion y control de documentos laborales, construido c
 
 DOCUMENTOS/
 │
-├── 📦 node_modules/
+├── node_modules/                  # Dependencias npm
 │
-├── 🖥️ public/                          # Frontend estatico
-│   ├── 📄 index.html
-|   ├── 📄 login.html
-|   ├── 📄 forgot-password.html
-|   ├── 📄 forgot-password-step1.html
-│   ├── 📁 css/
-│   │   ├── 🎨 main.css                 # Archivo maestro global
-│   │   ├── 📁 base/                    # Configuracion base
+├── public/                        # Frontend estatico
+│   │
+│   ├── index.html
+│   ├── login.html
+│   ├── forgot-password.html
+│   ├── forgot-password-step1.html
+│   ├── verify-admin-change.html
+│   │
+│   ├── css/
+│   │   │
+│   │   ├── main.css               # CSS maestro
+│   │   │
+│   │   ├── base/                  # Configuracion base
 │   │   │   ├── reset.css
 │   │   │   ├── variables.css
 │   │   │   └── utilities.css
-│   │   ├── 📁 components/              # Componentes reutilizables
+│   │   │
+│   │   ├── components/            # Componentes reutilizables
 │   │   │   ├── layout.css
 │   │   │   ├── buttons.css
 │   │   │   ├── cards.css
@@ -48,7 +54,8 @@ DOCUMENTOS/
 │   │   │   ├── tabs.css
 │   │   │   ├── empty-states.css
 │   │   │   └── preloader.css
-│   │   ├── 📁 sections/                # Estilos por modulo/pagina
+│   │   │
+│   │   ├── sections/              # Estilos por pagina/modulo
 │   │   │   ├── dashboard.css
 │   │   │   ├── tasks.css
 │   │   │   ├── documents.css
@@ -57,22 +64,26 @@ DOCUMENTOS/
 │   │   │   ├── historial.css
 │   │   │   ├── notifications.css
 │   │   │   └── trash.css
-│   │   ├── 📁 themes/                  # Temas (light/dark)
+│   │   │
+│   │   ├── themes/                # Temas visuales
 │   │   │   ├── light.css
 │   │   │   └── dark.css
-│   │   └── 📁 responsive/              # Breakpoints
+│   │   │
+│   │   └── responsive/            # Breakpoints
 │   │       ├── mobile.css
 │   │       ├── tablet.css
 │   │       └── desktop.css
 │   │
-│   └── 📁 assets/                      # Recursos estaticos
-│       ├── 🖼️ images/
-│       ├── 🔤 fonts/
-│       └── 🧩 favicon.ico
+│   └── assets/                    # Recursos estaticos
+│       ├── images/
+│       ├── fonts/
+│       └── favicon.ico
 │
-├── 📁 src/
-│   ├── 🌐 frontend/                    # Logica del cliente
-│   │   ├── 📁 modules/                 # Modulos por funcion
+├── src/
+│   │
+│   ├── frontend/                  # Logica del cliente (SPA)
+│   │   │
+│   │   ├── modules/               # Modulos por funcionalidad
 │   │   │   ├── categorias.js
 │   │   │   ├── dashboard.js
 │   │   │   ├── documentos.js
@@ -81,80 +92,108 @@ DOCUMENTOS/
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
 │   │   │   ├── search.js
-│   │   │   └── 📁 documentos/
+│   │   │   │
+│   │   │   ├── auth/              # Autenticacion
+│   │   │   │   ├── forgot.js
+│   │   │   │   ├── resetPassword.js
+│   │   │   │   └── verification.js
+│   │   │   │
+|   │   │   ├── admin/             # Módulo de administración
+│   │   │   │   ├── adminChange.js
+│   │   │   │
+│   │   │   └── documentos/        # Modulo documentos
+│   │   │       │
 │   │   │       ├── core/
 │   │   │       │   ├── constants.js
-│   │   │       │   ├── MultipleUploadState.js
+│   │   │       │   └── MultipleUploadState.js
+│   │   │       │
 │   │   │       ├── download/
 │   │   │       │   ├── downloadDiagnostics.js
 │   │   │       │   ├── downloadManager.js
-│   │   │       │   ├── downloadMethods.js
+│   │   │       │   └── downloadMethods.js
+│   │   │       │
 │   │   │       ├── modals/
 │   │   │       │   ├── documentModal.js
-│   │   │       │   ├── modalHelpers.js
+│   │   │       │   └── modalHelpers.js
+│   │   │       │
 │   │   │       ├── preview/
 │   │   │       │   ├── officePreview.js
 │   │   │       │   ├── previewManager.js
 │   │   │       │   ├── previewModals.js
-│   │   │       │   ├── textPreview.js
+│   │   │       │   └── textPreview.js
+│   │   │       │
 │   │   │       ├── table/
 │   │   │       │   ├── tableRenderer.js
-│   │   │       │   ├── tableFilters.js
+│   │   │       │   └── tableFilters.js
+│   │   │       │
 │   │   │       ├── upload/
 │   │   │       │   ├── dragAndDrop.js
 │   │   │       │   ├── progressManager.js
 │   │   │       │   ├── uploadMultiple.js
-│   │   │       │   ├── uploadSingle.js
+│   │   │       │   └── uploadSingle.js
+│   │   │       │
 │   │   │       ├── index.js
-│   │   │       ├── compatibility.js
-│   │   ├── 🔧 services/
-│   │   │   └── api.js                  # Cliente API
-│   │   ├── 🚀 app.js                   # Inicializacion global
-│   │   ├── 🔐 auth.js                  # Auth general
-│   │   ├── 🔐 authGuard.js             # Proteccion de rutas
-│   │   ├── ⚙️ config.js                # Config del frontend
-│   │   ├── 🧩 dom.js                   # Selectores DOM
-│   │   ├── 🧭 navigation.js            # SPA Router
-│   │   ├── 📊 state.js                 # Estado global
-│   │   ├── 📌 task.js                  # Manejo de tareas
-│   │   ├── 🎛️ ui.js                   # Render de UI
-│   │   ├── 🛠️ userMenu.js              # Menu usuario
-│   │   └── 🛠️ utils.js                # Funciones utiles
+│   │   │       └── compatibility.js
+│   │   │
+│   │   ├── services/
+│   │   │   └── api.js              # Cliente API
+│   │   │
+│   │   ├── app.js                  # Inicializacion global
+│   │   ├── auth.js                 # Auth general
+│   │   ├── authGuard.js            # Proteccion rutas
+│   │   ├── config.js               # Config frontend
+│   │   ├── dom.js                  # Selectores DOM
+│   │   ├── navigation.js           # Router SPA
+│   │   ├── state.js                # Estado global
+│   │   ├── task.js                 # Manejo tareas
+│   │   ├── ui.js                   # Render UI
+│   │   ├── userMenu.js             # Menu usuario
+│   │   └── utils.js                # Utilidades
 │   │
-│   ├── 🛠️ backend/
-│   │   ├── ⚙️ config/
-│   │   │   ├── cloudinaryConfig.js
-│   │   │   └── multerConfig.js
-│   │   ├── 🎯 controllers/             # Controladores REST
-│   │   │   ├── categoryController.js
-|   │   │   ├── authController.js
-│   │   │   ├── dashboardController.js
-|   │   │   ├── departmentController.js
-│   │   │   ├── documentController.js
-│   │   │   ├── notificationController.js
-│   │   │   ├── personController.js
-│   │   │   ├── reportController.js
-|   │   │   ├── trashController.js
-│   │   │   └── taskController.js
-│   │   ├── 🧵 middleware/
-│   │   │   ├── auth.js
-│   │   ├── 🧬 models/                  # Modelos MongoDB
-│   │   │   ├── Category.js
-│   │   │   ├── Document.js
-│   │   │   ├── Person.js
-|   │   │   ├── Department.js
-│   │   │   ├── Notification.js
-│   │   │   └── User.js
-│   │   ├── 🛎️ services/
-│   │   │   ├── fileService.js
-│   │   │   └── notificationService.js
-│   │   └── 🚦 routes/
-│   │       ├── apiRoutes.js
-│   │       └── authRoutes.js
+│   └── backend/                    # Servidor / API
+│       │
+│       ├── config/
+│       │   ├── cloudinaryConfig.js
+│       │   └── multerConfig.js
+│       │
+│       ├── controllers/            # Controladores REST
+│       │   ├── authController.js
+|   │   │   ├── adminController.js
+│       │   ├── categoryController.js
+│       │   ├── dashboardController.js
+│       │   ├── departmentController.js
+│       │   ├── documentController.js
+│       │   ├── notificationController.js
+│       │   ├── personController.js
+│       │   ├── reportController.js
+│       │   ├── trashController.js
+│       │   └── taskController.js
+│       │
+│       ├── middleware/
+│       │   └── auth.js
+│       │
+│       ├── models/                 # Modelos MongoDB
+│       │   ├── User.js
+│       │   ├── Person.js
+│       │   ├── Department.js
+│       │   ├── Category.js
+│       │   ├── Document.js
+│       │   ├── AdminChangeRequest.js
+│       │   └── Notification.js
+│       │
+│       ├── services/
+│       │   ├── fileService.js
+│       │   └── notificationService.js
+│       │
+│       └── routes/
+│           ├── apiRoutes.js
+│           ├── adminRoutes.js
+│           └── authRoutes.js
 │
-├── 🚀 server.js                        # Punto de entrada del servidor
-├── 📦 package.json
-├── 📦 package-lock.json
-├── 🔐 .env
-└── 📝 README.md
+├── server.js                       # Entry point servidor
+├── package.json
+├── package-lock.json
+├── .env
+└── README.md
+
 

@@ -517,7 +517,7 @@ async function handleTabNavigation(e) {
  */
 async function switchTab(tabId) {
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
