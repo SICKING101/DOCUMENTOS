@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <!-- SECCIÓN 1: METADATOS Y CONFIGURACIÓN HEAD -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestión de Documentos - CBTIS051</title>
-    
+
     <!-- Fuentes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <!-- Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Estilos -->
     <link rel="stylesheet" href="css/main.css">
 </head>
@@ -21,84 +23,184 @@
 <body>
     <!-- SECCIÓN 2: ESTRUCTURA PRINCIPAL DE LA APLICACIÓN -->
     <div class="app-layout">
-        
+
         <!-- SECCIÓN 3: BARRA LATERAL (SIDEBAR) -->
         <aside class="sidebar">
+            <!-- Cabecera con logo y título -->
             <div class="sidebar__header">
-                <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
-                <h1 class="sidebar__title">CBTIS051</h1>
+                <div class="sidebar__logo-container">
+                    <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
+                    <div class="sidebar__logo-badge">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                </div>
+                <div class="sidebar__title-container">
+                    <h1 class="sidebar__title">CBTIS051</h1>
+                </div>
             </div>
 
-            <!-- Menú de navegación principal -->
+            <!-- Separador decorativo -->
+            <div class="sidebar__divider"></div>
+
+            <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
             <nav class="sidebar__nav">
-                <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" class="sidebar__nav-link" data-tab="personas">
-                    <i class="fas fa-users"></i>
-                    <span>Personas</span>
-                </a>
-                <a href="#" class="sidebar__nav-link" data-tab="documentos">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Documentos</span>
-                </a>
-                <a href="#" class="sidebar__nav-link" data-tab="tareas">
-                    <i class="fa-solid fa-thumbtack"></i>
-                    <span>Tareas</span>
-                </a>
-                <a href="#" class="sidebar__nav-link" data-tab="historial">
-                    <i class="fas fa-history"></i>
-                    <span>Historial</span>
-                </a>
+                <!-- Grupo 1: Navegación Principal -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Navegación Principal</p>
+                    <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Dashboard</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="personas">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Personas</span>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="documentos">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Documentos</span>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="tareas">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fa-solid fa-thumbtack"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Tareas</span>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="historial">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Historial</span>
+                    </a>
+                </div>
+
+                <!-- Grupo 2: Herramientas -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Herramientas</p>
+                    <a href="#" class="sidebar__nav-link" data-tab="calendario">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Calendario</span>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="mensajes">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Mensajes</span>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="archivos">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Archivos</span>
+                    </a>
+                </div>
+
+                <!-- Grupo 3: Configuración -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Configuración</p>
+                    <a href="#" class="sidebar__nav-link" data-tab="ajustes">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Ajustes</span>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="reportes">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Reportes</span>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="soporte">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Soporte</span>
+                    </a>
+                </div>
             </nav>
 
             <!-- Pie de la barra lateral -->
             <div class="sidebar__footer">
-                <button class="sidebar__theme-toggle" id="themeToggle" title="Cambiar tema">
-                    <i class="fas fa-moon"></i>
-                </button>
-                
+                <!-- Botón de tema -->
+                <div class="sidebar__theme-container">
+                    <button class="sidebar__theme-toggle" id="themeToggle" title="Cambiar tema">
+                        <div class="sidebar__theme-icon-wrapper">
+                            <i class="fas fa-moon"></i>
+                        </div>
+                        <span class="sidebar__theme-text">Modo Oscuro</span>
+                    </button>
+                </div>
+
                 <!-- Perfil de usuario -->
                 <div class="sidebar__user" id="userMenuTrigger">
+                    <div class="sidebar__user-status"></div>
                     <div class="sidebar__user-avatar">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user-shield"></i>
                     </div>
                     <div class="sidebar__user-info">
                         <p class="sidebar__user-name">Administrador</p>
-                        <p class="sidebar__user-role">Sistema</p>
+                        <p class="sidebar__user-role">Sistema Principal</p>
                     </div>
-                    <i class="fas fa-chevron-up sidebar__user-chevron"></i>
+                    <div class="sidebar__user-actions">
+                        <i class="fas fa-chevron-up sidebar__user-chevron"></i>
+                    </div>
                 </div>
 
-                <!-- Menú desplegable del usuario -->
+                <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
                 <div class="user-menu" id="userMenu">
                     <div class="user-menu__header">
+                        <div class="user-menu__status-indicator"></div>
                         <div class="user-menu__avatar">
                             <i class="fas fa-user-shield"></i>
                         </div>
                         <div class="user-menu__info">
-                            <p class="user-menu__name">Administrador</p>
-                            <p class="user-menu__email" id="userEmail">admin@cbtis051.com</p>
+                            <p class="user-menu__name">Administrador del Sistema</p>
+                            <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
+                            <p class="user-menu__status">En línea</p>
                         </div>
                     </div>
+
                     <div class="user-menu__divider"></div>
+
+                    <a href="#" class="user-menu__option">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Mi Perfil</span>
+                    </a>
+
+                    <div class="user-menu__divider"></div>
+
                     <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
                         <i class="fas fa-user-shield"></i>
                         <span>Cambiar Administrador</span>
                     </button>
+
                     <div class="user-menu__divider"></div>
+
                     <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i>
+                        <div class="user-menu__option-icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
                         <span>Cerrar Sesión</span>
                     </button>
+
+                    <div class="user-menu__footer">
+                        <p class="user-menu__version">v1.0.0</p>
+                    </div>
                 </div>
             </div>
         </aside>
 
         <!-- SECCIÓN 4: CONTENIDO PRINCIPAL -->
         <div class="content-wrapper">
-            
+
             <!-- SECCIÓN 4.1: BARRA SUPERIOR -->
             <header class="topbar">
                 <div class="topbar__actions">
@@ -115,7 +217,7 @@
 
             <!-- SECCIÓN 4.2: ÁREA DE CONTENIDO PRINCIPAL -->
             <main class="main-content">
-                
+
                 <!-- SECCIÓN 4.2.1: PESTAÑA DASHBOARD -->
                 <section id="dashboard" class="tab-content tab-content--active">
                     <div class="section__header">
@@ -223,7 +325,8 @@
                             <h2 class="section__title">
                                 <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
                             </h2>
-                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30 días</p>
+                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30
+                                días</p>
                         </div>
                     </div>
 
@@ -277,7 +380,8 @@
                         <div class="trash-controls-left">
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
-                                <input type="text" id="trashSearchInput" placeholder="Buscar en papelera..." autocomplete="off">
+                                <input type="text" id="trashSearchInput" placeholder="Buscar en papelera..."
+                                    autocomplete="off">
                             </div>
 
                             <div class="view-toggle">
@@ -344,7 +448,8 @@
                                     </div>
                                     <div class="tip">
                                         <i class="fas fa-undo"></i>
-                                        <span>Puedes restaurar documentos antes de que sean eliminados permanentemente</span>
+                                        <span>Puedes restaurar documentos antes de que sean eliminados
+                                            permanentemente</span>
                                     </div>
                                 </div>
                             </div>
@@ -407,9 +512,11 @@
                             <div class="form__group form__group--inline">
                                 <label for="filterDateFrom" class="form__label">Rango de fechas</label>
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <input type="date" id="filterDateFrom" class="form__input form__input--date" placeholder="Desde">
+                                    <input type="date" id="filterDateFrom" class="form__input form__input--date"
+                                        placeholder="Desde">
                                     <span>a</span>
-                                    <input type="date" id="filterDateTo" class="form__input form__input--date" placeholder="Hasta">
+                                    <input type="date" id="filterDateTo" class="form__input form__input--date"
+                                        placeholder="Hasta">
                                 </div>
                             </div>
 
@@ -524,7 +631,8 @@
                                     <td colspan="7" class="empty-state">
                                         <i class="fas fa-history empty-state__icon"></i>
                                         <h3 class="empty-state__title">No hay registros de historial</h3>
-                                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí</p>
+                                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí
+                                        </p>
                                     </td>
                                 </tr>
                             </tbody>
@@ -621,7 +729,8 @@
                                 <i class="fas fa-folder-open"></i>
                                 Gestión de Documentos
                             </h2>
-                            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema</p>
+                            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema
+                            </p>
                         </div>
                         <div class="documents-header__actions">
                             <button class="btn btn--secondary" onclick="showAdvancedSearch()">
@@ -701,7 +810,8 @@
                             <div class="filter-group full-width">
                                 <label for="searchInput">Buscar</label>
                                 <div class="search-wrapper">
-                                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, categoría, descripción...">
+                                    <input type="text" class="search-input" id="searchInput"
+                                        placeholder="Buscar por nombre, categoría, descripción...">
                                     <button class="search-clear" id="clearSearch">×</button>
                                 </div>
                             </div>
@@ -823,9 +933,142 @@
                                 <button id="verTodosVencidosBtn" class="btn btn--link">Ver todos</button>
                             </div>
                         </div>
-                        <p class="section__subtitle">Lista de documentos que han superado su fecha de vencimiento. Puedes renovarlos o eliminarlos.</p>
+                        <p class="section__subtitle">Lista de documentos que han superado su fecha de vencimiento.
+                            Puedes renovarlos o eliminarlos.</p>
                         <div id="vencidosList" class="vencidos-list">
                             <!-- Los documentos vencidos se renderizan aquí -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 4.2.7: PESTAÑA CALENDARIO -->
+                <section id="calendario" class="tab-content active">
+                    <div class="calendar-section">
+                        <!-- Encabezado del calendario -->
+                        <div class="calendar__header">
+                            <div class="calendar__header-left">
+                                <h2 class="calendar__title">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Calendario
+                                </h2>
+                            </div>
+
+                            <div class="calendar__header-right">
+                                <div class="calendar__controls">
+                                    <button class="calendar__nav-btn" id="prevYear">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </button>
+
+                                    <div class="calendar__current-month" id="currentMonth">
+                                        Febrero 2024
+                                    </div>
+
+                                    <button class="calendar__nav-btn" id="nextYear">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </button>
+                                </div>
+
+                                <div class="calendar__current-date">
+                                    <span id="currentDate">Hoy: 7 de Febrero 2024</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Barra de herramientas -->
+                        <div class="calendar__toolbar">
+                            <div class="calendar__filters">
+                                <button class="calendar__filter-btn active" data-filter="all">
+                                    <i class="fas fa-layer-group"></i>
+                                    Todos
+                                </button>
+                                <button class="calendar__filter-btn" data-filter="academic">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    Académicos
+                                </button>
+                                <button class="calendar__filter-btn" data-filter="meetings">
+                                    <i class="fas fa-users"></i>
+                                    Reuniones
+                                </button>
+                                <button class="calendar__filter-btn" data-filter="deadlines">
+                                    <i class="fas fa-clock"></i>
+                                    Plazos
+                                </button>
+                                <button class="calendar__filter-btn" data-filter="holidays">
+                                    <i class="fas fa-umbrella-beach"></i>
+                                    Festivos
+                                </button>
+                            </div>
+
+                            <div class="calendar__actions">
+                                <button class="calendar__action-btn calendar__action-btn--secondary" id="printCalendar">
+                                    <i class="fas fa-print"></i>
+                                    Imprimir
+                                </button>
+                                <button class="calendar__action-btn" id="addEvent">
+                                    <i class="fas fa-plus"></i>
+                                    Nuevo Evento
+                                </button>
+                                <button id="resetCalendar" class="btn btn--danger">
+                                    <i class="fas fa-trash-alt"></i> Reiniciar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Contenedor principal del calendario -->
+                        <div class="calendar__main-container">
+                            <!-- Calendario principal -->
+                            <div class="calendar__main-view">
+                                <div class="calendar__month-view active">
+                                    <div class="calendar__weekdays">
+                                        <div class="calendar__weekday">Dom</div>
+                                        <div class="calendar__weekday">Lun</div>
+                                        <div class="calendar__weekday">Mar</div>
+                                        <div class="calendar__weekday">Mié</div>
+                                        <div class="calendar__weekday">Jue</div>
+                                        <div class="calendar__weekday">Vie</div>
+                                        <div class="calendar__weekday weekend">Sáb</div>
+                                    </div>
+
+                                    <div class="calendar__days-grid" id="calendarGrid">
+                                        <!-- Los días se generan dinámicamente con JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel lateral de eventos próximos -->
+                            <div class="calendar__sidebar">
+                                <div class="calendar__upcoming">
+                                    <div class="calendar__upcoming-header">
+                                        <h3 class="calendar__upcoming-title">
+                                            <i class="fas fa-clock"></i>
+                                            Próximos Eventos
+                                        </h3>
+                                        <span class="calendar__upcoming-count" id="upcomingCount">3</span>
+                                    </div>
+                                    <div class="calendar__upcoming-list" id="upcomingEvents">
+                                        <!-- Los eventos próximos se cargan dinámicamente -->
+                                    </div>
+                                </div>
+
+                                <!-- Mini calendario -->
+                                <div class="calendar__mini">
+                                    <div class="calendar__mini-header">
+                                        <button class="calendar__mini-nav" id="miniPrev">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <span class="calendar__mini-month" id="miniMonth">Feb 2024</span>
+                                        <button class="calendar__mini-nav" id="miniNext">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div class="calendar__mini-weekdays">
+                                        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                                    </div>
+                                    <div class="calendar__mini-days" id="miniCalendar">
+                                        <!-- Mini calendario se genera dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -872,8 +1115,8 @@
                     </div>
                     <div class="form__group">
                         <label for="personPosition" class="form__label">Puesto</label>
-                            <input type="text" id="personPosition" class="form__input">
-                        </div>
+                        <input type="text" id="personPosition" class="form__input">
+                    </div>
                 </form>
             </section>
             <footer class="modal__footer">
@@ -911,7 +1154,8 @@
                             <button type="button" class="btn btn--primary" id="browseFilesBtn">
                                 <i class="fas fa-folder-open"></i> Seleccionar Archivo
                             </button>
-                            <input type="file" id="fileInput" class="upload__input" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                            <input type="file" id="fileInput" class="upload__input"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
                             <div class="upload__info" id="fileInfo">
                                 <p><strong>Archivo:</strong> <span id="fileName"></span></p>
                                 <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
@@ -959,7 +1203,8 @@
                             <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
                                 <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
                             </button>
-                            <input type="file" id="multipleFileInput" class="upload__input" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                            <input type="file" id="multipleFileInput" class="upload__input" multiple
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
                             <p class="upload__hint">Tamaño total permitido por archivo: 10 MB</p>
                         </div>
 
@@ -969,7 +1214,8 @@
 
                             <div class="form__row">
                                 <div class="form__group">
-                                    <label for="multipleDocumentCategory" class="form__label">Categoría para Todos</label>
+                                    <label for="multipleDocumentCategory" class="form__label">Categoría para
+                                        Todos</label>
                                     <select id="multipleDocumentCategory" class="form__select">
                                         <option value="">Seleccionar categoría común</option>
                                     </select>
@@ -983,14 +1229,17 @@
                             </div>
 
                             <div class="form__group">
-                                <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento (opcional)</label>
-                                <input type="number" id="multipleExpirationDays" class="form__input" min="0" placeholder="Ej: 30 (días desde hoy)">
+                                <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento
+                                    (opcional)</label>
+                                <input type="number" id="multipleExpirationDays" class="form__input" min="0"
+                                    placeholder="Ej: 30 (días desde hoy)">
                             </div>
                         </div>
 
                         <!-- Lista de archivos seleccionados -->
                         <div class="multiple-upload__files" id="multipleFilesList">
-                            <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span id="selectedFilesCount">0</span>)</h4>
+                            <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span
+                                    id="selectedFilesCount">0</span>)</h4>
                             <div class="files__list" id="filesListContainer">
                                 <div class="files__empty">
                                     <i class="fas fa-file-alt"></i>
@@ -1091,7 +1340,8 @@
                             <button type="button" class="btn btn--outline btn--sm" id="browseEditFileBtn">
                                 <i class="fas fa-folder-open"></i> Seleccionar Archivo
                             </button>
-                            <input type="file" id="editFileInput" class="upload__input" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                            <input type="file" id="editFileInput" class="upload__input"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
                             <div class="upload__info" id="editFileInfo" style="display: none;">
                                 <p><strong>Nuevo archivo:</strong> <span id="newFileName"></span></p>
                                 <p><strong>Tamaño:</strong> <span id="newFileSize"></span></p>
@@ -1101,7 +1351,8 @@
 
                     <div class="form__group">
                         <label for="editDocumentDescription" class="form__label">Descripción</label>
-                        <textarea id="editDocumentDescription" class="form__textarea" rows="3" placeholder="Descripción del documento..."></textarea>
+                        <textarea id="editDocumentDescription" class="form__textarea" rows="3"
+                            placeholder="Descripción del documento..."></textarea>
                     </div>
 
                     <div class="form__row">
@@ -1177,7 +1428,8 @@
                     <div class="form__row">
                         <div class="form__group">
                             <label for="categoryColor" class="form__label">Color</label>
-                            <input type="color" id="categoryColor" class="form__input form__input--color" value="#4f46e5">
+                            <input type="color" id="categoryColor" class="form__input form__input--color"
+                                value="#4f46e5">
                         </div>
                         <div class="form__group">
                             <label for="categoryIcon" class="form__label">Icono</label>
@@ -1216,16 +1468,19 @@
                     <input type="hidden" id="departmentId">
                     <div class="form__group">
                         <label for="departmentName" class="form__label">Nombre *</label>
-                        <input type="text" id="departmentName" class="form__input" placeholder="Ej: Recursos Humanos" required>
+                        <input type="text" id="departmentName" class="form__input" placeholder="Ej: Recursos Humanos"
+                            required>
                     </div>
                     <div class="form__group">
                         <label for="departmentDescription" class="form__label">Descripción</label>
-                        <textarea id="departmentDescription" class="form__textarea" rows="3" placeholder="Descripción del departamento..."></textarea>
+                        <textarea id="departmentDescription" class="form__textarea" rows="3"
+                            placeholder="Descripción del departamento..."></textarea>
                     </div>
                     <div class="form__row">
                         <div class="form__group">
                             <label for="departmentColor" class="form__label">Color</label>
-                            <input type="color" id="departmentColor" class="form__input form__input--color" value="#3b82f6">
+                            <input type="color" id="departmentColor" class="form__input form__input--color"
+                                value="#3b82f6">
                         </div>
                         <div class="form__group">
                             <label for="departmentIcon" class="form__label">Icono</label>
@@ -1266,7 +1521,8 @@
                     <div class="form__row">
                         <div class="form__group">
                             <label for="searchKeyword" class="form__label">Palabra clave</label>
-                            <input type="text" id="searchKeyword" class="form__input" placeholder="Buscar en nombre, descripción...">
+                            <input type="text" id="searchKeyword" class="form__input"
+                                placeholder="Buscar en nombre, descripción...">
                         </div>
                         <div class="form__group">
                             <label for="searchCategory" class="form__label">Categoría</label>
@@ -1381,7 +1637,8 @@
                     </div>
                     <div class="form__group">
                         <label for="taskDescription" class="form__label">Descripción</label>
-                        <textarea id="taskDescription" class="form__textarea" rows="4" placeholder="Descripción detallada de la tarea..." required></textarea>
+                        <textarea id="taskDescription" class="form__textarea" rows="4"
+                            placeholder="Descripción detallada de la tarea..." required></textarea>
                     </div>
                     <div class="form__row">
                         <div class="form__group">
@@ -1413,7 +1670,8 @@
                     </div>
                     <div class="form__group">
                         <label for="taskCategory" class="form__label">Categoría</label>
-                        <input type="text" id="taskCategory" class="form__input" placeholder="Ej: Personal, Trabajo, Estudio...">
+                        <input type="text" id="taskCategory" class="form__input"
+                            placeholder="Ej: Personal, Trabajo, Estudio...">
                     </div>
                     <div class="form__group">
                         <label class="form__label">
@@ -1550,7 +1808,8 @@
                                 <i class="fas fa-search"></i> Buscar
                             </label>
                             <div class="search-wrapper">
-                                <input type="text" class="search-input" id="modalSearch" placeholder="Buscar por nombre, descripción...">
+                                <input type="text" class="search-input" id="modalSearch"
+                                    placeholder="Buscar por nombre, descripción...">
                                 <button class="search-clear" id="modalSearchClear" title="Limpiar búsqueda">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -1594,7 +1853,8 @@
                         <div class="confirmation-content">
                             <h4 class="confirmation-title">Confirmar eliminación</h4>
                             <p class="confirmation-message">
-                                Estás a punto de mover <span id="deleteCount" class="text-danger">0</span> documento(s) a la papelera. Esta acción puede revertirse desde la papelera.
+                                Estás a punto de mover <span id="deleteCount" class="text-danger">0</span> documento(s)
+                                a la papelera. Esta acción puede revertirse desde la papelera.
                             </p>
                         </div>
                     </div>
@@ -1649,23 +1909,28 @@
                 <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
                     <i class="fas fa-exclamation-triangle"></i>
                     <div>
-                        <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un enlace de confirmación. Esta acción requiere autorización.
+                        <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un
+                        enlace de confirmación. Esta acción requiere autorización.
                     </div>
                 </div>
                 <form id="changeAdminForm">
                     <div class="form__group">
                         <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
-                        <input type="text" id="newAdminUser" class="form__input" placeholder="Ingresa el nuevo nombre de usuario" required>
+                        <input type="text" id="newAdminUser" class="form__input"
+                            placeholder="Ingresa el nuevo nombre de usuario" required>
                     </div>
                     <div class="form__group">
                         <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
-                        <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com" required>
+                        <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com"
+                            required>
                     </div>
                     <div class="form__group">
                         <label for="newAdminPassword" class="form__label">Contraseña</label>
                         <div class="form__password-wrapper">
-                            <input type="password" id="newAdminPassword" class="form__input" placeholder="Contraseña segura" required>
-                            <button type="button" class="form__password-toggle" onclick="togglePasswordVisibility('newAdminPassword')">
+                            <input type="password" id="newAdminPassword" class="form__input"
+                                placeholder="Contraseña segura" required>
+                            <button type="button" class="form__password-toggle"
+                                onclick="togglePasswordVisibility('newAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -1673,8 +1938,10 @@
                     <div class="form__group">
                         <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
                         <div class="form__password-wrapper">
-                            <input type="password" id="confirmAdminPassword" class="form__input" placeholder="Repite la contraseña" required>
-                            <button type="button" class="form__password-toggle" onclick="togglePasswordVisibility('confirmAdminPassword')">
+                            <input type="password" id="confirmAdminPassword" class="form__input"
+                                placeholder="Repite la contraseña" required>
+                            <button type="button" class="form__password-toggle"
+                                onclick="togglePasswordVisibility('confirmAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -1713,8 +1980,165 @@
         </article>
     </dialog>
 
+    <!-- Modal para crear/editar evento de calendario -->
+    <div id="calendarEventModal" class="modal">
+        <div class="modal__backdrop"></div>
+        <article class="modal__content calendar-modal">
+            <header class="modal__header">
+                <h3 class="modal__title" id="modalEventTitle">Nuevo Evento</h3>
+                <button class="modal__close" id="closeCalendarModal">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="calendarEventForm">
+                    <div class="form__group">
+                        <label for="eventTitle" class="form__label">
+                            <i class="fas fa-heading"></i>
+                            Título del Evento *
+                        </label>
+                        <input type="text" id="eventTitle" class="form__input"
+                            placeholder="Ej: Reunión de consejo técnico" required>
+                    </div>
+
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="eventType" class="form__label">
+                                <i class="fas fa-tag"></i>
+                                Tipo de Evento
+                            </label>
+                            <select id="eventType" class="form__select">
+                                <option value="academic">Académico</option>
+                                <option value="meeting">Reunión</option>
+                                <option value="deadline">Plazo límite</option>
+                                <option value="holiday">Día festivo</option>
+                                <option value="personal">Personal</option>
+                            </select>
+                        </div>
+
+                        <div class="form__group">
+                            <label for="eventColor" class="form__label">
+                                <i class="fas fa-palette"></i>
+                                Color
+                            </label>
+                            <input type="color" id="eventColor" class="form__color-picker" value="#3b82f6">
+                            <span class="color-preview" id="colorPreview" style="background-color: #3b82f6;"></span>
+                        </div>
+                    </div>
+
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="eventStartDate" class="form__label">
+                                <i class="fas fa-calendar-day"></i>
+                                Fecha inicio *
+                            </label>
+                            <input type="date" id="eventStartDate" class="form__input" required>
+                        </div>
+
+                        <div class="form__group">
+                            <label for="eventStartTime" class="form__label">
+                                <i class="fas fa-clock"></i>
+                                Hora inicio
+                            </label>
+                            <input type="time" id="eventStartTime" class="form__input" value="09:00">
+                        </div>
+                    </div>
+
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="eventEndDate" class="form__label">
+                                <i class="fas fa-calendar-times"></i>
+                                Fecha fin
+                            </label>
+                            <input type="date" id="eventEndDate" class="form__input">
+                        </div>
+
+                        <div class="form__group">
+                            <label for="eventEndTime" class="form__label">
+                                <i class="fas fa-clock"></i>
+                                Hora fin
+                            </label>
+                            <input type="time" id="eventEndTime" class="form__input" value="17:00">
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label class="form__label">
+                            <i class="fas fa-redo"></i>
+                            Repetición
+                        </label>
+                        <div class="recurrence-options">
+                            <label class="recurrence-option">
+                                <input type="radio" name="recurrence" value="none" checked>
+                                <span>No repetir</span>
+                            </label>
+                            <label class="recurrence-option">
+                                <input type="radio" name="recurrence" value="weekly">
+                                <span>Semanal</span>
+                            </label>
+                            <label class="recurrence-option">
+                                <input type="radio" name="recurrence" value="monthly">
+                                <span>Mensual</span>
+                            </label>
+                            <label class="recurrence-option">
+                                <input type="radio" name="recurrence" value="yearly">
+                                <span>Anual</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <label for="eventLocation" class="form__label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Ubicación
+                        </label>
+                        <input type="text" id="eventLocation" class="form__input"
+                            placeholder="Ej: Sala de juntas principal">
+                    </div>
+
+                    <div class="form__group">
+                        <label for="eventDescription" class="form__label">
+                            <i class="fas fa-align-left"></i>
+                            Descripción
+                        </label>
+                        <textarea id="eventDescription" class="form__textarea"
+                            placeholder="Descripción detallada del evento..." rows="4"></textarea>
+                    </div>
+
+                    <div class="form__group">
+                        <label for="eventReminder" class="form__label">
+                            <i class="fas fa-bell"></i>
+                            Recordatorio
+                        </label>
+                        <select id="eventReminder" class="form__select">
+                            <option value="">Sin recordatorio</option>
+                            <option value="5">5 minutos antes</option>
+                            <option value="15">15 minutos antes</option>
+                            <option value="30">30 minutos antes</option>
+                            <option value="60">1 hora antes</option>
+                            <option value="1440">1 día antes</option>
+                        </select>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button type="button" class="btn btn--outline" id="cancelCalendarEvent">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn--danger" id="deleteCalendarEvent" style="display: none;">
+                    <i class="fas fa-trash"></i>
+                    Eliminar
+                </button>
+                <button type="button" class="btn btn--primary" id="saveCalendarEvent">
+                    <i class="fas fa-save"></i>
+                    Guardar Evento
+                </button>
+            </footer>
+        </article>
+    </div>
+
     <!-- SECCIÓN 6: SCRIPTS DE JAVASCRIPT -->
+    <script type="module" src="/src/frontend/modules/calendario.js"></script>
     <script type="module" src="/src/frontend/authGuard.js"></script>
     <script type="module" src="/src/frontend/app.js"></script>
 </body>
+
 </html>
