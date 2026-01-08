@@ -1,0 +1,114 @@
+/* =============================================================================
+ * Preloader principal
+ * ============================================================================= */
+
+.preloader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.preloader__spinner {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 1rem;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: preloader-spin 1s linear infinite;
+}
+
+.preloader__text {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+}
+
+@keyframes preloader-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* =============================================================================
+ * Preloader overlay (pantalla completa o sobre contenedor)
+ * ============================================================================= */
+
+.preloader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+}
+
+.preloader-overlay--light {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.preloader-overlay--dark {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+}
+
+.preloader-overlay__content {
+    text-align: center;
+    max-width: 400px;
+    padding: 2rem;
+}
+
+.preloader-overlay__title {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.preloader-overlay__subtitle {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* =============================================================================
+ * Preloader inline (dentro de elementos)
+ * ============================================================================= */
+
+.preloader-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.preloader-inline__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: preloader-spin 1s linear infinite;
+}
+
+.preloader-inline--small .preloader-inline__spinner {
+    width: 14px;
+    height: 14px;
+    border-width: 1.5px;
+}
+
+.preloader-inline--large .preloader-inline__spinner {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+}

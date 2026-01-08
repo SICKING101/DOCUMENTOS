@@ -304,32 +304,7 @@
     background-color: #f3f4f6;
 }
 
-@keyframes slideIn {
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes slideOut {
-    to {
-        transform: translateX(400px);
-        opacity: 0;
-    }
-}
-
 /* Animación de pulso para punto de notificación no leída */
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
-}
-
 /* Ajustes para modo oscuro en dropdown de notificaciones */
 body.dark-theme .notifications-dropdown {
     background: var(--sidebar-bg);

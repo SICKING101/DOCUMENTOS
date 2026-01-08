@@ -1040,154 +1040,173 @@ function editPerson(id) {
 }
 
 async function deletePerson(id) {
-    const person = window.appState.persons.find(p => p._id === id);
-    if (!person) return;
+  const person = window.appState.persons.find(p => p._id === id);
+  if (!person) return;
+  
+  // Mostrar modal de confirmación mejorado
+  const confirmed = await showDeleteConfirmation(person.nombre);
+  if (!confirmed) return;
+  
+  try {
+    console.log('🗑️ Eliminando persona:', id);
+    console.log('🔍 URL que se enviará:', `/persons/${id}?deleteDocuments=true`);
     
-    // Mostrar modal de confirmación mejorado
-    const confirmed = await showDeleteConfirmation(person.nombre);
-    if (!confirmed) return;
+    // Encontrar la fila en la tabla
+    const tableRow = document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
+    const rowIndex = tableRow ? Array.from(tableRow.parentNode.children).indexOf(tableRow) : -1;
     
-    try {
-        console.log('🗑️ Eliminando persona:', id);
-        
-        // Encontrar la fila en la tabla
-        const tableRow = document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
-        const rowIndex = tableRow ? Array.from(tableRow.parentNode.children).indexOf(tableRow) : -1;
-        
-        if (tableRow) {
-            // Agregar estado de eliminación
-            tableRow.classList.add('table__row--deleting');
-            
-            // Crear overlay de eliminación
-            const deleteOverlay = document.createElement('div');
-            deleteOverlay.className = 'delete-overlay';
-            deleteOverlay.innerHTML = `
-                <div class="delete-overlay__content">
-                    <div class="preloader-inline preloader-inline--large">
-                        <div class="preloader-inline__spinner preloader--error"></div>
-                    </div>
-                    <span class="delete-overlay__text">Eliminando persona...</span>
-                </div>
-            `;
-            
-            // Ocultar contenido original
-            const cells = tableRow.querySelectorAll('td');
-            cells.forEach(cell => {
-                cell.style.opacity = '0.3';
-            });
-            
-            tableRow.appendChild(deleteOverlay);
-            
-            // Aplicar efecto de pulso para indicar eliminación
-            tableRow.style.animation = 'deleting-pulse 1.5s infinite';
-        }
-        
-        const data = await api.deletePerson(id);
-        
-        if (data.success) {
-            // Mostrar animación de éxito
-            if (tableRow) {
-                tableRow.style.animation = '';
-                tableRow.classList.remove('table__row--deleting');
-                tableRow.classList.add('table__row--success');
-                
-                // Actualizar overlay a éxito
-                const deleteOverlay = tableRow.querySelector('.delete-overlay');
-                if (deleteOverlay) {
-                    deleteOverlay.innerHTML = `
-                        <div class="delete-overlay__content">
-                            <div class="success-icon" style="color: #4CAF50; font-size: 1.5rem;">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <span class="delete-overlay__text" style="color: #4CAF50;">¡Eliminado!</span>
-                        </div>
-                    `;
-                }
-                
-                // Animar eliminación de la fila
-                setTimeout(() => {
-                    tableRow.style.transform = 'translateX(-100%)';
-                    tableRow.style.opacity = '0';
-                    tableRow.style.height = '0';
-                    tableRow.style.overflow = 'hidden';
-                    tableRow.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                    
-                    setTimeout(async () => {
-                        await loadPersons();
-                        
-                        // Mostrar notificación flotante de éxito
-                        showFloatingNotification('Persona eliminada exitosamente', 'success');
-                        
-                        // Actualizar dashboard si existe
-                        try {
-                            if (typeof window.loadDashboardData === 'function') {
-                                await window.loadDashboardData();
-                            }
-                        } catch (dashboardError) {
-                            console.log('Dashboard no disponible:', dashboardError);
-                        }
-                    }, 500);
-                }, 1000);
-            } else {
-                // Si no se encontró la fila, recargar normalmente
-                await loadPersons();
-                showAlert(data.message, 'success');
-                
-                try {
-                    if (typeof window.loadDashboardData === 'function') {
-                        await window.loadDashboardData();
-                    }
-                } catch (dashboardError) {
-                    console.log('Dashboard no disponible:', dashboardError);
-                }
-            }
-        } else {
-            throw new Error(data.message);
-        }
-        
-    } catch (error) {
-        console.error('❌ Error eliminando persona:', error);
-        
-        // Revertir cambios en la fila
-        const tableRow = document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
-        if (tableRow) {
-            tableRow.style.animation = '';
-            tableRow.classList.remove('table__row--deleting');
-            tableRow.classList.add('table__row--error');
-            
-            // Actualizar overlay a error
-            const deleteOverlay = tableRow.querySelector('.delete-overlay');
-            if (deleteOverlay) {
-                const retryBtn = document.createElement('button');
-                retryBtn.className = 'btn btn--sm btn--outline';
-                retryBtn.textContent = 'Reintentar';
-                retryBtn.addEventListener('click', () => {
-                    deleteOverlay.remove();
-                    tableRow.classList.remove('table__row--error');
-                    tableRow.querySelectorAll('td').forEach(cell => {
-                        cell.style.opacity = '1';
-                    });
-                    deletePerson(id); // Reintentar la eliminación
-                });
-                
-                deleteOverlay.innerHTML = `
-                    <div class="delete-overlay__content">
-                        <div class="error-icon" style="color: #f44336; font-size: 1.5rem;">
-                            <i class="fas fa-exclamation-circle"></i>
-                        </div>
-                        <span class="delete-overlay__text" style="color: #f44336;">Error al eliminar</span>
-                    </div>
-                `;
-                deleteOverlay.querySelector('.delete-overlay__content').appendChild(retryBtn);
-            }
-            
-            // Restaurar altura
-            tableRow.style.height = '';
-        }
-        
-        // Mostrar notificación de error
-        showAlert('Error al eliminar persona: ' + error.message, 'error');
+    if (tableRow) {
+      // Agregar estado de eliminación
+      tableRow.classList.add('table__row--deleting');
+      
+      // Crear overlay de eliminación
+      const deleteOverlay = document.createElement('div');
+      deleteOverlay.className = 'delete-overlay';
+      deleteOverlay.innerHTML = `
+        <div class="delete-overlay__content">
+          <div class="preloader-inline preloader-inline--large">
+            <div class="preloader-inline__spinner preloader--error"></div>
+          </div>
+          <span class="delete-overlay__text">Eliminando persona y documentos asociados...</span>
+        </div>
+      `;
+      
+      // Ocultar contenido original
+      const cells = tableRow.querySelectorAll('td');
+      cells.forEach(cell => {
+        cell.style.opacity = '0.3';
+      });
+      
+      tableRow.appendChild(deleteOverlay);
+      
+      // Aplicar efecto de pulso para indicar eliminación
+      tableRow.style.animation = 'deleting-pulse 1.5s infinite';
     }
+    
+    // MODIFICACIÓN: Llamar directamente a api.call para tener más control
+    const data = await api.call(`/persons/${id}?deleteDocuments=true`, {
+      method: 'DELETE'
+    });
+    
+    if (data.success) {
+      console.log('✅ Persona eliminada exitosamente:', data);
+      
+      // Mostrar animación de éxito
+      if (tableRow) {
+        tableRow.style.animation = '';
+        tableRow.classList.remove('table__row--deleting');
+        tableRow.classList.add('table__row--success');
+        
+        // Actualizar overlay a éxito
+        const deleteOverlay = tableRow.querySelector('.delete-overlay');
+        if (deleteOverlay) {
+          const deletedDocsMsg = data.deletedDocuments > 0 
+            ? ` + ${data.deletedDocuments} doc${data.deletedDocuments === 1 ? '' : 's'} eliminado${data.deletedDocuments === 1 ? '' : 's'}`
+            : '';
+            
+          deleteOverlay.innerHTML = `
+            <div class="delete-overlay__content">
+              <div class="success-icon" style="color: #4CAF50; font-size: 1.5rem;">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <span class="delete-overlay__text" style="color: #4CAF50;">¡Eliminado!${deletedDocsMsg}</span>
+            </div>
+          `;
+        }
+        
+        // Animar eliminación de la fila
+        setTimeout(() => {
+          tableRow.style.transform = 'translateX(-100%)';
+          tableRow.style.opacity = '0';
+          tableRow.style.height = '0';
+          tableRow.style.overflow = 'hidden';
+          tableRow.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+          
+          setTimeout(async () => {
+            await loadPersons();
+            
+            // Mostrar notificación flotante de éxito
+            const message = data.deletedDocuments > 0
+              ? `Persona eliminada + ${data.deletedDocuments} documento${data.deletedDocuments === 1 ? '' : 's'}`
+              : 'Persona eliminada exitosamente';
+              
+            showFloatingNotification(message, 'success');
+            
+            // Actualizar dashboard si existe
+            try {
+              if (typeof window.loadDashboardData === 'function') {
+                await window.loadDashboardData();
+              }
+            } catch (dashboardError) {
+              console.log('Dashboard no disponible:', dashboardError);
+            }
+          }, 500);
+        }, 1000);
+      } else {
+        // Si no se encontró la fila, recargar normalmente
+        await loadPersons();
+        
+        const message = data.deletedDocuments > 0
+          ? `Persona eliminada correctamente + ${data.deletedDocuments} documento${data.deletedDocuments === 1 ? '' : 's'} asociado${data.deletedDocuments === 1 ? '' : 's'}`
+          : data.message;
+          
+        showAlert(message, 'success');
+        
+        try {
+          if (typeof window.loadDashboardData === 'function') {
+            await window.loadDashboardData();
+          }
+        } catch (dashboardError) {
+          console.log('Dashboard no disponible:', dashboardError);
+        }
+      }
+    } else {
+      throw new Error(data.message);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error eliminando persona:', error);
+    
+    // Revertir cambios en la fila
+    const tableRow = document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
+    if (tableRow) {
+      tableRow.style.animation = '';
+      tableRow.classList.remove('table__row--deleting');
+      tableRow.classList.add('table__row--error');
+      
+      // Actualizar overlay a error
+      const deleteOverlay = tableRow.querySelector('.delete-overlay');
+      if (deleteOverlay) {
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'btn btn--sm btn--outline';
+        retryBtn.textContent = 'Reintentar';
+        retryBtn.addEventListener('click', () => {
+          deleteOverlay.remove();
+          tableRow.classList.remove('table__row--error');
+          tableRow.querySelectorAll('td').forEach(cell => {
+            cell.style.opacity = '1';
+          });
+          deletePerson(id); // Reintentar la eliminación
+        });
+        
+        deleteOverlay.innerHTML = `
+          <div class="delete-overlay__content">
+            <div class="error-icon" style="color: #f44336; font-size: 1.5rem;">
+              <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <span class="delete-overlay__text" style="color: #f44336;">Error al eliminar</span>
+          </div>
+        `;
+        deleteOverlay.querySelector('.delete-overlay__content').appendChild(retryBtn);
+      }
+      
+      // Restaurar altura
+      tableRow.style.height = '';
+    }
+    
+    // Mostrar notificación de error
+    showAlert('Error al eliminar persona: ' + error.message, 'error');
+  }
 }
 
 // =============================================================================

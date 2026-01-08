@@ -440,29 +440,6 @@ function initializeNavigation() {
     console.log('✅ DEBUG: Sistema de navegación inicializado');
 }
 
-// Agregar esta ruta
-routes['/calendario'] = {
-    title: 'Calendario',
-    handler: () => {
-        // Mostrar sección de calendario
-        document.querySelectorAll('.main-section').forEach(section => {
-            section.style.display = 'none';
-        });
-        document.getElementById('calendarioSection').style.display = 'block';
-        
-        // Actualizar título
-        document.title = 'Calendario - Sistema de Documentos';
-        
-        // Inicializar calendario si no está inicializado
-        if (!window.calendarManager) {
-            window.calendarManager = new CalendarManager();
-        } else {
-            window.calendarManager.renderCalendar();
-            window.calendarManager.renderUpcomingEvents();
-        }
-    }
-};
-
 // Exportar todas las funciones
 export { 
     initializeTabNavigation, 

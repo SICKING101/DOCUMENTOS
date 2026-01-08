@@ -1,0 +1,206 @@
+/* =============================================================================
+ * 1. PRELOADER PARA MODAL DE EDICIÓN DE DOCUMENTOS
+ * ============================================================================= */
+
+/* Overlay principal para el modal */
+.modal-edit-preloader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    border-radius: inherit;
+    animation: modalPreloaderFadeIn 0.3s ease-out;
+}
+
+/* Contenido del preloader */
+.modal-edit-preloader__content {
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    padding: 2.5rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    animation: contentSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efecto de borde sutil */
+.modal-edit-preloader__content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+        #667eea 0%, 
+        #764ba2 25%, 
+        #f093fb 50%, 
+        #f5576c 75%, 
+        #667eea 100%);
+    background-size: 200% 100%;
+    animation: gradientBorder 2s linear infinite;
+}
+
+/* Spinner elegante */
+.document-edit-spinner {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 1.5rem;
+}
+
+.document-edit-spinner__outer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-top: 3px solid #667eea;
+    border-right: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.document-edit-spinner__inner {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 46px;
+    height: 46px;
+    border: 2px solid transparent;
+    border-top: 2px solid #764ba2;
+    border-radius: 50%;
+    animation: spinReverse 1.5s linear infinite;
+}
+
+.document-edit-spinner__dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    background: #667eea;
+    border-radius: 50%;
+    animation: pulseDot 2s ease-in-out infinite;
+}
+
+/* Contenido textual */
+.modal-edit-preloader__header {
+    margin-bottom: 1.25rem;
+}
+
+.modal-edit-preloader__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+}
+
+.modal-edit-preloader__subtitle {
+    font-size: 0.95rem;
+    color: #718096;
+    line-height: 1.4;
+    max-width: 280px;
+    margin: 0 auto;
+}
+
+/* Barra de progreso mejorada */
+.document-progress-container {
+    width: 100%;
+    margin: 1.5rem 0;
+}
+
+.document-progress-bar {
+    height: 6px;
+    background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.document-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, 
+        #667eea 0%, 
+        #764ba2 50%, 
+        #667eea 100%);
+    background-size: 200% 100%;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressGradient 2s linear infinite, progressGlow 1.5s ease-in-out infinite;
+    position: relative;
+}
+
+.document-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.4) 50%, 
+        transparent 100%);
+    animation: progressShine 1.5s ease-in-out infinite;
+}
+
+.document-progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #718096;
+    margin-top: 0.5rem;
+}
+
+/* Indicador de estado */
+.document-status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.document-status-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.document-status-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #667eea;
+    animation: dotSequence 1.4s ease-in-out infinite;
+}
+
+.document-status-dots span:nth-child(2) { animation-delay: 0.2s; }
+.document-status-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.document-status-text {
+    font-size: 0.85rem;
+    color: #4a5568;
+    font-weight: 500;
+}

@@ -949,14 +949,6 @@ body.dark-theme .tip span {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
 
 .progress-info {
     text-align: center;
@@ -1214,17 +1206,6 @@ body.dark-theme .tip span {
     animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0% {
-        opacity: 0.5;
-    }
-    50% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0.5;
-    }
-}
 
 .loading-state p {
     color: #6b7280;
@@ -1329,10 +1310,6 @@ body.dark-theme .tip span {
     animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
 
 /* Contenido del modal */
 .confirmation-modal .modal-content,
@@ -1352,16 +1329,6 @@ body.dark-theme .tip span {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -60%) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
 
 /* Header del modal */
 .confirmation-modal .modal-header,
@@ -1392,10 +1359,6 @@ body.dark-theme .tip span {
     animation: float 3s ease-in-out infinite;
 }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
 
 .confirmation-modal .modal-header h3 {
     margin: 0;
@@ -1441,10 +1404,6 @@ body.dark-theme .tip span {
     animation: pulseWarning 2s infinite;
 }
 
-@keyframes pulseWarning {
-    0%, 100% { border-color: #ffc107; }
-    50% { border-color: #ff9800; }
-}
 
 .confirmation-modal .double-confirm input[type="checkbox"] {
     display: none;
@@ -1491,11 +1450,6 @@ body.dark-theme .tip span {
     animation: shake 0.5s ease;
 }
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
-}
 
 /* Footer del modal */
 .confirmation-modal .modal-footer {
@@ -1637,9 +1591,6 @@ body.dark-theme .tip span {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    100% { transform: rotate(360deg); }
-}
 
 .progress-modal .progress-container {
     margin-top: 10px;
@@ -1678,9 +1629,6 @@ body.dark-theme .tip span {
     animation: shimmer 2s infinite;
 }
 
-@keyframes shimmer {
-    100% { left: 100%; }
-}
 
 .progress-modal .progress-text {
     display: flex;
@@ -1790,16 +1738,6 @@ body.dark-theme .tip span {
    ============================================================================= */
 
 /* Animación de entrada para botones */
-@keyframes buttonPop {
-    0% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
 
 .confirmation-modal .modal-footer button {
     animation: buttonPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s both;
@@ -1834,14 +1772,6 @@ body.dark-theme .tip span {
     animation: borderGlow 2s linear infinite;
 }
 
-@keyframes borderGlow {
-    0%, 100% { 
-        background-position: 0% 50%;
-    }
-    50% { 
-        background-position: 100% 50%;
-    }
-}
 
 /* Para botón de peligro */
 .confirmation-modal .modal-danger .modal-footer button.modal-confirm::after {
@@ -1946,16 +1876,6 @@ body.dark-theme .tip span {
     animation: fadeInUp 0.3s ease;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(-5px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 .trash-selection-counter .selection-count {
     font-weight: 700;
@@ -1983,16 +1903,6 @@ body.dark-theme .tip span {
     animation: slideInRight 0.3s ease;
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
 
 /* Estilos para botones seleccionados */
 .btn--success {

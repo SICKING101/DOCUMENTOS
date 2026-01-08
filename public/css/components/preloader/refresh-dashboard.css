@@ -1,0 +1,394 @@
+/* =============================================================================
+ * Preloader específico para refresh del dashboard
+ * ============================================================================= */
+
+/* Preloader global para refresh */
+.global-preloader {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: white;
+    z-index: 99999;
+    display: none;
+}
+
+.global-preloader .preloader-overlay__content {
+    max-width: 500px;
+    padding: 3rem;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-2xl);
+    color: var(--text-primary);
+    text-align: center;
+    animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.global-preloader .preloader__spinner {
+    border: 3px solid rgba(33, 150, 243, 0.2);
+    border-top-color: #2196F3;
+    margin-bottom: 1.5rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.global-preloader .preloader-overlay__title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.global-preloader .preloader-overlay__subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+/* Progreso del refresh */
+.refresh-progress {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.refresh-progress__steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.refresh-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    background: white;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+}
+
+.refresh-step--active {
+    opacity: 1;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+}
+
+.refresh-step__number {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.refresh-step--active .refresh-step__number {
+    background: var(--primary);
+    color: white;
+}
+
+.refresh-step__text {
+    font-size: 0.85rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.refresh-step--active .refresh-step__text {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Barra de progreso */
+.refresh-progress__bar {
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.refresh-progress__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tiempo estimado */
+.refresh-progress__time {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 1rem;
+}
+
+.refresh-progress__time i {
+    color: var(--primary);
+}
+
+/* Contador */
+.refresh-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    margin-top: 1rem;
+    animation: pulse 2s infinite;
+}
+
+.refresh-counter__label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.refresh-counter__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+}
+
+/* Estadísticas de refresh */
+.refresh-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.refresh-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    transition: transform 0.3s ease;
+}
+
+.refresh-stat:hover {
+    transform: translateY(-3px);
+}
+
+.refresh-stat i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.refresh-stat__value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.refresh-stat__label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Animaciones específicas para el refresh */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes progressGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.8);
+    }
+}
+
+/* Estados responsivos para el preloader de refresh */
+@media (max-width: 768px) {
+    .global-preloader .preloader-overlay__content {
+        margin: 1rem;
+        padding: 2rem;
+    }
+    
+    .refresh-progress__steps {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .refresh-step {
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 0.75rem 1rem;
+    }
+    
+    .refresh-step__number {
+        flex-shrink: 0;
+    }
+    
+    .refresh-step__text {
+        text-align: left;
+        flex: 1;
+    }
+    
+    .refresh-stats {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .refresh-stat {
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 1rem;
+    }
+    
+    .refresh-stat i {
+        margin-bottom: 0;
+        margin-right: 1rem;
+        font-size: 1.25rem;
+    }
+    
+    .refresh-stat__value {
+        font-size: 1.5rem;
+        margin-bottom: 0;
+    }
+    
+    .refresh-counter {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .global-preloader .preloader-overlay__content {
+        padding: 1.5rem;
+    }
+    
+    .global-preloader .preloader-overlay__title {
+        font-size: 1.5rem;
+    }
+    
+    .refresh-progress {
+        padding: 1rem;
+    }
+    
+    .refresh-counter {
+        padding: 0.5rem 1rem;
+    }
+    
+    .refresh-counter__value {
+        font-size: 1.25rem;
+    }
+}
+
+/* Efecto de overlay con blur para el fondo */
+.global-preloader::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(139, 0, 0, 0.9) 0%, rgba(178, 34, 34, 0.9) 100%);
+    backdrop-filter: blur(10px);
+    z-index: -1;
+}
+
+/* Clase para cuando se usa en modo oscuro */
+.global-preloader.dark-mode {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.global-preloader.dark-mode .preloader-overlay__content {
+    background: rgba(30, 41, 59, 0.95);
+    color: white;
+}
+
+.global-preloader.dark-mode .refresh-step {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.global-preloader.dark-mode .refresh-step--active {
+    border-color: var(--primary);
+    background: rgba(102, 126, 234, 0.2);
+}
+
+/* Animación para el preloader cuando está activo */
+.global-preloader.active {
+    animation: preloaderFadeIn 0.3s ease forwards;
+}
+
+@keyframes preloaderFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(10px);
+    }
+}
+
+/* Botón para cancelar refresh */
+.refresh-cancel-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.refresh-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+/* Variante minimalista del preloader */
+.global-preloader.minimal .preloader-overlay__content {
+    background: none;
+    box-shadow: none;
+    color: white;
+}
+
+.global-preloader.minimal .preloader__spinner {
+    border-color: rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+}
+
+/* Versión rápida para refrescos cortos */
+.global-preloader.quick-refresh .refresh-progress,
+.global-preloader.quick-refresh .refresh-counter,
+.global-preloader.quick-refresh .refresh-stats {
+    display: none;
+}

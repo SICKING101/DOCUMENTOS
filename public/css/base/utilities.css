@@ -151,24 +151,10 @@ html, body {
 }
 
 /* Animación de rotación para spinner */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
 
 /* ===== ANIMATIONS ===== */
 
 /* Animación de entrada para nuevas tareas */
-@keyframes taskSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 /* Clase para aplicar animación de entrada a tareas */
 .task-card--new {
@@ -213,16 +199,6 @@ html, body {
 }
 
 /* Animación para fadeIn */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 /* Utilidades para animaciones */
 .animate-fade-in {
