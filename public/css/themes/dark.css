@@ -189,3 +189,141 @@ body.dark-theme .form__textarea:focus {
     background: var(--dark-card-bg);
     border-color: rgba(255, 255, 255, 0.1);
 }
+
+/* =============================================================================
+ * DARK MODE SUPPORT
+ * ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .document-upload-preloader {
+        background: var(--bg-primary-dark, #1a202c);
+        border-color: rgba(var(--primary-rgb, 102, 126, 234), 0.2);
+        box-shadow: 
+            0 10px 25px rgba(0, 0, 0, 0.3),
+            0 20px 48px rgba(0, 0, 0, 0.25),
+            0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+    
+    .document-upload-preloader__file--success {
+        background: linear-gradient(135deg, rgba(var(--success-rgb, 16, 185, 129), 0.1) 0%, 
+                                      rgba(var(--success-rgb, 16, 185, 129), 0.05) 100%);
+    }
+    
+    .document-upload-preloader__file--error {
+        background: linear-gradient(135deg, rgba(var(--error-rgb, 239, 68, 68), 0.1) 0%, 
+                                      rgba(var(--error-rgb, 239, 68, 68), 0.05) 100%);
+    }
+    
+    .document-upload-preloader__file--uploading {
+        background: linear-gradient(135deg, rgba(var(--primary-rgb, 102, 126, 234), 0.1) 0%, 
+                                      rgba(var(--primary-rgb, 102, 126, 234), 0.05) 100%);
+    }
+    
+    .document-upload-preloader__file-icon {
+        background: var(--bg-tertiary-dark, #4a5568);
+        color: var(--text-primary-dark, #e2e8f0);
+    }
+}
+
+/* =============================================================================
+ * 11. ESTILOS PARA DARK MODE
+ * ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .modal-edit-preloader {
+        background: rgba(26, 32, 44, 0.98);
+    }
+    
+    .modal-edit-preloader__content {
+        background: #2d3748;
+        box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.2),
+            0 8px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    
+    .modal-edit-preloader__title {
+        color: #e2e8f0;
+    }
+    
+    .modal-edit-preloader__subtitle {
+        color: #a0aec0;
+    }
+    
+    .document-progress-bar {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    }
+    
+    .document-status-indicator {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        border-color: #4a5568;
+    }
+    
+    .document-status-text {
+        color: #cbd5e0;
+    }
+    
+    .document-success-content,
+    .document-error-content {
+        background: #2d3748;
+    }
+    
+    .document-success-message {
+        color: #34d399;
+    }
+    
+    .document-error-message {
+        color: #f87171;
+    }
+    
+    .document-success-details,
+    .document-error-details {
+        color: #a0aec0;
+    }
+    
+    .modal-loading-overlay {
+        background: linear-gradient(135deg, 
+            rgba(26, 32, 44, 0.98) 0%, 
+            rgba(45, 55, 72, 0.98) 100%);
+    }
+    
+    .modal-loading-text {
+        color: #e2e8f0;
+    }
+    
+    .modal-loading-subtext {
+        color: #a0aec0;
+    }
+    
+    .document-loading-spinner__disk {
+        border-color: #4a5568;
+    }
+    
+    .file-upload-preloader {
+        background: rgba(26, 32, 44, 0.95);
+    }
+    
+    .file-upload-text {
+        color: #e2e8f0;
+    }
+    
+    .file-upload-progress {
+        background: #4a5568;
+    }
+}
+
+/* =============================================================================
+ * 11. MODOS DE COLOR
+ * ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    
+    .history-item--unread {
+        background-color: rgba(33, 150, 243, 0.1) !important;
+    }
+    
+    .history-filters {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+}

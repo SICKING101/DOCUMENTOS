@@ -1,0 +1,40 @@
+/* =============================================================================
+ * Preloader específico para documentos
+ * ============================================================================= */
+
+.documents-preloader {
+    padding: 3rem;
+    text-align: center;
+}
+
+.documents-preloader__icon {
+    font-size: 3rem;
+    color: var(--primary-light);
+    margin-bottom: 1rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.documents-preloader__progress {
+    width: 100%;
+    max-width: 300px;
+    margin: 1.5rem auto;
+    background-color: var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    height: 6px;
+}
+
+.documents-preloader__progress-bar {
+    height: 100%;
+    background-color: var(--primary);
+    width: 0%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    animation: progress-glow 2s ease-in-out infinite;
+}
+
+.documents-preloader__percentage {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}

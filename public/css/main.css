@@ -7,6 +7,8 @@
 @import url('base/variables.css');
 @import url('base/utilities.css');
 
+@import url('animations/animations.css');
+
 @import url('components/layout.css');
 @import url('components/buttons.css');
 @import url('components/cards.css');
@@ -20,6 +22,31 @@
 @import url('components/empty-states.css');
 @import url('components/preloader.css');
 @import url('components/sidebar.css');
+
+@import url('components/preloader/bulk-delete.css');
+@import url('components/preloader/buttons.css');
+@import url('components/preloader/confirmation.css');
+@import url('components/preloader/details.css');
+@import url('components/preloader/documents.css');
+@import url('components/preloader/edit-document.css');
+@import url('components/preloader/effects.css');
+@import url('components/preloader/error-exit.css');
+@import url('components/preloader/file-upload.css');
+@import url('components/preloader/historial.css');
+@import url('components/preloader/loading.css');
+@import url('components/preloader/message.css');
+@import url('components/preloader/modal.css');
+@import url('components/preloader/notification.css');
+@import url('components/preloader/person.css');
+@import url('components/preloader/principal.css');
+@import url('components/preloader/refresh-dashboard.css');
+@import url('components/preloader/search.css');
+@import url('components/preloader/skeleton.css');
+@import url('components/preloader/tables.css');
+@import url('components/preloader/task.css');
+@import url('components/preloader/upload.css');
+@import url('components/preloader/utilities.css');
+@import url('components/preloader/variants.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');

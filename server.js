@@ -294,29 +294,87 @@ app.put('/api/persons/:id', async (req, res) => {
 });
 
 app.delete('/api/persons/:id', async (req, res) => {
+  console.log('🗑️ ========== ELIMINACIÓN DE PERSONA (CON CASCADA) ==========');
+  
   try {
     const { id } = req.params;
-
+    
+    // Leer parámetro deleteDocuments del query string
+    const deleteDocuments = req.query.deleteDocuments === 'true';
+    console.log('📋 Parámetros recibidos:', {
+      id,
+      deleteDocuments,
+      query: req.query
+    });
+    
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log('❌ ID inválido:', id);
       return res.status(400).json({ 
         success: false, 
         message: 'ID inválido' 
       });
     }
 
-    // Verificar si la persona tiene documentos asociados
-    const documentosAsociados = await Document.countDocuments({ 
-      persona_id: id, 
-      activo: true 
-    });
-
-    if (documentosAsociados > 0) {
-      return res.status(400).json({ 
+    // Buscar la persona
+    const persona = await Person.findById(id);
+    if (!persona) {
+      console.log('❌ Persona no encontrada:', id);
+      return res.status(404).json({ 
         success: false, 
-        message: 'No se puede eliminar la persona porque tiene documentos asociados' 
+        message: 'Persona no encontrada' 
       });
     }
 
+    console.log(`🔍 Buscando documentos asociados a persona: ${persona.nombre} (${id})`);
+    
+    // Verificar si la persona tiene documentos asociados (activos y no eliminados)
+    const documentosAsociados = await Document.find({ 
+      persona_id: id, 
+      activo: true,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    });
+    
+    const documentosCount = documentosAsociados.length;
+    console.log(`📄 Documentos asociados encontrados: ${documentosCount}`);
+
+    if (documentosCount > 0) {
+      // Si NO se solicita eliminar documentos, retornar error
+      if (!deleteDocuments) {
+        console.log('❌ Hay documentos asociados y deleteDocuments es false');
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No se puede eliminar la persona porque tiene documentos asociados',
+          documentsCount: documentosCount
+        });
+      }
+      
+      // Si se solicita eliminar documentos, eliminarlos primero (soft delete)
+      console.log(`🗑️ Eliminando ${documentosCount} documentos asociados...`);
+      
+      const deleteResult = await Document.updateMany(
+        { 
+          persona_id: id, 
+          activo: true,
+          $or: [
+            { isDeleted: false },
+            { isDeleted: { $exists: false } }
+          ]
+        },
+        { 
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: 'Sistema' // O req.user si tienes autenticación
+        }
+      );
+      
+      console.log(`✅ ${deleteResult.modifiedCount} documentos marcados como eliminados`);
+    }
+
+    // Eliminar la persona (soft delete)
+    console.log(`👤 Eliminando persona: ${persona.nombre}`);
     const personaEliminada = await Person.findByIdAndUpdate(
       id,
       { activo: false },
@@ -324,6 +382,7 @@ app.delete('/api/persons/:id', async (req, res) => {
     );
 
     if (!personaEliminada) {
+      console.log('❌ Error al eliminar persona en BD');
       return res.status(404).json({ 
         success: false, 
         message: 'Persona no encontrada' 
@@ -332,21 +391,42 @@ app.delete('/api/persons/:id', async (req, res) => {
 
     // Crear notificación de persona eliminada
     try {
-      await NotificationService.personaEliminada(personaEliminada.nombre);
+      const mensaje = documentosCount > 0
+        ? `La persona "${personaEliminada.nombre}" ha sido eliminada junto con ${documentosCount} documento${documentosCount === 1 ? '' : 's'} asociado${documentosCount === 1 ? '' : 's'}`
+        : `La persona "${personaEliminada.nombre}" ha sido eliminada`;
+      
+      // Asumiendo que NotificationService tiene un método para esto
+      // Si no existe, puedes crear una notificación simple
+      await Notification.create({
+        titulo: 'Persona Eliminada',
+        mensaje: mensaje,
+        tipo: 'warning',
+        categoria: 'persona',
+        leida: false,
+        createdAt: new Date()
+      });
+      
+      console.log(`✅ Notificación creada: ${mensaje}`);
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
 
+    console.log(`✅ Persona eliminada exitosamente. Documentos eliminados: ${documentosCount}`);
+    
     res.json({ 
       success: true, 
-      message: 'Persona eliminada correctamente' 
+      message: 'Persona eliminada correctamente',
+      deletedDocuments: documentosCount
     });
   } catch (error) {
-    console.error('Error eliminando persona:', error);
+    console.error('❌ Error eliminando persona:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ 
       success: false, 
-      message: 'Error al eliminar persona' 
+      message: 'Error al eliminar persona: ' + error.message 
     });
+  } finally {
+    console.log('🗑️ ========== FIN ELIMINACIÓN DE PERSONA ==========');
   }
 });
 

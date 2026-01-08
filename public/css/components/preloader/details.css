@@ -1,0 +1,99 @@
+/* =============================================================================
+ * 3. MODAL DE DETALLES
+ * ============================================================================= */
+
+.history-detail {
+    padding: 0.5rem 0;
+}
+
+.detail-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.detail-title h4 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.detail-meta {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.detail-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detail-content h5 {
+    margin: 1rem 0 0.5rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.detail-content .detail-message {
+    background-color: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.metadata-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--border-color-light);
+}
+
+.metadata-item:last-child {
+    border-bottom: none;
+}
+
+.metadata-item strong {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.metadata-item span {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.detail-related {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    margin-top: 0.5rem;
+}
+
+.detail-related i {
+    color: var(--primary);
+}
+
+.detail-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

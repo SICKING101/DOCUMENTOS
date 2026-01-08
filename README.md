@@ -85,7 +85,8 @@ DOCUMENTOS/
 │   │   │
 │   │   ├── modules/               # Modulos por funcionalidad
 │   │   │   ├── categorias.js
-│   │   │   ├── dashboard.js
+│   │   │   ├── calendario.js        
+│   │   │   ├── dashboard.js       # Panel de control
 │   │   │   ├── documentos.js
 │   │   │   ├── historial.js
 │   │   │   ├── notificaciones.js

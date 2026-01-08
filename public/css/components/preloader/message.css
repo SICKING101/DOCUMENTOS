@@ -1,0 +1,30 @@
+/* =============================================================================
+ * Preloader con mensaje dinámico
+ * ============================================================================= */
+
+.preloader-with-message {
+    animation: fadeIn 0.3s ease;
+}
+
+.preloader-message {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    border-left: 3px solid var(--primary);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-align: left;
+    max-width: 400px;
+}
+
+.preloader-message__title {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.preloader-message__text {
+    color: var(--text-muted);
+    line-height: 1.4;
+}

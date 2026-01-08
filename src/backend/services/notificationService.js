@@ -157,15 +157,25 @@ class NotificationService {
    * 4.2 Notificar eliminación de persona
    * Informa sobre la eliminación de un registro de persona del sistema.
    */
-  static async personaEliminada(nombrePersona) {
-    return await this.crear({
-      tipo: 'persona_eliminada',
-      titulo: '❌ Persona eliminada',
-      mensaje: `Se eliminó a ${nombrePersona} del sistema`,
-      icono: 'user-minus',
-      prioridad: 'baja'
+  static async personaEliminada(nombrePersona, documentosEliminados = 0) {
+  try {
+    const mensaje = documentosEliminados > 0
+      ? `La persona "${nombrePersona}" ha sido eliminada junto con ${documentosEliminados} documento${documentosEliminados === 1 ? '' : 's'} asociado${documentosEliminados === 1 ? '' : 's'}`
+      : `La persona "${nombrePersona}" ha sido eliminada`;
+    
+    await Notification.create({
+      titulo: 'Persona Eliminada',
+      mensaje: mensaje,
+      tipo: 'warning',
+      categoria: 'persona'
     });
+    
+    console.log(`✅ Notificación creada: ${mensaje}`);
+  } catch (error) {
+    console.error('❌ Error creando notificación de persona eliminada:', error);
+    throw error;
   }
+}
   
   // =============================================================================
   // 5. NOTIFICACIONES DE CATEGORÍAS

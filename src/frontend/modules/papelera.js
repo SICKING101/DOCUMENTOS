@@ -1083,7 +1083,7 @@ function showConfirmationModal(title, subtitle, message, type, icon, doubleConfi
                     ${doubleConfirmHtml}
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary modal-cancel">Cancelar</button>
+                    <button class="btn modal-cancel">Cancelar</button>
                     <button class="btn btn-${type} modal-confirm" ${doubleConfirm ? 'disabled' : ''}>
                         Confirmar
                     </button>

@@ -24,16 +24,6 @@
 }
 
 /* Animación de entrada para overlay del modal */
-@keyframes modalOverlayFadeIn {
-    from { 
-        opacity: 0; 
-        backdrop-filter: blur(0px);
-    }
-    to { 
-        opacity: 1; 
-        backdrop-filter: blur(8px);
-    }
-}
 
 /* Contenido principal del modal */
 .modal__content {
@@ -61,16 +51,6 @@
 }
 
 /* Animación de entrada para contenido del modal */
-@keyframes modalContentSlideIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(-20px) scale(0.95); 
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0) scale(1); 
-    }
-}
 
 /* Cabecera del modal con título y botón de cerrar */
 .modal__header {
@@ -878,16 +858,6 @@
     animation: slideInUp 0.3s ease-out;
 }
 
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 .confirmation-header {
     display: flex;

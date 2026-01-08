@@ -1,0 +1,247 @@
+/* =============================================================================
+ * 1. PRELOADER PARA TABLA DE HISTORIAL
+ * ============================================================================= */
+
+.table-preloader-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: var(--border-radius);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.table-preloader-content {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    min-width: 200px;
+}
+
+.table-preloader-message {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* =============================================================================
+ * 2. ESTILOS ESPECÍFICOS PARA FILAS DE HISTORIAL
+ * ============================================================================= */
+
+.history-item--unread {
+    background-color: rgba(33, 150, 243, 0.03) !important;
+    border-left: 3px solid var(--primary);
+}
+
+.history-item--unread:hover {
+    background-color: rgba(33, 150, 243, 0.08) !important;
+}
+
+.history-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.history-type i {
+    font-size: 1rem;
+    color: var(--primary);
+}
+
+.history-details {
+    max-width: 300px;
+}
+
+.detail-message {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--text-primary);
+}
+
+.detail-metadata {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Badges de prioridad */
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.priority-badge--critical {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: #d32f2f;
+    border: 1px solid rgba(244, 67, 54, 0.2);
+}
+
+.priority-badge--high {
+    background-color: rgba(255, 152, 0, 0.1);
+    color: #f57c00;
+    border: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+.priority-badge--medium {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: #1976d2;
+    border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.priority-badge--low {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #388e3c;
+    border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+/* Badges de estado */
+.status-badge--read {
+    background-color: rgba(158, 158, 158, 0.1);
+    color: #616161;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* =============================================================================
+ * 4. PRELOADER PARA FILAS INDIVIDUALES
+ * ============================================================================= */
+
+.history-item {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.history-item.task-card--processing::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: processingShine 1.5s ease-in-out infinite;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.history-item.task-card--removing {
+    animation: slideOutLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.history-item.task-card--completing {
+    animation: completeGlow 0.6s ease;
+}
+
+/* =============================================================================
+ * 5. ESTADÍSTICAS DEL HISTORIAL
+ * ============================================================================= */
+
+.history-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-card__icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card--total .stat-card__icon { color: var(--primary); }
+.stat-card--unread .stat-card__icon { color: #2196F3; }
+.stat-card--today .stat-card__icon { color: #4CAF50; }
+.stat-card--critical .stat-card__icon { color: #f44336; }
+
+.stat-card__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card__label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* =============================================================================
+ * 6. FILTROS MEJORADOS
+ * ============================================================================= */
+
+.history-filters {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-group label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color-light);
+}

@@ -1,0 +1,37 @@
+/* =============================================================================
+ * Preloader para tablas
+ * ============================================================================= */
+
+.table-preloader {
+    position: relative;
+    min-height: 200px;
+}
+
+.table-preloader__row {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-preloader__cell {
+    flex: 1;
+    height: 1rem;
+    margin: 0 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.table-preloader__cell--icon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.table-preloader__cell--avatar {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}

@@ -1,0 +1,151 @@
+/* =============================================================================
+ * Utilidades para preloader
+ * ============================================================================= */
+
+.preloader-hidden {
+    display: none !important;
+}
+
+.preloader-visible {
+    display: flex !important;
+}
+
+.preloader-fade-in {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+.preloader-fade-out {
+    animation: fadeIn 0.3s ease reverse forwards;
+}
+
+/* =============================================================================
+ * UTILIDADES
+ * ============================================================================= */
+
+.document-upload-preloader--hidden {
+    display: none !important;
+}
+
+.document-upload-preloader--exiting {
+    animation: slideOutDownEnhanced 0.3s ease forwards;
+}
+
+/* Scrollbar personalizado para el contenido */
+.document-upload-preloader__content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.document-upload-preloader__content::-webkit-scrollbar-track {
+    background: rgba(var(--primary-rgb, 102, 126, 234), 0.05);
+    border-radius: 3px;
+}
+
+.document-upload-preloader__content::-webkit-scrollbar-thumb {
+    background: rgba(var(--primary-rgb, 102, 126, 234), 0.2);
+    border-radius: 3px;
+}
+
+.document-upload-preloader__content::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--primary-rgb, 102, 126, 234), 0.3);
+}
+
+/* =============================================================================
+ * 10. UTILIDADES Y RESPONSIVE
+ * ============================================================================= */
+.preloader-container {
+    position: relative;
+    min-height: 200px;
+}
+
+/* Asegurar que los botones se re-habiliten */
+.task-card:not(.task-card--processing) .task-card__actions button {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.task-card--processing .task-card__actions button {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* =============================================================================
+ * 7. UTILIDADES
+ * ============================================================================= */
+
+.preloader-enter {
+    animation: modalPreloaderFadeIn 0.3s ease-out forwards;
+}
+
+.preloader-exit {
+    animation: modalPreloaderFadeIn 0.3s ease-out reverse forwards;
+}
+
+.preloader-hidden {
+    display: none !important;
+}
+
+.preloader-visible {
+    display: flex !important;
+}
+
+/* Asegurar que el modal mantenga posición relativa */
+.modal--with-preloader {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* Override para asegurar z-index correcto */
+#editDocumentModal {
+    position: fixed !important;
+    z-index: 1000 !important;
+}
+
+/* Asegurar que el preloader esté por encima del contenido */
+.modal-edit-preloader,
+.document-success-overlay,
+.document-error-overlay {
+    z-index: 9999 !important;
+}
+
+/* =============================================================================
+ * 12. UTILIDADES
+ * ============================================================================= */
+
+.historial-loading {
+    position: relative;
+    min-height: 300px;
+}
+
+.historial-empty {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.historial-error {
+    padding: 2rem;
+    text-align: center;
+    background-color: rgba(244, 67, 54, 0.05);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(244, 67, 54, 0.1);
+}
+
+.historial-error i {
+    font-size: 2rem;
+    color: #f44336;
+    margin-bottom: 1rem;
+}
+
+.historial-error p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Transiciones suaves */
+.history-item-enter {
+    animation: fadeIn 0.3s ease;
+}
+
+.history-item-exit {
+    animation: fadeOut 0.3s ease;
+}
