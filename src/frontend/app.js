@@ -233,11 +233,21 @@ function initializeTaskManager() {
 function initializeActiveNavigation() {
     console.log('🎯 Inicializando navegación activa...');
 
+    // Ocultar todos los indicadores primero
+    DOM.navLinks.forEach(link => {
+        const indicator = link.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'hidden';
+    });
+
     // Verificar si hay una pestaña activa en el HTML
     const currentActiveLink = document.querySelector('.sidebar__nav-link--active');
     if (currentActiveLink) {
         const activeTab = currentActiveLink.getAttribute('data-tab');
         console.log('📌 Pestaña activa encontrada en HTML:', activeTab);
+
+        // Mostrar solo el indicador del activo
+        const indicator = currentActiveLink.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'visible';
 
         // Asegurarse de que el contenido también esté activo
         DOM.tabContents.forEach(tab => {
@@ -251,6 +261,8 @@ function initializeActiveNavigation() {
         const dashboardLink = document.querySelector('[data-tab="dashboard"]');
         if (dashboardLink) {
             dashboardLink.classList.add('sidebar__nav-link--active');
+            const indicator = dashboardLink.querySelector('.sidebar__nav-active-indicator');
+            if (indicator) indicator.style.visibility = 'visible';
             appState.currentTab = 'dashboard';
         }
     }
@@ -372,15 +384,23 @@ function setupEventListeners() {
 
     DOM.cancelSearchBtn?.addEventListener('click', () => closeSearchModal());
 
+
     // =============================================================================
-    // 3.11 REPORTES
+    // 3.11 REPORTES (NUEVA PÁGINA)
     // =============================================================================
-
-    DOM.reportType?.addEventListener('change', handleReportTypeChange);
-
-    DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
-
-    DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
+    if (DOM.reportType) {
+        DOM.reportType.addEventListener('change', handleReportTypeChange);
+    }
+    if (DOM.reportFormat) {
+        DOM.reportFormat.addEventListener('change', (e) => {
+            if (typeof window.handleReportFormatChange === 'function') {
+                window.handleReportFormatChange.call(e.target, e);
+            }
+        });
+    }
+    if (DOM.generateReportBtn) {
+        DOM.generateReportBtn.addEventListener('click', handleGenerateReport);
+    }
 
     // =============================================================================
     // 3.13 BOTONES DE CIERRE DE MODALES
@@ -517,7 +537,7 @@ async function handleTabNavigation(e) {
  */
 async function switchTab(tabId) {
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
@@ -525,18 +545,22 @@ async function switchTab(tabId) {
 
     console.log(`🔄 Cambiando a pestaña: ${tabId}`);
 
-    // 1. Remover clase activa de TODOS los enlaces
+    // 1. Remover clase activa y ocultar indicador de TODOS los enlaces
     DOM.navLinks.forEach(link => {
         link.classList.remove('sidebar__nav-link--active', 'header__nav-link--active');
+        const indicator = link.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'hidden';
     });
 
-    // 2. Agregar clase activa SOLO al enlace seleccionado (si existe en sidebar)
+    // 2. Agregar clase activa y mostrar indicador SOLO al enlace seleccionado (si existe en sidebar)
     const activeLink = Array.from(DOM.navLinks).find(
         link => link.getAttribute('data-tab') === tabId
     );
 
     if (activeLink) {
         activeLink.classList.add('sidebar__nav-link--active');
+        const indicator = activeLink.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'visible';
         console.log(`✅ Enlace activo establecido: ${tabId}`);
     } else {
         console.log(`⚠️ No hay enlace en sidebar para: ${tabId} (tab especial)`);
@@ -610,6 +634,11 @@ async function loadTabSpecificData(tabId) {
                 await initPapelera();
                 break;
 
+            case 'reportes':
+                if (typeof window.initReportsModule === 'function') {
+                    window.initReportsModule();
+                }
+                break;
             default:
                 console.log(`ℹ️  No hay carga específica para la pestaña: ${tabId}`);
         }
@@ -977,8 +1006,14 @@ window.deleteDepartment = deleteDepartment;
 
 window.showAdvancedSearch = showAdvancedSearch;
 window.closeSearchModal = closeSearchModal;
-window.generateReport = generateReport;
-window.closeReportModal = closeReportModal;
+// Reportes: exponer funciones para la nueva página/tab
+import * as reportsModule from './modules/reports.js';
+window.generateReport = reportsModule.generateReport;
+window.closeReportModal = reportsModule.closeReportModal;
+window.handleGenerateReport = reportsModule.handleGenerateReport;
+window.handleReportTypeChange = reportsModule.handleReportTypeChange;
+window.handleReportFormatChange = reportsModule.handleReportFormatChange;
+window.initReportsModule = reportsModule.initReportsModule;
 
 // =============================================================================
 // 11.6 FUNCIONES GENERALES

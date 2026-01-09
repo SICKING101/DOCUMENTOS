@@ -1,3 +1,43 @@
+/* Admin/User menu popup dark mode overrides */
+body.dark-theme .user-menu {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
+}
+body.dark-theme .user-menu__header {
+    background: linear-gradient(135deg, rgba(30,41,59,0.7) 0%, rgba(51,65,85,0.5) 100%) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+body.dark-theme .user-menu__name,
+body.dark-theme .user-menu__email {
+    color: var(--text-primary) !important;
+}
+body.dark-theme .user-menu__status {
+    color: #10b981 !important;
+}
+body.dark-theme .user-menu__divider {
+    background: var(--border) !important;
+}
+body.dark-theme .user-menu__option {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+    border: none !important;
+}
+body.dark-theme .user-menu__option:hover {
+    background: var(--hover-bg) !important;
+    color: var(--primary) !important;
+}
+body.dark-theme .user-menu__option--warning {
+    color: #f59e42 !important;
+}
+body.dark-theme .user-menu__option--danger {
+    color: #ef4444 !important;
+}
+body.dark-theme .user-menu__footer {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+}
 /* Corrección: Iconos de historial y papelera en modo oscuro */
 body.dark-theme .stat-card__icon,
 body.dark-theme .trash-stat-icon {

@@ -59,24 +59,28 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <span class="sidebar__nav-text">Personas</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                     <a href="#" class="sidebar__nav-link" data-tab="documentos">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-file-alt"></i>
                         </div>
                         <span class="sidebar__nav-text">Documentos</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                     <a href="#" class="sidebar__nav-link" data-tab="tareas">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fa-solid fa-thumbtack"></i>
                         </div>
                         <span class="sidebar__nav-text">Tareas</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                     <a href="#" class="sidebar__nav-link" data-tab="historial">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-history"></i>
                         </div>
                         <span class="sidebar__nav-text">Historial</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                 </div>
 
@@ -88,18 +92,21 @@
                             <i class="fas fa-calendar-alt"></i>
                         </div>
                         <span class="sidebar__nav-text">Calendario</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                     <a href="#" class="sidebar__nav-link" data-tab="mensajes">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-envelope"></i>
                         </div>
                         <span class="sidebar__nav-text">Mensajes</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                     <a href="#" class="sidebar__nav-link" data-tab="archivos">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-folder"></i>
                         </div>
                         <span class="sidebar__nav-text">Archivos</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                 </div>
 
@@ -111,18 +118,21 @@
                             <i class="fas fa-cog"></i>
                         </div>
                         <span class="sidebar__nav-text">Ajustes</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="reportes">
+                    <a href="#" class="sidebar__nav-link" data-tab="reportes" id="sidebarReportesLink">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-chart-bar"></i>
                         </div>
                         <span class="sidebar__nav-text">Reportes</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                     <a href="#" class="sidebar__nav-link" data-tab="soporte">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-headset"></i>
                         </div>
                         <span class="sidebar__nav-text">Soporte</span>
+                        <div class="sidebar__nav-active-indicator"></div>
                     </a>
                 </div>
             </nav>
@@ -293,11 +303,7 @@
                             <h3 class="action-card__title">Agregar Persona</h3>
                             <p class="action-card__description">Registrar nueva persona en el sistema</p>
                         </article>
-                        <article class="action-card" onclick="generateReport()">
-                            <i class="fas fa-chart-bar action-card__icon"></i>
-                            <h3 class="action-card__title">Generar Reporte</h3>
-                            <p class="action-card__description">Crear reporte de documentos</p>
-                        </article>
+                        <!-- Report action moved to its own page/tab -->
                     </section>
 
                     <!-- Documentos recientes -->
@@ -941,6 +947,57 @@
                     </div>
                 </section>
 
+                <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (NUEVA) -->
+                <section id="reportes" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title"><i class="fas fa-chart-bar"></i> Reportes</h2>
+                            <p class="section__subtitle">Genera y descarga reportes personalizados del sistema</p>
+                        </div>
+                    </div>
+                    <div class="reportes-content">
+                        <form id="reportForm">
+                            <div class="form__group">
+                                <label for="reportType" class="form__label">Tipo de Reporte</label>
+                                <div class="select-wrapper">
+                                    <select id="reportType" class="form__select">
+                                    <option value="general">Reporte General</option>
+                                    <option value="byCategory">Por Categoría</option>
+                                    <option value="byPerson">Por Persona</option>
+                                    <option value="expiring">Documentos por Vencer</option>
+                                    <option value="expired">Documentos Vencidos</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                            <div class="form__row" id="reportSpecificFilters">
+                                <!-- Filtros específicos se cargarán dinámicamente -->
+                            </div>
+                            <div class="form__group">
+                                <label for="reportFormat" class="form__label">Formato</label>
+                                <div class="select-wrapper">
+                                    <select id="reportFormat" class="form__select">
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="report-preview" id="reportPreview">
+                            <h4 class="report-preview__title">Vista Previa del Reporte</h4>
+                            <div class="report-preview__content" id="reportPreviewContent">
+                                <!-- La vista previa se mostrará aquí -->
+                            </div>
+                        </div>
+                        <footer class="modal__footer" style="margin-top:2rem;">
+                            <button class="btn btn--primary" id="generateReportBtn">
+                                <i class="fas fa-download"></i> Generar Reporte
+                            </button>
+                        </footer>
+                    </div>
+                </section>
+
                 <!-- SECCIÓN 4.2.7: PESTAÑA CALENDARIO -->
                 <section id="calendario" class="tab-content active">
                     <div class="calendar-section">
@@ -1575,51 +1632,7 @@
         </article>
     </dialog>
 
-    <!-- Modal para generar reportes -->
-    <dialog id="reportModal" class="modal modal--large">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Generar Reporte</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="reportForm">
-                    <div class="form__group">
-                        <label for="reportType" class="form__label">Tipo de Reporte</label>
-                        <select id="reportType" class="form__select">
-                            <option value="general">Reporte General</option>
-                            <option value="byCategory">Por Categoría</option>
-                            <option value="byPerson">Por Persona</option>
-                            <option value="expiring">Documentos por Vencer</option>
-                            <option value="expired">Documentos Vencidos</option>
-                        </select>
-                    </div>
-                    <div class="form__row" id="reportSpecificFilters">
-                        <!-- Filtros específicos se cargarán dinámicamente -->
-                    </div>
-                    <div class="form__group">
-                        <label for="reportFormat" class="form__label">Formato</label>
-                        <select id="reportFormat" class="form__select">
-                            <option value="excel">Excel</option>
-                            <option value="csv">CSV</option>
-                        </select>
-                    </div>
-                </form>
-                <div class="report-preview" id="reportPreview">
-                    <h4 class="report-preview__title">Vista Previa del Reporte</h4>
-                    <div class="report-preview__content" id="reportPreviewContent">
-                        <!-- La vista previa se mostrará aquí -->
-                    </div>
-                </div>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelReportBtn">Cancelar</button>
-                <button class="btn btn--primary" id="generateReportBtn">
-                    <i class="fas fa-download"></i> Generar Reporte
-                </button>
-            </footer>
-        </article>
-    </dialog>
+    <!-- Modal para generar reportes eliminado: ahora es una página/tab propia -->
 
     <!-- Modal para agregar/editar tareas -->
     <dialog id="taskModal" class="modal">

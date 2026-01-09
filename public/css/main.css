@@ -33,6 +33,8 @@
 @import url('sections/vencidos.css');
 @import url('sections/calendario.css');
 
+@import url('sections/reportes.css');
+
 @import url('themes/light.css');
 @import url('themes/dark.css');
 @import url('responsive/mobile.css');
