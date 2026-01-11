@@ -10,11 +10,16 @@ import { v2 as cloudinary } from 'cloudinary';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
+
+import SupportController from './src/backend/controllers/supportController.js';
 
 // Importar rutas de autenticación
 import authRoutes from './src/backend/routes/authRoutes.js';
+import apiRoutes from './src/backend/routes/apiRoutes.js';  // ✅ AÑADE ESTA LÍNEA
 
 import Document from './src/backend/models/Document.js';
+import Ticket from './src/backend/models/Ticket.js';  // ✅ AÑADE ESTA LÍNEA
 import Person from './src/backend/models/Person.js';
 import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
@@ -294,87 +299,29 @@ app.put('/api/persons/:id', async (req, res) => {
 });
 
 app.delete('/api/persons/:id', async (req, res) => {
-  console.log('🗑️ ========== ELIMINACIÓN DE PERSONA (CON CASCADA) ==========');
-  
   try {
     const { id } = req.params;
-    
-    // Leer parámetro deleteDocuments del query string
-    const deleteDocuments = req.query.deleteDocuments === 'true';
-    console.log('📋 Parámetros recibidos:', {
-      id,
-      deleteDocuments,
-      query: req.query
-    });
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.log('❌ ID inválido:', id);
       return res.status(400).json({ 
         success: false, 
         message: 'ID inválido' 
       });
     }
 
-    // Buscar la persona
-    const persona = await Person.findById(id);
-    if (!persona) {
-      console.log('❌ Persona no encontrada:', id);
-      return res.status(404).json({ 
+    // Verificar si la persona tiene documentos asociados
+    const documentosAsociados = await Document.countDocuments({ 
+      persona_id: id, 
+      activo: true 
+    });
+
+    if (documentosAsociados > 0) {
+      return res.status(400).json({ 
         success: false, 
-        message: 'Persona no encontrada' 
+        message: 'No se puede eliminar la persona porque tiene documentos asociados' 
       });
     }
 
-    console.log(`🔍 Buscando documentos asociados a persona: ${persona.nombre} (${id})`);
-    
-    // Verificar si la persona tiene documentos asociados (activos y no eliminados)
-    const documentosAsociados = await Document.find({ 
-      persona_id: id, 
-      activo: true,
-      $or: [
-        { isDeleted: false },
-        { isDeleted: { $exists: false } }
-      ]
-    });
-    
-    const documentosCount = documentosAsociados.length;
-    console.log(`📄 Documentos asociados encontrados: ${documentosCount}`);
-
-    if (documentosCount > 0) {
-      // Si NO se solicita eliminar documentos, retornar error
-      if (!deleteDocuments) {
-        console.log('❌ Hay documentos asociados y deleteDocuments es false');
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No se puede eliminar la persona porque tiene documentos asociados',
-          documentsCount: documentosCount
-        });
-      }
-      
-      // Si se solicita eliminar documentos, eliminarlos primero (soft delete)
-      console.log(`🗑️ Eliminando ${documentosCount} documentos asociados...`);
-      
-      const deleteResult = await Document.updateMany(
-        { 
-          persona_id: id, 
-          activo: true,
-          $or: [
-            { isDeleted: false },
-            { isDeleted: { $exists: false } }
-          ]
-        },
-        { 
-          isDeleted: true,
-          deletedAt: new Date(),
-          deletedBy: 'Sistema' // O req.user si tienes autenticación
-        }
-      );
-      
-      console.log(`✅ ${deleteResult.modifiedCount} documentos marcados como eliminados`);
-    }
-
-    // Eliminar la persona (soft delete)
-    console.log(`👤 Eliminando persona: ${persona.nombre}`);
     const personaEliminada = await Person.findByIdAndUpdate(
       id,
       { activo: false },
@@ -382,7 +329,6 @@ app.delete('/api/persons/:id', async (req, res) => {
     );
 
     if (!personaEliminada) {
-      console.log('❌ Error al eliminar persona en BD');
       return res.status(404).json({ 
         success: false, 
         message: 'Persona no encontrada' 
@@ -391,42 +337,21 @@ app.delete('/api/persons/:id', async (req, res) => {
 
     // Crear notificación de persona eliminada
     try {
-      const mensaje = documentosCount > 0
-        ? `La persona "${personaEliminada.nombre}" ha sido eliminada junto con ${documentosCount} documento${documentosCount === 1 ? '' : 's'} asociado${documentosCount === 1 ? '' : 's'}`
-        : `La persona "${personaEliminada.nombre}" ha sido eliminada`;
-      
-      // Asumiendo que NotificationService tiene un método para esto
-      // Si no existe, puedes crear una notificación simple
-      await Notification.create({
-        titulo: 'Persona Eliminada',
-        mensaje: mensaje,
-        tipo: 'warning',
-        categoria: 'persona',
-        leida: false,
-        createdAt: new Date()
-      });
-      
-      console.log(`✅ Notificación creada: ${mensaje}`);
+      await NotificationService.personaEliminada(personaEliminada.nombre);
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
 
-    console.log(`✅ Persona eliminada exitosamente. Documentos eliminados: ${documentosCount}`);
-    
     res.json({ 
       success: true, 
-      message: 'Persona eliminada correctamente',
-      deletedDocuments: documentosCount
+      message: 'Persona eliminada correctamente' 
     });
   } catch (error) {
-    console.error('❌ Error eliminando persona:', error);
-    console.error('❌ Stack trace:', error.stack);
+    console.error('Error eliminando persona:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Error al eliminar persona: ' + error.message 
+      message: 'Error al eliminar persona' 
     });
-  } finally {
-    console.log('🗑️ ========== FIN ELIMINACIÓN DE PERSONA ==========');
   }
 });
 
@@ -3314,14 +3239,560 @@ app.post('/api/notifications/cleanup', async (req, res) => {
   }
 });
 
-// Ruta para SPA - solo para rutas que no tienen extensión de archivo
-app.get('*', (req, res, next) => {
-  // Si la URL tiene una extensión de archivo, pasar al siguiente middleware
-  if (path.extname(req.path)) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// =============================================================================
+// RUTAS DE SOPORTE - CON EMAIL GMAIL REAL (VERSIÓN CORREGIDA)
+// =============================================================================
+
+console.log('\n🔧 Cargando rutas de soporte...');
+
+// IMPORTANTE: Configurar multer para tickets
+const ticketUpload = multer({
+    storage: multer.diskStorage({
+        destination: function (req, file, cb) {
+            const ticketDir = path.join(__dirname, 'uploads', 'tickets');
+            if (!fs.existsSync(ticketDir)) {
+                fs.mkdirSync(ticketDir, { recursive: true });
+            }
+            cb(null, ticketDir);
+        },
+        filename: function (req, file, cb) {
+            const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+            cb(null, safeName);
+        }
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 }
 });
+
+// =============================================================================
+// CONFIGURACIÓN GMAIL - VERSIÓN QUE FUNCIONA
+// =============================================================================
+
+console.log('\n📧 ========== INICIALIZANDO GMAIL ==========');
+
+// VARIABLE GLOBAL para el transporter
+let gmailTransporter = null;
+
+// Función para inicializar Gmail (se llama automáticamente)
+const inicializarGmail = () => {
+    console.log('🔄 Inicializando transporte Gmail...');
+    
+    try {
+        // CONFIGURACIÓN EXACTA QUE FUNCIONA (igual que en authController)
+        const config = {
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // IMPORTANTE: false para puerto 587
+            auth: {
+                user: 'riosnavarretejared@gmail.com',
+                pass: 'emdkqnupuzzzucnw'
+            },
+            tls: {
+                ciphers: 'SSLv3',
+                rejectUnauthorized: false
+            }
+        };
+        
+        console.log('🔧 Configuración Gmail:');
+        console.log(`   📧 Usuario: ${config.auth.user}`);
+        console.log(`   🔑 Contraseña: ${'*'.repeat(config.auth.pass.length)} (${config.auth.pass.length} chars)`);
+        console.log(`   🖥️  Host: ${config.host}:${config.port}`);
+        console.log(`   🔐 Secure: ${config.secure}`);
+        
+        // Crear el transporter
+        gmailTransporter = nodemailer.createTransport(config);
+        console.log('✅ Transporter Gmail creado');
+        
+        // Verificar conexión (pero NO bloquear si falla)
+        gmailTransporter.verify((error, success) => {
+            if (error) {
+                console.error('⚠️  ADVERTENCIA verificando Gmail:', error.message);
+                console.error('   Código:', error.code);
+                console.error('   Comando:', error.command);
+                
+                // IMPORTANTE: No establecer a null si falla la verificación
+                // El transporter puede seguir funcionando para enviar emails
+                console.log('⚠️  Verificación falló, pero el transporter se mantiene activo');
+                console.log('⚠️  Los emails se intentarán enviar de todas formas');
+            } else {
+                console.log('✅✅✅ CONEXIÓN GMAIL VERIFICADA ✅✅✅');
+                console.log('✅ Los emails se enviarán a Gmail real');
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ ERROR creando transporter:', error.message);
+        gmailTransporter = null;
+    }
+};
+
+// Inicializar Gmail inmediatamente
+inicializarGmail();
+
+console.log('📧 =========================================\n');
+
+app.post('/api/support/tickets', upload.array('files', 5), SupportController.createTicket);
+
+// =============================================================================
+// 2. RUTA DE PRUEBA MÁS SIMPLE
+// =============================================================================
+
+app.get('/api/support/test-gmail-simple', async (req, res) => {
+    console.log('\n🧪 PRUEBA SIMPLE GMAIL');
+    
+    // Configuración DIRECTA Y SIMPLE
+    const testTransporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: 'riosnavarretejared@gmail.com',
+            pass: 'emdkqnupuzzzucnw'
+        }
+    });
+    
+    try {
+        console.log('✅ Transporter creado');
+        
+        const info = await testTransporter.sendMail({
+            from: '"Prueba Simple" <riosnavarretejared@gmail.com>',
+            to: 'riosnavarretejared@gmail.com',
+            subject: 'PRUEBA SIMPLE GMAIL - CBTIS051',
+            text: `Prueba simple de Gmail desde el sistema CBTIS051.
+            
+Fecha: ${new Date().toLocaleString()}
+Hora: ${new Date().toLocaleTimeString()}
+
+Este es un email de prueba directa.`
+        });
+        
+        console.log('✅✅✅ EMAIL ENVIADO ✅✅✅');
+        console.log('ID:', info.messageId);
+        console.log('Respuesta:', info.response);
+        
+        res.json({
+            success: true,
+            message: 'Email de prueba enviado',
+            messageId: info.messageId
+        });
+        
+    } catch (error) {
+        console.error('❌ ERROR:', error.message);
+        console.error('Código:', error.code);
+        console.error('Comando:', error.command);
+        
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            code: error.code,
+            note: 'Verifica tus credenciales de Gmail'
+        });
+    }
+});
+
+// =============================================================================
+// 3. OBTENER TICKETS (MANTENER EXISTENTE)
+// =============================================================================
+
+app.get('/api/support/tickets', async (req, res) => {
+    try {
+        console.log('📥 Obteniendo tickets...');
+        
+        try {
+            const ticketModule = await import('./src/backend/models/Ticket.js');
+            const TicketModel = ticketModule.default;
+            
+            const tickets = await TicketModel.find({ isDeleted: false })
+                .sort({ createdAt: -1 })
+                .limit(50)
+                .lean();
+            
+            res.json({
+                success: true,
+                tickets,
+                pagination: { total: tickets.length, page: 1, limit: 50, pages: 1 }
+            });
+            
+        } catch (error) {
+            res.json({
+                success: true,
+                tickets: [],
+                pagination: { total: 0, page: 1, limit: 50, pages: 0 }
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error obteniendo tickets:', error);
+        res.status(500).json({ success: false, message: 'Error obteniendo tickets' });
+    }
+});
+
+// =============================================================================
+// 4. MANTENER FAQ Y GUÍA (EXISTENTE)
+// =============================================================================
+
+app.get('/api/support/faq', async (req, res) => {
+    const faq = [
+        {
+            question: "¿Cómo subo un documento al sistema?",
+            answer: "Ve a la sección 'Documentos', haz clic en 'Subir Documento', selecciona el archivo y completa la información requerida.",
+            category: "documentos"
+        },
+        {
+            question: "¿Cómo agrego una nueva persona?",
+            answer: "En la sección 'Personas', haz clic en 'Agregar Persona' y completa el formulario con los datos requeridos.",
+            category: "personas"
+        }
+    ];
+    
+    res.json({ success: true, faq });
+});
+
+app.get('/api/support/guide', async (req, res) => {
+    const guide = [
+        { step: 1, title: "Dashboard", description: "Resumen general del sistema", icon: "home", duration: "2 min" },
+        { step: 2, title: "Documentos", description: "Sube y organiza documentos", icon: "file", duration: "5 min" },
+        { step: 3, title: "Personas", description: "Gestiona usuarios y personal", icon: "users", duration: "4 min" }
+    ];
+    
+    res.json({ success: true, guide });
+});
+
+// =============================================================================
+// 5. OBTENER DETALLES DE UN TICKET ESPECÍFICO (NUEVA RUTA)
+// =============================================================================
+
+app.get('/api/support/tickets/:id', async (req, res) => {
+    console.log('\n' + '🔍'.repeat(40));
+    console.log('OBTENIENDO DETALLES DE TICKET');
+    console.log('🔍'.repeat(40));
+    
+    try {
+        const { id } = req.params;
+        console.log(`📋 ID solicitado: ${id}`);
+        
+        // Verificar si es un ObjectId válido
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            console.log('❌ ID no válido');
+            return res.status(400).json({
+                success: false,
+                message: 'ID de ticket no válido'
+            });
+        }
+        
+        // Cargar modelo Ticket
+        let TicketModel;
+        try {
+            const ticketModule = await import('./src/backend/models/Ticket.js');
+            TicketModel = ticketModule.default;
+            console.log('✅ Modelo Ticket cargado');
+        } catch (error) {
+            console.error('❌ Error cargando modelo Ticket:', error.message);
+            return res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor'
+            });
+        }
+        
+        // Buscar el ticket
+        const ticket = await TicketModel.findOne({
+            _id: id,
+            isDeleted: false
+        }).lean(); // .lean() para obtener objeto plano
+        
+        if (!ticket) {
+            console.log(`❌ Ticket no encontrado: ${id}`);
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket no encontrado'
+            });
+        }
+        
+        console.log(`✅ Ticket encontrado: ${ticket.ticketNumber || 'Sin número'}`);
+        console.log(`📋 Asunto: ${ticket.subject}`);
+        console.log(`📊 Estado: ${ticket.status}`);
+        console.log(`📅 Creado: ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('es-MX') : 'N/A'}`);
+        
+        console.log('\n' + '✅'.repeat(40));
+        console.log('DETALLES ENVIADOS AL FRONTEND');
+        console.log('✅'.repeat(40));
+        
+        res.json({
+            success: true,
+            ticket: ticket
+        });
+        
+    } catch (error) {
+        console.error('\n❌❌❌ ERROR OBTENIENDO DETALLES ❌❌❌');
+        console.error('Mensaje:', error.message);
+        console.error('Stack:', error.stack);
+        
+        res.status(500).json({
+            success: false,
+            message: 'Error interno al obtener detalles del ticket',
+            error: error.message
+        });
+    }
+});
+
+// =============================================================================
+// 6. ACTUALIZAR ESTADO DE UN TICKET
+// =============================================================================
+
+app.patch('/api/support/tickets/:id/status', async (req, res) => {
+    console.log('\n' + '🔄'.repeat(40));
+    console.log('ACTUALIZANDO ESTADO DE TICKET');
+    console.log('🔄'.repeat(40));
+    
+    try {
+        const { id } = req.params;
+        const { status, message } = req.body;
+        
+        console.log(`📋 ID: ${id}`);
+        console.log(`📊 Nuevo estado: ${status}`);
+        console.log(`💬 Mensaje: ${message || 'Sin mensaje'}`);
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de ticket no válido'
+            });
+        }
+        
+        if (!status) {
+            return res.status(400).json({
+                success: false,
+                message: 'El nuevo estado es requerido'
+            });
+        }
+        
+        // Estados válidos
+        const estadosValidos = ['abierto', 'en_proceso', 'esperando_respuesta', 'cerrado', 'resuelto'];
+        if (!estadosValidos.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Estado no válido. Use: ${estadosValidos.join(', ')}`
+            });
+        }
+        
+        // Cargar modelo Ticket
+        let TicketModel;
+        try {
+            const ticketModule = await import('./src/backend/models/Ticket.js');
+            TicketModel = ticketModule.default;
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor'
+            });
+        }
+        
+        // Buscar y actualizar ticket
+        const ticket = await TicketModel.findOneAndUpdate(
+            { _id: id, isDeleted: false },
+            { 
+                $set: { 
+                    status: status,
+                    updatedAt: new Date()
+                },
+                $push: {
+                    updates: {
+                        user: 'system',
+                        userName: 'Sistema',
+                        message: message || `Estado cambiado a: ${status}`,
+                        createdAt: new Date()
+                    }
+                }
+            },
+            { new: true } // Retornar el documento actualizado
+        ).lean();
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket no encontrado'
+            });
+        }
+        
+        console.log(`✅ Estado actualizado: ${ticket.ticketNumber} -> ${status}`);
+        
+        res.json({
+            success: true,
+            message: `Estado actualizado a ${status}`,
+            ticket: ticket
+        });
+        
+    } catch (error) {
+        console.error('❌ Error actualizando estado:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno al actualizar estado'
+        });
+    }
+});
+
+// =============================================================================
+// 7. AGREGAR RESPUESTA A TICKET
+// =============================================================================
+
+app.post('/api/support/tickets/:id/response', async (req, res) => {
+    console.log('\n' + '💬'.repeat(40));
+    console.log('AGREGANDO RESPUESTA A TICKET');
+    console.log('💬'.repeat(40));
+    
+    try {
+        const { id } = req.params;
+        const { message } = req.body;
+        
+        console.log(`📋 ID: ${id}`);
+        console.log(`💬 Respuesta: ${message ? message.substring(0, 100) + '...' : 'Sin mensaje'}`);
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de ticket no válido'
+            });
+        }
+        
+        if (!message || message.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'El mensaje es requerido'
+            });
+        }
+        
+        // Cargar modelo Ticket
+        let TicketModel;
+        try {
+            const ticketModule = await import('./src/backend/models/Ticket.js');
+            TicketModel = ticketModule.default;
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor'
+            });
+        }
+        
+        // Buscar y actualizar ticket
+        const ticket = await TicketModel.findOneAndUpdate(
+            { _id: id, isDeleted: false },
+            { 
+                $set: { 
+                    updatedAt: new Date()
+                },
+                $push: {
+                    updates: {
+                        user: 'system',
+                        userName: 'Sistema',
+                        message: message.trim(),
+                        createdAt: new Date()
+                    }
+                }
+            },
+            { new: true }
+        ).lean();
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket no encontrado'
+            });
+        }
+        
+        console.log(`✅ Respuesta agregada a: ${ticket.ticketNumber}`);
+        console.log(`📊 Total actualizaciones: ${ticket.updates ? ticket.updates.length : 0}`);
+        
+        res.json({
+            success: true,
+            message: 'Respuesta agregada exitosamente',
+            ticket: ticket
+        });
+        
+    } catch (error) {
+        console.error('❌ Error agregando respuesta:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno al agregar respuesta'
+        });
+    }
+});
+
+// =============================================================================
+// 8. ELIMINAR TICKET (SOFT DELETE)
+// =============================================================================
+
+app.delete('/api/support/tickets/:id', async (req, res) => {
+    console.log('\n' + '🗑️'.repeat(40));
+    console.log('ELIMINANDO TICKET');
+    console.log('🗑️'.repeat(40));
+    
+    try {
+        const { id } = req.params;
+        
+        console.log(`📋 ID a eliminar: ${id}`);
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de ticket no válido'
+            });
+        }
+        
+        // Cargar modelo Ticket
+        let TicketModel;
+        try {
+            const ticketModule = await import('./src/backend/models/Ticket.js');
+            TicketModel = ticketModule.default;
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor'
+            });
+        }
+        
+        // Soft delete (marcar como eliminado)
+        const ticket = await TicketModel.findOneAndUpdate(
+            { _id: id, isDeleted: false },
+            { 
+                $set: { 
+                    isDeleted: true,
+                    deletedAt: new Date(),
+                    deletedBy: 'system'
+                }
+            },
+            { new: true }
+        ).lean();
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket no encontrado'
+            });
+        }
+        
+        console.log(`✅ Ticket eliminado: ${ticket.ticketNumber}`);
+        console.log(`📅 Fecha eliminación: ${ticket.deletedAt}`);
+        
+        res.json({
+            success: true,
+            message: 'Ticket eliminado exitosamente',
+            ticket: {
+                _id: ticket._id,
+                ticketNumber: ticket.ticketNumber,
+                subject: ticket.subject,
+                deletedAt: ticket.deletedAt
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error eliminando ticket:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error interno al eliminar ticket'
+        });
+    }
+});
+
+console.log('✅ Rutas de soporte con Gmail configuradas');
+
+app.use('/api', apiRoutes);
 
 // Verificar configuración de email al iniciar
 console.log('');
@@ -3330,6 +3801,7 @@ console.log(`🚀 Puerto: ${process.env.PORT || 4000}`);
 console.log(`🗄️ MongoDB: ${process.env.MONGODB_URI ? '✅ Configurado' : '❌ No configurado'}`);
 console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ ' + process.env.EMAIL_USER : '❌ No configurado'}`);
 console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:4000'}`);
+console.log(`🔌 API Routes: ✅ Cargadas desde apiRoutes.js`);  // ✅ NUEVO MENSAJE
 console.log('🔍 ===============================================');
 console.log('');
 
@@ -3352,4 +3824,5 @@ app.listen(PORT, () => {
   console.log(`📊 Sistema de Gestión de Documentos - CBTIS051`);
   console.log(`🗄️ Base de datos: ${MONGODB_URI}`);
   console.log(`☁️ Cloudinary: ${cloudinary.config().cloud_name}`);
+    console.log(`🔌 API disponible en: http://localhost:${PORT}/api`);  // ✅ NUEVO MENSAJE
 });

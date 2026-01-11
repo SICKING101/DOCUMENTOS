@@ -772,7 +772,50 @@ const DOM = {
      * 23.1 Contenedor de progreso de subida
      * Elemento creado dinámicamente para mostrar barra de progreso durante subidas.
      */
-    uploadProgressContainer: document.createElement('div')
+    uploadProgressContainer: document.createElement('div'),
+
+    // Soporte
+    newTicketBtn: document.getElementById('newTicketBtn'),
+    createFirstTicket: document.getElementById('createFirstTicket'),
+    startGuideBtn: document.getElementById('startGuideBtn'),
+    ticketStatusFilter: document.getElementById('ticketStatusFilter'),
+    ticketPriorityFilter: document.getElementById('ticketPriorityFilter'),
+    ticketsList: document.getElementById('ticketsList'),
+    faqList: document.getElementById('faqList'),
+    guideSteps: document.getElementById('guideSteps'),
+    
+    // Modal de ticket
+    ticketModal: document.getElementById('ticketModal'),
+    closeTicketModal: document.getElementById('closeTicketModal'),
+    ticketForm: document.getElementById('ticketForm'),
+    ticketSubject: document.getElementById('ticketSubject'),
+    ticketCategory: document.getElementById('ticketCategory'),
+    ticketPriority: document.getElementById('ticketPriority'),
+    ticketDescription: document.getElementById('ticketDescription'),
+    ticketFileUpload: document.getElementById('ticketFileUpload'),
+    ticketFileInput: document.getElementById('ticketFileInput'),
+    ticketFileList: document.getElementById('ticketFileList'),
+    cancelTicketBtn: document.getElementById('cancelTicketBtn'),
+    submitTicketBtn: document.getElementById('submitTicketBtn'),
+    
+    // Modal de detalles del ticket
+    ticketDetailModal: document.getElementById('ticketDetailModal'),
+    closeTicketDetailModal: document.getElementById('closeTicketDetailModal'),
+    ticketDetailTitle: document.getElementById('ticketDetailTitle'),
+    detailTicketSubject: document.getElementById('detailTicketSubject'),
+    detailTicketId: document.getElementById('detailTicketId'),
+    detailTicketDate: document.getElementById('detailTicketDate'),
+    detailTicketStatus: document.getElementById('detailTicketStatus'),
+    detailTicketPriority: document.getElementById('detailTicketPriority'),
+    detailTicketDescription: document.getElementById('detailTicketDescription'),
+    detailTicketAttachments: document.getElementById('detailTicketAttachments'),
+    ticketUpdatesList: document.getElementById('ticketUpdatesList'),
+    ticketResponseSection: document.getElementById('ticketResponseSection'),
+    ticketResponseText: document.getElementById('ticketResponseText'),
+    submitResponseBtn: document.getElementById('submitResponseBtn'),
+    closeDetailBtn: document.getElementById('closeDetailBtn'),
+    reopenTicketBtn: document.getElementById('reopenTicketBtn'),
+    closeTicketBtn: document.getElementById('closeTicketBtn'),
 };
 
 // =============================================================================

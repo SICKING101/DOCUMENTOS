@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import Task from '../models/Task.js';
 
 class TaskController {
   // Obtener todas las tareas
