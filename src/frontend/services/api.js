@@ -22,7 +22,7 @@ class apiCall {
     async call(endpoint, options = {}) {
         try {
             console.log(`📡 API Call: ${this.baseURL}${endpoint}`, options.method || 'GET');
-
+            
             const defaultOptions = {
                 headers: {
                     'Content-Type': 'application/json',
@@ -32,7 +32,7 @@ class apiCall {
             };
 
             const finalOptions = { ...defaultOptions, ...options };
-
+            
             if (finalOptions.body && typeof finalOptions.body === 'object' && !(finalOptions.body instanceof FormData)) {
                 finalOptions.body = JSON.stringify(finalOptions.body);
             }
@@ -49,14 +49,14 @@ class apiCall {
 
             // Verificar tipo de contenido
             const contentType = response.headers.get('content-type');
-
+            
             if (contentType && contentType.includes('application/json')) {
                 return await response.json();
             } else {
                 // Para respuestas que no son JSON (como archivos)
                 return response;
             }
-
+            
         } catch (error) {
             console.error('💥 Error en API call:', error);
             throw error;
@@ -75,12 +75,12 @@ class apiCall {
     async downloadFile(endpoint, fileName, options = {}) {
         console.group('📥 DOWNLOAD FILE API');
         console.log('📋 Parámetros:', { endpoint, fileName, options });
-
+        
         try {
             const url = `${this.baseURL}${endpoint}`;
-
+            
             console.log('🔗 URL completa:', url);
-
+            
             const defaultOptions = {
                 method: 'GET',
                 headers: {
@@ -89,31 +89,31 @@ class apiCall {
                 credentials: 'include',
                 timeout: CONFIG.DOWNLOAD_TIMEOUT
             };
-
+            
             const finalOptions = { ...defaultOptions, ...options };
-
+            
             // Agregar timestamp para evitar caché
             const finalUrl = new URL(url);
             finalUrl.searchParams.append('_t', Date.now());
-
+            
             console.log('🔗 URL con timestamp:', finalUrl.toString());
-
+            
             // Intentar la descarga
             const response = await fetch(finalUrl.toString(), finalOptions);
-
+            
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
+            
             // Obtener el blob
             const blob = await response.blob();
-
+            
             if (blob.size === 0) {
                 throw new Error('Archivo vacío recibido');
             }
-
+            
             console.log(`✅ Blob recibido: ${blob.size} bytes, tipo: ${blob.type}`);
-
+            
             // Verificar si es un error HTML disfrazado
             if (blob.type.includes('text/html') && blob.size < 5000) {
                 const text = await blob.text();
@@ -121,36 +121,36 @@ class apiCall {
                     throw new Error('Recibió una página de error HTML en lugar del archivo');
                 }
             }
-
+            
             // Crear URL para el blob
             const blobUrl = window.URL.createObjectURL(blob);
-
+            
             // Crear elemento de descarga
             const link = document.createElement('a');
             link.href = blobUrl;
             link.download = fileName;
-
+            
             // Agregar atributos para mejor compatibilidad
             link.setAttribute('type', blob.type);
             link.setAttribute('download', fileName);
             link.style.display = 'none';
-
+            
             // Agregar al DOM
             document.body.appendChild(link);
-
+            
             // Crear evento de clic
             const clickEvent = new MouseEvent('click', {
                 view: window,
                 bubbles: true,
                 cancelable: false
             });
-
+            
             // Disparar el evento
             link.dispatchEvent(clickEvent);
-
+            
             // También intentar con click nativo
             link.click();
-
+            
             // Limpiar después de un tiempo
             setTimeout(() => {
                 if (link.parentNode) {
@@ -158,12 +158,12 @@ class apiCall {
                 }
                 window.URL.revokeObjectURL(blobUrl);
             }, 2000);
-
+            
             console.log('✅ Descarga iniciada exitosamente');
             console.groupEnd();
-
+            
             return true;
-
+            
         } catch (error) {
             console.error('❌ ERROR en downloadFileApi:', error);
             console.groupEnd();
@@ -179,10 +179,10 @@ class apiCall {
     async checkDownloadEndpoint(fileId) {
         try {
             console.log('🔍 Verificando endpoint de descarga para:', fileId);
-
+            
             const endpoint = `/documents/${fileId}/download`;
             const url = `${this.baseURL}${endpoint}`;
-
+            
             // Hacer HEAD request para verificar
             const response = await fetch(url, {
                 method: 'HEAD',
@@ -190,15 +190,15 @@ class apiCall {
                     'Accept': '*/*'
                 }
             });
-
+            
             console.log('📊 Resultado HEAD:', {
                 ok: response.ok,
                 status: response.status,
                 headers: Object.fromEntries(response.headers.entries())
             });
-
+            
             return response.ok;
-
+            
         } catch (error) {
             console.error('❌ Error verificando endpoint:', error);
             return false;
@@ -234,14 +234,14 @@ class apiCall {
             `/documents/${fileId}/file`,
             `/documents/${fileId}/raw`
         ];
-
+        
         const results = [];
-
+        
         for (const endpoint of endpoints) {
             try {
                 const url = `${this.baseURL}${endpoint}`;
                 const response = await fetch(url, { method: 'HEAD' });
-
+                
                 results.push({
                     endpoint,
                     url,
@@ -257,7 +257,7 @@ class apiCall {
                 });
             }
         }
-
+        
         return results;
     }
 
@@ -268,18 +268,18 @@ class apiCall {
      */
     async debugDownload(fileId) {
         console.group('🐛 DEBUG DE DESCARGA DETALLADO');
-
+        
         try {
             // 1. Obtener información del documento
             const documents = window.appState?.documents || [];
             const doc = documents.find(d => d._id === fileId);
-
+            
             if (!doc) {
                 console.error('❌ Documento no encontrado en appState');
                 console.groupEnd();
                 return null;
             }
-
+            
             console.log('📄 INFORMACIÓN DEL DOCUMENTO:');
             console.table({
                 'ID': doc._id,
@@ -289,12 +289,12 @@ class apiCall {
                 'Cloudinary URL': doc.url_cloudinary || doc.cloudinary_url,
                 'URL Disponible': !!(doc.url_cloudinary || doc.cloudinary_url)
             });
-
+            
             // 2. Verificar endpoints del servidor
             console.log('🔍 VERIFICANDO ENDPOINTS DEL SERVIDOR:');
             const endpointsTest = await this.testDownloadEndpoints(fileId);
             console.table(endpointsTest);
-
+            
             // 3. Verificar conexión a Cloudinary
             console.log('☁️ VERIFICANDO CLOUDINARY:');
             if (doc.url_cloudinary || doc.cloudinary_url) {
@@ -313,11 +313,11 @@ class apiCall {
             } else {
                 console.log('❌ No hay URL de Cloudinary disponible');
             }
-
+            
             // 4. Recomendaciones
             console.log('💡 RECOMENDACIONES:');
             const extension = doc.nombre_original.split('.').pop().toLowerCase();
-
+            
             if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
                 console.log('   • Usar descarga directa desde Cloudinary');
                 console.log('   • Agregar fl_attachment para forzar descarga');
@@ -329,7 +329,7 @@ class apiCall {
                 console.log('   • Asegurar headers Content-Type correctos');
                 console.log('   • Puede necesitar fl_attachment en Cloudinary');
             }
-
+            
             return {
                 document: doc,
                 endpoints: endpointsTest,
@@ -338,7 +338,7 @@ class apiCall {
                     extension: extension
                 }
             };
-
+            
         } catch (error) {
             console.error('❌ Error en debug:', error);
             return null;
@@ -375,24 +375,11 @@ class apiCall {
         });
     }
 
-    // MODIFICADO: Método deletePerson mejorado
-async deletePerson(id, deleteDocuments = true) {
-  // Si id ya incluye parámetros de query, usarlo como está
-  // Si no, agregar el parámetro deleteDocuments
-  let endpoint;
-  if (typeof id === 'string' && id.includes('?')) {
-    // Si ya tiene parámetros, añadir deleteDocuments al final
-    endpoint = id.includes('deleteDocuments=') ? id : `${id}&deleteDocuments=${deleteDocuments}`;
-  } else {
-    endpoint = `${id}?deleteDocuments=${deleteDocuments}`;
-  }
-  
-  console.log(`🗑️ Eliminando persona con endpoint: /persons/${endpoint}`);
-  
-  return this.call(`/persons/${endpoint}`, {
-    method: 'DELETE'
-  });
-}
+    async deletePerson(id) {
+        return this.call(`/persons/${id}`, {
+            method: 'DELETE'
+        });
+    }
 
     // Documentos
     async getDocuments() {
@@ -401,23 +388,23 @@ async deletePerson(id, deleteDocuments = true) {
 
     async uploadDocument(formData, documentId = null) {
         console.group('📤 UPLOAD DOCUMENT API');
-        console.log('📋 Parámetros:', {
-            documentId,
+        console.log('📋 Parámetros:', { 
+            documentId, 
             hasFile: formData.has('file'),
-            isUpdate: !!documentId
+            isUpdate: !!documentId 
         });
-
+        
         try {
             let endpoint = '/documents';
             let method = 'POST';
-
+            
             if (documentId) {
                 // Para actualizar con archivo
                 endpoint = `/documents/${documentId}`;
                 method = 'PUT';
-
+                
                 console.log('🔄 Modo actualización con archivo');
-
+                
                 // IMPORTANTE: Cuando es FormData, NO establecer Content-Type manualmente
                 // El navegador lo hará automáticamente con el boundary correcto
                 const options = {
@@ -426,23 +413,23 @@ async deletePerson(id, deleteDocuments = true) {
                     credentials: 'include'
                     // NO headers para FormData
                 };
-
+                
                 console.log('📡 Enviando FormData al servidor...');
                 const response = await fetch(`${this.baseURL}${endpoint}`, options);
-
+                
                 console.log(`📥 Respuesta: ${response.status} ${response.statusText}`);
-
+                
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('❌ Error del servidor:', errorText);
                     throw new Error(`Error HTTP ${response.status}: ${errorText}`);
                 }
-
+                
                 const data = await response.json();
                 console.log('✅ Upload exitoso:', data);
                 console.groupEnd();
                 return data;
-
+                
             } else {
                 // Para crear nuevo documento (mantener la lógica original)
                 return this.call('/documents', {
@@ -451,7 +438,7 @@ async deletePerson(id, deleteDocuments = true) {
                     // NO headers para FormData
                 });
             }
-
+            
         } catch (error) {
             console.error('💥 Error en uploadDocument:', error);
             console.groupEnd();
@@ -645,7 +632,164 @@ async deletePerson(id, deleteDocuments = true) {
             body: { dias: days }
         });
     }
+
+        // =========================================================================
+    // SOPORTE
+    // =========================================================================
+
+    // Tickets
+    // Método para crear ticket con archivos
+    async createTicket(ticketData, files = []) {
+        const formData = new FormData();
+        
+        // Agregar datos del ticket
+        Object.keys(ticketData).forEach(key => {
+            formData.append(key, ticketData[key]);
+        });
+        
+        // Agregar archivos
+        if (files && files.length > 0) {
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+            console.log(`📤 Enviando ${files.length} archivo(s) con el ticket`);
+        }
+        
+        try {
+            const response = await fetch('/api/tickets', {
+                method: 'POST',
+                headers: {
+                    // NO agregar Content-Type manualmente, el navegador lo hará con el boundary
+                },
+                body: formData,
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error creando ticket:', error);
+            throw error;
+        }
+    }
+
+    // Método para obtener tickets del usuario
+    async getTickets(filters = {}) {
+        const queryParams = new URLSearchParams(filters).toString();
+        const url = `/api/tickets${queryParams ? `?${queryParams}` : ''}`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error obteniendo tickets:', error);
+            throw error;
+        }
+    }
+
+    // Método para obtener detalles del ticket
+    async getTicketDetails(ticketId) {
+        try {
+            const response = await fetch(`/api/tickets/${ticketId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error obteniendo detalles del ticket:', error);
+            throw error;
+        }
+    }
+
+    // Método para agregar respuesta al ticket
+    async addTicketResponse(ticketId, message) {
+        try {
+            const response = await fetch(`/api/tickets/${ticketId}/response`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message }),
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error agregando respuesta:', error);
+            throw error;
+        }
+    }
+
+
+   // Método para cambiar estado del ticket
+    async changeTicketStatus(ticketId, status, message = '') {
+        try {
+            const response = await fetch(`/api/tickets/${ticketId}/close`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status, message }),
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error cambiando estado del ticket:', error);
+            throw error;
+        }
+    }
+
+    async getTicketStats() {
+        return this.call('/support/tickets/stats');
+    }
+
+    // Métodos para FAQ y guía (ya los tienes en supportController.js)
+    async getFAQ() {
+        try {
+            const response = await fetch('/api/support/faq', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error obteniendo FAQ:', error);
+            throw error;
+        }
+    }
+
+    async getSystemGuide() {
+        try {
+            const response = await fetch('/api/support/guide', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error obteniendo guía:', error);
+            throw error;
+        }
+    }
 }
+
 
 // =============================================================================
 // 5. CREAR INSTANCIA ÚNICA Y EXPORTAR

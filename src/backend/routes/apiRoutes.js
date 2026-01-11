@@ -11,6 +11,7 @@ import TaskController from '../controllers/taskController.js';
 import NotificationController from '../controllers/notificationController.js';
 import ReportController from '../controllers/reportController.js';
 import TrashController from '../controllers/trashController.js';
+import SupportController from '../controllers/supportController.js';
 
 // Importar middleware de Multer
 import upload from '../config/multerConfig.js';
@@ -101,6 +102,18 @@ router.post('/trash/empty-all', TrashController.emptyTrash);
 router.post('/trash/auto-cleanup', TrashController.autoCleanup);
 router.post('/trash/:id/restore', TrashController.restoreDocument);
 router.delete('/trash/:id', TrashController.deletePermanently);
+
+// -----------------------------
+// SOPORTE Y TICKETS
+// -----------------------------
+router.post('/tickets', upload.array('files', 10), SupportController.createTicket); // ✅ AÑADIR
+router.get('/tickets', SupportController.getUserTickets); // ✅ AÑADIR
+router.get('/tickets/:id', SupportController.getTicketDetails); // ✅ AÑADIR
+router.post('/tickets/:id/response', SupportController.addTicketUpdate); // ✅ CORREGIDO
+router.post('/tickets/:id/close', SupportController.changeTicketStatus); // ✅ AÑADIR
+router.get('/support/faq', SupportController.getFAQ); // ✅ AÑADIR
+router.get('/support/guide', SupportController.getSystemGuide); // ✅ AÑADIR
+router.post('/support/test-email', SupportController.testSupportEmail); // ✅ AÑADIR
 
 // CORREGIR ESTA LÍNEA - CAMBIAR CategoryController por router:
 export default router;  // ✅ CORREGIDO

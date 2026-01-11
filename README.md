@@ -85,13 +85,13 @@ DOCUMENTOS/
 │   │   │
 │   │   ├── modules/               # Modulos por funcionalidad
 │   │   │   ├── categorias.js
-│   │   │   ├── calendario.js        
-│   │   │   ├── dashboard.js       # Panel de control
+│   │   │   ├── dashboard.js
 │   │   │   ├── documentos.js
 │   │   │   ├── historial.js
 │   │   │   ├── notificaciones.js
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
+|   │   │   ├── soporte.js
 │   │   │   ├── search.js
 │   │   │   │
 │   │   │   ├── auth/              # Autenticacion
@@ -168,6 +168,7 @@ DOCUMENTOS/
 │       │   ├── personController.js
 │       │   ├── reportController.js
 │       │   ├── trashController.js
+│       │   ├── supportController.js
 │       │   └── taskController.js
 │       │
 │       ├── middleware/
@@ -180,6 +181,7 @@ DOCUMENTOS/
 │       │   ├── Category.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
+│       │   ├── Ticket.js
 │       │   └── Notification.js
 │       │
 │       ├── services/
