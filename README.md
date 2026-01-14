@@ -76,6 +76,8 @@ DOCUMENTOS/
 │   │
 │   └── assets/                    # Recursos estaticos
 │       ├── images/
+│           ├── guide/
+│               ├── dashboard.png
 │       ├── fonts/
 │       └── favicon.ico
 │
