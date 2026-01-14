@@ -1137,24 +1137,362 @@
 
         <!-- Paneles principales -->
         <div class="support__panels">
-            <!-- Panel izquierdo: Guía rápida -->
-            <div class="support-panel support-panel--guide">
-                <div class="support-panel__header">
-                    <h3 class="support-panel__title">
-                        <i class="fas fa-graduation-cap"></i>
-                        Guía Rápida del Sistema
-                    </h3>
-                    <p class="support-panel__subtitle">Aprende a usar el sistema paso a paso</p>
-                </div>
-                <div class="guide-steps" id="guideSteps">
-                    <!-- Los pasos se cargarán dinámicamente -->
-                </div>
-                <div class="support-panel__footer">
-                    <button class="btn btn--outline" id="startGuideBtn">
-                        <i class="fas fa-play"></i> Iniciar Guía Interactiva
+<!-- ===== SECCIÓN DE SOPORTE MEJORADA ===== -->
+
+<!-- Panel izquierdo: Guía del Sistema -->
+<div class="support-panel support-panel--guide">
+    <div class="support-panel__header">
+        <h3 class="support-panel__title">
+            <i class="fas fa-graduation-cap"></i>
+            Guía Completa del Sistema
+        </h3>
+        <p class="support-panel__subtitle">Aprende todas las funcionalidades con ejemplos visuales paso a paso</p>
+    </div>
+    
+    <div class="support-panel__body">
+        <div class="guide-container" id="guideSteps">
+            <!-- Dashboard -->
+            <div class="guide-section-card" data-section="dashboard">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Dashboard Principal</h4>
+                        <p class="guide-section-subtitle">Panel de control y estadísticas</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="dashboard" 
+                            aria-label="Ver guía de Dashboard">
+                        <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
             </div>
+
+            <!-- Personas -->
+            <div class="guide-section-card" data-section="personas">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Gestión de Personas</h4>
+                        <p class="guide-section-subtitle">Usuarios, roles y permisos</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="personas"
+                            aria-label="Ver guía de Gestión de Personas">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Documentos -->
+            <div class="guide-section-card" data-section="documentos">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Gestión Documental</h4>
+                        <p class="guide-section-subtitle">Archivos, carpetas y versiones</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="documentos"
+                            aria-label="Ver guía de Gestión Documental">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tareas -->
+            <div class="guide-section-card" data-section="tareas">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Gestión de Tareas</h4>
+                        <p class="guide-section-subtitle">Asignación y seguimiento</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="tareas"
+                            aria-label="Ver guía de Gestión de Tareas">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Historial -->
+            <div class="guide-section-card" data-section="historial">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Historial de Actividades</h4>
+                        <p class="guide-section-subtitle">Auditoría y seguimiento</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="historial"
+                            aria-label="Ver guía de Historial">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calendario -->
+            <div class="guide-section-card" data-section="calendario">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Calendario de Eventos</h4>
+                        <p class="guide-section-subtitle">Programación y recordatorios</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="calendario"
+                            aria-label="Ver guía de Calendario">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ajustes -->
+            <div class="guide-section-card" data-section="ajustes">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Configuración</h4>
+                        <p class="guide-section-subtitle">Personalización del sistema</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="ajustes"
+                            aria-label="Ver guía de Configuración">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reportes -->
+            <div class="guide-section-card" data-section="reportes">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Reportes y Análisis</h4>
+                        <p class="guide-section-subtitle">Estadísticas y métricas</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="reportes"
+                            aria-label="Ver guía de Reportes">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin -->
+            <div class="guide-section-card" data-section="admin">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Panel Administrativo</h4>
+                        <p class="guide-section-subtitle">Control y configuración avanzada</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="admin"
+                            aria-label="Ver guía de Panel Administrativo">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modo Oscuro -->
+            <div class="guide-section-card" data-section="modo-oscuro">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Modo Oscuro</h4>
+                        <p class="guide-section-subtitle">Reducción de fatiga visual</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="modo-oscuro"
+                            aria-label="Ver guía de Modo Oscuro">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Papelera -->
+            <div class="guide-section-card" data-section="papelera">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-trash-restore"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Papelera de Reciclaje</h4>
+                        <p class="guide-section-subtitle">Recuperación de elementos</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="papelera"
+                            aria-label="Ver guía de Papelera">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Notificaciones -->
+            <div class="guide-section-card" data-section="notificaciones">
+                <div class="guide-section-header">
+                    <div class="guide-section-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="guide-section-info">
+                        <h4 class="guide-section-title">Sistema de Notificaciones</h4>
+                        <p class="guide-section-subtitle">Alertas y recordatorios</p>
+                    </div>
+                    <button class="guide-view-btn" data-section="notificaciones"
+                            aria-label="Ver guía de Notificaciones">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="support-panel__footer">
+        <div class="guide-progress-summary">
+            <span class="progress-text">12 secciones disponibles</span>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Guía Completa -->
+<div class="modal guide-modal" id="guideModal" role="dialog" aria-labelledby="guideModalTitle" aria-hidden="true">
+    <div class="modal__content">
+        <div class="modal__header">
+            <h3 class="modal__title" id="guideModalTitle">
+                <i class="fas fa-graduation-cap"></i>
+                Guía Completa del Sistema
+            </h3>
+            <button class="modal__close" id="closeGuideModal" aria-label="Cerrar guía">
+                &times;
+            </button>
+        </div>
+        
+        <div class="guide-modal__body">
+            <!-- Sidebar de navegación -->
+            <div class="guide-sidebar">
+                <div class="guide-sidebar-header">
+                    <h4 class="guide-sidebar-title">Secciones de la Guía</h4>
+                    <p class="guide-sidebar-subtitle">Navega por todas las funcionalidades</p>
+                </div>
+                
+                <nav class="guide-nav" aria-label="Navegación de la guía">
+                    <a href="#" class="guide-nav-item active" data-section="dashboard" role="tab">
+                        <i class="fas fa-tachometer-alt guide-nav-icon"></i>
+                        <span class="guide-nav-text">Dashboard</span>
+                        <span class="guide-nav-badge">1</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="personas" role="tab">
+                        <i class="fas fa-users guide-nav-icon"></i>
+                        <span class="guide-nav-text">Gestión de Personas</span>
+                        <span class="guide-nav-badge">2</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="documentos" role="tab">
+                        <i class="fas fa-folder-open guide-nav-icon"></i>
+                        <span class="guide-nav-text">Documentos</span>
+                        <span class="guide-nav-badge">3</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="tareas" role="tab">
+                        <i class="fas fa-tasks guide-nav-icon"></i>
+                        <span class="guide-nav-text">Tareas</span>
+                        <span class="guide-nav-badge">4</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="historial" role="tab">
+                        <i class="fas fa-history guide-nav-icon"></i>
+                        <span class="guide-nav-text">Historial</span>
+                        <span class="guide-nav-badge">5</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="calendario" role="tab">
+                        <i class="fas fa-calendar-alt guide-nav-icon"></i>
+                        <span class="guide-nav-text">Calendario</span>
+                        <span class="guide-nav-badge">6</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="ajustes" role="tab">
+                        <i class="fas fa-cog guide-nav-icon"></i>
+                        <span class="guide-nav-text">Configuración</span>
+                        <span class="guide-nav-badge">7</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="reportes" role="tab">
+                        <i class="fas fa-chart-bar guide-nav-icon"></i>
+                        <span class="guide-nav-text">Reportes</span>
+                        <span class="guide-nav-badge">8</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="admin" role="tab">
+                        <i class="fas fa-user-shield guide-nav-icon"></i>
+                        <span class="guide-nav-text">Admin</span>
+                        <span class="guide-nav-badge">9</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="modo-oscuro" role="tab">
+                        <i class="fas fa-moon guide-nav-icon"></i>
+                        <span class="guide-nav-text">Modo Oscuro</span>
+                        <span class="guide-nav-badge">10</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="papelera" role="tab">
+                        <i class="fas fa-trash-restore guide-nav-icon"></i>
+                        <span class="guide-nav-text">Papelera</span>
+                        <span class="guide-nav-badge">11</span>
+                    </a>
+                    
+                    <a href="#" class="guide-nav-item" data-section="notificaciones" role="tab">
+                        <i class="fas fa-bell guide-nav-icon"></i>
+                        <span class="guide-nav-text">Notificaciones</span>
+                        <span class="guide-nav-badge">12</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Contenido principal -->
+            <div class="guide-main">
+                <div id="guideContent" role="tabpanel" aria-labelledby="guideModalTitle">
+                    <!-- El contenido se cargará dinámicamente aquí -->
+                    <div class="guide-loading">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                        <p class="loading-text">Cargando guía...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de búsqueda -->
+<div class="modal" id="guideSearchModal">
+    <div class="modal__content modal__content--sm">
+        <div class="modal__header">
+            <h3 class="modal__title">
+                <i class="fas fa-search"></i>
+                Resultados de búsqueda
+            </h3>
+            <button class="modal__close" id="closeSearchModal">&times;</button>
+        </div>
+        <div class="modal__body">
+            <div class="search-results-list">
+                <!-- Resultados dinámicos -->
+            </div>
+        </div>
+    </div>
+</div>
 
             <!-- Panel derecho: Estado del sistema y FAQ -->
             <div class="support-panel support-panel--status">
