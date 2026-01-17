@@ -3,46 +3,37 @@ import {
     requestAdminChange,
     verifyAdminChangeToken,
     confirmAdminChange,
-    rejectAdminChange,        // ← NUEVO (reemplaza cancelAdminChange)
+    rejectAdminChange,
     getPendingRequests,
     getRequestStatus,
-    testAdminChange
+    testAdminChange,
+    debugPasswordStorage  // NUEVO
 } from '../controllers/adminController.js';
 import { protegerRuta, soloAdministrador } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // =============================================================================
-// RUTAS PROTEGIDAS (requieren autenticación y ser administrador)
+// RUTAS PROTEGIDAS
 // =============================================================================
 
-// Solicitar cambio de administrador
 router.post('/request-change', protegerRuta, soloAdministrador, requestAdminChange);
-
-// Obtener solicitudes pendientes del administrador actual
 router.get('/pending-requests', protegerRuta, soloAdministrador, getPendingRequests);
 
 // =============================================================================
-// RUTAS PÚBLICAS (accesibles desde emails)
+// RUTAS PÚBLICAS
 // =============================================================================
 
-// Verificar token de cambio (para el admin actual desde el email)
 router.get('/verify-token/:token', verifyAdminChangeToken);
-
-// Confirmar cambio de administrador (acción del admin actual)
 router.post('/confirm-change', confirmAdminChange);
-
-// Rechazar cambio de administrador (acción del admin actual)
 router.post('/reject-change', rejectAdminChange);
 
 // =============================================================================
-// RUTAS DE DIAGNÓSTICO Y VERIFICACIÓN
+// RUTAS DE DIAGNÓSTICO Y DEBUG
 // =============================================================================
 
-// Verificar estado de solicitud
 router.get('/request-status/:requestId', getRequestStatus);
-
-// Endpoint de prueba
 router.get('/test', testAdminChange);
+router.get('/debug/:requestId', debugPasswordStorage);  // NUEVO
 
 export default router;
