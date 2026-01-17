@@ -1213,214 +1213,165 @@ Destino: ${testEmail}\n\n
     }
     
         // =====================================================================
-    // 12. CAMBIAR ESTADO DEL TICKET - ACTUALIZADA PARA ACEPTAR POST
-    // =====================================================================
-    
-    static async changeTicketStatus(req, res) {
-        try {
-            const { id } = req.params;
-            const { status, note = '' } = req.body;
-            const user = req.user || { 
-                _id: 'system', 
-                name: 'Administrador del Sistema',
-                rol: 'usuario' // Por defecto
-            };
-            
-            console.log('');
-            console.log('🔄 ========== CAMBIANDO ESTADO DE TICKET ==========');
-            console.log(`📌 Método HTTP: ${req.method}`);
-            console.log(`🎫 Ticket ID: ${id}`);
-            console.log(`🔄 Nuevo estado: ${status}`);
-            console.log(`👤 Usuario: ${user.name} (${user._id})`);
-            console.log(`👑 Rol: ${user.rol}`);
-            console.log(`📝 Nota: ${note || '(sin nota)'}`);
-            
-            // Validar estado permitido
-            const allowedStatuses = ['abierto', 'en_proceso', 'cerrado', 'resuelto'];
-            if (!allowedStatuses.includes(status)) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Estado no válido. Usar: ${allowedStatuses.join(', ')}`
-                });
-            }
-            
-            const ticket = await Ticket.findById(id);
-            
-            if (!ticket) {
-                console.log(`❌ Ticket no encontrado: ${id}`);
-                return res.status(404).json({
-                    success: false,
-                    message: 'Ticket no encontrado'
-                });
-            }
-            
-            console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
-            console.log(`📊 Estado actual: ${ticket.status}`);
-            console.log(`👤 Creado por: ${ticket.createdByName} (${ticket.createdBy})`);
-            
-            // Verificar si el usuario es el creador del ticket
-            const isCreator = ticket.createdBy.toString() === user._id.toString();
-            const isAdmin = user.rol === 'administrador';
-            
-            console.log(`🔍 Permisos: isCreator=${isCreator}, isAdmin=${isAdmin}`);
-            
-            // Reglas de permisos:
-            // 1. Administradores pueden cambiar a cualquier estado
-            // 2. Creadores pueden cambiar a "cerrado" o "abierto" (para reabrir)
-            // 3. Nadie más puede cambiar estados
-            
-            if (!isAdmin && !isCreator) {
-                console.log(`⛔ Usuario no tiene permisos para cambiar estado`);
-                return res.status(403).json({
-                    success: false,
-                    message: 'No tienes permisos para cambiar el estado de este ticket'
-                });
-            }
-            
-            // Validaciones específicas para no-administradores
-            if (!isAdmin) {
-                // Usuario no-admin solo puede cambiar entre "abierto" y "cerrado"
-                if (!['abierto', 'cerrado'].includes(status)) {
-                    console.log(`⛔ Usuario no-admin no puede cambiar a estado: ${status}`);
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Solo los administradores pueden cambiar a "en_proceso" o "resuelto"'
-                    });
-                }
-                
-                // Usuario no-admin no puede cambiar estado de tickets que no sean suyos
-                if (!isCreator) {
-                    console.log(`⛔ Usuario no es el creador del ticket`);
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Solo el creador del ticket puede cambiar su estado'
-                    });
-                }
-            }
-            
-            const oldStatus = ticket.status;
-            
-            // Validar transición de estado
-            const statusOrder = ['abierto', 'en_proceso', 'resuelto', 'cerrado'];
-            const oldIndex = statusOrder.indexOf(oldStatus);
-            const newIndex = statusOrder.indexOf(status);
-            
-            // Solo administradores pueden hacer transiciones complejas
-            if (!isAdmin) {
-                // Usuario normal solo puede: abierto → cerrado, cerrado → abierto
-                if (!(oldStatus === 'abierto' && status === 'cerrado') && 
-                    !(oldStatus === 'cerrado' && status === 'abierto')) {
-                    console.log(`⛔ Transición no permitida para usuario normal: ${oldStatus} → ${status}`);
-                    return res.status(400).json({
-                        success: false,
-                        message: `Solo puedes cambiar entre "abierto" y "cerrado"`
-                    });
-                }
-            }
-            
-            // Si es admin, permitir cualquier transición pero con advertencias
-            if (isAdmin && newIndex < oldIndex && status !== 'abierto') {
-                console.log(`⚠️ Admin retrocediendo estado: ${oldStatus} → ${status}`);
-            }
-            
-            // Actualizar estado
-            ticket.status = status;
-            
-            // Actualizar fechas según estado
-            if (status === 'en_proceso') {
-                ticket.assignedAt = new Date();
-                console.log(`📅 Fecha de asignación actualizada`);
-            } else if (status === 'resuelto') {
-                ticket.resolvedAt = new Date();
-                console.log(`📅 Fecha de resolución actualizada`);
-            } else if (status === 'cerrado') {
-                ticket.closedAt = new Date();
-                console.log(`📅 Fecha de cierre actualizada`);
-            }
-            
-            // Mensaje según estado y quién lo cambia
-            let statusMessage = '';
-            let notePrefix = '';
-            
-            if (note && note.trim()) {
-                notePrefix = `Nota adicional: ${note}. `;
-            }
-            
-            if (isAdmin) {
-                switch(status) {
-                    case 'abierto':
-                        statusMessage = `${notePrefix}Ticket reabierto por el administrador`;
-                        break;
-                    case 'en_proceso':
-                        statusMessage = `${notePrefix}El equipo de soporte está trabajando en la solución`;
-                        break;
-                    case 'resuelto':
-                        statusMessage = `${notePrefix}Ticket marcado como RESUELTO por el administrador`;
-                        break;
-                    case 'cerrado':
-                        statusMessage = `${notePrefix}Ticket cerrado por el administrador`;
-                        break;
-                }
-            } else {
-                // Usuario normal
-                if (status === 'cerrado') {
-                    statusMessage = `${notePrefix}Ticket cerrado por el usuario`;
-                } else if (status === 'abierto') {
-                    statusMessage = `${notePrefix}Ticket reabierto por el usuario`;
-                }
-            }
-            
-            // Agregar actualización
-            const update = {
-                user: user._id,
-                userName: user.name || (isAdmin ? 'Administrador' : 'Usuario'),
-                message: statusMessage,
-                type: 'status_change',
-                statusChange: {
-                    from: oldStatus,
-                    to: status
-                },
-                createdAt: new Date()
-            };
-            
-            if (!ticket.updates) {
-                ticket.updates = [];
-            }
-            
-            ticket.updates.push(update);
-            ticket.updatedAt = new Date();
-            await ticket.save();
-            
-            console.log(`✅ Estado cambiado: ${oldStatus} → ${status}`);
-            console.log(`📝 Mensaje: ${statusMessage}`);
-            console.log(`📊 Nuevo estado: ${ticket.status}`);
-            
-            // ENVIAR EMAIL DE ACTUALIZACIÓN AL USUARIO (solo si es admin)
-            if (isAdmin && ticket.emailNotifications) {
-                try {
-                    await this.sendUpdateEmail(ticket, user, statusMessage);
-                    console.log(`📧 Email de cambio de estado enviado al usuario`);
-                } catch (emailError) {
-                    console.error('⚠️ Error enviando email:', emailError.message);
-                }
-            }
-            
-            console.log('🔄 ========== ESTADO CAMBIADO ==========\n');
-            
-            res.json({
-                success: true,
-                message: `✅ Estado del ticket actualizado a: ${status.toUpperCase()}`,
-                ticket
-            });
-            
-        } catch (error) {
-            console.error('❌ Error cambiando estado del ticket:', error);
-            res.status(500).json({
+// 12. CAMBIAR ESTADO DEL TICKET - SIMPLIFICADO (SOLO PARA ADMINISTRADORES)
+// =====================================================================
+
+static async changeTicketStatus(req, res) {
+    try {
+        const { id } = req.params;
+        let { status, note = '' } = req.body;
+        const user = req.user || { 
+            _id: 'system', 
+            name: 'Administrador',
+            rol: 'administrador'
+        };
+        
+        console.log('');
+        console.log('🔄 ========== CAMBIANDO ESTADO DE TICKET ==========');
+        console.log(`🎫 Ticket ID: ${id}`);
+        console.log(`👤 Usuario: ${user.name} (${user.rol || 'admin'})`);
+        console.log(`📝 Nota recibida: "${note}"`);
+        console.log(`📌 Ruta llamada: ${req.originalUrl}`);
+        
+        // ✅ SIEMPRE es administrador - Eliminar toda la lógica compleja
+        console.log(`✅ Sistema 100% administrado por staff`);
+        
+        // ✅ CORRECCIÓN: Si viene del endpoint /close y no tiene status, asignar 'cerrado'
+        if (req.originalUrl.includes('/close') && !status) {
+            console.log('📌 Endpoint /close detectado, asignando estado "cerrado" automáticamente');
+            status = 'cerrado';
+        }
+        
+        console.log(`🔄 Nuevo estado: ${status}`);
+        
+        // Validar estado permitido
+        const allowedStatuses = ['abierto', 'en_proceso', 'cerrado', 'resuelto'];
+        if (!status || !allowedStatuses.includes(status)) {
+            return res.status(400).json({
                 success: false,
-                message: 'Error cambiando estado del ticket'
+                message: `Estado no válido. Usar: ${allowedStatuses.join(', ')}`
             });
         }
+        
+        const ticket = await Ticket.findById(id);
+        
+        if (!ticket) {
+            console.log(`❌ Ticket no encontrado: ${id}`);
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket no encontrado'
+            });
+        }
+        
+        console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
+        console.log(`📊 Estado actual: ${ticket.status}`);
+        
+        const oldStatus = ticket.status;
+        
+        // Actualizar estado
+        ticket.status = status;
+        
+        // Actualizar fechas según estado
+        if (status === 'en_proceso') {
+            ticket.assignedAt = new Date();
+            console.log(`📅 Fecha de asignación actualizada`);
+        } else if (status === 'resuelto') {
+            ticket.resolvedAt = new Date();
+            console.log(`📅 Fecha de resolución actualizada`);
+        } else if (status === 'cerrado') {
+            ticket.closedAt = new Date();
+            console.log(`📅 Fecha de cierre actualizada`);
+        }
+        
+        // =============================================================
+        // ✅ LÓGICA SIMPLIFICADA - SIEMPRE ADMINISTRADOR
+        // =============================================================
+        let statusMessage = '';
+        const trimmedNote = note ? note.trim() : '';
+        const hasRealNote = trimmedNote !== '';
+        
+        console.log(`📝 Nota procesada: "${trimmedNote}"`);
+        console.log(`📝 ¿Tiene nota real?: ${hasRealNote}`);
+        
+        // ✅ SIEMPRE usar mensajes con "por el administrador"
+        const defaultMessages = {
+            'abierto': 'Ticket reabierto por el administrador',
+            'en_proceso': 'Ticket en proceso por el administrador',
+            'resuelto': 'Ticket resuelto por el administrador',
+            'cerrado': 'Ticket cerrado por el administrador'
+        };
+        
+        if (hasRealNote) {
+            // ✅ Caso 1: Hay nota -> Usar SOLO esa nota
+            statusMessage = trimmedNote;
+            console.log(`📝 Usando nota: "${statusMessage}"`);
+        } else {
+            // ✅ Caso 2: No hay nota -> Usar mensaje predeterminado con "por el administrador"
+            statusMessage = defaultMessages[status] || `Estado cambiado a ${status} por el administrador`;
+            console.log(`📝 Usando mensaje predeterminado: "${statusMessage}"`);
+        }
+        // =============================================================
+        
+        // ✅ SIEMPRE mostrar "Administrador"
+        const displayName = 'Administrador';
+        
+        // Agregar actualización
+        const update = {
+            user: user._id,
+            userName: displayName, // ✅ SIEMPRE "Administrador"
+            message: statusMessage,
+            type: 'status_change',
+            statusChange: {
+                from: oldStatus,
+                to: status
+            },
+            createdAt: new Date()
+        };
+        
+        if (!ticket.updates) {
+            ticket.updates = [];
+        }
+        
+        ticket.updates.push(update);
+        ticket.updatedAt = new Date();
+        await ticket.save();
+        
+        console.log(`✅ Estado cambiado: ${oldStatus} → ${status}`);
+        console.log(`📝 Mensaje guardado: "${statusMessage}"`);
+        console.log(`👤 Registrado como: ${displayName}`);
+        
+        // ENVIAR EMAIL DE ACTUALIZACIÓN AL USUARIO
+        if (ticket.emailNotifications) {
+            try {
+                // ✅ SIEMPRE "Administrador del Sistema" para emails
+                const correctedUser = {
+                    ...user,
+                    name: 'Administrador del Sistema'
+                };
+                
+                await this.sendUpdateEmail(ticket, correctedUser, statusMessage);
+                console.log(`📧 Email de cambio de estado enviado al usuario`);
+            } catch (emailError) {
+                console.error('⚠️ Error enviando email:', emailError.message);
+            }
+        }
+        
+        console.log('🔄 ========== ESTADO CAMBIADO ==========\n');
+        
+        res.json({
+            success: true,
+            message: `✅ Estado del ticket actualizado`,
+            ticket
+        });
+        
+    } catch (error) {
+        console.error('❌ Error cambiando estado del ticket:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error cambiando estado del ticket'
+        });
     }
+}
     
     // =====================================================================
     // 13. OBTENER TODOS LOS TICKETS (PARA ADMIN)
