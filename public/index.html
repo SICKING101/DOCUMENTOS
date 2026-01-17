@@ -94,6 +94,13 @@
                         <span class="sidebar__nav-text">Calendario</span>
                         <div class="sidebar__nav-active-indicator"></div>
                     </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="papelera">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Papelera</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
                 </div>
 
                 <!-- Grupo 3: Configuración -->
@@ -200,10 +207,6 @@
             <!-- SECCIÓN 4.1: BARRA SUPERIOR -->
             <header class="topbar">
                 <div class="topbar__actions">
-                    <button class="topbar__action" id="trashBtn" title="Papelera">
-                        <i class="fas fa-trash-alt"></i>
-                        <span class="topbar__badge" id="trashBadge" style="display: none;">0</span>
-                    </button>
                     <button class="topbar__action" id="notificationsBtn" title="Notificaciones">
                         <i class="fas fa-bell"></i>
                         <span class="topbar__badge">3</span>
@@ -2362,68 +2365,69 @@
         </div>
     </div>
 
-    <!-- Modal para cambiar administrador -->
-    <dialog id="changeAdminModal" class="modal">
-        <article class="modal__content modal__content--md">
-            <header class="modal__header">
-                <h3 class="modal__title">
-                    <i class="fas fa-user-shield"></i> Cambiar Administrador
-                </h3>
-                <button class="modal__close" id="closeChangeAdminModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </header>
-            <section class="modal__body">
-                <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <div>
-                        <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un
-                        enlace de confirmación. Esta acción requiere autorización.
+    <!-- Modal para cambiar administrador - VERSIÓN CORREGIDA -->
+<div id="changeAdminModal" class="modal">
+    <div class="modal__overlay" onclick="cerrarModalCambioAdmin()"></div>
+    <article class="modal__content modal__content--md">
+        <header class="modal__header">
+            <h3 class="modal__title">
+                <i class="fas fa-user-shield"></i> Cambiar Administrador
+            </h3>
+            <button class="modal__close" id="closeChangeAdminModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </header>
+        <section class="modal__body">
+            <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un
+                    enlace de confirmación. Esta acción requiere autorización.
+                </div>
+            </div>
+            <form id="changeAdminForm">
+                <div class="form__group">
+                    <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
+                    <input type="text" id="newAdminUser" class="form__input"
+                        placeholder="Ingresa el nuevo nombre de usuario" required>
+                </div>
+                <div class="form__group">
+                    <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
+                    <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com"
+                        required>
+                </div>
+                <div class="form__group">
+                    <label for="newAdminPassword" class="form__label">Contraseña</label>
+                    <div class="form__password-wrapper">
+                        <input type="password" id="newAdminPassword" class="form__input"
+                            placeholder="Contraseña segura" required>
+                        <button type="button" class="form__password-toggle"
+                            onclick="togglePasswordVisibility('newAdminPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
                 </div>
-                <form id="changeAdminForm">
-                    <div class="form__group">
-                        <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
-                        <input type="text" id="newAdminUser" class="form__input"
-                            placeholder="Ingresa el nuevo nombre de usuario" required>
+                <div class="form__group">
+                    <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
+                    <div class="form__password-wrapper">
+                        <input type="password" id="confirmAdminPassword" class="form__input"
+                            placeholder="Repite la contraseña" required>
+                        <button type="button" class="form__password-toggle"
+                            onclick="togglePasswordVisibility('confirmAdminPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
-                    <div class="form__group">
-                        <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
-                        <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com"
-                            required>
-                    </div>
-                    <div class="form__group">
-                        <label for="newAdminPassword" class="form__label">Contraseña</label>
-                        <div class="form__password-wrapper">
-                            <input type="password" id="newAdminPassword" class="form__input"
-                                placeholder="Contraseña segura" required>
-                            <button type="button" class="form__password-toggle"
-                                onclick="togglePasswordVisibility('newAdminPassword')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form__group">
-                        <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
-                        <div class="form__password-wrapper">
-                            <input type="password" id="confirmAdminPassword" class="form__input"
-                                placeholder="Repite la contraseña" required>
-                            <button type="button" class="form__password-toggle"
-                                onclick="togglePasswordVisibility('confirmAdminPassword')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelChangeAdmin">Cancelar</button>
-                <button class="btn btn--primary" id="confirmChangeAdmin">
-                    <i class="fas fa-paper-plane"></i> Enviar Solicitud
-                </button>
-            </footer>
-        </article>
-    </dialog>
+                </div>
+            </form>
+        </section>
+        <footer class="modal__footer">
+            <button class="btn btn--outline" id="cancelChangeAdmin">Cancelar</button>
+            <button class="btn btn--primary" id="confirmChangeAdmin">
+                <i class="fas fa-paper-plane"></i> Enviar Solicitud
+            </button>
+        </footer>
+    </article>
+</div>
 
     <!-- Modal de confirmación de acciones -->
     <dialog id="actionModal" class="modal">
@@ -2605,7 +2609,7 @@
 
     <!-- Modal para crear ticket de soporte -->
 <dialog id="ticketModal" class="modal">
-    <article class="modal__content modal__content--md">
+    <article class="modal__content">
         <header class="modal__header">
             <h3 class="modal__title">
                 <i class="fas fa-plus-circle"></i> Nuevo Ticket de Soporte
@@ -2725,15 +2729,6 @@
                         <div class="updates-list" id="ticketUpdatesList">
                             <!-- Las actualizaciones del ticket se cargarán aquí -->
                         </div>
-                    </div>
-                    
-                    <div class="ticket-detail__response" id="ticketResponseSection">
-                        <h4>Agregar respuesta</h4>
-                        <textarea class="response-textarea" id="ticketResponseText" 
-                                  placeholder="Escribe tu respuesta aquí..."></textarea>
-                        <button class="btn btn--primary btn--sm" id="submitResponseBtn">
-                            <i class="fas fa-reply"></i> Enviar Respuesta
-                        </button>
                     </div>
                 </div>
             </div>

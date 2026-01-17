@@ -756,100 +756,94 @@ Sistema de Gestión Documental CBTIS051`
             });
         }
     }
-    
+
     // =====================================================================
-    // 6. AGREGAR RESPUESTA/ACTUALIZACIÓN AL TICKET (SOLO ADMIN)
-    // =====================================================================
-    
-    static async addTicketUpdate(req, res) {
-        try {
-            const { id } = req.params;
-            const { message } = req.body;
-            const user = req.user || { 
-                _id: 'system', 
-                name: 'Administrador del Sistema',
-                email: 'riosnavarretejared@gmail.com'
-            };
-            
-            console.log('');
-            console.log('💬 ========== AGREGANDO ACTUALIZACIÓN AL TICKET ==========');
-            console.log(`Ticket ID: ${id}`);
-            console.log(`Usuario: ${user.name}`);
-            console.log(`Mensaje: ${message ? message.substring(0, 100) + '...' : 'No message'}`);
-            
-            if (!message) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'El mensaje es requerido'
-                });
-            }
-            
-            const ticket = await Ticket.findById(id);
-            
-            if (!ticket) {
-                console.log(`❌ Ticket no encontrado: ${id}`);
-                return res.status(404).json({
-                    success: false,
-                    message: 'Ticket no encontrado'
-                });
-            }
-            
-            console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
-            
-            // Solo el administrador puede agregar actualizaciones
-            if (user.role !== 'admin') {
-                console.log(`⛔ Usuario no es administrador`);
-                return res.status(403).json({
-                    success: false,
-                    message: 'Solo el administrador puede agregar actualizaciones'
-                });
-            }
-            
-            // Agregar actualización
-            const update = {
-                user: user._id,
-                userName: user.name || 'Administrador',
-                message: message,
-                type: 'admin_update',
-                createdAt: new Date()
-            };
-            
-            if (!ticket.updates) {
-                ticket.updates = [];
-            }
-            
-            ticket.updates.push(update);
-            ticket.updatedAt = new Date();
-            await ticket.save();
-            
-            console.log(`✅ Actualización agregada al ticket ${ticket.ticketNumber}`);
-            
-            // ENVIAR EMAIL DE ACTUALIZACIÓN AL USUARIO
-            if (ticket.emailNotifications) {
-                try {
-                    await this.sendUpdateEmail(ticket, user, message);
-                    console.log(`📧 Email de actualización enviado al usuario`);
-                } catch (emailError) {
-                    console.error('⚠️ Error enviando email:', emailError.message);
-                }
-            }
-            
-            console.log('💬 ========== ACTUALIZACIÓN COMPLETADA ==========\n');
-            
-            res.json({
-                success: true,
-                message: 'Actualización agregada exitosamente',
-                ticket
-            });
-            
-        } catch (error) {
-            console.error('❌ Error agregando actualización:', error);
-            res.status(500).json({
+// 6. AGREGAR ACTUALIZACIÓN A TICKET 
+// =====================================================================
+
+static async addTicketUpdate(req, res) {
+    try {
+        const { id } = req.params;
+        const { message, type = 'user_update' } = req.body;
+        const user = req.user || { _id: 'system', name: 'Usuario del Sistema' };
+        
+        console.log(`💬 Agregando actualización al ticket: ${id}`);
+        console.log(`👤 Usuario: ${user.name}`);
+        console.log(`💬 Mensaje: ${message.substring(0, 50)}...`);
+        
+        if (!message || message.trim().length === 0) {
+            return res.status(400).json({
                 success: false,
-                message: 'Error agregando actualización al ticket'
+                message: 'El mensaje no puede estar vacío'
             });
         }
+        
+        const ticket = await Ticket.findById(id);
+        
+        if (!ticket) {
+            console.log(`❌ Ticket no encontrado: ${id}`);
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket no encontrado'
+            });
+        }
+        
+        console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
+        
+        // Verificar permisos
+        if (ticket.createdBy.toString() !== user._id.toString() && user.role !== 'admin') {
+            console.log(`⛔ Usuario no autorizado para actualizar este ticket`);
+            return res.status(403).json({
+                success: false,
+                message: 'No tienes permiso para actualizar este ticket'
+            });
+        }
+        
+        // Crear actualización
+        const update = {
+            user: user._id,
+            userName: user.name || 'Usuario del Sistema',
+            message: message.trim(),
+            type: type,
+            createdAt: new Date()
+        };
+        
+        if (!ticket.updates) {
+            ticket.updates = [];
+        }
+        
+        ticket.updates.push(update);
+        ticket.updatedAt = new Date();
+        
+        await ticket.save();
+        
+        console.log(`✅ Actualización agregada. Total updates: ${ticket.updates.length}`);
+        
+        // ENVIAR EMAIL DE ACTUALIZACIÓN (si es admin)
+        if (user.role === 'admin' && ticket.emailNotifications) {
+            try {
+                await this.sendUpdateEmail(ticket, user, message);
+                console.log(`📧 Email de actualización enviado`);
+            } catch (emailError) {
+                console.error('⚠️ Error enviando email:', emailError.message);
+            }
+        }
+        
+        res.json({
+            success: true,
+            message: 'Actualización agregada exitosamente',
+            update,
+            ticket
+        });
+        
+    } catch (error) {
+        console.error('❌ Error agregando actualización:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error agregando actualización al ticket'
+        });
     }
+}
     
     // =====================================================================
     // 7. ENVIAR EMAIL DE ACTUALIZACIÓN (CUANDO CAMBIA EL ESTADO)
@@ -1218,31 +1212,35 @@ Destino: ${testEmail}\n\n
         }
     }
     
-    // =====================================================================
-    // 12. CAMBIAR ESTADO DEL TICKET 
+        // =====================================================================
+    // 12. CAMBIAR ESTADO DEL TICKET - ACTUALIZADA PARA ACEPTAR POST
     // =====================================================================
     
     static async changeTicketStatus(req, res) {
         try {
             const { id } = req.params;
-            const { status } = req.body;
+            const { status, note = '' } = req.body;
             const user = req.user || { 
                 _id: 'system', 
-                name: 'Administrador del Sistema'
+                name: 'Administrador del Sistema',
+                rol: 'usuario' // Por defecto
             };
             
             console.log('');
             console.log('🔄 ========== CAMBIANDO ESTADO DE TICKET ==========');
-            console.log(`Ticket ID: ${id}`);
-            console.log(`Nuevo estado: ${status}`);
-            console.log(`Usuario: ${user.name}`);
+            console.log(`📌 Método HTTP: ${req.method}`);
+            console.log(`🎫 Ticket ID: ${id}`);
+            console.log(`🔄 Nuevo estado: ${status}`);
+            console.log(`👤 Usuario: ${user.name} (${user._id})`);
+            console.log(`👑 Rol: ${user.rol}`);
+            console.log(`📝 Nota: ${note || '(sin nota)'}`);
             
             // Validar estado permitido
-            const allowedStatuses = ['abierto', 'en_proceso', 'cerrado'];
+            const allowedStatuses = ['abierto', 'en_proceso', 'cerrado', 'resuelto'];
             if (!allowedStatuses.includes(status)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Estado no válido. Usar: abierto, en_proceso o cerrado'
+                    message: `Estado no válido. Usar: ${allowedStatuses.join(', ')}`
                 });
             }
             
@@ -1258,60 +1256,124 @@ Destino: ${testEmail}\n\n
             
             console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
             console.log(`📊 Estado actual: ${ticket.status}`);
+            console.log(`👤 Creado por: ${ticket.createdByName} (${ticket.createdBy})`);
             
-            // Solo el administrador puede cambiar estados
-            if (user.role !== 'admin') {
-                console.log(`⛔ Usuario no es administrador`);
+            // Verificar si el usuario es el creador del ticket
+            const isCreator = ticket.createdBy.toString() === user._id.toString();
+            const isAdmin = user.rol === 'administrador';
+            
+            console.log(`🔍 Permisos: isCreator=${isCreator}, isAdmin=${isAdmin}`);
+            
+            // Reglas de permisos:
+            // 1. Administradores pueden cambiar a cualquier estado
+            // 2. Creadores pueden cambiar a "cerrado" o "abierto" (para reabrir)
+            // 3. Nadie más puede cambiar estados
+            
+            if (!isAdmin && !isCreator) {
+                console.log(`⛔ Usuario no tiene permisos para cambiar estado`);
                 return res.status(403).json({
                     success: false,
-                    message: 'Solo el administrador puede cambiar el estado de los tickets'
+                    message: 'No tienes permisos para cambiar el estado de este ticket'
                 });
+            }
+            
+            // Validaciones específicas para no-administradores
+            if (!isAdmin) {
+                // Usuario no-admin solo puede cambiar entre "abierto" y "cerrado"
+                if (!['abierto', 'cerrado'].includes(status)) {
+                    console.log(`⛔ Usuario no-admin no puede cambiar a estado: ${status}`);
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Solo los administradores pueden cambiar a "en_proceso" o "resuelto"'
+                    });
+                }
+                
+                // Usuario no-admin no puede cambiar estado de tickets que no sean suyos
+                if (!isCreator) {
+                    console.log(`⛔ Usuario no es el creador del ticket`);
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Solo el creador del ticket puede cambiar su estado'
+                    });
+                }
             }
             
             const oldStatus = ticket.status;
             
-            // Validar transición de estado (solo permitir progresión lógica)
-            const statusOrder = ['abierto', 'en_proceso', 'cerrado'];
+            // Validar transición de estado
+            const statusOrder = ['abierto', 'en_proceso', 'resuelto', 'cerrado'];
             const oldIndex = statusOrder.indexOf(oldStatus);
             const newIndex = statusOrder.indexOf(status);
             
-            if (newIndex < oldIndex && status !== 'abierto') {
-                console.log(`⛔ No se puede retroceder estado: ${oldStatus} → ${status}`);
-                return res.status(400).json({
-                    success: false,
-                    message: `No se puede cambiar de "${oldStatus}" a "${status}". Progresión permitida: abierto → en_proceso → cerrado`
-                });
+            // Solo administradores pueden hacer transiciones complejas
+            if (!isAdmin) {
+                // Usuario normal solo puede: abierto → cerrado, cerrado → abierto
+                if (!(oldStatus === 'abierto' && status === 'cerrado') && 
+                    !(oldStatus === 'cerrado' && status === 'abierto')) {
+                    console.log(`⛔ Transición no permitida para usuario normal: ${oldStatus} → ${status}`);
+                    return res.status(400).json({
+                        success: false,
+                        message: `Solo puedes cambiar entre "abierto" y "cerrado"`
+                    });
+                }
             }
             
+            // Si es admin, permitir cualquier transición pero con advertencias
+            if (isAdmin && newIndex < oldIndex && status !== 'abierto') {
+                console.log(`⚠️ Admin retrocediendo estado: ${oldStatus} → ${status}`);
+            }
+            
+            // Actualizar estado
             ticket.status = status;
             
             // Actualizar fechas según estado
             if (status === 'en_proceso') {
                 ticket.assignedAt = new Date();
                 console.log(`📅 Fecha de asignación actualizada`);
+            } else if (status === 'resuelto') {
+                ticket.resolvedAt = new Date();
+                console.log(`📅 Fecha de resolución actualizada`);
             } else if (status === 'cerrado') {
                 ticket.closedAt = new Date();
                 console.log(`📅 Fecha de cierre actualizada`);
             }
             
-            // Mensaje automático según estado
+            // Mensaje según estado y quién lo cambia
             let statusMessage = '';
-            switch(status) {
-                case 'abierto':
-                    statusMessage = 'Ticket reabierto por el administrador';
-                    break;
-                case 'en_proceso':
-                    statusMessage = 'El equipo de soporte está trabajando en la solución de este ticket';
-                    break;
-                case 'cerrado':
-                    statusMessage = 'Ticket marcado como CERRADO. El problema ha sido resuelto';
-                    break;
+            let notePrefix = '';
+            
+            if (note && note.trim()) {
+                notePrefix = `Nota adicional: ${note}. `;
+            }
+            
+            if (isAdmin) {
+                switch(status) {
+                    case 'abierto':
+                        statusMessage = `${notePrefix}Ticket reabierto por el administrador`;
+                        break;
+                    case 'en_proceso':
+                        statusMessage = `${notePrefix}El equipo de soporte está trabajando en la solución`;
+                        break;
+                    case 'resuelto':
+                        statusMessage = `${notePrefix}Ticket marcado como RESUELTO por el administrador`;
+                        break;
+                    case 'cerrado':
+                        statusMessage = `${notePrefix}Ticket cerrado por el administrador`;
+                        break;
+                }
+            } else {
+                // Usuario normal
+                if (status === 'cerrado') {
+                    statusMessage = `${notePrefix}Ticket cerrado por el usuario`;
+                } else if (status === 'abierto') {
+                    statusMessage = `${notePrefix}Ticket reabierto por el usuario`;
+                }
             }
             
             // Agregar actualización
             const update = {
                 user: user._id,
-                userName: user.name || 'Administrador',
+                userName: user.name || (isAdmin ? 'Administrador' : 'Usuario'),
                 message: statusMessage,
                 type: 'status_change',
                 statusChange: {
@@ -1330,9 +1392,11 @@ Destino: ${testEmail}\n\n
             await ticket.save();
             
             console.log(`✅ Estado cambiado: ${oldStatus} → ${status}`);
+            console.log(`📝 Mensaje: ${statusMessage}`);
+            console.log(`📊 Nuevo estado: ${ticket.status}`);
             
-            // ENVIAR EMAIL DE ACTUALIZACIÓN AL USUARIO
-            if (ticket.emailNotifications) {
+            // ENVIAR EMAIL DE ACTUALIZACIÓN AL USUARIO (solo si es admin)
+            if (isAdmin && ticket.emailNotifications) {
                 try {
                     await this.sendUpdateEmail(ticket, user, statusMessage);
                     console.log(`📧 Email de cambio de estado enviado al usuario`);
@@ -1345,7 +1409,7 @@ Destino: ${testEmail}\n\n
             
             res.json({
                 success: true,
-                message: `Estado del ticket actualizado a: ${status.toUpperCase()}`,
+                message: `✅ Estado del ticket actualizado a: ${status.toUpperCase()}`,
                 ticket
             });
             

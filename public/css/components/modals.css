@@ -143,6 +143,11 @@
     max-width: 400px;
 }
 
+.modal__content--md {
+    margin-top: 30px;
+    transform: translateX(75%);
+}
+
 /* Footer centrado para modales de acción */
 .modal__footer--centered {
     display: flex;

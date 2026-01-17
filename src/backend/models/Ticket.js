@@ -35,7 +35,8 @@ const ticketSchema = new mongoose.Schema({
         default: 'abierto'
     },
     createdBy: {
-        type: mongoose.Schema.Types.Mixed,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true
     },
     createdByName: {
@@ -60,9 +61,21 @@ const ticketSchema = new mongoose.Schema({
         }
     }],
     updates: [{
-        user: mongoose.Schema.Types.Mixed,
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
         userName: String,
         message: String,
+        type: {
+            type: String,
+            enum: ['user_update', 'system', 'status_change', 'admin_note'],
+            default: 'user_update'
+        },
+        statusChange: {
+            from: String,
+            to: String
+        },
         attachments: [{
             filename: String,
             url: String
@@ -73,12 +86,16 @@ const ticketSchema = new mongoose.Schema({
         }
     }],
     assignedTo: {
-        type: mongoose.Schema.Types.Mixed,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
     assignedAt: Date,
     resolvedAt: Date,
     closedAt: Date,
+    emailNotifications: {
+        type: Boolean,
+        default: true
+    },
     isDeleted: {
         type: Boolean,
         default: false
@@ -95,12 +112,23 @@ ticketSchema.index({ priority: 1 });
 ticketSchema.index({ category: 1 });
 ticketSchema.index({ createdAt: -1 });
 ticketSchema.index({ createdBy: 1 });
+ticketSchema.index({ createdBy: 1, status: 1 }); // Para búsquedas de usuario específico
 
 // Middleware pre-save para generar número de ticket
 ticketSchema.pre('save', function(next) {
     if (!this.ticketNumber) {
         this.ticketNumber = `TKT-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
     }
+    
+    // Asegurar que createdBy es ObjectId
+    if (this.createdBy && typeof this.createdBy !== 'object') {
+        try {
+            this.createdBy = mongoose.Types.ObjectId(this.createdBy);
+        } catch (error) {
+            console.error('Error convirtiendo createdBy a ObjectId:', error);
+        }
+    }
+    
     next();
 });
 
