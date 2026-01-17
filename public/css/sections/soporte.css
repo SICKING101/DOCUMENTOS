@@ -2622,6 +2622,7 @@ textarea.form-control {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 1rem 0;
+    margin-top: 10px;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid var(--border);
 }

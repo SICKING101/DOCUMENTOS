@@ -88,6 +88,163 @@ export const soloAdministrador = (req, res, next) => {
 };
 
 /**
+ * Middleware para verificar que el usuario es administrador O es el creador del ticket
+ */
+export const adminOPropietarioTicket = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            message: 'No autenticado'
+        });
+    }
+
+    // Si es administrador, permitir siempre
+    if (req.user.rol === 'administrador') {
+        return next();
+    }
+
+    // Si el usuario es el creador del ticket, también permitir
+    const ticketId = req.params.id || req.body.ticketId;
+    
+    // Verificar si el usuario es el creador del ticket
+    // (esto se verifica en el controlador específico)
+    // Por ahora, permitir a todos los usuarios autenticados
+    if (req.user._id) {
+        return next();
+    }
+
+    // Si no cumple ninguna condición
+    return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para realizar esta acción'
+    });
+};
+
+/**
+ * Middleware para tickets: administrador O usuario que creó el ticket
+ */
+export const permisoTicket = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'No autenticado'
+            });
+        }
+
+        // Si es administrador, permitir siempre
+        if (req.user.rol === 'administrador') {
+            return next();
+        }
+
+        // Si no es administrador, verificar si es el creador del ticket
+        const ticketId = req.params.id;
+        if (!ticketId) {
+            return next(); // Permitir si no hay ID (para listados)
+        }
+
+        // Importar Ticket aquí para evitar dependencia circular
+        const Ticket = (await import('../models/Ticket.js')).default;
+        
+        const ticket = await Ticket.findById(ticketId).select('createdBy');
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: 'Ticket no encontrado'
+            });
+        }
+
+        // Verificar si el usuario actual es el creador del ticket
+        const createdById = typeof ticket.createdBy === 'object' 
+            ? ticket.createdBy.toString() 
+            : ticket.createdBy;
+        
+        const userId = req.user._id.toString();
+        
+        if (createdById === userId) {
+            return next();
+        }
+
+        // Si no es ni administrador ni creador
+        return res.status(403).json({
+            success: false,
+            message: 'No tienes permisos para acceder a este ticket'
+        });
+
+    } catch (error) {
+        console.error('Error en permisoTicket middleware:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error del servidor'
+        });
+    }
+};
+
+/**
+ * Middleware para cambiar estado de ticket: Solo administrador puede cambiar a cerrado
+ */
+export const permisoCambiarEstado = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'No autenticado'
+            });
+        }
+
+        const { status } = req.body;
+        const ticketId = req.params.id;
+
+        // Si el usuario es administrador, permitir cualquier cambio
+        if (req.user.rol === 'administrador') {
+            return next();
+        }
+
+        // Si no es administrador, solo permitir cambiar a "cerrado" si es el creador
+        if (status === 'cerrado') {
+            // Importar Ticket aquí para evitar dependencia circular
+            const Ticket = (await import('../models/Ticket.js')).default;
+            
+            const ticket = await Ticket.findById(ticketId).select('createdBy');
+            
+            if (!ticket) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Ticket no encontrado'
+                });
+            }
+
+            // Verificar si el usuario actual es el creador del ticket
+            const createdById = typeof ticket.createdBy === 'object' 
+                ? ticket.createdBy.toString() 
+                : ticket.createdBy;
+            
+            const userId = req.user._id.toString();
+            
+            if (createdById === userId) {
+                return next();
+            }
+
+            return res.status(403).json({
+                success: false,
+                message: 'Solo el creador del ticket o el administrador pueden cerrarlo'
+            });
+        }
+
+        // Para otros estados, solo permitir al creador
+        return permisoTicket(req, res, next);
+
+    } catch (error) {
+        console.error('Error en permisoCambiarEstado middleware:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error del servidor'
+        });
+    }
+};
+
+/**
  * Generar JWT Token
  */
 export const generarToken = (id) => {

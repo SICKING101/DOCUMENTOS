@@ -1,5 +1,5 @@
 import { api } from '../services/api.js';
-import { showAlert, formatDate } from '../utils.js';
+import { showAlert, formatDate, showConfirmModal } from '../utils.js';
 import { DOM } from '../dom.js';
 
 class SupportModule {
@@ -18,38 +18,34 @@ class SupportModule {
         
         this.guideData = {
             dashboard: {
-                title: 'Dashboard - Panel de Control Principal',
+                title: 'Dashboard',
                 icon: 'tachometer-alt',
-                description: 'El dashboard es el centro de control desde donde puedes monitorear todas las actividades del sistema.',
-                overview: 'Desde aquí puedes ver estadísticas en tiempo real, accesos rápidos a las funciones más utilizadas, y un resumen completo de la actividad del sistema.',
+                description: 'El dashboard es el centro de control desde donde puedes monitorear las dos actividades principales del sistema.',
+                overview: 'Desde aquí puedes ver estadísticas en tiempo real, accesos rápidos a las funciones más utilizadas, y los 5 archivos mas recientes.',
                 steps: [
                     {
-                        title: 'Widgets Personalizables',
-                        description: 'Arrastra y suelta los widgets para organizar tu dashboard según tus necesidades.'
-                    },
-                    {
-                        title: 'Estadísticas en Tiempo Real',
-                        description: 'Monitorea métricas clave como usuarios activos, documentos subidos, tareas pendientes, etc.'
+                        title: 'Estadisticas',
+                        description: 'Observa las 4 estadisticas clave del sistema en la parte superior.'
                     },
                     {
                         title: 'Accesos Rápidos',
                         description: 'Accede rápidamente a las funciones más utilizadas con los botones de acceso directo.'
                     },
                     {
-                        title: 'Gráficos Interactivos',
-                        description: 'Visualiza datos importantes a través de gráficos que puedes filtrar por fecha y categoría.'
+                        title: 'Archivos recientes',
+                        description: 'Revisa los archivos más recientes subidos al sistema.'
                     }
                 ],
                 tips: [
-                    'Puedes personalizar qué widgets ver en el dashboard desde la configuración.',
-                    'Haz clic en cualquier gráfico para ver detalles más específicos.',
-                    'Usa el botón de actualización para obtener datos en tiempo real.'
+                    'Puedes picarle al boton de actualizar para refrescar los datos del dashboard.',
+                    'Haz clic en cualquier opcion de archivos recientes para realizar la accion.',
+                    'Observa las 4 estadisticas clave, te serviran para monitorear el sistema.'
                 ],
                 features: [
                     { title: 'Resumen General', desc: 'Vista completa del estado del sistema' },
                     { title: 'Actividad Reciente', desc: 'Últimas acciones realizadas' },
-                    { title: 'Métricas Clave', desc: 'KPIs importantes del negocio' },
-                    { title: 'Notificaciones', desc: 'Alertas y recordatorios importantes' }
+                    { title: 'Acciones rapidas', desc: 'Apartado de documentos y personas al primer vistazo' },
+                    { title: 'Notificaciones', desc: 'Notificaciones importantes' }
                 ],
                 videoUrl: null,
                 imageUrl: '/assets/images/guides/dashboard-guide.png'
@@ -57,175 +53,398 @@ class SupportModule {
             personas: {
                 title: 'Gestión de Personas',
                 icon: 'users',
-                description: 'Administra usuarios, roles, permisos y toda la información del personal.',
-                overview: 'Este módulo te permite gestionar todos los aspectos relacionados con las personas en el sistema, desde creación de usuarios hasta asignación de roles y permisos.',
+                description: 'Administra personas, departamentos, puestos y toda la información de las personas.',
+                overview: 'Este módulo te permite gestionar todos los aspectos relacionados con las personas en el sistema, desde creación de personas hasta asignación de puestos e informacion.',
                 steps: [
                     {
-                        title: 'Crear Nuevo Usuario',
-                        description: 'Agrega nuevos usuarios al sistema completando el formulario de registro.'
+                        title: 'Agregar persona',
+                        description: 'Agrega nuevas personas al sistema completando el formulario de registro.'
                     },
                     {
-                        title: 'Asignar Roles y Permisos',
-                        description: 'Define qué puede hacer cada usuario asignando roles específicos.'
+                        title: 'Asignar puesto y departamentos',
+                        description: 'Define qué puede hacer cada persona asignando puestos y departamentos específicos.'
                     },
                     {
                         title: 'Gestionar Departamentos',
-                        description: 'Organiza a los usuarios en departamentos para mejor administración.'
+                        description: 'Organiza a las personas en departamentos para mejor administración.'
                     },
                     {
-                        title: 'Historial de Accesos',
-                        description: 'Revisa quién ha accedido al sistema y cuándo.'
+                        title: 'Acciones de personas',
+                        description: 'Si te equivocaste de alguna persona, puedes eliminarla o editarla, lo mismo para los departamentos.'
                     }
                 ],
                 tips: [
-                    'Usa la función de importación masiva para agregar múltiples usuarios a la vez.',
-                    'Asigna permisos granulares para control exacto de las funcionalidades.',
-                    'Configura notificaciones automáticas para nuevos usuarios.'
+                    'Usa los filtros para buscar personas de manera mas exacta.',
+                    'Usa la funcion de busqueda para buscar personas por nombre, puesto, departamento, etc.'
                 ],
                 features: [
-                    { title: 'Gestión de Usuarios', desc: 'CRUD completo de usuarios' },
-                    { title: 'Control de Roles', desc: 'Sistema de roles y permisos' },
-                    { title: 'Perfiles Completos', desc: 'Información detallada de cada persona' },
-                    { title: 'Importación Masiva', desc: 'Carga múltiples usuarios desde Excel' }
+                    { title: 'Gestión de personas', desc: 'CRUD completo de personas' },
+                    { title: 'Control de puestos', desc: 'Sistema de puestos y departamentos' },
+                    { title: 'Perfiles Completos', desc: 'Información detallada de cada persona registrada' },
+                    { title: 'Gestion de departamentos', desc: 'Organiza a las personas en departamentos' },
                 ],
                 videoUrl: null,
-                imageUrl: '/assets/images/guides/users-guide.png'
+                imageUrl: '/assets/images/guides/person-guide.png'
             },
             documentos: {
                 title: 'Gestión Documental',
                 icon: 'folder-open',
-                description: 'Sistema completo para subir, organizar y compartir documentos.',
-                overview: 'Centraliza toda la documentación de tu organización en un solo lugar. Sube, categoriza, comparte y controla versiones de documentos importantes.',
+                description: 'Sistema completo para subir, organizar, eliminar, buscar y hacer acciones sobre documentos.',
+                overview: 'Centraliza toda la documentación de tu organización en un solo lugar. Sube, categoriza, controla y accede a versiones de documentos importantes.',
                 steps: [
                     {
                         title: 'Subir Documentos',
-                        description: 'Arrastra y suelta archivos o usa el botón de subida para agregar documentos.'
+                        description: 'Arrastra y suelta archivos o usa el botón de subida para agregar documentos teniendo la opcion de subir un solo archivo o múltiples.'
                     },
                     {
-                        title: 'Organizar en Carpetas',
-                        description: 'Crea estructuras de carpetas para mantener los documentos organizados.'
+                        title: 'Organizar en categorias',
+                        description: 'Crea estructuras de documentos para mantener los documentos organizados.'
                     },
                     {
-                        title: 'Compartir con Usuarios',
-                        description: 'Comparte documentos específicos con usuarios o departamentos.'
+                        title: 'Relacionar con personas',
+                        description: 'Relaciona documentos específicos con personas.'
                     },
                     {
-                        title: 'Control de Versiones',
-                        description: 'Mantén un historial de cambios en cada documento.'
+                        title: 'Control de acciones',
+                        description: 'Si te equivocaste de algun documento, puedes eliminarlo o editarlo, ademas de descargarlo o visualizarlo.'
                     }
                 ],
                 tips: [
-                    'Usa etiquetas para facilitar la búsqueda de documentos.',
-                    'Configura permisos de carpeta para controlar el acceso.',
-                    'Habilita notificaciones para cambios importantes en documentos.'
+                    'Usa etiquetas (filtros) para facilitar la búsqueda de documentos.',
+                    'Si se te complica con los filtros, cambia a la busqueda avanzada.',
+                    'Usa las acciones de documentos para realizar acciones sobre los documentos o comprobar.'
                 ],
                 features: [
                     { title: 'Subida Múltiple', desc: 'Sube varios archivos a la vez' },
-                    { title: 'Búsqueda Avanzada', desc: 'Encuentra documentos por nombre, contenido o etiquetas' },
-                    { title: 'Compartir Seguro', desc: 'Comparte con permisos específicos' },
-                    { title: 'Historial de Cambios', desc: 'Seguimiento completo de modificaciones' }
+                    { title: 'Búsqueda Avanzada', desc: 'Encuentra documentos por nombre, contenido o etiquetas y mas' },
+                    { title: 'Categorias', desc: 'Organiza los documentos en categorias' }
                 ],
                 videoUrl: null,
                 imageUrl: '/assets/images/guides/documents-guide.png'
             },
             tareas: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Gestión de Tareas',
+                icon: 'tasks',
+                description: 'Sistema de gestión de tareas con tablero para organizar y seguir el progreso de las actividades.',
+                overview: 'Organiza y gestiona tus tareas de manera eficiente con nuestro sistema de gestión de tareas basado en tablas como tablero.',
+                steps: [
+                    {
+                        title: 'Crear Tareas',
+                        description: 'Crea nuevas tareas con un simple click.'
+                    },
+                    {
+                        title: 'Organizar Tareas',
+                        description: 'Organiza tus tareas en columnas para mantener un registro de progreso.'
+                    },
+                    {
+                        title: 'Seguir Tareas',
+                        description: 'Seguir el progreso de las tareas con un tablero para ver el estado de cada tarea.'
+                    }
+                ],
+                tips: [
+                    'Usa etiquetas para categorizar tus tareas.',
+                    'Asigna prioridades para gestionar mejor tu tiempo.',
+                    'Revisa regularmente las tareas próximas a vencer.'
+                ],
+                features: [
+                    { title: 'Tablero Kanban', desc: 'Visualiza tareas en columnas por estado' },
+                    { title: 'Priorización', desc: 'Asigna niveles de prioridad a cada tarea' },
+                    { title: 'Seguimiento', desc: 'Monitorea el progreso en tiempo real' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/tasks-guide.png'
             },
             historial: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Historial del Sistema',
+                icon: 'history',
+                description: 'Registro completo de todas las actividades y eventos del sistema.',
+                overview: 'Mantén un registro detallado de todas las acciones realizadas en el sistema, con filtros avanzados para auditoría y seguimiento.',
+                steps: [
+                    {
+                        title: 'Ver registro completo',
+                        description: 'Accede al historial completo de actividades del sistema.'
+                    },
+                    {
+                        title: 'Filtrar actividades',
+                        description: 'Usa los filtros avanzados para encontrar actividades específicas.'
+                    },
+                    {
+                        title: 'Exportar historial',
+                        description: 'Exporta el historial en diferentes formatos para análisis externo.'
+                    },
+                    {
+                        title: 'Limpiar historial',
+                        description: 'Gestiona el espacio eliminando registros antiguos cuando sea necesario.'
+                    }
+                ],
+                tips: [
+                    'Usa los filtros por fecha para encontrar actividades específicas.',
+                    'Exporta regularmente el historial para mantener copias de seguridad.',
+                    'Revisa el historial para detectar actividades inusuales.'
+                ],
+                features: [
+                    { title: 'Registro Completo', desc: 'Todas las actividades del sistema registradas' },
+                    { title: 'Filtros Avanzados', desc: 'Búsqueda por tipo, fecha, prioridad y estado' },
+                    { title: 'Exportación', desc: 'Exporta datos en múltiples formatos' },
+                    { title: 'Estadísticas', desc: 'Métricas y análisis de actividades' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/history-guide.png'
             },
             calendario: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Calendario de Eventos',
+                icon: 'calendar-alt',
+                description: 'Sistema completo de calendario para gestionar eventos, reuniones y plazos importantes.',
+                overview: 'Organiza y programa todos los eventos importantes de la organización en un calendario intuitivo con recordatorios y categorización.',
+                steps: [
+                    {
+                        title: 'Ver calendario mensual',
+                        description: 'Navega por los meses para ver todos los eventos programados.'
+                    },
+                    {
+                        title: 'Crear nuevos eventos',
+                        description: 'Agrega eventos académicos, reuniones, plazos y días festivos.'
+                    },
+                    {
+                        title: 'Filtrar por categoría',
+                        description: 'Usa los filtros para ver solo ciertos tipos de eventos.'
+                    },
+                    {
+                        title: 'Configurar recordatorios',
+                        description: 'Establece alertas para no olvidar eventos importantes.'
+                    }
+                ],
+                tips: [
+                    'Usa colores diferentes para cada tipo de evento.',
+                    'Configura recordatorios con suficiente antelación.',
+                    'Comparte eventos importantes con otros usuarios.'
+                ],
+                features: [
+                    { title: 'Vista Mensual', desc: 'Calendario completo con vista mensual' },
+                    { title: 'Múltiples Categorías', desc: 'Eventos académicos, reuniones, plazos y festivos' },
+                    { title: 'Recordatorios', desc: 'Alertas personalizables por evento' },
+                    { title: 'Mini Calendario', desc: 'Vista rápida de eventos próximos' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/calendar-guide.png'
             },
             ajustes: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Configuración del Sistema',
+                icon: 'cog',
+                description: 'Personaliza y configura todos los aspectos del sistema según tus necesidades.',
+                overview: 'Ajusta las preferencias del sistema, configura parámetros generales y personaliza la experiencia de usuario.',
+                steps: [
+                    {
+                        title: 'Configuración general',
+                        description: 'Ajusta los parámetros básicos del sistema.'
+                    },
+                    {
+                        title: 'Preferencias de usuario',
+                        description: 'Personaliza tu experiencia de usuario.'
+                    },
+                    {
+                        title: 'Configuración de notificaciones',
+                        description: 'Controla cómo y cuándo recibir notificaciones.'
+                    },
+                    {
+                        title: 'Configuración de seguridad',
+                        description: 'Gestiona permisos y políticas de seguridad.'
+                    }
+                ],
+                tips: [
+                    'Revisa regularmente la configuración de seguridad.',
+                    'Personaliza las notificaciones para evitar distracciones.',
+                    'Guarda copias de seguridad de la configuración.'
+                ],
+                features: [
+                    { title: 'Personalización', desc: 'Ajusta la apariencia y comportamiento' },
+                    { title: 'Seguridad', desc: 'Configura permisos y políticas de acceso' },
+                    { title: 'Notificaciones', desc: 'Control total sobre alertas y recordatorios' },
+                    { title: 'Copias de Seguridad', desc: 'Gestión de respaldos de configuración' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/settings-guide.png'
             },
             reportes: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Reportes y Análisis',
+                icon: 'chart-bar',
+                description: 'Genera reportes detallados y análisis estadísticos del sistema.',
+                overview: 'Crea reportes personalizados sobre documentos, personas, actividades y métricas del sistema para toma de decisiones informadas.',
+                steps: [
+                    {
+                        title: 'Seleccionar tipo de reporte',
+                        description: 'Elige entre reportes generales, por categoría, por persona o de documentos.'
+                    },
+                    {
+                        title: 'Configurar filtros',
+                        description: 'Aplica filtros específicos para obtener datos precisos.'
+                    },
+                    {
+                        title: 'Seleccionar formato',
+                        description: 'Elige entre Excel o CSV para la exportación.'
+                    },
+                    {
+                        title: 'Generar y descargar',
+                        description: 'Genera el reporte y descárgalo en el formato seleccionado.'
+                    }
+                ],
+                tips: [
+                    'Usa filtros específicos para reportes más relevantes.',
+                    'Programa reportes recurrentes para análisis periódicos.',
+                    'Compara reportes de diferentes periodos para identificar tendencias.'
+                ],
+                features: [
+                    { title: 'Reportes Personalizados', desc: 'Crea reportes con criterios específicos' },
+                    { title: 'Múltiples Formatos', desc: 'Exporta en Excel, CSV y otros formatos' },
+                    { title: 'Vista Previa', desc: 'Visualiza el reporte antes de descargarlo' },
+                    { title: 'Programación', desc: 'Configura reportes automáticos recurrentes' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/reports-guide.png'
             },
             admin: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Panel Administrativo',
+                icon: 'user-shield',
+                description: 'Herramientas avanzadas de administración y control del sistema.',
+                overview: 'Accede a funciones administrativas avanzadas para gestionar usuarios, permisos, auditorías y configuración del sistema.',
+                steps: [
+                    {
+                        title: 'Gestión de usuarios',
+                        description: 'Administra cuentas de usuario y permisos.'
+                    },
+                    {
+                        title: 'Configuración del sistema',
+                        description: 'Ajusta parámetros avanzados del sistema.'
+                    },
+                    {
+                        title: 'Auditoría y logs',
+                        description: 'Revisa logs del sistema y actividades de usuarios.'
+                    },
+                    {
+                        title: 'Cambiar administrador',
+                        description: 'Transfiere privilegios administrativos a otro usuario.'
+                    }
+                ],
+                tips: [
+                    'Realiza auditorías regulares de actividades.',
+                    'Mantén copias de seguridad de la configuración.',
+                    'Revisa logs del sistema periódicamente.'
+                ],
+                features: [
+                    { title: 'Control de Usuarios', desc: 'Gestión completa de cuentas y permisos' },
+                    { title: 'Configuración Avanzada', desc: 'Ajustes detallados del sistema' },
+                    { title: 'Auditoría', desc: 'Registro completo de actividades' },
+                    { title: 'Seguridad', desc: 'Herramientas de seguridad avanzadas' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/admin-guide.png'
             },
             'modo-oscuro': {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Modo Oscuro',
+                icon: 'moon',
+                description: 'Alternativa visual para reducir fatiga ocular en condiciones de poca luz.',
+                overview: 'Activa el modo oscuro para una experiencia visual más cómoda durante la noche o en ambientes con poca iluminación.',
+                steps: [
+                    {
+                        title: 'Activar modo oscuro',
+                        description: 'Haz clic en el botón de cambio de tema en la barra lateral.'
+                    },
+                    {
+                        title: 'Ajustar brillo',
+                        description: 'Configura el nivel de brillo según tus preferencias.'
+                    },
+                    {
+                        title: 'Programar cambios',
+                        description: 'Configura cambios automáticos según la hora del día.'
+                    }
+                ],
+                tips: [
+                    'Usa el modo oscuro en ambientes con poca luz.',
+                    'Ajusta el brillo de tu pantalla para mayor comodidad.',
+                    'Programa cambios automáticos al atardecer.'
+                ],
+                features: [
+                    { title: 'Reducción de Fatiga', desc: 'Menos estrés visual en condiciones de poca luz' },
+                    { title: 'Ahorro de Energía', desc: 'Consume menos energía en pantallas OLED/AMOLED' },
+                    { title: 'Programación', desc: 'Cambios automáticos según horario' },
+                    { title: 'Personalización', desc: 'Ajusta colores y contrastes' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/dark-mode-guide.png'
             },
             papelera: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Papelera de Reciclaje',
+                icon: 'trash-restore',
+                description: 'Sistema de recuperación de documentos y elementos eliminados.',
+                overview: 'Recupera documentos eliminados accidentalmente. Los elementos permanecen en la papelera por 30 días antes de ser eliminados permanentemente.',
+                steps: [
+                    {
+                        title: 'Ver elementos eliminados',
+                        description: 'Revisa todos los documentos en la papelera.'
+                    },
+                    {
+                        title: 'Restaurar elementos',
+                        description: 'Recupera documentos eliminados accidentalmente.'
+                    },
+                    {
+                        title: 'Eliminar permanentemente',
+                        description: 'Borra elementos de la papelera antes de los 30 días.'
+                    },
+                    {
+                        title: 'Vaciar papelera',
+                        description: 'Elimina todos los elementos de la papelera.'
+                    }
+                ],
+                tips: [
+                    'Revisa la papelera antes de eliminaciones permanentes.',
+                    'Los documentos se eliminan automáticamente después de 30 días.',
+                    'Usa la búsqueda para encontrar documentos específicos.'
+                ],
+                features: [
+                    { title: 'Recuperación', desc: 'Restaura documentos eliminados' },
+                    { title: 'Tiempo Limitado', desc: '30 días para recuperar elementos' },
+                    { title: 'Búsqueda', desc: 'Encuentra documentos específicos' },
+                    { title: 'Gestión Masiva', desc: 'Restaura o elimina múltiples documentos' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/trash-guide.png'
             },
             notificaciones: {
-                title: '',
-                icon: '',
-                description: '',
-                overview: '',
-                steps: [],
-                tips: [],
-                features: [],
+                title: 'Sistema de Notificaciones',
+                icon: 'bell',
+                description: 'Sistema completo de alertas y recordatorios para mantenerte informado.',
+                overview: 'Recibe notificaciones importantes sobre documentos próximos a vencer, actividades del sistema, actualizaciones y eventos programados.',
+                steps: [
+                    {
+                        title: 'Ver notificaciones',
+                        description: 'Accede al panel de notificaciones desde la barra superior.'
+                    },
+                    {
+                        title: 'Configurar preferencias',
+                        description: 'Define qué notificaciones quieres recibir y cómo.'
+                    },
+                    {
+                        title: 'Marcar como leídas',
+                        description: 'Gestiona el estado de tus notificaciones.'
+                    },
+                    {
+                        title: 'Configurar alertas',
+                        description: 'Establece alertas para eventos importantes.'
+                    }
+                ],
+                tips: [
+                    'Revisa regularmente tus notificaciones.',
+                    'Configura alertas para documentos próximos a vencer.',
+                    'Desactiva notificaciones no esenciales para reducir distracciones.'
+                ],
+                features: [
+                    { title: 'Notificaciones en Tiempo Real', desc: 'Alertas inmediatas de actividades importantes' },
+                    { title: 'Personalización', desc: 'Control total sobre tipos de notificaciones' },
+                    { title: 'Historial', desc: 'Registro completo de notificaciones' },
+                    { title: 'Alertas Múltiples', desc: 'Notificaciones en sistema, email y push' }
+                ],
                 videoUrl: null,
-                imageUrl: ''
+                imageUrl: '/assets/images/guides/notifications-guide.png'
             }
         };
         
@@ -242,98 +461,97 @@ class SupportModule {
     }
 
     setupEventListeners() {
-    console.log('🔧 SupportModule: Configurando event listeners');
-    
-    if (DOM.newTicketBtn) {
-        DOM.newTicketBtn.addEventListener('click', () => this.openTicketModal());
-    }
-    
-    if (DOM.createFirstTicket) {
-        DOM.createFirstTicket.addEventListener('click', () => this.openTicketModal());
-    }
-    
-    // AQUÍ ESTÁ EL CAMBIO PRINCIPAL:
-    // 1. Cerrar modal con el botón de la X (×)
-    if (DOM.closeTicketModal) {
-        DOM.closeTicketModal.addEventListener('click', () => this.closeTicketModal());
-    }
-    
-    // 2. Cerrar modal con el botón "Cancelar"
-    if (DOM.cancelTicketBtn) {
-        DOM.cancelTicketBtn.addEventListener('click', () => this.closeTicketModal());
-    }
-    
-    if (DOM.submitTicketBtn) {
-        DOM.submitTicketBtn.addEventListener('click', () => this.submitTicket());
-    }
-    
-    // 3. Cerrar modal de DETALLES del ticket (este es diferente)
-    if (DOM.closeTicketDetailModal) {
-        DOM.closeTicketDetailModal.addEventListener('click', () => this.closeTicketDetailModal());
-    }
-    
-    if (DOM.closeDetailBtn) {
-        DOM.closeDetailBtn.addEventListener('click', () => this.closeTicketDetailModal());
-    }
-    
-    if (DOM.submitResponseBtn) {
-        DOM.submitResponseBtn.addEventListener('click', () => this.submitResponse());
-    }
-    
-    if (DOM.closeTicketBtn) {
-        DOM.closeTicketBtn.addEventListener('click', () => this.closeTicket());
-    }
-    
-    if (DOM.reopenTicketBtn) {
-        DOM.reopenTicketBtn.addEventListener('click', () => this.reopenTicket());
-    }
-    
-    if (DOM.ticketStatusFilter) {
-        DOM.ticketStatusFilter.addEventListener('change', () => this.loadTickets());
-    }
-    
-    if (DOM.ticketPriorityFilter) {
-        DOM.ticketPriorityFilter.addEventListener('change', () => this.loadTickets());
-    }
-    
-    // Configuración de arrastrar y soltar archivos
-    if (DOM.ticketFileUpload && DOM.ticketFileInput) {
-        DOM.ticketFileUpload.addEventListener('click', () => DOM.ticketFileInput.click());
-        DOM.ticketFileUpload.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            DOM.ticketFileUpload.classList.add('dragover');
-        });
-        DOM.ticketFileUpload.addEventListener('dragleave', () => {
-            DOM.ticketFileUpload.classList.remove('dragover');
-        });
-        DOM.ticketFileUpload.addEventListener('drop', (e) => {
-            e.preventDefault();
-            DOM.ticketFileUpload.classList.remove('dragover');
-            this.handleFileDrop(e.dataTransfer.files);
-        });
-        DOM.ticketFileInput.addEventListener('change', (e) => {
-            this.handleFileSelect(e.target.files);
-        });
-    }
-    
-    // También agregar para cerrar haciendo clic fuera del modal
-    if (DOM.ticketModal) {
-        DOM.ticketModal.addEventListener('click', (e) => {
-            if (e.target === DOM.ticketModal) {
-                this.closeTicketModal();
-            }
-        });
+        console.log('🔧 SupportModule: Configurando event listeners');
         
-        // Cerrar con tecla Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && DOM.ticketModal.style.display === 'flex') {
-                this.closeTicketModal();
-            }
-        });
+        if (DOM.newTicketBtn) {
+            DOM.newTicketBtn.addEventListener('click', () => this.openTicketModal());
+        }
+        
+        if (DOM.createFirstTicket) {
+            DOM.createFirstTicket.addEventListener('click', () => this.openTicketModal());
+        }
+        
+        // Cerrar modal con el botón de la X (×)
+        if (DOM.closeTicketModal) {
+            DOM.closeTicketModal.addEventListener('click', () => this.closeTicketModal());
+        }
+        
+        // Cerrar modal con el botón "Cancelar"
+        if (DOM.cancelTicketBtn) {
+            DOM.cancelTicketBtn.addEventListener('click', () => this.closeTicketModal());
+        }
+        
+        if (DOM.submitTicketBtn) {
+            DOM.submitTicketBtn.addEventListener('click', () => this.submitTicket());
+        }
+        
+        // Cerrar modal de DETALLES del ticket (este es diferente)
+        if (DOM.closeTicketDetailModal) {
+            DOM.closeTicketDetailModal.addEventListener('click', () => this.closeTicketDetailModal());
+        }
+        
+        if (DOM.closeDetailBtn) {
+            DOM.closeDetailBtn.addEventListener('click', () => this.closeTicketDetailModal());
+        }
+        
+        if (DOM.submitResponseBtn) {
+            DOM.submitResponseBtn.addEventListener('click', () => this.submitResponse());
+        }
+        
+        if (DOM.closeTicketBtn) {
+            DOM.closeTicketBtn.addEventListener('click', () => this.closeTicketWithModal());
+        }
+        
+        if (DOM.reopenTicketBtn) {
+            DOM.reopenTicketBtn.addEventListener('click', () => this.reopenTicketWithModal());
+        }
+        
+        if (DOM.ticketStatusFilter) {
+            DOM.ticketStatusFilter.addEventListener('change', () => this.loadTickets());
+        }
+        
+        if (DOM.ticketPriorityFilter) {
+            DOM.ticketPriorityFilter.addEventListener('change', () => this.loadTickets());
+        }
+        
+        // Configuración de arrastrar y soltar archivos
+        if (DOM.ticketFileUpload && DOM.ticketFileInput) {
+            DOM.ticketFileUpload.addEventListener('click', () => DOM.ticketFileInput.click());
+            DOM.ticketFileUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                DOM.ticketFileUpload.classList.add('dragover');
+            });
+            DOM.ticketFileUpload.addEventListener('dragleave', () => {
+                DOM.ticketFileUpload.classList.remove('dragover');
+            });
+            DOM.ticketFileUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                DOM.ticketFileUpload.classList.remove('dragover');
+                this.handleFileDrop(e.dataTransfer.files);
+            });
+            DOM.ticketFileInput.addEventListener('change', (e) => {
+                this.handleFileSelect(e.target.files);
+            });
+        }
+        
+        // También agregar para cerrar haciendo clic fuera del modal
+        if (DOM.ticketModal) {
+            DOM.ticketModal.addEventListener('click', (e) => {
+                if (e.target === DOM.ticketModal) {
+                    this.closeTicketModal();
+                }
+            });
+            
+            // Cerrar con tecla Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && DOM.ticketModal.style.display === 'flex') {
+                    this.closeTicketModal();
+                }
+            });
+        }
+        
+        console.log('✅ Event listeners configurados correctamente');
     }
-    
-    console.log('✅ Event listeners configurados correctamente');
-}
 
     setupGuideListeners() {
         console.log('🔧 SupportModule: Configurando listeners de guía');
@@ -746,120 +964,120 @@ class SupportModule {
     }
 
     openImageLightbox(src, alt) {
-    console.log(`🔧 SupportModule: Abriendo lightbox para imagen: ${src}`);
-    
-    // Buscar el lightbox existente O crear uno nuevo
-    let lightbox = document.getElementById('guideLightbox');
-    
-    if (!lightbox) {
-        console.log('🆕 Lightbox no existe, creando uno nuevo');
-        lightbox = document.createElement('div');
-        lightbox.id = 'guideLightbox';
-        lightbox.className = 'guide-lightbox';
-        lightbox.innerHTML = `
-            <div class="lightbox-overlay"></div>
-            <div class="lightbox-content">
-                <button class="lightbox-close" aria-label="Cerrar vista de imagen">
-                    <i class="fas fa-times"></i>
-                </button>
-                <div class="lightbox-image-container">
-                    <img src="${src}" alt="${alt}" class="lightbox-image">
+        console.log(`🔧 SupportModule: Abriendo lightbox para imagen: ${src}`);
+        
+        // Buscar el lightbox existente O crear uno nuevo
+        let lightbox = document.getElementById('guideLightbox');
+        
+        if (!lightbox) {
+            console.log('🆕 Lightbox no existe, creando uno nuevo');
+            lightbox = document.createElement('div');
+            lightbox.id = 'guideLightbox';
+            lightbox.className = 'guide-lightbox';
+            lightbox.innerHTML = `
+                <div class="lightbox-overlay"></div>
+                <div class="lightbox-content">
+                    <button class="lightbox-close" aria-label="Cerrar vista de imagen">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="lightbox-image-container">
+                        <img src="${src}" alt="${alt}" class="lightbox-image">
+                    </div>
+                    <div class="lightbox-caption">${alt}</div>
                 </div>
-                <div class="lightbox-caption">${alt}</div>
-            </div>
-        `;
-        document.body.appendChild(lightbox);
-        
-        console.log('✅ Lightbox creado e insertado en el DOM');
-        
-        // Eventos del lightbox
-        lightbox.querySelector('.lightbox-overlay').addEventListener('click', () => {
-            this.closeImageLightbox();
-        });
-        
-        lightbox.querySelector('.lightbox-close').addEventListener('click', () => {
-            this.closeImageLightbox();
-        });
-        
-        // Cerrar con tecla Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && lightbox.style.display === 'flex') {
+            `;
+            document.body.appendChild(lightbox);
+            
+            console.log('✅ Lightbox creado e insertado en el DOM');
+            
+            // Eventos del lightbox
+            lightbox.querySelector('.lightbox-overlay').addEventListener('click', () => {
                 this.closeImageLightbox();
-            }
-        });
-    } else {
-        console.log('✅ Lightbox ya existe en el DOM');
-    }
-    
-    // DEBUG: Verificar que los elementos existen antes de actualizar
-    console.log('🔍 Verificando elementos del lightbox:');
-    const lightboxImage = lightbox.querySelector('.lightbox-image');
-    const lightboxCaption = lightbox.querySelector('.lightbox-caption');
-    
-    console.log('- .lightbox-image encontrado?', lightboxImage ? '✅ SÍ' : '❌ NO');
-    console.log('- .lightbox-caption encontrado?', lightboxCaption ? '✅ SÍ' : '❌ NO');
-    console.log('- Lightbox div encontrado?', lightbox ? '✅ SÍ' : '❌ NO');
-    
-    if (!lightboxImage) {
-        console.error('🚨 ERROR: .lightbox-image no encontrado en el lightbox');
-        console.log('📋 Contenido del lightbox:', lightbox.innerHTML);
+            });
+            
+            lightbox.querySelector('.lightbox-close').addEventListener('click', () => {
+                this.closeImageLightbox();
+            });
+            
+            // Cerrar con tecla Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && lightbox.style.display === 'flex') {
+                    this.closeImageLightbox();
+                }
+            });
+        } else {
+            console.log('✅ Lightbox ya existe en el DOM');
+        }
         
-        // Intentar recuperar la imagen
-        const imageContainer = lightbox.querySelector('.lightbox-image-container');
-        if (imageContainer) {
-            console.log('🔧 Creando imagen dinámicamente');
-            const img = document.createElement('img');
-            img.src = src;
-            img.alt = alt;
-            img.className = 'lightbox-image';
-            imageContainer.innerHTML = '';
-            imageContainer.appendChild(img);
+        // DEBUG: Verificar que los elementos existen antes de actualizar
+        console.log('🔍 Verificando elementos del lightbox:');
+        const lightboxImage = lightbox.querySelector('.lightbox-image');
+        const lightboxCaption = lightbox.querySelector('.lightbox-caption');
+        
+        console.log('- .lightbox-image encontrado?', lightboxImage ? '✅ SÍ' : '❌ NO');
+        console.log('- .lightbox-caption encontrado?', lightboxCaption ? '✅ SÍ' : '❌ NO');
+        console.log('- Lightbox div encontrado?', lightbox ? '✅ SÍ' : '❌ NO');
+        
+        if (!lightboxImage) {
+            console.error('🚨 ERROR: .lightbox-image no encontrado en el lightbox');
+            console.log('📋 Contenido del lightbox:', lightbox.innerHTML);
+            
+            // Intentar recuperar la imagen
+            const imageContainer = lightbox.querySelector('.lightbox-image-container');
+            if (imageContainer) {
+                console.log('🔧 Creando imagen dinámicamente');
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = alt;
+                img.className = 'lightbox-image';
+                imageContainer.innerHTML = '';
+                imageContainer.appendChild(img);
+            }
+        } else {
+            // Actualizar imagen y mostrar - SOLO si existe
+            lightboxImage.src = src;
+            lightboxImage.alt = alt;
+            if (lightboxCaption) {
+                lightboxCaption.textContent = alt;
+            }
         }
-    } else {
-        // Actualizar imagen y mostrar - SOLO si existe
-        lightboxImage.src = src;
-        lightboxImage.alt = alt;
-        if (lightboxCaption) {
-            lightboxCaption.textContent = alt;
-        }
+        
+        // Mostrar el lightbox
+        lightbox.style.display = 'flex';
+        
+        // Forzar reflow para la animación
+        lightbox.offsetHeight;
+        
+        setTimeout(() => {
+            lightbox.style.opacity = '1';
+            console.log('✅ Lightbox visible (opacidad: 1)');
+        }, 10);
+        
+        // Agregar clase al body
+        document.body.classList.add('lightbox-open');
+        
+        // DEBUG final
+        console.log('✅ Lightbox abierto exitosamente');
     }
-    
-    // Mostrar el lightbox
-    lightbox.style.display = 'flex';
-    
-    // Forzar reflow para la animación
-    lightbox.offsetHeight;
-    
-    setTimeout(() => {
-        lightbox.style.opacity = '1';
-        console.log('✅ Lightbox visible (opacidad: 1)');
-    }, 10);
-    
-    // Agregar clase al body
-    document.body.classList.add('lightbox-open');
-    
-    // DEBUG final
-    console.log('✅ Lightbox abierto exitosamente');
-}
 
-closeImageLightbox() {
-    console.log('🔧 SupportModule: Cerrando lightbox');
-    
-    const lightbox = document.getElementById('guideLightbox');
-    if (!lightbox) {
-        console.warn('⚠️ Lightbox no encontrado al intentar cerrar');
-        return;
+    closeImageLightbox() {
+        console.log('🔧 SupportModule: Cerrando lightbox');
+        
+        const lightbox = document.getElementById('guideLightbox');
+        if (!lightbox) {
+            console.warn('⚠️ Lightbox no encontrado al intentar cerrar');
+            return;
+        }
+        
+        console.log('✅ Lightbox encontrado, cerrando...');
+        lightbox.style.opacity = '0';
+        
+        setTimeout(() => {
+            lightbox.style.display = 'none';
+            document.body.classList.remove('lightbox-open');
+            console.log('✅ Lightbox oculto');
+        }, 300);
     }
-    
-    console.log('✅ Lightbox encontrado, cerrando...');
-    lightbox.style.opacity = '0';
-    
-    setTimeout(() => {
-        lightbox.style.display = 'none';
-        document.body.classList.remove('lightbox-open');
-        console.log('✅ Lightbox oculto');
-    }, 300);
-}
 
     async loadFAQ() {
         try {
@@ -1181,6 +1399,28 @@ closeImageLightbox() {
         try {
             console.log(`🔍 Cargando detalles del ticket: ${ticketId}`);
             
+            // Verificar que los elementos críticos del modal existan
+            if (!DOM.ticketDetailModal) {
+                console.error('❌ CRÍTICO: DOM.ticketDetailModal no encontrado');
+                showAlert('Error: El modal de detalles no está disponible', 'error');
+                return;
+            }
+            
+            // Verificar otros elementos importantes
+            const requiredElements = [
+                'detailTicketSubject', 
+                'detailTicketStatus', 
+                'detailTicketDescription'
+            ];
+            
+            const missingElements = requiredElements.filter(key => !DOM[key]);
+            if (missingElements.length > 0) {
+                console.error('❌ Elementos DOM faltantes:', missingElements);
+                showAlert('Error: No se pueden mostrar los detalles del ticket', 'error');
+                return;
+            }
+            
+            // Cargar datos del ticket
             const response = await api.getTicketDetails(ticketId);
             
             if (response.success) {
@@ -1205,57 +1445,204 @@ closeImageLightbox() {
                 }
                 console.log('===========================================\n');
                 
-                this.renderTicketDetails(response.ticket);
-                
+                // Primero hacer visible el modal
                 DOM.ticketDetailModal.style.display = 'flex';
+                
+                // Forzar reflow para asegurar la transición
+                DOM.ticketDetailModal.offsetHeight;
+                
+                // Configurar transición de opacidad
                 setTimeout(() => {
                     DOM.ticketDetailModal.style.opacity = '1';
                     DOM.ticketDetailModal.style.visibility = 'visible';
+                    
+                    // Luego renderizar los detalles
+                    try {
+                        this.renderTicketDetails(response.ticket);
+                        console.log('✅ Detalles del ticket renderizados exitosamente');
+                    } catch (renderError) {
+                        console.error('❌ Error al renderizar detalles:', renderError);
+                        showAlert('Error al mostrar los detalles del ticket', 'error');
+                        this.closeTicketDetailModal();
+                    }
                 }, 10);
                 
                 document.body.classList.add('modal-open');
+            } else {
+                console.error('❌ Error en respuesta de API:', response);
+                showAlert(response.message || 'Error al cargar detalles del ticket', 'error');
             }
+            
         } catch (error) {
             console.error('❌ Error cargando detalles del ticket:', error);
-            showAlert('Error al cargar detalles del ticket', 'error');
+            console.error('Stack trace:', error.stack);
+            showAlert(`Error al cargar detalles del ticket: ${error.message}`, 'error');
         }
     }
 
     renderTicketDetails(ticket) {
-        DOM.detailTicketSubject.textContent = ticket.subject;
-        DOM.detailTicketId.textContent = ticket.ticketNumber;
-        DOM.detailTicketDate.textContent = formatDate(ticket.createdAt);
+        console.log('🔍 DEBUG renderTicketDetails - Iniciando renderización...');
+        console.log('📋 Datos del ticket:', {
+            id: ticket._id,
+            subject: ticket.subject,
+            status: ticket.status,
+            priority: ticket.priority
+        });
         
-        DOM.detailTicketStatus.textContent = this.getStatusName(ticket.status);
-        DOM.detailTicketStatus.className = `status-badge status-${ticket.status}`;
-        DOM.detailTicketPriority.textContent = ticket.priority.toUpperCase();
-        DOM.detailTicketPriority.className = `priority-badge priority-${ticket.priority}`;
+        // Verificar elementos críticos del DOM
+        console.log('🔍 Verificando elementos DOM:');
+        console.log('- DOM.detailTicketSubject:', DOM.detailTicketSubject);
+        console.log('- DOM.detailTicketStatus:', DOM.detailTicketStatus);
+        console.log('- DOM.closeTicketBtn:', DOM.closeTicketBtn);
+        console.log('- DOM.ticketResponseSection:', DOM.ticketResponseSection);
+        console.log('- DOM.ticketUpdatesList:', DOM.ticketUpdatesList);
         
-        DOM.detailTicketDescription.textContent = ticket.description;
+        // Elemento 1: Asunto del ticket
+        if (!DOM.detailTicketSubject) {
+            console.error('❌ CRÍTICO: DOM.detailTicketSubject es null');
+            throw new Error('Elemento DOM.detailTicketSubject no encontrado');
+        }
+        DOM.detailTicketSubject.textContent = ticket.subject || 'Sin asunto';
         
+        // Elemento 2: ID del ticket
+        if (DOM.detailTicketId) {
+            DOM.detailTicketId.textContent = ticket.ticketNumber || `ID: ${ticket._id}`;
+        } else {
+            console.warn('⚠️ DOM.detailTicketId no encontrado');
+        }
+        
+        // Elemento 3: Fecha del ticket
+        if (DOM.detailTicketDate) {
+            DOM.detailTicketDate.textContent = formatDate(ticket.createdAt) || 'Fecha no disponible';
+        } else {
+            console.warn('⚠️ DOM.detailTicketDate no encontrado');
+        }
+        
+        // Elemento 4: Estado del ticket
+        if (DOM.detailTicketStatus) {
+            DOM.detailTicketStatus.textContent = this.getStatusName(ticket.status);
+            DOM.detailTicketStatus.className = `status-badge status-${ticket.status}`;
+            console.log(`✅ Estado configurado: ${ticket.status} -> ${this.getStatusName(ticket.status)}`);
+        } else {
+            console.error('❌ DOM.detailTicketStatus es null');
+        }
+        
+        // Elemento 5: Prioridad del ticket
+        if (DOM.detailTicketPriority) {
+            DOM.detailTicketPriority.textContent = ticket.priority ? ticket.priority.toUpperCase() : 'NO ESPECIFICADA';
+            DOM.detailTicketPriority.className = `priority-badge priority-${ticket.priority}`;
+        } else {
+            console.warn('⚠️ DOM.detailTicketPriority no encontrado');
+        }
+        
+        // Elemento 6: Descripción del ticket
+        if (DOM.detailTicketDescription) {
+            DOM.detailTicketDescription.textContent = ticket.description || 'Sin descripción';
+            
+            // Escapar HTML si es necesario
+            if (ticket.description && ticket.description.includes('<')) {
+                const tempDiv = document.createElement('div');
+                tempDiv.textContent = ticket.description;
+                DOM.detailTicketDescription.textContent = tempDiv.textContent;
+            }
+        } else {
+            console.error('❌ DOM.detailTicketDescription es null');
+        }
+        
+        // Elemento 7: Renderizar archivos adjuntos
+        console.log(`📎 Archivos adjuntos: ${ticket.attachments?.length || 0}`);
         this.renderTicketAttachments(ticket.attachments);
         
+        // Elemento 8: Renderizar actualizaciones
+        console.log(`🔄 Actualizaciones: ${ticket.updates?.length || 0}`);
         this.renderTicketUpdates(ticket.updates);
         
+        // Elemento 9: Fecha de vencimiento (si existe)
         if (ticket.dueDate) {
+            console.log(`📅 Fecha de vencimiento: ${ticket.dueDate}`);
+            
+            // Crear elemento de fecha de vencimiento
             const dueDateElement = document.createElement('div');
             dueDateElement.className = 'ticket-due-date';
             dueDateElement.innerHTML = `
                 <i class="fas fa-calendar-day"></i>
                 <span>Vence: ${formatDate(ticket.dueDate)}</span>
             `;
-            DOM.detailTicketStatus.parentNode.appendChild(dueDateElement);
+            
+            // Insertar en un lugar seguro
+            if (DOM.detailTicketStatus && DOM.detailTicketStatus.parentNode) {
+                DOM.detailTicketStatus.parentNode.appendChild(dueDateElement);
+            } else {
+                // Alternativa: insertar en el encabezado del ticket
+                const ticketHeader = document.querySelector('.ticket-detail-header');
+                if (ticketHeader) {
+                    ticketHeader.appendChild(dueDateElement);
+                } else {
+                    console.warn('⚠️ No se pudo encontrar lugar para insertar fecha de vencimiento');
+                }
+            }
         }
         
+        // Elemento 10: Configurar botones según estado
+        console.log(`🎚️ Configurando botones para estado: ${ticket.status}`);
+        
         if (ticket.status === 'cerrado') {
-            DOM.closeTicketBtn.style.display = 'none';
-            DOM.reopenTicketBtn.style.display = 'inline-block';
-            DOM.ticketResponseSection.style.display = 'none';
+            // Ticket cerrado
+            if (DOM.closeTicketBtn) {
+                DOM.closeTicketBtn.style.display = 'none';
+                console.log('✅ Botón cerrar ticket ocultado');
+            } else {
+                console.warn('⚠️ DOM.closeTicketBtn no encontrado para ocultar');
+            }
+            
+            if (DOM.reopenTicketBtn) {
+                DOM.reopenTicketBtn.style.display = 'inline-block';
+                console.log('✅ Botón reabrir ticket mostrado');
+            } else {
+                console.warn('⚠️ DOM.reopenTicketBtn no encontrado para mostrar');
+            }
+            
+            if (DOM.ticketResponseSection) {
+                DOM.ticketResponseSection.style.display = 'none';
+                console.log('✅ Sección de respuesta ocultada');
+            } else {
+                console.warn('⚠️ DOM.ticketResponseSection no encontrado para ocultar');
+            }
         } else {
-            DOM.closeTicketBtn.style.display = 'inline-block';
-            DOM.reopenTicketBtn.style.display = 'none';
-            DOM.ticketResponseSection.style.display = 'block';
+            // Ticket abierto/en proceso
+            if (DOM.closeTicketBtn) {
+                DOM.closeTicketBtn.style.display = 'inline-block';
+                console.log('✅ Botón cerrar ticket mostrado');
+            } else {
+                console.warn('⚠️ DOM.closeTicketBtn no encontrado para mostrar');
+            }
+            
+            if (DOM.reopenTicketBtn) {
+                DOM.reopenTicketBtn.style.display = 'none';
+                console.log('✅ Botón reabrir ticket ocultado');
+            } else {
+                console.warn('⚠️ DOM.reopenTicketBtn no encontrado para ocultar');
+            }
+            
+            if (DOM.ticketResponseSection) {
+                DOM.ticketResponseSection.style.display = 'block';
+                console.log('✅ Sección de respuesta mostrada');
+            } else {
+                console.warn('⚠️ DOM.ticketResponseSection no encontrado para mostrar');
+            }
         }
+        
+        // Elemento 11: Configurar el botón de cancelar/cerrar
+        if (DOM.closeDetailBtn) {
+            DOM.closeDetailBtn.textContent = ticket.status === 'cerrado' ? 'Volver' : 'Cancelar';
+        }
+        
+        // Elemento 12: Actualizar título de la página si es necesario
+        if (ticket.subject) {
+            document.title = `${ticket.subject} - Ticket de Soporte`;
+        }
+        
+        console.log('✅ renderTicketDetails completado exitosamente');
     }
 
     renderTicketAttachments(attachments) {
@@ -1457,10 +1844,26 @@ closeImageLightbox() {
     }
 
     closeTicketDetailModal() {
+        console.log('🔧 SupportModule: Cerrando modal de detalles del ticket');
+        
+        if (!DOM.ticketDetailModal) {
+            console.warn('⚠️ DOM.ticketDetailModal es null en closeTicketDetailModal');
+            return;
+        }
+        
         DOM.ticketDetailModal.style.opacity = '0';
         DOM.ticketDetailModal.style.visibility = 'hidden';
+        
         setTimeout(() => {
             DOM.ticketDetailModal.style.display = 'none';
+            
+            // Limpiar el ticket actual
+            this.currentTicket = null;
+            
+            // Restaurar título de la página
+            document.title = 'Soporte - Sistema de Gestión';
+            
+            console.log('✅ Modal de detalles cerrado');
         }, 300);
         
         document.body.classList.remove('modal-open');
@@ -1495,45 +1898,587 @@ closeImageLightbox() {
         }
     }
 
-    async closeTicket() {
-        if (!confirm('¿Estás seguro de que quieres cerrar este ticket?')) return;
+async closeTicketWithModal() {
+    if (!this.currentTicket) {
+        showAlert('No hay un ticket seleccionado', 'error');
+        return;
+    }
+    
+    console.log('🎫 ========== INICIANDO CIERRE DE TICKET ==========');
+    console.log(`Ticket ID: ${this.currentTicket._id}`);
+    console.log(`Ticket Number: ${this.currentTicket.ticketNumber}`);
+    console.log(`Estado actual: ${this.currentTicket.status}`);
+    
+    // Confirmación simple
+    if (!confirm('¿Estás seguro de que quieres cerrar este ticket?')) {
+        console.log('❌ Usuario canceló el cierre');
+        return;
+    }
+    
+    // Pedir motivo opcional
+    const closeNote = prompt('Motivo del cierre (opcional):\nDeja vacío para usar mensaje predeterminado:', 
+                            'Ticket cerrado por el usuario');
+    
+    // Si presionó Cancel en el prompt, cancelar operación
+    if (closeNote === null) {
+        console.log('❌ Usuario canceló en el prompt de motivo');
+        return;
+    }
+    
+    try {
+        console.log(`🔧 Llamando API para cerrar ticket...`);
         
-        try {
-            const response = await api.changeTicketStatus(
-                this.currentTicket._id, 
-                'cerrado', 
-                'Ticket cerrado por el usuario'
-            );
+        // Mostrar loading
+        const closeBtn = DOM.closeTicketBtn;
+        const originalText = closeBtn.innerHTML;
+        closeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cerrando...';
+        closeBtn.disabled = true;
+        
+        // Verificar URL base
+        console.log('🔍 Verificando configuración:');
+        console.log('- Token existe:', !!localStorage.getItem('token'));
+        console.log('- UserData:', JSON.parse(localStorage.getItem('userData') || '{}'));
+        
+        // Llamar a la API
+        const response = await api.changeTicketStatus(
+            this.currentTicket._id, 
+            'cerrado', 
+            closeNote || 'Ticket cerrado por el usuario'
+        );
+        
+        console.log('✅ Respuesta de la API:', response);
+        
+        if (response.success) {
+            console.log('✅ Ticket cerrado exitosamente en el backend');
+            showAlert('✅ Ticket cerrado exitosamente', 'success');
             
-            if (response.success) {
-                showAlert('Ticket cerrado exitosamente', 'success');
-                this.closeTicketDetailModal();
-                await this.loadTickets();
+            // Actualizar UI inmediatamente
+            this.currentTicket.status = 'cerrado';
+            
+            if (DOM.detailTicketStatus) {
+                DOM.detailTicketStatus.textContent = this.getStatusName('cerrado');
+                DOM.detailTicketStatus.className = `status-badge status-cerrado`;
             }
             
+            // Actualizar botones
+            if (DOM.closeTicketBtn) {
+                DOM.closeTicketBtn.style.display = 'none';
+            }
+            if (DOM.reopenTicketBtn) {
+                DOM.reopenTicketBtn.style.display = 'inline-block';
+            }
+            if (DOM.ticketResponseSection) {
+                DOM.ticketResponseSection.style.display = 'none';
+            }
+            
+            // Recargar lista
+            await this.loadTickets();
+            
+            console.log('🎫 ========== TICKET CERRADO EXITOSAMENTE ==========');
+            
+        } else {
+            console.error('❌ Error del backend:', response.message);
+            showAlert(`Error del servidor: ${response.message}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error cerrando ticket:', error);
+        console.error('Stack:', error.stack);
+        
+        // Mostrar mensaje de error específico
+        if (error.message.includes('404')) {
+            showAlert('Error: El endpoint no existe. Contacta al administrador.', 'error');
+        } else if (error.message.includes('403')) {
+            showAlert('No tienes permisos para cerrar este ticket.', 'error');
+        } else if (error.message.includes('401')) {
+            showAlert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.', 'error');
+            // Redirigir al login
+            setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 2000);
+        } else {
+            showAlert(`Error: ${error.message}`, 'error');
+        }
+        
+    } finally {
+        // Restaurar botón
+        const closeBtn = DOM.closeTicketBtn;
+        if (closeBtn) {
+            closeBtn.innerHTML = '<i class="fas fa-lock"></i> Cerrar Ticket';
+            closeBtn.disabled = false;
+        }
+    }
+}
+
+    async executeCloseTicket() {
+        try {
+            console.log(`🔧 Ejecutando cierre del ticket: ${this.currentTicket._id}`);
+            
+            // Mostrar modal de motivo
+            this.showCloseTicketReasonModal();
+            
         } catch (error) {
-            console.error('❌ Error cerrando ticket:', error);
-            showAlert('Error al cerrar ticket: ' + error.message, 'error');
+            console.error('❌ Error en proceso de cierre:', error);
+            showAlert('Error al procesar el cierre del ticket', 'error');
         }
     }
 
-    async reopenTicket() {
-        try {
-            const response = await api.changeTicketStatus(
-                this.currentTicket._id, 
-                'abierto', 
-                'Ticket reabierto por el usuario'
-            );
+    showCloseTicketReasonModal() {
+        // Crear modal para motivo de cierre
+        const modalHTML = `
+            <div class="modal" id="closeReasonModal" style="display: flex;">
+                <div class="modal__content modal__content--sm">
+                    <div class="modal__header">
+                        <h2 class="modal__title">
+                            <i class="fas fa-comment-alt"></i>
+                            Motivo del cierre
+                        </h2>
+                        <button class="modal__close" id="closeReasonModalBtn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal__body">
+                        <div class="form-group">
+                            <label for="closeReason" class="form-label">
+                                <i class="fas fa-pen"></i>
+                                Explica por qué estás cerrando este ticket:
+                            </label>
+                            <textarea 
+                                id="closeReason" 
+                                class="form-control form-control--textarea" 
+                                rows="4" 
+                                placeholder="Ej: El problema ha sido resuelto, ya no necesito ayuda, etc..."
+                                maxlength="500"
+                            ></textarea>
+                            <div class="form-help">
+                                <span id="charCount">0/500 caracteres</span>
+                            </div>
+                        </div>
+                        <div class="form-help">
+                            <i class="fas fa-info-circle"></i>
+                            Este comentario será visible en el historial del ticket.
+                        </div>
+                    </div>
+                    <div class="modal__footer">
+                        <button class="btn btn--outline" id="cancelCloseReasonBtn">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button class="btn btn--primary" id="submitCloseReasonBtn">
+                            <i class="fas fa-check"></i> Cerrar Ticket
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Agregar modal al DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer.firstElementChild);
+        
+        const modal = document.getElementById('closeReasonModal');
+        const closeReasonTextarea = document.getElementById('closeReason');
+        const charCount = document.getElementById('charCount');
+        const cancelBtn = document.getElementById('cancelCloseReasonBtn');
+        const submitBtn = document.getElementById('submitCloseReasonBtn');
+        const closeBtn = document.getElementById('closeReasonModalBtn');
+        
+        // Contador de caracteres
+        closeReasonTextarea.addEventListener('input', () => {
+            const length = closeReasonTextarea.value.length;
+            charCount.textContent = `${length}/500 caracteres`;
+            charCount.style.color = length >= 450 ? '#ff6b6b' : '#666';
+        });
+        
+        // Event listeners
+        cancelBtn.addEventListener('click', () => {
+            this.removeCloseReasonModal();
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            this.removeCloseReasonModal();
+        });
+        
+        submitBtn.addEventListener('click', async () => {
+            const reason = closeReasonTextarea.value.trim();
             
-            if (response.success) {
-                showAlert('Ticket reabierto exitosamente', 'success');
-                this.closeTicketDetailModal();
-                await this.loadTickets();
+            if (!reason) {
+                showAlert('Por favor, escribe el motivo del cierre', 'error');
+                return;
             }
             
+            if (reason.length < 10) {
+                showAlert('El motivo debe tener al menos 10 caracteres', 'error');
+                return;
+            }
+            
+            // Deshabilitar botón y mostrar loading
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cerrando...';
+            submitBtn.disabled = true;
+            
+            try {
+                // Llamar a la API
+                const response = await api.changeTicketStatus(
+                    this.currentTicket._id, 
+                    'cerrado', 
+                    reason || 'Ticket cerrado por el usuario'
+                );
+                
+                if (response.success) {
+                    showAlert('Ticket cerrado exitosamente', 'success');
+                    
+                    // Cerrar modal de motivo
+                    this.removeCloseReasonModal();
+                    
+                    // Actualizar el ticket actual
+                    this.currentTicket.status = 'cerrado';
+                    
+                    // Actualizar la interfaz inmediatamente
+                    if (DOM.detailTicketStatus) {
+                        DOM.detailTicketStatus.textContent = this.getStatusName('cerrado');
+                        DOM.detailTicketStatus.className = `status-badge status-cerrado`;
+                    }
+                    
+                    // Ocultar botón de cerrar y mostrar botón de reabrir
+                    if (DOM.closeTicketBtn) {
+                        DOM.closeTicketBtn.style.display = 'none';
+                    }
+                    if (DOM.reopenTicketBtn) {
+                        DOM.reopenTicketBtn.style.display = 'inline-block';
+                    }
+                    if (DOM.ticketResponseSection) {
+                        DOM.ticketResponseSection.style.display = 'none';
+                    }
+                    
+                    // Recargar la lista de tickets
+                    await this.loadTickets();
+                    
+                    // Cerrar modal de detalles si está abierto
+                    setTimeout(() => {
+                        this.closeTicketDetailModal();
+                    }, 1000);
+                    
+                } else {
+                    showAlert(response.message || 'Error al cerrar el ticket', 'error');
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Cerrar Ticket';
+                    submitBtn.disabled = false;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error cerrando ticket:', error);
+                
+                // Mensajes de error más específicos
+                if (error.message.includes('403') || error.message.includes('Acceso denegado')) {
+                    showAlert('No tienes permisos para cerrar este ticket. Contacta al administrador.', 'error');
+                } else if (error.message.includes('401')) {
+                    showAlert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.', 'error');
+                    // Redirigir al login
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                } else {
+                    showAlert(`Error al cerrar ticket: ${error.message}`, 'error');
+                }
+                
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> Cerrar Ticket';
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Cerrar al hacer clic fuera del modal
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.removeCloseReasonModal();
+            }
+        });
+        
+        // Cerrar con tecla Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                this.removeCloseReasonModal();
+            }
+        });
+        
+        // Enfocar el textarea
+        setTimeout(() => {
+            closeReasonTextarea.focus();
+        }, 100);
+    }
+
+    removeCloseReasonModal() {
+        const modal = document.getElementById('closeReasonModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    async reopenTicketWithModal() {
+    if (!this.currentTicket) {
+        showAlert('No hay un ticket seleccionado', 'error');
+        return;
+    }
+    
+    // Confirmación simple
+    if (!confirm('¿Estás seguro de que quieres reabrir este ticket?')) {
+        return;
+    }
+    
+    // Pedir motivo opcional
+    const reopenNote = prompt('Motivo de reapertura (opcional):\nDeja vacío para usar mensaje predeterminado:', 
+                             'Ticket reabierto por el usuario');
+    
+    // Si presionó Cancel en el prompt, cancelar operación
+    if (reopenNote === null) {
+        return;
+    }
+    
+    try {
+        console.log(`🔧 Reabriendo ticket: ${this.currentTicket._id}`);
+        
+        // Mostrar loading
+        const reopenBtn = DOM.reopenTicketBtn;
+        const originalText = reopenBtn.innerHTML;
+        reopenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reabriendo...';
+        reopenBtn.disabled = true;
+        
+        // Llamar a la API
+        const response = await api.changeTicketStatus(
+            this.currentTicket._id, 
+            'abierto', 
+            reopenNote || 'Ticket reabierto por el usuario'
+        );
+        
+        console.log('📥 Respuesta de reapertura:', response);
+        
+        if (response.success) {
+            showAlert('✅ Ticket reabierto exitosamente', 'success');
+            
+            // Actualizar UI inmediatamente
+            this.currentTicket.status = 'abierto';
+            
+            if (DOM.detailTicketStatus) {
+                DOM.detailTicketStatus.textContent = this.getStatusName('abierto');
+                DOM.detailTicketStatus.className = `status-badge status-abierto`;
+            }
+            
+            // Actualizar botones
+            if (DOM.closeTicketBtn) {
+                DOM.closeTicketBtn.style.display = 'inline-block';
+            }
+            if (DOM.reopenTicketBtn) {
+                DOM.reopenTicketBtn.style.display = 'none';
+            }
+            if (DOM.ticketResponseSection) {
+                DOM.ticketResponseSection.style.display = 'block';
+            }
+            
+            // Recargar lista
+            await this.loadTickets();
+            
+        } else {
+            showAlert(response.message || 'Error al reabrir el ticket', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error reabriendo ticket:', error);
+        showAlert(`Error: ${error.message}`, 'error');
+        
+    } finally {
+        // Restaurar botón
+        const reopenBtn = DOM.reopenTicketBtn;
+        if (reopenBtn) {
+            reopenBtn.innerHTML = '<i class="fas fa-unlock"></i> Reabrir Ticket';
+            reopenBtn.disabled = false;
+        }
+    }
+}
+    async executeReopenTicket() {
+        try {
+            console.log(`🔧 Ejecutando reapertura del ticket: ${this.currentTicket._id}`);
+            
+            // Mostrar modal de motivo
+            this.showReopenTicketReasonModal();
+            
         } catch (error) {
-            console.error('❌ Error reabriendo ticket:', error);
-            showAlert('Error al reabrir ticket: ' + error.message, 'error');
+            console.error('❌ Error en proceso de reapertura:', error);
+            showAlert('Error al procesar la reapertura del ticket', 'error');
+        }
+    }
+
+    showReopenTicketReasonModal() {
+        // Crear modal para motivo de reapertura
+        const modalHTML = `
+            <div class="modal" id="reopenReasonModal" style="display: flex;">
+                <div class="modal__content modal__content--sm">
+                    <div class="modal__header">
+                        <h2 class="modal__title">
+                            <i class="fas fa-redo"></i>
+                            Motivo de reapertura
+                        </h2>
+                        <button class="modal__close" id="closeReopenReasonModalBtn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal__body">
+                        <div class="form-group">
+                            <label for="reopenReason" class="form-label">
+                                <i class="fas fa-pen"></i>
+                                Explica por qué estás reabriendo este ticket:
+                            </label>
+                            <textarea 
+                                id="reopenReason" 
+                                class="form-control form-control--textarea" 
+                                rows="4" 
+                                placeholder="Ej: El problema no fue resuelto completamente, tengo una nueva pregunta relacionada, etc..."
+                                maxlength="500"
+                            ></textarea>
+                            <div class="form-help">
+                                <span id="reopenCharCount">0/500 caracteres</span>
+                            </div>
+                        </div>
+                        <div class="form-help">
+                            <i class="fas fa-info-circle"></i>
+                            Este comentario será visible en el historial del ticket.
+                        </div>
+                    </div>
+                    <div class="modal__footer">
+                        <button class="btn btn--outline" id="cancelReopenReasonBtn">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button class="btn btn--primary" id="submitReopenReasonBtn">
+                            <i class="fas fa-redo"></i> Reabrir Ticket
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Agregar modal al DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer.firstElementChild);
+        
+        const modal = document.getElementById('reopenReasonModal');
+        const reopenReasonTextarea = document.getElementById('reopenReason');
+        const charCount = document.getElementById('reopenCharCount');
+        const cancelBtn = document.getElementById('cancelReopenReasonBtn');
+        const submitBtn = document.getElementById('submitReopenReasonBtn');
+        const closeBtn = document.getElementById('closeReopenReasonModalBtn');
+        
+        // Contador de caracteres
+        reopenReasonTextarea.addEventListener('input', () => {
+            const length = reopenReasonTextarea.value.length;
+            charCount.textContent = `${length}/500 caracteres`;
+            charCount.style.color = length >= 450 ? '#ff6b6b' : '#666';
+        });
+        
+        // Event listeners
+        cancelBtn.addEventListener('click', () => {
+            this.removeReopenReasonModal();
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            this.removeReopenReasonModal();
+        });
+        
+        submitBtn.addEventListener('click', async () => {
+            const reason = reopenReasonTextarea.value.trim();
+            
+            if (!reason) {
+                showAlert('Por favor, escribe el motivo de la reapertura', 'error');
+                return;
+            }
+            
+            if (reason.length < 10) {
+                showAlert('El motivo debe tener al menos 10 caracteres', 'error');
+                return;
+            }
+            
+            // Deshabilitar botón y mostrar loading
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reabriendo...';
+            submitBtn.disabled = true;
+            
+            try {
+                // Llamar a la API
+                const response = await api.changeTicketStatus(
+                    this.currentTicket._id, 
+                    'abierto', 
+                    reason || 'Ticket reabierto por el usuario'
+                );
+                
+                if (response.success) {
+                    showAlert('Ticket reabierto exitosamente', 'success');
+                    
+                    // Cerrar modal de motivo
+                    this.removeReopenReasonModal();
+                    
+                    // Actualizar el ticket actual
+                    this.currentTicket.status = 'abierto';
+                    
+                    // Actualizar la interfaz inmediatamente
+                    if (DOM.detailTicketStatus) {
+                        DOM.detailTicketStatus.textContent = this.getStatusName('abierto');
+                        DOM.detailTicketStatus.className = `status-badge status-abierto`;
+                    }
+                    
+                    // Mostrar botón de cerrar y ocultar botón de reabrir
+                    if (DOM.closeTicketBtn) {
+                        DOM.closeTicketBtn.style.display = 'inline-block';
+                    }
+                    if (DOM.reopenTicketBtn) {
+                        DOM.reopenTicketBtn.style.display = 'none';
+                    }
+                    if (DOM.ticketResponseSection) {
+                        DOM.ticketResponseSection.style.display = 'block';
+                    }
+                    
+                    // Recargar la lista de tickets
+                    await this.loadTickets();
+                    
+                } else {
+                    showAlert(response.message || 'Error al reabrir el ticket', 'error');
+                    submitBtn.innerHTML = '<i class="fas fa-redo"></i> Reabrir Ticket';
+                    submitBtn.disabled = false;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error reabriendo ticket:', error);
+                
+                if (error.message.includes('403') || error.message.includes('Acceso denegado')) {
+                    showAlert('No tienes permisos para reabrir este ticket. Contacta al administrador.', 'error');
+                } else {
+                    showAlert(`Error al reabrir ticket: ${error.message}`, 'error');
+                }
+                
+                submitBtn.innerHTML = '<i class="fas fa-redo"></i> Reabrir Ticket';
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Cerrar al hacer clic fuera del modal
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.removeReopenReasonModal();
+            }
+        });
+        
+        // Cerrar con tecla Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                this.removeReopenReasonModal();
+            }
+        });
+        
+        // Enfocar el textarea
+        setTimeout(() => {
+            reopenReasonTextarea.focus();
+        }, 100);
+    }
+
+    removeReopenReasonModal() {
+        const modal = document.getElementById('reopenReasonModal');
+        if (modal) {
+            modal.remove();
         }
     }
 
@@ -1716,6 +2661,49 @@ closeImageLightbox() {
     showNoResultsModal(query) {
         console.log(`🔍 No hay resultados para: "${query}"`);
         showAlert(`No se encontraron resultados para "${query}"`, 'info');
+    }
+
+    // Método para verificar permisos del usuario
+    async checkUserPermissions() {
+        try {
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            const token = localStorage.getItem('token');
+            
+            if (!token || !userData._id) {
+                return {
+                    canCloseTickets: false,
+                    canReopenTickets: false,
+                    isAdmin: false,
+                    isSupport: false
+                };
+            }
+            
+            // Verificar rol del usuario
+            const isAdmin = userData.role === 'admin' || userData.role === 'administrador';
+            const isSupport = userData.role === 'support' || userData.role === 'soporte';
+            const isRegularUser = !isAdmin && !isSupport;
+            
+            // Lógica de permisos:
+            // - Admins y soporte pueden cerrar/reabrir cualquier ticket
+            // - Usuarios regulares solo pueden cerrar/reabrir sus propios tickets
+            return {
+                canCloseTickets: isAdmin || isSupport || isRegularUser, // Temporalmente todos pueden
+                canReopenTickets: isAdmin || isSupport || isRegularUser, // Temporalmente todos pueden
+                isAdmin,
+                isSupport,
+                isRegularUser,
+                userId: userData._id
+            };
+            
+        } catch (error) {
+            console.error('❌ Error verificando permisos:', error);
+            return {
+                canCloseTickets: false,
+                canReopenTickets: false,
+                isAdmin: false,
+                isSupport: false
+            };
+        }
     }
 }
 

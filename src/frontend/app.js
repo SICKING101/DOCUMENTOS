@@ -538,9 +538,55 @@ async function handleTabNavigation(e) {
  */
 async function switchTab(tabId) {
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte'];
+
+    // Agregar 'ajustes' como pestaña válida
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
+        return;
+    }
+
+    // Si es la pestaña de ajustes, cargar el HTML externo
+    if (tabId === 'ajustes') {
+        // Buscar o crear el contenedor de ajustes
+        let ajustesSection = document.getElementById('ajustes');
+        if (!ajustesSection) {
+            ajustesSection = document.createElement('section');
+            ajustesSection.id = 'ajustes';
+            ajustesSection.className = 'tab-content';
+            document.querySelector('.main-content').appendChild(ajustesSection);
+        }
+        // Ocultar otras pestañas
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('tab-content--active');
+        });
+        ajustesSection.classList.add('tab-content--active');
+        // Resaltar el enlace de ajustes en el sidebar
+        document.querySelectorAll('.sidebar__nav-link').forEach(link => {
+            link.classList.toggle('sidebar__nav-link--active', link.getAttribute('data-tab') === 'ajustes');
+        });
+        // Cargar el HTML de ajustes solo si no está cargado
+        if (!ajustesSection.dataset.loaded) {
+            fetch('ajustes.html')
+                .then(res => res.text())
+                .then(html => {
+                    // Extraer solo el contenido INTERNO del <main>
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html;
+                    const main = temp.querySelector('main');
+                    if (main) {
+                        ajustesSection.innerHTML = main.innerHTML;
+                    } else {
+                        ajustesSection.innerHTML = html;
+                    }
+                    ajustesSection.dataset.loaded = 'true';
+                    // Cargar el JS de ajustes
+                    import('./modules/ajustes.js');
+                });
+        }
+        // Actualizar estado de la app
+        window.appState = window.appState || {};
+        window.appState.currentTab = 'ajustes';
         return;
     }
 

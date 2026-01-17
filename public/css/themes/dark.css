@@ -1,3 +1,197 @@
+/* Prohibido blanco en calendario modo oscuro: todo fondo claro reemplazado */
+body.dark-theme .calendar-section,
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini,
+body.dark-theme .calendar__sidebar,
+body.dark-theme .calendar__header,
+body.dark-theme .calendar__toolbar,
+body.dark-theme .calendar__weekdays,
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__action-btn,
+body.dark-theme .calendar__event,
+body.dark-theme .calendar__upcoming-item,
+body.dark-theme .calendar__more-events,
+body.dark-theme .calendar__day,
+body.dark-theme .calendar__mini-day {
+    background: #111827 !important;
+    color: #e5e7eb !important;
+    border-color: #1f2933 !important;
+}
+body.dark-theme .calendar__day.today,
+body.dark-theme .calendar__mini-day.today {
+    background: #3b82f6 !important;
+    color: #e5e7eb !important;
+}
+body.dark-theme .calendar__day.other-month,
+body.dark-theme .calendar__mini-day.other-month {
+    color: #9ca3af !important;
+    opacity: 0.5 !important;
+}
+body.dark-theme .calendar__filter-btn.active,
+body.dark-theme .calendar__action-btn.active {
+    background: #2563eb !important;
+    color: #e5e7eb !important;
+}
+body.dark-theme .calendar__upcoming-item--urgent {
+    background: #dc2626 !important;
+    color: #e5e7eb !important;
+}
+body.dark-theme .calendar__upcoming-item--important {
+    background: #1e40af !important;
+    color: #e5e7eb !important;
+}
+/* ===== Calendario: Fondos claros a oscuros en modo oscuro ===== */
+body.dark-theme .calendar__header,
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__toolbar,
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__action-btn,
+body.dark-theme .calendar__day,
+body.dark-theme .calendar__weekdays,
+body.dark-theme .calendar__sidebar,
+body.dark-theme .calendar__upcoming-item,
+body.dark-theme .calendar__more-events {
+    background: var(--bg-secondary, #232a36) !important;
+    color: var(--text-primary, #fff) !important;
+    border-color: var(--border, #374151) !important;
+}
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    box-shadow: var(--shadow-lg) !important;
+}
+body.dark-theme .calendar__day.today,
+body.dark-theme .calendar__mini-day.today {
+    background: var(--primary, #4f46e5) !important;
+    color: #fff !important;
+}
+body.dark-theme .calendar__event {
+    color: #fff !important;
+}
+body.dark-theme .calendar__event::before {
+    background: #fff !important;
+}
+body.dark-theme .calendar__filter-btn.active {
+    background: var(--primary, #4f46e5) !important;
+    color: #fff !important;
+}
+body.dark-theme .calendar__upcoming-item--urgent {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%) !important;
+}
+body.dark-theme .calendar__upcoming-item--important {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%) !important;
+}
+/* ===== Mejoras adicionales para modo oscuro en calendario ===== */
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini,
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__action-btn,
+body.dark-theme .calendar__event,
+body.dark-theme .calendar__upcoming-item {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    box-shadow: var(--shadow-lg) !important;
+}
+body.dark-theme .calendar__day.today .calendar__day-number {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+body.dark-theme .calendar__event {
+    color: #fff !important;
+}
+body.dark-theme .calendar__event::before {
+    background: #fff !important;
+}
+body.dark-theme .calendar__more-events {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+/* ===== Calendario: Correcciones modo oscuro ===== */
+body.dark-theme .calendar-section,
+body.dark-theme .calendar__main-container,
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__sidebar,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .calendar__header,
+body.dark-theme .calendar__toolbar,
+body.dark-theme .calendar__weekdays,
+body.dark-theme .calendar__mini-header {
+    background: var(--calendar-header-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__upcoming-item,
+body.dark-theme .calendar__mini {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    box-shadow: var(--shadow-lg) !important;
+}
+
+body.dark-theme .calendar__day,
+body.dark-theme .calendar__mini-day {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .calendar__day.today,
+body.dark-theme .calendar__mini-day.today {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+
+body.dark-theme .calendar__day.other-month,
+body.dark-theme .calendar__mini-day.other-month {
+    color: var(--text-tertiary) !important;
+    opacity: 0.5 !important;
+}
+
+body.dark-theme .calendar__event {
+    color: #fff !important;
+}
+
+body.dark-theme .calendar__filter-btn.active {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+
+body.dark-theme .calendar__upcoming-item--urgent {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%) !important;
+}
+
+body.dark-theme .calendar__upcoming-item--important {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%) !important;
+}
 /* Corrección: Iconos de historial y papelera en modo oscuro */
 body.dark-theme .stat-card__icon,
 body.dark-theme .trash-stat-icon {

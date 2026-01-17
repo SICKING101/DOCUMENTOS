@@ -101,7 +101,8 @@ function openChangeAdminModal(e) {
     
     if (changeAdminModal) {
         changeAdminForm.reset();
-        changeAdminModal.showModal();
+        changeAdminModal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevenir scroll
     }
 }
 
@@ -113,22 +114,45 @@ function setupChangeAdminModal() {
 
     // Cerrar modal
     const closeModal = () => {
-        changeAdminModal.close();
+        if (changeAdminModal) {
+            changeAdminModal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restaurar scroll
+        }
         changeAdminForm.reset();
     };
 
     closeBtn?.addEventListener('click', closeModal);
     cancelBtn?.addEventListener('click', closeModal);
 
+    // Cerrar al hacer clic en overlay
+    const overlay = changeAdminModal?.querySelector('.modal__overlay');
+    if (overlay) {
+        overlay.addEventListener('click', closeModal);
+    }
+
     // Confirmar cambio de administrador
     confirmBtn?.addEventListener('click', handleChangeAdmin);
 
     // Cerrar con ESC
-    changeAdminModal.addEventListener('cancel', (e) => {
-        e.preventDefault();
-        closeModal();
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && changeAdminModal.style.display === 'block') {
+            closeModal();
+        }
     });
 }
+
+// Función global para cerrar el modal
+window.cerrarModalCambioAdmin = function() {
+    const modal = document.getElementById('changeAdminModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    const form = document.getElementById('changeAdminForm');
+    if (form) {
+        form.reset();
+    }
+};
 
 // Manejar cambio de administrador
 async function handleChangeAdmin(e) {
@@ -211,12 +235,11 @@ async function handleChangeAdmin(e) {
         console.log('📤 Enviando solicitud al servidor...');
         console.log('🔑 Token disponible:', token ? 'SÍ' : 'NO');
         
-        // ¡IMPORTANTE: Usar los nombres CORRECTOS que espera el backend!
         const requestBody = {
             nuevoUsuario: newUserValue,
             nuevoCorreo: newEmailValue,
             nuevaPassword: newPasswordValue,
-            confirmarPassword: confirmPasswordValue  // ¡CON "r"!
+            confirmarPassword: confirmPasswordValue
         };
         
         console.log('📦 Request body a enviar:', requestBody);
@@ -230,7 +253,6 @@ async function handleChangeAdmin(e) {
             body: JSON.stringify(requestBody)
         });
 
-        // DEBUG: Mostrar respuesta completa
         const responseText = await response.text();
         console.log('📥 Response status:', response.status);
         console.log('📥 Response text:', responseText);
@@ -245,16 +267,7 @@ async function handleChangeAdmin(e) {
 
         if (response.ok) {
             // Cerrar modal
-            const changeAdminModal = document.getElementById('changeAdminModal');
-            if (changeAdminModal) {
-                changeAdminModal.close();
-            }
-            
-            // Resetear formulario
-            const changeAdminForm = document.getElementById('changeAdminForm');
-            if (changeAdminForm) {
-                changeAdminForm.reset();
-            }
+            window.cerrarModalCambioAdmin();
             
             // Mostrar mensaje de éxito
             mostrarAlerta(
@@ -279,11 +292,9 @@ async function handleChangeAdmin(e) {
 
 // Función auxiliar para mostrar alertas
 function mostrarAlerta(mensaje, tipo = 'info') {
-    // Intentar usar el sistema de notificaciones existente
     if (typeof window.mostrarNotificacion === 'function') {
         window.mostrarNotificacion(mensaje, tipo);
     } else {
-        // Fallback: crear alerta temporal
         const alert = document.createElement('div');
         alert.className = `alert alert--${tipo}`;
         alert.style.position = 'fixed';

@@ -732,23 +732,87 @@ class apiCall {
 
 
    // Método para cambiar estado del ticket
-    async changeTicketStatus(ticketId, status, message = '') {
-        try {
-            const response = await fetch(`/api/tickets/${ticketId}/close`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status, message }),
-                credentials: 'include'
-            });
+async changeTicketStatus(ticketId, status, note = '') {
+    try {
+        console.log(`📤 Cambiando estado del ticket ${ticketId} a ${status}`);
+        console.log(`📝 Nota: ${note || '(sin nota)'}`);
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('No autenticado');
+        }
+        
+        // Obtener datos del usuario
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        console.log('👤 Usuario actual:', {
+            id: userData._id,
+            name: userData.name,
+            rol: userData.rol,
+            email: userData.email
+        });
+        
+        // IMPORTANTE: Usar POST (método original) en lugar de PUT
+        const response = await fetch(`${this.baseURL}/tickets/${ticketId}/close`, {
+            method: 'POST', // ✅ CAMBIADO DE PUT A POST
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                status: status,
+                note: note || 'Cambio de estado solicitado'
+            })
+        });
+        
+        console.log('📥 Respuesta del servidor:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url
+        });
+        
+        if (!response.ok) {
+            if (response.status === 403) {
+                const errorData = await response.json();
+                throw new Error(`Acceso denegado: ${errorData.message || 'No tienes permisos para realizar esta acción'}`);
+            }
             
-            return await response.json();
-        } catch (error) {
-            console.error('Error cambiando estado del ticket:', error);
+            const errorText = await response.text();
+            console.error('❌ Error del servidor:', errorText);
+            
+            // Intentar parsear como JSON
+            try {
+                const errorData = JSON.parse(errorText);
+                throw new Error(errorData.message || `Error ${response.status}`);
+            } catch {
+                throw new Error(`Error ${response.status}: ${errorText}`);
+            }
+        }
+        
+        const data = await response.json();
+        console.log('✅ Respuesta del cambio de estado:', {
+            success: data.success,
+            message: data.message,
+            ticketId: data.ticket?._id,
+            ticketNumber: data.ticket?.ticketNumber
+        });
+        
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Error en changeTicketStatus:', error);
+        
+        // Mensajes de error específicos
+        if (error.message.includes('403') || error.message.includes('Acceso denegado')) {
+            throw new Error(`No tienes permisos para cambiar el estado del ticket: ${error.message}`);
+        } else if (error.message.includes('401')) {
+            throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        } else if (error.message.includes('404')) {
+            throw new Error('El endpoint no existe. Contacta al administrador del sistema.');
+        } else {
             throw error;
         }
     }
+}
 
     async getTicketStats() {
         return this.call('/support/tickets/stats');

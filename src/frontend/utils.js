@@ -25,6 +25,135 @@ function getFileIcon(fileType) {
     return 'file'; // default
 }
 
+// utils.js - Agrega esta función
+export function showConfirmModal(options) {
+    const {
+        title = 'Confirmación',
+        message = '¿Estás seguro?',
+        type = 'info',
+        confirmText = 'Confirmar',
+        cancelText = 'Cancelar',
+        onConfirm = () => {},
+        onCancel = () => {}
+    } = options;
+
+    // Crear el modal
+    const modalHTML = `
+        <div class="modal" id="confirmModal" style="display: flex;">
+            <div class="modal__content modal__content--sm">
+                <div class="modal__header">
+                    <h2 class="modal__title">
+                        <i class="fas fa-${getConfirmIcon(type)}"></i>
+                        ${title}
+                    </h2>
+                    <button class="modal__close" id="closeConfirmModalBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal__body">
+                    <div class="confirm-modal-content">
+                        <div class="confirm-modal-icon confirm-modal-icon--${type}">
+                            <i class="fas fa-${getConfirmIcon(type)}"></i>
+                        </div>
+                        <div class="confirm-modal-message">${message}</div>
+                    </div>
+                </div>
+                <div class="modal__footer modal__footer--centered">
+                    <button class="btn btn--outline" id="cancelConfirmBtn">
+                        <i class="fas fa-times"></i> ${cancelText}
+                    </button>
+                    <button class="btn btn--${getConfirmButtonType(type)}" id="confirmBtn">
+                        <i class="fas fa-check"></i> ${confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Agregar al DOM
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+
+    const modal = document.getElementById('confirmModal');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const cancelBtn = document.getElementById('cancelConfirmBtn');
+    const closeBtn = document.getElementById('closeConfirmModalBtn');
+
+    // Función para cerrar y limpiar
+    const closeModal = () => {
+        if (modal) {
+            modal.style.opacity = '0';
+            modal.style.visibility = 'hidden';
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+        }
+    };
+
+    // Event listeners
+    confirmBtn.addEventListener('click', () => {
+        closeModal();
+        onConfirm();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        closeModal();
+        onCancel();
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+
+    // Cerrar al hacer clic fuera del modal
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+            onCancel();
+        }
+    });
+
+    // Cerrar con tecla Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            closeModal();
+            onCancel();
+        }
+    });
+
+    // Animación de entrada
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.style.visibility = 'visible';
+    }, 10);
+
+    // Enfocar el botón de cancelar por defecto
+    cancelBtn.focus();
+}
+
+// Helper para obtener icono según tipo
+function getConfirmIcon(type) {
+    const icons = {
+        'warning': 'exclamation-triangle',
+        'danger': 'exclamation-circle',
+        'success': 'check-circle',
+        'info': 'info-circle',
+        'question': 'question-circle'
+    };
+    return icons[type] || 'info-circle';
+}
+
+// Helper para obtener tipo de botón
+function getConfirmButtonType(type) {
+    const buttonTypes = {
+        'warning': 'warning',
+        'danger': 'danger',
+        'success': 'success',
+        'info': 'primary',
+        'question': 'primary'
+    };
+    return buttonTypes[type] || 'primary';
+}
+
 /**
  * 1.2 Obtener nombre descriptivo de ícono
  * Traduce los valores de ícono a nombres legibles en español para mostrar

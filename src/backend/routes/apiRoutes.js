@@ -13,6 +13,9 @@ import ReportController from '../controllers/reportController.js';
 import TrashController from '../controllers/trashController.js';
 import SupportController from '../controllers/supportController.js';
 
+// Importar middleware
+import { protegerRuta, permisoTicket, permisoCambiarEstado } from '../middleware/auth.js';
+
 // Importar middleware de Multer
 import upload from '../config/multerConfig.js';
 
@@ -28,92 +31,106 @@ router.get('/health', (req, res) => {
 // -----------------------------
 // DASHBOARD
 // -----------------------------
-router.get('/dashboard', DashboardController.getDashboardStats);
+router.get('/dashboard', protegerRuta, DashboardController.getDashboardStats);
 
 // -----------------------------
 // PERSONAS
 // -----------------------------
-router.get('/persons', PersonController.getAll);
-router.post('/persons', PersonController.create);
-router.put('/persons/:id', PersonController.update);
-router.delete('/persons/:id', PersonController.delete);
+router.get('/persons', protegerRuta, PersonController.getAll);
+router.post('/persons', protegerRuta, PersonController.create);
+router.put('/persons/:id', protegerRuta, PersonController.update);
+router.delete('/persons/:id', protegerRuta, PersonController.delete);
 
 // -----------------------------
 // CATEGORÍAS
 // -----------------------------
-router.get('/categories', CategoryController.getAll);
-router.post('/categories', CategoryController.create);
-router.put('/categories/:id', CategoryController.update);
-router.delete('/categories/:id', CategoryController.delete);
+router.get('/categories', protegerRuta, CategoryController.getAll);
+router.post('/categories', protegerRuta, CategoryController.create);
+router.put('/categories/:id', protegerRuta, CategoryController.update);
+router.delete('/categories/:id', protegerRuta, CategoryController.delete);
 
 // -----------------------------
 // DEPARTAMENTOS
 // -----------------------------
-router.get('/departments', DepartmentController.getAll);
-router.post('/departments', DepartmentController.create);
-router.put('/departments/:id', DepartmentController.update);
-router.delete('/departments/:id', DepartmentController.delete);
+router.get('/departments', protegerRuta, DepartmentController.getAll);
+router.post('/departments', protegerRuta, DepartmentController.create);
+router.put('/departments/:id', protegerRuta, DepartmentController.update);
+router.delete('/departments/:id', protegerRuta, DepartmentController.delete);
 
 // -----------------------------
 // DOCUMENTOS
 // -----------------------------
-router.get('/documents', DocumentController.getAll);
-router.post('/documents', upload.single('file'), DocumentController.create);
-router.put('/documents/:id', upload.single('file'), DocumentController.update);
-router.get('/documents/:id/preview', DocumentController.preview);
-router.get('/documents/:id/download', DocumentController.download);
-router.get('/documents/:id/content', DocumentController.getContent);
-router.get('/documents/:id/info', DocumentController.getInfo);
-router.delete('/documents/:id', DocumentController.delete);
+router.get('/documents', protegerRuta, DocumentController.getAll);
+router.post('/documents', protegerRuta, upload.single('file'), DocumentController.create);
+router.put('/documents/:id', protegerRuta, upload.single('file'), DocumentController.update);
+router.get('/documents/:id/preview', protegerRuta, DocumentController.preview);
+router.get('/documents/:id/download', protegerRuta, DocumentController.download);
+router.get('/documents/:id/content', protegerRuta, DocumentController.getContent);
+router.get('/documents/:id/info', protegerRuta, DocumentController.getInfo);
+router.delete('/documents/:id', protegerRuta, DocumentController.delete);
 
 // -----------------------------
 // TAREAS
 // -----------------------------
-router.get('/tasks', TaskController.getAll);
-router.post('/tasks', TaskController.create);
-router.put('/tasks/:id', TaskController.update);
-router.delete('/tasks/:id', TaskController.delete);
-router.patch('/tasks/:id/status', TaskController.updateStatus);
-router.get('/tasks/stats', TaskController.getStats);
+router.get('/tasks', protegerRuta, TaskController.getAll);
+router.post('/tasks', protegerRuta, TaskController.create);
+router.put('/tasks/:id', protegerRuta, TaskController.update);
+router.delete('/tasks/:id', protegerRuta, TaskController.delete);
+router.patch('/tasks/:id/status', protegerRuta, TaskController.updateStatus);
+router.get('/tasks/stats', protegerRuta, TaskController.getStats);
 
 // -----------------------------
 // REPORTES
 // -----------------------------
-router.post('/reports/excel', ReportController.generateExcel);
-router.post('/reports/pdf', ReportController.generatePDF);
-router.post('/reports/csv', ReportController.generateCSV);
+router.post('/reports/excel', protegerRuta, ReportController.generateExcel);
+router.post('/reports/pdf', protegerRuta, ReportController.generatePDF);
+router.post('/reports/csv', protegerRuta, ReportController.generateCSV);
 
 // -----------------------------
 // NOTIFICACIONES
 // -----------------------------
-router.get('/notifications', NotificationController.getAll);
-router.get('/notifications/unread', NotificationController.getUnread);
-router.get('/notifications/stats', NotificationController.getStats);
-router.patch('/notifications/:id/read', NotificationController.markAsRead);
-router.patch('/notifications/read-all', NotificationController.markAllAsRead);
-router.delete('/notifications/:id', NotificationController.delete);
-router.post('/notifications/cleanup', NotificationController.cleanup);
+router.get('/notifications', protegerRuta, NotificationController.getAll);
+router.get('/notifications/unread', protegerRuta, NotificationController.getUnread);
+router.get('/notifications/stats', protegerRuta, NotificationController.getStats);
+router.patch('/notifications/:id/read', protegerRuta, NotificationController.markAsRead);
+router.patch('/notifications/read-all', protegerRuta, NotificationController.markAllAsRead);
+router.delete('/notifications/:id', protegerRuta, NotificationController.delete);
+router.post('/notifications/cleanup', protegerRuta, NotificationController.cleanup);
 
 // -----------------------------
 // PAPELERA
 // -----------------------------
-router.get('/trash', TrashController.getTrashDocuments);
-router.post('/trash/empty-all', TrashController.emptyTrash);
-router.post('/trash/auto-cleanup', TrashController.autoCleanup);
-router.post('/trash/:id/restore', TrashController.restoreDocument);
-router.delete('/trash/:id', TrashController.deletePermanently);
+router.get('/trash', protegerRuta, TrashController.getTrashDocuments);
+router.post('/trash/empty-all', protegerRuta, TrashController.emptyTrash);
+router.post('/trash/auto-cleanup', protegerRuta, TrashController.autoCleanup);
+router.post('/trash/:id/restore', protegerRuta, TrashController.restoreDocument);
+router.delete('/trash/:id', protegerRuta, TrashController.deletePermanently);
 
 // -----------------------------
 // SOPORTE Y TICKETS
 // -----------------------------
-router.post('/tickets', upload.array('files', 10), SupportController.createTicket); // ✅ AÑADIR
-router.get('/tickets', SupportController.getUserTickets); // ✅ AÑADIR
-router.get('/tickets/:id', SupportController.getTicketDetails); // ✅ AÑADIR
-router.post('/tickets/:id/response', SupportController.addTicketUpdate); // ✅ CORREGIDO
-router.post('/tickets/:id/close', SupportController.changeTicketStatus); // ✅ AÑADIR
-router.get('/support/faq', SupportController.getFAQ); // ✅ AÑADIR
-router.get('/support/guide', SupportController.getSystemGuide); // ✅ AÑADIR
-router.post('/support/test-email', SupportController.testSupportEmail); // ✅ AÑADIR
+router.post('/tickets', protegerRuta, upload.array('files', 10), SupportController.createTicket);
+router.get('/tickets', protegerRuta, permisoTicket, SupportController.getUserTickets);
+router.get('/tickets/:id', protegerRuta, permisoTicket, SupportController.getTicketDetails);
+router.post('/tickets/:id/response', protegerRuta, permisoTicket, SupportController.addTicketUpdate);
 
-// CORREGIR ESTA LÍNEA - CAMBIAR CategoryController por router:
-export default router;  // ✅ CORREGIDO
+// ✅ RUTAS PARA CAMBIAR ESTADO - CORREGIDAS
+// Método POST (compatible con frontend actual)
+router.post('/tickets/:id/close', protegerRuta, permisoCambiarEstado, SupportController.changeTicketStatus);
+
+// Método PUT (para RESTful)
+router.put('/tickets/:id/status', protegerRuta, permisoCambiarEstado, SupportController.changeTicketStatus);
+router.put('/tickets/:id', protegerRuta, permisoCambiarEstado, (req, res) => {
+    // Proxy a la función changeTicketStatus
+    req.params.id = req.params.id;
+    return SupportController.changeTicketStatus(req, res);
+});
+
+// Método PATCH (para RESTful)
+router.patch('/tickets/:id', protegerRuta, permisoCambiarEstado, SupportController.changeTicketStatus);
+
+router.get('/support/faq', protegerRuta, SupportController.getFAQ);
+router.get('/support/guide', protegerRuta, SupportController.getSystemGuide);
+router.post('/support/test-email', protegerRuta, SupportController.testSupportEmail);
+
+export default router;
