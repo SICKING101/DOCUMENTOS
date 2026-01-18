@@ -1,11 +1,11 @@
 // src/frontend/modules/admin/adminChange.js
-// Módulo para manejar cambio de administrador
+// Módulo para manejar cambio de administrador - VERSIÓN CORREGIDA
 
 import { api } from '../../services/api.js';
 import { showAlert } from '../../utils.js';
 
 // =============================================================================
-// CLASE PARA GESTIONAR CAMBIO DE ADMINISTRADOR
+// CLASE PARA GESTIONAR CAMBIO DE ADMINISTRADOR - CORREGIDA
 // =============================================================================
 
 class AdminChangeManager {
@@ -59,16 +59,14 @@ class AdminChangeManager {
     }
     
     // =========================================================================
-    // AGREGAR CAMPO DE CONTRASEÑA ACTUAL (SEGURIDAD EXTRA)
+    // AGREGAR CAMPO DE CONTRASEÑA ACTUAL
     // =========================================================================
     
     addCurrentPasswordField() {
-        // Verificar si ya existe
         if (document.getElementById('currentPassword')) {
             return;
         }
         
-        // Crear campo de contraseña actual
         const currentPasswordGroup = document.createElement('div');
         currentPasswordGroup.className = 'form__group';
         currentPasswordGroup.innerHTML = `
@@ -88,7 +86,6 @@ class AdminChangeManager {
             </small>
         `;
         
-        // Insertar después del alert
         const alert = this.form.querySelector('.alert');
         if (alert) {
             alert.parentNode.insertBefore(currentPasswordGroup, alert.nextSibling);
@@ -96,7 +93,6 @@ class AdminChangeManager {
             this.form.insertBefore(currentPasswordGroup, this.form.firstChild);
         }
         
-        // Actualizar referencia
         this.currentPasswordInput = document.getElementById('currentPassword');
     }
     
@@ -105,25 +101,21 @@ class AdminChangeManager {
     // =========================================================================
     
     setupEventListeners() {
-        // Evento de envío del formulario
         this.submitBtn?.addEventListener('click', (e) => {
             e.preventDefault();
             this.handleSubmit();
         });
         
-        // Evento de cancelación
         this.cancelBtn?.addEventListener('click', () => {
             this.closeModal();
         });
         
-        // Cerrar modal con ESC
         this.modal?.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeModal();
             }
         });
         
-        // Validación en tiempo real
         this.setupRealTimeValidation();
     }
     
@@ -147,7 +139,6 @@ class AdminChangeManager {
             }
         });
         
-        // Validar coincidencia de contraseñas
         if (this.newAdminPasswordInput && this.confirmAdminPasswordInput) {
             this.confirmAdminPasswordInput.addEventListener('input', () => {
                 this.validatePasswordMatch();
@@ -257,12 +248,10 @@ class AdminChangeManager {
             }
         });
         
-        // Validar coincidencia de contraseñas
         if (!this.validatePasswordMatch()) {
             isValid = false;
         }
         
-        // Habilitar/deshabilitar botón de envío
         if (this.submitBtn) {
             this.submitBtn.disabled = !isValid;
         }
@@ -274,10 +263,8 @@ class AdminChangeManager {
         const group = input.closest('.form__group');
         if (!group) return;
         
-        // Remover estados anteriores
         group.classList.remove('form__group--error', 'form__group--success');
         
-        // Remover mensaje de error anterior
         const existingError = group.querySelector('.form__error');
         if (existingError) {
             existingError.remove();
@@ -301,7 +288,7 @@ class AdminChangeManager {
     }
     
     // =========================================================================
-    // MANEJAR ENVÍO DEL FORMULARIO
+    // MANEJAR ENVÍO DEL FORMULARIO - CORREGIDO CON DEBUGGING
     // =========================================================================
     
     async handleSubmit() {
@@ -313,12 +300,27 @@ class AdminChangeManager {
             return;
         }
         
+        // Obtener valores
+        const formData = {
+            nuevoUsuario: this.newAdminUserInput.value.trim(),
+            nuevoCorreo: this.newAdminEmailInput.value.trim(),
+            nuevaPassword: this.newAdminPasswordInput.value,
+            confirmarPassword: this.confirmAdminPasswordInput.value
+        };
+        
+        console.log('📋 Datos del formulario:', {
+            nuevoUsuario: formData.nuevoUsuario,
+            nuevoCorreo: formData.nuevoCorreo,
+            nuevaPasswordLength: formData.nuevaPassword.length,
+            confirmarPasswordLength: formData.confirmarPassword.length
+        });
+        
         // Confirmación adicional por seguridad
         const confirmation = confirm(
             '⚠️ CONFIRMACIÓN DE SEGURIDAD\n\n' +
             'Estás a punto de solicitar un cambio de administrador. Esto:\n\n' +
-            '1. Enviará un correo al nuevo administrador\n' +
-            '2. Te notificará cuando sea aceptado\n' +
+            '1. Enviará un correo de confirmación a tu email\n' +
+            '2. Requerirá que confirmes desde ese correo\n' +
             '3. Desactivará tu cuenta cuando sea confirmado\n\n' +
             '¿Continuar?'
         );
@@ -333,23 +335,28 @@ class AdminChangeManager {
         this.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
         
         try {
-            // Primero verificar contraseña actual
-            const verifyResponse = await this.verifyCurrentPassword();
+            // Verificar contraseña actual primero
+            console.log('🔐 Verificando contraseña actual...');
+            const verifyResponse = await api.call('/auth/verify-password', {
+                method: 'POST',
+                body: {
+                    password: this.currentPasswordInput.value
+                }
+            });
             
             if (!verifyResponse.success) {
                 throw new Error(verifyResponse.message || 'Contraseña actual incorrecta');
             }
             
+            console.log('✅ Contraseña verificada, enviando solicitud...');
+            
             // Enviar solicitud de cambio
             const response = await api.call('/admin/request-change', {
                 method: 'POST',
-                body: {
-                    nuevoUsuario: this.newAdminUserInput.value.trim(),
-                    nuevoCorreo: this.newAdminEmailInput.value.trim(),
-                    nuevaPassword: this.newAdminPasswordInput.value,
-                    confirmarPassword: this.confirmAdminPasswordInput.value
-                }
+                body: formData
             });
+            
+            console.log('📨 Respuesta del servidor:', response);
             
             if (!response.success) {
                 throw new Error(response.message || 'Error al enviar solicitud');
@@ -373,6 +380,9 @@ class AdminChangeManager {
             } else if (errorMessage.includes('nombre de usuario')) {
                 this.updateFieldStatus(this.newAdminUserInput, false, 'Usuario ya en uso');
                 errorMessage = 'Este nombre de usuario ya está en uso';
+            } else if (errorMessage.includes('password')) {
+                this.updateFieldStatus(this.newAdminPasswordInput, false, 'Contraseña inválida');
+                errorMessage = 'La contraseña no cumple con los requisitos';
             }
             
             showAlert(`Error: ${errorMessage}`, 'error');
@@ -385,42 +395,16 @@ class AdminChangeManager {
     }
     
     // =========================================================================
-    // VERIFICAR CONTRASEÑA ACTUAL
-    // =========================================================================
-    
-    async verifyCurrentPassword() {
-        try {
-            const response = await api.call('/auth/verify-password', {
-                method: 'POST',
-                body: {
-                    password: this.currentPasswordInput.value
-                }
-            });
-            
-            return response;
-            
-        } catch (error) {
-            console.error('❌ Error verificando contraseña:', error);
-            return {
-                success: false,
-                message: 'Error al verificar contraseña'
-            };
-        }
-    }
-    
-    // =========================================================================
     // MOSTRAR MENSAJE DE ÉXITO
     // =========================================================================
     
     showSuccessMessage(response) {
-        // Cerrar modal
         this.closeModal();
         
-        // Mostrar mensaje de éxito con detalles
         const message = `
             <div style="text-align: left;">
                 <p><strong>✅ Solicitud enviada exitosamente</strong></p>
-                <p>Se ha enviado un correo de verificación al nuevo administrador.</p>
+                <p>Se ha enviado un correo de verificación a tu email.</p>
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3b82f6;">
                     <p style="margin: 5px 0; font-size: 14px;">
                         <i class="fas fa-id-badge"></i> <strong>ID de solicitud:</strong> ${response.requestId}
@@ -428,28 +412,25 @@ class AdminChangeManager {
                     <p style="margin: 5px 0; font-size: 14px;">
                         <i class="fas fa-clock"></i> <strong>Expira:</strong> ${new Date(response.expiresAt).toLocaleString('es-MX')}
                     </p>
-                    <p style="margin: 5px 0; font-size: 14px;">
-                        <i class="fas fa-envelope"></i> <strong>Nota:</strong> ${response.note}
+                    ${response.debug ? `
+                    <p style="margin: 5px 0; font-size: 12px; color: #6b7280;">
+                        <i class="fas fa-bug"></i> <strong>Debug:</strong> Contraseña procesada correctamente
                     </p>
+                    ` : ''}
                 </div>
                 <p style="font-size: 13px; color: #6b7280;">
-                    <i class="fas fa-info-circle"></i> Revisa tu correo para más detalles y opciones de cancelación.
+                    <i class="fas fa-info-circle"></i> Revisa tu correo para completar el proceso.
                 </p>
             </div>
         `;
         
-        // Usar el sistema de alertas existente o crear uno
         if (typeof window.mostrarNotificacion === 'function') {
             window.mostrarNotificacion(message, 'success', 10000);
         } else {
             showAlert(message, 'success');
         }
         
-        // Registrar en consola para debug
-        console.log('✅ Solicitud de cambio enviada:', {
-            requestId: response.requestId,
-            expiresAt: response.expiresAt
-        });
+        console.log('✅ Solicitud de cambio enviada:', response);
     }
     
     // =========================================================================
@@ -459,10 +440,8 @@ class AdminChangeManager {
     openModal() {
         if (!this.modal) return;
         
-        // Resetear formulario
         this.form.reset();
         
-        // Resetear estilos
         const formGroups = this.form.querySelectorAll('.form__group');
         formGroups.forEach(group => {
             group.classList.remove('form__group--error', 'form__group--success');
@@ -475,15 +454,12 @@ class AdminChangeManager {
             input.style.borderColor = '';
         });
         
-        // Deshabilitar botón de envío inicialmente
         if (this.submitBtn) {
             this.submitBtn.disabled = true;
         }
         
-        // Mostrar modal
-        this.modal.showModal();
+        this.modal.style.display = 'flex';
         
-        // Enfocar primer campo
         if (this.currentPasswordInput) {
             this.currentPasswordInput.focus();
         }
@@ -491,16 +467,8 @@ class AdminChangeManager {
     
     closeModal() {
         if (!this.modal) return;
-        this.modal.close();
+        this.modal.style.display = 'none';
         this.form.reset();
-    }
-    
-    // =========================================================================
-    // MÉTODOS PÚBLICOS
-    // =========================================================================
-    
-    getModal() {
-        return this.modal;
     }
 }
 
@@ -516,7 +484,6 @@ export function initializeAdminChange() {
     try {
         adminChangeManager = new AdminChangeManager();
         
-        // Exponer métodos globales
         window.openAdminChangeModal = () => {
             if (adminChangeManager) {
                 adminChangeManager.openModal();
@@ -536,7 +503,6 @@ export function initializeAdminChange() {
     }
 }
 
-// Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeAdminChange);
 } else {

@@ -76,6 +76,8 @@ DOCUMENTOS/
 │   │
 │   └── assets/                    # Recursos estaticos
 │       ├── images/
+│           ├── guide/
+│               ├── dashboard.png
 │       ├── fonts/
 │       └── favicon.ico
 │
@@ -91,6 +93,7 @@ DOCUMENTOS/
 │   │   │   ├── notificaciones.js
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
+|   │   │   ├── soporte.js
 │   │   │   ├── search.js
 │   │   │   │
 │   │   │   ├── auth/              # Autenticacion
@@ -167,6 +170,7 @@ DOCUMENTOS/
 │       │   ├── personController.js
 │       │   ├── reportController.js
 │       │   ├── trashController.js
+│       │   ├── supportController.js
 │       │   └── taskController.js
 │       │
 │       ├── middleware/
@@ -179,6 +183,7 @@ DOCUMENTOS/
 │       │   ├── Category.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
+│       │   ├── Ticket.js
 │       │   └── Notification.js
 │       │
 │       ├── services/
@@ -195,5 +200,3 @@ DOCUMENTOS/
 ├── package-lock.json
 ├── .env
 └── README.md
-
-

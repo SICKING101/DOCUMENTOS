@@ -1,3 +1,197 @@
+/* Prohibido blanco en calendario modo oscuro: todo fondo claro reemplazado */
+body.dark-theme .calendar-section,
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini,
+body.dark-theme .calendar__sidebar,
+body.dark-theme .calendar__header,
+body.dark-theme .calendar__toolbar,
+body.dark-theme .calendar__weekdays,
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__action-btn,
+body.dark-theme .calendar__event,
+body.dark-theme .calendar__upcoming-item,
+body.dark-theme .calendar__more-events,
+body.dark-theme .calendar__day,
+body.dark-theme .calendar__mini-day {
+    background: #111827 !important;
+    color: #e5e7eb !important;
+    border-color: #1f2933 !important;
+}
+body.dark-theme .calendar__day.today,
+body.dark-theme .calendar__mini-day.today {
+    background: #3b82f6 !important;
+    color: #e5e7eb !important;
+}
+body.dark-theme .calendar__day.other-month,
+body.dark-theme .calendar__mini-day.other-month {
+    color: #9ca3af !important;
+    opacity: 0.5 !important;
+}
+body.dark-theme .calendar__filter-btn.active,
+body.dark-theme .calendar__action-btn.active {
+    background: #2563eb !important;
+    color: #e5e7eb !important;
+}
+body.dark-theme .calendar__upcoming-item--urgent {
+    background: #dc2626 !important;
+    color: #e5e7eb !important;
+}
+body.dark-theme .calendar__upcoming-item--important {
+    background: #1e40af !important;
+    color: #e5e7eb !important;
+}
+/* ===== Calendario: Fondos claros a oscuros en modo oscuro ===== */
+body.dark-theme .calendar__header,
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__toolbar,
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__action-btn,
+body.dark-theme .calendar__day,
+body.dark-theme .calendar__weekdays,
+body.dark-theme .calendar__sidebar,
+body.dark-theme .calendar__upcoming-item,
+body.dark-theme .calendar__more-events {
+    background: var(--bg-secondary, #232a36) !important;
+    color: var(--text-primary, #fff) !important;
+    border-color: var(--border, #374151) !important;
+}
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    box-shadow: var(--shadow-lg) !important;
+}
+body.dark-theme .calendar__day.today,
+body.dark-theme .calendar__mini-day.today {
+    background: var(--primary, #4f46e5) !important;
+    color: #fff !important;
+}
+body.dark-theme .calendar__event {
+    color: #fff !important;
+}
+body.dark-theme .calendar__event::before {
+    background: #fff !important;
+}
+body.dark-theme .calendar__filter-btn.active {
+    background: var(--primary, #4f46e5) !important;
+    color: #fff !important;
+}
+body.dark-theme .calendar__upcoming-item--urgent {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%) !important;
+}
+body.dark-theme .calendar__upcoming-item--important {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%) !important;
+}
+/* ===== Mejoras adicionales para modo oscuro en calendario ===== */
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini,
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__action-btn,
+body.dark-theme .calendar__event,
+body.dark-theme .calendar__upcoming-item {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    box-shadow: var(--shadow-lg) !important;
+}
+body.dark-theme .calendar__day.today .calendar__day-number {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+body.dark-theme .calendar__event {
+    color: #fff !important;
+}
+body.dark-theme .calendar__event::before {
+    background: #fff !important;
+}
+body.dark-theme .calendar__more-events {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+/* ===== Calendario: Correcciones modo oscuro ===== */
+body.dark-theme .calendar-section,
+body.dark-theme .calendar__main-container,
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__sidebar,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .calendar__header,
+body.dark-theme .calendar__toolbar,
+body.dark-theme .calendar__weekdays,
+body.dark-theme .calendar__mini-header {
+    background: var(--calendar-header-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .calendar__controls,
+body.dark-theme .calendar__current-date,
+body.dark-theme .calendar__filter-btn,
+body.dark-theme .calendar__upcoming-item,
+body.dark-theme .calendar__mini {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .calendar__main-view,
+body.dark-theme .calendar__upcoming,
+body.dark-theme .calendar__mini {
+    box-shadow: var(--shadow-lg) !important;
+}
+
+body.dark-theme .calendar__day,
+body.dark-theme .calendar__mini-day {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .calendar__day.today,
+body.dark-theme .calendar__mini-day.today {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+
+body.dark-theme .calendar__day.other-month,
+body.dark-theme .calendar__mini-day.other-month {
+    color: var(--text-tertiary) !important;
+    opacity: 0.5 !important;
+}
+
+body.dark-theme .calendar__event {
+    color: #fff !important;
+}
+
+body.dark-theme .calendar__filter-btn.active {
+    background: var(--primary) !important;
+    color: #fff !important;
+}
+
+body.dark-theme .calendar__upcoming-item--urgent {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%) !important;
+}
+
+body.dark-theme .calendar__upcoming-item--important {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%) !important;
+}
 /* Corrección: Iconos de historial y papelera en modo oscuro */
 body.dark-theme .stat-card__icon,
 body.dark-theme .trash-stat-icon {
@@ -188,4 +382,142 @@ body.dark-theme .form__textarea:focus {
 .dark-theme .upload-progress {
     background: var(--dark-card-bg);
     border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* =============================================================================
+ * DARK MODE SUPPORT
+ * ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .document-upload-preloader {
+        background: var(--bg-primary-dark, #1a202c);
+        border-color: rgba(var(--primary-rgb, 102, 126, 234), 0.2);
+        box-shadow: 
+            0 10px 25px rgba(0, 0, 0, 0.3),
+            0 20px 48px rgba(0, 0, 0, 0.25),
+            0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+    
+    .document-upload-preloader__file--success {
+        background: linear-gradient(135deg, rgba(var(--success-rgb, 16, 185, 129), 0.1) 0%, 
+                                      rgba(var(--success-rgb, 16, 185, 129), 0.05) 100%);
+    }
+    
+    .document-upload-preloader__file--error {
+        background: linear-gradient(135deg, rgba(var(--error-rgb, 239, 68, 68), 0.1) 0%, 
+                                      rgba(var(--error-rgb, 239, 68, 68), 0.05) 100%);
+    }
+    
+    .document-upload-preloader__file--uploading {
+        background: linear-gradient(135deg, rgba(var(--primary-rgb, 102, 126, 234), 0.1) 0%, 
+                                      rgba(var(--primary-rgb, 102, 126, 234), 0.05) 100%);
+    }
+    
+    .document-upload-preloader__file-icon {
+        background: var(--bg-tertiary-dark, #4a5568);
+        color: var(--text-primary-dark, #e2e8f0);
+    }
+}
+
+/* =============================================================================
+ * 11. ESTILOS PARA DARK MODE
+ * ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .modal-edit-preloader {
+        background: rgba(26, 32, 44, 0.98);
+    }
+    
+    .modal-edit-preloader__content {
+        background: #2d3748;
+        box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.2),
+            0 8px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    
+    .modal-edit-preloader__title {
+        color: #e2e8f0;
+    }
+    
+    .modal-edit-preloader__subtitle {
+        color: #a0aec0;
+    }
+    
+    .document-progress-bar {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    }
+    
+    .document-status-indicator {
+        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        border-color: #4a5568;
+    }
+    
+    .document-status-text {
+        color: #cbd5e0;
+    }
+    
+    .document-success-content,
+    .document-error-content {
+        background: #2d3748;
+    }
+    
+    .document-success-message {
+        color: #34d399;
+    }
+    
+    .document-error-message {
+        color: #f87171;
+    }
+    
+    .document-success-details,
+    .document-error-details {
+        color: #a0aec0;
+    }
+    
+    .modal-loading-overlay {
+        background: linear-gradient(135deg, 
+            rgba(26, 32, 44, 0.98) 0%, 
+            rgba(45, 55, 72, 0.98) 100%);
+    }
+    
+    .modal-loading-text {
+        color: #e2e8f0;
+    }
+    
+    .modal-loading-subtext {
+        color: #a0aec0;
+    }
+    
+    .document-loading-spinner__disk {
+        border-color: #4a5568;
+    }
+    
+    .file-upload-preloader {
+        background: rgba(26, 32, 44, 0.95);
+    }
+    
+    .file-upload-text {
+        color: #e2e8f0;
+    }
+    
+    .file-upload-progress {
+        background: #4a5568;
+    }
+}
+
+/* =============================================================================
+ * 11. MODOS DE COLOR
+ * ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    
+    .history-item--unread {
+        background-color: rgba(33, 150, 243, 0.1) !important;
+    }
+    
+    .history-filters {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
 }

@@ -1,0 +1,51 @@
+/* =============================================================================
+ * Variantes de tamaño
+ * ============================================================================= */
+
+.preloader--xs .preloader__spinner {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+}
+
+.preloader--sm .preloader__spinner {
+    width: 30px;
+    height: 30px;
+    border-width: 2.5px;
+}
+
+.preloader--lg .preloader__spinner {
+    width: 70px;
+    height: 70px;
+    border-width: 4px;
+}
+
+.preloader--xl .preloader__spinner {
+    width: 100px;
+    height: 100px;
+    border-width: 5px;
+}
+
+/* =============================================================================
+ * Variantes de color
+ * ============================================================================= */
+
+.preloader--primary .preloader__spinner {
+    border-top-color: var(--primary);
+}
+
+.preloader--secondary .preloader__spinner {
+    border-top-color: var(--secondary);
+}
+
+.preloader--success .preloader__spinner {
+    border-top-color: var(--success);
+}
+
+.preloader--warning .preloader__spinner {
+    border-top-color: var(--warning);
+}
+
+.preloader--error .preloader__spinner {
+    border-top-color: var(--error);
+}

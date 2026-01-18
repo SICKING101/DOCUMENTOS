@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
         minlength: [6, 'La contraseña debe tener al menos 6 caracteres']
     },
     rol: {
-         type: String,
+        type: String,
         enum: ['administrador', 'desactivado', 'usuario'], 
         default: 'administrador'
     },
@@ -45,19 +45,36 @@ const userSchema = new mongoose.Schema({
     ultimoAcceso: {
         type: Date,
         default: Date.now
-    }
+    },
+    // Campos para respaldo de desactivación
+    deactivationBackup: {
+        originalEmail: String,
+        originalUsername: String,
+        deactivatedAt: Date
+    },
+    deactivatedAt: Date
 }, {
     timestamps: true
 });
 
-// Middleware para hashear la contraseña antes de guardar
+// ¡¡¡SOLUCIÓN RADICAL: DESACTIVAR ENCRIPTACIÓN AUTOMÁTICA PARA ADMIN CHANGE!!!
 userSchema.pre('save', async function(next) {
-    // Solo hashear si la contraseña ha sido modificada
-    if (!this.isModified('password')) {
+    // NO hacer nada si es una contraseña ya encriptada (viene de admin change)
+    // Las contraseñas bcrypt tienen este patrón: $2a$10$... o $2b$10$...
+    const bcryptPattern = /^\$2[abxy]\$\d{1,2}\$[A-Za-z0-9./]{53}$/;
+    
+    if (this.password && bcryptPattern.test(this.password)) {
+        console.log('🔐 Contraseña ya encriptada (de admin change), omitiendo encriptación automática');
+        return next();
+    }
+    
+    // Solo hashear si la contraseña ha sido modificada y NO es de admin change
+    if (!this.isModified('password') || this.password.startsWith('$2')) {
         return next();
     }
 
     try {
+        console.log('🔐 Encriptando contraseña nueva...');
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
         next();

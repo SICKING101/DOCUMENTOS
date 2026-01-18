@@ -7,6 +7,7 @@ import { AppState } from './state.js';
 import { DOM } from './dom.js';
 import { showAlert, setupModalBackdropClose } from './utils.js';
 import TaskManager from './task.js';
+import SupportModule from './modules/soporte.js';
 // Importar servicios
 import { api } from './services/api.js'; // Ruta correcta
 
@@ -146,16 +147,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     initNotificaciones(); // Inicializar notificaciones
     inicializarMenuUsuario(); // Inicializar menú de usuario
 
-        try {
+    try {
         // Inicializar módulo de documentos
         initializeDocumentosModule();
-        
+
         // Asegurar que el estado global esté disponible
         if (!window.multipleUploadState) {
             const { MultipleUploadState } = await import('./modules/documentos/index.js');
             window.multipleUploadState = new MultipleUploadState();
         }
-        
+
         console.log('✅ Aplicación inicializada correctamente');
     } catch (error) {
         console.error('❌ Error inicializando aplicación:', error);
@@ -233,11 +234,21 @@ function initializeTaskManager() {
 function initializeActiveNavigation() {
     console.log('🎯 Inicializando navegación activa...');
 
+    // Ocultar todos los indicadores primero
+    DOM.navLinks.forEach(link => {
+        const indicator = link.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'hidden';
+    });
+
     // Verificar si hay una pestaña activa en el HTML
     const currentActiveLink = document.querySelector('.sidebar__nav-link--active');
     if (currentActiveLink) {
         const activeTab = currentActiveLink.getAttribute('data-tab');
         console.log('📌 Pestaña activa encontrada en HTML:', activeTab);
+
+        // Mostrar solo el indicador del activo
+        const indicator = currentActiveLink.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'visible';
 
         // Asegurarse de que el contenido también esté activo
         DOM.tabContents.forEach(tab => {
@@ -251,6 +262,8 @@ function initializeActiveNavigation() {
         const dashboardLink = document.querySelector('[data-tab="dashboard"]');
         if (dashboardLink) {
             dashboardLink.classList.add('sidebar__nav-link--active');
+            const indicator = dashboardLink.querySelector('.sidebar__nav-active-indicator');
+            if (indicator) indicator.style.visibility = 'visible';
             appState.currentTab = 'dashboard';
         }
     }
@@ -372,15 +385,23 @@ function setupEventListeners() {
 
     DOM.cancelSearchBtn?.addEventListener('click', () => closeSearchModal());
 
+
     // =============================================================================
-    // 3.11 REPORTES
+    // 3.11 REPORTES (NUEVA PÁGINA)
     // =============================================================================
-
-    DOM.reportType?.addEventListener('change', handleReportTypeChange);
-
-    DOM.generateReportBtn?.addEventListener('click', handleGenerateReport);
-
-    DOM.cancelReportBtn?.addEventListener('click', () => closeReportModal());
+    if (DOM.reportType) {
+        DOM.reportType.addEventListener('change', handleReportTypeChange);
+    }
+    if (DOM.reportFormat) {
+        DOM.reportFormat.addEventListener('change', (e) => {
+            if (typeof window.handleReportFormatChange === 'function') {
+                window.handleReportFormatChange.call(e.target, e);
+            }
+        });
+    }
+    if (DOM.generateReportBtn) {
+        DOM.generateReportBtn.addEventListener('click', handleGenerateReport);
+    }
 
     // =============================================================================
     // 3.13 BOTONES DE CIERRE DE MODALES
@@ -517,26 +538,76 @@ async function handleTabNavigation(e) {
  */
 async function switchTab(tabId) {
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario'];
+
+    // Agregar 'ajustes' como pestaña válida
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
     }
 
+    // Si es la pestaña de ajustes, cargar el HTML externo
+    if (tabId === 'ajustes') {
+        // Buscar o crear el contenedor de ajustes
+        let ajustesSection = document.getElementById('ajustes');
+        if (!ajustesSection) {
+            ajustesSection = document.createElement('section');
+            ajustesSection.id = 'ajustes';
+            ajustesSection.className = 'tab-content';
+            document.querySelector('.main-content').appendChild(ajustesSection);
+        }
+        // Ocultar otras pestañas
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('tab-content--active');
+        });
+        ajustesSection.classList.add('tab-content--active');
+        // Resaltar el enlace de ajustes en el sidebar
+        document.querySelectorAll('.sidebar__nav-link').forEach(link => {
+            link.classList.toggle('sidebar__nav-link--active', link.getAttribute('data-tab') === 'ajustes');
+        });
+        // Cargar el HTML de ajustes solo si no está cargado
+        if (!ajustesSection.dataset.loaded) {
+            fetch('ajustes.html')
+                .then(res => res.text())
+                .then(html => {
+                    // Extraer solo el contenido INTERNO del <main>
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html;
+                    const main = temp.querySelector('main');
+                    if (main) {
+                        ajustesSection.innerHTML = main.innerHTML;
+                    } else {
+                        ajustesSection.innerHTML = html;
+                    }
+                    ajustesSection.dataset.loaded = 'true';
+                    // Cargar el JS de ajustes
+                    import('./modules/ajustes.js');
+                });
+        }
+        // Actualizar estado de la app
+        window.appState = window.appState || {};
+        window.appState.currentTab = 'ajustes';
+        return;
+    }
+
     console.log(`🔄 Cambiando a pestaña: ${tabId}`);
 
-    // 1. Remover clase activa de TODOS los enlaces
+    // 1. Remover clase activa y ocultar indicador de TODOS los enlaces
     DOM.navLinks.forEach(link => {
         link.classList.remove('sidebar__nav-link--active', 'header__nav-link--active');
+        const indicator = link.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'hidden';
     });
 
-    // 2. Agregar clase activa SOLO al enlace seleccionado (si existe en sidebar)
+    // 2. Agregar clase activa y mostrar indicador SOLO al enlace seleccionado (si existe en sidebar)
     const activeLink = Array.from(DOM.navLinks).find(
         link => link.getAttribute('data-tab') === tabId
     );
 
     if (activeLink) {
         activeLink.classList.add('sidebar__nav-link--active');
+        const indicator = activeLink.querySelector('.sidebar__nav-active-indicator');
+        if (indicator) indicator.style.visibility = 'visible';
         console.log(`✅ Enlace activo establecido: ${tabId}`);
     } else {
         console.log(`⚠️ No hay enlace en sidebar para: ${tabId} (tab especial)`);
@@ -610,6 +681,16 @@ async function loadTabSpecificData(tabId) {
                 await initPapelera();
                 break;
 
+            case 'reportes':
+                if (typeof window.initReportsModule === 'function') {
+                    window.initReportsModule();
+                }
+                break;
+            case 'soporte':
+                if (!window.supportModule) {
+                    window.supportModule = new SupportModule();
+                }
+                break;
             default:
                 console.log(`ℹ️  No hay carga específica para la pestaña: ${tabId}`);
         }
@@ -977,8 +1058,14 @@ window.deleteDepartment = deleteDepartment;
 
 window.showAdvancedSearch = showAdvancedSearch;
 window.closeSearchModal = closeSearchModal;
-window.generateReport = generateReport;
-window.closeReportModal = closeReportModal;
+// Reportes: exponer funciones para la nueva página/tab
+import * as reportsModule from './modules/reports.js';
+window.generateReport = reportsModule.generateReport;
+window.closeReportModal = reportsModule.closeReportModal;
+window.handleGenerateReport = reportsModule.handleGenerateReport;
+window.handleReportTypeChange = reportsModule.handleReportTypeChange;
+window.handleReportFormatChange = reportsModule.handleReportFormatChange;
+window.initReportsModule = reportsModule.initReportsModule;
 
 // =============================================================================
 // 11.6 FUNCIONES GENERALES

@@ -1,0 +1,24 @@
+/* =============================================================================
+ * 10. PRELOADER PARA BUSQUEDA
+ * ============================================================================= */
+
+.search-preloader {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+}
+
+.search-preloader--active {
+    display: block;
+}
+
+.search-preloader__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: preloader-spin 1s linear infinite;
+}

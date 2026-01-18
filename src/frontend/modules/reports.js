@@ -115,12 +115,15 @@ function updateReportFilters(reportType) {
                             <label for="reportCategory" class="form__label">
                                 <i class="fas fa-folder"></i> Categoría
                             </label>
-                            <select id="reportCategory" class="form__select">
-                                <option value="">Todas las categorías</option>
-                                ${window.appState.categories.map(cat => 
-                                    `<option value="${cat.nombre}">${cat.nombre}</option>`
-                                ).join('')}
-                            </select>
+                            <div class="select-wrapper">
+                                <select id="reportCategory" class="form__select">
+                                    <option value="">Todas las categorías</option>
+                                    ${window.appState.categories.map(cat => 
+                                        `<option value="${cat.nombre}">${cat.nombre}</option>`
+                                    ).join('')}
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
                             <small class="form-help">Seleccione una categoría específica o "Todas"</small>
                         </div>
                     `;
@@ -153,12 +156,15 @@ function updateReportFilters(reportType) {
                             <label for="reportPerson" class="form__label">
                                 <i class="fas fa-user"></i> Persona
                             </label>
-                            <select id="reportPerson" class="form__select">
-                                <option value="">Todas las personas</option>
-                                ${window.appState.persons.map(person => 
-                                    `<option value="${person._id}">${person.nombre} (${person.email || 'Sin email'})</option>`
-                                ).join('')}
-                            </select>
+                            <div class="select-wrapper">
+                                <select id="reportPerson" class="form__select">
+                                    <option value="">Todas las personas</option>
+                                    ${window.appState.persons.map(person => 
+                                        `<option value="${person._id}">${person.nombre} (${person.email || 'Sin email'})</option>`
+                                    ).join('')}
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
                             <small class="form-help">Seleccione una persona específica o "Todas"</small>
                         </div>
                     `;

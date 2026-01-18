@@ -1,0 +1,852 @@
+/* =============================================================================
+ * Preloader para subida de archivos
+ * ============================================================================= */
+
+.upload-preloader {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    text-align: center;
+    background-color: var(--bg-secondary);
+}
+
+.upload-preloader__dropzone {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-preloader__icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.upload-preloader__text {
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+.upload-preloader__file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: white;
+    border-radius: var(--border-radius);
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-color);
+    width: 100%;
+    max-width: 500px;
+}
+
+.upload-preloader__file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.upload-preloader__file-icon {
+    color: var(--primary);
+    font-size: 1.25rem;
+}
+
+.upload-preloader__file-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.upload-preloader__file-progress {
+    width: 100px;
+    height: 4px;
+    background-color: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.upload-preloader__file-progress-bar {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* =============================================================================
+ * PRELOADER AVANZADO - SUBIDA MÚLTIPLE DE DOCUMENTOS
+ * Versión mejorada con diseño moderno y funcionalidad avanzada
+ * ============================================================================= */
+
+.document-upload-preloader {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 420px;
+    max-width: calc(100vw - 48px);
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    border-radius: var(--radius-xl);
+    box-shadow: 
+        var(--shadow-xl),
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    z-index: 10000;
+    overflow: hidden;
+    animation: preloaderSlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid rgba(var(--primary-rgb, 220, 38, 38), 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transform-origin: bottom right;
+    transition: var(--transition);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.document-upload-preloader:hover {
+    box-shadow: 
+        var(--shadow-xl),
+        0 12px 40px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px) scale(1.01);
+    border-color: rgba(var(--primary-rgb, 220, 38, 38), 0.25);
+}
+
+.document-upload-preloader--minimized {
+    width: 300px;
+    height: 64px;
+    cursor: pointer;
+    animation: preloaderMinimize 0.3s ease;
+}
+
+.document-upload-preloader--minimized .document-upload-preloader__content,
+.document-upload-preloader--minimized .document-upload-preloader__stats,
+.document-upload-preloader--minimized .document-upload-preloader__overall-progress,
+.document-upload-preloader--minimized .document-upload-preloader__action-buttons {
+    display: none;
+}
+
+.document-upload-preloader--minimized:hover {
+    transform: translateY(-2px);
+}
+
+.document-upload-preloader--completed {
+    animation: preloaderSuccess 2s ease;
+    border-color: rgba(var(--success-rgb, 16, 185, 129), 0.3);
+    box-shadow: 
+        var(--shadow-xl),
+        0 8px 32px rgba(var(--success-rgb, 16, 185, 129), 0.15);
+}
+
+.document-upload-preloader--error {
+    animation: preloaderError 0.6s ease;
+    border-color: rgba(var(--danger-rgb, 239, 68, 68), 0.3);
+}
+
+.document-upload-preloader--uploading {
+    border-color: rgba(var(--primary-rgb, 220, 38, 38), 0.3);
+    animation: preloaderPulse 2s infinite;
+}
+
+/* Header avanzado */
+.document-upload-preloader__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+    min-height: 64px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.document-upload-preloader__header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.15) 50%,
+        transparent 100%
+    );
+    animation: headerShimmer 3s ease-in-out infinite;
+}
+
+.document-upload-preloader__title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    font-size: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.document-upload-preloader__title-icon {
+    font-size: 1.25rem;
+    animation: uploadIconFloat 3s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.document-upload-preloader__title-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.document-upload-preloader__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.document-upload-preloader__btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    font-size: 0.875rem;
+    backdrop-filter: blur(5px);
+}
+
+.document-upload-preloader__btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+}
+
+.document-upload-preloader__btn--minimize:hover {
+    transform: rotate(180deg) scale(1.15);
+}
+
+.document-upload-preloader__btn--close:hover {
+    background: rgba(239, 68, 68, 0.3);
+    transform: rotate(90deg) scale(1.15);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Contenido principal */
+.document-upload-preloader__content {
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.6) 100%);
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+}
+
+.document-upload-preloader__content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.document-upload-preloader__content::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+}
+
+.document-upload-preloader__content::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
+    opacity: 0.3;
+}
+
+.document-upload-preloader__content::-webkit-scrollbar-thumb:hover {
+    opacity: 0.5;
+}
+
+/* Barra de progreso general mejorada */
+.document-upload-preloader__overall-progress {
+    padding: 0 1.5rem 1.5rem;
+    background: var(--bg-primary);
+}
+
+.document-upload-preloader__overall-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.document-upload-preloader__overall-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.document-upload-preloader__overall-percentage {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.document-upload-preloader__overall-bar {
+    height: 8px;
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, #e2e8f0 100%);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.document-upload-preloader__overall-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(var(--primary-rgb, 220, 38, 38), 0.3);
+}
+
+.document-upload-preloader__overall-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+    );
+    animation: progressShimmer 1.5s ease-in-out infinite;
+    transform: translateX(-100%);
+}
+
+.document-upload-preloader__overall-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* Estadísticas detalladas */
+.document-upload-preloader__stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid rgba(var(--primary-rgb, 220, 38, 38), 0.1);
+    background: var(--bg-secondary);
+}
+
+.document-upload-preloader__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(var(--primary-rgb, 220, 38, 38), 0.05);
+    transition: var(--transition);
+}
+
+.document-upload-preloader__stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(var(--primary-rgb, 220, 38, 38), 0.1);
+}
+
+.document-upload-preloader__stat-icon {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.document-upload-preloader__stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.document-upload-preloader__stat-label {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.document-upload-preloader__stat--success {
+    border-color: rgba(var(--success-rgb, 16, 185, 129), 0.2);
+    background: linear-gradient(135deg, var(--success-light) 0%, rgba(220, 252, 231, 0.7) 100%);
+}
+
+.document-upload-preloader__stat--success .document-upload-preloader__stat-value {
+    color: var(--success);
+}
+
+.document-upload-preloader__stat--success .document-upload-preloader__stat-icon {
+    color: var(--success);
+}
+
+.document-upload-preloader__stat--error {
+    border-color: rgba(var(--danger-rgb, 239, 68, 68), 0.2);
+    background: linear-gradient(135deg, var(--danger-light) 0%, rgba(254, 226, 226, 0.7) 100%);
+}
+
+.document-upload-preloader__stat--error .document-upload-preloader__stat-value {
+    color: var(--danger);
+}
+
+.document-upload-preloader__stat--error .document-upload-preloader__stat-icon {
+    color: var(--danger);
+}
+
+.document-upload-preloader__stat--pending {
+    border-color: rgba(var(--warning-rgb, 245, 158, 11), 0.2);
+    background: linear-gradient(135deg, var(--warning-light) 0%, rgba(254, 243, 199, 0.7) 100%);
+}
+
+.document-upload-preloader__stat--pending .document-upload-preloader__stat-value {
+    color: var(--warning);
+}
+
+.document-upload-preloader__stat--pending .document-upload-preloader__stat-icon {
+    color: var(--warning);
+}
+
+/* Lista de archivos mejorada */
+.document-upload-preloader__files {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.document-upload-preloader__file {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(var(--primary-rgb, 220, 38, 38), 0.1);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.document-upload-preloader__file::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary);
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.document-upload-preloader__file:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(var(--primary-rgb, 220, 38, 38), 0.2);
+}
+
+.document-upload-preloader__file:hover::before {
+    opacity: 1;
+}
+
+.document-upload-preloader__file--success {
+    border-color: rgba(var(--success-rgb, 16, 185, 129), 0.2);
+    background: linear-gradient(135deg, var(--success-light) 0%, rgba(220, 252, 231, 0.5) 100%);
+}
+
+.document-upload-preloader__file--success::before {
+    background: var(--success);
+}
+
+.document-upload-preloader__file--error {
+    border-color: rgba(var(--danger-rgb, 239, 68, 68), 0.2);
+    background: linear-gradient(135deg, var(--danger-light) 0%, rgba(254, 226, 226, 0.5) 100%);
+}
+
+.document-upload-preloader__file--error::before {
+    background: var(--danger);
+}
+
+.document-upload-preloader__file--uploading {
+    border-color: rgba(var(--primary-rgb, 220, 38, 38), 0.2);
+    background: linear-gradient(135deg, var(--info-light) 0%, rgba(224, 242, 254, 0.5) 100%);
+    animation: fileUploadingPulse 2s ease-in-out infinite;
+}
+
+.document-upload-preloader__file--uploading::before {
+    background: var(--primary);
+}
+
+.document-upload-preloader__file-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    margin-right: 1rem;
+    color: var(--primary);
+    font-size: 1.375rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    position: relative;
+    z-index: 1;
+}
+
+.document-upload-preloader__file:hover .document-upload-preloader__file-icon {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
+}
+
+.document-upload-preloader__file--success .document-upload-preloader__file-icon {
+    background: var(--success);
+    color: white;
+    box-shadow: 0 2px 8px rgba(var(--success-rgb, 16, 185, 129), 0.2);
+}
+
+.document-upload-preloader__file--error .document-upload-preloader__file-icon {
+    background: var(--danger);
+    color: white;
+    box-shadow: 0 2px 8px rgba(var(--danger-rgb, 239, 68, 68), 0.2);
+}
+
+.document-upload-preloader__file--uploading .document-upload-preloader__file-icon {
+    animation: iconSpin 2s linear infinite;
+}
+
+.document-upload-preloader__file-content {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.document-upload-preloader__file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.625rem;
+    gap: 0.75rem;
+}
+
+.document-upload-preloader__file-name {
+    font-size: 0.925rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    flex: 1;
+}
+
+.document-upload-preloader__file-size {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--radius-sm);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.document-upload-preloader__file-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.document-upload-preloader__file-progress {
+    flex: 1;
+    height: 6px;
+    background: rgba(var(--primary-rgb, 220, 38, 38), 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.document-upload-preloader__file-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.document-upload-preloader__file-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+    );
+    animation: progressShimmer 1s ease-in-out infinite;
+}
+
+.document-upload-preloader__file--success .document-upload-preloader__file-progress-bar {
+    background: var(--success);
+}
+
+.document-upload-preloader__file--error .document-upload-preloader__file-progress-bar {
+    background: var(--danger);
+}
+
+.document-upload-preloader__file-percentage {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 40px;
+    text-align: right;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.document-upload-preloader__file--success .document-upload-preloader__file-percentage {
+    color: var(--success);
+}
+
+.document-upload-preloader__file--error .document-upload-preloader__file-percentage {
+    color: var(--danger);
+}
+
+.document-upload-preloader__file-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.document-upload-preloader__file-status-icon {
+    font-size: 0.875rem;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: var(--transition);
+}
+
+.document-upload-preloader__file--success .document-upload-preloader__file-status-icon {
+    color: var(--success);
+    opacity: 1;
+    transform: scale(1);
+    animation: iconSuccessCheck 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.document-upload-preloader__file--error .document-upload-preloader__file-status-icon {
+    color: var(--danger);
+    opacity: 1;
+    transform: scale(1);
+    animation: iconErrorX 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.document-upload-preloader__file-meta {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    flex-wrap: wrap;
+}
+
+.document-upload-preloader__file-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.document-upload-preloader__file-meta-icon {
+    font-size: 0.7rem;
+}
+
+/* Overlay de estado completado/error */
+.document-upload-preloader__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    z-index: 20;
+    animation: overlayFadeIn 0.5s ease-out;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.document-upload-preloader__overlay--success {
+    background: linear-gradient(135deg, 
+        rgba(var(--success-rgb, 16, 185, 129), 0.95) 0%, 
+        rgba(var(--success-dark, 5, 150, 105), 0.95) 100%);
+    color: white;
+}
+
+.document-upload-preloader__overlay--error {
+    background: linear-gradient(135deg, 
+        rgba(var(--danger-rgb, 239, 68, 68), 0.95) 0%, 
+        rgba(var(--danger-dark, 220, 38, 38), 0.95) 100%);
+    color: white;
+}
+
+.document-upload-preloader__overlay-content {
+    text-align: center;
+    max-width: 320px;
+    animation: overlayContentSlideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.document-upload-preloader__overlay-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1.25rem;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.document-upload-preloader__overlay--success .document-upload-preloader__overlay-icon {
+    animation: overlayIconSuccess 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.document-upload-preloader__overlay--error .document-upload-preloader__overlay-icon {
+    animation: overlayIconError 0.8s ease-in-out;
+}
+
+.document-upload-preloader__overlay-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.document-upload-preloader__overlay-message {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+/* Botones de acción mejorados */
+.document-upload-preloader__action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid rgba(var(--primary-rgb, 220, 38, 38), 0.1);
+    background: var(--bg-secondary);
+}
+
+.document-upload-preloader__action-btn {
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+}
+
+.document-upload-preloader__action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.document-upload-preloader__action-btn:active {
+    transform: translateY(0);
+}
+
+.document-upload-preloader__action-btn--primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.document-upload-preloader__action-btn--primary:hover {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb, 220, 38, 38), 0.3);
+}
+
+.document-upload-preloader__action-btn--secondary {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid rgba(var(--primary-rgb, 220, 38, 38), 0.2);
+}
+
+.document-upload-preloader__action-btn--secondary:hover {
+    background: var(--bg-secondary);
+    border-color: rgba(var(--primary-rgb, 220, 38, 38), 0.3);
+    box-shadow: var(--shadow-md);
+}
+
+/* Estados vacíos */
+.document-upload-preloader__empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: var(--text-tertiary);
+}
+
+.document-upload-preloader__empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+    animation: emptyIconFloat 4s ease-in-out infinite;
+}
+
+.document-upload-preloader__empty-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.document-upload-preloader__empty-message {
+    font-size: 0.875rem;
+    max-width: 280px;
+    line-height: 1.5;
+}
