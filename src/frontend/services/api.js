@@ -1,24 +1,55 @@
 import { CONFIG } from '../config.js';
 import { showAlert } from '../utils.js';
 
-// =============================================================================
-// 1. CLASE PRINCIPAL DEL SERVICIO API
-// =============================================================================
-
-class apiCall {
+class ApiService {
     constructor() {
         this.baseURL = CONFIG.API_BASE_URL;
+        this.systemStatusCache = {
+            data: null,
+            timestamp: null,
+            ttl: 30000 // 30 segundos de cache
+        };
+        
+        // Verificar si estamos en navegador y detectar entorno
+        this.isDevelopment = this.detectDevelopmentEnvironment();
+        console.log(`🌍 Entorno detectado: ${this.isDevelopment ? 'Desarrollo' : 'Producción'}`);
     }
 
     // =========================================================================
-    // 1.1 FUNCIÓN PRINCIPAL DE LLAMADAS A LA API
+    // DETECCIÓN SEGURA DEL ENTORNO (compatible con navegador)
     // =========================================================================
+    detectDevelopmentEnvironment() {
+        // Método seguro para navegador
+        if (typeof window !== 'undefined') {
+            // Verificar por hostname local
+            const hostname = window.location.hostname;
+            const isLocalhost = hostname === 'localhost' || 
+                               hostname === '127.0.0.1' || 
+                               hostname === '::1' ||
+                               hostname.includes('local');
+            
+            // Verificar por puerto de desarrollo
+            const port = window.location.port;
+            const isDevPort = port === '3000' || port === '4000' || port === '8080';
+            
+            // Verificar por parámetros de URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasDebugParam = urlParams.has('debug') || urlParams.has('development');
+            
+            // Verificar variables globales
+            const hasDebugGlobal = window.DEBUG_MODE === true || 
+                                  window.ENV === 'development' ||
+                                  window.IS_DEVELOPMENT === true;
+            
+            return isLocalhost || isDevPort || hasDebugParam || hasDebugGlobal;
+        }
+        
+        return false; // Por defecto, asumir producción
+    }
 
-    /**
-     * Función auxiliar genérica para llamadas a la API
-     * Maneja todas las solicitudes HTTP al backend, incluyendo gestión de headers,
-     * manejo de errores y procesamiento de respuestas JSON.
-     */
+    // =========================================================================
+    // FUNCIÓN PRINCIPAL DE LLAMADAS A LA API
+    // =========================================================================
     async call(endpoint, options = {}) {
         try {
             console.log(`📡 API Call: ${this.baseURL}${endpoint}`, options.method || 'GET');
@@ -33,7 +64,7 @@ class apiCall {
 
             const finalOptions = { ...defaultOptions, ...options };
             
-            if (finalOptions.body && typeof finalOptions.body === 'object' && !(finalOptions.body instanceof FormData)) {
+        if (finalOptions.body && typeof finalOptions.body === 'object' && !(finalOptions.body instanceof FormData)) {
                 finalOptions.body = JSON.stringify(finalOptions.body);
             }
 
@@ -44,16 +75,20 @@ class apiCall {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ API Error:', errorText);
+                
+                // Si es un error 404 y estamos en desarrollo, mostrar mensaje más claro
+                if (response.status === 404 && this.isDevelopment) {
+                    console.warn(`⚠️ Endpoint no encontrado: ${endpoint}. Verifica las rutas en apiRoutes.js`);
+                }
+                
                 throw new Error(`Error HTTP ${response.status}: ${errorText}`);
             }
 
-            // Verificar tipo de contenido
             const contentType = response.headers.get('content-type');
             
             if (contentType && contentType.includes('application/json')) {
                 return await response.json();
             } else {
-                // Para respuestas que no son JSON (como archivos)
                 return response;
             }
             
@@ -64,14 +99,453 @@ class apiCall {
     }
 
     // =========================================================================
-    // 2. FUNCIONES ESPECIALIZADAS PARA DESCARGAS DE ARCHIVOS
+    // FUNCIONES PARA ESTADO DEL SISTEMA (REAL - NO PRUEBA)
     // =========================================================================
 
     /**
-     * Función especializada para descargar archivos
-     * Gestiona la descarga de archivos binarios desde el servidor, incluyendo
-     * manejo de blobs, creación de URLs temporales y disparo de descargas.
+     * Obtiene el estado REAL actual del sistema
+     * @returns {Promise} Estado del sistema
      */
+    async getSystemStatus(forceRefresh = false) {
+        try {
+            // Verificar cache si no se fuerza refresco
+            if (!forceRefresh && this.systemStatusCache.data && this.systemStatusCache.timestamp) {
+                const now = Date.now();
+                const cacheAge = now - this.systemStatusCache.timestamp;
+                
+                if (cacheAge < this.systemStatusCache.ttl) {
+                    console.log('📊 Estado del sistema obtenido de caché');
+                    return this.systemStatusCache.data;
+                }
+            }
+            
+            console.log('🌐 API: Obteniendo estado REAL del sistema...');
+            
+            const response = await fetch(`${this.baseURL}/support/status`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                // Intentar endpoint alternativo si el principal falla
+                console.warn('⚠️ Endpoint principal falló, intentando alternativo...');
+                return await this.getSystemStatusFallback();
+            }
+
+            const data = await response.json();
+            
+            // Validar que la respuesta tenga la estructura esperada
+            if (!data || typeof data !== 'object') {
+                throw new Error('Respuesta del servidor inválida');
+            }
+            
+            if (!data.services || typeof data.services !== 'object') {
+                throw new Error('Estructura de servicios inválida en la respuesta');
+            }
+            
+            // Cachear la respuesta
+            this.systemStatusCache = {
+                data: data,
+                timestamp: Date.now(),
+                ttl: 30000 // 30 segundos
+            };
+            
+            console.log('✅ Estado REAL del sistema obtenido correctamente');
+            return data;
+            
+        } catch (error) {
+            console.error('💥 Error en getSystemStatus:', error);
+            
+            // Si hay error, intentar con método de fallback
+            try {
+                return await this.getSystemStatusFallback();
+            } catch (fallbackError) {
+                console.error('💥 Error también en fallback:', fallbackError);
+                
+                // Devolver estado de error genérico
+                return this.getDefaultErrorStatus();
+            }
+        }
+    }
+
+    /**
+     * Método de fallback para obtener estado del sistema
+     */
+    async getSystemStatusFallback() {
+        try {
+            console.log('🔄 Intentando método de fallback para estado del sistema...');
+            
+            // Intentar con endpoint de health como fallback
+            const response = await fetch(`${this.baseURL}/health`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('Fallback también falló');
+            }
+
+            const healthData = await response.json();
+            
+            // Crear un estado básico basado en health
+            const fallbackStatus = {
+                success: true,
+                timestamp: new Date().toISOString(),
+                overallStatus: 'warning',
+                services: {
+                    database: {
+                        name: 'Base de Datos',
+                        status: 'warning',
+                        message: 'Estado verificado por health check',
+                        details: { fallback: true },
+                        timestamp: new Date().toISOString()
+                    },
+                    system: {
+                        name: 'Sistema Principal',
+                        status: healthData.success ? 'operational' : 'error',
+                        message: healthData.message || 'Estado desconocido',
+                        details: healthData,
+                        timestamp: new Date().toISOString()
+                    },
+                    cloudStorage: {
+                        name: 'Almacenamiento Cloud',
+                        status: 'warning',
+                        message: 'No se pudo verificar',
+                        details: { fallback: true },
+                        timestamp: new Date().toISOString()
+                    },
+                    emailService: {
+                        name: 'Servicio de Email',
+                        status: 'warning',
+                        message: 'No se pudo verificar',
+                        details: { fallback: true },
+                        timestamp: new Date().toISOString()
+                    }
+                },
+                metrics: {
+                    timestamp: new Date().toISOString(),
+                    responseTime: 'N/A',
+                    environment: this.isDevelopment ? 'development' : 'production'
+                }
+            };
+            
+            console.log('⚠️ Usando estado de fallback del sistema');
+            return fallbackStatus;
+            
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Estado de error por defecto cuando todo falla
+     */
+    getDefaultErrorStatus() {
+        return {
+            success: false,
+            message: 'No se pudo obtener el estado del sistema',
+            timestamp: new Date().toISOString(),
+            overallStatus: 'error',
+            services: {
+                database: {
+                    name: 'Base de Datos',
+                    status: 'error',
+                    message: 'No se pudo verificar',
+                    timestamp: new Date().toISOString()
+                },
+                system: {
+                    name: 'Sistema Principal',
+                    status: 'error',
+                    message: 'Error de conexión con el servidor',
+                    timestamp: new Date().toISOString()
+                },
+                cloudStorage: {
+                    name: 'Almacenamiento Cloud',
+                    status: 'error',
+                    message: 'No se pudo verificar',
+                    timestamp: new Date().toISOString()
+                },
+                emailService: {
+                    name: 'Servicio de Email',
+                    status: 'error',
+                    message: 'No se pudo verificar',
+                    timestamp: new Date().toISOString()
+                }
+            }
+        };
+    }
+
+    /**
+     * Limpia el caché del estado del sistema
+     */
+    clearSystemStatusCache() {
+        this.systemStatusCache = {
+            data: null,
+            timestamp: null,
+            ttl: 30000
+        };
+        console.log('🗑️ Caché de estado del sistema limpiado');
+    }
+
+    // =========================================================================
+    // FUNCIONES PARA DESARROLLO (SOLO EN MODO DESARROLLO)
+    // =========================================================================
+    
+    async activateRealErrors(services) {
+        // Verificar que estamos en desarrollo
+        if (!this.isDevelopment) {
+            console.warn('⚠️ Esta función solo está disponible en modo desarrollo');
+            return {
+                success: false,
+                message: 'Solo disponible en modo desarrollo'
+            };
+        }
+        
+        try {
+            console.log('🔥 API: Activando errores reales:', services);
+            
+            const response = await fetch(`${this.baseURL}/support/activate-errors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ services }),
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error activando errores');
+            }
+
+            return data;
+            
+        } catch (error) {
+            console.error('💥 Error en activateRealErrors:', error);
+            throw error;
+        }
+    }
+
+    async resetRealErrors() {
+        // Verificar que estamos en desarrollo
+        if (!this.isDevelopment) {
+            console.warn('⚠️ Esta función solo está disponible en modo desarrollo');
+            return {
+                success: false,
+                message: 'Solo disponible en modo desarrollo'
+            };
+        }
+        
+        try {
+            console.log('🔄 API: Restableciendo errores reales');
+            
+            const response = await fetch(`${this.baseURL}/support/reset-errors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error restableciendo errores');
+            }
+
+            return data;
+            
+        } catch (error) {
+            console.error('💥 Error en resetRealErrors:', error);
+            throw error;
+        }
+    }
+
+    async validateSystemErrors() {
+        // Verificar que estamos en desarrollo
+        if (!this.isDevelopment) {
+            console.warn('⚠️ Esta función solo está disponible en modo desarrollo');
+            return {
+                success: false,
+                message: 'Solo disponible en modo desarrollo'
+            };
+        }
+        
+        try {
+            console.log('🔍 API: Validando errores del sistema');
+            
+            const response = await fetch(`${this.baseURL}/support/validate-errors`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error validando errores');
+            }
+
+            return data;
+            
+        } catch (error) {
+            console.error('💥 Error en validateSystemErrors:', error);
+            throw error;
+        }
+    }
+
+    async simulateRealError(service) {
+        // Verificar que estamos en desarrollo
+        if (!this.isDevelopment) {
+            console.warn('⚠️ Esta función solo está disponible en modo desarrollo');
+            return {
+                success: false,
+                message: 'Solo disponible en modo desarrollo'
+            };
+        }
+        
+        try {
+            console.log(`🧪 API: Simulando error real en ${service}`);
+            
+            const response = await fetch(`${this.baseURL}/support/simulate-error/${service}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error simulando error');
+            }
+
+            return data;
+            
+        } catch (error) {
+            console.error('💥 Error en simulateRealError:', error);
+            throw error;
+        }
+    }
+
+    async resetAllRealErrors() {
+        // Verificar que estamos en desarrollo
+        if (!this.isDevelopment) {
+            console.warn('⚠️ Esta función solo está disponible en modo desarrollo');
+            return {
+                success: false,
+                message: 'Solo disponible en modo desarrollo'
+            };
+        }
+        
+        try {
+            console.log('🔄 API: Restableciendo todos los errores reales');
+            
+            const response = await fetch(`${this.baseURL}/support/reset-all-errors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Error restableciendo errores');
+            }
+
+            return data;
+            
+        } catch (error) {
+            console.error('💥 Error en resetAllRealErrors:', error);
+            throw error;
+        }
+    }
+
+    // =========================================================================
+    // FUNCIONES PARA SOPORTE
+    // =========================================================================
+
+    async createTicket(ticketData, files = []) {
+        const formData = new FormData();
+        
+        Object.keys(ticketData).forEach(key => {
+            formData.append(key, ticketData[key]);
+        });
+        
+        if (files && files.length > 0) {
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+            console.log(`📤 Enviando ${files.length} archivo(s) con el ticket`);
+        }
+        
+        try {
+            const response = await fetch(`${this.baseURL}/support/tickets`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error creando ticket:', error);
+            throw error;
+        }
+    }
+
+    async getFAQ() {
+        try {
+            const response = await fetch(`${this.baseURL}/support/faq`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error obteniendo FAQ:', error);
+            throw error;
+        }
+    }
+
+    async getSystemGuide() {
+        try {
+            const response = await fetch(`${this.baseURL}/support/guide`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error obteniendo guía:', error);
+            throw error;
+        }
+    }
+
+    // =========================================================================
+    // FUNCIONES PARA DESCARGAS
+    // =========================================================================
+
     async downloadFile(endpoint, fileName, options = {}) {
         console.group('📥 DOWNLOAD FILE API');
         console.log('📋 Parámetros:', { endpoint, fileName, options });
@@ -92,20 +566,17 @@ class apiCall {
             
             const finalOptions = { ...defaultOptions, ...options };
             
-            // Agregar timestamp para evitar caché
             const finalUrl = new URL(url);
             finalUrl.searchParams.append('_t', Date.now());
             
             console.log('🔗 URL con timestamp:', finalUrl.toString());
             
-            // Intentar la descarga
             const response = await fetch(finalUrl.toString(), finalOptions);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            // Obtener el blob
             const blob = await response.blob();
             
             if (blob.size === 0) {
@@ -114,7 +585,6 @@ class apiCall {
             
             console.log(`✅ Blob recibido: ${blob.size} bytes, tipo: ${blob.type}`);
             
-            // Verificar si es un error HTML disfrazado
             if (blob.type.includes('text/html') && blob.size < 5000) {
                 const text = await blob.text();
                 if (text.includes('<!DOCTYPE') || text.includes('<html') || text.includes('Error')) {
@@ -122,36 +592,25 @@ class apiCall {
                 }
             }
             
-            // Crear URL para el blob
             const blobUrl = window.URL.createObjectURL(blob);
-            
-            // Crear elemento de descarga
             const link = document.createElement('a');
             link.href = blobUrl;
             link.download = fileName;
-            
-            // Agregar atributos para mejor compatibilidad
             link.setAttribute('type', blob.type);
             link.setAttribute('download', fileName);
             link.style.display = 'none';
             
-            // Agregar al DOM
             document.body.appendChild(link);
             
-            // Crear evento de clic
             const clickEvent = new MouseEvent('click', {
                 view: window,
                 bubbles: true,
                 cancelable: false
             });
             
-            // Disparar el evento
             link.dispatchEvent(clickEvent);
-            
-            // También intentar con click nativo
             link.click();
             
-            // Limpiar después de un tiempo
             setTimeout(() => {
                 if (link.parentNode) {
                     document.body.removeChild(link);
@@ -171,192 +630,86 @@ class apiCall {
         }
     }
 
-    /**
-     * Verificar disponibilidad de endpoint de descarga
-     * Realiza una petición HEAD para verificar si un endpoint de descarga está activo
-     * antes de intentar la descarga completa.
-     */
-    async checkDownloadEndpoint(fileId) {
-        try {
-            console.log('🔍 Verificando endpoint de descarga para:', fileId);
-            
-            const endpoint = `/documents/${fileId}/download`;
-            const url = `${this.baseURL}${endpoint}`;
-            
-            // Hacer HEAD request para verificar
-            const response = await fetch(url, {
-                method: 'HEAD',
-                headers: {
-                    'Accept': '*/*'
-                }
-            });
-            
-            console.log('📊 Resultado HEAD:', {
-                ok: response.ok,
-                status: response.status,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-            
-            return response.ok;
-            
-        } catch (error) {
-            console.error('❌ Error verificando endpoint:', error);
-            return false;
-        }
-    }
+    // =========================================================================
+    // FUNCIONES PARA DOCUMENTOS
+    // =========================================================================
 
-    /**
-     * Obtener información detallada del archivo
-     * Recupera metadatos específicos de un archivo antes de intentar la descarga.
-     */
-    async getFileInfo(fileId) {
+    async uploadDocument(formData, documentId = null) {
+        console.group('📤 UPLOAD DOCUMENT API');
+        console.log('📋 Parámetros:', { 
+            documentId, 
+            hasFile: formData.has('file'),
+            isUpdate: !!documentId 
+        });
+        
         try {
-            const data = await this.call(`/documents/${fileId}/info`);
-            return data;
+            let endpoint = '/documents';
+            let method = 'POST';
+            
+            if (documentId) {
+                endpoint = `/documents/${documentId}`;
+                method = 'PUT';
+                
+                console.log('🔄 Modo actualización con archivo');
+                
+                const options = {
+                    method: method,
+                    body: formData,
+                    credentials: 'include'
+                };
+                
+                console.log('📡 Enviando FormData al servidor...');
+                const response = await fetch(`${this.baseURL}${endpoint}`, options);
+                
+                console.log(`📥 Respuesta: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Error del servidor:', errorText);
+                    throw new Error(`Error HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Upload exitoso:', data);
+                console.groupEnd();
+                return data;
+                
+            } else {
+                return this.call('/documents', {
+                    method: method,
+                    body: formData
+                });
+            }
+            
         } catch (error) {
-            console.error('❌ Error obteniendo info del archivo:', error);
+            console.error('💥 Error en uploadDocument:', error);
+            console.groupEnd();
             throw error;
         }
     }
 
-    // =========================================================================
-    // 3. FUNCIONES DE DIAGNÓSTICO Y DEBUG
-    // =========================================================================
-
-    /**
-     * Probar múltiples endpoints de descarga
-     * Evalúa diferentes rutas de API para encontrar el endpoint funcional
-     * para descargar un archivo específico.
-     */
-    async testDownloadEndpoints(fileId) {
-        const endpoints = [
-            `/documents/${fileId}/download`,
-            `/documents/${fileId}/file`,
-            `/documents/${fileId}/raw`
-        ];
-        
-        const results = [];
-        
-        for (const endpoint of endpoints) {
-            try {
-                const url = `${this.baseURL}${endpoint}`;
-                const response = await fetch(url, { method: 'HEAD' });
-                
-                results.push({
-                    endpoint,
-                    url,
-                    available: response.ok,
-                    status: response.status,
-                    contentType: response.headers.get('content-type')
-                });
-            } catch (error) {
-                results.push({
-                    endpoint,
-                    available: false,
-                    error: error.message
-                });
-            }
-        }
-        
-        return results;
+    async getDocuments() {
+        return this.call('/documents');
     }
 
-    /**
-     * Debug detallado de descarga
-     * Herramienta de diagnóstico completa que analiza todos los aspectos
-     * de una descarga fallida para identificar la causa raíz.
-     */
-    async debugDownload(fileId) {
-        console.group('🐛 DEBUG DE DESCARGA DETALLADO');
-        
-        try {
-            // 1. Obtener información del documento
-            const documents = window.appState?.documents || [];
-            const doc = documents.find(d => d._id === fileId);
-            
-            if (!doc) {
-                console.error('❌ Documento no encontrado en appState');
-                console.groupEnd();
-                return null;
-            }
-            
-            console.log('📄 INFORMACIÓN DEL DOCUMENTO:');
-            console.table({
-                'ID': doc._id,
-                'Nombre': doc.nombre_original,
-                'Tipo': doc.tipo_archivo,
-                'Tamaño': doc.tamano_archivo,
-                'Cloudinary URL': doc.url_cloudinary || doc.cloudinary_url,
-                'URL Disponible': !!(doc.url_cloudinary || doc.cloudinary_url)
-            });
-            
-            // 2. Verificar endpoints del servidor
-            console.log('🔍 VERIFICANDO ENDPOINTS DEL SERVIDOR:');
-            const endpointsTest = await this.testDownloadEndpoints(fileId);
-            console.table(endpointsTest);
-            
-            // 3. Verificar conexión a Cloudinary
-            console.log('☁️ VERIFICANDO CLOUDINARY:');
-            if (doc.url_cloudinary || doc.cloudinary_url) {
-                const cloudinaryUrl = doc.url_cloudinary || doc.cloudinary_url;
-                try {
-                    const response = await fetch(cloudinaryUrl, { method: 'HEAD' });
-                    console.log('✅ Cloudinary accesible:', {
-                        ok: response.ok,
-                        status: response.status,
-                        contentType: response.headers.get('content-type'),
-                        contentLength: response.headers.get('content-length')
-                    });
-                } catch (error) {
-                    console.error('❌ Cloudinary no accesible:', error.message);
-                }
-            } else {
-                console.log('❌ No hay URL de Cloudinary disponible');
-            }
-            
-            // 4. Recomendaciones
-            console.log('💡 RECOMENDACIONES:');
-            const extension = doc.nombre_original.split('.').pop().toLowerCase();
-            
-            if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
-                console.log('   • Usar descarga directa desde Cloudinary');
-                console.log('   • Agregar fl_attachment para forzar descarga');
-            } else if (extension === 'pdf') {
-                console.log('   • Usar endpoint del servidor (/download)');
-                console.log('   • Verificar headers Content-Type: application/pdf');
-            } else if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
-                console.log('   • Requiere endpoint del servidor');
-                console.log('   • Asegurar headers Content-Type correctos');
-                console.log('   • Puede necesitar fl_attachment en Cloudinary');
-            }
-            
-            return {
-                document: doc,
-                endpoints: endpointsTest,
-                recommendations: {
-                    bestStrategy: endpointsTest.find(e => e.available) ? 'server' : 'cloudinary',
-                    extension: extension
-                }
-            };
-            
-        } catch (error) {
-            console.error('❌ Error en debug:', error);
-            return null;
-        } finally {
-            console.groupEnd();
-        }
+    async deleteDocument(id) {
+        return this.call(`/documents/${id}`, {
+            method: 'DELETE'
+        });
     }
 
     // =========================================================================
-    // 4. MÉTODOS PARA ENDPOINTS ESPECÍFICOS (FACHADA)
+    // FUNCIONES PARA DASHBOARD
     // =========================================================================
 
-    // Dashboard
     async getDashboardData() {
         return this.call('/dashboard');
     }
 
-    // Personas
+    // =========================================================================
+    // FUNCIONES PARA PERSONAS
+    // =========================================================================
+
     async getPersons() {
         return this.call('/persons');
     }
@@ -381,113 +734,10 @@ class apiCall {
         });
     }
 
-    // Documentos
-    async getDocuments() {
-        return this.call('/documents');
-    }
+    // =========================================================================
+    // FUNCIONES PARA CATEGORÍAS
+    // =========================================================================
 
-    async uploadDocument(formData, documentId = null) {
-        console.group('📤 UPLOAD DOCUMENT API');
-        console.log('📋 Parámetros:', { 
-            documentId, 
-            hasFile: formData.has('file'),
-            isUpdate: !!documentId 
-        });
-        
-        try {
-            let endpoint = '/documents';
-            let method = 'POST';
-            
-            if (documentId) {
-                // Para actualizar con archivo
-                endpoint = `/documents/${documentId}`;
-                method = 'PUT';
-                
-                console.log('🔄 Modo actualización con archivo');
-                
-                // IMPORTANTE: Cuando es FormData, NO establecer Content-Type manualmente
-                // El navegador lo hará automáticamente con el boundary correcto
-                const options = {
-                    method: method,
-                    body: formData,
-                    credentials: 'include'
-                    // NO headers para FormData
-                };
-                
-                console.log('📡 Enviando FormData al servidor...');
-                const response = await fetch(`${this.baseURL}${endpoint}`, options);
-                
-                console.log(`📥 Respuesta: ${response.status} ${response.statusText}`);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('❌ Error del servidor:', errorText);
-                    throw new Error(`Error HTTP ${response.status}: ${errorText}`);
-                }
-                
-                const data = await response.json();
-                console.log('✅ Upload exitoso:', data);
-                console.groupEnd();
-                return data;
-                
-            } else {
-                // Para crear nuevo documento (mantener la lógica original)
-                return this.call('/documents', {
-                    method: method,
-                    body: formData
-                    // NO headers para FormData
-                });
-            }
-            
-        } catch (error) {
-            console.error('💥 Error en uploadDocument:', error);
-            console.groupEnd();
-            throw error;
-        }
-    }
-
-    async deleteDocument(id) {
-        return this.call(`/documents/${id}`, {
-            method: 'DELETE'
-        });
-    }
-
-    async downloadDocument(id, filename) {
-        const endpoint = `/documents/${id}/download${filename ? `?filename=${encodeURIComponent(filename)}` : ''}`;
-        return this.downloadFile(endpoint, filename || 'documento');
-    }
-
-    async getDocumentContent(id) {
-        return this.call(`/documents/${id}/content`);
-    }
-
-    async previewDocument(id) {
-        return this.call(`/documents/${id}/preview`);
-    }
-
-    // Método específico para actualizar documento (sin archivo)
-    async updateDocument(id, documentData) {
-        return this.call(`/documents/${id}`, {
-            method: 'PUT',
-            body: documentData,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-    }
-
-    // Método para actualización parcial (PATCH)
-    async patchDocument(id, documentData) {
-        return this.call(`/documents/${id}`, {
-            method: 'PATCH',
-            body: documentData,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-    }
-
-    // Categorías
     async getCategories() {
         return this.call('/categories');
     }
@@ -511,6 +761,10 @@ class apiCall {
             method: 'DELETE'
         });
     }
+
+    // =========================================================================
+    // FUNCIONES PARA DEPARTAMENTOS
+    // =========================================================================
 
     async getDepartments() {
         return this.call('/departments');
@@ -536,29 +790,10 @@ class apiCall {
         });
     }
 
-    // Reportes
-    async generateExcelReport(reportData) {
-        return this.call('/reports/excel', {
-            method: 'POST',
-            body: reportData
-        });
-    }
+    // =========================================================================
+    // FUNCIONES PARA TAREAS
+    // =========================================================================
 
-    async generatePDFReport(reportData) {
-        return this.call('/reports/pdf', {
-            method: 'POST',
-            body: reportData
-        });
-    }
-
-    async generateCSVReport(reportData) {
-        return this.call('/reports/csv', {
-            method: 'POST',
-            body: reportData
-        });
-    }
-
-    // Tareas
     async getTasks() {
         return this.call('/tasks');
     }
@@ -594,7 +829,10 @@ class apiCall {
         return this.call('/tasks/stats');
     }
 
-    // Notificaciones
+    // =========================================================================
+    // FUNCIONES PARA NOTIFICACIONES
+    // =========================================================================
+
     async getNotifications(filters = {}) {
         const params = new URLSearchParams(filters).toString();
         return this.call(`/notifications${params ? `?${params}` : ''}`);
@@ -633,234 +871,275 @@ class apiCall {
         });
     }
 
-        // =========================================================================
-    // SOPORTE
+    // =========================================================================
+    // FUNCIONES PARA REPORTES
     // =========================================================================
 
-    // Tickets
-    // Método para crear ticket con archivos
-    async createTicket(ticketData, files = []) {
-        const formData = new FormData();
-        
-        // Agregar datos del ticket
-        Object.keys(ticketData).forEach(key => {
-            formData.append(key, ticketData[key]);
+    async generateExcelReport(reportData) {
+        return this.call('/reports/excel', {
+            method: 'POST',
+            body: reportData
         });
-        
-        // Agregar archivos
-        if (files && files.length > 0) {
-            files.forEach(file => {
-                formData.append('files', file);
-            });
-            console.log(`📤 Enviando ${files.length} archivo(s) con el ticket`);
-        }
-        
-        try {
-            const response = await fetch('/api/tickets', {
-                method: 'POST',
-                headers: {
-                    // NO agregar Content-Type manualmente, el navegador lo hará con el boundary
-                },
-                body: formData,
-                credentials: 'include'
-            });
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error creando ticket:', error);
-            throw error;
-        }
     }
 
-    // Método para obtener tickets del usuario
-    async getTickets(filters = {}) {
-        const queryParams = new URLSearchParams(filters).toString();
-        const url = `/api/tickets${queryParams ? `?${queryParams}` : ''}`;
-        
+    async generatePDFReport(reportData) {
+        return this.call('/reports/pdf', {
+            method: 'POST',
+            body: reportData
+        });
+    }
+
+    async generateCSVReport(reportData) {
+        return this.call('/reports/csv', {
+            method: 'POST',
+            body: reportData
+        });
+    }
+
+    // =========================================================================
+    // FUNCIONES DE DIAGNÓSTICO Y DEBUG
+    // =========================================================================
+
+    async checkDownloadEndpoint(fileId) {
         try {
+            console.log('🔍 Verificando endpoint de descarga para:', fileId);
+            
+            const endpoint = `/documents/${fileId}/download`;
+            const url = `${this.baseURL}${endpoint}`;
+            
             const response = await fetch(url, {
-                method: 'GET',
+                method: 'HEAD',
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include'
+                    'Accept': '*/*'
+                }
             });
             
-            return await response.json();
+            console.log('📊 Resultado HEAD:', {
+                ok: response.ok,
+                status: response.status,
+                headers: Object.fromEntries(response.headers.entries())
+            });
+            
+            return response.ok;
+            
         } catch (error) {
-            console.error('Error obteniendo tickets:', error);
-            throw error;
+            console.error('❌ Error verificando endpoint:', error);
+            return false;
         }
     }
 
-    // Método para obtener detalles del ticket
-    async getTicketDetails(ticketId) {
+    async getFileInfo(fileId) {
         try {
-            const response = await fetch(`/api/tickets/${ticketId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include'
-            });
-            
-            return await response.json();
+            const data = await this.call(`/documents/${fileId}/info`);
+            return data;
         } catch (error) {
-            console.error('Error obteniendo detalles del ticket:', error);
+            console.error('❌ Error obteniendo info del archivo:', error);
             throw error;
         }
     }
 
-    // Método para agregar respuesta al ticket
-    async addTicketResponse(ticketId, message) {
-        try {
-            const response = await fetch(`/api/tickets/${ticketId}/response`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message }),
-                credentials: 'include'
-            });
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error agregando respuesta:', error);
-            throw error;
-        }
-    }
-
-
-   // Método para cambiar estado del ticket
-async changeTicketStatus(ticketId, status, note = '') {
-    try {
-        console.log(`📤 Cambiando estado del ticket ${ticketId} a ${status}`);
-        console.log(`📝 Nota: ${note || '(sin nota)'}`);
+    async testDownloadEndpoints(fileId) {
+        const endpoints = [
+            `/documents/${fileId}/download`,
+            `/documents/${fileId}/file`,
+            `/documents/${fileId}/raw`
+        ];
         
-        const token = localStorage.getItem('token');
-        if (!token) {
-            throw new Error('No autenticado');
-        }
+        const results = [];
         
-        // Obtener datos del usuario
-        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-        console.log('👤 Usuario actual:', {
-            id: userData._id,
-            name: userData.name,
-            rol: userData.rol,
-            email: userData.email
-        });
-        
-        // IMPORTANTE: Usar POST (método original) en lugar de PUT
-        const response = await fetch(`${this.baseURL}/tickets/${ticketId}/close`, {
-            method: 'POST', // ✅ CAMBIADO DE PUT A POST
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                status: status,
-                note: note || 'Cambio de estado solicitado'
-            })
-        });
-        
-        console.log('📥 Respuesta del servidor:', {
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url
-        });
-        
-        if (!response.ok) {
-            if (response.status === 403) {
-                const errorData = await response.json();
-                throw new Error(`Acceso denegado: ${errorData.message || 'No tienes permisos para realizar esta acción'}`);
-            }
-            
-            const errorText = await response.text();
-            console.error('❌ Error del servidor:', errorText);
-            
-            // Intentar parsear como JSON
+        for (const endpoint of endpoints) {
             try {
-                const errorData = JSON.parse(errorText);
-                throw new Error(errorData.message || `Error ${response.status}`);
-            } catch {
-                throw new Error(`Error ${response.status}: ${errorText}`);
+                const url = `${this.baseURL}${endpoint}`;
+                const response = await fetch(url, { method: 'HEAD' });
+                
+                results.push({
+                    endpoint,
+                    url,
+                    available: response.ok,
+                    status: response.status,
+                    contentType: response.headers.get('content-type')
+                });
+            } catch (error) {
+                results.push({
+                    endpoint,
+                    available: false,
+                    error: error.message
+                });
             }
         }
         
-        const data = await response.json();
-        console.log('✅ Respuesta del cambio de estado:', {
-            success: data.success,
-            message: data.message,
-            ticketId: data.ticket?._id,
-            ticketNumber: data.ticket?.ticketNumber
-        });
+        return results;
+    }
+
+    async debugDownload(fileId) {
+        console.group('🐛 DEBUG DE DESCARGA DETALLADO');
         
-        return data;
-        
-    } catch (error) {
-        console.error('❌ Error en changeTicketStatus:', error);
-        
-        // Mensajes de error específicos
-        if (error.message.includes('403') || error.message.includes('Acceso denegado')) {
-            throw new Error(`No tienes permisos para cambiar el estado del ticket: ${error.message}`);
-        } else if (error.message.includes('401')) {
-            throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-        } else if (error.message.includes('404')) {
-            throw new Error('El endpoint no existe. Contacta al administrador del sistema.');
-        } else {
-            throw error;
+        try {
+            const documents = window.appState?.documents || [];
+            const doc = documents.find(d => d._id === fileId);
+            
+            if (!doc) {
+                console.error('❌ Documento no encontrado en appState');
+                console.groupEnd();
+                return null;
+            }
+            
+            console.log('📄 INFORMACIÓN DEL DOCUMENTO:');
+            console.table({
+                'ID': doc._id,
+                'Nombre': doc.nombre_original,
+                'Tipo': doc.tipo_archivo,
+                'Tamaño': doc.tamano_archivo,
+                'Cloudinary URL': doc.url_cloudinary || doc.cloudinary_url,
+                'URL Disponible': !!(doc.url_cloudinary || doc.cloudinary_url)
+            });
+            
+            console.log('🔍 VERIFICANDO ENDPOINTS DEL SERVIDOR:');
+            const endpointsTest = await this.testDownloadEndpoints(fileId);
+            console.table(endpointsTest);
+            
+            console.log('☁️ VERIFICANDO CLOUDINARY:');
+            if (doc.url_cloudinary || doc.cloudinary_url) {
+                const cloudinaryUrl = doc.url_cloudinary || doc.cloudinary_url;
+                try {
+                    const response = await fetch(cloudinaryUrl, { method: 'HEAD' });
+                    console.log('✅ Cloudinary accesible:', {
+                        ok: response.ok,
+                        status: response.status,
+                        contentType: response.headers.get('content-type'),
+                        contentLength: response.headers.get('content-length')
+                    });
+                } catch (error) {
+                    console.error('❌ Cloudinary no accesible:', error.message);
+                }
+            } else {
+                console.log('❌ No hay URL de Cloudinary disponible');
+            }
+            
+            console.log('💡 RECOMENDACIONES:');
+            const extension = doc.nombre_original.split('.').pop().toLowerCase();
+            
+            if (['png', 'jpg', 'jpeg', 'gif'].includes(extension)) {
+                console.log('   • Usar descarga directa desde Cloudinary');
+                console.log('   • Agregar fl_attachment para forzar descarga');
+            } else if (extension === 'pdf') {
+                console.log('   • Usar endpoint del servidor (/download)');
+                console.log('   • Verificar headers Content-Type: application/pdf');
+            } else if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
+                console.log('   • Requiere endpoint del servidor');
+                console.log('   • Asegurar headers Content-Type correctos');
+                console.log('   • Puede necesitar fl_attachment en Cloudinary');
+            }
+            
+            return {
+                document: doc,
+                endpoints: endpointsTest,
+                recommendations: {
+                    bestStrategy: endpointsTest.find(e => e.available) ? 'server' : 'cloudinary',
+                    extension: extension
+                }
+            };
+            
+        } catch (error) {
+            console.error('❌ Error en debug:', error);
+            return null;
+        } finally {
+            console.groupEnd();
+        }
+    }
+    
+    // =========================================================================
+    // MÉTODOS AUXILIARES PARA VERIFICACIÓN DEL SISTEMA
+    // =========================================================================
+    
+    /**
+     * Verifica si el sistema está completamente operativo
+     */
+    async isSystemFullyOperational() {
+        try {
+            const status = await this.getSystemStatus();
+            
+            if (!status.success) return false;
+            
+            // Verificar que todos los servicios estén operativos
+            const services = status.services || {};
+            const allOperational = Object.values(services).every(
+                service => service.status === 'operational'
+            );
+            
+            return allOperational;
+        } catch (error) {
+            console.error('Error verificando estado operacional:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Obtiene un resumen rápido del estado del sistema
+     */
+    async getSystemSummary() {
+        try {
+            const status = await this.getSystemStatus();
+            
+            if (!status.success) {
+                return {
+                    operational: false,
+                    message: 'No se pudo obtener estado del sistema',
+                    timestamp: new Date().toISOString()
+                };
+            }
+            
+            const services = status.services || {};
+            const errorCount = Object.values(services).filter(
+                s => s.status === 'error'
+            ).length;
+            
+            const warningCount = Object.values(services).filter(
+                s => s.status === 'warning'
+            ).length;
+            
+            return {
+                operational: errorCount === 0,
+                overallStatus: status.overallStatus,
+                errorCount,
+                warningCount,
+                services: Object.keys(services).map(key => ({
+                    name: services[key].name,
+                    status: services[key].status,
+                    message: services[key].message
+                })),
+                timestamp: status.timestamp
+            };
+        } catch (error) {
+            return {
+                operational: false,
+                message: 'Error obteniendo resumen',
+                error: error.message,
+                timestamp: new Date().toISOString()
+            };
         }
     }
 }
 
-    async getTicketStats() {
-        return this.call('/support/tickets/stats');
-    }
+// =============================================================================
+// CREAR INSTANCIA ÚNICA Y EXPORTAR
+// =============================================================================
 
-    // Métodos para FAQ y guía (ya los tienes en supportController.js)
-    async getFAQ() {
-        try {
-            const response = await fetch('/api/support/faq', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include'
-            });
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error obteniendo FAQ:', error);
-            throw error;
-        }
-    }
+const api = new ApiService();
 
-    async getSystemGuide() {
-        try {
-            const response = await fetch('/api/support/guide', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include'
-            });
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Error obteniendo guía:', error);
-            throw error;
-        }
-    }
+// Exponer métodos globales para desarrollo (solo en desarrollo)
+if (api.isDevelopment) {
+    window.debugApi = {
+        getSystemStatus: (force) => api.getSystemStatus(force),
+        clearCache: () => api.clearSystemStatusCache(),
+        isSystemOperational: () => api.isSystemFullyOperational(),
+        getSummary: () => api.getSystemSummary(),
+        simulateError: (service) => api.simulateRealError(service),
+        resetErrors: () => api.resetAllRealErrors(),
+        isDevelopment: api.isDevelopment
+    };
+    
+    console.log('🧪 API debug methods available on window.debugApi');
 }
 
-
-// =============================================================================
-// 5. CREAR INSTANCIA ÚNICA Y EXPORTAR
-// =============================================================================
-
-// Crear instancia única
-const api = new apiCall();
-
-// Exportar tanto la clase como la instancia
-export { apiCall, api };
+export { ApiService, api };

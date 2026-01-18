@@ -47,6 +47,7 @@
 @import url('components/preloader/upload.css');
 @import url('components/preloader/utilities.css');
 @import url('components/preloader/variants.css');
+@import url('components/status.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');
