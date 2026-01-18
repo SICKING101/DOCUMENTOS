@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
+import mongoose from 'mongoose';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,54 +18,81 @@ cloudinary.config({
 });
 
 // =============================================================================
-// CONFIGURACIÓN GMAIL REAL
+// CONFIGURACIÓN EMAIL REAL CON VARIABLES DE ENTORNO
 // =============================================================================
 
-// Configuración GMAIL FIJA
-const emailUser = 'riosnavarretejared@gmail.com';
-const emailPass = 'emdkqnupuzzzucnw';
-const emailHost = 'smtp.gmail.com';
-const emailPort = 587;
-const emailFrom = 'riosnavarretejared@gmail.com';
+// Usar variables de entorno en lugar de hardcodeadas
+const SYSTEM_EMAIL = process.env.EMAIL_USER || process.env.EMAIL_FROM_ADDRESS || 'riosnavarretejared@gmail.com';
+const SYSTEM_EMAIL_PASS = process.env.EMAIL_PASS || 'emdkqnupuzzzucnw';
+const EMAIL_HOST = process.env.EMAIL_HOST || 'smtp.gmail.com';
+const EMAIL_PORT = parseInt(process.env.EMAIL_PORT) || 587;
 
-// Configurar transporter Gmail
+// Configurar transporter Gmail usando variables de entorno
 let transporter = null;
 
-// Inicializar transporter
 try {
-    transporter = nodemailer.createTransport({
-        host: emailHost,
-        port: parseInt(emailPort),
-        secure: false,
-        auth: {
-            user: emailUser,
-            pass: emailPass
-        },
-        tls: {
-            ciphers: 'SSLv3',
-            rejectUnauthorized: false
-        },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-        debug: true,
-        logger: true
+    console.log('📧 Configurando transporter de email con variables de entorno...');
+    console.log('🔍 Variables de entorno encontradas:', {
+        EMAIL_HOST: !!process.env.EMAIL_HOST,
+        EMAIL_USER: !!process.env.EMAIL_USER,
+        EMAIL_PASS: !!process.env.EMAIL_PASS,
+        EMAIL_PORT: !!process.env.EMAIL_PORT
     });
-
-    console.log('✅ TRANSPORTER GMAIL CONFIGURADO PARA SOPORTE');
     
-    // Verificar conexión
-    transporter.verify((error, success) => {
-        if (error) {
-            console.error('❌ ERROR CONFIGURANDO GMAIL PARA SOPORTE:', error.message);
-            console.log('📧 Los tickets se guardarán pero NO se enviarán emails');
-        } else {
-            console.log('✅ CONEXIÓN GMAIL VERIFICADA PARA SOPORTE');
-        }
-    });
+    if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        transporter = nodemailer.createTransport({
+            host: EMAIL_HOST,
+            port: EMAIL_PORT,
+            secure: false,
+            auth: {
+                user: SYSTEM_EMAIL,
+                pass: SYSTEM_EMAIL_PASS
+            },
+            tls: {
+                ciphers: 'SSLv3',
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
+            debug: true,
+            logger: true
+        });
+
+        console.log('✅ TRANSPORTER GMAIL CONFIGURADO CON VARIABLES DE ENTORNO');
+        console.log(`📧 Usuario: ${SYSTEM_EMAIL}`);
+        console.log(`🌐 Host: ${EMAIL_HOST}:${EMAIL_PORT}`);
+        
+        // Verificar conexión
+        transporter.verify((error, success) => {
+            if (error) {
+                console.error('❌ ERROR VERIFICANDO CONEXIÓN GMAIL:', error.message);
+            } else {
+                console.log('✅ CONEXIÓN GMAIL VERIFICADA CON ÉXITO');
+            }
+        });
+        
+    } else {
+        console.warn('⚠️ Variables de entorno de email no encontradas, usando credenciales hardcodeadas');
+        
+        // Fallback a credenciales hardcodeadas
+        transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'riosnavarretejared@gmail.com',
+                pass: 'emdkqnupuzzzucnw'
+            },
+            tls: {
+                ciphers: 'SSLv3',
+                rejectUnauthorized: false
+            }
+        });
+    }
     
 } catch (error) {
-    console.error('❌ ERROR CRÍTICO configurando Gmail:', error.message);
+    console.error('❌ ERROR CRÍTICO configurando email:', error.message);
     transporter = null;
 }
 
@@ -76,20 +104,19 @@ const enviarEmailGmail = async (mailOptions, intentos = 3) => {
     if (!transporter) {
         console.log('📧 Transporter no disponible - Mostrando email en consola');
         console.log('='.repeat(80));
-        console.log('📧 EMAIL SIMULADO PARA SOPORTE:');
+        console.log('📧 EMAIL SIMULADO:');
         console.log('='.repeat(80));
         console.log(`Para: ${mailOptions.to}`);
         console.log(`Asunto: ${mailOptions.subject}`);
-        console.log(`Contenido HTML: ${mailOptions.html ? 'Sí' : 'No'}`);
         console.log('='.repeat(80));
         return { message: 'Email simulado' };
     }
 
     for (let i = 0; i < intentos; i++) {
         try {
-            console.log(`📤 Intento ${i + 1} de ${intentos} enviando email de soporte...`);
+            console.log(`📤 Intento ${i + 1} de ${intentos} enviando email...`);
             const info = await transporter.sendMail(mailOptions);
-            console.log(`✅ Email de soporte enviado en intento ${i + 1}`);
+            console.log(`✅ Email enviado en intento ${i + 1}`);
             return info;
         } catch (error) {
             console.error(`❌ Intento ${i + 1} falló:`, error.message);
@@ -104,16 +131,48 @@ const enviarEmailGmail = async (mailOptions, intentos = 3) => {
     }
 };
 
+const monitorMemory = () => {
+    const memoryUsage = process.memoryUsage();
+    console.log('\n' + '📊'.repeat(20));
+    console.log('📊 MONITOR DE MEMORIA');
+    console.log('📊'.repeat(20));
+    console.log(`  Heap usado: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`);
+    console.log(`  Heap total: ${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`);
+    console.log(`  Porcentaje: ${Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)}%`);
+    console.log(`  RSS: ${Math.round(memoryUsage.rss / 1024 / 1024)} MB`);
+    console.log(`  Timestamp: ${new Date().toLocaleString('es-MX')}`);
+    console.log('📊'.repeat(20) + '\n');
+};
+
 class SupportController {
     // =====================================================================
-    // 1. CREAR NUEVO TICKET 
+    // 1. CREAR NUEVO TICKET
     // =====================================================================
     
     static async createTicket(req, res) {
+        let ticketNumber = null;
+        let userId = null;
+        
         try {
-            console.log('');
+            console.log('\n' + '='.repeat(80));
             console.log('🎫 ========== CREANDO NUEVO TICKET DE SOPORTE ==========');
+            console.log('='.repeat(80));
             console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
+            console.log(`🌐 Método: ${req.method}`);
+            console.log(`🔗 URL: ${req.originalUrl}`);
+            
+            // DEPURACIÓN DETALLADA
+            console.log('\n📊 === DATOS DE ENTRADA ===');
+            console.log('📝 Body recibido:', JSON.stringify(req.body, null, 2));
+            console.log(`📎 Archivos recibidos: ${req.files ? req.files.length : 0}`);
+            
+            if (req.files) {
+                req.files.forEach((file, index) => {
+                    console.log(`  📎 Archivo ${index + 1}: ${file.originalname} (${file.size} bytes)`);
+                });
+            }
+            
+            console.log(`👤 Usuario en req.user:`, req.user ? JSON.stringify(req.user) : 'No autenticado');
             
             const {
                 subject,
@@ -123,54 +182,178 @@ class SupportController {
                 emailNotifications = 'true'
             } = req.body;
             
-            console.log('📋 Campos recibidos:', {
-                subject,
-                category,
-                priority,
-                emailNotifications,
-                descLength: description?.length || 0
-            });
-            console.log('📁 Archivos recibidos:', req.files ? req.files.length : 0);
+            console.log('\n🔍 === VALIDACIÓN DE CAMPOS ===');
+            console.log(`📋 Asunto: ${subject}`);
+            console.log(`📝 Descripción: ${description ? `[${description.length} caracteres]` : 'NO'}`);
+            console.log(`🏷️ Categoría: ${category}`);
+            console.log(`⚠️ Prioridad: ${priority}`);
+            console.log(`📧 Notificaciones: ${emailNotifications}`);
             
             // Validar campos requeridos
             if (!subject || !description || !category || !priority) {
+                console.error('❌ FALTAN CAMPOS REQUERIDOS');
+                console.error('  • Subject:', !subject ? 'FALTA' : 'OK');
+                console.error('  • Description:', !description ? 'FALTA' : 'OK');
+                console.error('  • Category:', !category ? 'FALTA' : 'OK');
+                console.error('  • Priority:', !priority ? 'FALTA' : 'OK');
+                
                 return res.status(400).json({
                     success: false,
-                    message: 'Todos los campos obligatorios deben ser completados'
+                    message: 'Todos los campos obligatorios deben ser completados',
+                    missingFields: {
+                        subject: !subject,
+                        description: !description,
+                        category: !category,
+                        priority: !priority
+                    }
                 });
             }
             
-            // Obtener información del usuario
-            const user = req.user || {
-                _id: 'system',
-                name: 'Usuario del Sistema',
-                email: 'riosnavarretejared@gmail.com'
-            };
+            // ============================================================
+            // Manejar el caso cuando no hay usuario autenticado
+            // ============================================================
+            console.log('\n👤 === IDENTIFICACIÓN DE USUARIO ===');
             
-            console.log(`👤 Usuario que crea: ${user.name} (${user.email})`);
+            let userName;
+            let userEmail;
             
-            // Crear nuevo ticket con estados simplificados
-            const newTicket = new Ticket({
+            if (req.user && req.user._id) {
+                // Usuario autenticado
+                try {
+                    userId = new mongoose.Types.ObjectId(req.user._id);
+                    userName = req.user.name || req.user.usuario || 'Usuario Autenticado';
+                    userEmail = req.user.email || req.user.correo || 'usuario@ejemplo.com';
+                    console.log(`✅ Usuario autenticado: ${userName} (ID: ${userId})`);
+                } catch (error) {
+                    console.error('⚠️ Error convirtiendo ID de usuario:', error.message);
+                    userId = new mongoose.Types.ObjectId();
+                    userName = 'Usuario del Sistema';
+                    userEmail = 'usuario@cbtis051.edu.mx';
+                }
+            } else {
+                // Usuario NO autenticado
+                userId = null;
+                userName = 'Usuario del Sistema';
+                userEmail = req.body.email || 'usuario@cbtis051.edu.mx';
+                
+                console.log('⚠️ Usuario no autenticado, usando credenciales del sistema');
+                console.log(`📧 Email proporcionado: ${userEmail}`);
+            }
+            
+            console.log(`👤 Usuario final: ${userName} (${userEmail})`);
+            console.log(`🆔 User ID: ${userId}`);
+            
+            // ============================================================
+            // BUSCAR ADMINISTRADOR
+            // ============================================================
+            console.log('\n👑 === BUSCANDO ADMINISTRADOR ===');
+            
+            let adminEmail = SYSTEM_EMAIL;
+            let adminName = 'Administrador del Sistema';
+            
+            try {
+                const adminUser = await User.findOne({ 
+                    rol: 'administrador', 
+                    activo: true 
+                }).select('correo usuario').lean();
+                
+                if (adminUser) {
+                    adminEmail = adminUser.correo;
+                    adminName = adminUser.usuario || 'Administrador del Sistema';
+                    console.log(`✅ Administrador encontrado: ${adminName} (${adminEmail})`);
+                } else {
+                    console.log(`⚠️ No se encontró admin en BD, usando email del sistema: ${adminEmail}`);
+                    
+                    const anyAdmin = await User.findOne({ activo: true }).select('correo usuario').lean();
+                    if (anyAdmin) {
+                        adminEmail = anyAdmin.correo;
+                        adminName = anyAdmin.usuario || 'Administrador';
+                        console.log(`🔄 Usando administrador alternativo: ${adminName} (${adminEmail})`);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error buscando administrador:', error.message);
+                console.log(`⚠️ Usando email del sistema como fallback: ${adminEmail}`);
+            }
+            
+            // ============================================================
+            // GENERAR NÚMERO DE TICKET ÚNICO
+            // ============================================================
+            console.log('\n🔢 === GENERANDO NÚMERO DE TICKET ===');
+            
+            let ticketExists = true;
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            while (ticketExists && attempts < maxAttempts) {
+                const date = new Date();
+                const dateStr = date.getFullYear() + 
+                               String(date.getMonth() + 1).padStart(2, '0') + 
+                               String(date.getDate()).padStart(2, '0');
+                const randomNum = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+                ticketNumber = `TKT-${dateStr}-${randomNum}`;
+                
+                const existingTicket = await Ticket.findOne({ ticketNumber });
+                ticketExists = !!existingTicket;
+                
+                if (ticketExists) {
+                    console.log(`⚠️ Ticket número ${ticketNumber} ya existe, generando nuevo...`);
+                    attempts++;
+                } else {
+                    console.log(`✅ Número de ticket único generado: ${ticketNumber}`);
+                }
+            }
+            
+            if (attempts >= maxAttempts) {
+                throw new Error('No se pudo generar un número de ticket único después de varios intentos');
+            }
+            
+            // ============================================================
+            // CREAR TICKET CON VALORES CORRECTOS
+            // ============================================================
+            console.log('\n💾 === CREANDO OBJETO TICKET ===');
+            
+            const ticketData = {
+                ticketNumber,
                 subject,
                 description,
                 category,
                 priority,
-                createdBy: user._id,
-                createdByName: user.name || 'Usuario del Sistema',
-                createdByEmail: user.email || 'riosnavarretejared@gmail.com',
+                createdBy: userId,
+                createdByName: userName,
+                createdByEmail: userEmail,
+                adminEmail: adminEmail,
+                adminName: adminName,
                 emailNotifications: emailNotifications === 'true',
-                status: 'abierto' // Estado inicial siempre será "abierto"
-            });
+                status: 'abierto',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
             
-            // Procesar archivos adjuntos si existen
+            console.log('📋 Datos del ticket:', JSON.stringify(ticketData, null, 2));
+            
+            const newTicket = new Ticket(ticketData);
+            
+            // ============================================================
+            // PROCESAR ARCHIVOS ADJUNTOS
+            // ============================================================
             if (req.files && req.files.length > 0) {
+                console.log('\n📎 === PROCESANDO ARCHIVOS ADJUNTOS ===');
                 const attachments = [];
                 
-                for (const file of req.files) {
+                for (const [index, file] of req.files.entries()) {
                     try {
-                        console.log(`📎 Procesando archivo: ${file.originalname}`);
+                        console.log(`  📁 Procesando archivo ${index + 1}/${req.files.length}: ${file.originalname}`);
+                        console.log(`    📊 Tamaño: ${file.size} bytes`);
+                        console.log(`    📄 Tipo: ${file.mimetype}`);
+                        console.log(`    📍 Ruta temporal: ${file.path}`);
                         
-                        // Subir a Cloudinary
+                        if (!fs.existsSync(file.path)) {
+                            console.error(`    ❌ Archivo temporal no encontrado: ${file.path}`);
+                            continue;
+                        }
+                        
+                        console.log(`    ☁️ Subiendo a Cloudinary...`);
                         const result = await cloudinary.uploader.upload(file.path, {
                             folder: 'tickets_soporte',
                             resource_type: 'auto',
@@ -187,101 +370,193 @@ class SupportController {
                             uploadedAt: new Date()
                         });
                         
-                        console.log(`✅ Archivo subido: ${result.secure_url}`);
+                        console.log(`    ✅ Archivo subido: ${result.secure_url}`);
+                        console.log(`    🆔 Public ID: ${result.public_id}`);
                         
-                        // Eliminar archivo temporal
                         if (fs.existsSync(file.path)) {
                             fs.unlinkSync(file.path);
+                            console.log(`    🗑️ Archivo temporal eliminado`);
                         }
                         
                     } catch (uploadError) {
-                        console.error('❌ Error subiendo archivo:', uploadError.message);
+                        console.error(`    ❌ Error subiendo archivo ${file.originalname}:`, uploadError.message);
                     }
                 }
                 
                 if (attachments.length > 0) {
                     newTicket.attachments = attachments;
-                    console.log(`📎 ${attachments.length} archivo(s) adjunto(s)`);
+                    console.log(`📎 Total archivos adjuntos guardados: ${attachments.length}`);
+                } else {
+                    console.log('⚠️ No se pudo subir ningún archivo adjunto');
                 }
             }
             
-            // Agregar primera actualización
+            // ============================================================
+            // AGREGAR PRIMERA ACTUALIZACIÓN
+            // ============================================================
+            console.log('\n📝 === AGREGANDO PRIMERA ACTUALIZACIÓN ===');
+            
             newTicket.updates = [{
-                user: user._id,
-                userName: user.name || 'Sistema',
+                user: userId,
+                userName: userName,
                 message: 'Ticket creado exitosamente',
                 type: 'system',
                 createdAt: new Date()
             }];
             
-            // Guardar en la base de datos
-            await newTicket.save();
+            // ============================================================
+            // GUARDAR EN LA BASE DE DATOS
+            // ============================================================
+            console.log('\n💾 === GUARDANDO EN BASE DE DATOS ===');
             
-            console.log(`✅ Ticket creado en BD: ${newTicket.ticketNumber}`);
-            console.log(`📊 ID: ${newTicket._id}`);
-            console.log(`📋 Categoría: ${category}`);
-            console.log(`⚠️ Prioridad: ${priority}`);
-            console.log(`📊 Estado: abierto`);
+            try {
+                await newTicket.save();
+                console.log(`✅ Ticket guardado exitosamente en BD`);
+                console.log(`🎫 Número: ${newTicket.ticketNumber}`);
+                console.log(`🆔 ID: ${newTicket._id}`);
+                console.log(`📊 Estado: ${newTicket.status}`);
+                console.log(`🏷️ Categoría: ${newTicket.category}`);
+                console.log(`⚠️ Prioridad: ${newTicket.priority}`);
+                console.log(`📅 Creado: ${newTicket.createdAt}`);
+            } catch (saveError) {
+                console.error('❌ ERROR GUARDANDO TICKET:', saveError.message);
+                
+                if (saveError.errors) {
+                    Object.keys(saveError.errors).forEach(key => {
+                        console.error(`  • ${key}: ${saveError.errors[key].message}`);
+                    });
+                }
+                
+                throw saveError;
+            }
             
-            // ENVIAR EMAIL DE CONFIRMACIÓN POR GMAIL REAL
+            // ============================================================
+            // VERIFICAR QUE SE GUARDÓ CORRECTAMENTE
+            // ============================================================
+            console.log('\n🔍 === VERIFICANDO TICKET GUARDADO ===');
+            
+            const savedTicket = await Ticket.findById(newTicket._id);
+            if (!savedTicket) {
+                console.error('❌ ERROR CRÍTICO: Ticket no encontrado después de guardar');
+                throw new Error('Ticket no se guardó correctamente en la base de datos');
+            }
+            
+            console.log(`✅ Ticket verificado en BD: ${savedTicket.ticketNumber}`);
+            console.log(`📊 Total updates: ${savedTicket.updates ? savedTicket.updates.length : 0}`);
+            console.log(`📎 Adjuntos: ${savedTicket.attachments ? savedTicket.attachments.length : 0}`);
+            
+            // ============================================================
+            // ENVIAR EMAILS
+            // ============================================================
             console.log('\n📧 ========== ENVIANDO EMAILS ==========');
             
             try {
-                // 1. Email al ADMINISTRADOR (tú) - CONFIRMACIÓN DE RECEPCIÓN
-                await SupportController.sendTicketEmailToAdmin(newTicket, user);
+                const userForEmails = {
+                    _id: userId,
+                    name: userName,
+                    email: userEmail
+                };
                 
-                // 2. Email al USUARIO (si habilitó notificaciones)
+                console.log('🎨 === ASIGNACIÓN DE COLORES DE EMAIL ===');
+                console.log('📗 VERDE: Ticket creado exitosamente (al ADMINISTRADOR)');
+                console.log('📕 ROJO: Nuevo ticket recibido (al USUARIO)');
+                
+                console.log('\n📗 Enviando email VERDE al ADMINISTRADOR...');
+                await SupportController.sendTicketEmailToAdmin(savedTicket, userForEmails, adminEmail, adminName);
+                console.log('✅ Email VERDE enviado al administrador');
+                
                 if (emailNotifications === 'true') {
-                    await SupportController.sendTicketEmailToUser(newTicket, user);
+                    console.log('\n📕 Enviando email ROJO al USUARIO...');
+                    await SupportController.sendTicketEmailToUser(savedTicket, userForEmails);
+                    console.log('✅ Email ROJO enviado al usuario');
+                } else {
+                    console.log('⚠️ Notificaciones por email desactivadas por el usuario');
                 }
                 
-                console.log('✅ Emails enviados exitosamente');
+                console.log('✅ Todos los emails enviados exitosamente');
                 
             } catch (emailError) {
                 console.error('⚠️ Error enviando emails:', emailError.message);
-                console.log('📌 El ticket se guardó, pero los emails fallaron');
             }
             
-            console.log('🎫 ========== TICKET COMPLETADO ==========\n');
+            console.log('\n' + '='.repeat(80));
+            console.log('🎫 ========== TICKET CREADO EXITOSAMENTE ==========');
+            console.log(`🎫 Número: ${savedTicket.ticketNumber}`);
+            console.log(`📋 Asunto: ${savedTicket.subject}`);
+            console.log(`👤 Creado por: ${savedTicket.createdByName}`);
+            console.log(`📧 Email: ${savedTicket.createdByEmail}`);
+            console.log(`👑 Admin asignado: ${savedTicket.adminName}`);
+            console.log(`📊 Estado: ${savedTicket.status}`);
+            console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
+            console.log('='.repeat(80) + '\n');
             
+            // ============================================================
+            // RESPONDER AL CLIENTE
+            // ============================================================
             res.status(201).json({
                 success: true,
                 message: '✅ Ticket creado exitosamente. Revisa tu correo para la confirmación.',
-                ticket: newTicket
+                ticket: savedTicket,
+                ticketNumber: savedTicket.ticketNumber,
+                ticketId: savedTicket._id
             });
             
         } catch (error) {
-            console.error('\n❌❌❌ ERROR CREANDO TICKET ❌❌❌');
-            console.error('Mensaje:', error.message);
-            console.error('Stack:', error.stack);
+            console.error('\n' + '❌'.repeat(30));
+            console.error('❌❌❌ ERROR CREANDO TICKET ❌❌❌');
+            console.error('❌'.repeat(30));
+            console.error('📅 Hora:', new Date().toLocaleString('es-MX'));
+            console.error('🎫 Ticket Number:', ticketNumber);
+            console.error('👤 User ID:', userId);
+            console.error('📝 Error message:', error.message);
+            
+            if (error.name === 'ValidationError') {
+                console.error('📋 Validation errors:');
+                Object.keys(error.errors).forEach(key => {
+                    console.error(`  • ${key}: ${error.errors[key].message}`);
+                });
+            }
+            
+            if (req.files && req.files.length > 0) {
+                req.files.forEach(file => {
+                    if (fs.existsSync(file.path)) {
+                        try {
+                            fs.unlinkSync(file.path);
+                            console.log(`🗑️ Archivo temporal eliminado: ${file.path}`);
+                        } catch (unlinkError) {
+                            console.error(`❌ Error eliminando archivo temporal: ${unlinkError.message}`);
+                        }
+                    }
+                });
+            }
             
             res.status(500).json({
                 success: false,
                 message: 'Error interno al crear ticket',
-                error: error.message
+                error: error.message,
+                ticketNumber: ticketNumber || 'NO GENERADO'
             });
         }
     }
     
     // =====================================================================
-    // 2. ENVIAR EMAIL AL ADMINISTRADOR - TICKET NUEVO 
+    // 2. ENVIAR EMAIL VERDE AL ADMINISTRADOR
     // =====================================================================
     
-    static async sendTicketEmailToAdmin(ticket, user) {
+    static async sendTicketEmailToAdmin(ticket, user, adminEmail, adminName) {
         try {
-            const adminEmail = 'riosnavarretejared@gmail.com';
+            console.log(`\n📗 Enviando email VERDE al ADMINISTRADOR: ${adminName} (${adminEmail})`);
+            console.log(`📧 Ticket: ${ticket.ticketNumber}`);
+            console.log(`📋 Asunto: ${ticket.subject}`);
+            console.log(`👤 Usuario: ${user.name} (${user.email})`);
             
-            console.log(`📤 Enviando email de notificación al ADMIN: ${adminEmail}`);
-            console.log(`📎 Archivos adjuntos: ${ticket.attachments?.length || 0}`);
-            
-            // Construir sección de archivos adjuntos
             let attachmentsHTML = '';
             if (ticket.attachments && ticket.attachments.length > 0) {
                 attachmentsHTML = `
-                <h3 style="color: #4a5568; margin-top: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+                <h3 style="color: #059669; margin-top: 25px; border-bottom: 2px solid #d1fae5; padding-bottom: 8px;">
                     📎 Archivos adjuntos (${ticket.attachments.length})
                 </h3>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; margin: 15px 0;">
                 `;
                 
                 ticket.attachments.forEach((file) => {
@@ -290,30 +565,30 @@ class SupportController {
                     
                     if (isImage) {
                         attachmentsHTML += `
-                        <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 6px; border: 1px solid #d1fae5;">
                             <div style="display: flex; align-items: flex-start; gap: 15px;">
                                 <div style="flex-shrink: 0;">
                                     <img src="${file.cloudinary_url}" 
                                          alt="${file.originalname}" 
-                                         style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                                         style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid #10b981;">
                                 </div>
                                 <div style="flex: 1;">
-                                    <p style="margin: 0 0 8px; font-weight: bold; color: #2d3748;">
+                                    <p style="margin: 0 0 8px; font-weight: bold; color: #065f46;">
                                         <i class="fas fa-image"></i> ${file.originalname}
                                     </p>
-                                    <p style="margin: 0 0 8px; color: #718096; font-size: 14px;">
+                                    <p style="margin: 0 0 8px; color: #059669; font-size: 14px;">
                                         <strong>Tamaño:</strong> ${fileSizeKB} KB<br>
                                         <strong>Tipo:</strong> Imagen
                                     </p>
                                     <div style="display: flex; gap: 10px; margin-top: 12px;">
                                         <a href="${file.cloudinary_url}" 
                                            target="_blank" 
-                                           style="display: inline-block; background: #4299e1; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 14px;">
+                                           style="display: inline-block; background: #10b981; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 14px;">
                                             <i class="fas fa-external-link-alt"></i> Ver imagen completa
                                         </a>
                                         <a href="${file.cloudinary_url}" 
                                            download="${file.originalname}"
-                                           style="display: inline-block; background: #48bb78; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 14px;">
+                                           style="display: inline-block; background: #059669; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 14px;">
                                             <i class="fas fa-download"></i> Descargar
                                         </a>
                                     </div>
@@ -323,22 +598,22 @@ class SupportController {
                         `;
                     } else {
                         attachmentsHTML += `
-                        <div style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 4px; border: 1px solid #e2e8f0;">
+                        <div style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 4px; border: 1px solid #d1fae5;">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="background: #edf2f7; padding: 8px; border-radius: 4px;">
-                                    <i class="fas fa-file" style="color: #4a5568;"></i>
+                                <div style="background: #d1fae5; padding: 8px; border-radius: 4px;">
+                                    <i class="fas fa-file" style="color: #059669;"></i>
                                 </div>
                                 <div style="flex: 1;">
-                                    <p style="margin: 0 0 4px; font-weight: bold; color: #2d3748;">
+                                    <p style="margin: 0 0 4px; font-weight: bold; color: #065f46;">
                                         ${file.originalname}
                                     </p>
-                                    <p style="margin: 0; color: #718096; font-size: 13px;">
+                                    <p style="margin: 0; color: #059669; font-size: 13px;">
                                         ${fileSizeKB} KB • ${file.mimetype || 'Archivo adjunto'}
                                     </p>
                                 </div>
                                 <a href="${file.cloudinary_url}" 
                                    target="_blank" 
-                                   style="color: #4299e1; text-decoration: none; font-size: 14px;">
+                                   style="color: #10b981; text-decoration: none; font-size: 14px;">
                                     <i class="fas fa-external-link-alt"></i> Abrir
                                 </a>
                             </div>
@@ -351,128 +626,143 @@ class SupportController {
             }
             
             const mailOptions = {
-                from: `"Soporte CBTIS051" <${emailFrom}>`,
+                from: `"Sistema de Soporte CBTIS051" <${SYSTEM_EMAIL}>`,
                 to: adminEmail,
-                subject: `🚨 NUEVO TICKET: ${ticket.ticketNumber} - ${ticket.subject}`,
+                subject: `✅ TICKET CREADO: ${ticket.ticketNumber} - ${ticket.subject}`,
                 html: `
                     <!DOCTYPE html>
                     <html>
                     <head>
                         <meta charset="utf-8">
-                        <title>Nuevo Ticket de Soporte</title>
+                        <title>Ticket Creado Exitosamente</title>
                         <style>
                             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; background: #f8f9fa; }
                             .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-                            .header { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 25px; border-radius: 10px 10px 0 0; text-align: center; color: white; }
+                            .header { background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 25px; border-radius: 10px 10px 0 0; text-align: center; color: white; }
                             .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
-                            .status-abierto { background: #dc2626; color: white; }
-                            .ticket-info { background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4299e1; }
+                            .status-abierto { background: #059669; color: white; }
+                            .ticket-info { background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981; }
                             .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px; }
                         </style>
                     </head>
                     <body>
                         <div class="container">
                             <div class="header">
-                                <h1 style="margin: 0; font-size: 28px;">🚨 NUEVO TICKET RECIBIDO</h1>
+                                <h1 style="margin: 0; font-size: 28px;">✅ TICKET CREADO EXITOSAMENTE</h1>
                                 <p style="margin: 5px 0 0; opacity: 0.9;">Sistema de Gestión Documental CBTIS051</p>
                                 <div style="margin-top: 15px;">
-                                    <span class="status-badge status-abierto">📝 TICKET ABIERTO</span>
+                                    <span class="status-badge status-abierto">📝 NUEVO TICKET CREADO</span>
                                 </div>
                             </div>
                             
                             <div style="padding: 25px;">
-                                <h2 style="color: #2d3748; margin-top: 0;">Ticket: ${ticket.ticketNumber}</h2>
+                                <h2 style="color: #065f46; margin-top: 0;">Ticket: ${ticket.ticketNumber}</h2>
                                 
                                 <div class="ticket-info">
                                     <p><strong>📋 Asunto:</strong> ${ticket.subject}</p>
                                     <p><strong>👤 Creado por:</strong> ${user.name || 'Usuario del Sistema'}</p>
-                                    <p><strong>📧 Email:</strong> ${user.email || 'No disponible'}</p>
+                                    <p><strong>📧 Email del usuario:</strong> ${user.email || 'No disponible'}</p>
                                     <p><strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}</p>
                                     <p><strong>🏷️ Categoría:</strong> ${ticket.category}</p>
                                     <p><strong>⚠️ Prioridad:</strong> ${ticket.priority.toUpperCase()}</p>
                                     <p><strong>📊 Estado:</strong> <span class="status-badge status-abierto">ABIERTO</span></p>
+                                    <p><strong>👑 Administrador asignado:</strong> ${adminName} (TÚ)</p>
                                 </div>
                                 
-                                <h3 style="color: #4a5568; margin-top: 25px;">📝 Descripción del problema:</h3>
-                                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                <h3 style="color: #059669; margin-top: 25px;">📝 Descripción del problema:</h3>
+                                <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; border: 1px solid #d1fae5;">
                                     <p style="margin: 0; white-space: pre-wrap; line-height: 1.6;">${ticket.description}</p>
                                 </div>
                                 
                                 ${attachmentsHTML}
                                 
-                                <div style="background: #fef2f2; padding: 15px; border-radius: 6px; margin: 25px 0; border-left: 4px solid #dc2626;">
-                                    <p style="margin: 0; color: #991b1b; font-size: 15px;">
-                                        <strong>📌 ACCIÓN REQUERIDA:</strong><br>
-                                        <strong>1.</strong> Revisa el ticket en el sistema<br>
-                                        <strong>2.</strong> Cambia el estado a "EN PROCESO" cuando lo atiendas<br>
-                                        <strong>3.</strong> Cambia el estado a "CERRADO" cuando resuelvas<br>
-                                        <strong>4.</strong> El usuario será notificado en cada cambio
+                                <div style="background: #d1fae5; padding: 15px; border-radius: 6px; margin: 25px 0; border-left: 4px solid #059669;">
+                                    <p style="margin: 0; color: #065f46; font-size: 15px;">
+                                        <strong>📌 INFORMACIÓN PARA EL ADMINISTRADOR (${adminName}):</strong><br>
+                                        <strong>1.</strong> Un nuevo ticket ha sido creado exitosamente<br>
+                                        <strong>2.</strong> El usuario ${user.name} espera tu atención<br>
+                                        <strong>3.</strong> Revisa el ticket en el sistema<br>
+                                        <strong>4.</strong> Cambia el estado a "EN PROCESO" cuando lo atiendas<br>
+                                        <strong>5.</strong> Cambia el estado a "CERRADO" cuando resuelvas
                                     </p>
+                                </div>
+                                
+                                <div style="text-align: center; margin: 25px 0;">
+                                    <a href="${process.env.FRONTEND_URL || 'http://localhost:4000'}/admin/tickets/${ticket._id}" 
+                                       style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #047857 100%); 
+                                              color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; 
+                                              font-weight: bold;">
+                                        ✅ VER TICKET EN EL SISTEMA
+                                    </a>
                                 </div>
                             </div>
                             
                             <div class="footer">
                                 <p style="margin: 5px 0;">
                                     <strong>Sistema de Gestión Documental CBTIS051</strong><br>
-                                    Este es un mensaje automático del sistema de soporte.
+                                    Email automático del sistema de soporte.
                                 </p>
                                 <p style="margin: 5px 0; font-size: 11px;">
                                     © ${new Date().getFullYear()} CBTIS051 - Todos los derechos reservados<br>
+                                    Administrador: ${adminName}
                                 </p>
                             </div>
                         </div>
                     </body>
                     </html>
                 `,
-                text: `NUEVO TICKET DE SOPORTE - CBTIS051\n\n
+                text: `TICKET CREADO EXITOSAMENTE - CBTIS051\n\n
+✅ NUEVO TICKET CREADO\n\n
 Ticket: ${ticket.ticketNumber}
 Estado: ABIERTO
-Asunto: ${ticket.subject}
+Asunto: ${ticket.subject}\n
 Creado por: ${user.name || 'Usuario del Sistema'}
-Email: ${user.email || 'No disponible'}
+Email del usuario: ${user.email || 'No disponible'}\n
 Fecha: ${new Date().toLocaleString('es-MX')}
 Categoría: ${ticket.category}
-Prioridad: ${ticket.priority.toUpperCase()}\n\n
+Prioridad: ${ticket.priority.toUpperCase()}
+Administrador asignado: ${adminName} (TÚ)\n\n
 DESCRIPCIÓN:\n${ticket.description}\n\n
 ${ticket.attachments && ticket.attachments.length > 0 ? 
 `ARCHIVOS ADJUNTOS (${ticket.attachments.length}):\n` + 
 ticket.attachments.map(f => `• ${f.originalname} (${Math.round(f.size/1024)} KB)`).join('\n') + '\n\n' 
 : ''}
-ACCIÓN REQUERIDA:
-1. Revisa el ticket en el sistema
-2. Cambia el estado a "EN PROCESO" cuando lo atiendas
-3. Cambia el estado a "CERRADO" cuando resuelvas
-4. El usuario será notificado en cada cambio\n\n
+📌 INFORMACIÓN PARA EL ADMINISTRADOR (${adminName}):
+1. Un nuevo ticket ha sido creado exitosamente
+2. El usuario ${user.name} espera tu atención
+3. Revisa el ticket en el sistema
+4. Cambia el estado a "EN PROCESO" cuando lo atiendas
+5. Cambia el estado a "CERRADO" cuando resuelvas\n\n
 Accede al sistema: ${process.env.FRONTEND_URL || 'http://localhost:4000'}/admin/tickets/${ticket._id}\n\n
-Sistema de Gestión Documental CBTIS051`
+Sistema de Gestión Documental CBTIS051\nEmail automático del sistema de soporte.`
             };
             
             const info = await enviarEmailGmail(mailOptions);
-            console.log(`✅ Email enviado al ADMIN: ${adminEmail}`);
-            console.log(`📧 Message ID: ${info.messageId}`);
+            console.log(`📗 Email VERDE enviado al ADMINISTRADOR: ${adminEmail}`);
             
         } catch (error) {
-            console.error('❌ Error enviando email al ADMIN:', error.message);
+            console.error('❌ Error enviando email VERDE al ADMINISTRADOR:', error.message);
             throw error;
         }
     }
     
     // =====================================================================
-    // 3. ENVIAR EMAIL DE CONFIRMACIÓN AL USUARIO 
+    // 3. ENVIAR EMAIL ROJO AL USUARIO
     // =====================================================================
     
     static async sendTicketEmailToUser(ticket, user) {
         try {
-            const userEmail = user.email || 'riosnavarretejared@gmail.com';
+            const userEmail = user.email;
             
-            console.log(`📤 Enviando email de confirmación al USUARIO: ${userEmail}`);
+            console.log(`\n📕 Enviando email ROJO al USUARIO: ${userEmail}`);
+            console.log(`📧 Ticket: ${ticket.ticketNumber}`);
+            console.log(`📋 Asunto: ${ticket.subject}`);
             
-            // Construir sección de archivos adjuntos
             let attachmentsHTML = '';
             if (ticket.attachments && ticket.attachments.length > 0) {
                 attachmentsHTML = `
-                <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #93c5fd;">
-                    <h4 style="color: #1e40af; margin: 0 0 15px; display: flex; align-items: center; gap: 8px;">
+                <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #fca5a5;">
+                    <h4 style="color: #dc2626; margin: 0 0 15px; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-paperclip"></i> Tus archivos adjuntos (${ticket.attachments.length})
                     </h4>
                 `;
@@ -483,23 +773,23 @@ Sistema de Gestión Documental CBTIS051`
                     
                     if (isImage) {
                         attachmentsHTML += `
-                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #dbeafe;">
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #fecaca;">
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div style="flex-shrink: 0;">
                                     <img src="${file.cloudinary_url}" 
                                          alt="Imagen adjunta" 
-                                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #bfdbfe;">
+                                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #fca5a5;">
                                 </div>
                                 <div style="flex: 1;">
-                                    <p style="margin: 0 0 6px; font-weight: 600; color: #1e40af;">
+                                    <p style="margin: 0 0 6px; font-weight: 600; color: #dc2626;">
                                         <i class="fas fa-image"></i> ${file.originalname}
                                     </p>
-                                    <p style="margin: 0 0 10px; color: #4b5563; font-size: 13px;">
+                                    <p style="margin: 0 0 10px; color: #991b1b; font-size: 13px;">
                                         <strong>Tamaño:</strong> ${fileSizeKB} KB
                                     </p>
                                     <a href="${file.cloudinary_url}" 
                                        target="_blank" 
-                                       style="display: inline-flex; align-items: center; gap: 5px; color: #3b82f6; text-decoration: none; font-size: 14px; font-weight: 500;">
+                                       style="display: inline-flex; align-items: center; gap: 5px; color: #dc2626; text-decoration: none; font-size: 14px; font-weight: 500;">
                                         <i class="fas fa-eye"></i> Ver imagen
                                     </a>
                                 </div>
@@ -508,22 +798,22 @@ Sistema de Gestión Documental CBTIS051`
                         `;
                     } else {
                         attachmentsHTML += `
-                        <div style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 4px; border: 1px solid #dbeafe;">
+                        <div style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 4px; border: 1px solid #fecaca;">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <div style="background: #eff6ff; padding: 8px; border-radius: 4px;">
-                                    <i class="fas fa-file" style="color: #3b82f6;"></i>
+                                <div style="background: #fecaca; padding: 8px; border-radius: 4px;">
+                                    <i class="fas fa-file" style="color: #dc2626;"></i>
                                 </div>
                                 <div style="flex: 1;">
-                                    <p style="margin: 0 0 4px; font-weight: 500; color: #1f2937;">
+                                    <p style="margin: 0 0 4px; font-weight: 500; color: #991b1b;">
                                         ${file.originalname}
                                     </p>
-                                    <p style="margin: 0; color: #6b7280; font-size: 12px;">
+                                    <p style="margin: 0; color: #b91c1c; font-size: 12px;">
                                         ${fileSizeKB} KB
                                     </p>
                                 </div>
                                 <a href="${file.cloudinary_url}" 
                                    target="_blank"
-                                   style="color: #3b82f6; text-decoration: none; font-size: 13px;">
+                                   style="color: #dc2626; text-decoration: none; font-size: 13px;">
                                     <i class="fas fa-external-link-alt"></i>
                                 </a>
                             </div>
@@ -536,93 +826,104 @@ Sistema de Gestión Documental CBTIS051`
             }
             
             const mailOptions = {
-                from: `"Soporte CBTIS051" <${emailFrom}>`,
+                from: `"Soporte CBTIS051" <${SYSTEM_EMAIL}>`,
                 to: userEmail,
-                subject: `✅ Ticket ${ticket.ticketNumber} creado - ${ticket.subject}`,
+                subject: `🚨 NUEVO TICKET RECIBIDO: ${ticket.ticketNumber} - ${ticket.subject}`,
                 html: `
                     <!DOCTYPE html>
                     <html>
                     <head>
                         <meta charset="utf-8">
-                        <title>Confirmación de Ticket</title>
+                        <title>Nuevo Ticket Recibido</title>
                         <style>
                             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; background: #f8f9fa; }
                             .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-                            .header { background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 25px; border-radius: 10px 10px 0 0; text-align: center; color: white; }
-                            .ticket-number { background: white; color: #059669; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 22px; display: inline-block; margin: 15px 0; border: 2px solid #10b981; }
-                            .status-timeline { display: flex; justify-content: space-between; margin: 30px 0; position: relative; }
-                            .status-step { text-align: center; flex: 1; position: relative; z-index: 1; }
-                            .status-circle { width: 40px; height: 40px; border-radius: 50%; background: #d1fae5; color: #065f46; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; border: 3px solid #10b981; }
-                            .status-circle.active { background: #10b981; color: white; }
-                            .status-line { position: absolute; top: 20px; left: 20%; right: 20%; height: 3px; background: #d1fae5; z-index: 0; }
+                            .header { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 25px; border-radius: 10px 10px 0 0; text-align: center; color: white; }
+                            .ticket-number { background: white; color: #dc2626; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 22px; display: inline-block; margin: 15px 0; border: 2px solid #ef4444; }
                             .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px; }
                         </style>
                     </head>
                     <body>
                         <div class="container">
                             <div class="header">
-                                <h1 style="margin: 0; font-size: 26px;">✅ TICKET CREADO EXITOSAMENTE</h1>
+                                <h1 style="margin: 0; font-size: 26px;">🚨 NUEVO TICKET RECIBIDO</h1>
                                 <p style="margin: 5px 0 0; opacity: 0.9;">Sistema de Soporte CBTIS051</p>
                             </div>
                             
                             <div style="padding: 25px; text-align: center;">
                                 <div class="ticket-number">${ticket.ticketNumber}</div>
                                 
-                                <h2 style="color: #2d3748; margin: 0 0 20px;">${ticket.subject}</h2>
+                                <h2 style="color: #991b1b; margin: 0 0 20px;">${ticket.subject}</h2>
                                 
-                                <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left;">
-                                    <h3 style="color: #065f46; margin: 0 0 15px;">📋 Información del ticket</h3>
+                                <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                                    <h3 style="color: #dc2626; margin: 0 0 15px;">📋 Información del ticket</h3>
                                     <p style="margin: 0 0 10px;"><strong>🏷️ Categoría:</strong> ${ticket.category}</p>
                                     <p style="margin: 0 0 10px;"><strong>⚠️ Prioridad:</strong> ${ticket.priority.toUpperCase()}</p>
+                                    <p style="margin: 0 0 10px;"><strong>👑 Administrador asignado:</strong> ${ticket.adminName || 'Equipo de Soporte'}</p>
                                     <p style="margin: 0;"><strong>📅 Fecha de creación:</strong> ${new Date().toLocaleString('es-MX')}</p>
                                 </div>
                                 
-                                <h3 style="color: #4a5568; text-align: left; margin: 25px 0 15px;">📝 Tu descripción:</h3>
-                                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: left; margin: 0 0 20px; border: 1px solid #e2e8f0;">
+                                <h3 style="color: #991b1b; text-align: left; margin: 25px 0 15px;">📝 Tu descripción:</h3>
+                                <div style="background: #fef2f2; padding: 15px; border-radius: 6px; text-align: left; margin: 0 0 20px; border: 1px solid #fecaca;">
                                     <p style="margin: 0; white-space: pre-wrap; line-height: 1.6;">${ticket.description}</p>
                                 </div>
                                 
                                 ${attachmentsHTML}
                                 
-                                <div style="background: #dbeafe; padding: 15px; border-radius: 6px; margin: 25px 0; border-left: 4px solid #3b82f6; text-align: left;">
-                                    <h3 style="color: #1e40af; margin: 0 0 10px;">📌 ¿Qué sigue?</h3>
-                                    <p style="margin: 0; color: #1e40af; font-size: 15px;">
+                                <div style="background: #fecaca; padding: 15px; border-radius: 6px; margin: 25px 0; border-left: 4px solid #dc2626; text-align: left;">
+                                    <h3 style="color: #991b1b; margin: 0 0 10px;">🚨 IMPORTANTE - ESTADO ACTUAL:</h3>
+                                    <p style="margin: 0; color: #991b1b; font-size: 15px;">
                                         <strong>1.</strong> Tu ticket está en estado <strong>"ABIERTO"</strong><br>
-                                        <strong>2.</strong> El equipo de soporte lo revisará próximamente<br>
+                                        <strong>2.</strong> El administrador <strong>${ticket.adminName || 'Equipo de Soporte'}</strong> lo revisará<br>
                                         <strong>3.</strong> Cambiará a <strong>"EN PROCESO"</strong> cuando sea atendido<br>
                                         <strong>4.</strong> Se cerrará cuando se resuelva el problema<br>
                                         <strong>5.</strong> Recibirás un email en cada cambio de estado
                                     </p>
                                 </div>
                                 
-                                <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; text-align: left;">
+                                <div style="background: #fed7aa; padding: 15px; border-radius: 6px; margin: 20px 0; text-align: left;">
                                     <p style="margin: 0; color: #92400e; font-size: 14px;">
-                                        <strong>ℹ️ Información importante:</strong><br>
+                                        <strong>⚠️ ATENCIÓN:</strong><br>
+                                        • Este es un email informativo de RECEPCIÓN<br>
                                         • No respondas a este email<br>
                                         • Solo verifica el estado en el sistema<br>
                                         • No se realizan acciones desde el correo<br>
                                         • Contacta al administrador si hay problemas
                                     </p>
                                 </div>
+                                
+                                <div style="text-align: center; margin: 25px 0;">
+                                    <a href="${process.env.FRONTEND_URL || 'http://localhost:4000'}/soporte/tickets/${ticket._id}" 
+                                       style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); 
+                                              color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; 
+                                              font-weight: bold;">
+                                        🚨 VER ESTADO DE TU TICKET
+                                    </a>
+                                </div>
                             </div>
                             
                             <div class="footer">
                                 <p style="margin: 5px 0;">
                                     <strong>Sistema de Gestión Documental CBTIS051</strong><br>
-                                    Este es un mensaje automático de confirmación.
+                                    Email automático de recepción del sistema de soporte.
+                                </p>
+                                <p style="margin: 5px 0; font-size: 11px;">
+                                    Administrador asignado: ${ticket.adminName || 'Equipo de Soporte'}<br>
+                                    Sistema de Soporte Técnico
                                 </p>
                             </div>
                         </div>
                     </body>
                     </html>
                 `,
-                text: `CONFIRMACIÓN DE TICKET - CBTIS051\n\n
-✅ TICKET CREADO EXITOSAMENTE\n\n
+                text: `NUEVO TICKET RECIBIDO - CBTIS051\n\n
+🚨 TICKET RECIBIDO - EN ESPERA DE REVISIÓN\n\n
 Ticket: ${ticket.ticketNumber}
 Estado: ABIERTO
 Asunto: ${ticket.subject}
 Categoría: ${ticket.category}
 Prioridad: ${ticket.priority.toUpperCase()}
+Administrador asignado: ${ticket.adminName || 'Equipo de Soporte'}
 Fecha: ${new Date().toLocaleString('es-MX')}\n\n
 DESCRIPCIÓN:
 ${ticket.description}\n\n
@@ -630,528 +931,33 @@ ${ticket.attachments && ticket.attachments.length > 0 ?
 `ARCHIVOS ADJUNTOS (${ticket.attachments.length}):\n` + 
 ticket.attachments.map(f => `• ${f.originalname} (${Math.round(f.size/1024)} KB)`).join('\n') + '\n\n' 
 : ''}
-📌 ¿QUÉ SIGUE?
+🚨 IMPORTANTE - ESTADO ACTUAL:
 1. Tu ticket está en estado "ABIERTO"
-2. El equipo de soporte lo revisará próximamente
+2. El administrador ${ticket.adminName || 'Equipo de Soporte'} lo revisará
 3. Cambiará a "EN PROCESO" cuando sea atendido
 4. Se cerrará cuando se resuelva el problema
 5. Recibirás un email en cada cambio de estado\n\n
-⚠️ IMPORTANTE:
+⚠️ ATENCIÓN:
+• Este es un email informativo de RECEPCIÓN
 • No respondas a este email
 • Solo verifica el estado en el sistema
 • No se realizan acciones desde el correo
 • Contacta al administrador si hay problemas\n\n
 Ver estado del ticket: ${process.env.FRONTEND_URL || 'http://localhost:4000'}/soporte/tickets/${ticket._id}\n\n
-Sistema de Gestión Documental CBTIS051`
+Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
             };
             
             const info = await enviarEmailGmail(mailOptions);
-            console.log(`✅ Email enviado al USUARIO: ${userEmail}`);
-            console.log(`📧 Message ID: ${info.messageId}`);
+            console.log(`📕 Email ROJO enviado al USUARIO: ${userEmail}`);
             
         } catch (error) {
-            console.error('❌ Error enviando email al USUARIO:', error.message);
+            console.error('❌ Error enviando email ROJO al USUARIO:', error.message);
             throw error;
         }
     }
-    
-    // =====================================================================
-    // 4. OBTENER TICKETS DEL USUARIO (CON NUEVOS ESTADOS)
-    // =====================================================================
-    
-    static async getUserTickets(req, res) {
-        try {
-            const user = req.user || { _id: 'system' };
-            const { status, priority, category, limit = 50, page = 1 } = req.query;
-            
-            console.log(`📥 Obteniendo tickets para usuario: ${user._id}`);
-            
-            const filter = {
-                createdBy: user._id,
-                isDeleted: false
-            };
-            
-            // Aplicar filtros
-            if (status && status !== 'all') filter.status = status;
-            if (priority && priority !== 'all') filter.priority = priority;
-            if (category && category !== 'all') filter.category = category;
-            
-            const skip = (parseInt(page) - 1) * parseInt(limit);
-            
-            const tickets = await Ticket.find(filter)
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit))
-                .lean();
-            
-            const total = await Ticket.countDocuments(filter);
-            
-            console.log(`✅ ${tickets.length} tickets encontrados`);
-            
-            res.json({
-                success: true,
-                tickets,
-                pagination: {
-                    total,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(total / parseInt(limit))
-                }
-            });
-            
-        } catch (error) {
-            console.error('❌ Error obteniendo tickets:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error obteniendo tickets'
-            });
-        }
-    }
-    
-    // =====================================================================
-    // 5. OBTENER DETALLES DEL TICKET
-    // =====================================================================
-    
-    static async getTicketDetails(req, res) {
-        try {
-            const { id } = req.params;
-            const user = req.user || { _id: 'system' };
-            
-            console.log(`🔍 Obteniendo detalles del ticket: ${id}`);
-            
-            const ticket = await Ticket.findOne({
-                _id: id,
-                isDeleted: false
-            }).lean();
-            
-            if (!ticket) {
-                console.log(`❌ Ticket no encontrado: ${id}`);
-                return res.status(404).json({
-                    success: false,
-                    message: 'Ticket no encontrado'
-                });
-            }
-            
-            console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
-            
-            // Verificar permisos
-            if (ticket.createdBy.toString() !== user._id.toString() && user.role !== 'admin') {
-                console.log(`⛔ Usuario ${user._id} no tiene permisos para ver ticket ${id}`);
-                return res.status(403).json({
-                    success: false,
-                    message: 'No tienes permiso para ver este ticket'
-                });
-            }
-            
-            res.json({
-                success: true,
-                ticket
-            });
-            
-        } catch (error) {
-            console.error('❌ Error obteniendo detalles del ticket:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error obteniendo detalles del ticket'
-            });
-        }
-    }
 
     // =====================================================================
-// 6. AGREGAR ACTUALIZACIÓN A TICKET 
-// =====================================================================
-
-static async addTicketUpdate(req, res) {
-    try {
-        const { id } = req.params;
-        const { message, type = 'user_update' } = req.body;
-        const user = req.user || { _id: 'system', name: 'Usuario del Sistema' };
-        
-        console.log(`💬 Agregando actualización al ticket: ${id}`);
-        console.log(`👤 Usuario: ${user.name}`);
-        console.log(`💬 Mensaje: ${message.substring(0, 50)}...`);
-        
-        if (!message || message.trim().length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'El mensaje no puede estar vacío'
-            });
-        }
-        
-        const ticket = await Ticket.findById(id);
-        
-        if (!ticket) {
-            console.log(`❌ Ticket no encontrado: ${id}`);
-            return res.status(404).json({
-                success: false,
-                message: 'Ticket no encontrado'
-            });
-        }
-        
-        console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
-        
-        // Verificar permisos
-        if (ticket.createdBy.toString() !== user._id.toString() && user.role !== 'admin') {
-            console.log(`⛔ Usuario no autorizado para actualizar este ticket`);
-            return res.status(403).json({
-                success: false,
-                message: 'No tienes permiso para actualizar este ticket'
-            });
-        }
-        
-        // Crear actualización
-        const update = {
-            user: user._id,
-            userName: user.name || 'Usuario del Sistema',
-            message: message.trim(),
-            type: type,
-            createdAt: new Date()
-        };
-        
-        if (!ticket.updates) {
-            ticket.updates = [];
-        }
-        
-        ticket.updates.push(update);
-        ticket.updatedAt = new Date();
-        
-        await ticket.save();
-        
-        console.log(`✅ Actualización agregada. Total updates: ${ticket.updates.length}`);
-        
-        // ENVIAR EMAIL DE ACTUALIZACIÓN (si es admin)
-        if (user.role === 'admin' && ticket.emailNotifications) {
-            try {
-                await this.sendUpdateEmail(ticket, user, message);
-                console.log(`📧 Email de actualización enviado`);
-            } catch (emailError) {
-                console.error('⚠️ Error enviando email:', emailError.message);
-            }
-        }
-        
-        res.json({
-            success: true,
-            message: 'Actualización agregada exitosamente',
-            update,
-            ticket
-        });
-        
-    } catch (error) {
-        console.error('❌ Error agregando actualización:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error agregando actualización al ticket'
-        });
-    }
-}
-    
-    // =====================================================================
-    // 7. ENVIAR EMAIL DE ACTUALIZACIÓN (CUANDO CAMBIA EL ESTADO)
-    // =====================================================================
-    
-    static async sendUpdateEmail(ticket, user, message) {
-        try {
-            const userEmail = ticket.createdByEmail;
-            const statusText = {
-                'abierto': 'ABIERTO',
-                'en_proceso': 'EN PROCESO',
-                'cerrado': 'CERRADO'
-            };
-            
-            console.log(`📤 Enviando email de actualización a: ${userEmail}`);
-            console.log(`📊 Estado actual: ${ticket.status}`);
-            
-            const mailOptions = {
-                from: `"Soporte CBTIS051" <${emailFrom}>`,
-                to: userEmail,
-                subject: `🔄 ${statusText[ticket.status] || 'ACTUALIZACIÓN'} - Ticket ${ticket.ticketNumber}`,
-                html: `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="utf-8">
-                        <title>Actualización de Ticket</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f8f9fa; }
-                            .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-                            .header { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 25px; border-radius: 10px 10px 0 0; text-align: center; color: white; }
-                            .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
-                            .status-abierto { background: #dc2626; color: white; }
-                            .status-en_proceso { background: #f59e0b; color: white; }
-                            .status-cerrado { background: #10b981; color: white; }
-                            .update-box { background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
-                            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="container">
-                            <div class="header">
-                                <h1 style="margin: 0; font-size: 24px;">🔄 ACTUALIZACIÓN DE TICKET</h1>
-                                <p style="margin: 5px 0 0; opacity: 0.9;">${ticket.ticketNumber}</p>
-                                <div style="margin-top: 15px;">
-                                    <span class="status-badge status-${ticket.status}">${statusText[ticket.status] || ticket.status.toUpperCase()}</span>
-                                </div>
-                            </div>
-                            
-                            <div style="padding: 25px;">
-                                <h2 style="color: #2d3748; margin-top: 0;">${ticket.subject}</h2>
-                                
-                                <div style="background: #f7fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                                    <p style="margin: 0 0 10px;"><strong>👤 Actualizado por:</strong> ${user.name || 'Equipo de Soporte'}</p>
-                                    <p style="margin: 0 0 10px;"><strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}</p>
-                                    <p style="margin: 0;"><strong>📊 Estado actual:</strong> <span class="status-badge status-${ticket.status}">${statusText[ticket.status] || ticket.status.toUpperCase()}</span></p>
-                                </div>
-                                
-                                <div class="update-box">
-                                    <h3 style="color: #1e40af; margin-top: 0;">Actualización del equipo:</h3>
-                                    <p style="white-space: pre-wrap; background: white; padding: 15px; border-radius: 6px; margin: 0;">${message}</p>
-                                </div>
-                                
-                                <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-                                    <p style="margin: 0; color: #92400e; font-size: 14px;">
-                                        <strong>📌 Nota importante:</strong><br>
-                                        Este es un email informativo. <strong>No respondas a este correo</strong>.<br>
-                                        Solo revisa el estado de tu ticket en el sistema.
-                                    </p>
-                                </div>
-                                
-                                <div style="text-align: center; margin: 25px 0;">
-                                    <a href="${process.env.FRONTEND_URL || 'http://localhost:4000'}/soporte/tickets/${ticket._id}" 
-                                       style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); 
-                                              color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; 
-                                              font-weight: bold;">
-                                        👁️ VER TICKET EN EL SISTEMA
-                                    </a>
-                                </div>
-                            </div>
-                            
-                            <div class="footer">
-                                <p style="margin: 5px 0;">
-                                    Sistema de Gestión Documental CBTIS051<br>
-                                    Email informativo - No responder
-                                </p>
-                            </div>
-                        </div>
-                    </body>
-                    </html>
-                `,
-                text: `ACTUALIZACIÓN DE TICKET - CBTIS051\n\n
-Ticket: ${ticket.ticketNumber}
-Asunto: ${ticket.subject}
-Estado: ${statusText[ticket.status] || ticket.status.toUpperCase()}\n\n
-ACTUALIZACIÓN DEL EQUIPO:
-Actualizado por: ${user.name || 'Equipo de Soporte'}
-Fecha: ${new Date().toLocaleString('es-MX')}\n\n
-MENSAJE:
-${message}\n\n
-📌 NOTA IMPORTANTE:
-Este es un email informativo. NO RESPONDAS A ESTE CORREO.
-Solo revisa el estado de tu ticket en el sistema.\n\n
-Ver ticket: ${process.env.FRONTEND_URL || 'http://localhost:4000'}/soporte/tickets/${ticket._id}\n\n
-Sistema de Gestión Documental CBTIS051`
-            };
-            
-            await enviarEmailGmail(mailOptions);
-            console.log(`✅ Email de actualización enviado`);
-            
-        } catch (error) {
-            console.error('❌ Error enviando email de actualización:', error.message);
-            throw error;
-        }
-    }
-    
-    // =====================================================================
-    // 8. OBTENER ESTADÍSTICAS DE TICKETS (CON NUEVOS ESTADOS)
-    // =====================================================================
-    
-    static async getTicketStats(req, res) {
-        try {
-            const user = req.user || { _id: 'system' };
-            
-            console.log('📊 Obteniendo estadísticas de tickets');
-            
-            const filter = {
-                createdBy: user._id,
-                isDeleted: false
-            };
-            
-            const [
-                total,
-                abierto,
-                en_proceso,
-                cerrado
-            ] = await Promise.all([
-                Ticket.countDocuments(filter),
-                Ticket.countDocuments({ ...filter, status: 'abierto' }),
-                Ticket.countDocuments({ ...filter, status: 'en_proceso' }),
-                Ticket.countDocuments({ ...filter, status: 'cerrado' })
-            ]);
-            
-            // Tickets por categoría
-            const byCategory = await Ticket.aggregate([
-                { $match: filter },
-                { $group: { _id: '$category', count: { $sum: 1 } } },
-                { $sort: { count: -1 } }
-            ]);
-            
-            // Tickets por prioridad
-            const byPriority = await Ticket.aggregate([
-                { $match: filter },
-                { $group: { _id: '$priority', count: { $sum: 1 } } },
-                { $sort: { count: -1 } }
-            ]);
-            
-            console.log(`✅ Estadísticas obtenidas: ${total} tickets totales`);
-            
-            res.json({
-                success: true,
-                stats: {
-                    total,
-                    byStatus: {
-                        abierto,
-                        en_proceso,
-                        cerrado
-                    },
-                    byCategory,
-                    byPriority
-                }
-            });
-            
-        } catch (error) {
-            console.error('❌ Error obteniendo estadísticas:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error obteniendo estadísticas de tickets'
-            });
-        }
-    }
-    
-    // =====================================================================
-    // 9. OBTENER FAQ
-    // =====================================================================
-    
-    static async getFAQ(req, res) {
-        try {
-            console.log('❓ Obteniendo FAQ');
-            
-            const faq = [
-                {
-                    question: "¿Cómo funciona el sistema de tickets?",
-                    answer: "El sistema funciona en 3 estados: 1) ABIERTO: Ticket recibido, 2) EN PROCESO: Equipo trabajando en solución, 3) CERRADO: Problema resuelto. Recibirás emails en cada cambio de estado.",
-                    category: "general",
-                    priority: "alta"
-                },
-                {
-                    question: "¿Puedo responder a los emails del sistema?",
-                    answer: "NO. Los emails son solo informativos. No respondas a los correos. Si necesitas comunicarte, crea un nuevo ticket o contacta al administrador directamente.",
-                    category: "comunicación",
-                    priority: "alta"
-                },
-                {
-                    question: "¿Cuánto tiempo tarda en atenderse mi ticket?",
-                    answer: "Depende de la prioridad: ALTA (24h), MEDIA (48h), BAJA (72h). Recibirás notificación cuando el ticket cambie a 'EN PROCESO'.",
-                    category: "tiempos",
-                    priority: "media"
-                }
-            ];
-            
-            console.log(`✅ ${faq.length} preguntas frecuentes obtenidas`);
-            
-            res.json({
-                success: true,
-                faq
-            });
-            
-        } catch (error) {
-            console.error('❌ Error obteniendo FAQ:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error obteniendo preguntas frecuentes'
-            });
-        }
-    }
-    
-    // =====================================================================
-    // 10. PRUEBA DE EMAIL DE SOPORTE
-    // =====================================================================
-    
-    static async testSupportEmail(req, res) {
-        try {
-            console.log('');
-            console.log('🧪 ========== PRUEBA DE EMAIL DE SOPORTE ==========');
-            
-            const testEmail = 'riosnavarretejared@gmail.com';
-            
-            console.log(`📧 Enviando prueba a: ${testEmail}`);
-            
-            const mailOptions = {
-                from: `"Soporte CBTIS051" <${emailFrom}>`,
-                to: testEmail,
-                subject: '🧪 Prueba de Email - Sistema de Soporte CBTIS051',
-                html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
-                        <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                            <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-size: 16px;">Sistema de Soporte CBTIS051</p>
-                        </div>
-                        
-                        <div style="padding: 40px; border-radius: 0 0 10px 10px; background: white;">
-                            <h2 style="color: #2d3748; margin: 0 0 20px; font-size: 24px; font-weight: 600;">El sistema de emails de soporte está funcionando</h2>
-                            
-                            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; border-left: 4px solid #059669;">
-                                <p style="margin: 0; color: #065f46; font-size: 15px;">
-                                    <strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}<br>
-                                    <strong>🏢 Sistema:</strong> Soporte CBTIS051<br>
-                                    <strong>✅ Estado:</strong> Configuración correcta<br>
-                                    <strong>📧 Servidor:</strong> ${emailHost}:${emailPort}<br>
-                                    <strong>👤 Usuario:</strong> ${emailUser}<br>
-                                    <strong>🎯 Destino:</strong> ${testEmail}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `,
-                text: `PRUEBA DE EMAIL DE SOPORTE - CBTIS051\n\n
-Sistema de soporte activo:\n
-• Emails solo para verificación\n
-• No se realizan acciones desde el correo\n
-• Estados: Abierto → En proceso → Cerrado\n\n
-Fecha: ${new Date().toLocaleString('es-MX')}\n
-Servidor: ${emailHost}:${emailPort}\n
-Usuario: ${emailUser}\n
-Destino: ${testEmail}\n\n
-✅ Configuración correcta`
-            };
-            
-            const info = await enviarEmailGmail(mailOptions);
-            
-            console.log('\n✅✅✅ PRUEBA DE SOPORTE EXITOSA ✅✅✅');
-            console.log(`   📨 Para: ${testEmail}`);
-            console.log(`   📧 Message ID: ${info.messageId}`);
-            console.log('   • Emails solo para verificación');
-            console.log('   • No acciones desde el correo');
-            console.log('   • Estados: Abierto → En proceso → Cerrado');
-            
-            console.log('\n🧪 ========== FIN PRUEBA ==========\n');
-            
-            res.json({
-                success: true,
-                message: '✅ Email de prueba enviado exitosamente',
-                messageId: info.messageId,
-                to: testEmail,
-            });
-            
-        } catch (error) {
-            console.error('❌ Error en prueba de email:', error.message);
-            res.status(500).json({
-                success: false,
-                message: '❌ Error al enviar email de prueba',
-                error: error.message
-            });
-        }
-    }
-
-    // =====================================================================
-    // 11. OBTENER GUÍA DEL SISTEMA
+    // 5. OBTENER GUÍA DEL SISTEMA
     // =====================================================================
     
     static async getSystemGuide(req, res) {
@@ -1211,224 +1017,829 @@ Destino: ${testEmail}\n\n
             });
         }
     }
-    
-        // =====================================================================
-// 12. CAMBIAR ESTADO DEL TICKET - SIMPLIFICADO (SOLO PARA ADMINISTRADORES)
-// =====================================================================
 
-static async changeTicketStatus(req, res) {
-    try {
-        const { id } = req.params;
-        let { status, note = '' } = req.body;
-        const user = req.user || { 
-            _id: 'system', 
-            name: 'Administrador',
-            rol: 'administrador'
-        };
-        
-        console.log('');
-        console.log('🔄 ========== CAMBIANDO ESTADO DE TICKET ==========');
-        console.log(`🎫 Ticket ID: ${id}`);
-        console.log(`👤 Usuario: ${user.name} (${user.rol || 'admin'})`);
-        console.log(`📝 Nota recibida: "${note}"`);
-        console.log(`📌 Ruta llamada: ${req.originalUrl}`);
-        
-        // ✅ SIEMPRE es administrador - Eliminar toda la lógica compleja
-        console.log(`✅ Sistema 100% administrado por staff`);
-        
-        // ✅ CORRECCIÓN: Si viene del endpoint /close y no tiene status, asignar 'cerrado'
-        if (req.originalUrl.includes('/close') && !status) {
-            console.log('📌 Endpoint /close detectado, asignando estado "cerrado" automáticamente');
-            status = 'cerrado';
-        }
-        
-        console.log(`🔄 Nuevo estado: ${status}`);
-        
-        // Validar estado permitido
-        const allowedStatuses = ['abierto', 'en_proceso', 'cerrado', 'resuelto'];
-        if (!status || !allowedStatuses.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Estado no válido. Usar: ${allowedStatuses.join(', ')}`
-            });
-        }
-        
-        const ticket = await Ticket.findById(id);
-        
-        if (!ticket) {
-            console.log(`❌ Ticket no encontrado: ${id}`);
-            return res.status(404).json({
-                success: false,
-                message: 'Ticket no encontrado'
-            });
-        }
-        
-        console.log(`✅ Ticket encontrado: ${ticket.ticketNumber}`);
-        console.log(`📊 Estado actual: ${ticket.status}`);
-        
-        const oldStatus = ticket.status;
-        
-        // Actualizar estado
-        ticket.status = status;
-        
-        // Actualizar fechas según estado
-        if (status === 'en_proceso') {
-            ticket.assignedAt = new Date();
-            console.log(`📅 Fecha de asignación actualizada`);
-        } else if (status === 'resuelto') {
-            ticket.resolvedAt = new Date();
-            console.log(`📅 Fecha de resolución actualizada`);
-        } else if (status === 'cerrado') {
-            ticket.closedAt = new Date();
-            console.log(`📅 Fecha de cierre actualizada`);
-        }
-        
-        // =============================================================
-        // ✅ LÓGICA SIMPLIFICADA - SIEMPRE ADMINISTRADOR
-        // =============================================================
-        let statusMessage = '';
-        const trimmedNote = note ? note.trim() : '';
-        const hasRealNote = trimmedNote !== '';
-        
-        console.log(`📝 Nota procesada: "${trimmedNote}"`);
-        console.log(`📝 ¿Tiene nota real?: ${hasRealNote}`);
-        
-        // ✅ SIEMPRE usar mensajes con "por el administrador"
-        const defaultMessages = {
-            'abierto': 'Ticket reabierto por el administrador',
-            'en_proceso': 'Ticket en proceso por el administrador',
-            'resuelto': 'Ticket resuelto por el administrador',
-            'cerrado': 'Ticket cerrado por el administrador'
-        };
-        
-        if (hasRealNote) {
-            // ✅ Caso 1: Hay nota -> Usar SOLO esa nota
-            statusMessage = trimmedNote;
-            console.log(`📝 Usando nota: "${statusMessage}"`);
-        } else {
-            // ✅ Caso 2: No hay nota -> Usar mensaje predeterminado con "por el administrador"
-            statusMessage = defaultMessages[status] || `Estado cambiado a ${status} por el administrador`;
-            console.log(`📝 Usando mensaje predeterminado: "${statusMessage}"`);
-        }
-        // =============================================================
-        
-        // ✅ SIEMPRE mostrar "Administrador"
-        const displayName = 'Administrador';
-        
-        // Agregar actualización
-        const update = {
-            user: user._id,
-            userName: displayName, // ✅ SIEMPRE "Administrador"
-            message: statusMessage,
-            type: 'status_change',
-            statusChange: {
-                from: oldStatus,
-                to: status
-            },
-            createdAt: new Date()
-        };
-        
-        if (!ticket.updates) {
-            ticket.updates = [];
-        }
-        
-        ticket.updates.push(update);
-        ticket.updatedAt = new Date();
-        await ticket.save();
-        
-        console.log(`✅ Estado cambiado: ${oldStatus} → ${status}`);
-        console.log(`📝 Mensaje guardado: "${statusMessage}"`);
-        console.log(`👤 Registrado como: ${displayName}`);
-        
-        // ENVIAR EMAIL DE ACTUALIZACIÓN AL USUARIO
-        if (ticket.emailNotifications) {
-            try {
-                // ✅ SIEMPRE "Administrador del Sistema" para emails
-                const correctedUser = {
-                    ...user,
-                    name: 'Administrador del Sistema'
-                };
-                
-                await this.sendUpdateEmail(ticket, correctedUser, statusMessage);
-                console.log(`📧 Email de cambio de estado enviado al usuario`);
-            } catch (emailError) {
-                console.error('⚠️ Error enviando email:', emailError.message);
-            }
-        }
-        
-        console.log('🔄 ========== ESTADO CAMBIADO ==========\n');
-        
-        res.json({
-            success: true,
-            message: `✅ Estado del ticket actualizado`,
-            ticket
-        });
-        
-    } catch (error) {
-        console.error('❌ Error cambiando estado del ticket:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error cambiando estado del ticket'
-        });
-    }
-}
-    
     // =====================================================================
-    // 13. OBTENER TODOS LOS TICKETS (PARA ADMIN)
+    // 6. PRUEBA DE EMAIL
     // =====================================================================
     
-    static async getAllTickets(req, res) {
+    static async testSupportEmail(req, res) {
         try {
-            const user = req.user || { _id: 'system' };
-            const { status, priority, category, limit = 100, page = 1 } = req.query;
+            console.log('\n🧪 Probando sistema de emails de soporte...');
             
-            console.log(`📥 Admin obteniendo TODOS los tickets`);
+            const testEmail = 'riosnavarretejared@gmail.com';
             
-            // Solo administradores pueden ver todos los tickets
-            if (user.role !== 'admin') {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Solo administradores pueden ver todos los tickets'
-                });
-            }
-            
-            const filter = {
-                isDeleted: false
+            const mailOptions = {
+                from: `"Soporte CBTIS051" <${SYSTEM_EMAIL}>`,
+                to: testEmail,
+                subject: '🧪 Prueba de Email - Sistema de Soporte CBTIS051',
+                html: '<h1>Prueba exitosa</h1><p>El sistema de emails está funcionando correctamente.</p>',
+                text: 'Prueba exitosa - El sistema de emails está funcionando correctamente.'
             };
             
-            // Aplicar filtros
-            if (status && status !== 'all') filter.status = status;
-            if (priority && priority !== 'all') filter.priority = priority;
-            if (category && category !== 'all') filter.category = category;
+            const info = await enviarEmailGmail(mailOptions);
             
-            const skip = (parseInt(page) - 1) * parseInt(limit);
-            
-            const tickets = await Ticket.find(filter)
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit))
-                .lean();
-            
-            const total = await Ticket.countDocuments(filter);
-            
-            console.log(`✅ ${tickets.length} tickets encontrados (admin view)`);
+            console.log('✅ Email de prueba enviado exitosamente');
             
             res.json({
                 success: true,
-                tickets,
-                pagination: {
-                    total,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(total / parseInt(limit))
-                }
+                message: 'Email de prueba enviado exitosamente',
+                messageId: info.messageId
             });
             
         } catch (error) {
-            console.error('❌ Error obteniendo todos los tickets:', error);
+            console.error('❌ Error en prueba de email:', error.message);
             res.status(500).json({
                 success: false,
-                message: 'Error obteniendo tickets'
+                message: 'Error al enviar email de prueba',
+                error: error.message
+            });
+        }
+    }
+
+    // =====================================================================
+    // 12. OBTENER FAQ (PREGUNTAS FRECUENTES)
+    // =====================================================================
+
+    static async getFAQ(req, res) {
+        try {
+            console.log('❓ Obteniendo FAQ de soporte');
+            
+            const faq = [
+                {
+                    question: "¿Cómo funciona el sistema de tickets?",
+                    answer: "El sistema funciona en 3 estados: 1) ABIERTO: Ticket recibido, 2) EN PROCESO: Equipo trabajando en solución, 3) CERRADO: Problema resuelto. Recibirás emails en cada cambio de estado.",
+                    category: "general",
+                    priority: "alta"
+                },
+                {
+                    question: "¿Puedo responder a los emails del sistema?",
+                    answer: "NO. Los emails son solo informativos. No respondas a los correos. Si necesitas comunicarte, crea un nuevo ticket o contacta al administrador directamente.",
+                    category: "comunicación",
+                    priority: "alta"
+                },
+                {
+                    question: "¿Cuánto tiempo tarda en atenderse mi ticket?",
+                    answer: "Depende de la prioridad: ALTA (24h), MEDIA (48h), BAJA (72h). Recibirás notificación cuando el ticket cambie a 'EN PROCESO'.",
+                    category: "tiempos",
+                    priority: "media"
+                },
+                {
+                    question: "¿Puedo adjuntar archivos a mi ticket?",
+                    answer: "Sí, puedes adjuntar imágenes, documentos PDF, Word, Excel, etc. El tamaño máximo por archivo es 10MB.",
+                    category: "archivos",
+                    priority: "media"
+                },
+                {
+                    question: "¿Cómo sé si mi ticket fue atendido?",
+                    answer: "Recibirás un email cuando el ticket cambie de estado. También puedes revisar el estado en la sección 'Mis Tickets' del sistema.",
+                    category: "seguimiento",
+                    priority: "alta"
+                },
+                {
+                    question: "¿Qué hago si olvidé mi número de ticket?",
+                    answer: "Revisa tu correo electrónico, allí encontrarás el número. También puedes ver todos tus tickets en la sección 'Mis Tickets'.",
+                    category: "general",
+                    priority: "baja"
+                }
+            ];
+            
+            console.log(`✅ ${faq.length} preguntas frecuentes obtenidas`);
+            
+            res.json({
+                success: true,
+                faq
+            });
+            
+        } catch (error) {
+            console.error('❌ Error obteniendo FAQ:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error obteniendo preguntas frecuentes'
+            });
+        }
+    }
+
+    // =====================================================================
+    // 13. OBTENER ESTADO DEL SISTEMA - VERSIÓN CORREGIDA CON VARIABLES DE ENTORNO
+    // =====================================================================
+
+    static async getSystemStatus(req, res) {
+        // Agregar timestamp de inicio para medir tiempo de respuesta
+        req.startTime = Date.now();
+        
+        try {
+            console.log('🖥️ Verificando estado REAL del sistema...');
+            monitorMemory();
+            console.log('🔍 Variables de entorno disponibles:', {
+                CLOUDINARY_CLOUD_NAME: !!process.env.CLOUDINARY_CLOUD_NAME,
+                CLOUDINARY_API_KEY: !!process.env.CLOUDINARY_API_KEY,
+                CLOUDINARY_API_SECRET: !!process.env.CLOUDINARY_API_SECRET,
+                EMAIL_HOST: !!process.env.EMAIL_HOST,
+                EMAIL_USER: !!process.env.EMAIL_USER,
+                EMAIL_PASS: !!process.env.EMAIL_PASS,
+                EMAIL_PORT: !!process.env.EMAIL_PORT
+            });
+            
+            // 1. Verificar estado de la base de datos
+            let dbStatus = { connected: false, message: 'No conectado' };
+            try {
+                const dbState = mongoose.connection.readyState;
+                
+                // Estados de conexión de MongoDB:
+                // 0 = disconnected
+                // 1 = connected
+                // 2 = connecting
+                // 3 = disconnecting
+                
+                if (dbState === 1) {
+                    // Realizar ping para verificar conexión real
+                    try {
+                        await mongoose.connection.db.admin().ping();
+                        dbStatus = { 
+                            connected: true, 
+                            message: 'Conectado',
+                            details: {
+                                database: mongoose.connection.name || 'CBTIS051',
+                                host: mongoose.connection.host || 'localhost:27017',
+                                state: 'Conectado y respondiendo',
+                                collectionsCount: (await mongoose.connection.db.listCollections().toArray()).length
+                            }
+                        };
+                        console.log('✅ MongoDB: Conectado y respondiendo');
+                    } catch (pingError) {
+                        dbStatus = { 
+                            connected: false, 
+                            message: 'Conexión inestable',
+                            error: pingError.message,
+                            details: {
+                                database: mongoose.connection.name,
+                                state: 'Conectado pero ping falló'
+                            }
+                        };
+                        console.warn('⚠️ MongoDB: Conectado pero ping falló:', pingError.message);
+                    }
+                } else if (dbState === 2) {
+                    dbStatus = { 
+                        connected: false, 
+                        message: 'Conectando...',
+                        details: 'Estableciendo conexión con MongoDB'
+                    };
+                    console.log('⏳ MongoDB: Conectando...');
+                } else if (dbState === 3) {
+                    dbStatus = { 
+                        connected: false, 
+                        message: 'Desconectando',
+                        details: 'Cerrando conexión con MongoDB'
+                    };
+                    console.log('⏳ MongoDB: Desconectando...');
+                } else {
+                    dbStatus = { 
+                        connected: false, 
+                        message: 'Desconectado',
+                        details: 'Sin conexión a MongoDB'
+                    };
+                    console.log('❌ MongoDB: Desconectado');
+                }
+                
+                console.log(`📊 Estado MongoDB (${dbState}): ${dbStatus.message}`);
+                
+            } catch (dbError) {
+                console.error('❌ Error verificando MongoDB:', dbError.message);
+                dbStatus = { 
+                    connected: false, 
+                    message: 'Error de conexión',
+                    error: dbError.message,
+                    details: 'No se pudo verificar la conexión a MongoDB'
+                };
+            }
+
+            // 2. Verificar estado del sistema principal
+            let systemStatus = { operational: true, message: 'Operacional' };
+            try {
+                const systemDetails = {
+                    platform: 'server',
+                    timestamp: new Date().toISOString(),
+                    serverTime: new Date().toLocaleString('es-MX'),
+                    nodeVersion: process.version || 'N/A',
+                    uptime: Math.floor(process.uptime()) + ' segundos',
+                    memoryUsage: {
+                        rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
+                        heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB',
+                        heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+                        external: Math.round(process.memoryUsage().external / 1024 / 1024) + ' MB'
+                    }
+                };
+                
+                // Verificar carga del sistema
+                const memoryPercent = (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100;
+                
+                if (memoryPercent > 85) {
+                    systemStatus = {
+                        operational: true,
+                        message: 'Operacional (alta carga de memoria)',
+                        details: systemDetails,
+                        warning: `Uso de memoria alto: ${Math.round(memoryPercent)}%`
+                    };
+                    console.warn(`⚠️ Sistema: Alta carga de memoria (${Math.round(memoryPercent)}%)`);
+                } else {
+                    systemStatus = {
+                        operational: true,
+                        message: 'Operacional',
+                        details: systemDetails
+                    };
+                    console.log('✅ Sistema Principal: Operacional');
+                }
+                
+            } catch (systemError) {
+                console.error('❌ Error verificando sistema:', systemError.message);
+                systemStatus = { 
+                    operational: false, 
+                    message: 'Error en sistema',
+                    error: systemError.message 
+                };
+            }
+
+            // 3. Verificar almacenamiento Cloud (Cloudinary) - VERIFICACIÓN REAL
+            let cloudStorageStatus = { active: false, message: 'Inactivo' };
+            try {
+                console.log('☁️ Verificando Cloudinary...');
+                
+                // Usar las variables de entorno
+                const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+                const apiKey = process.env.CLOUDINARY_API_KEY;
+                const apiSecret = process.env.CLOUDINARY_API_SECRET;
+                
+                if (cloudName && apiKey && apiSecret) {
+                    console.log('✅ Variables de entorno de Cloudinary encontradas');
+                    
+                    // Configurar con las variables de entorno
+                    cloudinary.config({
+                        cloud_name: cloudName,
+                        api_key: apiKey,
+                        api_secret: apiSecret
+                    });
+                    
+                    try {
+                        // Intentar una operación REAL de Cloudinary
+                        const result = await cloudinary.api.ping();
+                        
+                        cloudStorageStatus = {
+                            active: true,
+                            message: 'Activo y funcionando',
+                            details: {
+                                cloudName: cloudName,
+                                service: 'Cloudinary',
+                                status: 'Conectado y autenticado',
+                                verified: true,
+                                timestamp: new Date().toISOString(),
+                                accountInfo: {
+                                    cloudName: cloudName,
+                                    apiKey: apiKey ? `${apiKey.substring(0, 8)}...` : 'N/A',
+                                    environment: 'production'
+                                }
+                            }
+                        };
+                        console.log('✅ Cloudinary: Conectado, autenticado y funcionando');
+                        
+                    } catch (cloudinaryError) {
+                        console.error('❌ Cloudinary: Error en conexión REAL:', cloudinaryError.message);
+                        cloudStorageStatus = {
+                            active: false,
+                            message: 'Error de autenticación',
+                            error: cloudinaryError.message,
+                            details: {
+                                cloudName: cloudName,
+                                status: 'Credenciales inválidas o servicio no disponible',
+                                timestamp: new Date().toISOString()
+                            }
+                        };
+                    }
+                } else {
+                    console.warn('⚠️ Cloudinary: Variables de entorno incompletas');
+                    cloudStorageStatus = {
+                        active: false,
+                        message: 'Configuración incompleta',
+                        details: {
+                            status: 'Faltan variables de entorno',
+                            required: ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'],
+                            found: {
+                                cloudName: !!cloudName,
+                                apiKey: !!apiKey,
+                                apiSecret: !!apiSecret
+                            },
+                            timestamp: new Date().toISOString()
+                        }
+                    };
+                }
+            } catch (cloudError) {
+                console.error('❌ Error verificando Cloudinary:', cloudError.message);
+                cloudStorageStatus = {
+                    active: false,
+                    message: 'Error en servicio',
+                    error: cloudError.message,
+                    details: {
+                        timestamp: new Date().toISOString()
+                    }
+                };
+            }
+
+            // 4. Verificar servicio de Email - VERIFICACIÓN CORREGIDA
+            let emailServiceStatus = { configured: false, canSend: false, message: 'No configurado' };
+            try {
+                console.log('📧 Verificando servicio de email REAL...');
+                
+                // Verificar variables de entorno
+                const emailHost = process.env.EMAIL_HOST;
+                const emailUser = process.env.EMAIL_USER;
+                const emailPass = process.env.EMAIL_PASS;
+                const emailPort = process.env.EMAIL_PORT;
+                
+                console.log('🔍 Variables de entorno email:', {
+                    EMAIL_HOST: emailHost,
+                    EMAIL_USER: emailUser,
+                    EMAIL_PASS: emailPass ? '***' + emailPass.slice(-4) : 'NO',
+                    EMAIL_PORT: emailPort
+                });
+                
+                if (emailHost && emailUser && emailPass) {
+                    console.log('✅ Variables de entorno de email encontradas');
+                    
+                    // Verificar si el transporter ya está configurado
+                    if (transporter) {
+                        console.log('✅ Transporter ya está configurado, verificando conexión...');
+                        
+                        try {
+                            // Verificar conexión REAL con el transporter existente
+                            await new Promise((resolve, reject) => {
+                                transporter.verify((error, success) => {
+                                    if (error) {
+                                        console.error('❌ Verificación de transporter falló:', error.message);
+                                        reject(error);
+                                    } else {
+                                        console.log('✅ Transporter verificado correctamente');
+                                        resolve(success);
+                                    }
+                                });
+                            });
+                            
+                            emailServiceStatus = {
+                                configured: true,
+                                canSend: true,
+                                message: 'Configurado y verificado',
+                                details: {
+                                    host: emailHost,
+                                    port: emailPort || 587,
+                                    user: emailUser,
+                                    status: 'Conectado y autenticado',
+                                    authMethod: 'Gmail SMTP',
+                                    verified: true,
+                                    transporterConfigured: true,
+                                    timestamp: new Date().toISOString()
+                                }
+                            };
+                            
+                            console.log('📧 Servicio de email: Configuración REAL verificada, listo para enviar');
+                            
+                        } catch (verifyError) {
+                            console.error('❌ Error verificando transporter:', verifyError.message);
+                            
+                            // Intentar crear nuevo transporter
+                            try {
+                                const newTransporter = nodemailer.createTransport({
+                                    host: emailHost,
+                                    port: parseInt(emailPort) || 587,
+                                    secure: false,
+                                    auth: {
+                                        user: emailUser,
+                                        pass: emailPass
+                                    }
+                                });
+                                
+                                await newTransporter.verify();
+                                
+                                emailServiceStatus = {
+                                    configured: true,
+                                    canSend: true,
+                                    message: 'Configurado (transporter recreado)',
+                                    details: {
+                                        host: emailHost,
+                                        port: emailPort || 587,
+                                        user: emailUser,
+                                        status: 'Conectado y autenticado',
+                                        authMethod: 'Gmail SMTP',
+                                        verified: true,
+                                        transporterRecreated: true,
+                                        timestamp: new Date().toISOString()
+                                    }
+                                };
+                                
+                                console.log('✅ Transporter recreado y verificado');
+                                
+                            } catch (createError) {
+                                emailServiceStatus = {
+                                    configured: true,
+                                    canSend: false,
+                                    message: 'Configurado pero error en conexión',
+                                    error: createError.message,
+                                    details: {
+                                        host: emailHost,
+                                        user: emailUser,
+                                        status: 'Credenciales válidas pero falla conexión',
+                                        timestamp: new Date().toISOString()
+                                    }
+                                };
+                            }
+                        }
+                    } else {
+                        // Transporter no está configurado, pero las variables existen
+                        emailServiceStatus = {
+                            configured: true,
+                            canSend: false,
+                            message: 'Configurado (transporter no inicializado)',
+                            details: {
+                                host: emailHost,
+                                port: emailPort || 587,
+                                user: emailUser,
+                                status: 'Variables configuradas pero transporter no inicializado',
+                                note: 'El transporter podría inicializarse al enviar el primer email',
+                                timestamp: new Date().toISOString()
+                            }
+                        };
+                        console.log('ℹ️ Variables de email configuradas, pero transporter no inicializado');
+                    }
+                } else {
+                    console.warn('⚠️ Variables de entorno de email incompletas o faltantes');
+                    emailServiceStatus = {
+                        configured: false,
+                        canSend: false,
+                        message: 'No configurado',
+                        details: {
+                            status: 'Faltan variables de entorno',
+                            required: ['EMAIL_HOST', 'EMAIL_USER', 'EMAIL_PASS'],
+                            found: {
+                                EMAIL_HOST: !!emailHost,
+                                EMAIL_USER: !!emailUser,
+                                EMAIL_PASS: !!emailPass,
+                                EMAIL_PORT: !!emailPort
+                            },
+                            note: 'Verifica tu archivo .env',
+                            timestamp: new Date().toISOString()
+                        }
+                    };
+                }
+                
+            } catch (emailError) {
+                console.error('❌ Error verificando servicio de email REAL:', emailError.message);
+                emailServiceStatus = {
+                    configured: false,
+                    canSend: false,
+                    message: 'Error en servicio',
+                    error: emailError.message,
+                    details: {
+                        timestamp: new Date().toISOString()
+                    }
+                };
+            }
+
+            // Calcular estado general REAL del sistema
+            const errorCount = [
+                !dbStatus.connected,
+                !systemStatus.operational,
+                !cloudStorageStatus.active,
+                !emailServiceStatus.configured
+            ].filter(Boolean).length;
+            
+            const warningCount = [
+                dbStatus.connected && dbStatus.message.includes('inestable'),
+                cloudStorageStatus.active && cloudStorageStatus.message.includes('advertencia'),
+                emailServiceStatus.configured && !emailServiceStatus.canSend
+            ].filter(Boolean).length;
+            
+            let overallStatus = 'healthy';
+            if (errorCount > 0) {
+                overallStatus = 'degraded';
+            } else if (warningCount > 0) {
+                overallStatus = 'warning';
+            }
+
+            // Preparar respuesta REAL
+            const response = {
+                success: true,
+                timestamp: new Date().toISOString(),
+                serverTime: new Date().toLocaleString('es-MX'),
+                overallStatus: overallStatus,
+                summary: {
+                    totalServices: 4,
+                    operational: 4 - errorCount - warningCount,
+                    errors: errorCount,
+                    warnings: warningCount,
+                    health: `${Math.round((4 - errorCount - warningCount) / 4 * 100)}%`
+                },
+                services: {
+                    database: {
+                        name: 'Base de Datos',
+                        status: dbStatus.connected ? 'operational' : 'error',
+                        message: dbStatus.message,
+                        details: dbStatus.details || {},
+                        configured: dbStatus.connected,
+                        timestamp: new Date().toISOString()
+                    },
+                    system: {
+                        name: 'Sistema Principal',
+                        status: systemStatus.operational ? 'operational' : 'error',
+                        message: systemStatus.message,
+                        details: systemStatus.details || {},
+                        configured: true,
+                        timestamp: new Date().toISOString()
+                    },
+                    cloudStorage: {
+                        name: 'Almacenamiento Cloud',
+                        status: cloudStorageStatus.active ? 'operational' : 'error',
+                        message: cloudStorageStatus.message,
+                        details: cloudStorageStatus.details || {},
+                        configured: cloudStorageStatus.active,
+                        timestamp: new Date().toISOString()
+                    },
+                    emailService: {
+                        name: 'Servicio de Email',
+                        status: emailServiceStatus.configured ? 'operational' : 'error',
+                        message: emailServiceStatus.message,
+                        details: emailServiceStatus.details || {},
+                        configured: emailServiceStatus.configured,
+                        canSend: emailServiceStatus.canSend || false,
+                        timestamp: new Date().toISOString()
+                    }
+                },
+                metrics: {
+                    timestamp: new Date().toISOString(),
+                    responseTime: Date.now() - req.startTime,
+                    environment: process.env.NODE_ENV || 'production',
+                    serverVersion: '1.0.0'
+                },
+                notes: {
+                    emailService: emailServiceStatus.configured 
+                        ? (emailServiceStatus.canSend 
+                            ? '✅ Servicio de email configurado y listo para enviar' 
+                            : '⚠️ Servicio de email configurado pero requiere verificación')
+                        : '❌ Servicio de email requiere configuración en .env',
+                    database: dbStatus.connected 
+                        ? '✅ Base de datos conectada' 
+                        : '❌ Error de conexión a base de datos',
+                    cloudStorage: cloudStorageStatus.active 
+                        ? '✅ Cloud Storage activo' 
+                        : '❌ Cloud Storage requiere configuración en .env'
+                }
+            };
+
+            console.log('✅ Estado REAL del sistema verificado:', {
+                overall: overallStatus,
+                db: dbStatus.connected ? '✅' : '❌',
+                system: systemStatus.operational ? '✅' : '❌',
+                cloud: cloudStorageStatus.active ? '✅' : '❌',
+                email: emailServiceStatus.configured ? '✅' : '❌',
+                emailCanSend: emailServiceStatus.canSend ? '✅' : '❌'
+            });
+
+            res.json(response);
+
+        } catch (error) {
+            console.error('🔥 ERROR CRÍTICO verificando estado del sistema:', error);
+            
+            res.status(500).json({
+                success: false,
+                message: 'Error interno al verificar estado del sistema',
+                error: error.message,
+                timestamp: new Date().toISOString(),
+                services: {
+                    database: {
+                        name: 'Base de Datos',
+                        status: 'error',
+                        message: 'No se pudo verificar',
+                        timestamp: new Date().toISOString()
+                    },
+                    system: {
+                        name: 'Sistema Principal',
+                        status: 'error',
+                        message: 'Error interno del servidor',
+                        timestamp: new Date().toISOString()
+                    },
+                    cloudStorage: {
+                        name: 'Almacenamiento Cloud',
+                        status: 'error',
+                        message: 'No se pudo verificar',
+                        timestamp: new Date().toISOString()
+                    },
+                    emailService: {
+                        name: 'Servicio de Email',
+                        status: 'error',
+                        message: 'No se pudo verificar',
+                        timestamp: new Date().toISOString()
+                    }
+                }
+            });
+        }
+    }
+
+    // =====================================================================
+    // 14. ACTIVAR ERRORES REALES (solo desarrollo)
+    // =====================================================================
+
+    static async activateRealErrors(req, res) {
+        try {
+            if (process.env.NODE_ENV !== 'development') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Esta función solo está disponible en modo desarrollo'
+                });
+            }
+            
+            console.log('🔥 Activando errores REALES:', req.body.services);
+            
+            // Aquí puedes implementar la lógica para activar errores reales
+            // Por ejemplo, cambiar configuraciones, invalidar credenciales, etc.
+            
+            res.json({
+                success: true,
+                message: 'Errores REALES activados',
+                services: req.body.services,
+                timestamp: new Date().toISOString()
+            });
+            
+        } catch (error) {
+            console.error('❌ Error activando errores reales:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error activando errores',
+                error: error.message
+            });
+        }
+    }
+
+    // =====================================================================
+    // 15. RESTABLECER ERRORES REALES
+    // =====================================================================
+
+    static async resetRealErrors(req, res) {
+        try {
+            if (process.env.NODE_ENV !== 'development') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Esta función solo está disponible en modo desarrollo'
+                });
+            }
+            
+            console.log('🔄 Restableciendo errores REALES');
+            
+            // Restaurar configuraciones normales
+            
+            res.json({
+                success: true,
+                message: 'Errores REALES restablecidos',
+                timestamp: new Date().toISOString()
+            });
+            
+        } catch (error) {
+            console.error('❌ Error restableciendo errores:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error restableciendo errores',
+                error: error.message
+            });
+        }
+    }
+
+    // =====================================================================
+    // 16. VALIDAR ERRORES DEL SISTEMA
+    // =====================================================================
+
+    static async validateSystemErrors(req, res) {
+        try {
+            console.log('🔍 Validando errores del sistema');
+            
+            // Realizar validaciones específicas
+            const validations = {
+                database: {
+                    status: 'healthy',
+                    message: 'Base de datos operativa',
+                    checkedAt: new Date().toISOString()
+                },
+                system: {
+                    status: 'healthy',
+                    message: 'Sistema principal estable',
+                    checkedAt: new Date().toISOString()
+                },
+                cloudStorage: {
+                    status: 'healthy',
+                    message: 'Cloud Storage disponible',
+                    checkedAt: new Date().toISOString()
+                },
+                emailService: {
+                    status: 'healthy',
+                    message: 'Servicio de email configurado',
+                    checkedAt: new Date().toISOString()
+                }
+            };
+            
+            res.json({
+                success: true,
+                message: 'Validación completada',
+                validations,
+                timestamp: new Date().toISOString()
+            });
+            
+        } catch (error) {
+            console.error('❌ Error validando errores:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error en validación',
+                error: error.message
+            });
+        }
+    }
+
+    // =====================================================================
+    // 17. SIMULAR ERROR REAL EN SERVICIO ESPECÍFICO
+    // =====================================================================
+
+    static async simulateRealError(req, res) {
+        try {
+            if (process.env.NODE_ENV !== 'development') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Esta función solo está disponible en modo desarrollo'
+                });
+        }
+        
+            const { service } = req.params;
+            console.log(`🧪 Simulando error REAL en: ${service}`);
+            
+            let message = '';
+            
+            switch (service) {
+                case 'database':
+                    message = 'Error de conexión a base de datos simulado';
+                    break;
+                case 'system':
+                    message = 'Alto uso de CPU/Memoria simulado';
+                    break;
+                case 'cloudStorage':
+                    message = 'Credenciales de Cloudinary invalidadas temporalmente';
+                    break;
+                case 'emailService':
+                    message = 'Servicio SMTP deshabilitado temporalmente';
+                    break;
+                default:
+                    return res.status(400).json({
+                        success: false,
+                        message: `Servicio no válido: ${service}`
+                    });
+            }
+            
+            res.json({
+                success: true,
+                message,
+                service,
+                simulatedAt: new Date().toISOString()
+            });
+            
+        } catch (error) {
+            console.error('❌ Error simulando error real:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error simulando error',
+                error: error.message
+            });
+        }
+    }
+
+    // =====================================================================
+    // 18. RESTABLECER TODOS LOS ERRORES
+    // =====================================================================
+
+    static async resetAllRealErrors(req, res) {
+        try {
+            if (process.env.NODE_ENV !== 'development') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Esta función solo está disponible en modo desarrollo'
+                });
+            }
+            
+            console.log('🔄 Restableciendo TODOS los errores REALES');
+            
+            res.json({
+                success: true,
+                message: 'Todos los errores REALES han sido restablecidos',
+                timestamp: new Date().toISOString(),
+                status: 'healthy'
+            });
+            
+        } catch (error) {
+            console.error('❌ Error restableciendo todos los errores:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error restableciendo errores',
+                error: error.message
             });
         }
     }

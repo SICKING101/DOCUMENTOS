@@ -950,11 +950,11 @@
                                 <label for="reportType" class="form__label">Tipo de Reporte</label>
                                 <div class="select-wrapper">
                                     <select id="reportType" class="form__select">
-                                    <option value="general">Reporte General</option>
-                                    <option value="byCategory">Por Categoría</option>
-                                    <option value="byPerson">Por Persona</option>
-                                    <option value="expiring">Documentos por Vencer</option>
-                                    <option value="expired">Documentos Vencidos</option>
+                                        <option value="general">Reporte General</option>
+                                        <option value="byCategory">Por Categoría</option>
+                                        <option value="byPerson">Por Persona</option>
+                                        <option value="expiring">Documentos por Vencer</option>
+                                        <option value="expired">Documentos Vencidos</option>
                                     </select>
                                     <i class="fas fa-chevron-down select-arrow"></i>
                                 </div>
@@ -966,8 +966,8 @@
                                 <label for="reportFormat" class="form__label">Formato</label>
                                 <div class="select-wrapper">
                                     <select id="reportFormat" class="form__select">
-                                    <option value="excel">Excel</option>
-                                    <option value="csv">CSV</option>
+                                        <option value="excel">Excel</option>
+                                        <option value="csv">CSV</option>
                                     </select>
                                     <i class="fas fa-chevron-down select-arrow"></i>
                                 </div>
@@ -1120,473 +1120,460 @@
                 </section>
 
                 <!-- SECCIÓN 4.2.9: PESTAÑA SOPORTE -->
-<section id="soporte" class="tab-content">
-    <div class="support-section">
-        <!-- Encabezado principal -->
-        <div class="support__header">
-            <div class="support__header-left">
-                <h2 class="support__title">
-                    <i class="fas fa-headset"></i>
-                    Centro de Soporte
-                </h2>
-                <p class="support__subtitle">Ayuda, guías y tickets de soporte para el sistema</p>
-            </div>
-            <div class="support__header-right">
-                <button class="btn btn--primary" id="newTicketBtn">
-                    <i class="fas fa-plus-circle"></i> Nuevo Ticket
-                </button>
-            </div>
-        </div>
+                <section id="soporte" class="tab-content">
+                    <div class="support-section">
+                        <!-- Encabezado principal -->
+                        <div class="support__header">
+                            <div class="support__header-left">
+                                <h2 class="support__title">
+                                    <i class="fas fa-headset"></i>
+                                    Centro de Soporte
+                                </h2>
+                                <p class="support__subtitle">Ayuda, guías y tickets de soporte para el sistema</p>
+                            </div>
+                            <div class="support__header-right">
+                                <button class="btn btn--primary" id="newTicketBtn">
+                                    <i class="fas fa-plus-circle"></i> Nuevo Ticket
+                                </button>
+                            </div>
+                        </div>
 
-        <!-- Paneles principales -->
-        <div class="support__panels">
-<!-- ===== SECCIÓN DE SOPORTE MEJORADA ===== -->
+                        <!-- Paneles principales -->
+                        <div class="support__panels">
+                            <!-- ===== SECCIÓN DE SOPORTE MEJORADA ===== -->
 
-<!-- Panel izquierdo: Guía del Sistema -->
-<div class="support-panel support-panel--guide">
+                            <!-- Panel izquierdo: Guía del Sistema -->
+                            <div class="support-panel support-panel--guide">
+                                <div class="support-panel__header">
+                                    <h3 class="support-panel__title">
+                                        <i class="fas fa-graduation-cap"></i>
+                                        Guía Completa del Sistema
+                                    </h3>
+                                    <p class="support-panel__subtitle">Aprende todas las funcionalidades con ejemplos
+                                        visuales paso a paso</p>
+                                </div>
+
+                                <div class="support-panel__body">
+                                    <div class="guide-container" id="guideSteps">
+                                        <!-- Dashboard -->
+                                        <div class="guide-section-card" data-section="dashboard">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-tachometer-alt"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Dashboard Principal</h4>
+                                                    <p class="guide-section-subtitle">Panel de control y estadísticas
+                                                    </p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="dashboard"
+                                                    aria-label="Ver guía de Dashboard">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Personas -->
+                                        <div class="guide-section-card" data-section="personas">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-users"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Gestión de Personas</h4>
+                                                    <p class="guide-section-subtitle">Usuarios, roles y permisos</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="personas"
+                                                    aria-label="Ver guía de Gestión de Personas">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Documentos -->
+                                        <div class="guide-section-card" data-section="documentos">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-folder-open"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Gestión Documental</h4>
+                                                    <p class="guide-section-subtitle">Archivos, carpetas y versiones</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="documentos"
+                                                    aria-label="Ver guía de Gestión Documental">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tareas -->
+                                        <div class="guide-section-card" data-section="tareas">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-tasks"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Gestión de Tareas</h4>
+                                                    <p class="guide-section-subtitle">Asignación y seguimiento</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="tareas"
+                                                    aria-label="Ver guía de Gestión de Tareas">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Historial -->
+                                        <div class="guide-section-card" data-section="historial">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-history"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Historial de Actividades</h4>
+                                                    <p class="guide-section-subtitle">Auditoría y seguimiento</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="historial"
+                                                    aria-label="Ver guía de Historial">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Calendario -->
+                                        <div class="guide-section-card" data-section="calendario">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Calendario de Eventos</h4>
+                                                    <p class="guide-section-subtitle">Programación y recordatorios</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="calendario"
+                                                    aria-label="Ver guía de Calendario">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Ajustes -->
+                                        <div class="guide-section-card" data-section="ajustes">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-cog"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Configuración</h4>
+                                                    <p class="guide-section-subtitle">Personalización del sistema</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="ajustes"
+                                                    aria-label="Ver guía de Configuración">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Reportes -->
+                                        <div class="guide-section-card" data-section="reportes">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-chart-bar"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Reportes y Análisis</h4>
+                                                    <p class="guide-section-subtitle">Estadísticas y métricas</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="reportes"
+                                                    aria-label="Ver guía de Reportes">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Admin -->
+                                        <div class="guide-section-card" data-section="admin">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-user-shield"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Panel Administrativo</h4>
+                                                    <p class="guide-section-subtitle">Control y configuración avanzada
+                                                    </p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="admin"
+                                                    aria-label="Ver guía de Panel Administrativo">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Modo Oscuro -->
+                                        <div class="guide-section-card" data-section="modo-oscuro">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-moon"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Modo Oscuro</h4>
+                                                    <p class="guide-section-subtitle">Reducción de fatiga visual</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="modo-oscuro"
+                                                    aria-label="Ver guía de Modo Oscuro">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Papelera -->
+                                        <div class="guide-section-card" data-section="papelera">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-trash-restore"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Papelera de Reciclaje</h4>
+                                                    <p class="guide-section-subtitle">Recuperación de elementos</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="papelera"
+                                                    aria-label="Ver guía de Papelera">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Notificaciones -->
+                                        <div class="guide-section-card" data-section="notificaciones">
+                                            <div class="guide-section-header">
+                                                <div class="guide-section-icon">
+                                                    <i class="fas fa-bell"></i>
+                                                </div>
+                                                <div class="guide-section-info">
+                                                    <h4 class="guide-section-title">Sistema de Notificaciones</h4>
+                                                    <p class="guide-section-subtitle">Alertas y recordatorios</p>
+                                                </div>
+                                                <button class="guide-view-btn" data-section="notificaciones"
+                                                    aria-label="Ver guía de Notificaciones">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="support-panel__footer">
+                                    <div class="guide-progress-summary">
+                                        <span class="progress-text">12 secciones disponibles</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal para Guía Completa -->
+                            <div class="modal guide-modal" id="guideModal" role="dialog"
+                                aria-labelledby="guideModalTitle" aria-hidden="true">
+                                <div class="modal__content">
+                                    <div class="modal__header">
+                                        <h3 class="modal__title" id="guideModalTitle">
+                                            <i class="fas fa-graduation-cap"></i>
+                                            Guía Completa del Sistema
+                                        </h3>
+                                        <button class="modal__close" id="closeGuideModal" aria-label="Cerrar guía">
+                                            &times;
+                                        </button>
+                                    </div>
+
+                                    <div class="guide-modal__body">
+                                        <!-- Sidebar de navegación -->
+                                        <div class="guide-sidebar">
+                                            <div class="guide-sidebar-header">
+                                                <h4 class="guide-sidebar-title">Secciones de la Guía</h4>
+                                                <p class="guide-sidebar-subtitle">Navega por todas las funcionalidades
+                                                </p>
+                                            </div>
+
+                                            <nav class="guide-nav" aria-label="Navegación de la guía">
+                                                <a href="#" class="guide-nav-item active" data-section="dashboard"
+                                                    role="tab">
+                                                    <i class="fas fa-tachometer-alt guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Dashboard</span>
+                                                    <span class="guide-nav-badge">1</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="personas" role="tab">
+                                                    <i class="fas fa-users guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Gestión de Personas</span>
+                                                    <span class="guide-nav-badge">2</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="documentos" role="tab">
+                                                    <i class="fas fa-folder-open guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Documentos</span>
+                                                    <span class="guide-nav-badge">3</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="tareas" role="tab">
+                                                    <i class="fas fa-tasks guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Tareas</span>
+                                                    <span class="guide-nav-badge">4</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="historial" role="tab">
+                                                    <i class="fas fa-history guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Historial</span>
+                                                    <span class="guide-nav-badge">5</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="calendario" role="tab">
+                                                    <i class="fas fa-calendar-alt guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Calendario</span>
+                                                    <span class="guide-nav-badge">6</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="ajustes" role="tab">
+                                                    <i class="fas fa-cog guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Configuración</span>
+                                                    <span class="guide-nav-badge">7</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="reportes" role="tab">
+                                                    <i class="fas fa-chart-bar guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Reportes</span>
+                                                    <span class="guide-nav-badge">8</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="admin" role="tab">
+                                                    <i class="fas fa-user-shield guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Admin</span>
+                                                    <span class="guide-nav-badge">9</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="modo-oscuro"
+                                                    role="tab">
+                                                    <i class="fas fa-moon guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Modo Oscuro</span>
+                                                    <span class="guide-nav-badge">10</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="papelera" role="tab">
+                                                    <i class="fas fa-trash-restore guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Papelera</span>
+                                                    <span class="guide-nav-badge">11</span>
+                                                </a>
+
+                                                <a href="#" class="guide-nav-item" data-section="notificaciones"
+                                                    role="tab">
+                                                    <i class="fas fa-bell guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Notificaciones</span>
+                                                    <span class="guide-nav-badge">12</span>
+                                                </a>
+                                            </nav>
+                                        </div>
+
+                                        <!-- Contenido principal -->
+                                        <div class="guide-main">
+                                            <div id="guideContent" role="tabpanel" aria-labelledby="guideModalTitle">
+                                                <!-- El contenido se cargará dinámicamente aquí -->
+                                                <div class="guide-loading">
+                                                    <div class="loading-spinner">
+                                                        <i class="fas fa-spinner fa-spin"></i>
+                                                    </div>
+                                                    <p class="loading-text">Cargando guía...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal de búsqueda -->
+                            <div class="modal" id="guideSearchModal">
+                                <div class="modal__content modal__content--sm">
+                                    <div class="modal__header">
+                                        <h3 class="modal__title">
+                                            <i class="fas fa-search"></i>
+                                            Resultados de búsqueda
+                                        </h3>
+                                        <button class="modal__close" id="closeSearchModal">&times;</button>
+                                    </div>
+                                    <div class="modal__body">
+                                        <div class="search-results-list">
+                                            <!-- Resultados dinámicos -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel derecho: Estado del sistema y FAQ -->
+<div class="support-panel support-panel--status">
     <div class="support-panel__header">
         <h3 class="support-panel__title">
-            <i class="fas fa-graduation-cap"></i>
-            Guía Completa del Sistema
+            <i class="fas fa-server"></i>
+            Estado del Sistema
         </h3>
-        <p class="support-panel__subtitle">Aprende todas las funcionalidades con ejemplos visuales paso a paso</p>
-    </div>
-    
-    <div class="support-panel__body">
-        <div class="guide-container" id="guideSteps">
-            <!-- Dashboard -->
-            <div class="guide-section-card" data-section="dashboard">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Dashboard Principal</h4>
-                        <p class="guide-section-subtitle">Panel de control y estadísticas</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="dashboard" 
-                            aria-label="Ver guía de Dashboard">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Personas -->
-            <div class="guide-section-card" data-section="personas">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Gestión de Personas</h4>
-                        <p class="guide-section-subtitle">Usuarios, roles y permisos</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="personas"
-                            aria-label="Ver guía de Gestión de Personas">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Documentos -->
-            <div class="guide-section-card" data-section="documentos">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-folder-open"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Gestión Documental</h4>
-                        <p class="guide-section-subtitle">Archivos, carpetas y versiones</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="documentos"
-                            aria-label="Ver guía de Gestión Documental">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tareas -->
-            <div class="guide-section-card" data-section="tareas">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Gestión de Tareas</h4>
-                        <p class="guide-section-subtitle">Asignación y seguimiento</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="tareas"
-                            aria-label="Ver guía de Gestión de Tareas">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Historial -->
-            <div class="guide-section-card" data-section="historial">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-history"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Historial de Actividades</h4>
-                        <p class="guide-section-subtitle">Auditoría y seguimiento</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="historial"
-                            aria-label="Ver guía de Historial">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Calendario -->
-            <div class="guide-section-card" data-section="calendario">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Calendario de Eventos</h4>
-                        <p class="guide-section-subtitle">Programación y recordatorios</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="calendario"
-                            aria-label="Ver guía de Calendario">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Ajustes -->
-            <div class="guide-section-card" data-section="ajustes">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-cog"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Configuración</h4>
-                        <p class="guide-section-subtitle">Personalización del sistema</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="ajustes"
-                            aria-label="Ver guía de Configuración">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Reportes -->
-            <div class="guide-section-card" data-section="reportes">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Reportes y Análisis</h4>
-                        <p class="guide-section-subtitle">Estadísticas y métricas</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="reportes"
-                            aria-label="Ver guía de Reportes">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Admin -->
-            <div class="guide-section-card" data-section="admin">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Panel Administrativo</h4>
-                        <p class="guide-section-subtitle">Control y configuración avanzada</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="admin"
-                            aria-label="Ver guía de Panel Administrativo">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Modo Oscuro -->
-            <div class="guide-section-card" data-section="modo-oscuro">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-moon"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Modo Oscuro</h4>
-                        <p class="guide-section-subtitle">Reducción de fatiga visual</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="modo-oscuro"
-                            aria-label="Ver guía de Modo Oscuro">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Papelera -->
-            <div class="guide-section-card" data-section="papelera">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-trash-restore"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Papelera de Reciclaje</h4>
-                        <p class="guide-section-subtitle">Recuperación de elementos</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="papelera"
-                            aria-label="Ver guía de Papelera">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Notificaciones -->
-            <div class="guide-section-card" data-section="notificaciones">
-                <div class="guide-section-header">
-                    <div class="guide-section-icon">
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <div class="guide-section-info">
-                        <h4 class="guide-section-title">Sistema de Notificaciones</h4>
-                        <p class="guide-section-subtitle">Alertas y recordatorios</p>
-                    </div>
-                    <button class="guide-view-btn" data-section="notificaciones"
-                            aria-label="Ver guía de Notificaciones">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="support-panel__footer">
-        <div class="guide-progress-summary">
-            <span class="progress-text">12 secciones disponibles</span>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para Guía Completa -->
-<div class="modal guide-modal" id="guideModal" role="dialog" aria-labelledby="guideModalTitle" aria-hidden="true">
-    <div class="modal__content">
-        <div class="modal__header">
-            <h3 class="modal__title" id="guideModalTitle">
-                <i class="fas fa-graduation-cap"></i>
-                Guía Completa del Sistema
-            </h3>
-            <button class="modal__close" id="closeGuideModal" aria-label="Cerrar guía">
-                &times;
+        <div class="header-controls">
+            <button class="system-status-refresh" title="Actualizar estado">
+                <i class="fas fa-sync-alt"></i>
             </button>
         </div>
-        
-        <div class="guide-modal__body">
-            <!-- Sidebar de navegación -->
-            <div class="guide-sidebar">
-                <div class="guide-sidebar-header">
-                    <h4 class="guide-sidebar-title">Secciones de la Guía</h4>
-                    <p class="guide-sidebar-subtitle">Navega por todas las funcionalidades</p>
-                </div>
-                
-                <nav class="guide-nav" aria-label="Navegación de la guía">
-                    <a href="#" class="guide-nav-item active" data-section="dashboard" role="tab">
-                        <i class="fas fa-tachometer-alt guide-nav-icon"></i>
-                        <span class="guide-nav-text">Dashboard</span>
-                        <span class="guide-nav-badge">1</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="personas" role="tab">
-                        <i class="fas fa-users guide-nav-icon"></i>
-                        <span class="guide-nav-text">Gestión de Personas</span>
-                        <span class="guide-nav-badge">2</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="documentos" role="tab">
-                        <i class="fas fa-folder-open guide-nav-icon"></i>
-                        <span class="guide-nav-text">Documentos</span>
-                        <span class="guide-nav-badge">3</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="tareas" role="tab">
-                        <i class="fas fa-tasks guide-nav-icon"></i>
-                        <span class="guide-nav-text">Tareas</span>
-                        <span class="guide-nav-badge">4</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="historial" role="tab">
-                        <i class="fas fa-history guide-nav-icon"></i>
-                        <span class="guide-nav-text">Historial</span>
-                        <span class="guide-nav-badge">5</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="calendario" role="tab">
-                        <i class="fas fa-calendar-alt guide-nav-icon"></i>
-                        <span class="guide-nav-text">Calendario</span>
-                        <span class="guide-nav-badge">6</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="ajustes" role="tab">
-                        <i class="fas fa-cog guide-nav-icon"></i>
-                        <span class="guide-nav-text">Configuración</span>
-                        <span class="guide-nav-badge">7</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="reportes" role="tab">
-                        <i class="fas fa-chart-bar guide-nav-icon"></i>
-                        <span class="guide-nav-text">Reportes</span>
-                        <span class="guide-nav-badge">8</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="admin" role="tab">
-                        <i class="fas fa-user-shield guide-nav-icon"></i>
-                        <span class="guide-nav-text">Admin</span>
-                        <span class="guide-nav-badge">9</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="modo-oscuro" role="tab">
-                        <i class="fas fa-moon guide-nav-icon"></i>
-                        <span class="guide-nav-text">Modo Oscuro</span>
-                        <span class="guide-nav-badge">10</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="papelera" role="tab">
-                        <i class="fas fa-trash-restore guide-nav-icon"></i>
-                        <span class="guide-nav-text">Papelera</span>
-                        <span class="guide-nav-badge">11</span>
-                    </a>
-                    
-                    <a href="#" class="guide-nav-item" data-section="notificaciones" role="tab">
-                        <i class="fas fa-bell guide-nav-icon"></i>
-                        <span class="guide-nav-text">Notificaciones</span>
-                        <span class="guide-nav-badge">12</span>
-                    </a>
-                </nav>
-            </div>
-            
-            <!-- Contenido principal -->
-            <div class="guide-main">
-                <div id="guideContent" role="tabpanel" aria-labelledby="guideModalTitle">
-                    <!-- El contenido se cargará dinámicamente aquí -->
-                    <div class="guide-loading">
-                        <div class="loading-spinner">
-                            <i class="fas fa-spinner fa-spin"></i>
-                        </div>
-                        <p class="loading-text">Cargando guía...</p>
-                    </div>
-                </div>
+    </div>
+    
+    <div class="system-status">
+        <div class="status-item status-item--operational">
+            <i class="fas fa-check-circle"></i>
+            <div class="status-info">
+                <span class="status-label">Sistema Principal</span>
+                <span class="status-value">Operacional</span>
             </div>
         </div>
+        <div class="status-item status-item--operational">
+            <i class="fas fa-check-circle"></i>
+            <div class="status-info">
+                <span class="status-label">Base de Datos</span>
+                <span class="status-value">Conectado</span>
+            </div>
+        </div>
+        <div class="status-item status-item--operational">
+            <i class="fas fa-check-circle"></i>
+            <div class="status-info">
+                <span class="status-label">Almacenamiento Cloud</span>
+                <span class="status-value">Activo</span>
+            </div>
+        </div>
+        <div class="status-item status-item--operational">
+            <i class="fas fa-check-circle"></i>
+            <div class="status-info">
+                <span class="status-label">Servicio de Email</span>
+                <span class="status-value">Configurado</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Línea de estado general - Aquí sí debe ir "Todos los sistemas operativos" -->
+    <div class="overall-status-summary" id="overallStatusSummary">
+        <!-- El resumen del estado general se mostrará aquí -->
+    </div>
+    
+    <div class="status-update-time">
+        Actualizado: --
     </div>
 </div>
 
-<!-- Modal de búsqueda -->
-<div class="modal" id="guideSearchModal">
-    <div class="modal__content modal__content--sm">
-        <div class="modal__header">
-            <h3 class="modal__title">
-                <i class="fas fa-search"></i>
-                Resultados de búsqueda
-            </h3>
-            <button class="modal__close" id="closeSearchModal">&times;</button>
-        </div>
-        <div class="modal__body">
-            <div class="search-results-list">
-                <!-- Resultados dinámicos -->
-            </div>
-        </div>
-    </div>
-</div>
-
-            <!-- Panel derecho: Estado del sistema y FAQ -->
-            <div class="support-panel support-panel--status">
-                <div class="support-panel__header">
-                    <h3 class="support-panel__title">
-                        <i class="fas fa-server"></i>
-                        Estado del Sistema
-                    </h3>
-                </div>
-                <div class="system-status">
-                    <div class="status-item status-item--operational">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="status-info">
-                            <span class="status-label">Sistema Principal</span>
-                            <span class="status-value">Operacional</span>
+                        <!-- Preguntas Frecuentes -->
+                        <div class="support-faq">
+                            <div class="faq__header">
+                                <h3 class="faq__title">
+                                    <i class="fas fa-question-circle"></i>
+                                    Preguntas Frecuentes (FAQ)
+                                </h3>
+                            </div>
+                            <div class="faq__list" id="faqList">
+                                <!-- Las preguntas frecuentes se cargarán dinámicamente -->
+                            </div>
                         </div>
                     </div>
-                    <div class="status-item status-item--operational">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="status-info">
-                            <span class="status-label">Base de Datos</span>
-                            <span class="status-value">Conectado</span>
-                        </div>
-                    </div>
-                    <div class="status-item status-item--operational">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="status-info">
-                            <span class="status-label">Almacenamiento Cloud</span>
-                            <span class="status-value">Activo</span>
-                        </div>
-                    </div>
-                    <div class="status-item status-item--operational">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="status-info">
-                            <span class="status-label">Servicio de Email</span>
-                            <span class="status-value">Configurado</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sección de Tickets -->
-        <div class="support-tickets">
-            <div class="tickets__header">
-                <h3 class="tickets__title">
-                    <i class="fas fa-ticket-alt"></i>
-                    Mis Tickets de Soporte
-                </h3>
-                <div class="tickets__filters">
-                    <select class="filter-select" id="ticketStatusFilter">
-                        <option value="all">Todos los estados</option>
-                        <option value="abierto">Abierto</option>
-                        <option value="en_proceso">En proceso</option>
-                        <option value="cerrado">Cerrado</option>
-                    </select>
-                    <select class="filter-select" id="ticketPriorityFilter">
-                        <option value="all">Todas las prioridades</option>
-                        <option value="alta">Alta</option>
-                        <option value="media">Media</option>
-                        <option value="baja">Baja</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="tickets__list" id="ticketsList">
-                <div class="empty-state">
-                    <i class="fas fa-ticket-alt empty-state__icon"></i>
-                    <h3 class="empty-state__title">No tienes tickets de soporte</h3>
-                    <p class="empty-state__description">Crea tu primer ticket para recibir ayuda</p>
-                    <button class="btn btn--primary" id="createFirstTicket">
-                        <i class="fas fa-plus-circle"></i> Crear Primer Ticket
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Preguntas Frecuentes -->
-        <div class="support-faq">
-            <div class="faq__header">
-                <h3 class="faq__title">
-                    <i class="fas fa-question-circle"></i>
-                    Preguntas Frecuentes (FAQ)
-                </h3>
-            </div>
-            <div class="faq__list" id="faqList">
-                <!-- Las preguntas frecuentes se cargarán dinámicamente -->
-            </div>
-        </div>
-    </div>
-</section>
+                </section>
             </main>
         </div>
     </div>
@@ -2366,68 +2353,68 @@
     </div>
 
     <!-- Modal para cambiar administrador - VERSIÓN CORREGIDA -->
-<div id="changeAdminModal" class="modal">
-    <div class="modal__overlay" onclick="cerrarModalCambioAdmin()"></div>
-    <article class="modal__content modal__content--md">
-        <header class="modal__header">
-            <h3 class="modal__title">
-                <i class="fas fa-user-shield"></i> Cambiar Administrador
-            </h3>
-            <button class="modal__close" id="closeChangeAdminModal">
-                <i class="fas fa-times"></i>
-            </button>
-        </header>
-        <section class="modal__body">
-            <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
-                <i class="fas fa-exclamation-triangle"></i>
-                <div>
-                    <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un
-                    enlace de confirmación. Esta acción requiere autorización.
-                </div>
-            </div>
-            <form id="changeAdminForm">
-                <div class="form__group">
-                    <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
-                    <input type="text" id="newAdminUser" class="form__input"
-                        placeholder="Ingresa el nuevo nombre de usuario" required>
-                </div>
-                <div class="form__group">
-                    <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
-                    <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com"
-                        required>
-                </div>
-                <div class="form__group">
-                    <label for="newAdminPassword" class="form__label">Contraseña</label>
-                    <div class="form__password-wrapper">
-                        <input type="password" id="newAdminPassword" class="form__input"
-                            placeholder="Contraseña segura" required>
-                        <button type="button" class="form__password-toggle"
-                            onclick="togglePasswordVisibility('newAdminPassword')">
-                            <i class="fas fa-eye"></i>
-                        </button>
+    <div id="changeAdminModal" class="modal">
+        <div class="modal__overlay" onclick="cerrarModalCambioAdmin()"></div>
+        <article class="modal__content modal__content--md">
+            <header class="modal__header">
+                <h3 class="modal__title">
+                    <i class="fas fa-user-shield"></i> Cambiar Administrador
+                </h3>
+                <button class="modal__close" id="closeChangeAdminModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </header>
+            <section class="modal__body">
+                <div class="alert alert--warning" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Acción de seguridad:</strong> Se enviará un correo electrónico de verificación con un
+                        enlace de confirmación. Esta acción requiere autorización.
                     </div>
                 </div>
-                <div class="form__group">
-                    <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
-                    <div class="form__password-wrapper">
-                        <input type="password" id="confirmAdminPassword" class="form__input"
-                            placeholder="Repite la contraseña" required>
-                        <button type="button" class="form__password-toggle"
-                            onclick="togglePasswordVisibility('confirmAdminPassword')">
-                            <i class="fas fa-eye"></i>
-                        </button>
+                <form id="changeAdminForm">
+                    <div class="form__group">
+                        <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
+                        <input type="text" id="newAdminUser" class="form__input"
+                            placeholder="Ingresa el nuevo nombre de usuario" required>
                     </div>
-                </div>
-            </form>
-        </section>
-        <footer class="modal__footer">
-            <button class="btn btn--outline" id="cancelChangeAdmin">Cancelar</button>
-            <button class="btn btn--primary" id="confirmChangeAdmin">
-                <i class="fas fa-paper-plane"></i> Enviar Solicitud
-            </button>
-        </footer>
-    </article>
-</div>
+                    <div class="form__group">
+                        <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
+                        <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com"
+                            required>
+                    </div>
+                    <div class="form__group">
+                        <label for="newAdminPassword" class="form__label">Contraseña</label>
+                        <div class="form__password-wrapper">
+                            <input type="password" id="newAdminPassword" class="form__input"
+                                placeholder="Contraseña segura" required>
+                            <button type="button" class="form__password-toggle"
+                                onclick="togglePasswordVisibility('newAdminPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form__group">
+                        <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
+                        <div class="form__password-wrapper">
+                            <input type="password" id="confirmAdminPassword" class="form__input"
+                                placeholder="Repite la contraseña" required>
+                            <button type="button" class="form__password-toggle"
+                                onclick="togglePasswordVisibility('confirmAdminPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelChangeAdmin">Cancelar</button>
+                <button class="btn btn--primary" id="confirmChangeAdmin">
+                    <i class="fas fa-paper-plane"></i> Enviar Solicitud
+                </button>
+            </footer>
+        </article>
+    </div>
 
     <!-- Modal de confirmación de acciones -->
     <dialog id="actionModal" class="modal">
@@ -2608,142 +2595,145 @@
     </div>
 
     <!-- Modal para crear ticket de soporte -->
-<dialog id="ticketModal" class="modal">
-    <article class="modal__content">
-        <header class="modal__header">
-            <h3 class="modal__title">
-                <i class="fas fa-plus-circle"></i> Nuevo Ticket de Soporte
-            </h3>
-            <button class="modal__close" id="closeTicketModal">&times;</button>
-        </header>
-        <section class="modal__body">
-            <form id="ticketForm">
-                <div class="form__group">
-                    <label for="ticketSubject" class="form__label">Asunto *</label>
-                    <input type="text" id="ticketSubject" class="form__input" 
-                           placeholder="Ej: Problema al subir documentos PDF" required>
-                </div>
-                
-                <div class="form__row">
+    <dialog id="ticketModal" class="modal">
+        <article class="modal__content">
+            <header class="modal__header">
+                <h3 class="modal__title">
+                    <i class="fas fa-plus-circle"></i> Nuevo Ticket de Soporte
+                </h3>
+                <button class="modal__close" id="closeTicketModal">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="ticketForm">
                     <div class="form__group">
-                        <label for="ticketCategory" class="form__label">Categoría *</label>
-                        <select id="ticketCategory" class="form__select" required>
-                            <option value="">Seleccionar categoría</option>
-                            <option value="tecnico">Problema Técnico</option>
-                            <option value="uso">Uso del Sistema</option>
-                            <option value="documentos">Gestión de Documentos</option>
-                            <option value="personas">Gestión de Personas</option>
-                            <option value="reportes">Reportes</option>
-                            <option value="seguridad">Seguridad</option>
-                            <option value="otros">Otros</option>
-                        </select>
+                        <label for="ticketSubject" class="form__label">Asunto *</label>
+                        <input type="text" id="ticketSubject" class="form__input"
+                            placeholder="Ej: Problema al subir documentos PDF" required>
                     </div>
-                    
-                    <div class="form__group">
-                        <label for="ticketPriority" class="form__label">Prioridad *</label>
-                        <select id="ticketPriority" class="form__select" required>
-                            <option value="baja">Baja</option>
-                            <option value="media" selected>Media</option>
-                            <option value="alta">Alta</option>
-                            <option value="critica">Crítica</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="form__group">
-                    <label for="ticketDescription" class="form__label">Descripción detallada *</label>
-                    <textarea id="ticketDescription" class="form__textarea" rows="6" 
-                              placeholder="Describe el problema o consulta de manera detallada..." required></textarea>
-                    <div class="form__hint">Incluye pasos para reproducir el problema, capturas de pantalla o cualquier información relevante.</div>
-                </div>
-                
-                <div class="form__group">
-                    <label for="ticketAttachments" class="form__label">Archivos adjuntos (opcional)</label>
-                    <div class="file-upload-area" id="ticketFileUpload">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Arrastra archivos aquí o haz clic para seleccionar</p>
-                        <p class="file-upload-hint">Archivos permitidos: imágenes, PDF, documentos (máx. 5MB cada uno)</p>
-                        <input type="file" id="ticketFileInput" multiple 
-                               accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt">
-                    </div>
-                    <div class="file-list" id="ticketFileList">
-                        <!-- Los archivos seleccionados aparecerán aquí -->
-                    </div>
-                </div>
-                
-                <div class="alert alert--info">
-                    <i class="fas fa-info-circle"></i>
-                    <div>
-                        <strong>Nota:</strong> Se enviará una copia de este ticket al correo <strong>riosnavarretejared@gmail.com</strong> y recibirás actualizaciones por email.
-                    </div>
-                </div>
-            </form>
-        </section>
-        <footer class="modal__footer">
-            <button class="btn btn--outline" id="cancelTicketBtn">Cancelar</button>
-            <button class="btn btn--primary" id="submitTicketBtn">
-                <i class="fas fa-paper-plane"></i> Enviar Ticket
-            </button>
-        </footer>
-    </article>
-</dialog>
 
-<!-- Modal para ver detalles del ticket -->
-<dialog id="ticketDetailModal" class="modal">
-    <article class="modal__content modal__content--lg">
-        <header class="modal__header">
-            <h3 class="modal__title" id="ticketDetailTitle">
-                <i class="fas fa-ticket-alt"></i> Detalles del Ticket
-            </h3>
-            <button class="modal__close" id="closeTicketDetailModal">&times;</button>
-        </header>
-        <section class="modal__body">
-            <div class="ticket-detail">
-                <div class="ticket-detail__header">
-                    <div class="ticket-detail__info">
-                        <div class="ticket-detail__subject" id="detailTicketSubject"></div>
-                        <div class="ticket-detail__meta">
-                            <span class="ticket-id" id="detailTicketId"></span>
-                            <span class="ticket-date" id="detailTicketDate"></span>
+                    <div class="form__row">
+                        <div class="form__group">
+                            <label for="ticketCategory" class="form__label">Categoría *</label>
+                            <select id="ticketCategory" class="form__select" required>
+                                <option value="">Seleccionar categoría</option>
+                                <option value="tecnico">Problema Técnico</option>
+                                <option value="uso">Uso del Sistema</option>
+                                <option value="documentos">Gestión de Documentos</option>
+                                <option value="personas">Gestión de Personas</option>
+                                <option value="reportes">Reportes</option>
+                                <option value="seguridad">Seguridad</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+
+                        <div class="form__group">
+                            <label for="ticketPriority" class="form__label">Prioridad *</label>
+                            <select id="ticketPriority" class="form__select" required>
+                                <option value="baja">Baja</option>
+                                <option value="media" selected>Media</option>
+                                <option value="alta">Alta</option>
+                                <option value="critica">Crítica</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="ticket-detail__status">
-                        <span class="status-badge" id="detailTicketStatus"></span>
-                        <span class="priority-badge" id="detailTicketPriority"></span>
+
+                    <div class="form__group">
+                        <label for="ticketDescription" class="form__label">Descripción detallada *</label>
+                        <textarea id="ticketDescription" class="form__textarea" rows="6"
+                            placeholder="Describe el problema o consulta de manera detallada..." required></textarea>
+                        <div class="form__hint">Incluye pasos para reproducir el problema, capturas de pantalla o
+                            cualquier información relevante.</div>
                     </div>
-                </div>
-                
-                <div class="ticket-detail__content">
-                    <div class="ticket-detail__description">
-                        <h4>Descripción</h4>
-                        <div class="description-content" id="detailTicketDescription"></div>
+
+                    <div class="form__group">
+                        <label for="ticketAttachments" class="form__label">Archivos adjuntos (opcional)</label>
+                        <div class="file-upload-area" id="ticketFileUpload">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Arrastra archivos aquí o haz clic para seleccionar</p>
+                            <p class="file-upload-hint">Archivos permitidos: imágenes, PDF, documentos (máx. 5MB cada
+                                uno)</p>
+                            <input type="file" id="ticketFileInput" multiple
+                                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt">
+                        </div>
+                        <div class="file-list" id="ticketFileList">
+                            <!-- Los archivos seleccionados aparecerán aquí -->
+                        </div>
                     </div>
-                    
-                    <div class="ticket-detail__attachments" id="detailTicketAttachments">
-                        <h4>Archivos adjuntos</h4>
-                        <div class="attachments-list"></div>
+
+                    <div class="alert alert--info">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>Nota:</strong> Se enviará una copia de este ticket al correo
+                            <strong>riosnavarretejared@gmail.com</strong> y recibirás actualizaciones por email.
+                        </div>
                     </div>
-                    
-                    <div class="ticket-detail__updates">
-                        <h4>Actualizaciones</h4>
-                        <div class="updates-list" id="ticketUpdatesList">
-                            <!-- Las actualizaciones del ticket se cargarán aquí -->
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelTicketBtn">Cancelar</button>
+                <button class="btn btn--primary" id="submitTicketBtn">
+                    <i class="fas fa-paper-plane"></i> Enviar Ticket
+                </button>
+            </footer>
+        </article>
+    </dialog>
+
+    <!-- Modal para ver detalles del ticket -->
+    <dialog id="ticketDetailModal" class="modal">
+        <article class="modal__content modal__content--lg">
+            <header class="modal__header">
+                <h3 class="modal__title" id="ticketDetailTitle">
+                    <i class="fas fa-ticket-alt"></i> Detalles del Ticket
+                </h3>
+                <button class="modal__close" id="closeTicketDetailModal">&times;</button>
+            </header>
+            <section class="modal__body">
+                <div class="ticket-detail">
+                    <div class="ticket-detail__header">
+                        <div class="ticket-detail__info">
+                            <div class="ticket-detail__subject" id="detailTicketSubject"></div>
+                            <div class="ticket-detail__meta">
+                                <span class="ticket-id" id="detailTicketId"></span>
+                                <span class="ticket-date" id="detailTicketDate"></span>
+                            </div>
+                        </div>
+                        <div class="ticket-detail__status">
+                            <span class="status-badge" id="detailTicketStatus"></span>
+                            <span class="priority-badge" id="detailTicketPriority"></span>
+                        </div>
+                    </div>
+
+                    <div class="ticket-detail__content">
+                        <div class="ticket-detail__description">
+                            <h4>Descripción</h4>
+                            <div class="description-content" id="detailTicketDescription"></div>
+                        </div>
+
+                        <div class="ticket-detail__attachments" id="detailTicketAttachments">
+                            <h4>Archivos adjuntos</h4>
+                            <div class="attachments-list"></div>
+                        </div>
+
+                        <div class="ticket-detail__updates">
+                            <h4>Actualizaciones</h4>
+                            <div class="updates-list" id="ticketUpdatesList">
+                                <!-- Las actualizaciones del ticket se cargarán aquí -->
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
-        <footer class="modal__footer">
-            <button class="btn btn--outline" id="closeDetailBtn">Cerrar</button>
-            <button class="btn btn--warning" id="reopenTicketBtn" style="display: none;">
-                <i class="fas fa-redo"></i> Reabrir Ticket
-            </button>
-            <button class="btn btn--danger" id="closeTicketBtn">
-                <i class="fas fa-times-circle"></i> Cerrar Ticket
-            </button>
-        </footer>
-    </article>
-</dialog>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="closeDetailBtn">Cerrar</button>
+                <button class="btn btn--warning" id="reopenTicketBtn" style="display: none;">
+                    <i class="fas fa-redo"></i> Reabrir Ticket
+                </button>
+                <button class="btn btn--danger" id="closeTicketBtn">
+                    <i class="fas fa-times-circle"></i> Cerrar Ticket
+                </button>
+            </footer>
+        </article>
+    </dialog>
 
     <!-- SECCIÓN 6: SCRIPTS DE JAVASCRIPT -->
     <script type="module" src="/src/frontend/modules/calendario.js"></script>

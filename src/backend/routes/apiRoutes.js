@@ -107,30 +107,25 @@ router.post('/trash/:id/restore', protegerRuta, TrashController.restoreDocument)
 router.delete('/trash/:id', protegerRuta, TrashController.deletePermanently);
 
 // -----------------------------
-// SOPORTE Y TICKETS
+// SOPORTE Y TICKETS - RUTAS CORREGIDAS Y COMPLETAS
 // -----------------------------
 router.post('/tickets', protegerRuta, upload.array('files', 10), SupportController.createTicket);
-router.get('/tickets', protegerRuta, permisoTicket, SupportController.getUserTickets);
-router.get('/tickets/:id', protegerRuta, permisoTicket, SupportController.getTicketDetails);
-router.post('/tickets/:id/response', protegerRuta, permisoTicket, SupportController.addTicketUpdate);
 
-// ✅ RUTAS PARA CAMBIAR ESTADO - CORREGIDAS
-// Método POST (compatible con frontend actual)
-router.post('/tickets/:id/close', protegerRuta, permisoCambiarEstado, SupportController.changeTicketStatus);
-
-// Método PUT (para RESTful)
-router.put('/tickets/:id/status', protegerRuta, permisoCambiarEstado, SupportController.changeTicketStatus);
-router.put('/tickets/:id', protegerRuta, permisoCambiarEstado, (req, res) => {
-    // Proxy a la función changeTicketStatus
-    req.params.id = req.params.id;
-    return SupportController.changeTicketStatus(req, res);
-});
-
-// Método PATCH (para RESTful)
-router.patch('/tickets/:id', protegerRuta, permisoCambiarEstado, SupportController.changeTicketStatus);
-
+// ✅ RUTAS PARA ESTADO DEL SISTEMA - CORREGIDAS Y COMPLETAS
+router.get('/support/status', protegerRuta, SupportController.getSystemStatus);
 router.get('/support/faq', protegerRuta, SupportController.getFAQ);
-router.get('/support/guide', protegerRuta, SupportController.getSystemGuide);
 router.post('/support/test-email', protegerRuta, SupportController.testSupportEmail);
+
+// ✅ RUTAS PARA DESARROLLO (SOLO SI ESTÁ EN MODO DESARROLLO)
+if (process.env.NODE_ENV === 'development') {
+  console.log('🧪 Modo desarrollo activado: Habilitando rutas de prueba');
+  router.post('/support/activate-errors', protegerRuta, SupportController.activateRealErrors);
+  router.post('/support/reset-errors', protegerRuta, SupportController.resetRealErrors);
+  router.get('/support/validate-errors', protegerRuta, SupportController.validateSystemErrors);
+  router.post('/support/simulate-error/:service', protegerRuta, SupportController.simulateRealError);
+  router.post('/support/reset-all-errors', protegerRuta, SupportController.resetAllRealErrors);
+} else {
+  console.log('🚀 Modo producción: Rutas de prueba deshabilitadas');
+}
 
 export default router;
