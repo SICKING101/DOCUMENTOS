@@ -95,6 +95,7 @@ DOCUMENTOS/
 │   │   │   ├── reports.js
 |   │   │   ├── soporte.js
 │   │   │   ├── search.js
+│   │   │   ├── systemStatus.js
 │   │   │   │
 │   │   │   ├── auth/              # Autenticacion
 │   │   │   │   ├── forgot.js
