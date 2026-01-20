@@ -39,10 +39,12 @@ class SettingsManager {
      * Inicializar el gestor de ajustes
      */
     initialize() {
+        console.log('🔧 Inicializando SettingsManager...');
         this.loadSettings();
         this.setupEventListeners();
         this.applySettings();
-        console.log('⚙️ Gestor de ajustes inicializado');
+        this.updateForm();
+        console.log('✅ SettingsManager inicializado correctamente');
     }
 
     /**
