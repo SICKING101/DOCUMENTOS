@@ -682,21 +682,24 @@ async function loadTabSpecificData(tabId) {
                 break;
 
             case 'ajustes':
-                console.log('⚙️ Inicializando módulo de ajustes...');
-                // IMPORTANTE: Cargar el módulo de ajustes
-                if (typeof window.settingsManager === 'undefined') {
-                    try {
-                        // Importar dinámicamente el módulo de ajustes
-                        const { default: SettingsManager } = await import('./modules/ajustes.js');
-                        window.settingsManager = new SettingsManager();
-                        console.log('✅ Módulo de ajustes inicializado');
-                    } catch (error) {
-                        console.error('❌ Error al cargar módulo de ajustes:', error);
-                    }
-                } else {
-                    console.log('✅ Módulo de ajustes ya está cargado');
-                }
-                break;
+    console.log('⚙️ Inicializando módulo de ajustes...');
+    try {
+        // El módulo exporta una instancia ya creada por defecto
+        if (typeof window.settingsManager === 'undefined') {
+            const ajustesModule = await import('./modules/ajustes.js');
+            window.settingsManager = ajustesModule.default;
+            console.log('✅ Módulo de ajustes cargado');
+        }
+        
+        // Actualizar la interfaz
+        if (window.settingsManager && typeof window.settingsManager.updateForm === 'function') {
+            window.settingsManager.updateForm();
+        }
+    } catch (error) {
+        console.error('❌ Error al cargar módulo de ajustes:', error);
+        showAlert(`Error al cargar ajustes: ${error.message}`, 'error');
+    }
+    break;
 
             default:
                 console.log(`ℹ️ No hay carga específica para la pestaña: ${tabId}`);

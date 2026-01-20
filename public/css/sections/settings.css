@@ -464,43 +464,6 @@ input:checked + .slider:before {
   margin-top: var(--spacing-sm);
 }
 
-/* Botones de acción */
-.settings-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
-  padding-top: var(--spacing-xl);
-  border-top: 1px solid var(--border);
-  margin-top: var(--spacing-xl);
-}
-
-/* Modal */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal.active {
-  display: flex;
-}
-
-.modal-content {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
-  animation: modalSlideIn 0.3s ease;
-}
-
 @keyframes modalSlideIn {
   from {
     opacity: 0;
