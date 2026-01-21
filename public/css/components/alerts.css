@@ -38,3 +38,160 @@
     color: var(--info);
     border-left-color: var(--info);
 }
+
+/* ===== ALERTAS DE FORMULARIO ===== */
+.form-alerts-container {
+    margin-bottom: 1.5rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert--form {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.alert__icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.alert__content {
+    flex-grow: 1;
+}
+
+.alert__message {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    white-space: pre-line;
+}
+
+.alert__close {
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.alert__close:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* Estados de las alertas */
+.alert--form.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease-out;
+}
+
+/* ===== RESALTADO DE CAMPOS CON ERROR ===== */
+.field--error-highlight {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+    animation: pulse-error 1.5s infinite;
+}
+
+@keyframes pulse-error {
+    0%, 100% {
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.4);
+    }
+}
+
+/* ===== MENSAJES DE VALIDACIÓN ===== */
+.validation-message {
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.validation-message--error {
+    color: var(--danger);
+}
+
+.validation-message--success {
+    color: var(--success);
+}
+
+/* ===== ESTILOS PARA FILAS CON ADVERTENCIAS ===== */
+.table__row--warning {
+    background-color: rgba(245, 158, 11, 0.05) !important;
+    border-left: 3px solid var(--warning);
+}
+
+.table__row--warning:hover {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+/* ===== BADGES DE DEPARTAMENTO CON ESTADO ===== */
+.department-badge--warning {
+    background-color: var(--warning-light) !important;
+    color: var(--warning-dark) !important;
+    border-color: var(--warning) !important;
+}
+
+.warning-badge {
+    background-color: var(--warning-light);
+    color: var(--warning-dark);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    display: inline-block;
+}
+
+/* ===== ANIMACIONES ===== */
+.fade-out {
+    opacity: 0 !important;
+    transform: translateY(-10px) !important;
+    transition: all 0.3s ease-out !important;
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== TEXTOS CON ESTADO ===== */
+.text-warning {
+    color: var(--warning) !important;
+}
+
+.text-muted {
+    color: var(--text-tertiary) !important;
+}

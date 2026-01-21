@@ -544,7 +544,7 @@ export function closeEditModal() {
 }
 
 /**
- * Guardar cambios del documento
+ * Guardar cambios del documento - VERSIÓN CORREGIDA CON TEXTO FIJO
  */
 async function saveDocumentChanges() {
     const documentId = document.getElementById('editDocumentId').value;
@@ -556,8 +556,15 @@ async function saveDocumentChanges() {
         return;
     }
     
+    // DEFINIR TEXTO FIJO DEL BOTÓN (SIEMPRE EL MISMO)
+    const TEXTO_BOTON_NORMAL = '<i class="fas fa-save"></i> Guardar Cambios';
+    const TEXTO_BOTON_CARGANDO = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    
+    // Guardar el estado actual del botón
+    const btnWasDisabled = saveBtn.disabled;
+    
     try {
-        console.log('💾 Intentando guardar cambios para documento:', documentId);
+        console.log('💾 Guardando cambios para documento:', documentId);
         
         // Validaciones
         const category = document.getElementById('editDocumentCategory').value;
@@ -578,20 +585,19 @@ async function saveDocumentChanges() {
             }
         }
 
-        // Deshabilitar botón y mostrar preloader en botón
+        // 1. DESHABILITAR Y CAMBIAR TEXTO DEL BOTÓN
         saveBtn.disabled = true;
         saveBtn.classList.add('btn--document-saving');
-        originalBtnText = saveBtn.innerHTML; // Guardar texto original GLOBALMENTE
-        saveBtn.innerHTML = '<span style="opacity: 0;">Guardando Cambios</span>';
+        saveBtn.innerHTML = TEXTO_BOTON_CARGANDO;
         
-        // Mostrar preloader en el modal
+        // 2. MOSTRAR PRELOADER EN EL MODAL
         createEditPreloader({
             title: 'Actualizando documento',
             subtitle: 'Por favor, espera mientras guardamos los cambios...',
             statusText: 'Procesando solicitud'
         });
 
-        // Preparar datos para enviar
+        // 3. PREPARAR DATOS
         const datosActualizados = {
             descripcion: document.getElementById('editDocumentDescription').value,
             categoria: category,
@@ -600,11 +606,10 @@ async function saveDocumentChanges() {
         };
 
         console.log('📤 Datos a enviar:', datosActualizados);
-        console.log('📎 ¿Tiene archivo nuevo?', replaceFileCheck.checked && selectedFile);
 
         let response;
         
-        // Si hay archivo nuevo, usar FormData
+        // 4. DECIDIR MÉTODO DE ENVÍO (con o sin archivo)
         if (replaceFileCheck.checked && selectedFile) {
             console.log('📁 Enviando con FormData (archivo incluido)');
             
@@ -621,26 +626,11 @@ async function saveDocumentChanges() {
                 formData.append('persona_id', datosActualizados.persona_id);
             }
 
-            // Actualizar progreso
-            updateEditProgress(30, 'Subiendo archivo...');
-            
-            // Usar api.uploadDocument con el ID para actualizar
             response = await api.uploadDocument(formData, documentId);
-            
-            // Actualizar progreso
-            updateEditProgress(70, 'Procesando archivo...');
             
         } else {
             console.log('📄 Enviando sin archivo (solo JSON)');
-            
-            // Actualizar progreso
-            updateEditProgress(40, 'Enviando datos...');
-            
-            // Usar PATCH para actualización parcial
-            response = await api.patchDocument(documentId, datosActualizados);
-            
-            // Actualizar progreso
-            updateEditProgress(80, 'Procesando cambios...');
+            response = await api.updateDocument(documentId, datosActualizados);
         }
 
         console.log('📥 Respuesta del servidor:', response);
@@ -649,80 +639,71 @@ async function saveDocumentChanges() {
             throw new Error(response.message || 'Error al actualizar documento');
         }
 
-        // Completar progreso
-        updateEditProgress(100, '¡Completado!');
-        
-        // Esperar un momento para mostrar el progreso completo
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Mostrar estado de éxito
+        // 5. MOSTRAR ÉXITO
         removeEditPreloader();
         showSuccessOverlay(
             '¡Documento actualizado!',
             'Los cambios se han guardado correctamente.'
         );
 
-        // Recargar documentos después del éxito
-        if (window.loadDocuments) {
-            console.log('🔄 Recargando lista de documentos...');
-            setTimeout(async () => {
-                await window.loadDocuments();
-            }, 500);
+        // 6. ACTUALIZAR EL ESTADO GLOBAL
+        if (response.document && window.appState?.documents) {
+            const docIndex = window.appState.documents.findIndex(doc => 
+                doc._id === documentId || doc.id === documentId
+            );
+            
+            if (docIndex !== -1) {
+                window.appState.documents[docIndex] = {
+                    ...window.appState.documents[docIndex],
+                    ...response.document
+                };
+                console.log('🔄 Documento actualizado en appState');
+            }
         }
 
-        // Disparar evento personalizado para notificar la actualización
-        window.dispatchEvent(new CustomEvent('documentUpdated', { 
-            detail: { documentId, success: true } 
-        }));
+        // 7. DISPARAR EVENTO PARA ACTUALIZAR UI
+        const updateEvent = new CustomEvent('documentUpdated', {
+            detail: { 
+                documentId: documentId,
+                document: response.document,
+                success: true 
+            }
+        });
+        window.dispatchEvent(updateEvent);
 
-        // Cerrar modal después de mostrar éxito
+        // 8. CERRAR MODAL DESPUÉS DE ÉXITO
         setTimeout(() => {
             closeEditModal();
-        }, 2000);
+        }, 1500);
 
     } catch (error) {
         console.error('❌ Error guardando cambios:', error);
         
-        // Mostrar estado de error
+        // MOSTRAR ERROR
         removeEditPreloader();
         showErrorOverlay(
             'Error al guardar',
-            'Hubo un problema al actualizar el documento. Intenta nuevamente.'
+            'Hubo un problema al actualizar el documento.'
         );
         
-        // Restaurar botón usando la variable GLOBAL
-        saveBtn.disabled = false;
+        // 9. RESTAURAR BOTÓN INMEDIATAMENTE EN ERROR
+        saveBtn.disabled = btnWasDisabled;
         saveBtn.classList.remove('btn--document-saving');
-        saveBtn.innerHTML = originalBtnText || '<i class="fas fa-save"></i> Guardar Cambios';
+        saveBtn.innerHTML = TEXTO_BOTON_NORMAL;
         
-        // Mostrar alerta adicional con detalles
-        let errorMessage = 'Error al guardar cambios: ';
+        // Mostrar alerta
+        showAlert(`Error: ${error.message}`, 'error');
         
-        if (error.message.includes('404')) {
-            errorMessage += 'El documento no fue encontrado.';
-        } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-            errorMessage += 'Error de conexión. Verifica tu internet.';
-        } else if (error.message.includes('timeout')) {
-            errorMessage += 'La solicitud tardó demasiado.';
-        } else if (error.message.includes('413')) {
-            errorMessage += 'El archivo es demasiado grande.';
-        } else if (error.message.includes('415')) {
-            errorMessage += 'Tipo de archivo no soportado.';
-        } else if (error.message.includes('500')) {
-            errorMessage += 'Error interno del servidor. Intenta nuevamente.';
-        } else {
-            errorMessage += error.message;
-        }
-        
-        showAlert(errorMessage, 'error');
-        
-        // Disparar evento de error
-        window.dispatchEvent(new CustomEvent('documentUpdated', { 
-            detail: { documentId, success: false, error: error.message } 
-        }));
+    } finally {
+        // 10. GARANTÍA FINAL - RESTAURAR BOTÓN EN CUALQUIER CASO
+        setTimeout(() => {
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('btn--document-saving');
+            saveBtn.innerHTML = TEXTO_BOTON_NORMAL;
+            console.log('✅ Botón restaurado a estado normal');
+        }, 100);
     }
 }
-
 /**
  * Cargar categorías en el select del modal de edición
  */
@@ -784,7 +765,7 @@ async function loadPersonsForEdit() {
 }
 
 /**
- * Función de diagnóstico para probar endpoints
+ * Función de diagnóstico para probar endpoints - CORREGIDO
  */
 export async function testDocumentUpdate(documentId) {
     try {
@@ -805,18 +786,11 @@ export async function testDocumentUpdate(documentId) {
             console.error('❌ PUT falló:', error.message);
         }
         
-        // Prueba 2: Endpoint PATCH
-        console.log('\n2️⃣ Probando PATCH /documents/:id...');
-        try {
-            const response = await api.patchDocument(documentId, { descripcion: 'Test PATCH' });
-            
-            console.log('✅ PATCH funciona:', response);
-        } catch (error) {
-            console.error('❌ PATCH falló:', error.message);
-        }
+        // Nota: patchDocument no existe en tu api.js, por eso comenté esta prueba
+        // Si necesitas PATCH, debes agregarlo a tu api.js primero
         
-        // Prueba 3: Verificar CORS
-        console.log('\n3️⃣ Verificando CORS...');
+        // Prueba 2: Verificar CORS
+        console.log('\n2️⃣ Verificando CORS...');
         try {
             const response = await fetch(`http://localhost:4000/api/documents/${documentId}`, {
                 method: 'OPTIONS'
