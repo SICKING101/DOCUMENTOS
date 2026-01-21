@@ -205,8 +205,9 @@ app.get('/api/dashboard', async (req, res) => {
 });
 
 // -----------------------------
-// PERSONAS
+// PERSONAS - RUTAS ACTUALIZADAS PARA ELIMINACIÓN PERMANENTE
 // -----------------------------
+
 app.get('/api/persons', async (req, res) => {
   try {
     const persons = await Person.find({ activo: true }).sort({ nombre: 1 });
@@ -225,6 +226,18 @@ app.post('/api/persons', async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: 'Nombre y email son obligatorios' 
+      });
+    }
+
+    // Verificar si ya existe una persona con el mismo email
+    const personaExistente = await Person.findOne({ 
+      email: { $regex: new RegExp(`^${email}$`, 'i') }
+    });
+
+    if (personaExistente) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Ya existe una persona con ese email' 
       });
     }
 
@@ -298,6 +311,7 @@ app.put('/api/persons/:id', async (req, res) => {
   }
 });
 
+// ELIMINACIÓN PERMANENTE DE LA BASE DE DATOS
 app.delete('/api/persons/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -309,48 +323,143 @@ app.delete('/api/persons/:id', async (req, res) => {
       });
     }
 
-    // Verificar si la persona tiene documentos asociados
-    const documentosAsociados = await Document.countDocuments({ 
-      persona_id: id, 
-      activo: true 
-    });
-
-    if (documentosAsociados > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No se puede eliminar la persona porque tiene documentos asociados' 
-      });
-    }
-
-    const personaEliminada = await Person.findByIdAndUpdate(
-      id,
-      { activo: false },
-      { new: true }
-    );
-
-    if (!personaEliminada) {
+    // Verificar si la persona existe
+    const personaExistente = await Person.findById(id);
+    if (!personaExistente) {
       return res.status(404).json({ 
         success: false, 
         message: 'Persona no encontrada' 
       });
     }
 
+    // Guardar el nombre para la notificación
+    const nombrePersona = personaExistente.nombre;
+
+    // Verificar si la persona tiene documentos asociados
+    const documentosAsociados = await Document.countDocuments({ 
+      persona_id: id,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    });
+
+    if (documentosAsociados > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No se puede eliminar la persona porque tiene documentos asociados. Elimina o reasigna primero los documentos.' 
+      });
+    }
+
+    // ELIMINACIÓN PERMANENTE DE LA BASE DE DATOS
+    await Person.findByIdAndDelete(id);
+
     // Crear notificación de persona eliminada
     try {
-      await NotificationService.personaEliminada(personaEliminada.nombre);
+      await NotificationService.personaEliminada(nombrePersona);
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
 
     res.json({ 
       success: true, 
-      message: 'Persona eliminada correctamente' 
+      message: 'Persona eliminada permanentemente del sistema' 
     });
   } catch (error) {
     console.error('Error eliminando persona:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error al eliminar persona' 
+    });
+  }
+});
+
+// Rutas adicionales para gestión de estado (opcional)
+app.patch('/api/persons/:id/deactivate', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const personaDesactivada = await Person.findByIdAndUpdate(
+      id,
+      { activo: false },
+      { new: true }
+    );
+
+    if (!personaDesactivada) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Persona no encontrada' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Persona desactivada correctamente',
+      person: personaDesactivada 
+    });
+  } catch (error) {
+    console.error('Error desactivando persona:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al desactivar persona' 
+    });
+  }
+});
+
+app.patch('/api/persons/:id/reactivate', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ID inválido' 
+      });
+    }
+
+    const personaReactivada = await Person.findByIdAndUpdate(
+      id,
+      { activo: true },
+      { new: true }
+    );
+
+    if (!personaReactivada) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Persona no encontrada' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Persona reactivada correctamente',
+      person: personaReactivada 
+    });
+  } catch (error) {
+    console.error('Error reactivando persona:', error);
+    res.status(500).json({ 
+      success: false, 
+        message: 'Error al reactivar persona' 
+      });
+    }
+  });
+
+app.get('/api/persons/inactive', async (req, res) => {
+  try {
+    const persons = await Person.find({ activo: false }).sort({ nombre: 1 });
+    res.json({ success: true, persons });
+  } catch (error) {
+    console.error('Error obteniendo personas inactivas:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al obtener personas inactivas' 
     });
   }
 });

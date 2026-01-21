@@ -50,37 +50,206 @@
     border-radius: var(--border-radius);
 }
 
-/* Delete overlay para filas */
-.delete-overlay {
+/* =============================================================================
+ * Alertas mejoradas para el módulo de personas
+ * ============================================================================= */
+
+/* Contenedor de alertas global */
+.form-alerts-container--global {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    z-index: 10003;
+    pointer-events: none;
+}
+
+/* Alerta global */
+.alert--global {
+    background-color: var(--bg-primary);
+    transform: translateX(70%);
+    pointer-events: auto;
+    animation: alertSlideDown 0.3s ease-out;
+    box-shadow: var(--shadow-lg);
+    border: none;
+    border-radius: var(--radius-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.alert--global::before {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+    width: 4px;
     height: 100%;
-    background: rgba(255, 255, 255, 0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 5;
-    border-radius: 4px;
 }
 
-.delete-overlay__content {
+.alert--global.alert--error::before {
+    background-color: var(--danger);
+}
+
+.alert--global.alert--success::before {
+    background-color: var(--success);
+}
+
+.alert--global.alert--warning::before {
+    background-color: var(--warning);
+}
+
+.alert--global.alert--info::before {
+    background-color: var(--info);
+}
+
+/* Título de alerta */
+.alert__title {
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+    font-size: 1rem;
+    color: inherit;
+}
+
+/* Alertas de eliminación */
+.alert--delete {
+    background-color: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.2);
+    border-left: 4px solid var(--danger);
+    border-radius: var(--radius-md);
+    margin: 1rem 0;
+    animation: alertSlideDown 0.3s ease-out;
+}
+
+.alert--delete .alert__icon {
+    color: var(--danger);
+}
+
+.alert--delete .alert__title {
+    color: var(--danger);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.alert__actions {
+    margin-top: 1rem;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     gap: 0.75rem;
+    justify-content: flex-end;
 }
 
-.delete-overlay__text {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
+.delete-alert-container {
+    position: relative;
+    z-index: 10;
+    margin-bottom: 1.5rem;
+}
+
+/* Animaciones */
+@keyframes alertSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes alertSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert--visible {
+    animation: alertSlideDown 0.3s ease-out;
+}
+
+/* Estados de la tabla durante eliminación */
+.table__row--deleting {
+    position: relative;
+    background-color: rgba(244, 67, 54, 0.05);
+    animation: deletingPulse 1.5s infinite;
+}
+
+@keyframes deletingPulse {
+    0%, 100% {
+        background-color: rgba(244, 67, 54, 0.05);
+    }
+    50% {
+        background-color: rgba(244, 67, 54, 0.1);
+    }
+}
+
+/* Botones de acción en tabla */
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.table__row:hover .table-actions {
+    opacity: 1;
+}
+
+.btn--danger.btn--icon:hover {
+    background-color: var(--danger);
+    color: white;
+    border-color: var(--danger);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-alerts-container--global {
+        width: 95%;
+        top: 10px;
+    }
+    
+    .alert--global {
+        padding: 1rem;
+    }
+    
+    .alert__actions {
+        flex-direction: column;
+    }
+    
+    .alert__actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Estados de fila para eliminación */
+.table__row--deleting {
+  position: relative;
+  overflow: hidden;
+}
+
+.table__row--success {
+  background-color: rgba(76, 175, 80, 0.1) !important;
+  border-left: 3px solid #4CAF50;
+}
+
+.table__row--error {
+  background-color: rgba(244, 67, 54, 0.1) !important;
+  border-left: 3px solid #f44336;
 }
 
 @keyframes deleting-pulse {
-    0%, 100% { background-color: rgba(244, 67, 54, 0.05); }
-    50% { background-color: rgba(244, 67, 54, 0.1); }
+  0%, 100% {
+    background-color: rgba(244, 67, 54, 0.05);
+  }
+  50% {
+    background-color: rgba(244, 67, 54, 0.15);
+  }
 }
 
 /* Estados de filas */

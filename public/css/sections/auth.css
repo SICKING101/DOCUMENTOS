@@ -222,18 +222,6 @@
     margin-bottom: var(--spacing-lg);
 }
 
-.alert {
-    padding: 0.875rem 1rem;
-    border-radius: var(--radius-md);
-    margin-bottom: var(--spacing-md);
-    font-size: 0.9rem;
-    display: flex;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-    border: 1px solid transparent;
-    animation: slideIn 0.3s ease-out;
-}
-
 .alert i {
     margin-top: 0.125rem;
 }
