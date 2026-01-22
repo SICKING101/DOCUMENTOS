@@ -394,6 +394,15 @@ class TaskManager {
                 this.closeActionModal();
             }
         });
+        
+        // Limpiar errores al escribir en los campos
+        const formFields = ['taskTitle', 'taskDescription', 'taskPriority', 'taskStatus', 'taskDueDate'];
+        formFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', () => this.clearFieldError(fieldId));
+            }
+        });
     }
 
     // =============================================================================
@@ -425,6 +434,7 @@ class TaskManager {
         if (!modal) return;
 
         this.clearAllPreloaders();
+        this.clearAllFieldErrors();
 
         const title = document.getElementById('taskModalTitle');
         const form = document.getElementById('taskForm');
@@ -437,7 +447,8 @@ class TaskManager {
             form.reset();
             document.getElementById('taskId').value = '';
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('taskDueDate').min = today;
+            const dueDateInput = document.getElementById('taskDueDate');
+            if (dueDateInput) dueDateInput.min = today;
         }
         
         modal.style.display = 'flex';
@@ -451,12 +462,22 @@ class TaskManager {
         document.getElementById('taskPriority').value = task.priority;
         document.getElementById('taskStatus').value = task.status;
         document.getElementById('taskCategory').value = task.category || '';
-        document.getElementById('taskReminder').checked = task.reminder || false;
+        
+        // CORRECCIÓN: Verificar si el elemento existe antes de acceder a él
+        const reminderCheckbox = document.getElementById('taskReminder');
+        if (reminderCheckbox) {
+            reminderCheckbox.checked = task.reminder || false;
+        }
         
         if (task.dueDate) {
             const dueDate = new Date(task.dueDate);
             document.getElementById('taskDueDate').value = dueDate.toISOString().split('T')[0];
-            document.getElementById('taskTime').value = dueDate.toTimeString().slice(0, 5);
+            
+            // CORRECCIÓN: Verificar si el elemento existe antes de asignar valor
+            const taskTimeInput = document.getElementById('taskTime');
+            if (taskTimeInput) {
+                taskTimeInput.value = dueDate.toTimeString().slice(0, 5);
+            }
         }
     }
 
@@ -469,32 +490,170 @@ class TaskManager {
             }, 300);
         }
         this.isSaving = false;
+        this.clearAllFieldErrors();
+    }
+
+    // =============================================================================
+    // 5. SISTEMA DE VALIDACIÓN DE FORMULARIOS
+    // =============================================================================
+
+    /**
+     * 5.1 Mostrar error debajo de un campo específico
+     */
+    showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+
+        // Limpiar error previo si existe
+        this.clearFieldError(fieldId);
+
+        // Crear elemento de error
+        const errorElement = document.createElement('div');
+        errorElement.className = 'field-error';
+        errorElement.id = `${fieldId}-error`;
+        errorElement.textContent = message;
+        errorElement.style.cssText = `
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 4px;
+            margin-bottom: 8px;
+            animation: fadeIn 0.3s ease-out;
+        `;
+
+        // Agregar después del campo
+        field.parentNode.insertBefore(errorElement, field.nextSibling);
+
+        // Resaltar el campo
+        field.style.borderColor = 'var(--danger)';
+        field.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.2)';
+
+        // Scroll al campo con error
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /**
+     * 5.2 Limpiar error de un campo específico
+     */
+    clearFieldError(fieldId) {
+        const errorElement = document.getElementById(`${fieldId}-error`);
+        if (errorElement) {
+            errorElement.remove();
+        }
+
+        // Restaurar estilo del campo
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.style.borderColor = '';
+            field.style.boxShadow = '';
+        }
+    }
+
+    /**
+     * 5.3 Limpiar todos los errores del formulario
+     */
+    clearAllFieldErrors() {
+        const errorElements = document.querySelectorAll('.field-error');
+        errorElements.forEach(element => element.remove());
+
+        // Restaurar estilos de todos los campos
+        const fields = ['taskTitle', 'taskDescription', 'taskPriority', 'taskStatus', 'taskDueDate'];
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.style.borderColor = '';
+                field.style.boxShadow = '';
+            }
+        });
+    }
+
+    /**
+     * 5.4 Validar todos los campos obligatorios
+     */
+    validateForm() {
+        let isValid = true;
+        this.clearAllFieldErrors();
+
+        // Validar título (obligatorio)
+        const title = document.getElementById('taskTitle')?.value.trim();
+        if (!title) {
+            this.showFieldError('taskTitle', 'El título es obligatorio');
+            isValid = false;
+        }
+
+        // Validar descripción (obligatorio)
+        const description = document.getElementById('taskDescription')?.value.trim();
+        if (!description) {
+            this.showFieldError('taskDescription', 'La descripción es obligatoria');
+            isValid = false;
+        }
+
+        // Validar prioridad (obligatorio)
+        const priority = document.getElementById('taskPriority')?.value;
+        if (!priority) {
+            this.showFieldError('taskPriority', 'La prioridad es obligatoria');
+            isValid = false;
+        }
+
+        // Validar estado (obligatorio)
+        const status = document.getElementById('taskStatus')?.value;
+        if (!status) {
+            this.showFieldError('taskStatus', 'El estado es obligatorio');
+            isValid = false;
+        }
+
+        // Validar fecha de vencimiento (obligatorio)
+        const dueDate = document.getElementById('taskDueDate')?.value;
+        if (!dueDate) {
+            this.showFieldError('taskDueDate', 'La fecha de vencimiento es obligatoria');
+            isValid = false;
+        } else {
+            // Validar que la fecha no sea anterior a hoy
+            const selectedDate = new Date(dueDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (selectedDate < today) {
+                this.showFieldError('taskDueDate', 'La fecha no puede ser anterior a hoy');
+                isValid = false;
+            }
+        }
+
+        return isValid;
     }
 
     async saveTask() {
         if (this.isSaving) return;
         
-        const form = document.getElementById('taskForm');
-        if (!form || !form.checkValidity()) {
-            form?.reportValidity();
+        // Validar formulario antes de proceder
+        if (!this.validateForm()) {
+            return; // Detener si hay errores
+        }
+
+        // CORRECCIÓN: Verificar que los elementos existan antes de usarlos
+        const taskTitle = document.getElementById('taskTitle');
+        const taskDescription = document.getElementById('taskDescription');
+        const taskPriority = document.getElementById('taskPriority');
+        const taskStatus = document.getElementById('taskStatus');
+        const taskCategory = document.getElementById('taskCategory');
+        const taskReminder = document.getElementById('taskReminder');
+        const taskId = document.getElementById('taskId');
+        
+        // Verificar que todos los elementos necesarios existan
+        if (!taskTitle || !taskDescription || !taskPriority || !taskStatus || !taskId) {
+            console.error('Elementos del formulario no encontrados');
             return;
         }
 
         const taskData = {
-            id: document.getElementById('taskId').value,
-            title: document.getElementById('taskTitle').value.trim(),
-            description: document.getElementById('taskDescription').value.trim(),
-            priority: document.getElementById('taskPriority').value,
-            status: document.getElementById('taskStatus').value,
-            category: document.getElementById('taskCategory').value.trim(),
-            reminder: document.getElementById('taskReminder').checked,
+            id: taskId.value,
+            title: taskTitle.value.trim(),
+            description: taskDescription.value.trim(),
+            priority: taskPriority.value,
+            status: taskStatus.value,
+            category: taskCategory ? taskCategory.value.trim() : '',
+            reminder: taskReminder ? taskReminder.checked : false,
             dueDate: this.getDueDate()
         };
-
-        if (!taskData.title) {
-            this.showNotification('El título es obligatorio', 'warning');
-            return;
-        }
 
         this.isSaving = true;
         
@@ -508,7 +667,11 @@ class TaskManager {
                 // Editar
                 const index = this.tasks.findIndex(t => t.id === taskData.id);
                 if (index !== -1) {
-                    this.tasks[index] = { ...this.tasks[index], ...taskData, updatedAt: new Date().toISOString() };
+                    this.tasks[index] = { 
+                        ...this.tasks[index], 
+                        ...taskData, 
+                        updatedAt: new Date().toISOString() 
+                    };
                     this.transformToSuccess(preloader, 'Tarea actualizada');
                 }
             } else {
@@ -540,7 +703,7 @@ class TaskManager {
     }
 
     // =============================================================================
-    // 5. SISTEMA DE ACCIONES Y CONFIRMACIONES
+    // 6. SISTEMA DE ACCIONES Y CONFIRMACIONES
     // =============================================================================
 
     showActionModal(actionType, taskId) {
@@ -727,17 +890,19 @@ class TaskManager {
     }
 
     // =============================================================================
-    // 6. FUNCIONALIDADES AUXILIARES
+    // 7. FUNCIONALIDADES AUXILIARES
     // =============================================================================
 
     getDueDate() {
-        const date = document.getElementById('taskDueDate')?.value;
-        const time = document.getElementById('taskTime')?.value;
+        const dateInput = document.getElementById('taskDueDate');
+        const timeInput = document.getElementById('taskTime');
         
-        if (!date) return null;
+        if (!dateInput || !dateInput.value) return null;
         
-        if (time) {
-            return new Date(`${date}T${time}`).toISOString();
+        const date = dateInput.value;
+        
+        if (timeInput && timeInput.value) {
+            return new Date(`${date}T${timeInput.value}`).toISOString();
         }
         return new Date(date + 'T23:59:59').toISOString();
     }
