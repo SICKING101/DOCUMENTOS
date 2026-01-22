@@ -479,7 +479,6 @@ class SettingsManager {
         // Notificaciones
         form.querySelector('input[name="emailNotifications"]').checked = this.settings.notifications.emailNotifications;
         form.querySelector('input[name="pushNotifications"]').checked = this.settings.notifications.pushNotifications;
-        form.querySelector('input[name="taskReminders"]').checked = this.settings.notifications.taskReminders;
         form.querySelector('input[name="documentAlerts"]').checked = this.settings.notifications.documentAlerts;
 
         // Accesibilidad
