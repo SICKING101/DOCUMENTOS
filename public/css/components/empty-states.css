@@ -86,3 +86,31 @@ body.dark-theme .empty-state {
     margin-right: auto;
     margin-bottom: 10px;
 }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .calendar__upcoming-empty {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-secondary);
+    }
+    
+    .calendar__upcoming-empty i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .calendar__upcoming-empty p {
+        margin: 0;
+        font-size: 0.9rem;
+    }

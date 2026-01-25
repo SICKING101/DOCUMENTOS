@@ -28,6 +28,7 @@ DOCUMENTOS/
 │   │
 │   ├── index.html
 │   ├── login.html
+|   ├── reset-password.html
 │   ├── forgot-password.html
 │   ├── forgot-password-step1.html
 │   ├── verify-admin-change.html
@@ -36,12 +37,42 @@ DOCUMENTOS/
 │   │   │
 │   │   ├── main.css               # CSS maestro
 │   │   │
+│   │   ├── animations/            # Animaciones
+|   │   │   └─── animations.css
+|   │   │
 │   │   ├── base/                  # Configuracion base
 │   │   │   ├── reset.css
 │   │   │   ├── variables.css
 │   │   │   └── utilities.css
 │   │   │
-│   │   ├── components/            # Componentes reutilizables
+│   │   ├── components/            
+|   │   │   ├── preloader/
+|   │   │   │   ├── bulk-delete.css
+|   │   │   │   ├── buttons.css
+|   │   │   │   ├── categorias-preloader.css
+|   │   │   │   ├── confirmation.css
+|   │   │   │   ├── departamentos-preloader.css
+|   │   │   │   ├── details.css
+|   │   │   │   ├── documents.css
+|   │   │   │   ├── edit-document.css
+|   │   │   │   ├── effects.css
+|   │   │   │   ├── error-exit.css
+|   │   │   │   ├── file-upload.css
+|   │   │   │   ├── historial.css
+|   │   │   │   ├── loading.css
+|   │   │   │   ├── messsage.css
+|   │   │   │   ├── modal.css
+|   │   │   │   ├── notification.css
+|   │   │   │   ├── person.css
+|   │   │   │   ├── principal.css
+|   │   │   │   ├── refresh-dashboard.css
+|   │   │   │   ├── search.css
+|   │   │   │   ├── skeleton.css
+|   │   │   │   ├── tables.css
+|   │   │   │   ├── task.css
+|   │   │   │   ├── upload.css
+|   │   │   │   ├── utilities.css
+|   │   │   │   └── variants.css
 │   │   │   ├── layout.css
 │   │   │   ├── buttons.css
 │   │   │   ├── cards.css
@@ -52,6 +83,8 @@ DOCUMENTOS/
 │   │   │   ├── badges.css
 │   │   │   ├── filters.css
 │   │   │   ├── tabs.css
+|   │   │   ├── sidebar.css
+|   │   │   ├── status.css
 │   │   │   ├── empty-states.css
 │   │   │   └── preloader.css
 │   │   │
@@ -76,9 +109,22 @@ DOCUMENTOS/
 │   │
 │   └── assets/                    # Recursos estaticos
 │       ├── images/
-│           ├── guide/
-│               ├── dashboard.png
-│       ├── fonts/
+│       |    ├── base.png
+|       |    ├── cbtis051.png
+|       |    ├── fondo.png
+│       |    ├── guides/
+│       |        ├── admin-guide.png
+│       |        ├── calendar-guide.png
+│       |        ├── dark-mode-guide.png
+│       |        ├── dashboard-guide.png
+│       |        ├── documents-guide.png
+│       |        ├── history-guide.png
+│       |        ├── notifications-guide.png
+│       |        ├── person-guide.png
+│       |        ├── placeholder-guide.png
+│       |        ├── reports-guide.png
+│       |        ├── tasks-guide.png
+│       |        └── trash-guide.png
 │       └── favicon.ico
 │
 ├── src/
@@ -86,8 +132,11 @@ DOCUMENTOS/
 │   ├── frontend/                  # Logica del cliente (SPA)
 │   │   │
 │   │   ├── modules/               # Modulos por funcionalidad
+│   │   │   ├── ajustes.js
+|   │   │   ├── calendario.js
 │   │   │   ├── categorias.js
 │   │   │   ├── dashboard.js
+│   │   │   ├── departamentos.js
 │   │   │   ├── documentos.js
 │   │   │   ├── historial.js
 │   │   │   ├── notificaciones.js
@@ -105,43 +154,46 @@ DOCUMENTOS/
 |   │   │   ├── admin/             # Módulo de administración
 │   │   │   │   ├── adminChange.js
 │   │   │   │
-│   │   │   └── documentos/        # Modulo documentos
-│   │   │       │
-│   │   │       ├── core/
-│   │   │       │   ├── constants.js
-│   │   │       │   └── MultipleUploadState.js
-│   │   │       │
-│   │   │       ├── download/
-│   │   │       │   ├── downloadDiagnostics.js
-│   │   │       │   ├── downloadManager.js
-│   │   │       │   └── downloadMethods.js
-│   │   │       │
-│   │   │       ├── modals/
-│   │   │       │   ├── documentModal.js
-│   │   │       │   └── modalHelpers.js
-│   │   │       │
-│   │   │       ├── preview/
-│   │   │       │   ├── officePreview.js
-│   │   │       │   ├── previewManager.js
-│   │   │       │   ├── previewModals.js
-│   │   │       │   └── textPreview.js
-│   │   │       │
-│   │   │       ├── table/
-│   │   │       │   ├── tableRenderer.js
-│   │   │       │   └── tableFilters.js
-│   │   │       │
-│   │   │       ├── upload/
-│   │   │       │   ├── dragAndDrop.js
-│   │   │       │   ├── progressManager.js
-│   │   │       │   ├── uploadMultiple.js
-│   │   │       │   └── uploadSingle.js
-│   │   │       │
-│   │   │       ├── index.js
-│   │   │       └── compatibility.js
+│   │   │   ├── documentos/        # Modulo documentos
+│   │   │   |    │
+│   │   │   |    ├── core/
+│   │   │   |    │   ├── BulkDeleteState.js
+│   │   │   |    │   ├── constants.js
+│   │   │   |    │   └── MultipleUploadState.js
+│   │   │   |    │
+│   │   │   |    ├── download/
+│   │   │   |    │   ├── downloadDiagnostics.js
+│   │   │   |    │   ├── downloadManager.js
+│   │   │   |    │   └── downloadMethods.js
+│   │   │   |    │
+│   │   │   |    ├── modals/
+│   │   │   |    │   ├── bulkDeleteModal.js
+│   │   │   |    │   ├── editDocumentModal.js
+│   │   │   |    │   ├── documentModal.js
+│   │   │   |    │   └── modalHelpers.js
+│   │   │   |    │
+│   │   │   |    ├── preview/
+│   │   │   |    │   ├── officePreview.js
+│   │   │   |    │   ├── previewManager.js
+│   │   │   |    │   ├── previewModals.js
+│   │   │   |    │   └── textPreview.js
+│   │   │   |    │
+│   │   │   |    ├── table/
+│   │   │   |    │   ├── bulkDeleteManager.js
+│   │   │   |    │   ├── tableRenderer.js
+│   │   │   |    │   └── tableFilters.js
+│   │   │   |    │
+│   │   │   |    ├── upload/
+│   │   │   |    │   ├── dragAndDrop.js
+│   │   │   |    │   ├── progressManager.js
+│   │   │   |    │   ├── uploadMultiple.js
+│   │   │   |    │   └── uploadSingle.js
+│   │   │   |    │
+│   │   │   |    ├── index.js
+│   │   │   |    └── compatibility.js
 │   │   │
-│   │   ├── services/
-│   │   │   └── api.js              # Cliente API
-│   │   │
+|   │   ├── services/
+|   │   │   └── api.js              # Cliente API
 │   │   ├── app.js                  # Inicializacion global
 │   │   ├── auth.js                 # Auth general
 │   │   ├── authGuard.js            # Proteccion rutas

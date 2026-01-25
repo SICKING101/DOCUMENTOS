@@ -1,12 +1,15 @@
-// settings.js - Módulo completo para la gestión de ajustes
-import { showAlert, showConfirmModal } from '../utils.js';
+// settings.js - Módulo completo para la gestión de ajustes con Auto-Logout Funcional
+import { showAlert, showConfirmModal, showConfirmation } from '../utils.js';
 
 class SettingsManager {
     constructor() {
         this.settings = {
             appearance: {
-                theme: 'auto', // 'light', 'dark', 'auto'
-                interfaceDensity: 'comfortable', // 'compact', 'comfortable', 'spacious'
+                theme: 'auto',
+                interfaceDensity: 'comfortable',
+                autoDarkTime: '18:00',
+                autoLightTime: '06:00',
+                currentTheme: null
             },
             preferences: {
                 language: 'es',
@@ -27,24 +30,48 @@ class SettingsManager {
             },
             privacy: {
                 autoLogout: true,
-                autoLogoutTime: 30, // minutos
-                cookieConsent: true,
+                autoLogoutTime: 30, // minutos (2, 5, 15, 30, 60) - 2 minutos agregado para pruebas
+                cookieConsent: false,
+                autoLogoutTimer: null,
+                lastActivity: Date.now() // Para rastrear actividad del usuario
             }
         };
         
+        this.debugMode = true;
+        this.isUserActive = true;
+        this.inactivityTimeout = null;
+        this.warningTimeout = null;
+        this.log('🔧 Constructor SettingsManager inicializado');
+        
         this.initialize();
+    }
+
+    /**
+     * Logging con timestamp para debugging
+     */
+    log(message, data = null) {
+        if (this.debugMode) {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            console.log(`[${timestamp}] 🔧 SettingsManager: ${message}`);
+            if (data) console.log('📊 Data:', data);
+        }
     }
 
     /**
      * Inicializar el gestor de ajustes
      */
     initialize() {
-        console.log('🔧 Inicializando SettingsManager...');
+        this.log('Inicializando SettingsManager...');
         this.loadSettings();
+        this.calculateAndSetTheme();
         this.setupEventListeners();
         this.applySettings();
         this.updateForm();
-        console.log('✅ SettingsManager inicializado correctamente');
+        this.startThemeChecker();
+        this.log('✅ SettingsManager inicializado correctamente');
+        
+        // Iniciar monitor de inactividad
+        this.startInactivityMonitor();
     }
 
     /**
@@ -54,14 +81,67 @@ class SettingsManager {
         const savedSettings = localStorage.getItem('cbtis051_settings');
         if (savedSettings) {
             try {
-                this.settings = JSON.parse(savedSettings);
-                console.log('📂 Ajustes cargados desde localStorage');
+                const parsedSettings = JSON.parse(savedSettings);
+                this.settings = this.mergeSettings(this.settings, parsedSettings);
+                this.validateSettings();
+                this.log('📂 Ajustes cargados desde localStorage');
             } catch (error) {
-                console.error('❌ Error cargando ajustes:', error);
-                this.saveSettings(); // Guardar configuración por defecto
+                this.log('❌ Error cargando ajustes:', error);
+                this.saveSettings();
             }
         } else {
-            this.saveSettings(); // Guardar configuración por defecto
+            this.saveSettings();
+            this.log('📝 Configuración por defecto guardada');
+        }
+    }
+
+    /**
+     * Merge de ajustes (para compatibilidad)
+     */
+    mergeSettings(defaultSettings, savedSettings) {
+        const merged = { ...defaultSettings };
+        
+        Object.keys(savedSettings).forEach(key => {
+            if (merged[key] && typeof merged[key] === 'object' && !Array.isArray(merged[key])) {
+                merged[key] = { ...merged[key], ...savedSettings[key] };
+            } else {
+                merged[key] = savedSettings[key];
+            }
+        });
+        
+        return merged;
+    }
+
+    /**
+     * Validar ajustes críticos
+     */
+    validateSettings() {
+        // Validar tamaño de fuente
+        const validFontSizes = [14, 16, 18];
+        if (!validFontSizes.includes(this.settings.accessibility.fontSize)) {
+            this.log('⚠️ Tamaño de fuente inválido, ajustando a 16');
+            this.settings.accessibility.fontSize = 16;
+        }
+
+        // Validar tiempo de auto-logout (ahora incluye 2 minutos para pruebas)
+        const validLogoutTimes = [2, 5, 15, 30, 60];
+        if (!validLogoutTimes.includes(this.settings.privacy.autoLogoutTime)) {
+            this.log('⚠️ Tiempo de auto-logout inválido, ajustando a 30');
+            this.settings.privacy.autoLogoutTime = 30;
+        }
+
+        // Validar formato de horas
+        const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (!timeRegex.test(this.settings.appearance.autoDarkTime)) {
+            this.settings.appearance.autoDarkTime = '18:00';
+        }
+        if (!timeRegex.test(this.settings.appearance.autoLightTime)) {
+            this.settings.appearance.autoLightTime = '06:00';
+        }
+        
+        if (this.settings.appearance.currentTheme && 
+            !['light', 'dark'].includes(this.settings.appearance.currentTheme)) {
+            delete this.settings.appearance.currentTheme;
         }
     }
 
@@ -70,11 +150,26 @@ class SettingsManager {
      */
     saveSettings() {
         try {
+            if (this.settings.appearance.theme === 'auto') {
+                this.calculateAndSetTheme();
+            }
+            
+            this.validateSettings();
+            
             localStorage.setItem('cbtis051_settings', JSON.stringify(this.settings));
-            console.log('💾 Ajustes guardados:', this.settings);
+            this.log('💾 Ajustes guardados');
+            
+            if (this.settings.appearance.currentTheme) {
+                localStorage.setItem('cbtis051_current_theme', this.settings.appearance.currentTheme);
+            }
+            
+            window.dispatchEvent(new CustomEvent('settingsChanged', { 
+                detail: { settings: this.settings }
+            }));
+            
             return true;
         } catch (error) {
-            console.error('❌ Error guardando ajustes:', error);
+            this.log('❌ Error guardando ajustes:', error);
             showAlert('Error al guardar ajustes', 'error');
             return false;
         }
@@ -84,6 +179,8 @@ class SettingsManager {
      * Configurar event listeners
      */
     setupEventListeners() {
+        this.log('🔌 Configurando event listeners...');
+        
         // Formulario de ajustes
         const settingsForm = document.getElementById('settings-form');
         if (settingsForm) {
@@ -105,9 +202,20 @@ class SettingsManager {
         // Control de tamaño de fuente
         const decreaseBtn = document.querySelector('.font-size-btn.decrease');
         const increaseBtn = document.querySelector('.font-size-btn.increase');
+        const fontPresets = document.querySelectorAll('.font-size-preset');
+        
         if (decreaseBtn && increaseBtn) {
             decreaseBtn.addEventListener('click', () => this.changeFontSize(-2));
             increaseBtn.addEventListener('click', () => this.changeFontSize(2));
+        }
+        
+        if (fontPresets.length > 0) {
+            fontPresets.forEach(preset => {
+                preset.addEventListener('click', (e) => {
+                    const size = parseInt(e.currentTarget.dataset.size);
+                    this.setFontSize(size);
+                });
+            });
         }
 
         // Botón exportar datos
@@ -137,109 +245,343 @@ class SettingsManager {
             modalClose.addEventListener('click', () => this.hideModal());
         }
 
+        // Mostrar/ocultar config de horario automático
+        const themeInputs = document.querySelectorAll('input[name="theme"]');
+        themeInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                this.toggleAutoThemeSettings(e.target.value === 'auto');
+            });
+        });
+
         // Detectar cambios en tiempo real
         this.setupRealTimeListeners();
+        
+        // IMPORTANTE: Eventos para monitorear actividad del usuario
+        this.setupActivityListeners();
+        
+        window.addEventListener('load', () => {
+            this.log('📄 Página completamente cargada, aplicando tema persistente');
+            this.applyTheme();
+        });
+        
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.log('👁️ Página visible nuevamente, verificando tema');
+                this.checkAndApplyAutoTheme(true);
+            }
+        });
+        
+        this.log('✅ Event listeners configurados');
+    }
+
+    /**
+     * Configurar listeners de actividad del usuario
+     */
+    setupActivityListeners() {
+        const activityEvents = [
+            'mousedown', 'mousemove', 'mouseup',
+            'keydown', 'keyup', 'keypress',
+            'scroll', 'touchstart', 'touchend',
+            'click', 'dblclick', 'input',
+            'focus', 'blur', 'resize'
+        ];
+        
+        activityEvents.forEach(event => {
+            document.addEventListener(event, () => {
+                this.resetInactivityTimer();
+            });
+        });
+        
+        this.log('👤 Listeners de actividad configurados');
     }
 
     /**
      * Configurar listeners para cambios en tiempo real
      */
     setupRealTimeListeners() {
-        // Escuchar cambios en los controles
+        this.log('🎯 Configurando listeners en tiempo real...');
+        
         const form = document.getElementById('settings-form');
-        if (form) {
-            // Tema
-            const themeInputs = form.querySelectorAll('input[name="theme"]');
-            themeInputs.forEach(input => {
-                input.addEventListener('change', (e) => {
-                    this.settings.appearance.theme = e.target.value;
+        if (!form) {
+            this.log('❌ Formulario no encontrado');
+            return;
+        }
+
+        // Tema con detección de cambios
+        const themeInputs = form.querySelectorAll('input[name="theme"]');
+        themeInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                this.settings.appearance.theme = e.target.value;
+                this.log('🎨 Tema cambiado a:', e.target.value);
+                
+                if (e.target.value === 'auto') {
+                    this.calculateAndSetTheme();
+                } else {
+                    this.settings.appearance.currentTheme = e.target.value;
+                    this.saveSettings();
+                }
+                
+                this.applyTheme();
+            });
+        });
+
+        // Horas para tema automático
+        const darkTimeInput = document.getElementById('auto-dark-time');
+        const lightTimeInput = document.getElementById('auto-light-time');
+        
+        if (darkTimeInput) {
+            darkTimeInput.addEventListener('change', (e) => {
+                this.settings.appearance.autoDarkTime = e.target.value;
+                this.log('🌙 Hora oscuro actualizada:', e.target.value);
+                
+                if (this.settings.appearance.theme === 'auto') {
+                    this.calculateAndSetTheme();
+                    this.saveSettings();
                     this.applyTheme();
-                });
-            });
-
-            // Switches
-            const switches = form.querySelectorAll('input[type="checkbox"]');
-            switches.forEach(switchEl => {
-                switchEl.addEventListener('change', (e) => {
-                    const name = e.target.name;
-                    const value = e.target.checked;
-                    
-                    // Mapear nombres a categorías
-                    if (name.startsWith('email') || name.startsWith('push') || 
-                        name.startsWith('task') || name.startsWith('document')) {
-                        this.settings.notifications[name] = value;
-                    } else if (name.startsWith('high') || name.startsWith('large') || 
-                               name.startsWith('reduced')) {
-                        this.settings.accessibility[name] = value;
-                        if (name === 'highContrast') this.applyAccessibility();
-                        if (name === 'largeFont') this.applyAccessibility();
-                        if (name === 'reducedMotion') this.applyAccessibility();
-                    } else if (name.startsWith('auto') || name.startsWith('cookie')) {
-                        this.settings.privacy[name] = value;
-                    }
-                });
-            });
-
-            // Selects
-            const selects = form.querySelectorAll('select');
-            selects.forEach(select => {
-                select.addEventListener('change', (e) => {
-                    const name = e.target.name;
-                    const value = e.target.value;
-                    
-                    if (name === 'language') {
-                        this.settings.preferences.language = value;
-                    } else if (name === 'timezone') {
-                        this.settings.preferences.timezone = value;
-                    } else if (name === 'autoLogoutTime') {
-                        this.settings.privacy.autoLogoutTime = parseInt(value);
-                    }
-                });
-            });
-
-            // Radio buttons
-            const radios = form.querySelectorAll('input[type="radio"]');
-            radios.forEach(radio => {
-                radio.addEventListener('change', (e) => {
-                    if (e.target.name === 'dateFormat') {
-                        this.settings.preferences.dateFormat = e.target.value;
-                    }
-                });
+                }
+                
+                this.startThemeChecker();
             });
         }
+        
+        if (lightTimeInput) {
+            lightTimeInput.addEventListener('change', (e) => {
+                this.settings.appearance.autoLightTime = e.target.value;
+                this.log('☀️ Hora claro actualizada:', e.target.value);
+                
+                if (this.settings.appearance.theme === 'auto') {
+                    this.calculateAndSetTheme();
+                    this.saveSettings();
+                    this.applyTheme();
+                }
+                
+                this.startThemeChecker();
+            });
+        }
+
+        // Switches
+        const switches = form.querySelectorAll('input[type="checkbox"]');
+        switches.forEach(switchEl => {
+            switchEl.addEventListener('change', (e) => {
+                const name = e.target.name;
+                const value = e.target.checked;
+                this.log(`🔘 Switch ${name}: ${value}`);
+                
+                this.updateSettingFromSwitch(name, value);
+            });
+        });
+
+        // Selects
+        const selects = form.querySelectorAll('select');
+        selects.forEach(select => {
+            select.addEventListener('change', (e) => {
+                const name = e.target.name;
+                const value = e.target.value;
+                this.log(`📋 Select ${name}: ${value}`);
+                
+                this.updateSettingFromSelect(name, value);
+            });
+        });
+        
+        this.log('✅ Listeners en tiempo real configurados');
+    }
+
+    /**
+     * Actualizar ajuste desde switch
+     */
+    updateSettingFromSwitch(name, value) {
+        switch(name) {
+            case 'highContrast':
+            case 'largeFont':
+            case 'reducedMotion':
+                this.settings.accessibility[name] = value;
+                this.applyAccessibility();
+                break;
+            case 'autoLogout':
+                this.settings.privacy[name] = value;
+                if (value) {
+                    this.setupAutoLogout(this.settings.privacy.autoLogoutTime);
+                } else {
+                    this.clearAutoLogout();
+                }
+                this.log(`🔒 Auto-logout ${value ? 'activado' : 'desactivado'}`);
+                break;
+            case 'emailNotifications':
+            case 'pushNotifications':
+            case 'taskReminders':
+            case 'documentAlerts':
+                this.settings.notifications[name] = value;
+                break;
+        }
+    }
+
+    /**
+     * Actualizar ajuste desde select
+     */
+    updateSettingFromSelect(name, value) {
+        switch(name) {
+            case 'language':
+                this.settings.preferences.language = value;
+                break;
+            case 'autoLogoutTime':
+                const timeValue = parseInt(value);
+                this.settings.privacy[name] = timeValue;
+                if (this.settings.privacy.autoLogout) {
+                    this.setupAutoLogout(timeValue);
+                }
+                this.log(`⏱️ Tiempo de auto-logout actualizado a: ${timeValue} minutos`);
+                break;
+        }
+    }
+
+    /**
+     * Mostrar/ocultar configuración de horario automático
+     */
+    toggleAutoThemeSettings(show) {
+        const autoThemeSettings = document.getElementById('auto-theme-settings');
+        if (autoThemeSettings) {
+            autoThemeSettings.style.display = show ? 'block' : 'none';
+            this.log(show ? '🕐 Mostrando configuración de horario automático' : '👁️ Ocultando configuración de horario automático');
+        }
+    }
+
+    /**
+     * Calcular y establecer el tema basado en la hora actual
+     */
+    calculateAndSetTheme() {
+        if (this.settings.appearance.theme !== 'auto') {
+            this.settings.appearance.currentTheme = this.settings.appearance.theme;
+            return;
+        }
+        
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        const darkTime = this.timeToMinutes(this.settings.appearance.autoDarkTime);
+        const lightTime = this.timeToMinutes(this.settings.appearance.autoLightTime);
+        
+        let calculatedTheme = 'light';
+        
+        if (darkTime > lightTime) {
+            calculatedTheme = (currentTime >= darkTime || currentTime < lightTime) ? 'dark' : 'light';
+        } else {
+            calculatedTheme = (currentTime >= darkTime && currentTime < lightTime) ? 'dark' : 'light';
+        }
+        
+        this.settings.appearance.currentTheme = calculatedTheme;
+        
+        this.log(`🧮 Tema calculado: ${calculatedTheme} (Hora actual: ${currentTime}min, Oscuro: ${darkTime}min, Claro: ${lightTime}min)`);
+        
+        return calculatedTheme;
+    }
+
+    /**
+     * Iniciar verificador de tema automático basado en hora
+     */
+    startThemeChecker() {
+        if (this.themeCheckInterval) {
+            clearInterval(this.themeCheckInterval);
+        }
+
+        if (this.settings.appearance.theme === 'auto') {
+            this.log('⏰ Iniciando verificador de tema automático');
+            
+            this.checkAndApplyAutoTheme();
+            
+            this.themeCheckInterval = setInterval(() => {
+                this.checkAndApplyAutoTheme();
+            }, 60000);
+        }
+    }
+
+    /**
+     * Verificar y aplicar tema automático según hora configurada
+     */
+    checkAndApplyAutoTheme(forceRecalculation = false) {
+        if (this.settings.appearance.theme !== 'auto') return;
+
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        const darkTime = this.timeToMinutes(this.settings.appearance.autoDarkTime);
+        const lightTime = this.timeToMinutes(this.settings.appearance.autoLightTime);
+        
+        let shouldBeDark = false;
+        
+        if (darkTime > lightTime) {
+            shouldBeDark = currentTime >= darkTime || currentTime < lightTime;
+        } else {
+            shouldBeDark = currentTime >= darkTime && currentTime < lightTime;
+        }
+        
+        const calculatedTheme = shouldBeDark ? 'dark' : 'light';
+        const currentStoredTheme = this.settings.appearance.currentTheme;
+        const body = document.body;
+        const currentAppliedTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
+        
+        this.log(`⏱️ Verificación tema: Calculado=${calculatedTheme}, Guardado=${currentStoredTheme}, Aplicado=${currentAppliedTheme}`);
+        
+        if (forceRecalculation || currentStoredTheme !== calculatedTheme) {
+            this.log(`🔄 Actualizando tema guardado de ${currentStoredTheme} a ${calculatedTheme}`);
+            this.settings.appearance.currentTheme = calculatedTheme;
+            this.saveSettings();
+        }
+        
+        if (calculatedTheme !== currentAppliedTheme) {
+            this.log(`🎨 Aplicando cambio de tema: ${currentAppliedTheme} → ${calculatedTheme}`);
+            body.classList.toggle('dark-theme', shouldBeDark);
+            body.classList.toggle('light-theme', !shouldBeDark);
+        }
+    }
+
+    /**
+     * Convertir tiempo HH:mm a minutos desde medianoche
+     */
+    timeToMinutes(timeString) {
+        if (!timeString) return 0;
+        const [hours, minutes] = timeString.split(':').map(Number);
+        return hours * 60 + minutes;
     }
 
     /**
      * Manejar el guardado de ajustes
      */
-    handleSave(e) {
+    async handleSave(e) {
         e.preventDefault();
+        this.log('💾 Iniciando guardado de ajustes...');
         
-        // Mostrar indicador de carga
         const saveBtn = document.getElementById('save-btn');
         const originalText = saveBtn.innerHTML;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
         saveBtn.disabled = true;
 
-        // Recopilar datos del formulario
-        this.collectFormData();
-
-        // Guardar en localStorage
-        const success = this.saveSettings();
-
-        // Aplicar ajustes
-        if (success) {
-            this.applySettings();
+        try {
+            this.collectFormData();
             
-            // Mostrar modal de confirmación
-            setTimeout(() => {
-                this.showModal();
+            if (this.settings.appearance.theme === 'auto') {
+                this.calculateAndSetTheme();
+            }
+
+            const success = this.saveSettings();
+
+            if (success) {
+                this.applySettings();
+                
+                setTimeout(() => {
+                    this.showModal();
+                    saveBtn.innerHTML = originalText;
+                    saveBtn.disabled = false;
+                    this.log('✅ Ajustes guardados exitosamente');
+                }, 500);
+            } else {
                 saveBtn.innerHTML = originalText;
                 saveBtn.disabled = false;
-            }, 500);
-        } else {
+            }
+        } catch (error) {
+            this.log('❌ Error en handleSave:', error);
             saveBtn.innerHTML = originalText;
             saveBtn.disabled = false;
+            showAlert('Error al guardar ajustes', 'error');
         }
     }
 
@@ -252,75 +594,128 @@ class SettingsManager {
 
         const formData = new FormData(form);
         
-        // Tema
         const theme = formData.get('theme');
-        if (theme) this.settings.appearance.theme = theme;
+        if (theme) {
+            this.settings.appearance.theme = theme;
+            if (theme !== 'auto') {
+                this.settings.appearance.currentTheme = theme;
+            }
+        }
 
-        // Densidad
+        const autoDarkTime = document.getElementById('auto-dark-time')?.value || '18:00';
+        const autoLightTime = document.getElementById('auto-light-time')?.value || '06:00';
+        this.settings.appearance.autoDarkTime = autoDarkTime;
+        this.settings.appearance.autoLightTime = autoLightTime;
+
         const density = document.getElementById('interface-density').value;
         this.settings.appearance.interfaceDensity = density;
 
-        // Preferencias
         this.settings.preferences.language = formData.get('language');
-        this.settings.preferences.timezone = formData.get('timezone');
-        this.settings.preferences.dateFormat = formData.get('dateFormat');
 
-        // Notificaciones
-        this.settings.notifications.emailNotifications = formData.get('emailNotifications') === 'on';
-        this.settings.notifications.pushNotifications = formData.get('pushNotifications') === 'on';
-        this.settings.notifications.taskReminders = formData.get('taskReminders') === 'on';
-        this.settings.notifications.documentAlerts = formData.get('documentAlerts') === 'on';
-
-        // Accesibilidad
         this.settings.accessibility.highContrast = formData.get('highContrast') === 'on';
         this.settings.accessibility.largeFont = formData.get('largeFont') === 'on';
         this.settings.accessibility.reducedMotion = formData.get('reducedMotion') === 'on';
         this.settings.accessibility.fontSize = parseInt(document.getElementById('font-size').value);
 
-        // Privacidad
         this.settings.privacy.autoLogout = formData.get('autoLogout') === 'on';
         this.settings.privacy.autoLogoutTime = parseInt(formData.get('autoLogoutTime'));
-        this.settings.privacy.cookieConsent = formData.get('cookieConsent') === 'on';
+        
+        this.log('📋 Datos recopilados del formulario', {
+            theme: this.settings.appearance.theme,
+            currentTheme: this.settings.appearance.currentTheme,
+            autoDarkTime: this.settings.appearance.autoDarkTime,
+            autoLightTime: this.settings.appearance.autoLightTime,
+            fontSize: this.settings.accessibility.fontSize,
+            autoLogout: this.settings.privacy.autoLogout,
+            autoLogoutTime: this.settings.privacy.autoLogoutTime
+        });
     }
 
     /**
      * Aplicar todos los ajustes
      */
     applySettings() {
+        this.log('⚙️ Aplicando ajustes...');
         this.applyTheme();
         this.applyDensity();
         this.applyAccessibility();
         this.applyPrivacy();
         this.updateForm();
+        this.startThemeChecker();
+        
+        // Aplicar auto-logout si está activado
+        if (this.settings.privacy.autoLogout) {
+            this.setupAutoLogout(this.settings.privacy.autoLogoutTime);
+        } else {
+            this.clearAutoLogout();
+        }
+        
+        this.log('✅ Ajustes aplicados');
     }
 
     /**
      * Aplicar tema seleccionado
      */
     applyTheme() {
-        const { theme } = this.settings.appearance;
+        const { theme, currentTheme } = this.settings.appearance;
         const body = document.body;
         
-        // Remover clases de tema existentes
+        this.log(`🎨 Aplicando tema: Config=${theme}, Actual=${currentTheme}`);
+        
         body.classList.remove('light-theme', 'dark-theme');
         
         if (theme === 'auto') {
-            // Detectar preferencia del sistema
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            body.classList.toggle('dark-theme', prefersDark);
-            body.classList.toggle('light-theme', !prefersDark);
+            if (currentTheme) {
+                this.log(`🔁 Usando tema guardado: ${currentTheme}`);
+                body.classList.add(`${currentTheme}-theme`);
+            } else {
+                this.log('⚠️ No hay tema guardado, calculando...');
+                const calculatedTheme = this.calculateAndSetTheme();
+                body.classList.add(`${calculatedTheme}-theme`);
+            }
             
-            // Escuchar cambios en la preferencia del sistema
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                body.classList.toggle('dark-theme', e.matches);
-                body.classList.toggle('light-theme', !e.matches);
-            });
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const handleSystemChange = (e) => {
+                this.log('🖥️ Preferencia del sistema cambiada:', e.matches ? 'dark' : 'light');
+            };
+            
+            mediaQuery.addEventListener('change', handleSystemChange);
+            this.systemThemeListener = handleSystemChange;
         } else {
+            if (this.systemThemeListener) {
+                window.matchMedia('(prefers-color-scheme: dark)')
+                    .removeEventListener('change', this.systemThemeListener);
+                this.systemThemeListener = null;
+            }
+            
+            this.log(`🎯 Aplicando tema fijo: ${theme}`);
             body.classList.add(`${theme}-theme`);
+            this.settings.appearance.currentTheme = theme;
         }
         
-        // Guardar tema en cookie para consistencia entre sesiones
-        document.cookie = `theme=${theme}; path=/; max-age=${60*60*24*30}`;
+        this.saveThemeInMultiplePlaces();
+    }
+
+    /**
+     * Guardar el tema actual en múltiples lugares
+     */
+    saveThemeInMultiplePlaces() {
+        const themeToSave = this.settings.appearance.currentTheme || 
+                           (this.settings.appearance.theme === 'auto' ? 
+                            this.calculateAndSetTheme() : this.settings.appearance.theme);
+        
+        if (!themeToSave) return;
+        
+        localStorage.setItem('cbtis051_current_theme', themeToSave);
+        
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30);
+        document.cookie = `cbtis051_theme=${themeToSave}; expires=${expiryDate.toUTCString()}; path=/`;
+        
+        sessionStorage.setItem('current_theme', themeToSave);
+        document.body.setAttribute('data-theme', themeToSave);
+        
+        this.log(`🔐 Tema guardado en múltiples lugares: ${themeToSave}`);
     }
 
     /**
@@ -330,13 +725,11 @@ class SettingsManager {
         const { interfaceDensity } = this.settings.appearance;
         const body = document.body;
         
-        // Remover clases de densidad existentes
-        body.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
+        this.log(`📏 Aplicando densidad: ${interfaceDensity}`);
         
-        // Aplicar nueva densidad
+        body.classList.remove('density-compact', 'density-comfortable', 'density-spacious');
         body.classList.add(`density-${interfaceDensity}`);
         
-        // Ajustar variables CSS según densidad
         const root = document.documentElement;
         switch (interfaceDensity) {
             case 'compact':
@@ -364,88 +757,261 @@ class SettingsManager {
         const { highContrast, largeFont, reducedMotion, fontSize } = this.settings.accessibility;
         const body = document.body;
         
-        // Alto contraste
+        this.log(`♿ Aplicando accesibilidad`, { highContrast, largeFont, reducedMotion, fontSize });
+        
         body.classList.toggle('high-contrast', highContrast);
-        
-        // Fuente grande
         body.classList.toggle('large-font', largeFont);
-        
-        // Reducir animaciones
         body.classList.toggle('reduced-motion', reducedMotion);
         
-        // Tamaño de fuente
-        document.documentElement.style.fontSize = `${fontSize}px`;
+        const validSizes = [14, 16, 18];
+        const finalSize = validSizes.includes(fontSize) ? fontSize : 16;
+        document.documentElement.style.fontSize = `${finalSize}px`;
     }
 
     /**
-     * Aplicar ajustes de privacidad
+     * Aplicar ajustes de privacidad (AHORA FUNCIONAL)
      */
     applyPrivacy() {
-        const { autoLogout, autoLogoutTime, cookieConsent } = this.settings.privacy;
+        const { autoLogout, autoLogoutTime } = this.settings.privacy;
         
-        // Configurar auto-cierre de sesión
+        this.log(`🔒 Aplicando privacidad`, { autoLogout, autoLogoutTime });
+        
         if (autoLogout && autoLogoutTime > 0) {
             this.setupAutoLogout(autoLogoutTime);
-        }
-        
-        // Mostrar aviso de cookies si está habilitado
-        if (cookieConsent && !localStorage.getItem('cookie_consent')) {
-            setTimeout(() => this.showCookieConsent(), 1000);
+            this.startInactivityMonitor();
+        } else {
+            this.clearAutoLogout();
         }
     }
 
     /**
-     * Configurar auto-cierre de sesión
+     * Iniciar monitor de inactividad
+     */
+    startInactivityMonitor() {
+        this.log('👀 Iniciando monitor de inactividad');
+        
+        // Registrar tiempo de última actividad
+        this.settings.privacy.lastActivity = Date.now();
+        
+        // Configurar intervalos de verificación
+        this.checkInactivityInterval = setInterval(() => {
+            this.checkInactivity();
+        }, 30000); // Verificar cada 30 segundos
+        
+        // Verificar inmediatamente
+        this.checkInactivity();
+    }
+
+    /**
+     * Verificar inactividad del usuario
+     */
+    checkInactivity() {
+        const { autoLogout, autoLogoutTime, lastActivity } = this.settings.privacy;
+        
+        if (!autoLogout || !autoLogoutTime) {
+            return;
+        }
+        
+        const now = Date.now();
+        const inactiveTime = now - lastActivity;
+        const maxInactiveTime = autoLogoutTime * 60 * 1000; // Convertir a milisegundos
+        
+        // Mostrar debug info
+        if (this.debugMode) {
+            const remainingMinutes = Math.max(0, (maxInactiveTime - inactiveTime) / 60000);
+            this.log(`⏰ Inactividad: ${Math.floor(inactiveTime/1000)}s / ${maxInactiveTime/1000}s (Restante: ${remainingMinutes.toFixed(1)} min)`);
+        }
+        
+        // Si el usuario ha estado inactivo por el tiempo configurado
+        if (inactiveTime >= maxInactiveTime) {
+            this.log('🚪 Usuario inactivo por tiempo configurado, ejecutando logout');
+            this.executeLogout();
+        } 
+        // Si quedan 30 segundos o menos, mostrar advertencia
+        else if (inactiveTime >= maxInactiveTime - 30000) {
+            const remainingSeconds = Math.ceil((maxInactiveTime - inactiveTime) / 1000);
+            if (remainingSeconds > 0 && !this.warningShown) {
+                this.showLogoutWarning(remainingSeconds);
+                this.warningShown = true;
+            }
+        }
+    }
+
+    /**
+     * Mostrar advertencia de logout
+     */
+    showLogoutWarning(secondsRemaining) {
+        this.log(`⚠️ Mostrando advertencia de logout: ${secondsRemaining} segundos restantes`);
+        
+        showAlert(`La sesión se cerrará en ${secondsRemaining} segundos por inactividad. Mueve el mouse o presiona una tecla para continuar.`, 'warning');
+        
+        // Programar para mostrar nueva advertencia si pasa más tiempo
+        this.warningTimeout = setTimeout(() => {
+            this.warningShown = false;
+            if (secondsRemaining > 10) {
+                this.showLogoutWarning(Math.max(0, secondsRemaining - 30));
+            }
+        }, 30000);
+    }
+
+    /**
+     * Reiniciar timer de inactividad
+     */
+    resetInactivityTimer() {
+        if (this.settings.privacy.autoLogout) {
+            this.settings.privacy.lastActivity = Date.now();
+            
+            // Cancelar advertencia si estaba mostrándose
+            if (this.warningTimeout) {
+                clearTimeout(this.warningTimeout);
+                this.warningTimeout = null;
+                this.warningShown = false;
+            }
+            
+            // Debug
+            if (this.debugMode) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('es-MX', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+                this.log(`👆 Actividad detectada a las ${timeString}`);
+            }
+        }
+    }
+
+    /**
+     * Configurar auto-cierre de sesión (COMPLETAMENTE FUNCIONAL)
      */
     setupAutoLogout(minutes) {
+        this.log(`⏳ Configurando auto-logout: ${minutes} minutos`);
+        
+        // Limpiar timer anterior si existe
+        this.clearAutoLogout();
+        
+        // Verificar si el usuario está autenticado
+        const token = localStorage.getItem('token');
+        if (!token) {
+            this.log('⚠️ Usuario no autenticado, omitiendo auto-logout');
+            return;
+        }
+        
+        // Configurar timer de logout
+        const logoutTime = minutes * 60 * 1000; // Convertir a milisegundos
         let timeout;
+        
+        const logout = () => {
+            this.log('🚪 Ejecutando auto-logout por inactividad');
+            this.executeLogout();
+        };
         
         const resetTimer = () => {
             clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                showAlert('Sesión expirada por inactividad', 'warning');
-                // Aquí podrías redirigir al login o cerrar sesión
-                // window.location.href = '/login.html';
-            }, minutes * 60 * 1000);
+            timeout = setTimeout(logout, logoutTime);
+            this.log(`🔄 Timer de logout reiniciado (${minutes} minutos)`);
         };
         
-        // Resetear timer en actividad del usuario
-        ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
-            document.addEventListener(event, resetTimer);
-        });
-        
+        // Iniciar timer
         resetTimer();
+        
+        // Guardar referencia para limpiar
+        this.settings.privacy.autoLogoutTimer = {
+            timeout: timeout,
+            resetTimer: resetTimer,
+            logoutTime: logoutTime
+        };
+        
+        // Mostrar mensaje informativo
+        showAlert(`Auto-logout activado. La sesión se cerrará después de ${minutes} minutos de inactividad.`, 'info');
     }
 
     /**
-     * Mostrar aviso de cookies
+     * Ejecutar logout REAL
      */
-    showCookieConsent() {
-        const consentHTML = `
-            <div class="cookie-consent">
-                <div class="cookie-content">
-                    <p>Utilizamos cookies para mejorar tu experiencia en el sitio.</p>
-                    <div class="cookie-actions">
-                        <button class="btn btn-sm btn-outline" id="cookie-reject">Rechazar</button>
-                        <button class="btn btn-sm btn-primary" id="cookie-accept">Aceptar</button>
-                    </div>
-                </div>
-            </div>
-        `;
+    async executeLogout() {
+        try {
+            this.log('🚪 INICIANDO LOGOUT AUTOMÁTICO...');
+            
+            // 1. Mostrar mensaje al usuario
+            showAlert('Sesión expirada por inactividad. Redirigiendo...', 'warning');
+            
+            // 2. Opcional: Hacer logout en el backend
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            } catch (error) {
+                this.log('⚠️ Error en logout backend:', error);
+            }
+            
+            // 3. Limpiar datos de autenticación
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            sessionStorage.clear();
+            
+            // 4. Limpiar cookies relacionadas con autenticación
+            document.cookie.split(";").forEach(cookie => {
+                const name = cookie.split("=")[0].trim();
+                if (name.includes('token') || name.includes('session')) {
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                }
+            });
+            
+            // 5. Limpiar timers
+            this.clearAutoLogout();
+            if (this.checkInactivityInterval) {
+                clearInterval(this.checkInactivityInterval);
+            }
+            
+            // 6. Redirigir a login después de un breve delay
+            setTimeout(() => {
+                this.log('🔀 Redirigiendo a página de login...');
+                
+                // Preservar ajustes de tema antes de redirigir
+                const currentTheme = this.getCurrentTheme();
+                localStorage.setItem('cbtis051_theme_before_logout', currentTheme);
+                
+                window.location.href = '/login.html';
+            }, 2000);
+            
+        } catch (error) {
+            this.log('❌ Error en executeLogout:', error);
+            // Fallback: Redirigir directamente
+            window.location.href = '/login.html';
+        }
+    }
+
+    /**
+     * Limpiar auto-logout
+     */
+    clearAutoLogout() {
+        if (this.settings.privacy.autoLogoutTimer) {
+            const { timeout, resetTimer } = this.settings.privacy.autoLogoutTimer;
+            
+            if (timeout) clearTimeout(timeout);
+            
+            // Remover event listeners si existen
+            const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+            events.forEach(event => {
+                document.removeEventListener(event, resetTimer);
+            });
+            
+            this.settings.privacy.autoLogoutTimer = null;
+            this.log('🔄 Auto-logout limpiado');
+        }
         
-        const container = document.createElement('div');
-        container.innerHTML = consentHTML;
-        document.body.appendChild(container.firstElementChild);
-        
-        document.getElementById('cookie-accept').addEventListener('click', () => {
-            localStorage.setItem('cookie_consent', 'accepted');
-            document.querySelector('.cookie-consent').remove();
-        });
-        
-        document.getElementById('cookie-reject').addEventListener('click', () => {
-            localStorage.setItem('cookie_consent', 'rejected');
-            document.querySelector('.cookie-consent').remove();
-        });
+        if (this.warningTimeout) {
+            clearTimeout(this.warningTimeout);
+            this.warningTimeout = null;
+        }
     }
 
     /**
@@ -453,11 +1019,25 @@ class SettingsManager {
      */
     updateForm() {
         const form = document.getElementById('settings-form');
-        if (!form) return;
+        if (!form) {
+            this.log('❌ Formulario no encontrado para actualizar');
+            return;
+        }
+
+        this.log('📝 Actualizando formulario con valores actuales');
 
         // Tema
         const themeInput = form.querySelector(`input[name="theme"][value="${this.settings.appearance.theme}"]`);
-        if (themeInput) themeInput.checked = true;
+        if (themeInput) {
+            themeInput.checked = true;
+            this.toggleAutoThemeSettings(this.settings.appearance.theme === 'auto');
+        }
+
+        // Horas para tema automático
+        const darkTimeInput = document.getElementById('auto-dark-time');
+        const lightTimeInput = document.getElementById('auto-light-time');
+        if (darkTimeInput) darkTimeInput.value = this.settings.appearance.autoDarkTime;
+        if (lightTimeInput) lightTimeInput.value = this.settings.appearance.autoLightTime;
 
         // Densidad
         document.getElementById('interface-density').value = this.settings.appearance.interfaceDensity;
@@ -471,32 +1051,51 @@ class SettingsManager {
 
         // Preferencias
         form.querySelector('select[name="language"]').value = this.settings.preferences.language;
-        form.querySelector('select[name="timezone"]').value = this.settings.preferences.timezone;
-        
-        const dateFormatInput = form.querySelector(`input[name="dateFormat"][value="${this.settings.preferences.dateFormat}"]`);
-        if (dateFormatInput) dateFormatInput.checked = true;
-
-        // Notificaciones
-        form.querySelector('input[name="emailNotifications"]').checked = this.settings.notifications.emailNotifications;
-        form.querySelector('input[name="pushNotifications"]').checked = this.settings.notifications.pushNotifications;
-        form.querySelector('input[name="documentAlerts"]').checked = this.settings.notifications.documentAlerts;
 
         // Accesibilidad
         form.querySelector('input[name="highContrast"]').checked = this.settings.accessibility.highContrast;
         form.querySelector('input[name="largeFont"]').checked = this.settings.accessibility.largeFont;
         form.querySelector('input[name="reducedMotion"]').checked = this.settings.accessibility.reducedMotion;
         
+        // Tamaño de fuente
         const fontSizeInput = document.getElementById('font-size');
         const fontSizeDisplay = document.querySelector('.current-size');
+        const fontPresets = document.querySelectorAll('.font-size-preset');
+        
         if (fontSizeInput && fontSizeDisplay) {
             fontSizeInput.value = this.settings.accessibility.fontSize;
             fontSizeDisplay.textContent = `${this.settings.accessibility.fontSize}px`;
+            
+            fontPresets.forEach(preset => {
+                preset.classList.remove('active');
+                if (parseInt(preset.dataset.size) === this.settings.accessibility.fontSize) {
+                    preset.classList.add('active');
+                }
+            });
         }
 
-        // Privacidad
+        // Privacidad - IMPORTANTE: Ahora con opción de 2 minutos para pruebas
         form.querySelector('input[name="autoLogout"]').checked = this.settings.privacy.autoLogout;
-        form.querySelector('select[name="autoLogoutTime"]').value = this.settings.privacy.autoLogoutTime;
-        form.querySelector('input[name="cookieConsent"]').checked = this.settings.privacy.cookieConsent;
+        
+        // Asegurarse de que el select incluya la opción de 2 minutos
+        const autoLogoutSelect = form.querySelector('select[name="autoLogoutTime"]');
+        if (autoLogoutSelect) {
+            autoLogoutSelect.value = this.settings.privacy.autoLogoutTime;
+            
+            // Si no existe la opción de 2 minutos, agregarla
+            const has2MinOption = Array.from(autoLogoutSelect.options).some(
+                option => option.value === '2'
+            );
+            
+            if (!has2MinOption) {
+                const option2min = document.createElement('option');
+                option2min.value = '2';
+                option2min.textContent = '2 minutos (para pruebas)';
+                autoLogoutSelect.appendChild(option2min);
+            }
+        }
+        
+        this.log('✅ Formulario actualizado');
     }
 
     /**
@@ -504,17 +1103,14 @@ class SettingsManager {
      */
     handleDensityChange(e) {
         const density = e.currentTarget.dataset.density;
+        this.log(`📏 Cambiando densidad a: ${density}`);
         
-        // Actualizar botones activos
         document.querySelectorAll('.density-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         e.currentTarget.classList.add('active');
         
-        // Actualizar input hidden
         document.getElementById('interface-density').value = density;
-        
-        // Actualizar ajustes y aplicar
         this.settings.appearance.interfaceDensity = density;
         this.applyDensity();
     }
@@ -525,21 +1121,44 @@ class SettingsManager {
     changeFontSize(change) {
         let newSize = this.settings.accessibility.fontSize + change;
         
-        // Limitar entre 12px y 24px
-        newSize = Math.max(12, Math.min(24, newSize));
+        const validSizes = [14, 16, 18];
+        newSize = validSizes.reduce((prev, curr) => {
+            return Math.abs(curr - newSize) < Math.abs(prev - newSize) ? curr : prev;
+        });
         
-        // Actualizar ajustes
-        this.settings.accessibility.fontSize = newSize;
+        this.setFontSize(newSize);
+    }
+
+    /**
+     * Establecer tamaño de fuente específico
+     */
+    setFontSize(size) {
+        const validSizes = [14, 16, 18];
         
-        // Actualizar interfaz
-        const fontSizeInput = document.getElementById('font-size');
-        const fontSizeDisplay = document.querySelector('.current-size');
-        if (fontSizeInput && fontSizeDisplay) {
-            fontSizeInput.value = newSize;
-            fontSizeDisplay.textContent = `${newSize}px`;
+        if (!validSizes.includes(size)) {
+            this.log(`⚠️ Tamaño de fuente inválido: ${size}, usando 16`);
+            size = 16;
         }
         
-        // Aplicar cambio
+        this.log(`🔠 Cambiando tamaño de fuente a: ${size}px`);
+        this.settings.accessibility.fontSize = size;
+        
+        const fontSizeInput = document.getElementById('font-size');
+        const fontSizeDisplay = document.querySelector('.current-size');
+        const fontPresets = document.querySelectorAll('.font-size-preset');
+        
+        if (fontSizeInput && fontSizeDisplay) {
+            fontSizeInput.value = size;
+            fontSizeDisplay.textContent = `${size}px`;
+            
+            fontPresets.forEach(preset => {
+                preset.classList.remove('active');
+                if (parseInt(preset.dataset.size) === size) {
+                    preset.classList.add('active');
+                }
+            });
+        }
+        
         this.applyAccessibility();
     }
 
@@ -556,11 +1175,16 @@ class SettingsManager {
         });
         
         if (confirmed) {
+            this.log('🔄 Restableciendo ajustes a valores por defecto');
+            
             // Restaurar valores por defecto
             this.settings = {
                 appearance: {
                     theme: 'auto',
                     interfaceDensity: 'comfortable',
+                    autoDarkTime: '18:00',
+                    autoLightTime: '06:00',
+                    currentTheme: null
                 },
                 preferences: {
                     language: 'es',
@@ -581,17 +1205,20 @@ class SettingsManager {
                 },
                 privacy: {
                     autoLogout: true,
-                    autoLogoutTime: 30,
-                    cookieConsent: true,
+                    autoLogoutTime: 30, // Valor por defecto: 30 minutos
+                    cookieConsent: false,
+                    autoLogoutTimer: null,
+                    lastActivity: Date.now()
                 }
             };
             
-            // Guardar y aplicar
+            this.calculateAndSetTheme();
             this.saveSettings();
             this.applySettings();
             this.updateForm();
             
             showAlert('Ajustes restablecidos correctamente', 'success');
+            this.log('✅ Ajustes restablecidos');
         }
     }
 
@@ -600,7 +1227,12 @@ class SettingsManager {
      */
     async handleExportData() {
         try {
-            // Recopilar todos los datos del usuario
+            this.log('📤 Iniciando exportación de datos...');
+            
+            if (this.settings.appearance.theme === 'auto' && !this.settings.appearance.currentTheme) {
+                this.calculateAndSetTheme();
+            }
+            
             const exportData = {
                 settings: this.settings,
                 timestamp: new Date().toISOString(),
@@ -612,10 +1244,7 @@ class SettingsManager {
                 }
             };
             
-            // Convertir a JSON
             const jsonData = JSON.stringify(exportData, null, 2);
-            
-            // Crear blob y descargar
             const blob = new Blob([jsonData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -627,8 +1256,9 @@ class SettingsManager {
             URL.revokeObjectURL(url);
             
             showAlert('Datos exportados correctamente', 'success');
+            this.log('✅ Datos exportados correctamente');
         } catch (error) {
-            console.error('Error exportando datos:', error);
+            this.log('❌ Error exportando datos:', error);
             showAlert('Error al exportar datos', 'error');
         }
     }
@@ -647,32 +1277,35 @@ class SettingsManager {
         
         if (confirmed) {
             try {
-                // Limpiar localStorage (excepto ajustes si se quiere mantener)
+                this.log('🗑️ Iniciando limpieza de datos locales...');
+                
+                const currentTheme = this.settings.appearance.currentTheme;
                 const settingsBackup = localStorage.getItem('cbtis051_settings');
+                
+                // Preservar el token de autenticación para no cerrar sesión
+                const token = localStorage.getItem('token');
+                const user = localStorage.getItem('user');
+                
                 localStorage.clear();
-                
-                // Restaurar ajustes si el usuario quiere mantenerlos
-                if (settingsBackup) {
-                    localStorage.setItem('cbtis051_settings', settingsBackup);
-                }
-                
-                // Limpiar sessionStorage
                 sessionStorage.clear();
                 
-                // Limpiar cookies relacionadas con la aplicación
-                document.cookie.split(";").forEach(cookie => {
-                    const name = cookie.split("=")[0].trim();
-                    if (name.includes('cbtis') || name.includes('theme')) {
-                        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-                    }
-                });
+                // Restaurar datos esenciales
+                if (token) localStorage.setItem('token', token);
+                if (user) localStorage.setItem('user', user);
+                
+                if (settingsBackup) {
+                    localStorage.setItem('cbtis051_settings', settingsBackup);
+                    this.loadSettings();
+                } else if (currentTheme) {
+                    localStorage.setItem('cbtis051_current_theme', currentTheme);
+                }
                 
                 showAlert('Datos locales borrados correctamente', 'success');
+                this.log('✅ Datos locales borrados');
                 
-                // Recargar la página para aplicar cambios
                 setTimeout(() => window.location.reload(), 1500);
             } catch (error) {
-                console.error('Error borrando datos:', error);
+                this.log('❌ Error borrando datos:', error);
                 showAlert('Error al borrar datos locales', 'error');
             }
         }
@@ -685,6 +1318,7 @@ class SettingsManager {
         const modal = document.getElementById('confirmation-modal');
         if (modal) {
             modal.classList.add('active');
+            this.log('📋 Mostrando modal de confirmación');
         }
     }
 
@@ -695,6 +1329,7 @@ class SettingsManager {
         const modal = document.getElementById('confirmation-modal');
         if (modal) {
             modal.classList.remove('active');
+            this.log('📋 Ocultando modal de confirmación');
         }
     }
 
@@ -706,15 +1341,40 @@ class SettingsManager {
     }
 
     /**
+     * Obtener el tema actual aplicado
+     */
+    getCurrentTheme() {
+        const body = document.body;
+        if (body.classList.contains('dark-theme')) return 'dark';
+        if (body.classList.contains('light-theme')) return 'light';
+        
+        return this.settings.appearance.currentTheme || 
+               (this.settings.appearance.theme === 'auto' ? 
+                this.calculateAndSetTheme() : this.settings.appearance.theme);
+    }
+
+    /**
      * Actualizar ajustes específicos
      */
     updateSetting(category, key, value) {
         if (this.settings[category] && this.settings[category][key] !== undefined) {
             this.settings[category][key] = value;
+            
+            if (category === 'appearance' && 
+                (key === 'theme' || key === 'autoDarkTime' || key === 'autoLightTime')) {
+                if (key === 'theme' && value === 'auto') {
+                    this.calculateAndSetTheme();
+                } else if (this.settings.appearance.theme === 'auto') {
+                    this.calculateAndSetTheme();
+                }
+            }
+            
             this.saveSettings();
             this.applySettings();
+            this.log(`⚙️ Ajuste actualizado: ${category}.${key} = ${value}`);
             return true;
         }
+        this.log(`⚠️ No se pudo actualizar ajuste: ${category}.${key}`);
         return false;
     }
 
@@ -722,6 +1382,9 @@ class SettingsManager {
      * Exportar ajustes como objeto
      */
     exportSettings() {
+        if (this.settings.appearance.theme === 'auto' && !this.settings.appearance.currentTheme) {
+            this.calculateAndSetTheme();
+        }
         return JSON.parse(JSON.stringify(this.settings));
     }
 
@@ -730,18 +1393,84 @@ class SettingsManager {
      */
     importSettings(settings) {
         try {
-            this.settings = settings;
+            this.settings = this.mergeSettings(this.settings, settings);
+            
+            if (this.settings.appearance.theme === 'auto') {
+                this.calculateAndSetTheme();
+            }
+            
             this.saveSettings();
             this.applySettings();
             this.updateForm();
+            this.log('📥 Ajustes importados correctamente');
             return true;
         } catch (error) {
-            console.error('Error importando ajustes:', error);
+            this.log('❌ Error importando ajustes:', error);
             return false;
         }
     }
+
+    /**
+     * Verificar persistencia del tema
+     */
+    checkThemePersistence() {
+        const storedTheme = localStorage.getItem('cbtis051_current_theme');
+        const calculatedTheme = this.calculateAndSetTheme();
+        const appliedTheme = this.getCurrentTheme();
+        
+        this.log('🔍 Verificando persistencia del tema:', {
+            stored: storedTheme,
+            calculated: calculatedTheme,
+            applied: appliedTheme,
+            config: this.settings.appearance.theme
+        });
+        
+        return {
+            stored: storedTheme,
+            calculated: calculatedTheme,
+            applied: appliedTheme,
+            consistent: storedTheme === appliedTheme
+        };
+    }
+
+    /**
+     * Destructor para limpieza
+     */
+    destroy() {
+        if (this.themeCheckInterval) {
+            clearInterval(this.themeCheckInterval);
+        }
+        
+        if (this.checkInactivityInterval) {
+            clearInterval(this.checkInactivityInterval);
+        }
+        
+        this.clearAutoLogout();
+        
+        if (this.systemThemeListener) {
+            window.matchMedia('(prefers-color-scheme: dark)')
+                .removeEventListener('change', this.systemThemeListener);
+        }
+        
+        this.log('🧹 SettingsManager destruido');
+    }
 }
 
-// Exportar singleton
+// Crear y exportar instancia singleton
 const settingsManager = new SettingsManager();
+
+// Función auxiliar para verificar el tema al cargar la página
+(function checkThemeOnLoad() {
+    const savedTheme = localStorage.getItem('cbtis051_current_theme');
+    if (savedTheme) {
+        document.body.classList.add(`${savedTheme}-theme`);
+        document.body.setAttribute('data-theme', savedTheme);
+        console.log(`🎨 Tema persistente aplicado al cargar: ${savedTheme}`);
+    }
+})();
+
+// Exportar para uso global
+window.SettingsManager = SettingsManager;
+window.settingsManager = settingsManager;
+
 export default settingsManager;
