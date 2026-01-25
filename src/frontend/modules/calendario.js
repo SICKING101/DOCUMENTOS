@@ -20,9 +20,6 @@ class CalendarManager {
             eventsCount: this.events.length
         });
         
-        // DEBUG: Mostrar todos los eventos cargados
-        console.debug('📋 Todos los eventos cargados:', this.events);
-        
         this.init();
     }
 
@@ -49,7 +46,7 @@ class CalendarManager {
             console.debug('✅ Calendario inicializado correctamente');
         } catch (error) {
             console.error('❌ Error en la inicialización del calendario:', error);
-            this.showNotification('Error al inicializar el calendario', 'error');
+            this.showNotification('Error al inicializar el calendario');
         }
     }
 
@@ -69,18 +66,11 @@ class CalendarManager {
                 this.navigateMonth(1);
             });
             
-            // Filtros - AGREGADO DEBUG EXTENDIDO
+            // Filtros
             document.querySelectorAll('.calendar__filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const filter = e.currentTarget.dataset.filter;
                     console.debug(`🔍 Aplicando filtro: ${filter}`);
-                    
-                    // DEBUG: Mostrar qué eventos existen antes de filtrar
-                    console.debug('📊 Eventos disponibles antes de filtrar:', this.events.map(e => ({ 
-                        title: e.title, 
-                        type: e.type 
-                    })));
-                    
                     this.setFilter(filter);
                 });
             });
@@ -153,6 +143,7 @@ class CalendarManager {
                 document.getElementById('deleteCalendarEvent').style.display = 'none';
                 document.getElementById('modalEventTitle').textContent = 'Nuevo Evento';
                 document.getElementById('calendarEventForm').reset();
+                this.clearFormAlerts();
             };
             
             closeBtn?.addEventListener('click', (e) => {
@@ -210,6 +201,14 @@ class CalendarManager {
                 }
             });
             
+            // Limpiar alertas al cambiar valores
+            const formFields = document.querySelectorAll('#calendarEventForm input, #calendarEventForm select, #calendarEventForm textarea');
+            formFields.forEach(field => {
+                field.addEventListener('input', () => {
+                    this.clearFieldAlert(field.id);
+                });
+            });
+            
             // Prevenir que el clic en el formulario cierre el modal
             document.getElementById('calendarEventForm')?.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -219,6 +218,71 @@ class CalendarManager {
         } catch (error) {
             console.error('❌ Error configurando eventos del modal:', error);
         }
+    }
+
+    // ===== SISTEMA DE ALERTAS MINIMALISTA =====
+
+    // Mostrar alerta de campo
+    showFieldAlert(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        
+        // Limpiar alerta anterior si existe
+        this.clearFieldAlert(fieldId);
+        
+        // Crear elemento de alerta
+        const alertElement = document.createElement('div');
+        alertElement.className = 'field-alert';
+        alertElement.id = `alert-${fieldId}`;
+        alertElement.textContent = message;
+        
+        // Insertar después del campo
+        field.parentNode.insertBefore(alertElement, field.nextSibling);
+        
+        // Resaltar campo
+        field.classList.add('field-error');
+    }
+
+    // Limpiar alerta de campo específico
+    clearFieldAlert(fieldId) {
+        const alertElement = document.getElementById(`alert-${fieldId}`);
+        if (alertElement) {
+            alertElement.remove();
+        }
+        
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.remove('field-error');
+        }
+    }
+
+    // Limpiar todas las alertas del formulario
+    clearFormAlerts() {
+        const alerts = document.querySelectorAll('.field-alert');
+        alerts.forEach(alert => alert.remove());
+        
+        const fields = document.querySelectorAll('.field-error');
+        fields.forEach(field => field.classList.remove('field-error'));
+    }
+
+    // Mostrar notificación simple
+    showNotification(message, type = 'info') {
+        console.debug(`🔔 Notificación (${type}): ${message}`);
+        
+        const notification = document.createElement('div');
+        notification.className = `simple-notification simple-notification--${type}`;
+        notification.innerHTML = `
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Remover después de 3 segundos
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
     }
 
     // Navegar entre meses
@@ -266,7 +330,7 @@ class CalendarManager {
         this.renderMiniCalendar(newMonth, newYear);
     }
 
-    // Establecer filtro - FUNCIÓN CORREGIDA
+    // Establecer filtro
     setFilter(filter) {
         console.debug(`🔍 Cambiando filtro a: ${filter}`);
         
@@ -276,9 +340,6 @@ class CalendarManager {
         document.querySelectorAll('.calendar__filter-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.filter === filter);
         });
-        
-        // DEBUG: Mostrar qué eventos coinciden con el filtro
-        console.debug(`🔍 Filtro activo: ${this.activeFilter}`);
         
         // Re-renderizar eventos
         this.renderCalendar();
@@ -357,9 +418,6 @@ class CalendarManager {
         
         console.debug(`📊 Mes: ${daysInMonth} días, Primer día índice: ${firstDayIndex}`);
         
-        // DEBUG: Mostrar información de filtro actual
-        console.debug(`🔍 Filtro actual en renderMonthView: ${this.activeFilter}`);
-        
         // Días del mes anterior
         const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0).getDate();
         for (let i = firstDayIndex - 1; i >= 0; i--) {
@@ -376,25 +434,11 @@ class CalendarManager {
             const isToday = this.isSameDay(date, today);
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
             
-            // Obtener eventos para este día (incluyendo eventos de múltiples días)
+            // Obtener eventos para este día
             const dayEvents = this.getEventsForDate(date);
             const filteredEvents = this.filterEvents(dayEvents);
             const visibleEvents = filteredEvents.slice(0, 3);
             const hasMoreEvents = filteredEvents.length > 3;
-            
-            // DEBUG para el día actual
-            if (i === today.getDate() && this.currentMonth === today.getMonth() && this.currentYear === today.getFullYear()) {
-                console.debug(`📅 Día ${i}:`, {
-                    totalEventos: dayEvents.length,
-                    eventosFiltrados: filteredEvents.length,
-                    filtroActivo: this.activeFilter,
-                    eventos: dayEvents.map(e => ({ 
-                        title: e.title, 
-                        type: e.type,
-                        coincideFiltro: this.doesEventMatchFilter(e, this.activeFilter)
-                    }))
-                });
-            }
             
             const day = document.createElement('div');
             day.className = `calendar__day ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}`;
@@ -563,6 +607,9 @@ class CalendarManager {
             return;
         }
         
+        // Limpiar alertas anteriores
+        this.clearFormAlerts();
+        
         // Configurar fecha por defecto
         const dateStr = date.toISOString().split('T')[0];
         const startDateInput = document.getElementById('eventStartDate');
@@ -603,44 +650,77 @@ class CalendarManager {
         console.debug('✅ Modal de evento abierto correctamente');
     }
 
-    // Guardar evento
+    // Guardar evento con validación mejorada
     saveEvent() {
         console.debug('💾 Guardando evento...');
         
         try {
+            // Limpiar alertas anteriores
+            this.clearFormAlerts();
+            
+            // Obtener valores del formulario
+            const title = document.getElementById('eventTitle').value.trim();
+            const type = document.getElementById('eventType').value;
+            const color = document.getElementById('eventColor').value;
+            const startDate = document.getElementById('eventStartDate').value;
+            const startTime = document.getElementById('eventStartTime').value || '09:00';
+            const endDate = document.getElementById('eventEndDate').value || startDate;
+            const endTime = document.getElementById('eventEndTime').value || '17:00';
+            const location = document.getElementById('eventLocation').value.trim();
+            const description = document.getElementById('eventDescription').value.trim();
+            const reminder = document.getElementById('eventReminder').value;
+            const recurrence = document.querySelector('input[name="recurrence"]:checked')?.value || 'none';
+            
+            // Validar campos requeridos
+            let hasErrors = false;
+            
+            if (!title) {
+                this.showFieldAlert('eventTitle', 'El título del evento es obligatorio');
+                hasErrors = true;
+            }
+            
+            if (!startDate) {
+                this.showFieldAlert('eventStartDate', 'La fecha de inicio es obligatoria');
+                hasErrors = true;
+            }
+            
+            if (type === '') {
+                this.showFieldAlert('eventType', 'Seleccione un tipo de evento');
+                hasErrors = true;
+            }
+            
+            // Validar fecha de fin
+            if (endDate && new Date(endDate) < new Date(startDate)) {
+                this.showFieldAlert('eventEndDate', 'La fecha de fin no puede ser anterior a la fecha de inicio');
+                hasErrors = true;
+            }
+            
+            // Si hay errores, detener el proceso
+            if (hasErrors) {
+                this.showNotification('Por favor, complete los campos obligatorios correctamente');
+                return;
+            }
+            
+            // Crear objeto de evento
             const eventData = {
                 id: this.editingEvent?.id || this.generateEventId(),
-                title: document.getElementById('eventTitle').value.trim(),
-                type: document.getElementById('eventType').value,
-                color: document.getElementById('eventColor').value,
-                startDate: document.getElementById('eventStartDate').value,
-                startTime: document.getElementById('eventStartTime').value || '09:00',
-                endDate: document.getElementById('eventEndDate').value || document.getElementById('eventStartDate').value,
-                endTime: document.getElementById('eventEndTime').value || '17:00',
-                location: document.getElementById('eventLocation').value.trim(),
-                description: document.getElementById('eventDescription').value.trim(),
-                reminder: document.getElementById('eventReminder').value,
-                recurrence: document.querySelector('input[name="recurrence"]:checked')?.value || 'none',
+                title: title,
+                type: type,
+                color: color,
+                startDate: startDate,
+                startTime: startTime,
+                endDate: endDate,
+                endTime: endTime,
+                location: location,
+                description: description,
+                reminder: reminder,
+                recurrence: recurrence,
                 seriesId: this.editingEvent?.seriesId || this.generateSeriesId(),
                 createdAt: this.editingEvent?.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
             
             console.debug('📝 Datos del evento:', eventData);
-            
-            // Validar campos requeridos
-            if (!eventData.title || !eventData.startDate) {
-                console.error('❌ Campos requeridos faltantes');
-                this.showNotification('Por favor, complete los campos obligatorios', 'error');
-                return;
-            }
-            
-            // Validar fecha de fin
-            if (eventData.endDate && new Date(eventData.endDate) < new Date(eventData.startDate)) {
-                console.error('❌ Fecha de fin anterior a fecha de inicio');
-                this.showNotification('La fecha de fin no puede ser anterior a la fecha de inicio', 'error');
-                return;
-            }
             
             // Si estamos editando una serie completa, eliminar todos los eventos de la serie
             if (this.editingSeriesId && this.editingSeriesId !== 'single') {
@@ -676,14 +756,14 @@ class CalendarManager {
                 ? `${eventsToSave.length} eventos guardados correctamente` 
                 : `Evento "${eventData.title}" guardado correctamente`;
             
-            this.showNotification(notificationText, 'success');
+            this.showNotification(notificationText);
             
             // Cerrar modal y limpiar
             this.closeEventModal();
             
         } catch (error) {
             console.error('❌ Error guardando evento:', error);
-            this.showNotification('Error al guardar el evento', 'error');
+            this.showNotification('Error al guardar el evento');
         }
     }
 
@@ -823,75 +903,6 @@ class CalendarManager {
         document.body.appendChild(optionsModal);
         optionsModal.setAttribute('open', '');
         
-        // Añadir estilos para las opciones
-        const optionsStyles = document.createElement('style');
-        optionsStyles.textContent = `
-            .recurring-options {
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                margin-top: 1.5rem;
-            }
-            .option-card {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-                padding: 1rem;
-                background: var(--bg-secondary);
-                border-radius: var(--radius-md);
-                border: 2px solid var(--border);
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-            .option-card:hover {
-                border-color: var(--primary);
-                transform: translateY(-2px);
-                box-shadow: var(--shadow-sm);
-            }
-            .option-card[data-action="month"] {
-                border-color: var(--warning);
-            }
-            .option-card[data-action="series"] {
-                border-color: var(--danger);
-            }
-            .option-icon {
-                width: 48px;
-                height: 48px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: var(--bg-tertiary);
-                border-radius: var(--radius-md);
-                color: var(--primary);
-                font-size: 1.25rem;
-                flex-shrink: 0;
-            }
-            .option-card[data-action="month"] .option-icon {
-                background: rgba(245, 158, 11, 0.1);
-                color: var(--warning);
-            }
-            .option-card[data-action="series"] .option-icon {
-                background: rgba(239, 68, 68, 0.1);
-                color: var(--danger);
-            }
-            .option-content {
-                flex: 1;
-            }
-            .option-content h4 {
-                margin: 0 0 0.25rem;
-                font-size: 1rem;
-                font-weight: 600;
-                color: var(--text-primary);
-            }
-            .option-content p {
-                margin: 0;
-                font-size: 0.875rem;
-                color: var(--text-secondary);
-                line-height: 1.4;
-            }
-        `;
-        document.head.appendChild(optionsStyles);
-        
         // Configurar event listeners para el modal
         const closeModal = () => {
             optionsModal.remove();
@@ -926,7 +937,7 @@ class CalendarManager {
         const event = this.events.find(e => e.id === eventId);
         if (!event) {
             console.error(`❌ Evento no encontrado: ${eventId}`);
-            this.showNotification('Evento no encontrado', 'error');
+            this.showNotification('Evento no encontrado');
             return;
         }
         
@@ -941,12 +952,6 @@ class CalendarManager {
         } else {
             this.editingSeriesId = event.seriesId === 'single' ? 'single' : null;
         }
-        
-        console.debug('📝 Cargando datos del evento:', {
-            evento: event,
-            serieId: this.editingSeriesId,
-            accion: seriesAction
-        });
         
         // Llenar formulario con datos del evento
         document.getElementById('eventTitle').value = event.title;
@@ -1089,63 +1094,6 @@ class CalendarManager {
         
         document.body.appendChild(modal);
         modal.setAttribute('open', '');
-        
-        // Añadir estilos para las opciones de eliminación
-        const deleteStyles = document.createElement('style');
-        deleteStyles.textContent = `
-            .recurring-options {
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                margin-top: 1.5rem;
-            }
-            .delete-option {
-                border: 2px solid var(--border);
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-            .delete-option:hover {
-                transform: translateY(-2px);
-                box-shadow: var(--shadow-sm);
-            }
-            .delete-option[data-action="single"]:hover {
-                border-color: var(--primary);
-            }
-            .delete-option[data-action="month"]:hover {
-                border-color: var(--warning);
-            }
-            .delete-option[data-action="series"]:hover {
-                border-color: var(--danger);
-            }
-            .delete-icon {
-                background: var(--bg-tertiary);
-                color: var(--primary);
-            }
-            .delete-option[data-action="month"] .delete-icon {
-                background: rgba(245, 158, 11, 0.1);
-                color: var(--warning);
-            }
-            .delete-option[data-action="series"] .delete-icon {
-                background: rgba(239, 68, 68, 0.1);
-                color: var(--danger);
-            }
-            .option-details {
-                margin-top: 0.5rem;
-                display: flex;
-                gap: 0.5rem;
-            }
-            .badge--warning {
-                background: rgba(245, 158, 11, 0.1);
-                color: var(--warning);
-                border: 1px solid rgba(245, 158, 11, 0.2);
-            }
-            .badge--danger {
-                background: rgba(239, 68, 68, 0.1);
-                color: var(--danger);
-                border: 1px solid rgba(239, 68, 68, 0.2);
-            }
-        `;
-        document.head.appendChild(deleteStyles);
         
         const closeModal = () => {
             modal.remove();
@@ -1310,7 +1258,7 @@ class CalendarManager {
             notificationText = `Serie completa (${deletedCount} eventos) eliminada`;
         }
         
-        this.showNotification(notificationText, 'info');
+        this.showNotification(notificationText);
         
         // Cerrar modal
         this.closeEventModal();
@@ -1342,6 +1290,7 @@ class CalendarManager {
         this.editingEvent = null;
         this.editingSeriesId = null;
         document.getElementById('calendarEventForm').reset();
+        this.clearFormAlerts();
     }
 
     // Obtener eventos en una serie
@@ -1358,7 +1307,7 @@ class CalendarManager {
         
         if (filteredEvents.length === 0) {
             console.debug('📅 No hay eventos para esta fecha');
-            this.showNotification('No hay eventos para esta fecha', 'info');
+            this.showNotification('No hay eventos para esta fecha');
             return;
         }
         
@@ -1418,56 +1367,6 @@ class CalendarManager {
         document.body.appendChild(eventsModal);
         eventsModal.setAttribute('open', '');
         
-        // Añadir estilos para la lista de eventos
-        const eventsStyles = document.createElement('style');
-        eventsStyles.textContent = `
-            .events-list {
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-            }
-            .event-detail-item {
-                padding: 1rem;
-                background: var(--bg-secondary);
-                border-radius: var(--radius-md);
-                border-left: 4px solid var(--primary);
-            }
-            .event-detail-header {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                margin-bottom: 0.5rem;
-            }
-            .event-index {
-                color: var(--primary);
-                font-weight: bold;
-                font-size: 1.1rem;
-            }
-            .event-title {
-                color: var(--text-primary);
-                font-size: 1rem;
-            }
-            .event-location {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                color: var(--text-secondary);
-                font-size: 0.9rem;
-                margin-bottom: 0.5rem;
-            }
-            .event-location i {
-                color: var(--primary);
-            }
-            .event-description {
-                color: var(--text-secondary);
-                font-size: 0.9rem;
-                line-height: 1.4;
-                padding-left: 1.5rem;
-                border-left: 2px solid var(--border);
-            }
-        `;
-        document.head.appendChild(eventsStyles);
-        
         // Configurar eventos del modal
         const closeModal = () => {
             eventsModal.remove();
@@ -1479,7 +1378,7 @@ class CalendarManager {
         eventsModal.querySelector('.modal__backdrop').addEventListener('click', closeModal);
     }
 
-    // Actualizar eventos próximos - FUNCIÓN MODIFICADA
+    // Actualizar eventos próximos
     updateUpcomingEvents() {
         console.debug('📅 Actualizando eventos próximos...');
         
@@ -1508,14 +1407,6 @@ class CalendarManager {
         
         // Aplicar filtro
         const filteredEvents = this.filterEvents(upcomingEvents);
-        
-        // DEBUG: Mostrar información sobre eventos próximos
-        console.debug('📅 Eventos próximos encontrados:', {
-            total: upcomingEvents.length,
-            filtrados: filteredEvents.length,
-            filtro: this.activeFilter,
-            eventos: filteredEvents.map(e => ({ title: e.title, type: e.type }))
-        });
         
         // Actualizar contador
         countElement.textContent = filteredEvents.length;
@@ -1590,7 +1481,7 @@ class CalendarManager {
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
                 console.error('❌ No se pudo abrir ventana de impresión');
-                this.showNotification('Por favor, habilite las ventanas emergentes para imprimir', 'error');
+                this.showNotification('Por favor, habilite las ventanas emergentes para imprimir');
                 return;
             }
             
@@ -1659,7 +1550,7 @@ class CalendarManager {
             console.debug('✅ Vista de impresión generada correctamente');
         } catch (error) {
             console.error('❌ Error generando vista de impresión:', error);
-            this.showNotification('Error al generar la vista de impresión', 'error');
+            this.showNotification('Error al generar la vista de impresión');
         }
     }
 
@@ -1710,7 +1601,7 @@ class CalendarManager {
         return rows;
     }
 
-    // ===== FUNCIONES AUXILIARES CORREGIDAS =====
+    // ===== FUNCIONES AUXILIARES =====
 
     // Obtener eventos para una fecha específica (incluyendo eventos de múltiples días)
     getEventsForDate(date) {
@@ -1725,7 +1616,7 @@ class CalendarManager {
         });
     }
 
-    // CORRECCIÓN PRINCIPAL: Función para verificar si un evento coincide con el filtro
+    // Función para verificar si un evento coincide con el filtro
     doesEventMatchFilter(event, filter) {
         if (filter === 'all') return true;
         
@@ -1743,23 +1634,13 @@ class CalendarManager {
         return filterTypes.some(type => eventType.includes(type.toLowerCase()));
     }
 
-    // Filtrar eventos según el filtro activo - FUNCIÓN CORREGIDA
+    // Filtrar eventos según el filtro activo
     filterEvents(events) {
-        console.debug(`🔍 Filtrando ${events.length} eventos con filtro: ${this.activeFilter}`);
-        
         if (this.activeFilter === 'all') {
-            console.debug(`✅ Mostrando todos los ${events.length} eventos`);
             return events;
         }
         
-        const filtered = events.filter(event => this.doesEventMatchFilter(event, this.activeFilter));
-        
-        // DEBUG: Mostrar qué eventos fueron filtrados
-        console.debug(`🔍 Eventos filtrados (${filtered.length}/${events.length}):`, 
-            filtered.map(e => ({ title: e.title, type: e.type }))
-        );
-        
-        return filtered;
+        return events.filter(event => this.doesEventMatchFilter(event, this.activeFilter));
     }
 
     // Obtener nombre legible del filtro
@@ -1804,17 +1685,13 @@ class CalendarManager {
         return 'series_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
-    // Cargar eventos desde localStorage - CON EVENTOS DE EJEMPLO MEJORADOS
+    // Cargar eventos desde localStorage
     loadEvents() {
         try {
             const saved = localStorage.getItem('calendar_events');
             if (saved) {
                 const events = JSON.parse(saved);
                 console.debug(`📂 Eventos cargados desde localStorage: ${events.length} eventos`);
-                
-                // DEBUG: Mostrar todos los tipos de eventos disponibles
-                const uniqueTypes = [...new Set(events.map(e => e.type))];
-                console.debug('🔍 Tipos de eventos encontrados:', uniqueTypes);
                 
                 // Asegurarnos de que todos los eventos tengan seriesId
                 events.forEach(event => {
@@ -1831,11 +1708,11 @@ class CalendarManager {
             console.error('❌ Error al cargar eventos desde localStorage:', error);
         }
         
-        console.debug('📂 No hay eventos guardados, creando eventos de ejemplo con todos los tipos');
+        console.debug('📂 No hay eventos guardados, creando eventos de ejemplo');
         return this.getSampleEvents();
     }
 
-    // Crear eventos de ejemplo con todos los tipos - NUEVA FUNCIÓN MEJORADA
+    // Crear eventos de ejemplo con todos los tipos
     getSampleEvents() {
         const today = new Date();
         const nextWeek = new Date(today);
@@ -1946,11 +1823,7 @@ class CalendarManager {
             }
         ];
         
-        console.debug('📋 Eventos de ejemplo creados con todos los tipos');
-        sampleEvents.forEach(event => {
-            console.debug(`  • ${event.title} - Tipo: ${event.type}`);
-        });
-        
+        console.debug('📋 Eventos de ejemplo creados');
         return sampleEvents;
     }
 
@@ -2021,28 +1894,6 @@ class CalendarManager {
         document.body.appendChild(modal);
         modal.setAttribute('open', '');
         
-        // Añadir estilos específicos si es necesario
-        const modalStyles = document.createElement('style');
-        modalStyles.textContent = `
-            .action-modal__icon--warning i {
-                color: var(--warning-color, #f59e0b);
-                font-size: 3rem;
-            }
-            .action-modal__message strong {
-                color: var(--warning-color, #f59e0b);
-            }
-            .action-modal__message small {
-                font-size: 0.875rem;
-                color: var(--text-secondary);
-                display: block;
-                margin-top: 0.5rem;
-            }
-            #confirmReset .fa-trash-alt {
-                margin-right: 0.5rem;
-            }
-        `;
-        document.head.appendChild(modalStyles);
-        
         // Configurar event listeners del modal
         const closeModal = () => {
             modal.remove();
@@ -2098,36 +1949,13 @@ class CalendarManager {
             this.renderMiniCalendar();
             
             // 5. Mostrar notificación de éxito
-            this.showNotification('Calendario reiniciado con eventos de ejemplo', 'success');
+            this.showNotification('Calendario reiniciado con eventos de ejemplo');
             
             console.debug('✅ Calendario reiniciado correctamente');
         } catch (error) {
             console.error('❌ Error reiniciando calendario:', error);
-            this.showNotification('Error al reiniciar el calendario', 'error');
+            this.showNotification('Error al reiniciar el calendario');
         }
-    }
-
-    // Mostrar notificación
-    showNotification(message, type = 'info') {
-        console.debug(`🔔 Notificación (${type}): ${message}`);
-        
-        const notification = document.createElement('div');
-        notification.className = `notification notification--${type}`;
-        notification.innerHTML = `
-            <div class="notification__content">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-                <span>${message}</span>
-            </div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Remover después de 3 segundos
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 3000);
     }
 
     // Debug: Mostrar información del estado actual
@@ -2240,76 +2068,3 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
     console.error('❌ Promesa rechazada no manejada:', event.reason);
 });
-
-// Añadir estilos para notificaciones
-const notificationStyles = document.createElement('style');
-notificationStyles.textContent = `
-    .notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 500;
-        z-index: 9999;
-        animation: slideIn 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        max-width: 350px;
-    }
-    
-    .notification--success {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        border-left: 4px solid #047857;
-    }
-    
-    .notification--error {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        border-left: 4px solid #b91c1c;
-    }
-    
-    .notification--info {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        border-left: 4px solid #1e40af;
-    }
-    
-    .notification__content {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .notification__content i {
-        font-size: 18px;
-    }
-    
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    .calendar__upcoming-empty {
-        text-align: center;
-        padding: 2rem;
-        color: var(--text-secondary);
-    }
-    
-    .calendar__upcoming-empty i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-    
-    .calendar__upcoming-empty p {
-        margin: 0;
-        font-size: 0.9rem;
-    }
-`;
-
-document.head.appendChild(notificationStyles);

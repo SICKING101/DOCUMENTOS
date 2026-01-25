@@ -604,3 +604,145 @@ body.reduced-motion * {
     width: 95%;
   }
 }
+
+/* =============================================================================
+ * ESTILOS PARA AJUSTES MEJORADOS
+ * ============================================================================= */
+
+/* Configuración de horario automático */
+.auto-theme-settings {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary);
+}
+
+.time-selector-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.time-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.time-selector label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.time-input {
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 220, 38, 38), 0.1);
+}
+
+/* Tamaño de fuente mejorado */
+.font-size-presets {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.font-size-preset {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.font-size-preset:hover {
+    border-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.font-size-preset.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    font-weight: 500;
+}
+
+/* Botones de acción */
+.settings-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+}
+
+/* Descripciones de configuración */
+.setting-description {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.setting-description i {
+    color: var(--info);
+}
+
+/* Modo oscuro para ajustes */
+body.dark-theme .auto-theme-settings {
+    background: var(--bg-secondary);
+    border-left-color: var(--primary-light);
+}
+
+body.dark-theme .time-input {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+}
+
+body.dark-theme .font-size-preset {
+    background: var(--bg-tertiary);
+    border-color: var(--border-dark);
+    color: var(--text-secondary);
+}
+
+body.dark-theme .font-size-preset.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .time-selector-group {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-actions {
+        flex-direction: column;
+    }
+    
+    .settings-actions .btn {
+        width: 100%;
+    }
+}
