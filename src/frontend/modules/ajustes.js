@@ -586,50 +586,69 @@ class SettingsManager {
     }
 
     /**
-     * Recopilar datos del formulario
-     */
-    collectFormData() {
-        const form = document.getElementById('settings-form');
-        if (!form) return;
-
-        const formData = new FormData(form);
-        
-        const theme = formData.get('theme');
-        if (theme) {
-            this.settings.appearance.theme = theme;
-            if (theme !== 'auto') {
-                this.settings.appearance.currentTheme = theme;
-            }
-        }
-
-        const autoDarkTime = document.getElementById('auto-dark-time')?.value || '18:00';
-        const autoLightTime = document.getElementById('auto-light-time')?.value || '06:00';
-        this.settings.appearance.autoDarkTime = autoDarkTime;
-        this.settings.appearance.autoLightTime = autoLightTime;
-
-        const density = document.getElementById('interface-density').value;
-        this.settings.appearance.interfaceDensity = density;
-
-        this.settings.preferences.language = formData.get('language');
-
-        this.settings.accessibility.highContrast = formData.get('highContrast') === 'on';
-        this.settings.accessibility.largeFont = formData.get('largeFont') === 'on';
-        this.settings.accessibility.reducedMotion = formData.get('reducedMotion') === 'on';
-        this.settings.accessibility.fontSize = parseInt(document.getElementById('font-size').value);
-
-        this.settings.privacy.autoLogout = formData.get('autoLogout') === 'on';
-        this.settings.privacy.autoLogoutTime = parseInt(formData.get('autoLogoutTime'));
-        
-        this.log('📋 Datos recopilados del formulario', {
-            theme: this.settings.appearance.theme,
-            currentTheme: this.settings.appearance.currentTheme,
-            autoDarkTime: this.settings.appearance.autoDarkTime,
-            autoLightTime: this.settings.appearance.autoLightTime,
-            fontSize: this.settings.accessibility.fontSize,
-            autoLogout: this.settings.privacy.autoLogout,
-            autoLogoutTime: this.settings.privacy.autoLogoutTime
-        });
+ * Recopilar datos del formulario
+ */
+collectFormData() {
+    const form = document.getElementById('settings-form');
+    if (!form) {
+        this.log('⚠️ Formulario no encontrado en collectFormData');
+        return;
     }
+
+    const formData = new FormData(form);
+    
+    const theme = formData.get('theme');
+    if (theme) {
+        this.settings.appearance.theme = theme;
+        if (theme !== 'auto') {
+            this.settings.appearance.currentTheme = theme;
+        }
+    }
+
+    const darkTimeInput = document.getElementById('auto-dark-time');
+    const lightTimeInput = document.getElementById('auto-light-time');
+    const autoDarkTime = darkTimeInput ? darkTimeInput.value : '18:00';
+    const autoLightTime = lightTimeInput ? lightTimeInput.value : '06:00';
+    
+    this.settings.appearance.autoDarkTime = autoDarkTime;
+    this.settings.appearance.autoLightTime = autoLightTime;
+
+    const densitySelect = document.getElementById('interface-density');
+    if (densitySelect) {
+        this.settings.appearance.interfaceDensity = densitySelect.value;
+    }
+
+    const language = formData.get('language');
+    if (language) {
+        this.settings.preferences.language = language;
+    }
+
+    this.settings.accessibility.highContrast = formData.get('highContrast') === 'on';
+    this.settings.accessibility.largeFont = formData.get('largeFont') === 'on';
+    this.settings.accessibility.reducedMotion = formData.get('reducedMotion') === 'on';
+    
+    const fontSizeInput = document.getElementById('font-size');
+    if (fontSizeInput) {
+        this.settings.accessibility.fontSize = parseInt(fontSizeInput.value) || 16;
+    }
+
+    this.settings.privacy.autoLogout = formData.get('autoLogout') === 'on';
+    
+    const autoLogoutTime = formData.get('autoLogoutTime');
+    if (autoLogoutTime) {
+        this.settings.privacy.autoLogoutTime = parseInt(autoLogoutTime) || 30;
+    }
+    
+    this.log('📋 Datos recopilados del formulario', {
+        theme: this.settings.appearance.theme,
+        currentTheme: this.settings.appearance.currentTheme,
+        autoDarkTime: this.settings.appearance.autoDarkTime,
+        autoLightTime: this.settings.appearance.autoLightTime,
+        fontSize: this.settings.accessibility.fontSize,
+        autoLogout: this.settings.privacy.autoLogout,
+        autoLogoutTime: this.settings.privacy.autoLogoutTime
+    });
+}
 
     /**
      * Aplicar todos los ajustes
@@ -1015,32 +1034,35 @@ class SettingsManager {
     }
 
     /**
-     * Actualizar formulario con valores actuales
-     */
-    updateForm() {
-        const form = document.getElementById('settings-form');
-        if (!form) {
-            this.log('❌ Formulario no encontrado para actualizar');
-            return;
-        }
+ * Actualizar formulario con valores actuales
+ */
+updateForm() {
+    const form = document.getElementById('settings-form');
+    if (!form) {
+        this.log('❌ Formulario no encontrado para actualizar');
+        return;
+    }
 
-        this.log('📝 Actualizando formulario con valores actuales');
+    this.log('📝 Actualizando formulario con valores actuales');
 
-        // Tema
-        const themeInput = form.querySelector(`input[name="theme"][value="${this.settings.appearance.theme}"]`);
-        if (themeInput) {
-            themeInput.checked = true;
-            this.toggleAutoThemeSettings(this.settings.appearance.theme === 'auto');
-        }
+    // Tema
+    const themeInput = form.querySelector(`input[name="theme"][value="${this.settings.appearance.theme}"]`);
+    if (themeInput) {
+        themeInput.checked = true;
+        this.toggleAutoThemeSettings(this.settings.appearance.theme === 'auto');
+    }
 
-        // Horas para tema automático
-        const darkTimeInput = document.getElementById('auto-dark-time');
-        const lightTimeInput = document.getElementById('auto-light-time');
-        if (darkTimeInput) darkTimeInput.value = this.settings.appearance.autoDarkTime;
-        if (lightTimeInput) lightTimeInput.value = this.settings.appearance.autoLightTime;
+    // Horas para tema automático
+    const darkTimeInput = document.getElementById('auto-dark-time');
+    const lightTimeInput = document.getElementById('auto-light-time');
+    if (darkTimeInput) darkTimeInput.value = this.settings.appearance.autoDarkTime || '18:00';
+    if (lightTimeInput) lightTimeInput.value = this.settings.appearance.autoLightTime || '06:00';
 
-        // Densidad
-        document.getElementById('interface-density').value = this.settings.appearance.interfaceDensity;
+    // Densidad - Verificar que el elemento existe
+    const densitySelect = document.getElementById('interface-density');
+    if (densitySelect) {
+        densitySelect.value = this.settings.appearance.interfaceDensity;
+        
         const densityBtns = document.querySelectorAll('.density-btn');
         densityBtns.forEach(btn => {
             btn.classList.remove('active');
@@ -1048,55 +1070,70 @@ class SettingsManager {
                 btn.classList.add('active');
             }
         });
-
-        // Preferencias
-        form.querySelector('select[name="language"]').value = this.settings.preferences.language;
-
-        // Accesibilidad
-        form.querySelector('input[name="highContrast"]').checked = this.settings.accessibility.highContrast;
-        form.querySelector('input[name="largeFont"]').checked = this.settings.accessibility.largeFont;
-        form.querySelector('input[name="reducedMotion"]').checked = this.settings.accessibility.reducedMotion;
-        
-        // Tamaño de fuente
-        const fontSizeInput = document.getElementById('font-size');
-        const fontSizeDisplay = document.querySelector('.current-size');
-        const fontPresets = document.querySelectorAll('.font-size-preset');
-        
-        if (fontSizeInput && fontSizeDisplay) {
-            fontSizeInput.value = this.settings.accessibility.fontSize;
-            fontSizeDisplay.textContent = `${this.settings.accessibility.fontSize}px`;
-            
-            fontPresets.forEach(preset => {
-                preset.classList.remove('active');
-                if (parseInt(preset.dataset.size) === this.settings.accessibility.fontSize) {
-                    preset.classList.add('active');
-                }
-            });
-        }
-
-        // Privacidad - IMPORTANTE: Ahora con opción de 2 minutos para pruebas
-        form.querySelector('input[name="autoLogout"]').checked = this.settings.privacy.autoLogout;
-        
-        // Asegurarse de que el select incluya la opción de 2 minutos
-        const autoLogoutSelect = form.querySelector('select[name="autoLogoutTime"]');
-        if (autoLogoutSelect) {
-            autoLogoutSelect.value = this.settings.privacy.autoLogoutTime;
-            
-            // Si no existe la opción de 2 minutos, agregarla
-            const has2MinOption = Array.from(autoLogoutSelect.options).some(
-                option => option.value === '2'
-            );
-            
-            if (!has2MinOption) {
-                const option2min = document.createElement('option');
-                option2min.value = '2';
-                option2min.textContent = '2 minutos (para pruebas)';
-                autoLogoutSelect.appendChild(option2min);
-            }
-        }
-        
-        this.log('✅ Formulario actualizado');
     }
+
+    // Preferencias - Verificar que el elemento existe
+    const languageSelect = form.querySelector('select[name="language"]');
+    if (languageSelect) {
+        languageSelect.value = this.settings.preferences.language;
+    }
+
+    // Accesibilidad - Verificar que los elementos existen
+    const highContrastInput = form.querySelector('input[name="highContrast"]');
+    const largeFontInput = form.querySelector('input[name="largeFont"]');
+    const reducedMotionInput = form.querySelector('input[name="reducedMotion"]');
+    
+    if (highContrastInput) highContrastInput.checked = this.settings.accessibility.highContrast;
+    if (largeFontInput) largeFontInput.checked = this.settings.accessibility.largeFont;
+    if (reducedMotionInput) reducedMotionInput.checked = this.settings.accessibility.reducedMotion;
+    
+    // Tamaño de fuente - Verificar que los elementos existen
+    const fontSizeInput = document.getElementById('font-size');
+    const fontSizeDisplay = document.querySelector('.current-size');
+    const fontPresets = document.querySelectorAll('.font-size-preset');
+    
+    if (fontSizeInput) {
+        fontSizeInput.value = this.settings.accessibility.fontSize || 16;
+        
+        if (fontSizeDisplay) {
+            fontSizeDisplay.textContent = `${this.settings.accessibility.fontSize || 16}px`;
+        }
+        
+        fontPresets.forEach(preset => {
+            preset.classList.remove('active');
+            if (parseInt(preset.dataset.size) === this.settings.accessibility.fontSize) {
+                preset.classList.add('active');
+            }
+        });
+    }
+
+    // Privacidad - Verificar que los elementos existen
+    const autoLogoutCheckbox = form.querySelector('input[name="autoLogout"]');
+    if (autoLogoutCheckbox) {
+        autoLogoutCheckbox.checked = this.settings.privacy.autoLogout;
+    }
+    
+    // Selector de tiempo de auto-logout
+    const autoLogoutSelect = form.querySelector('select[name="autoLogoutTime"]');
+    if (autoLogoutSelect) {
+        // Asegurarse de que el select incluya la opción de 2 minutos
+        const has2MinOption = Array.from(autoLogoutSelect.options).some(
+            option => option.value === '2'
+        );
+        
+        if (!has2MinOption) {
+            const option2min = document.createElement('option');
+            option2min.value = '2';
+            option2min.textContent = '2 minutos (para pruebas)';
+            autoLogoutSelect.appendChild(option2min);
+        }
+        
+        // Establecer el valor
+        autoLogoutSelect.value = this.settings.privacy.autoLogoutTime || 30;
+    }
+    
+    this.log('✅ Formulario actualizado');
+}
 
     /**
      * Manejar cambio de densidad
