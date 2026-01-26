@@ -1036,7 +1036,7 @@ class TaskManager {
         const hasFilters = this.currentSearch || this.currentFilter.priority !== 'all' || this.currentFilter.status !== 'all';
         
         return `
-            <div class="empty-state">
+            <div class="empty-state empty-state--task">
                 <i class="fas fa-clipboard-list"></i>
                 <h3>${hasFilters ? 'No hay tareas que coincidan' : 'No hay tareas registradas'}</h3>
                 <p class="empty-state__description">${hasFilters ? 'Intenta cambiar los filtros' : 'Crea tu primera tarea'}</p>

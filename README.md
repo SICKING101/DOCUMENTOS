@@ -32,6 +32,10 @@ DOCUMENTOS/
 │   ├── forgot-password.html
 │   ├── forgot-password-step1.html
 │   ├── verify-admin-change.html
+|   |                  
+|   ├── locales/                   # Traducciones (proximamente)
+|   │   ├── es.json
+|   │   ├── en.json
 │   │
 │   ├── css/
 │   │   │
@@ -139,6 +143,7 @@ DOCUMENTOS/
 │   │   │   ├── departamentos.js
 │   │   │   ├── documentos.js
 │   │   │   ├── historial.js
+|   │   │   ├── i18n.js                  # Traducciones (proximamente)
 │   │   │   ├── notificaciones.js
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js

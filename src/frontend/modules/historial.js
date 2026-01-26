@@ -1312,7 +1312,7 @@ restoreButtonByType(button) {
             persona_agregada: 'user-plus',
             persona_eliminada: 'user-minus',
             categoria_agregada: 'folder-plus',
-            reporte_generado: 'file-chart',
+            reporte_generado: 'chart-bar',
             sistema_iniciado: 'check-circle',
             error_sistema: 'exclamation-circle'
         };

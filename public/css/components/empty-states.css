@@ -87,6 +87,10 @@ body.dark-theme .empty-state {
     margin-bottom: 10px;
 }
 
+.empty-state--task {
+    transform: translateX(100%);
+}
+
     @keyframes slideIn {
         from {
             transform: translateX(100%);
