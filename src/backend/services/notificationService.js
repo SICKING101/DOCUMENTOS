@@ -207,7 +207,7 @@ class NotificationService {
       tipo: 'reporte_generado',
       titulo: '✅ Reporte generado',
       mensaje: `Se generó el reporte "${nombresReportes[tipoReporte] || tipoReporte}" en formato ${formato.toUpperCase()} con ${cantidadRegistros} registro(s)`,
-      icono: 'file-chart',
+      icono: 'chart-bar',
       prioridad: 'baja',
       metadata: {
         tipo_reporte: tipoReporte,

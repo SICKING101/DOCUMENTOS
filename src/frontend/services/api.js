@@ -688,6 +688,22 @@ class ApiService {
         }
     }
 
+    // Agrega esto después del método uploadDocument:
+
+async updateDocument(id, documentData) {
+    return this.call(`/documents/${id}`, {
+        method: 'PUT',
+        body: documentData
+    });
+}
+
+async patchDocument(id, partialData) {
+    return this.call(`/documents/${id}`, {
+        method: 'PATCH',
+        body: partialData
+    });
+}
+
     async getDocuments() {
         return this.call('/documents');
     }

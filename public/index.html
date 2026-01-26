@@ -132,15 +132,6 @@
 
             <!-- Pie de la barra lateral -->
             <div class="sidebar__footer">
-                <!-- Botón de tema -->
-                <div class="sidebar__theme-container">
-                    <button class="sidebar__theme-toggle" id="themeToggle" title="Cambiar tema">
-                        <div class="sidebar__theme-icon-wrapper">
-                            <i class="fas fa-moon"></i>
-                        </div>
-                        <span class="sidebar__theme-text">Modo Oscuro</span>
-                    </button>
-                </div>
 
                 <!-- Perfil de usuario -->
                 <div class="sidebar__user" id="userMenuTrigger">
@@ -170,13 +161,6 @@
                             <p class="user-menu__status">En línea</p>
                         </div>
                     </div>
-
-                    <div class="user-menu__divider"></div>
-
-                    <a href="#" class="user-menu__option">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Mi Perfil</span>
-                    </a>
 
                     <div class="user-menu__divider"></div>
 
@@ -1119,6 +1103,260 @@
                     </div>
                 </section>
 
+<!-- SECCIÓN 4.2.8: PESTAÑA AJUSTES (MEJORADA) -->
+<section id="ajustes" class="tab-content">
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1 class="settings-title">
+                <i class="fas fa-cog"></i>
+                Configuración del Sistema
+            </h1>
+            <p class="settings-subtitle">Personaliza tu experiencia según tus preferencias</p>
+        </div>
+
+        <form id="settings-form" class="settings-form">
+            <!-- Sección: Apariencia -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <i class="fas fa-palette"></i>
+                    <h2>Apariencia</h2>
+                </div>
+                <div class="settings-section-content">
+                    <div class="settings-group">
+                        <label class="settings-label">Tema</label>
+                        <div class="theme-selector">
+                            <div class="theme-option">
+                                <input type="radio" id="theme-light" name="theme" value="light"
+                                    class="theme-input">
+                                <label for="theme-light" class="theme-label">
+                                    <div class="theme-preview light-theme">
+                                        <div class="preview-header"></div>
+                                        <div class="preview-sidebar"></div>
+                                        <div class="preview-content"></div>
+                                    </div>
+                                    <span>Claro</span>
+                                </label>
+                            </div>
+                            <div class="theme-option">
+                                <input type="radio" id="theme-dark" name="theme" value="dark"
+                                    class="theme-input">
+                                <label for="theme-dark" class="theme-label">
+                                    <div class="theme-preview dark-theme">
+                                        <div class="preview-header"></div>
+                                        <div class="preview-sidebar"></div>
+                                        <div class="preview-content"></div>
+                                    </div>
+                                    <span>Oscuro</span>
+                                </label>
+                            </div>
+                            <div class="theme-option">
+                                <input type="radio" id="theme-auto" name="theme" value="auto"
+                                    class="theme-input">
+                                <label for="theme-auto" class="theme-label">
+                                    <div class="theme-preview auto-theme">
+                                        <i class="fas fa-desktop"></i>
+                                    </div>
+                                    <span>Automático</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Configuración de horario para modo automático -->
+                        <div id="auto-theme-settings" class="auto-theme-settings" style="display: none;">
+                            <div class="settings-group">
+                                <label class="settings-label">Horario para cambio automático</label>
+                                <div class="time-selector-group">
+                                    <div class="time-selector">
+                                        <label for="auto-dark-time">Cambiar a oscuro a las:</label>
+                                        <input type="time" id="auto-dark-time" name="autoDarkTime" 
+                                               value="18:00" class="time-input">
+                                    </div>
+                                    <div class="time-selector">
+                                        <label for="auto-light-time">Cambiar a claro a las:</label>
+                                        <input type="time" id="auto-light-time" name="autoLightTime" 
+                                               value="06:00" class="time-input">
+                                    </div>
+                                </div>
+                                <p class="setting-description">
+                                    <i class="fas fa-info-circle"></i>
+                                    El tema cambiará automáticamente según la hora configurada
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="settings-label">Densidad de interfaz</label>
+                        <div class="density-selector">
+                            <button type="button" class="density-btn" data-density="compact">
+                                <i class="fas fa-compress-alt"></i>
+                                Compacto
+                            </button>
+                            <button type="button" class="density-btn active" data-density="comfortable">
+                                <i class="fas fa-expand-alt"></i>
+                                Cómodo
+                            </button>
+                            <button type="button" class="density-btn" data-density="spacious">
+                                <i class="fas fa-arrows-alt"></i>
+                                Espacioso
+                            </button>
+                        </div>
+                        <input type="hidden" id="interface-density" name="interfaceDensity"
+                            value="comfortable">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Accesibilidad -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <i class="fas fa-universal-access"></i>
+                    <h2>Accesibilidad</h2>
+                </div>
+                <div class="settings-section-content">
+                    <div class="settings-group">
+                        <label class="switch-label">
+                            <div class="switch-text">
+                                <span class="switch-title">Alto contraste</span>
+                                <span class="switch-description">Mejora la legibilidad del texto</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" name="highContrast">
+                                <span class="slider"></span>
+                            </label>
+                        </label>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="switch-label">
+                            <div class="switch-text">
+                                <span class="switch-title">Texto grande</span>
+                                <span class="switch-description">Aumenta el tamaño de la fuente</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" name="largeFont">
+                                <span class="slider"></span>
+                            </label>
+                        </label>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="switch-label">
+                            <div class="switch-text">
+                                <span class="switch-title">Reducir animaciones</span>
+                                <span class="switch-description">Minimiza las animaciones y transiciones</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" name="reducedMotion">
+                                <span class="slider"></span>
+                            </label>
+                        </label>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="settings-label">Tamaño de fuente</label>
+                        <div class="font-size-control">
+                            <button type="button" class="font-size-btn decrease">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <div class="font-size-display">
+                                <span class="current-size">16px</span>
+                            </div>
+                            <button type="button" class="font-size-btn increase">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="font-size-presets">
+                            <button type="button" class="font-size-preset" data-size="14">Pequeño</button>
+                            <button type="button" class="font-size-preset active" data-size="16">Normal</button>
+                            <button type="button" class="font-size-preset" data-size="18">Grande</button>
+                        </div>
+                        <input type="hidden" id="font-size" name="fontSize" value="16">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Privacidad y Seguridad -->
+            <div class="settings-section">
+                <div class="settings-section-header">
+                    <i class="fas fa-shield-alt"></i>
+                    <h2>Privacidad y Seguridad</h2>
+                </div>
+                <div class="settings-section-content">
+                    <div class="settings-group">
+                        <label class="switch-label">
+                            <div class="switch-text">
+                                <span class="switch-title">Auto-cerrar sesión</span>
+                                <span class="switch-description">Cierra sesión automáticamente después de inactividad</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" name="autoLogout" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </label>
+                    </div>
+
+                    <div class="settings-group">
+                        <label class="settings-label">Tiempo de auto-cierre</label>
+                        <div class="custom-select-wrapper">
+                            <select name="autoLogoutTime" id="autoLogoutTime" class="custom-select">
+                                <option value="5">5 minutos</option>
+                                <option value="15">15 minutos</option>
+                                <option value="30" selected>30 minutos</option>
+                                <option value="60">1 hora</option>
+                            </select>
+                            <i class="fas fa-chevron-down select-arrow"></i>
+                        </div>
+                        <p class="setting-description">
+                            <i class="fas fa-shield"></i>
+                            Por seguridad, la sesión se cerrará automáticamente
+                        </p>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="data-actions">
+                            <button type="button" class="btn btn-outline" id="export-data">
+                                <i class="fas fa-download"></i>
+                                Exportar mis datos
+                            </button>
+                            <button type="button" class="btn btn-outline btn-danger" id="clear-data">
+                                <i class="fas fa-trash"></i>
+                                Borrar datos locales
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="settings-actions">
+                <button type="submit" class="btn" id="save-btn">
+                    <i class="fas fa-save"></i>
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+
+        <!-- Modal de confirmación -->
+        <div class="modal" id="confirmation-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Cambios guardados</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Tus preferencias han sido guardadas exitosamente.</p>
+                    <p>Algunos cambios pueden requerir recargar la página para aplicar completamente.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="modal-reload">Recargar ahora</button>
+                    <button class="btn btn-secondary" id="modal-later">Más tarde</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
                 <!-- SECCIÓN 4.2.9: PESTAÑA SOPORTE -->
                 <section id="soporte" class="tab-content">
                     <div class="support-section">
@@ -1506,73 +1744,73 @@
                             </div>
 
                             <!-- Panel derecho: Estado del sistema y FAQ -->
-<div class="support-panel support-panel--status">
-    <div class="support-panel__header">
-        <h3 class="support-panel__title">
-            <i class="fas fa-server"></i>
-            Estado del Sistema
-        </h3>
-        <div class="header-controls">
-            <button class="system-status-refresh" title="Actualizar estado">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-        </div>
-    </div>
-    
-    <div class="system-status">
-        <div class="status-item status-item--operational">
-            <i class="fas fa-check-circle"></i>
-            <div class="status-info">
-                <span class="status-label">Sistema Principal</span>
-                <span class="status-value">Operacional</span>
-            </div>
-        </div>
-        <div class="status-item status-item--operational">
-            <i class="fas fa-check-circle"></i>
-            <div class="status-info">
-                <span class="status-label">Base de Datos</span>
-                <span class="status-value">Conectado</span>
-            </div>
-        </div>
-        <div class="status-item status-item--operational">
-            <i class="fas fa-check-circle"></i>
-            <div class="status-info">
-                <span class="status-label">Almacenamiento Cloud</span>
-                <span class="status-value">Activo</span>
-            </div>
-        </div>
-        <div class="status-item status-item--operational">
-            <i class="fas fa-check-circle"></i>
-            <div class="status-info">
-                <span class="status-label">Servicio de Email</span>
-                <span class="status-value">Configurado</span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Línea de estado general - Aquí sí debe ir "Todos los sistemas operativos" -->
-    <div class="overall-status-summary" id="overallStatusSummary">
-        <!-- El resumen del estado general se mostrará aquí -->
-    </div>
-    
-    <div class="status-update-time">
-        Actualizado: --
-    </div>
-</div>
+                            <div class="support-panel support-panel--status">
+                                <div class="support-panel__header">
+                                    <h3 class="support-panel__title">
+                                        <i class="fas fa-server"></i>
+                                        Estado del Sistema
+                                    </h3>
+                                    <div class="header-controls">
+                                        <button class="system-status-refresh" title="Actualizar estado">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
 
-                        <!-- Preguntas Frecuentes -->
-                        <div class="support-faq">
-                            <div class="faq__header">
-                                <h3 class="faq__title">
-                                    <i class="fas fa-question-circle"></i>
-                                    Preguntas Frecuentes (FAQ)
-                                </h3>
+                                <div class="system-status">
+                                    <div class="status-item status-item--operational">
+                                        <i class="fas fa-check-circle"></i>
+                                        <div class="status-info">
+                                            <span class="status-label">Sistema Principal</span>
+                                            <span class="status-value">Operacional</span>
+                                        </div>
+                                    </div>
+                                    <div class="status-item status-item--operational">
+                                        <i class="fas fa-check-circle"></i>
+                                        <div class="status-info">
+                                            <span class="status-label">Base de Datos</span>
+                                            <span class="status-value">Conectado</span>
+                                        </div>
+                                    </div>
+                                    <div class="status-item status-item--operational">
+                                        <i class="fas fa-check-circle"></i>
+                                        <div class="status-info">
+                                            <span class="status-label">Almacenamiento Cloud</span>
+                                            <span class="status-value">Activo</span>
+                                        </div>
+                                    </div>
+                                    <div class="status-item status-item--operational">
+                                        <i class="fas fa-check-circle"></i>
+                                        <div class="status-info">
+                                            <span class="status-label">Servicio de Email</span>
+                                            <span class="status-value">Configurado</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Línea de estado general - Aquí sí debe ir "Todos los sistemas operativos" -->
+                                <div class="overall-status-summary" id="overallStatusSummary">
+                                    <!-- El resumen del estado general se mostrará aquí -->
+                                </div>
+
+                                <div class="status-update-time">
+                                    Actualizado: --
+                                </div>
                             </div>
-                            <div class="faq__list" id="faqList">
-                                <!-- Las preguntas frecuentes se cargarán dinámicamente -->
+
+                            <!-- Preguntas Frecuentes -->
+                            <div class="support-faq">
+                                <div class="faq__header">
+                                    <h3 class="faq__title">
+                                        <i class="fas fa-question-circle"></i>
+                                        Preguntas Frecuentes (FAQ)
+                                    </h3>
+                                </div>
+                                <div class="faq__list" id="faqList">
+                                    <!-- Las preguntas frecuentes se cargarán dinámicamente -->
+                                </div>
                             </div>
                         </div>
-                    </div>
                 </section>
             </main>
         </div>
@@ -2130,11 +2368,6 @@
                         <label for="taskCategory" class="form__label">Categoría</label>
                         <input type="text" id="taskCategory" class="form__input"
                             placeholder="Ej: Personal, Trabajo, Estudio...">
-                    </div>
-                    <div class="form__group">
-                        <label class="form__label">
-                            <input type="checkbox" id="taskReminder"> Recordatorio
-                        </label>
                     </div>
                 </form>
             </section>
@@ -2736,6 +2969,8 @@
     </dialog>
 
     <!-- SECCIÓN 6: SCRIPTS DE JAVASCRIPT -->
+    <!-- SCRIPTS PARA AJUSTES -->
+    <script type="module" src="/src/frontend/modules/ajustes.js"></script>
     <script type="module" src="/src/frontend/modules/calendario.js"></script>
     <script type="module" src="/src/frontend/authGuard.js"></script>
     <script type="module" src="/src/frontend/app.js"></script>

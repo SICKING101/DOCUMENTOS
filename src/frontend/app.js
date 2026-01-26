@@ -240,6 +240,12 @@ function initializeActiveNavigation() {
         if (indicator) indicator.style.visibility = 'hidden';
     });
 
+    // Ocultar todos los contenidos primero
+    DOM.tabContents.forEach(tab => {
+        tab.classList.remove('tab-content--active');
+        tab.style.display = 'none';
+    });
+
     // Verificar si hay una pestaña activa en el HTML
     const currentActiveLink = document.querySelector('.sidebar__nav-link--active');
     if (currentActiveLink) {
@@ -251,9 +257,11 @@ function initializeActiveNavigation() {
         if (indicator) indicator.style.visibility = 'visible';
 
         // Asegurarse de que el contenido también esté activo
-        DOM.tabContents.forEach(tab => {
-            tab.classList.toggle('tab-content--active', tab.id === activeTab);
-        });
+        const activeTabContent = document.getElementById(activeTab);
+        if (activeTabContent) {
+            activeTabContent.classList.add('tab-content--active');
+            activeTabContent.style.display = 'block';
+        }
 
         appState.currentTab = activeTab;
     } else {
@@ -264,6 +272,13 @@ function initializeActiveNavigation() {
             dashboardLink.classList.add('sidebar__nav-link--active');
             const indicator = dashboardLink.querySelector('.sidebar__nav-active-indicator');
             if (indicator) indicator.style.visibility = 'visible';
+            
+            const dashboardContent = document.getElementById('dashboard');
+            if (dashboardContent) {
+                dashboardContent.classList.add('tab-content--active');
+                dashboardContent.style.display = 'block';
+            }
+            
             appState.currentTab = 'dashboard';
         }
     }
@@ -528,6 +543,14 @@ const toggleTheme = () => {
 async function handleTabNavigation(e) {
     e.preventDefault();
     const tabId = this.getAttribute('data-tab');
+    
+    // Validar que sea una pestaña válida
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes'];
+    if (!validTabs.includes(tabId)) {
+        console.error('❌ Pestaña no válida en enlace:', tabId);
+        return;
+    }
+    
     console.log(`📂 Cambiando a pestaña: ${tabId}`);
     await switchTab(tabId);
 }
@@ -538,55 +561,9 @@ async function handleTabNavigation(e) {
  */
 async function switchTab(tabId) {
     // Validar tabId
-
-    // Agregar 'ajustes' como pestaña válida
     const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
-        return;
-    }
-
-    // Si es la pestaña de ajustes, cargar el HTML externo
-    if (tabId === 'ajustes') {
-        // Buscar o crear el contenedor de ajustes
-        let ajustesSection = document.getElementById('ajustes');
-        if (!ajustesSection) {
-            ajustesSection = document.createElement('section');
-            ajustesSection.id = 'ajustes';
-            ajustesSection.className = 'tab-content';
-            document.querySelector('.main-content').appendChild(ajustesSection);
-        }
-        // Ocultar otras pestañas
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.remove('tab-content--active');
-        });
-        ajustesSection.classList.add('tab-content--active');
-        // Resaltar el enlace de ajustes en el sidebar
-        document.querySelectorAll('.sidebar__nav-link').forEach(link => {
-            link.classList.toggle('sidebar__nav-link--active', link.getAttribute('data-tab') === 'ajustes');
-        });
-        // Cargar el HTML de ajustes solo si no está cargado
-        if (!ajustesSection.dataset.loaded) {
-            fetch('ajustes.html')
-                .then(res => res.text())
-                .then(html => {
-                    // Extraer solo el contenido INTERNO del <main>
-                    const temp = document.createElement('div');
-                    temp.innerHTML = html;
-                    const main = temp.querySelector('main');
-                    if (main) {
-                        ajustesSection.innerHTML = main.innerHTML;
-                    } else {
-                        ajustesSection.innerHTML = html;
-                    }
-                    ajustesSection.dataset.loaded = 'true';
-                    // Cargar el JS de ajustes
-                    import('./modules/ajustes.js');
-                });
-        }
-        // Actualizar estado de la app
-        window.appState = window.appState || {};
-        window.appState.currentTab = 'ajustes';
         return;
     }
 
@@ -599,7 +576,7 @@ async function switchTab(tabId) {
         if (indicator) indicator.style.visibility = 'hidden';
     });
 
-    // 2. Agregar clase activa y mostrar indicador SOLO al enlace seleccionado (si existe en sidebar)
+    // 2. Agregar clase activa y mostrar indicador SOLO al enlace seleccionado
     const activeLink = Array.from(DOM.navLinks).find(
         link => link.getAttribute('data-tab') === tabId
     );
@@ -611,21 +588,25 @@ async function switchTab(tabId) {
         console.log(`✅ Enlace activo establecido: ${tabId}`);
     } else {
         console.log(`⚠️ No hay enlace en sidebar para: ${tabId} (tab especial)`);
-        // No retornar - tabs especiales como papelera no tienen enlace en sidebar
     }
 
     // 3. Ocultar TODOS los contenidos
     DOM.tabContents.forEach(tab => {
         tab.classList.remove('tab-content--active');
+        tab.style.display = 'none';
     });
 
     // 4. Mostrar SOLO el contenido activo
     const activeTab = document.getElementById(tabId);
     if (activeTab) {
         activeTab.classList.add('tab-content--active');
+        activeTab.style.display = 'block';
         console.log(`✅ Contenido activo establecido: ${tabId}`);
     } else {
         console.error(`❌ No se encontró contenido para: ${tabId}`);
+        // IMPORTANTE: Buscar en todo el documento, no solo en DOM.tabContents
+        const allTabContents = document.querySelectorAll('.tab-content');
+        console.log('Tabs disponibles:', Array.from(allTabContents).map(t => t.id));
         return;
     }
 
@@ -681,18 +662,47 @@ async function loadTabSpecificData(tabId) {
                 await initPapelera();
                 break;
 
+            case 'calendario':
+                // Inicializar calendario si existe la función
+                if (typeof window.initializeCalendar === 'function') {
+                    window.initializeCalendar();
+                }
+                break;
+
             case 'reportes':
                 if (typeof window.initReportsModule === 'function') {
                     window.initReportsModule();
                 }
                 break;
+
             case 'soporte':
                 if (!window.supportModule) {
                     window.supportModule = new SupportModule();
                 }
                 break;
+
+            case 'ajustes':
+    console.log('⚙️ Inicializando módulo de ajustes...');
+    try {
+        // El módulo exporta una instancia ya creada por defecto
+        if (typeof window.settingsManager === 'undefined') {
+            const ajustesModule = await import('./modules/ajustes.js');
+            window.settingsManager = ajustesModule.default;
+            console.log('✅ Módulo de ajustes cargado');
+        }
+        
+        // Actualizar la interfaz
+        if (window.settingsManager && typeof window.settingsManager.updateForm === 'function') {
+            window.settingsManager.updateForm();
+        }
+    } catch (error) {
+        console.error('❌ Error al cargar módulo de ajustes:', error);
+        showAlert(`Error al cargar ajustes: ${error.message}`, 'error');
+    }
+    break;
+
             default:
-                console.log(`ℹ️  No hay carga específica para la pestaña: ${tabId}`);
+                console.log(`ℹ️ No hay carga específica para la pestaña: ${tabId}`);
         }
     } catch (error) {
         console.error(`❌ Error cargando datos para pestaña ${tabId}:`, error);

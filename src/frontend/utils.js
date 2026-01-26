@@ -52,9 +52,6 @@ export function showConfirmModal(options) {
                 </div>
                 <div class="modal__body">
                     <div class="confirm-modal-content">
-                        <div class="confirm-modal-icon confirm-modal-icon--${type}">
-                            <i class="fas fa-${getConfirmIcon(type)}"></i>
-                        </div>
                         <div class="confirm-modal-message">${message}</div>
                     </div>
                 </div>
@@ -812,6 +809,93 @@ export async function showConfirmation(title, message, options = {}) {
         };
         document.addEventListener('keydown', handleEscKey);
     });
+}
+
+/**
+ * Mostrar modal de acción (éxito/error/info)
+ */
+export function showActionModal(options) {
+    const {
+        type = 'info',
+        title = 'Información',
+        message = '',
+        icon = 'info-circle',
+        onClose
+    } = options;
+    
+    const iconClasses = {
+        success: 'fas fa-check-circle text-success',
+        error: 'fas fa-exclamation-circle text-danger',
+        warning: 'fas fa-exclamation-triangle text-warning',
+        info: 'fas fa-info-circle text-info'
+    };
+    
+    const modalClass = {
+        success: 'action-modal__icon--success',
+        error: 'action-modal__icon--error',
+        warning: 'action-modal__icon--warning',
+        info: 'action-modal__icon--info'
+    };
+    
+    // Crear modal
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.setAttribute('data-modal-type', 'action');
+    modal.innerHTML = `
+        <div class="modal__content modal__content--sm">
+            <div class="modal__header">
+                <h2 class="modal__title">${title}</h2>
+                <button class="modal__close" id="closeActionModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal__body action-modal__content">
+                <i class="${iconClasses[type]} action-modal__icon ${modalClass[type]}"></i>
+                <p class="action-modal__message">${message}</p>
+            </div>
+            <div class="modal__footer modal__footer--centered">
+                <button class="btn btn--primary" id="okActionBtn">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+    
+    // Configurar eventos
+    const closeModal = () => {
+        modal.style.display = 'none';
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 300);
+        if (onClose) onClose();
+    };
+    
+    modal.querySelector('#closeActionModal').onclick = closeModal;
+    modal.querySelector('#okActionBtn').onclick = closeModal;
+    
+    // Cerrar al hacer clic fuera
+    modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+    };
+    
+    // Cerrar con Escape
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') closeModal();
+    };
+    
+    document.addEventListener('keydown', handleKeydown);
+    
+    // Limpiar event listener cuando se cierre
+    const cleanup = () => {
+        document.removeEventListener('keydown', handleKeydown);
+    };
+    
+    modal.addEventListener('click', cleanup, { once: true });
 }
 
 // =============================================================================

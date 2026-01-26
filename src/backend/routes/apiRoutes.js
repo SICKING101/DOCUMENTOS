@@ -14,7 +14,7 @@ import TrashController from '../controllers/trashController.js';
 import SupportController from '../controllers/supportController.js';
 
 // Importar middleware
-import { protegerRuta, permisoTicket, permisoCambiarEstado } from '../middleware/auth.js';
+import { protegerRuta } from '../middleware/auth.js';
 
 // Importar middleware de Multer
 import upload from '../config/multerConfig.js';
@@ -34,12 +34,19 @@ router.get('/health', (req, res) => {
 router.get('/dashboard', protegerRuta, DashboardController.getDashboardStats);
 
 // -----------------------------
-// PERSONAS
+// PERSONAS - RUTAS ACTUALIZADAS PARA ELIMINACIÓN PERMANENTE
 // -----------------------------
 router.get('/persons', protegerRuta, PersonController.getAll);
 router.post('/persons', protegerRuta, PersonController.create);
 router.put('/persons/:id', protegerRuta, PersonController.update);
+
+// ELIMINACIÓN PERMANENTE (HARD DELETE) - QUITAR DE LA BASE DE DATOS
 router.delete('/persons/:id', protegerRuta, PersonController.delete);
+
+// RUTAS OPCIONALES PARA GESTIÓN DE ESTADO (si quieres mantener ambas funcionalidades)
+router.patch('/persons/:id/deactivate', protegerRuta, PersonController.deactivate);
+router.patch('/persons/:id/reactivate', protegerRuta, PersonController.reactivate);
+router.get('/persons/inactive', protegerRuta, PersonController.getInactive);
 
 // -----------------------------
 // CATEGORÍAS
@@ -107,11 +114,11 @@ router.post('/trash/:id/restore', protegerRuta, TrashController.restoreDocument)
 router.delete('/trash/:id', protegerRuta, TrashController.deletePermanently);
 
 // -----------------------------
-// SOPORTE Y TICKETS - RUTAS CORREGIDAS Y COMPLETAS
+// SOPORTE Y TICKETS
 // -----------------------------
 router.post('/tickets', protegerRuta, upload.array('files', 10), SupportController.createTicket);
 
-// ✅ RUTAS PARA ESTADO DEL SISTEMA - CORREGIDAS Y COMPLETAS
+// ✅ RUTAS PARA ESTADO DEL SISTEMA
 router.get('/support/status', protegerRuta, SupportController.getSystemStatus);
 router.get('/support/faq', protegerRuta, SupportController.getFAQ);
 router.post('/support/test-email', protegerRuta, SupportController.testSupportEmail);

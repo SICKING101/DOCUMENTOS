@@ -4,9 +4,9 @@
 :root {
     --sidebar-width: 280px;
     --sidebar-header-height: 130px;
-    --sidebar-footer-height: 180px;
+    --sidebar-footer-height: 150px; /* REDUCIDO de 180px a 150px */
     --sidebar-transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-    --sidebar-nav-height: calc(100vh - 310px); /* Altura calculada para mostrar todo */
+    --sidebar-nav-height: calc(100vh - 280px); /* AJUSTADO: de 310px a 280px */
 }
 
 /* Barra lateral fija con navegación y controles */
@@ -62,6 +62,7 @@
 /* Contenedor del logo */
 .sidebar__logo-container {
     position: relative;
+    transform: translateY(-13%);
     width: 60px;
     height: 60px;
 }
@@ -112,7 +113,7 @@
     color: white;
     letter-spacing: -0.025em;
     margin: 0;
-    transform: translateY(-30%);
+    transform: translateY(-43%);
     background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.9) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -148,8 +149,8 @@
     scrollbar-color: var(--primary) transparent;
     overflow-x: hidden;
     height: var(--sidebar-nav-height);
-    min-height: 400px;
-    max-height: calc(100vh - 310px);
+    min-height: 500px;
+    max-height: calc(100vh - 280px); /* AJUSTADO: de 310px a 280px */
 }
 
 /* Grupos de navegación con mejor espaciado */
@@ -268,7 +269,7 @@
     box-shadow: 0 0 10px var(--primary);
 }
 
-/* Pie del sidebar con controles de usuario y tema */
+/* Pie del sidebar con controles de usuario - SIN TEMA */
 .sidebar__footer {
     padding: var(--spacing-lg);
     background: rgba(15, 23, 42, 0.95);
@@ -279,65 +280,6 @@
     flex-shrink: 0;
 }
 
-/* Contenedor del tema */
-.sidebar__theme-container {
-    margin-bottom: var(--spacing-md);
-}
-
-/* Botón para alternar entre tema claro y oscuro */
-.sidebar__theme-toggle {
-    width: 100%;
-    padding: 0.75rem var(--spacing-md);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-lg);
-    color: var(--sidebar-text);
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: var(--sidebar-transition);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-}
-
-/* Efecto hover para el botón de tema */
-.sidebar__theme-toggle:hover {
-    background: linear-gradient(135deg, 
-        rgba(220, 38, 38, 0.2) 0%, 
-        rgba(220, 38, 38, 0.1) 100%);
-    color: white;
-    border-color: rgba(220, 38, 38, 0.3);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-}
-
-/* Contenedor de icono del tema */
-.sidebar__theme-icon-wrapper {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-md);
-    transition: var(--transition);
-}
-
-.sidebar__theme-toggle:hover .sidebar__theme-icon-wrapper {
-    background: rgba(220, 38, 38, 0.3);
-}
-
-.sidebar__theme-toggle i {
-    font-size: 1rem;
-}
-
-/* Texto del tema */
-.sidebar__theme-text {
-    flex: 1;
-    text-align: left;
-    font-weight: 500;
-}
-
 /* Información del usuario en el footer del sidebar */
 .sidebar__user {
     display: flex;
@@ -346,6 +288,7 @@
     padding: var(--spacing-sm);
     border-radius: var(--radius-lg);
     transition: var(--sidebar-transition);
+    transform: translateY(-5%);
     position: relative;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid transparent;
@@ -357,7 +300,6 @@
         rgba(220, 38, 38, 0.1) 0%, 
         rgba(220, 38, 38, 0.05) 100%);
     border-color: rgba(220, 38, 38, 0.2);
-    transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -465,7 +407,7 @@
 .user-menu.active {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0) scale(1);
+    transform: translateY(-50px) scale(1);
 }
 
 /* Header del menú con información del usuario */

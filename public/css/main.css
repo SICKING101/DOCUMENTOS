@@ -20,7 +20,6 @@
 @import url('components/filters.css');
 @import url('components/tabs.css');
 @import url('components/empty-states.css');
-@import url('components/preloader.css');
 @import url('components/sidebar.css');
 
 @import url('components/preloader/bulk-delete.css');
@@ -47,6 +46,8 @@
 @import url('components/preloader/upload.css');
 @import url('components/preloader/utilities.css');
 @import url('components/preloader/variants.css');
+@import url('components/preloader/categorias-preloader.css');
+@import url('components/preloader/departamentos-preloader.css');
 @import url('components/status.css');
 
 @import url('sections/dashboard.css');
@@ -59,8 +60,8 @@
 @import url('sections/trash.css');
 @import url('sections/auth.css');
 @import url('sections/calendario.css');
-@import url('sections/reportes.css');
 @import url('sections/soporte.css');
+@import url('sections/settings.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');

@@ -2379,20 +2379,6 @@ body.dark-theme .guide-nav-btn {
     line-height: 1.5;
 }
 
-/* ----------------------------------------------------------------------------
-   MODALES DE TICKET
-   ---------------------------------------------------------------------------- */
-
-.modal__content {
-    max-width: 600px;
-    width: 95%;
-    max-height: 85vh;
-}
-
-.modal--large .modal__content {
-    max-width: 800px;
-}
-
 /* Formulario de ticket */
 .form-group {
     margin-bottom: 1.5rem;
