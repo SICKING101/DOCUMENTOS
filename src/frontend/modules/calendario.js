@@ -906,7 +906,6 @@ class CalendarManager {
         // Configurar event listeners para el modal
         const closeModal = () => {
             optionsModal.remove();
-            optionsStyles.remove();
         };
         
         optionsModal.querySelector('#closeOptionsModal').addEventListener('click', closeModal);
@@ -1097,7 +1096,6 @@ class CalendarManager {
         
         const closeModal = () => {
             modal.remove();
-            deleteStyles.remove();
         };
         
         modal.querySelector('#closeDeleteOptionsModal').addEventListener('click', closeModal);
@@ -1370,7 +1368,6 @@ class CalendarManager {
         // Configurar eventos del modal
         const closeModal = () => {
             eventsModal.remove();
-            eventsStyles.remove();
         };
         
         eventsModal.querySelector('#closeEventsModal').addEventListener('click', closeModal);
@@ -1897,7 +1894,6 @@ class CalendarManager {
         // Configurar event listeners del modal
         const closeModal = () => {
             modal.remove();
-            modalStyles.remove();
         };
         
         modal.querySelector('#closeResetModal').addEventListener('click', (e) => {

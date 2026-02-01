@@ -502,68 +502,89 @@ initSystemStatus() {
     }
 
     setupEventListeners() {
-        console.log('🔧 SupportModule: Configurando event listeners');
-        
-        if (DOM.newTicketBtn) {
-            DOM.newTicketBtn.addEventListener('click', () => this.openTicketModal());
-        }
-        
-        if (DOM.createFirstTicket) {
-            DOM.createFirstTicket.addEventListener('click', () => this.openTicketModal());
-        }
-        
-        // Cerrar modal con el botón de la X (×)
-        if (DOM.closeTicketModal) {
-            DOM.closeTicketModal.addEventListener('click', () => this.closeTicketModal());
-        }
-        
-        // Cerrar modal con el botón "Cancelar"
-        if (DOM.cancelTicketBtn) {
-            DOM.cancelTicketBtn.addEventListener('click', () => this.closeTicketModal());
-        }
-        
-        if (DOM.submitTicketBtn) {
-            DOM.submitTicketBtn.addEventListener('click', () => this.submitTicket());
-        }
-        
-        // Configuración de arrastrar y soltar archivos
-        if (DOM.ticketFileUpload && DOM.ticketFileInput) {
-            DOM.ticketFileUpload.addEventListener('click', () => DOM.ticketFileInput.click());
-            DOM.ticketFileUpload.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                DOM.ticketFileUpload.classList.add('dragover');
-            });
-            DOM.ticketFileUpload.addEventListener('dragleave', () => {
-                DOM.ticketFileUpload.classList.remove('dragover');
-            });
-            DOM.ticketFileUpload.addEventListener('drop', (e) => {
-                e.preventDefault();
-                DOM.ticketFileUpload.classList.remove('dragover');
-                this.handleFileDrop(e.dataTransfer.files);
-            });
-            DOM.ticketFileInput.addEventListener('change', (e) => {
-                this.handleFileSelect(e.target.files);
-            });
-        }
-        
-        // También agregar para cerrar haciendo clic fuera del modal
-        if (DOM.ticketModal) {
-            DOM.ticketModal.addEventListener('click', (e) => {
-                if (e.target === DOM.ticketModal) {
-                    this.closeTicketModal();
-                }
-            });
-            
-            // Cerrar con tecla Escape
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && DOM.ticketModal.style.display === 'flex') {
-                    this.closeTicketModal();
-                }
-            });
-        }
-        
-        console.log('✅ Event listeners configurados correctamente');
+    console.log('🔧 SupportModule: Configurando event listeners');
+    
+    if (DOM.newTicketBtn) {
+        DOM.newTicketBtn.addEventListener('click', () => this.openTicketModal());
     }
+    
+    if (DOM.createFirstTicket) {
+        DOM.createFirstTicket.addEventListener('click', () => this.openTicketModal());
+    }
+    
+    // Cerrar modal con el botón de la X (×)
+    if (DOM.closeTicketModal) {
+        DOM.closeTicketModal.addEventListener('click', () => this.closeTicketModal());
+    }
+    
+    // Cerrar modal con el botón "Cancelar"
+    if (DOM.cancelTicketBtn) {
+        DOM.cancelTicketBtn.addEventListener('click', () => this.closeTicketModal());
+    }
+    
+    if (DOM.submitTicketBtn) {
+        DOM.submitTicketBtn.addEventListener('click', () => this.submitTicket());
+    }
+    
+    // Configuración de arrastrar y soltar archivos - CORREGIDO
+    if (DOM.ticketFileUpload && DOM.ticketFileInput) {
+        // Prevenir el comportamiento por defecto para evitar múltiples activaciones
+        DOM.ticketFileUpload.addEventListener('click', (e) => {
+            // Solo abrir el selector de archivos si el clic fue en el área principal,
+            // no en el input de archivo directamente
+            if (e.target !== DOM.ticketFileInput) {
+                DOM.ticketFileInput.click();
+            }
+        });
+        
+        // Evitar que el clic en el input propague al contenedor
+        DOM.ticketFileInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        // Manejar arrastrar y soltar
+        DOM.ticketFileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            DOM.ticketFileUpload.classList.add('dragover');
+        });
+        
+        DOM.ticketFileUpload.addEventListener('dragleave', () => {
+            DOM.ticketFileUpload.classList.remove('dragover');
+        });
+        
+        DOM.ticketFileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            DOM.ticketFileUpload.classList.remove('dragover');
+            this.handleFileDrop(e.dataTransfer.files);
+        });
+        
+        // Manejar selección de archivos - CORREGIDO
+        DOM.ticketFileInput.addEventListener('change', (e) => {
+            // Verificar que haya archivos seleccionados
+            if (e.target.files && e.target.files.length > 0) {
+                this.handleFileSelect(e.target.files);
+            }
+        });
+    }
+    
+    // También agregar para cerrar haciendo clic fuera del modal
+    if (DOM.ticketModal) {
+        DOM.ticketModal.addEventListener('click', (e) => {
+            if (e.target === DOM.ticketModal) {
+                this.closeTicketModal();
+            }
+        });
+        
+        // Cerrar con tecla Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && DOM.ticketModal.style.display === 'flex') {
+                this.closeTicketModal();
+            }
+        });
+    }
+    
+    console.log('✅ Event listeners configurados correctamente');
+}
 
     setupGuideListeners() {
         console.log('🔧 SupportModule: Configurando listeners de guía');
@@ -1164,45 +1185,86 @@ initSystemStatus() {
     }
 
     handleFileSelect(files) {
-        if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+        console.log('No se seleccionaron archivos');
+        return;
+    }
+    
+    console.log(`Archivos seleccionados: ${files.length}`);
+    
+    if (!this.selectedFiles) {
+        this.selectedFiles = [];
+    }
+    
+    let filesAdded = 0;
+    let filesSkipped = 0;
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         
-        if (!this.selectedFiles) {
-            this.selectedFiles = [];
+        // Verificar si el archivo ya está en la lista
+        const isDuplicate = this.selectedFiles.some(existingFile => 
+            existingFile.name === file.name && 
+            existingFile.size === file.size &&
+            existingFile.lastModified === file.lastModified
+        );
+        
+        if (isDuplicate) {
+            console.log(`Archivo duplicado omitido: ${file.name}`);
+            showAlert(`El archivo "${file.name}" ya está en la lista`, 'warning');
+            filesSkipped++;
+            continue;
         }
         
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            
-            if (file.size > 10 * 1024 * 1024) {
-                showAlert(`El archivo "${file.name}" es demasiado grande (máximo 10MB)`, 'error');
-                continue;
-            }
-            
-            const allowedTypes = [
-                'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-                'application/pdf', 
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'text/plain',
-                'application/zip',
-                'application/x-rar-compressed'
-            ];
-            
-            if (!allowedTypes.includes(file.type)) {
-                showAlert(`Tipo de archivo no permitido: "${file.name}"`, 'error');
-                continue;
-            }
-            
-            this.selectedFiles.push(file);
-            this.renderFileItem(file);
+        if (file.size > 10 * 1024 * 1024) {
+            showAlert(`El archivo "${file.name}" es demasiado grande (máximo 10MB)`, 'error');
+            filesSkipped++;
+            continue;
         }
         
-        this.updateFileCounter();
+        const allowedTypes = [
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+            'application/pdf', 
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/plain',
+            'application/zip',
+            'application/x-rar-compressed'
+        ];
         
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'rar'];
+        
+        if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+            showAlert(`Tipo de archivo no permitido: "${file.name}"`, 'error');
+            filesSkipped++;
+            continue;
+        }
+        
+        this.selectedFiles.push(file);
+        this.renderFileItem(file);
+        filesAdded++;
+    }
+    
+    // Mostrar resumen
+    if (filesAdded > 0) {
+        console.log(`${filesAdded} archivo(s) agregado(s) exitosamente`);
+    }
+    
+    if (filesSkipped > 0) {
+        console.log(`${filesSkipped} archivo(s) omitido(s)`);
+    }
+    
+    this.updateFileCounter();
+    
+    // IMPORTANTE: Limpiar el input para permitir seleccionar el mismo archivo nuevamente
+    // Pero solo si estamos en un navegador que lo soporte
+    if (DOM.ticketFileInput) {
         DOM.ticketFileInput.value = '';
     }
+}
 
     renderFileItem(file) {
         const fileItem = document.createElement('div');

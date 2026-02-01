@@ -203,8 +203,10 @@ DOCUMENTOS/
 │   │   ├── auth.js                 # Auth general
 │   │   ├── authGuard.js            # Proteccion rutas
 │   │   ├── config.js               # Config frontend
+│   │   ├── debugTasks.js           # Debug tareas
 │   │   ├── dom.js                  # Selectores DOM
 │   │   ├── navigation.js           # Router SPA
+│   │   ├── simpleTaskDebug.js      # Debug tareas simple
 │   │   ├── state.js                # Estado global
 │   │   ├── task.js                 # Manejo tareas
 │   │   ├── ui.js                   # Render UI
@@ -237,6 +239,7 @@ DOCUMENTOS/
 │       ├── models/                 # Modelos MongoDB
 │       │   ├── User.js
 │       │   ├── Person.js
+│       │   ├── Task.js
 │       │   ├── Department.js
 │       │   ├── Category.js
 │       │   ├── Document.js
@@ -248,10 +251,12 @@ DOCUMENTOS/
 │       │   ├── fileService.js
 │       │   └── notificationService.js
 │       │
-│       └── routes/
-│           ├── apiRoutes.js
-│           ├── adminRoutes.js
-│           └── authRoutes.js
+│       ├── routes/
+│       │    ├── apiRoutes.js
+│       │    ├── adminRoutes.js
+│       │    └── authRoutes.js
+│       │
+│       └── debugRoutes.js           # Debug tareas
 │
 ├── server.js                       # Entry point servidor
 ├── package.json

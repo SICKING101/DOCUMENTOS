@@ -845,6 +845,14 @@ async patchDocument(id, partialData) {
         return this.call('/tasks/stats');
     }
 
+        async getHighPriorityTasks() {
+        return this.call('/tasks/high-priority');
+    }
+
+    async getTodayTasks() {
+        return this.call('/tasks/today');
+    }
+
     // =========================================================================
     // FUNCIONES PARA NOTIFICACIONES
     // =========================================================================

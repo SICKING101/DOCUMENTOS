@@ -18,7 +18,8 @@ import { api } from './services/api.js'; // Ruta correcta
 // Dashboard
 import {
     loadDashboardData,
-    handleRefreshDashboard
+    handleRefreshDashboard,
+    updateDashboardTasks
 } from './modules/dashboard.js';
 
 // Historial
@@ -216,11 +217,25 @@ function initializeApp() {
  * Crea instancia del TaskManager y la hace disponible globalmente.
  */
 function initializeTaskManager() {
-    console.log('📝 Inicializando gestor de tareas...');
+    console.log('📝 Inicializando gestor de tareas (API)...');
     try {
-        taskManager = new TaskManager();
-        window.taskManager = taskManager;
-        console.log('✅ Gestor de tareas inicializado correctamente');
+        // Esperar a que la API esté disponible
+        if (!window.api) {
+            console.log('⏳ Esperando API para inicializar TaskManager...');
+            setTimeout(() => {
+                if (window.api) {
+                    taskManager = new TaskManager();
+                    window.taskManager = taskManager;
+                    console.log('✅ Gestor de tareas inicializado correctamente con API');
+                } else {
+                    console.error('❌ API no disponible después de espera');
+                }
+            }, 1000);
+        } else {
+            taskManager = new TaskManager();
+            window.taskManager = taskManager;
+            console.log('✅ Gestor de tareas inicializado correctamente');
+        }
     } catch (error) {
         console.error('❌ Error al inicializar gestor de tareas:', error);
         showAlert('Error al inicializar módulo de tareas', 'error');
@@ -725,6 +740,7 @@ async function loadInitialData() {
         await Promise.all([
             loadDashboardData(appState),
             loadPersons(),
+            updateDashboardTasks(),
             documentos.loadDocuments(),
             loadCategories(),
             loadDepartments()
@@ -1172,6 +1188,170 @@ setTimeout(() => {
         }
     }
 }, 1000);
+
+// =============================================================================
+// 15. CARGAR DEBUGGER DE TAREAS (SOLO DESARROLLO)
+// =============================================================================
+
+/*
+
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('🔧 Configurando debugger de tareas para desarrollo...');
+    
+    // Verificar si el botón ya existe
+    if (!document.getElementById('taskDebugBtn')) {
+        // Crear botón de debug en la interfaz
+        const debugButton = document.createElement('button');
+        debugButton.id = 'taskDebugBtn';
+        debugButton.className = 'btn btn--warning btn--sm';
+        debugButton.style.position = 'fixed';
+        debugButton.style.bottom = '20px';
+        debugButton.style.right = '20px';
+        debugButton.style.zIndex = '9999';
+        debugButton.innerHTML = '<i class="fas fa-bug"></i> Debug Tareas';
+        debugButton.title = 'Herramientas de debugging para tareas';
+        
+        debugButton.addEventListener('click', async () => {
+            console.log('🔍 Iniciando debugging de tareas...');
+            
+            // Verificar si ya está cargado
+            if (window.taskDebugger && typeof window.taskDebugger.debugAllTasks === 'function') {
+                console.log('✅ Usando TaskDebugger existente');
+                await window.taskDebugger.debugAllTasks();
+                return;
+            }
+            
+            // Cargar dinámicamente el debugger
+            try {
+                // Crear script con timestamp para evitar caché
+                const script = document.createElement('script');
+                const timestamp = new Date().getTime();
+                script.src = `/src/frontend/debugTasks.js?_t=${timestamp}`;
+                script.type = 'module'; // Usar módulo para evitar conflictos
+                
+                script.onload = async () => {
+                    console.log('✅ debugTasks.js cargado');
+                    
+                    // Dar tiempo para que se inicialice
+                    setTimeout(async () => {
+                        if (window.taskDebugger && typeof window.taskDebugger.debugAllTasks === 'function') {
+                            await window.taskDebugger.debugAllTasks();
+                        } else {
+                            console.error('❌ taskDebugger no disponible después de cargar');
+                            // Intentar inicializar manualmente
+                            if (window.TaskDebugger) {
+                                window.taskDebugger = new window.TaskDebugger();
+                                await window.taskDebugger.debugAllTasks();
+                            }
+                        }
+                    }, 500);
+                };
+                
+                script.onerror = (error) => {
+                    console.error('❌ Error cargando debugTasks.js:', error);
+                    showAlert('Error cargando herramientas de debug', 'error');
+                };
+                
+                document.head.appendChild(script);
+                
+            } catch (error) {
+                console.error('❌ Error en debugging:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+        
+        document.body.appendChild(debugButton);
+        console.log('✅ Botón de debug de tareas agregado');
+    } else {
+        console.log('ℹ️ Botón de debug ya existe');
+    }
+    
+    // También agregar función de debug directa en consola
+    window.debugTasks = async function() {
+        console.log('🔍 Iniciando debugging directo de tareas...');
+        
+        if (!window.api) {
+            console.error('❌ API no disponible. Cargando...');
+            // Intentar encontrar la API
+            if (typeof api !== 'undefined') {
+                window.api = api;
+                console.log('✅ API encontrada en variable global');
+            } else {
+                console.error('❌ No se pudo encontrar la API');
+                return;
+            }
+        }
+        
+        try {
+            // Obtener todas las tareas directamente
+            console.log('📡 Obteniendo tareas...');
+            const response = await window.api.getTasks();
+            
+            console.log(`📊 Total de tareas: ${response.tasks?.length || 0}`);
+            
+            if (response.tasks && response.tasks.length > 0) {
+                // Mostrar tareas de alta prioridad
+                const altaPrioridad = response.tasks.filter(t => 
+                    t.prioridad === 'alta' || t.prioridad === 'critica'
+                );
+                console.log(`🔴 Tareas de alta prioridad: ${altaPrioridad.length}`);
+                altaPrioridad.forEach((t, i) => {
+                    console.log(`  ${i + 1}. ${t.titulo} - ${t.estado} - ${t.fecha_limite}`);
+                });
+                
+                // Mostrar tareas para hoy
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const manana = new Date(hoy);
+                manana.setDate(manana.getDate() + 1);
+                
+                const paraHoy = response.tasks.filter(t => {
+                    if (!t.fecha_limite) return false;
+                    const fechaTarea = new Date(t.fecha_limite);
+                    return fechaTarea >= hoy && fechaTarea < manana && t.estado !== 'completada';
+                });
+                
+                console.log(`📅 Tareas para hoy: ${paraHoy.length}`);
+                paraHoy.forEach((t, i) => {
+                    console.log(`  ${i + 1}. ${t.titulo} - ${t.prioridad} - ${t.fecha_limite}`);
+                });
+                
+                // Probar endpoints específicos
+                console.log('\n🔌 Probando endpoints:');
+                
+                try {
+                    const highRes = await window.api.getHighPriorityTasks();
+                    console.log(`  /high-priority: ${highRes.tasks?.length || 0} tareas`);
+                } catch (e) {
+                    console.error(`  ❌ /high-priority: ${e.message}`);
+                }
+                
+                try {
+                    const todayRes = await window.api.getTodayTasks();
+                    console.log(`  /today: ${todayRes.tasks?.length || 0} tareas`);
+                } catch (e) {
+                    console.error(`  ❌ /today: ${e.message}`);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error en debug directo:', error);
+        }
+    };
+    
+    console.log('💡 También puedes usar debugTasks() en la consola');
+}
+
+// Cargar debug simple automáticamente en desarrollo
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    setTimeout(() => {
+        const script = document.createElement('script');
+        script.src = '/src/frontend/simpleTaskDebug.js';
+        script.onload = () => console.log('✅ Simple Task Debug cargado automáticamente');
+        script.onerror = () => console.log('ℹ️ No se pudo cargar Simple Task Debug');
+        document.head.appendChild(script);
+    }, 2000);
+}
+*/
 
 console.log('✅ Script de aplicación cargado correctamente');
 
