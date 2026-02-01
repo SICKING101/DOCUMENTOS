@@ -224,12 +224,6 @@ class SettingsManager {
             exportBtn.addEventListener('click', () => this.handleExportData());
         }
 
-        // Botón borrar datos locales
-        const clearBtn = document.getElementById('clear-data');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => this.handleClearData());
-        }
-
         // Botones del modal
         const modalReload = document.getElementById('modal-reload');
         const modalLater = document.getElementById('modal-later');
@@ -1297,54 +1291,6 @@ updateForm() {
         } catch (error) {
             this.log('❌ Error exportando datos:', error);
             showAlert('Error al exportar datos', 'error');
-        }
-    }
-
-    /**
-     * Manejar limpieza de datos locales
-     */
-    async handleClearData() {
-        const confirmed = await showConfirmModal({
-            title: 'Borrar datos locales',
-            message: '¿Estás seguro de que quieres borrar todos los datos almacenados localmente? Esta acción no se puede deshacer.',
-            type: 'danger',
-            confirmText: 'Borrar todo',
-            cancelText: 'Cancelar'
-        });
-        
-        if (confirmed) {
-            try {
-                this.log('🗑️ Iniciando limpieza de datos locales...');
-                
-                const currentTheme = this.settings.appearance.currentTheme;
-                const settingsBackup = localStorage.getItem('cbtis051_settings');
-                
-                // Preservar el token de autenticación para no cerrar sesión
-                const token = localStorage.getItem('token');
-                const user = localStorage.getItem('user');
-                
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                // Restaurar datos esenciales
-                if (token) localStorage.setItem('token', token);
-                if (user) localStorage.setItem('user', user);
-                
-                if (settingsBackup) {
-                    localStorage.setItem('cbtis051_settings', settingsBackup);
-                    this.loadSettings();
-                } else if (currentTheme) {
-                    localStorage.setItem('cbtis051_current_theme', currentTheme);
-                }
-                
-                showAlert('Datos locales borrados correctamente', 'success');
-                this.log('✅ Datos locales borrados');
-                
-                setTimeout(() => window.location.reload(), 1500);
-            } catch (error) {
-                this.log('❌ Error borrando datos:', error);
-                showAlert('Error al borrar datos locales', 'error');
-            }
         }
     }
 

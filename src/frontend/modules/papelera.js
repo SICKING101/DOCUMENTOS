@@ -307,7 +307,7 @@ function updateTrashUI() {
                     Limpiar búsqueda
                 </button>
             </div>` :
-            `<div class="empty-state">
+            `<div class="empty-state empty-state--center">
                 <div class="empty-state-icon">
                     <i class="fas fa-trash-alt"></i>
                 </div>
@@ -1083,7 +1083,7 @@ function showConfirmationModal(title, subtitle, message, type, icon, doubleConfi
                     ${doubleConfirmHtml}
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary modal-cancel">Cancelar</button>
+                    <button class="btn modal-cancel">Cancelar</button>
                     <button class="btn btn-${type} modal-confirm" ${doubleConfirm ? 'disabled' : ''}>
                         Confirmar
                     </button>

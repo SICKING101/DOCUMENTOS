@@ -7,6 +7,7 @@
     padding: 1.75rem;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border);
+    margin-top: 2rem; /* Agregado para separar de las tareas */
 }
 
 /* Subtítulo para secciones del dashboard */
@@ -458,4 +459,325 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 1rem;
+}
+
+/* ===== TARJETAS DE TAREAS PARA DASHBOARD ===== */
+
+/* Contenedor principal de tareas en dashboard */
+.dashboard-tasks {
+    margin-bottom: 2rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Grid para las dos secciones de tareas */
+.tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Categoría de tareas (Alta Prioridad / Para Hoy) */
+.task-category {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px; /* Altura mínima para consistencia */
+}
+
+/* Título de la categoría */
+.task-category__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0; /* Evita que el título se reduzca */
+}
+
+.task-category__title i {
+    font-size: 1rem;
+}
+
+/* Alta prioridad - icono rojo */
+.task-category:nth-child(1) .task-category__title i {
+    color: var(--danger);
+}
+
+/* Para hoy - icono azul */
+.task-category:nth-child(2) .task-category__title i {
+    color: var(--primary);
+}
+
+/* Contenedor de tarjetas individuales CON SCROLLBAR */
+.task-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow-y: auto; /* Habilita scroll vertical */
+    max-height: 400px; /* Altura máxima antes de aparecer scroll */
+    flex-grow: 1; /* Ocupa el espacio disponible */
+    padding-right: 8px; /* Espacio para el scrollbar */
+    margin-right: -8px; /* Compensa el padding para mantener alineación */
+    
+    /* Personalización del scrollbar para navegadores WebKit (Chrome, Safari, Edge) */
+    scrollbar-width: thin; /* Para Firefox */
+    scrollbar-color: var(--border) transparent; /* Para Firefox */
+}
+
+/* Personalización del scrollbar para WebKit */
+.task-cards::-webkit-scrollbar {
+    width: 6px;
+}
+
+.task-cards::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+}
+
+.task-cards::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.task-cards::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Tarjeta individual de tarea */
+.task-card--compact {
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    border-left: 4px solid var(--border);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0; /* Evita que las tarjetas se compriman */
+}
+
+/* Efecto hover */
+.task-card--compact:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-left-color: var(--primary);
+}
+
+/* Colores por prioridad */
+.task-card--compact[data-priority="alta"] {
+    border-left-color: var(--danger);
+}
+
+.task-card--compact[data-priority="critica"] {
+    border-left-color: #dc2626;
+    background: linear-gradient(to right, rgba(220, 38, 38, 0.05), var(--bg-primary));
+}
+
+.task-card--compact[data-priority="media"] {
+    border-left-color: var(--warning);
+}
+
+.task-card--compact[data-priority="baja"] {
+    border-left-color: var(--success);
+}
+
+/* Encabezado de tarjeta compacta */
+.task-card__header--compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+/* Título de tarea compacta */
+.task-card__title--compact {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    margin-right: 0.5rem;
+    line-height: 1.4;
+}
+
+/* Badge de prioridad compacta */
+.task-priority--compact {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0; /* Evita que el badge se reduzca */
+}
+
+.task-priority--compact[data-priority="alta"],
+.task-priority--compact[data-priority="critica"] {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.task-priority--compact[data-priority="media"] {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.task-priority--compact[data-priority="baja"] {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+/* Información de fecha y hora */
+.task-card__info--compact {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    flex-wrap: wrap; /* Permite wrap en pantallas pequeñas */
+}
+
+.task-card__info--compact i {
+    font-size: 0.75rem;
+    width: 14px;
+    text-align: center;
+}
+
+/* Estado de vencimiento */
+.task-card__due--compact {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.task-card__due--compact.overdue {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.task-card__due--compact.today {
+    color: var(--warning);
+    font-weight: 600;
+}
+
+.task-card__due--compact.upcoming {
+    color: var(--success);
+}
+
+/* Estado de la tarea */
+.task-card__status--compact {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    flex-shrink: 0; /* Evita que el status se reduzca */
+}
+
+.task-card__status--compact[data-status="completada"] {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.task-card__status--compact[data-status="en-progreso"] {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+}
+
+/* Estado vacío */
+.task-cards-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-tertiary);
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px; /* Altura mínima cuando está vacío */
+}
+
+.task-cards-empty i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+
+.task-cards-empty h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+    color: var(--text-secondary);
+}
+
+.task-cards-empty p {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+}
+
+/* Contador de tareas */
+.task-category__count {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--bg-primary);
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    margin-left: 0.5rem;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tasks-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .task-category {
+        padding: 1rem;
+        min-height: 350px;
+    }
+    
+    .task-card--compact {
+        padding: 0.875rem;
+    }
+    
+    .task-cards {
+        max-height: 350px; /* Altura menor en móviles */
+    }
+    
+    .task-card__info--compact {
+        gap: 0.5rem; /* Menor espacio en móviles */
+    }
+}
+
+@media (max-width: 480px) {
+    .task-category {
+        min-height: 300px;
+    }
+    
+    .task-cards {
+        max-height: 300px;
+    }
+}
+
+/* Animación para nuevas tareas */
+@keyframes highlightTask {
+    0% {
+        background: rgba(59, 130, 246, 0.1);
+    }
+    100% {
+        background: var(--bg-primary);
+    }
+}
+
+.task-card--highlight {
+    animation: highlightTask 2s ease-out;
 }

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
+import Task from '../models/Task.js';
 
 class TaskController {
-  // Obtener todas las tareas
   static async getAll(req, res) {
     try {
       const tasks = await Task.find({ activo: true })
@@ -21,7 +21,6 @@ class TaskController {
     }
   }
 
-  // Crear nueva tarea
   static async create(req, res) {
     try {
       const { 
@@ -69,7 +68,6 @@ class TaskController {
     }
   }
 
-  // Actualizar tarea
   static async update(req, res) {
     try {
       const { id } = req.params;
@@ -135,7 +133,6 @@ class TaskController {
     }
   }
 
-  // Eliminar tarea (eliminación lógica)
   static async delete(req, res) {
     try {
       const { id } = req.params;
@@ -173,7 +170,6 @@ class TaskController {
     }
   }
 
-  // Cambiar estado de tarea
   static async updateStatus(req, res) {
     try {
       const { id } = req.params;
@@ -224,7 +220,6 @@ class TaskController {
     }
   }
 
-  // Obtener estadísticas de tareas
   static async getStats(req, res) {
     try {
       const totalTareas = await Task.countDocuments({ activo: true });
@@ -241,7 +236,6 @@ class TaskController {
         estado: 'completada' 
       });
 
-      // Tareas próximas a vencer (en los próximos 7 días)
       const fechaLimite = new Date();
       fechaLimite.setDate(fechaLimite.getDate() + 7);
       const tareasPorVencer = await Task.countDocuments({
@@ -268,6 +262,134 @@ class TaskController {
       res.status(500).json({ 
         success: false, 
         message: 'Error al obtener estadísticas' 
+      });
+    }
+  }
+
+  static async getHighPriority(req, res) {
+    try {
+      console.group('🔍 DEBUG: TaskController.getHighPriority');
+      
+      const query = { 
+        activo: true,
+        prioridad: { $in: ['alta', 'critica'] },
+        estado: { $ne: 'completada' }
+      };
+      
+      console.log('🔍 Query de MongoDB:', JSON.stringify(query, null, 2));
+      
+      const tasks = await Task.find(query)
+      .sort({ prioridad: -1, fecha_limite: 1 })
+      .limit(5)
+      .lean();
+
+      console.log('✅ Tareas encontradas:', tasks.length);
+      
+      if (tasks.length > 0) {
+        console.log('📋 Lista de tareas:');
+        tasks.forEach((task, index) => {
+          console.log(`  ${index + 1}. ${task.titulo} (${task.prioridad}) - ${task.estado}`);
+          console.log(`     ID: ${task._id}`);
+          console.log(`     Fecha límite: ${task.fecha_limite}`);
+          console.log(`     Activo: ${task.activo}`);
+        });
+      } else {
+        console.log('ℹ️ No se encontraron tareas con la query');
+        
+        // DEBUG: Verificar qué tareas hay en la base de datos
+        const allTasks = await Task.find({ activo: true }).lean();
+        console.log('📊 Todas las tareas activas:', allTasks.length);
+        allTasks.forEach((task, index) => {
+          console.log(`  ${index + 1}. ${task.titulo} (${task.prioridad}) - ${task.estado}`);
+        });
+      }
+      
+      console.groupEnd();
+
+      res.json({ 
+        success: true, 
+        tasks 
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo tareas de alta prioridad:', error);
+      console.error('📋 Stack trace:', error.stack);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener tareas de alta prioridad' 
+      });
+    }
+  }
+
+  static async getTodayTasks(req, res) {
+    try {
+      console.group('🔍 DEBUG: TaskController.getTodayTasks');
+      
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      
+      const manana = new Date(hoy);
+      manana.setDate(manana.getDate() + 1);
+
+      console.log('📅 Rango de fechas para hoy:');
+      console.log(`  Desde: ${hoy.toISOString()}`);
+      console.log(`  Hasta: ${manana.toISOString()}`);
+      
+      const query = { 
+        activo: true,
+        estado: { $ne: 'completada' },
+        fecha_limite: { 
+          $gte: hoy, 
+          $lt: manana 
+        }
+      };
+      
+      console.log('🔍 Query de MongoDB:', JSON.stringify(query, null, 2));
+
+      const tasks = await Task.find(query)
+      .sort({ prioridad: -1, hora_limite: 1 })
+      .limit(5)
+      .lean();
+
+      console.log('✅ Tareas encontradas para hoy:', tasks.length);
+      
+      if (tasks.length > 0) {
+        console.log('📋 Lista de tareas para hoy:');
+        tasks.forEach((task, index) => {
+          console.log(`  ${index + 1}. ${task.titulo} (${task.prioridad})`);
+          console.log(`     Fecha límite: ${task.fecha_limite}`);
+          console.log(`     Estado: ${task.estado}`);
+        });
+      } else {
+        console.log('ℹ️ No se encontraron tareas para hoy');
+        
+        // DEBUG: Verificar todas las tareas con fecha límite
+        const tasksWithDates = await Task.find({ 
+          activo: true,
+          fecha_limite: { $exists: true, $ne: null }
+        }).lean();
+        
+        console.log('📊 Tareas con fecha límite:', tasksWithDates.length);
+        tasksWithDates.forEach((task, index) => {
+          const taskDate = new Date(task.fecha_limite);
+          const isToday = taskDate >= hoy && taskDate < manana;
+          console.log(`  ${index + 1}. ${task.titulo}`);
+          console.log(`     Fecha: ${task.fecha_limite} (${isToday ? '✅ HOY' : 'OTRO DÍA'})`);
+          console.log(`     Estado: ${task.estado}`);
+        });
+      }
+      
+      console.groupEnd();
+
+      res.json({ 
+        success: true, 
+        tasks 
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo tareas para hoy:', error);
+      console.error('📋 Stack trace:', error.stack);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener tareas para hoy' 
       });
     }
   }

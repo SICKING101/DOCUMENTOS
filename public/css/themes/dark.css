@@ -137,7 +137,7 @@ body.dark-theme .calendar__header,
 body.dark-theme .calendar__toolbar,
 body.dark-theme .calendar__weekdays,
 body.dark-theme .calendar__mini-header {
-    background: var(--calendar-header-bg) !important;
+    background: var(--dark) !important;
     color: var(--text-primary) !important;
     border-color: var(--border) !important;
 }

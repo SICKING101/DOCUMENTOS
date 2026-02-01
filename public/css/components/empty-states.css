@@ -87,7 +87,7 @@ body.dark-theme .empty-state {
     margin-bottom: 10px;
 }
 
-.empty-state--task {
+.empty-state--center {
     transform: translateX(100%);
 }
 
