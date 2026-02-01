@@ -65,6 +65,15 @@ app.use('/api/auth', authRoutes);
 
 app.use('/api/admin', adminRoutes);
 
+// Rutas principales de la API
+app.use('/api', apiRoutes);
+console.log('✅ API Routes montadas correctamente en /api');
+console.log('- Rutas de tareas disponibles:');
+console.log('  • GET /api/tasks');
+console.log('  • GET /api/tasks/high-priority');
+console.log('  • GET /api/tasks/today');
+console.log('  • GET /api/tasks/stats');
+
 // Importar modelo y servicio de notificaciones
 import Notification from './src/backend/models/Notification.js';
 import NotificationService from './src/backend/services/notificationService.js';
@@ -3901,8 +3910,6 @@ app.delete('/api/support/tickets/:id', async (req, res) => {
 
 console.log('✅ Rutas de soporte con Gmail configuradas');
 
-app.use('/api', apiRoutes);
-
 // Verificar configuración de email al iniciar
 console.log('');
 console.log('🔍 ========== CONFIGURACIÓN DEL SISTEMA ==========');
@@ -3923,6 +3930,17 @@ if (!process.env.EMAIL_USER && !process.env.SMTP_USER) {
   console.log('   EMAIL_USER=tu_correo@gmail.com');
   console.log('   EMAIL_PASS=tu_app_password');
   console.log('');
+}
+
+// -----------------------------
+// Debug de rutas (solo desarrollo)
+// -----------------------------
+if (process.env.NODE_ENV === 'development') {
+    import('./src/backend/debugRoutes.js').then(({ debugRoutes }) => {
+        debugRoutes(app);
+    }).catch(err => {
+        console.log('⚠️ No se pudo cargar debug de rutas:', err.message);
+    });
 }
 
 // -----------------------------

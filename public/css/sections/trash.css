@@ -1562,7 +1562,7 @@ body.dark-theme .tip span {
    ============================================================================= */
 
 .progress-modal .modal-header {
-    background: linear-gradient(135deg, #4a6bdf 0%, #3a56c9 100%);
+    background: linear-gradient(135deg, #df4a4a 0%, #c93a3a 100%);
     padding: 25px 30px;
 }
 
@@ -1574,6 +1574,7 @@ body.dark-theme .tip span {
     align-items: center;
     justify-content: center;
     gap: 12px;
+    color: var(--trash-bg);
 }
 
 .progress-modal .modal-header h3 i {

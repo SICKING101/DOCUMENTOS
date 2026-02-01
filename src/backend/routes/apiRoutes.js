@@ -85,6 +85,8 @@ router.put('/tasks/:id', protegerRuta, TaskController.update);
 router.delete('/tasks/:id', protegerRuta, TaskController.delete);
 router.patch('/tasks/:id/status', protegerRuta, TaskController.updateStatus);
 router.get('/tasks/stats', protegerRuta, TaskController.getStats);
+router.get('/tasks/high-priority', protegerRuta, TaskController.getHighPriority);
+router.get('/tasks/today', protegerRuta, TaskController.getTodayTasks);
 
 // -----------------------------
 // REPORTES
