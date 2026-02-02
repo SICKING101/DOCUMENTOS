@@ -25,6 +25,10 @@ import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
 import adminRoutes from './src/backend/routes/adminRoutes.js';
 
+// Importar modelo y servicio de notificaciones
+import Notification from './src/backend/models/Notification.js';
+import NotificationService from './src/backend/services/notificationService.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,12 +52,29 @@ cloudinary.config({
 // -----------------------------
 // Middlewares
 // -----------------------------
+const allowedOrigins = [
+  'http://localhost:4000',
+  'https://documentos-kj6t.onrender.com'
+];
+
 app.use(cors({
-  origin: 'http://localhost:4000',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS bloqueado para: ' + origin));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
+
+// 👇 MUY IMPORTANTE para preflight
+app.options('*', cors());
+
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -73,10 +94,6 @@ console.log('  • GET /api/tasks');
 console.log('  • GET /api/tasks/high-priority');
 console.log('  • GET /api/tasks/today');
 console.log('  • GET /api/tasks/stats');
-
-// Importar modelo y servicio de notificaciones
-import Notification from './src/backend/models/Notification.js';
-import NotificationService from './src/backend/services/notificationService.js';
 
 // -----------------------------
 // Configuración de Multer
