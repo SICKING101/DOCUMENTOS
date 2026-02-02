@@ -236,6 +236,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     margin-bottom: 4px;
+     max-width: 20ch;
 }
 
 /* Detalles del archivo (tamaño, tipo) */

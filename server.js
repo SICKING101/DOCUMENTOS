@@ -36,7 +36,7 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 // -----------------------------
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/documentos_cbtis051';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/documentos_cbtis051';
 
 // Configuración de Cloudinary
 cloudinary.config({
@@ -123,8 +123,8 @@ const upload = multer({
 // -----------------------------
 // Conexión a MongoDB
 // -----------------------------
-mongoose.connect(MONGODB_URI)
-  .then(async () => {
+mongoose.connect(MONGO_URI)
+  .then(async () => { 
     console.log('✅ Conectado a MongoDB');
     // Crear notificación de sistema iniciado
     try {
@@ -3949,7 +3949,7 @@ if (process.env.NODE_ENV === 'development') {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
   console.log(`📊 Sistema de Gestión de Documentos - CBTIS051`);
-  console.log(`🗄️ Base de datos: ${MONGODB_URI}`);
+  console.log(`🗄️ Base de datos: ${MONGO_URI}`);
   console.log(`☁️ Cloudinary: ${cloudinary.config().cloud_name}`);
     console.log(`🔌 API disponible en: http://localhost:${PORT}/api`);  // ✅ NUEVO MENSAJE
 });
