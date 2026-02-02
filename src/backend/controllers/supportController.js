@@ -1067,7 +1067,7 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
             const faq = [
                 {
                     question: "¿Cómo funciona el sistema de tickets?",
-                    answer: "El sistema funciona en 3 estados: 1) ABIERTO: Ticket recibido, 2) EN PROCESO: Equipo trabajando en solución, 3) CERRADO: Problema resuelto. Recibirás emails en cada cambio de estado.",
+                    answer: "El sistema de tickets funciona en 3 estados: 1) ABIERTO: Tu ticket fue enviado al soporte, 2) EN PROCESO: Equipo trabajando en solución, 3) CERRADO: Problema resuelto. Recibirás emails en cada cambio de estado.",
                     category: "general",
                     priority: "alta"
                 },
