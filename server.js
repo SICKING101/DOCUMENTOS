@@ -40,7 +40,7 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 // -----------------------------
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/documentos_cbtis051';
+const MONGO_URI = process.env.MONGO_URI;
 
 // Configuración de Cloudinary
 cloudinary.config({
