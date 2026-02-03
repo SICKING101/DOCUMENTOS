@@ -3931,9 +3931,9 @@ console.log('✅ Rutas de soporte con Gmail configuradas');
 console.log('');
 console.log('🔍 ========== CONFIGURACIÓN DEL SISTEMA ==========');
 console.log(`🚀 Puerto: ${process.env.PORT || 4000}`);
-console.log(`🗄️ MongoDB: ${process.env.MONGODB_URI ? '✅ Configurado' : '❌ No configurado'}`);
+console.log(`🗄️ MongoDB: ${process.env.MONGO_URI ? '✅ Configurado' : '❌ No configurado'}`);
 console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ ' + process.env.EMAIL_USER : '❌ No configurado'}`);
-console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:4000'}`);
+console.log(`🌐 Frontend: ${process.env.FRONTEND_URL ? '✅ ' + process.env.FRONTEND_URL : '❌ No configurado'}`);
 console.log(`🔌 API Routes: ✅ Cargadas desde apiRoutes.js`);  // ✅ NUEVO MENSAJE
 console.log('🔍 ===============================================');
 console.log('');
