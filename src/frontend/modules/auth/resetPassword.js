@@ -39,7 +39,7 @@ const resetPasswordModule = (function() {
         }
         
         await verifyToken();
-        setupPasswordToggles(); // <-- AÑADIR ESTA LÍNEA
+        setupPasswordToggles();
         bindEvents();
     }
     
@@ -66,25 +66,32 @@ const resetPasswordModule = (function() {
         if (btn) btn.disabled = true;
     }
     
-    // NUEVA FUNCIÓN: Configurar toggles de contraseña (igual que en auth.js)
+    // FUNCIÓN CORREGIDA: Configurar toggles de contraseña
     function setupPasswordToggles() {
         document.querySelectorAll('.password-toggle').forEach(toggle => {
             toggle.addEventListener('click', function() {
-                // Encontrar el input correspondiente (hermano anterior)
-                const inputWrapper = this.closest('.input-wrapper');
-                if (!inputWrapper) return;
+                // Encontrar el input correspondiente (el input está justo antes del botón)
+                const inputGroup = this.closest('.input-group');
+                if (!inputGroup) return;
                 
-                // Buscar el input dentro del wrapper
-                const input = inputWrapper.querySelector('input[type="password"], input[type="text"]');
+                // Buscar el input dentro del input-group (es el hermano anterior del botón)
+                const input = this.previousElementSibling;
                 if (!input) return;
                 
                 // Alternar tipo de input
                 const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
                 input.setAttribute('type', type);
                 
-                // Alternar icono
-                this.classList.toggle('fa-eye');
-                this.classList.toggle('fa-eye-slash');
+                // Alternar icono del ojo
+                const icon = this.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                } else {
+                    // Si no hay icono interno, cambiar el texto del botón
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                }
             });
         });
     }
@@ -94,21 +101,25 @@ const resetPasswordModule = (function() {
         const input = document.getElementById(inputId);
         if (!input) return;
         
-        // Encontrar el icono del ojo correspondiente
-        const inputWrapper = input.closest('.input-wrapper');
-        if (!inputWrapper) return;
-        
-        const button = inputWrapper.querySelector('.password-toggle');
+        // Encontrar el botón del ojo correspondiente
+        const buttonId = `toggle${inputId.charAt(0).toUpperCase() + inputId.slice(1)}`;
+        const button = document.getElementById(buttonId);
         if (!button) return;
         
         if (input.type === 'password') {
             input.type = 'text';
-            button.classList.remove('fa-eye');
-            button.classList.add('fa-eye-slash');
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
         } else {
             input.type = 'password';
-            button.classList.remove('fa-eye-slash');
-            button.classList.add('fa-eye');
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
     }
     

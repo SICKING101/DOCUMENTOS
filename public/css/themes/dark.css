@@ -266,12 +266,16 @@ body.dark-theme .action-modal__icon--info {
 }
 /* Corrección: Forzar color claro en el buscador de tareas y sus inputs/selects en modo oscuro */
 body.dark-theme #tareas .filters-bar,
-body.dark-theme #tareas .filters-bar input,
-body.dark-theme #tareas .filters-bar select {
+body.dark-theme #tareas .filters-bar input {
     color: var(--text-primary) !important;
     background: var(--bg-tertiary) !important;
     border-color: var(--border) !important;
 }
+
+body.dark-theme #tareas .filters-bar select {
+    background: var(--dark) !important;
+}
+
 body.dark-theme #tareas .filters-bar .search-icon,
 body.dark-theme #tareas .filters-bar .search-clear {
     color: var(--text-secondary) !important;
