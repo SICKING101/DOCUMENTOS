@@ -6,147 +6,161 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autenticación - CBTIS051</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/sections/auth.css">
 </head>
 
 <body>
-    <main class="body-auth">
-        <div class="auth-container">
-            <div class="auth-card">
-                <div class="auth-card-inner">
-                    <div class="auth-header">
-                        <div class="auth-logo">
-                            <i class="fas fa-graduation-cap"></i>
-                        </div>
-                        <h1 class="auth-title" id="authTitle">Iniciar Sesión</h1>
-                        <p class="auth-subtitle" id="authSubtitle">Sistema de Gestión de Documentos CBTIS051</p>
-                        <div class="auth-divider"></div>
+    <div class="auth-wrapper">
+        <!-- Panel izquierdo con información -->
+        <div class="auth-info-panel">
+            <div class="info-content">
+                <div class="logo-container">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span class="logo-text">CBTIS051</span>
+                </div>
+                <h1 class="info-title">Sistema de Gestión de Documentos</h1>
+                <p class="info-subtitle">Plataforma de administración institucional</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Autenticación segura</span>
                     </div>
-
-                    <div id="alertContainer" class="alert-container"></div>
-
-                    <!-- Formulario de Login -->
-                    <form id="loginForm" class="auth-form">
-                        <div class="form-group">
-                            <label for="loginUsuario" class="form-label">
-                                <i class="fas fa-user form-icon"></i>
-                                Usuario o Correo
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="text" id="loginUsuario" class="form-input"
-                                    placeholder="Ingresa tu usuario o correo" required>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="loginPassword" class="form-label">
-                                <i class="fas fa-lock form-icon"></i>
-                                Contraseña
-                            </label>
-
-                            <div class="input-wrapper">
-                                <input type="password" id="loginPassword" class="form-input with-left-icon"
-                                    placeholder="Ingresa tu contraseña" required>
-                                <i class="fas fa-eye password-toggle" id="toggleLoginPassword"></i>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn-primary" id="loginBtn">
-                            <i class="fas fa-sign-in-alt"></i>
-                            <span class="btn-text">Iniciar Sesión</span>
-                        </button>
-
-                        <!-- CORRECCIÓN: Enlace directo a la página de recuperación -->
-                        <div class="forgot-password-link">
-                            <a href="forgot-password-step1.html" class="forgot-link">
-                                <i class="fas fa-key"></i>
-                                <span>¿Olvidaste tu contraseña?</span>
-                            </a>
-                        </div>
-
-                        <div class="auth-link" id="registerLinkContainer" style="display: none;">
-                            <div class="link-separator">
-                                <span class="separator-text">¿Primera vez?</span>
-                            </div>
-                            <a href="#" id="showRegisterFromLogin" class="auth-switch-link">
-                                <i class="fas fa-user-plus"></i>
-                                Registrar administrador
-                            </a>
-                        </div>
-                    </form>
-
-                    <!-- Formulario de Registro -->
-                    <form id="registerForm" class="auth-form hidden">
-                        <div class="form-group">
-                            <label for="registerUsuario" class="form-label">
-                                <i class="fas fa-user form-icon"></i>
-                                Usuario
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="text" id="registerUsuario" class="form-input"
-                                    placeholder="Elige un nombre de usuario" minlength="3">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="registerCorreo" class="form-label">
-                                <i class="fas fa-envelope form-icon"></i>
-                                Correo Electrónico
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="email" id="registerCorreo" class="form-input" placeholder="tu@correo.com">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="registerPassword" class="form-label">
-                                <i class="fas fa-lock form-icon"></i>
-                                Contraseña
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="password" id="registerPassword" class="form-input"
-                                    placeholder="Mínimo 6 caracteres" minlength="6">
-                                <i class="fas fa-eye password-toggle" id="toggleRegisterPassword"></i>
-                            </div>
-                            <div class="password-hint">Mínimo 6 caracteres</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="registerPasswordConfirm" class="form-label">
-                                <i class="fas fa-lock form-icon"></i>
-                                Confirmar Contraseña
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="password" id="registerPasswordConfirm" class="form-input"
-                                    placeholder="Repite tu contraseña" minlength="6">
-                                <i class="fas fa-eye password-toggle" id="toggleRegisterPasswordConfirm"></i>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn-primary" id="registerBtn">
-                            <i class="fas fa-user-plus"></i>
-                            <span class="btn-text">Registrar Administrador</span>
-                        </button>
-
-                        <div class="auth-link">
-                            <a href="#" class="auth-switch-link" id="showLoginFromRegister">
-                                <i class="fas fa-sign-in-alt"></i>
-                                Volver a Iniciar Sesión
-                            </a>
-                        </div>
-                    </form>
-
-                    <div class="loading" id="loading">
-                        <div class="spinner-container">
-                            <div class="spinner"></div>
-                            <p class="loading-text">Procesando...</p>
-                        </div>
+                    <div class="feature-item">
+                        <i class="fas fa-file-contract"></i>
+                        <span>Gestión documental</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Reportes en tiempo real</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Control de usuarios</span>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
+
+        <!-- Panel derecho con formularios -->
+        <div class="auth-form-panel">
+            <div class="form-container">
+                <div class="form-header">
+                    <div class="form-icon" id="formIcon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <h2 class="form-title" id="authTitle">Iniciar Sesión</h2>
+                    <p class="form-subtitle" id="authSubtitle">Accede a tu cuenta de administración</p>
+                </div>
+
+                <div id="alertContainer" class="alert-container"></div>
+
+                <!-- Formulario de Login -->
+                <form id="loginForm" class="auth-form">
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <input type="text" id="loginUsuario" class="form-input" 
+                               placeholder="Usuario o Correo" required>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <input type="password" id="loginPassword" class="form-input" 
+                               placeholder="Contraseña" required>
+                        <button type="button" class="password-toggle" id="toggleLoginPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Iniciar Sesión</span>
+                    </button>
+
+                    <div class="form-options">
+                        <div class="forgot-link">
+                            <a href="forgot-password-step1.html">
+                                <i class="fas fa-key"></i>
+                                ¿Olvidaste tu contraseña?
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="form-footer" id="registerLinkContainer" style="display: none;">
+                        <div class="divider">
+                            <span>¿Primera vez?</span>
+                        </div>
+                        <a href="#" id="showRegisterFromLogin" class="switch-link">
+                            <i class="fas fa-user-plus"></i>
+                            Registrar administrador
+                        </a>
+                    </div>
+                </form>
+
+                <!-- Formulario de Registro -->
+                <form id="registerForm" class="auth-form hidden">
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <input type="text" id="registerUsuario" class="form-input" 
+                               placeholder="Nombre de usuario" minlength="3">
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <input type="email" id="registerCorreo" class="form-input" 
+                               placeholder="Correo electrónico">
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <input type="password" id="registerPassword" class="form-input" 
+                               placeholder="Contraseña (mínimo 6 caracteres)" minlength="6">
+                        <button type="button" class="password-toggle" id="toggleRegisterPassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <input type="password" id="registerPasswordConfirm" class="form-input" 
+                               placeholder="Confirmar contraseña" minlength="6">
+                        <button type="button" class="password-toggle" id="toggleRegisterPasswordConfirm">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="registerBtn">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Registrar Administrador</span>
+                    </button>
+
+                    <div class="form-footer">
+                        <a href="#" class="switch-link" id="showLoginFromRegister">
+                            <i class="fas fa-arrow-left"></i>
+                            Volver a Iniciar Sesión
+                        </a>
+                    </div>
+                </form>
+
+                <div class="loading-overlay" id="loading">
+                    <div class="spinner"></div>
+                    <p>Procesando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
     <script type="module" src="/src/frontend/auth.js"></script>
 </body>
-
 </html>
