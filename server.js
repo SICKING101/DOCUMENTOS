@@ -25,6 +25,10 @@ import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
 import adminRoutes from './src/backend/routes/adminRoutes.js';
 
+// Importar modelo y servicio de notificaciones
+import Notification from './src/backend/models/Notification.js';
+import NotificationService from './src/backend/services/notificationService.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,7 +40,7 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 // -----------------------------
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/documentos_cbtis051';
+const MONGO_URI = process.env.MONGO_URI;
 
 // Configuración de Cloudinary
 cloudinary.config({
@@ -48,12 +52,29 @@ cloudinary.config({
 // -----------------------------
 // Middlewares
 // -----------------------------
+const allowedOrigins = [
+  'http://localhost:4000',
+  'https://documentos-kj6t.onrender.com'
+];
+
 app.use(cors({
-  origin: 'http://localhost:4000',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS bloqueado para: ' + origin));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
+
+// 👇 MUY IMPORTANTE para preflight
+app.options('*', cors());
+
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -73,10 +94,6 @@ console.log('  • GET /api/tasks');
 console.log('  • GET /api/tasks/high-priority');
 console.log('  • GET /api/tasks/today');
 console.log('  • GET /api/tasks/stats');
-
-// Importar modelo y servicio de notificaciones
-import Notification from './src/backend/models/Notification.js';
-import NotificationService from './src/backend/services/notificationService.js';
 
 // -----------------------------
 // Configuración de Multer
@@ -3914,9 +3931,9 @@ console.log('✅ Rutas de soporte con Gmail configuradas');
 console.log('');
 console.log('🔍 ========== CONFIGURACIÓN DEL SISTEMA ==========');
 console.log(`🚀 Puerto: ${process.env.PORT || 4000}`);
-console.log(`🗄️ MongoDB: ${process.env.MONGODB_URI ? '✅ Configurado' : '❌ No configurado'}`);
+console.log(`🗄️ MongoDB: ${process.env.MONGO_URI ? '✅ Configurado' : '❌ No configurado'}`);
 console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ ' + process.env.EMAIL_USER : '❌ No configurado'}`);
-console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:4000'}`);
+console.log(`🌐 Frontend: ${process.env.FRONTEND_URL ? '✅ ' + process.env.FRONTEND_URL : '❌ No configurado'}`);
 console.log(`🔌 API Routes: ✅ Cargadas desde apiRoutes.js`);  // ✅ NUEVO MENSAJE
 console.log('🔍 ===============================================');
 console.log('');

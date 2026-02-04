@@ -32,12 +32,20 @@ export function togglePassword(inputId) {
     if (input && button) {
         if (input.type === 'password') {
             input.type = 'text';
-            button.classList.remove('fa-eye');
-            button.classList.add('fa-eye-slash');
+            // Cambiar el icono dentro del botón
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
         } else {
             input.type = 'password';
-            button.classList.remove('fa-eye-slash');
-            button.classList.add('fa-eye');
+            // Cambiar el icono dentro del botón
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
         }
     }
 }
@@ -82,15 +90,23 @@ export function showRegisterForm() {
     if (registerLink) registerLink.style.display = 'block';
 }
 
-// Alternar visibilidad de contraseña
+// Alternar visibilidad de contraseña - FUNCIÓN CORREGIDA
 export function setupPasswordToggles() {
     document.querySelectorAll('.password-toggle').forEach(toggle => {
         toggle.addEventListener('click', function() {
+            // El input está justo antes del botón (hermano anterior)
             const input = this.previousElementSibling;
+            if (!input) return;
+            
             const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
             input.setAttribute('type', type);
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
+            
+            // Cambiar el icono dentro del botón
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     });
 }
@@ -201,7 +217,7 @@ export function initializeAuth() {
         });
     }
     
-    // Configurar toggles de contraseña
+    // Configurar toggles de contraseña - USANDO LA FUNCIÓN CORREGIDA
     setupPasswordToggles();
     
     // Verificar si existe administrador
