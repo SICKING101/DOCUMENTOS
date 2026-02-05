@@ -141,15 +141,6 @@ export const requestAdminChange = async (req, res) => {
             });
         }
 
-        if (nuevaPassword.length < 8) {
-            console.error(`❌ Contraseña muy corta: ${nuevaPassword.length} caracteres`);
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            return res.status(400).json({
-                success: false,
-                message: 'La contraseña debe tener al menos 8 caracteres'
-            });
-        }
-
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(nuevoCorreo)) {
             console.error(`❌ Correo inválido: ${nuevoCorreo}`);
