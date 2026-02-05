@@ -64,68 +64,100 @@ try {
   console.log(`   Secure: ${transporter.options.secure}`);
   console.log(`   TLS: ${transporter.options.tls ? 'Activado' : 'Desactivado'}`);
   
-  // VERIFICAR CONEXIÓN CON GMAIL
-  console.log('\n🔄 Verificando conexión con Gmail...');
-  
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error('❌ ERROR DE CONEXIÓN GMAIL:', error.message);
-      console.error(`🔧 Código: ${error.code}`);
-      console.error(`🔧 Comando: ${error.command}`);
+transporter.verify(async (error, success) => {
+  if (error) {
+    console.error('❌ ERROR DE CONEXIÓN GMAIL:', error.message);
+    console.error(`🔧 Código: ${error.code}`);
+    console.error(`🔧 Comando: ${error.command}`);
+    
+    if (error.response) {
+      console.error(`🔧 Respuesta SMTP: ${error.response}`);
+    }
+    
+    // DIAGNÓSTICO ESPECÍFICO GMAIL
+    console.error('\n🔍 DIAGNÓSTICO GMAIL:');
+    if (error.code === 'EAUTH') {
+      console.error('⚠️  ERROR DE AUTENTICACIÓN');
+      console.error('   Razones comunes:');
+      console.error('   1. Contraseña incorrecta');
+      console.error('   2. No es una "Contraseña de aplicación"');
+      console.error('   3. Verificación en 2 pasos no activada');
+      console.error('   4. "Acceso de apps menos seguras" desactivado');
+      console.error('\n   🛠️  SOLUCIÓN:');
+      console.error('   1. Ve a: https://myaccount.google.com/security');
+      console.error('   2. Activa "Verificación en 2 pasos" (si no está)');
+      console.error('   3. Ve a: https://myaccount.google.com/apppasswords');
+      console.error('   4. Genera una App Password de 16 caracteres');
+      console.error('   5. Úsala en emailPass (línea 12 de este archivo)');
+    } else if (error.code === 'ECONNECTION') {
+      console.error('⚠️  ERROR DE CONEXIÓN');
+      console.error('   Verifica:');
+      console.error('   1. Conexión a internet');
+      console.error('   2. Puerto 587 no bloqueado por firewall');
+      console.error('   3. DNS funcionando correctamente');
+    }
+    
+    console.error('\n📧 El sistema NO enviará emails reales');
+    console.error('📧 Los códigos aparecerán solo en consola');
+  } else {
+    console.log('✅ CONEXIÓN GMAIL VERIFICADA CORRECTAMENTE');
+    console.log('✅ Los emails llegarán a Gmail real');
+    console.log('✅ Usuario:', emailUser);
+    
+    // ENVIAR EMAIL DE PRUEBA AUTOMÁTICO AL ADMINISTRADOR ACTUAL
+    console.log('\n🧪 Buscando administrador actual para enviar email de prueba...');
+    
+    try {
+      // BUSCAR AL ADMINISTRADOR ACTUAL EN LA BASE DE DATOS
+      const adminActual = await User.findOne({ 
+        rol: 'administrador', 
+        activo: true 
+      }).sort({ createdAt: 1 }); // Obtener el más reciente
       
-      if (error.response) {
-        console.error(`🔧 Respuesta SMTP: ${error.response}`);
+      let emailDestino;
+      let nombreAdmin;
+      
+      if (adminActual) {
+        emailDestino = adminActual.correo;
+        nombreAdmin = adminActual.usuario;
+        console.log(`✅ Administrador actual encontrado: ${nombreAdmin} (${emailDestino})`);
+      } else {
+        // Si no hay admin en la BD, usar el email configurado
+        emailDestino = emailUser;
+        nombreAdmin = 'Administrador';
+        console.log(`⚠️  No se encontró admin en BD, usando email configurado: ${emailDestino}`);
       }
       
-      // DIAGNÓSTICO ESPECÍFICO GMAIL
-      console.error('\n🔍 DIAGNÓSTICO GMAIL:');
-      if (error.code === 'EAUTH') {
-        console.error('⚠️  ERROR DE AUTENTICACIÓN');
-        console.error('   Razones comunes:');
-        console.error('   1. Contraseña incorrecta');
-        console.error('   2. No es una "Contraseña de aplicación"');
-        console.error('   3. Verificación en 2 pasos no activada');
-        console.error('   4. "Acceso de apps menos seguras" desactivado');
-        console.error('\n   🛠️  SOLUCIÓN:');
-        console.error('   1. Ve a: https://myaccount.google.com/security');
-        console.error('   2. Activa "Verificación en 2 pasos" (si no está)');
-        console.error('   3. Ve a: https://myaccount.google.com/apppasswords');
-        console.error('   4. Genera una App Password de 16 caracteres');
-        console.error('   5. Úsala en emailPass (línea 12 de este archivo)');
-      } else if (error.code === 'ECONNECTION') {
-        console.error('⚠️  ERROR DE CONEXIÓN');
-        console.error('   Verifica:');
-        console.error('   1. Conexión a internet');
-        console.error('   2. Puerto 587 no bloqueado por firewall');
-        console.error('   3. DNS funcionando correctamente');
-      }
-      
-      console.error('\n📧 El sistema NO enviará emails reales');
-      console.error('📧 Los códigos aparecerán solo en consola');
-    } else {
-      console.log('✅ CONEXIÓN GMAIL VERIFICADA CORRECTAMENTE');
-      console.log('✅ Los emails llegarán a Gmail real');
-      console.log('✅ Usuario:', emailUser);
-      
-      // ENVIAR EMAIL DE PRUEBA AUTOMÁTICO
-      console.log('\n🧪 Enviando email de prueba automático...');
-      
+      // PREPARAR EMAIL DE PRUEBA MEJORADO
       const testMailOptions = {
         from: `"Sistema CBTIS051" <${emailFrom}>`,
-        to: emailUser,
+        to: emailDestino, // ✅ AHORA USA EL CORREO DEL ADMIN ACTUAL
         subject: '✅ Sistema CBTIS051 - Configuración Gmail Correcta',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
             <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
               <h2 style="color: #2d3748; text-align: center; margin-bottom: 20px;">✅ CONFIGURACIÓN EXITOSA</h2>
               <p style="color: #4a5568; font-size: 16px; line-height: 1.6;">
+                ${nombreAdmin ? `Hola <strong>${nombreAdmin}</strong>,<br>` : ''}
                 El sistema de gestión documental <strong>CBTIS051</strong> ha sido configurado correctamente con Gmail.
               </p>
               <div style="background: #f7fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4299e1;">
                 <p style="margin: 0; color: #2d3748;">
                   <strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}<br>
-                  <strong>📧 Servidor:</strong> smtp.gmail.com:587<br>
-                  <strong>✅ Estado:</strong> Operativo
+                  <strong>📧 Servidor Gmail:</strong> smtp.gmail.com:587<br>
+                  <strong>👤 Cuenta Gmail configurada:</strong> ${emailUser}<br>
+                  <strong>👤 Administrador actual:</strong> ${nombreAdmin}<br>
+                  <strong>📨 Correo del admin:</strong> ${emailDestino}<br>
+                  <strong>✅ Estado:</strong> Sistema operativo
+                </p>
+              </div>
+              <div style="background: #dbeafe; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                  <strong>📌 INFORMACIÓN IMPORTANTE:</strong><br>
+                  - Todos los correos del sistema (recuperación, notificaciones, cambios de admin) 
+                  se enviarán usando la cuenta Gmail configurada.<br>
+                  - Los correos llegarán a la bandeja del destinatario correspondiente.<br>
+                  - El cambio de administrador actualiza automáticamente el destino de los emails.
                 </p>
               </div>
               <p style="color: #718096; font-size: 14px; text-align: center;">
@@ -134,23 +166,34 @@ try {
             </div>
           </div>
         `,
-        text: `CONFIGURACIÓN EXITOSA CBTIS051\n\nEl sistema ha sido configurado correctamente con Gmail.\nFecha: ${new Date().toLocaleString('es-MX')}\n\nLos correos de recuperación llegarán a tu bandeja de entrada.`
+        text: `CONFIGURACIÓN EXITOSA CBTIS051\n\n${nombreAdmin ? `Hola ${nombreAdmin},\n\n` : ''}El sistema ha sido configurado correctamente con Gmail.\n\n📅 Fecha: ${new Date().toLocaleString('es-MX')}\n📧 Cuenta Gmail: ${emailUser}\n👤 Administrador actual: ${nombreAdmin}\n📨 Correo admin: ${emailDestino}\n\nIMPORTANTE:\n- Todos los correos del sistema se enviarán usando la cuenta Gmail configurada\n- Los correos llegarán al destinatario correspondiente\n- El cambio de administrador actualiza el destino de los emails\n\nEl sistema está listo para enviar correos reales.`
       };
       
-      transporter.sendMail(testMailOptions)
-        .then(info => {
-          console.log('✅ EMAIL DE PRUEBA ENVIADO A TU GMAIL');
-          console.log(`   📨 Para: ${emailUser}`);
-          console.log(`   📧 Message ID: ${info.messageId}`);
-          console.log(`   📤 Respuesta: ${info.response}`);
-          console.log('\n📌 Revisa tu bandeja de entrada de Gmail');
-          console.log('📌 También revisa la carpeta de Spam si no lo ves');
-        })
-        .catch(testError => {
-          console.error('⚠️  Error al enviar email de prueba:', testError.message);
-        });
+      console.log('\n📤 ENVIANDO EMAIL DE PRUEBA...');
+      console.log(`   📨 Para: ${emailDestino}`);
+      console.log(`   👤 Administrador: ${nombreAdmin}`);
+      
+      const info = await transporter.sendMail(testMailOptions);
+      
+      console.log('\n✅✅✅ EMAIL DE PRUEBA ENVIADO EXITOSAMENTE ✅✅✅');
+      console.log(`   📨 Destinatario: ${emailDestino}`);
+      console.log(`   👤 Nombre: ${nombreAdmin}`);
+      console.log(`   📧 Message ID: ${info.messageId}`);
+      console.log(`   📤 Respuesta SMTP: ${info.response}`);
+      
+      console.log('\n📌 INSTRUCCIONES PARA EL ADMINISTRADOR ACTUAL:');
+      console.log('   1. Revisa tu bandeja de entrada de Gmail');
+      console.log('   2. Busca el asunto: "✅ Sistema CBTIS051 - Configuración Gmail Correcta"');
+      console.log('   3. Si no está en principal, revisa SPAM/Promociones');
+      console.log('   4. Todos los correos del sistema llegarán al destinatario correcto');
+      
+    } catch (adminError) {
+      console.error('\n⚠️  ERROR al buscar administrador o enviar email:', adminError.message);
+      console.log('📧 El sistema está configurado, pero no se pudo enviar email de prueba');
+      console.log('📧 La funcionalidad de correos seguirá funcionando normalmente');
     }
-  });
+  }
+});
   
 } catch (error) {
   console.error('❌ ERROR CRÍTICO al configurar Gmail:', error.message);
@@ -772,7 +815,7 @@ export const verificarTokenCambio = async (req, res) => {
 };
 
 // =============================================================================
-// ENDPOINT DE PRUEBA DE EMAIL - GMAIL REAL
+// ENDPOINT DE PRUEBA DE EMAIL - GMAIL REAL (ACTUALIZADO PARA USAR ADMIN ACTUAL)
 // =============================================================================
 export const pruebaEmail = async (req, res) => {
   try {
@@ -794,15 +837,39 @@ export const pruebaEmail = async (req, res) => {
       });
     }
 
-    const testEmail = req.body.email || emailUser;
+    // BUSCAR ADMINISTRADOR ACTUAL
+    let adminActual = null;
+    let emailDestino = req.body.email || emailUser;
+    let nombreAdmin = 'Administrador';
     
-    console.log(`📧 Enviando prueba a: ${testEmail}`);
+    try {
+      adminActual = await User.findOne({ 
+        rol: 'administrador', 
+        activo: true 
+      }).sort({ createdAt: 1 });
+      
+      if (adminActual) {
+        // Si no se especificó email en la solicitud, usar el del admin actual
+        if (!req.body.email) {
+          emailDestino = adminActual.correo;
+          nombreAdmin = adminActual.usuario;
+          console.log(`✅ Usando admin actual: ${nombreAdmin} (${emailDestino})`);
+        }
+      } else {
+        console.log('⚠️  No se encontró admin en BD, usando email configurado');
+      }
+    } catch (dbError) {
+      console.warn('⚠️  Error buscando admin:', dbError.message);
+    }
+    
+    console.log(`📧 Enviando prueba a: ${emailDestino}`);
     console.log(`🔧 Desde: ${emailFrom}`);
-    console.log(`🔧 Usando: ${emailHost}:${emailPort}`);
+    console.log(`🔧 Usando cuenta Gmail: ${emailUser}`);
+    console.log(`👤 Administrador: ${nombreAdmin}`);
     
     const mailOptions = {
       from: `"Sistema CBTIS051" <${emailFrom}>`,
-      to: testEmail,
+      to: emailDestino,
       subject: '🧪 Prueba de Email Gmail Real - CBTIS051',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
@@ -814,6 +881,7 @@ export const pruebaEmail = async (req, res) => {
           <div style="padding: 40px; border-radius: 0 0 10px 10px; background: white;">
             <h2 style="color: #2d3748; margin: 0 0 20px; font-size: 24px; font-weight: 600;">✅ Email de Prueba Exitoso</h2>
             <p style="color: #4a5568; line-height: 1.6; margin: 0 0 25px; font-size: 16px;">
+              Hola <strong>${nombreAdmin}</strong>,<br>
               Si estás recibiendo este email, significa que la configuración del sistema de correo electrónico <strong>GMAIL REAL</strong> está funcionando correctamente.
             </p>
             
@@ -823,38 +891,49 @@ export const pruebaEmail = async (req, res) => {
                 <strong>🏢 Sistema:</strong> Gestión Documental CBTIS051<br>
                 <strong>✅ Estado:</strong> Configuración correcta<br>
                 <strong>📧 Servidor:</strong> ${emailHost}:${emailPort}<br>
-                <strong>👤 Usuario:</strong> ${emailUser}<br>
-                <strong>🎯 Destino:</strong> ${testEmail}
+                <strong>👤 Cuenta Gmail:</strong> ${emailUser}<br>
+                <strong>👤 Administrador:</strong> ${nombreAdmin}<br>
+                <strong>📨 Destino:</strong> ${emailDestino}
               </p>
             </div>
             
             <div style="background: #dbeafe; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #3b82f6;">
               <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                <strong>📌 Nota:</strong> Este email fue enviado usando Gmail real, no Ethereal.<br>
-                Los correos de recuperación de contraseña llegarán a tu bandeja de entrada real.
+                <strong>📌 INFORMACIÓN IMPORTANTE:</strong><br>
+                • Este email fue enviado usando Gmail real (${emailUser})<br>
+                • Los correos de recuperación de contraseña llegarán al destinatario correspondiente<br>
+                • Los cambios de administrador actualizan automáticamente el destino de los emails<br>
+                • Todos los correos del sistema funcionan con esta configuración
+              </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; padding: 15px; background: #f0fdf4; border-radius: 8px;">
+              <p style="margin: 0; color: #065f46; font-size: 14px;">
+                <strong>✅ SISTEMA OPERATIVO:</strong> Todos los emails del sistema funcionan correctamente
               </p>
             </div>
           </div>
         </div>
       `,
-      text: `PRUEBA GMAIL REAL - CBTIS051\n\nEste email prueba que el sistema está configurado con Gmail real.\n\nFecha: ${new Date().toLocaleString('es-MX')}\nServidor: ${emailHost}:${emailPort}\nUsuario: ${emailUser}\nDestino: ${testEmail}\n\n✅ Configuración correcta - Los correos de recuperación funcionarán.`
+      text: `PRUEBA GMAIL REAL - CBTIS051\n\nHola ${nombreAdmin},\n\nEste email prueba que el sistema está configurado con Gmail real.\n\n📅 Fecha: ${new Date().toLocaleString('es-MX')}\n📧 Servidor: ${emailHost}:${emailPort}\n👤 Cuenta Gmail: ${emailUser}\n👤 Administrador: ${nombreAdmin}\n📨 Destino: ${emailDestino}\n\n✅ Configuración correcta - Los correos del sistema funcionarán correctamente.\n\nIMPORTANTE:\n- Los emails se envían desde: ${emailUser}\n- Llegan al destinatario correspondiente\n- Cambios de admin actualizan el destino automáticamente`
     };
 
     console.log('\n📤 Enviando email de prueba por Gmail...');
     const info = await transporter.sendMail(mailOptions);
     
     console.log('\n✅✅✅ PRUEBA GMAIL EXITOSA ✅✅✅');
-    console.log(`   📨 Para: ${testEmail}`);
+    console.log(`   📨 Para: ${emailDestino}`);
+    console.log(`   👤 Administrador: ${nombreAdmin}`);
     console.log(`   📧 Message ID: ${info.messageId}`);
     console.log(`   📤 Respuesta: ${info.response}`);
     console.log(`   ✅ Aceptado: ${info.accepted}`);
     console.log(`   📍 Rechazado: ${info.rejected.length > 0 ? info.rejected : 'Ninguno'}`);
     
-    console.log('\n📌 INSTRUCCIONES:');
-    console.log('   1. Revisa tu bandeja de entrada de Gmail');
-    console.log('   2. Busca el asunto: "🧪 Prueba de Email Gmail Real - CBTIS051"');
-    console.log('   3. Si no lo ves, revisa SPAM o Promociones');
-    console.log('   4. El sistema está listo para enviar correos reales');
+    console.log('\n📌 INFORMACIÓN DEL SISTEMA:');
+    console.log('   1. Cuenta Gmail emisora:', emailUser);
+    console.log('   2. Administrador actual:', nombreAdmin);
+    console.log('   3. Correo del admin:', emailDestino);
+    console.log('   4. Todos los emails funcionan correctamente');
     
     console.log('\n🧪 ========== FIN PRUEBA ==========');
     console.log('');
@@ -862,16 +941,26 @@ export const pruebaEmail = async (req, res) => {
     res.json({
       success: true,
       message: '✅ Email de prueba enviado exitosamente por Gmail real',
-      messageId: info.messageId,
-      to: testEmail,
-      response: info.response,
-      accepted: info.accepted,
+      destinatario: {
+        email: emailDestino,
+        nombre: nombreAdmin,
+        esAdminActual: !req.body.email && adminActual !== null
+      },
+      emisor: {
+        email: emailUser,
+        servidor: `${emailHost}:${emailPort}`
+      },
+      detalles: {
+        messageId: info.messageId,
+        accepted: info.accepted,
+        response: info.response
+      },
       timestamp: new Date().toISOString(),
-      note: 'Revisa tu bandeja de entrada de Gmail. Si no lo ves, revisa SPAM.'
+      note: 'Revisa la bandeja de entrada del destinatario. Si no lo ves, revisa SPAM.'
     });
   } catch (error) {
     console.error('\n❌ ERROR en prueba de Gmail:');
-    console.error(`   📧 Para: ${testEmail}`);
+    console.error(`   📧 Para: ${emailDestino}`);
     console.error(`   🔧 Error: ${error.message}`);
     console.error(`   🔧 Código: ${error.code}`);
     console.error(`   🔧 Respuesta: ${error.response}`);
@@ -879,6 +968,10 @@ export const pruebaEmail = async (req, res) => {
     res.status(500).json({
       success: false,
       message: '❌ Error al enviar email de prueba por Gmail',
+      destinatario: {
+        email: emailDestino,
+        nombre: nombreAdmin
+      },
       error: error.message,
       code: error.code,
       response: error.response,
@@ -990,6 +1083,35 @@ export const estadoEmail = async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+
+  // AGREGAR ESTO DENTRO DE LA FUNCIÓN estadoEmail, después de configurar el estado:
+
+// Buscar administrador actual
+try {
+  const adminActual = await User.findOne({ 
+    rol: 'administrador', 
+    activo: true 
+  }).select('usuario correo createdAt').lean();
+  
+  estado.administradorActual = adminActual ? {
+    usuario: adminActual.usuario,
+    correo: adminActual.correo,
+    fechaCreacion: adminActual.createdAt
+  } : {
+    mensaje: 'No se encontró administrador en la base de datos',
+    usandoEmailConfigurado: emailUser
+  };
+  
+  console.log('   👤 Admin actual:', estado.administradorActual.usuario || 'No encontrado');
+  console.log('   📧 Email admin:', estado.administradorActual.correo || emailUser);
+  
+} catch (adminError) {
+  estado.administradorActual = {
+    error: adminError.message,
+    usandoEmailConfigurado: emailUser
+  };
+  console.log('   👤 Admin: ❌ Error obteniendo datos');
+}
 };
 
 export { transporter };
