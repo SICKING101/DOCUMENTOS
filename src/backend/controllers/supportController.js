@@ -1068,37 +1068,31 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 {
                     question: "¿Cómo funciona el sistema de tickets?",
                     answer: "El sistema de tickets funciona en 3 estados: 1) ABIERTO: Tu ticket fue enviado al soporte, 2) EN PROCESO: Equipo trabajando en solución, 3) CERRADO: Problema resuelto. Recibirás emails en cada cambio de estado.",
-                    category: "general",
+                    category: "General",
                     priority: "alta"
                 },
                 {
                     question: "¿Puedo responder a los emails del sistema?",
                     answer: "NO. Los emails son solo informativos. No respondas a los correos. Si necesitas comunicarte, crea un nuevo ticket o contacta al administrador directamente.",
-                    category: "comunicación",
+                    category: "Comunicación",
                     priority: "alta"
                 },
                 {
-                    question: "¿Cuánto tiempo tarda en atenderse mi ticket?",
-                    answer: "Depende de la prioridad: ALTA (24h), MEDIA (48h), BAJA (72h). Recibirás notificación cuando el ticket cambie a 'EN PROCESO'.",
-                    category: "tiempos",
-                    priority: "media"
-                },
-                {
                     question: "¿Puedo adjuntar archivos a mi ticket?",
-                    answer: "Sí, puedes adjuntar imágenes, documentos PDF, Word, Excel, etc. El tamaño máximo por archivo es 10MB.",
-                    category: "archivos",
+                    answer: "Sí, puedes adjuntar imágenes, documentos PDF, Word, Excel, etc. El tamaño máximo por archivo es 10MB y.",
+                    category: "Archivos",
                     priority: "media"
                 },
                 {
                     question: "¿Cómo sé si mi ticket fue atendido?",
-                    answer: "Recibirás un email cuando el ticket cambie de estado. También puedes revisar el estado en la sección 'Mis Tickets' del sistema.",
-                    category: "seguimiento",
+                    answer: "Recibirás un email cuando el equipo de soporte arregle tu problema. Si no lo recibes, contacta con soporte directamente.",
+                    category: "Seguimiento",
                     priority: "alta"
                 },
                 {
                     question: "¿Qué hago si olvidé mi número de ticket?",
-                    answer: "Revisa tu correo electrónico, allí encontrarás el número. También puedes ver todos tus tickets en la sección 'Mis Tickets'.",
-                    category: "general",
+                    answer: "Revisa tu correo electrónico, allí encontrarás el registro de tu ticket. Ten en cuenta que si NO te llega el registro de tu ticket, contacta con soporte directamente.",
+                    category: "General",
                     priority: "baja"
                 }
             ];

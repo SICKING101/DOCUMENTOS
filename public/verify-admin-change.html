@@ -8,26 +8,65 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <div class="verification-container">
-        <div class="verification-card" id="verificationCard">
-            <!-- Header -->
-            <div class="verification-header">
-                <i class="fas fa-user-shield verification-icon"></i>
-                <h1 class="verification-title">Cambio de Administrador</h1>
-                <p class="verification-subtitle">Sistema de Gestión Documental CBTIS051</p>
+    <div class="auth-wrapper">
+        <!-- Panel izquierdo con información -->
+        <div class="auth-info-panel">
+            <div class="info-content">
+                <div class="logo-container">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span class="logo-text">CBTIS 051</span>
+                </div>
+                <h1 class="info-title">Transferencia de Administración</h1>
+                <p class="info-subtitle">Proceso seguro de cambio de permisos</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Transferencia de privilegios</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Proceso 100% verificado</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Límite de tiempo de 24h</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-history"></i>
+                        <span>Registro de actividades</span>
+                    </div>
+                </div>
+                
+                <div class="verification-info">
+                    <h3><i class="fas fa-exclamation-circle"></i> Proceso de Transferencia</h3>
+                    <p>Este es un proceso crítico que transfiere todos los permisos administrativos del sistema.</p>
+                    <p>Una vez completado, el administrador actual perderá acceso y tú obtendrás control total.</p>
+                </div>
             </div>
-            
-            <!-- Body -->
-            <div class="verification-body">
+        </div>
+
+        <!-- Panel derecho con formulario -->
+        <div class="auth-form-panel">
+            <div class="form-container admin-transfer-container">
+                <div class="form-header">
+                    <div class="form-icon warning-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h2 class="form-title">Cambio de Administrador</h2>
+                    <p class="form-subtitle">Verificación de transferencia de privilegios</p>
+                </div>
+
+                <div id="alertContainer" class="alert-container"></div>
+
                 <!-- Información de la solicitud -->
-                <div class="info-section">
-                    <h2 class="info-title">
+                <div class="admin-transfer-section">
+                    <div class="section-header">
                         <i class="fas fa-info-circle"></i>
-                        Detalles de la solicitud
-                    </h2>
+                        <h3>Detalles de la solicitud</h3>
+                    </div>
                     <div class="info-grid" id="requestDetails">
-                        <!-- Se llenará dinámicamente -->
-                        <div class="info-row">
+                        <div class="info-row loading">
                             <span class="info-label">Cargando información...</span>
                             <span class="info-value">
                                 <i class="fas fa-spinner fa-spin"></i>
@@ -35,82 +74,85 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Advertencia importante -->
-                <div class="warning-section">
-                    <h3 class="warning-title">
+                <div class="warning-section admin-warning">
+                    <div class="warning-header">
                         <i class="fas fa-exclamation-triangle"></i>
-                        ADVERTENCIA IMPORTANTE
-                    </h3>
-                    <p class="warning-text">
-                        Al aceptar esta solicitud, el administrador actual será <strong>desactivado permanentemente</strong> 
-                        y tú obtendrás control total del sistema. Esta acción <strong>NO SE PUEDE DESHACER</strong> automáticamente 
-                        y requiere intervención manual para revertir.
-                    </p>
-                </div>
-                
-                <!-- Confirmación de contraseña -->
-                <div class="password-confirm">
-                    <h3 class="info-title">
-                        <i class="fas fa-key"></i>
-                        Confirmación de seguridad
-                    </h3>
-                    <p style="color: #6b7280; margin-bottom: 20px;">
-                        Para confirmar que entiendes las implicaciones, por favor escribe <strong>"ACEPTO"</strong> en el siguiente campo:
-                    </p>
-                    <div class="form__group">
-                        <div class="password-input-group">
-                            <input type="text" 
-                                   id="passwordConfirmation" 
-                                   class="form__input" 
-                                   placeholder="Escribe 'ACEPTO' para confirmar"
-                                   style="padding-right: 45px;">
-                            <button type="button" class="password-toggle" onclick="togglePasswordConfirmation()">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                        <small class="form__hint">Debes escribir exactamente "ACEPTO" en mayúsculas</small>
+                        <h3>ADVERTENCIA IMPORTANTE</h3>
+                    </div>
+                    <div class="warning-content">
+                        <p>Al aceptar esta solicitud, el administrador actual será <strong>desactivado permanentemente</strong> 
+                        y tú obtendrás control total del sistema.</p>
+                        <p>Esta acción <strong>NO SE PUEDE DESHACER</strong> automáticamente 
+                        y requiere intervención manual para revertir.</p>
                     </div>
                 </div>
-                
-                <!-- Temporizador -->
-                <div class="timer" id="timerSection">
-                    <i class="fas fa-clock"></i>
-                    Esta solicitud expira en: 
-                    <span class="timer-value" id="countdown">--:--:--</span>
+
+                <!-- Confirmación de seguridad -->
+                <div class="admin-confirmation-section">
+                    <div class="section-header">
+                        <i class="fas fa-key"></i>
+                        <h3>Confirmación de seguridad</h3>
+                    </div>
+                    <p class="confirmation-instruction">
+                        Para confirmar que entiendes las implicaciones, escribe <strong>"ACEPTO"</strong> en mayúsculas:
+                    </p>
+                    
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <input type="text" 
+                               id="passwordConfirmation" 
+                               class="form-input" 
+                               placeholder="Escribe 'ACEPTO' para confirmar">
+                        <button type="button" class="password-toggle" id="toggleConfirmation">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="input-hint">Debes escribir exactamente "ACEPTO" en mayúsculas</div>
                 </div>
-                
+
+                <!-- Temporizador -->
+                <div class="timer-section">
+                    <div class="timer-content">
+                        <i class="fas fa-clock"></i>
+                        <div class="timer-info">
+                            <span class="timer-label">Esta solicitud expira en:</span>
+                            <span class="timer-value" id="countdown">--:--:--</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Botones de acción -->
-                <div class="action-buttons-verify"></div>
-                    <button class="btn btn--danger btn--lg" id="rejectBtn" style="flex: 1;">
-                        <i class="fas fa-times"></i> Rechazar
+                <div class="admin-action-buttons">
+                    <button class="btn-accept" id="acceptBtn" disabled>
+                        <i class="fas fa-check"></i>
+                        <span>Aceptar Administración</span>
                     </button>
-                    <button class="btn btn--success btn--lg" id="acceptBtn" style="flex: 1;" disabled>
-                        <i class="fas fa-check"></i> Aceptar Administración
-                    </button>
+                </div>
+
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <p>Procesando solicitud...</p>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Overlay de carga -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin spinner-icon"></i>
-            <h3 style="color: white;">Procesando solicitud...</h3>
-        </div>
-    </div>
-    
+
     <!-- Modal de resultado -->
     <div class="result-modal" id="resultModal">
         <div class="result-content">
-            <i class="fas result-icon" id="resultIcon"></i>
+            <div class="result-icon-container">
+                <i class="fas" id="resultIcon"></i>
+            </div>
             <h2 class="result-title" id="resultTitle"></h2>
             <p class="result-message" id="resultMessage"></p>
-            <div id="resultActions"></div>
+            <div class="result-actions" id="resultActions"></div>
         </div>
     </div>
-    
+
     <script src="/src/frontend/modules/auth/verify-admin-change.js"></script>
 </body>
 </html>

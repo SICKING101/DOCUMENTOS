@@ -1113,40 +1113,60 @@ initSystemStatus() {
     }
 
     async loadFAQ() {
-        try {
-            console.log('🔧 SupportModule: Cargando FAQ');
-            const response = await api.getFAQ();
-            
-            if (response.success && DOM.faqList) {
-                const faqHTML = response.faq.map(item => `
-                    <div class="faq-item" data-category="${item.category}">
-                        <div class="faq-question">
-                            <h4>${item.question}</h4>
-                            <span class="faq-category">${this.getCategoryName(item.category)}</span>
-                        </div>
-                        <div class="faq-answer">
-                            <p>${item.answer}</p>
-                            ${item.link ? `<a href="${item.link}" target="_blank" class="faq-link">Ver más información</a>` : ''}
-                        </div>
+    try {
+        console.log('🔧 SupportModule: Cargando FAQ');
+        const response = await api.getFAQ();
+        
+        if (response.success && DOM.faqList) {
+            const faqHTML = response.faq.map(item => `
+                <div class="faq-item" data-category="${item.category}">
+                    <div class="faq-question">
+                        <h4>${item.question}</h4>
+                        <span class="faq-category">${this.getCategoryName(item.category)}</span>
+                        <i class="fas fa-chevron-down faq-toggle"></i>
                     </div>
-                `).join('');
-                
-                DOM.faqList.innerHTML = faqHTML;
-                
-                document.querySelectorAll('.faq-question').forEach(question => {
-                    question.addEventListener('click', () => {
-                        const answer = question.nextElementSibling;
-                        answer.classList.toggle('open');
-                        question.classList.toggle('active');
-                    });
+                    <div class="faq-answer">
+                        <p>${item.answer}</p>
+                        ${item.link ? `<a href="${item.link}" target="_blank" class="faq-link">Ver más información</a>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            DOM.faqList.innerHTML = faqHTML;
+            
+            // Configurar toggle para cada pregunta
+            document.querySelectorAll('.faq-question').forEach(question => {
+                question.addEventListener('click', (e) => {
+                    // Evitar que se active al hacer clic en los enlaces
+                    if (e.target.tagName === 'A' || e.target.closest('a')) {
+                        return;
+                    }
+                    
+                    const answer = question.nextElementSibling;
+                    const toggleIcon = question.querySelector('.faq-toggle');
+                    
+                    // Alternar solo esta pregunta
+                    answer.classList.toggle('open');
+                    question.classList.toggle('active');
+                    
+                    // Scroll suave para mantener la pregunta visible
+                    if (answer.classList.contains('open')) {
+                        setTimeout(() => {
+                            question.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'nearest' 
+                            });
+                        }, 50);
+                    }
                 });
-                
-                console.log(`✅ FAQ cargadas: ${response.faq.length} preguntas`);
-            }
-        } catch (error) {
-            console.error('❌ Error cargando FAQ:', error);
+            });
+            
+            console.log(`✅ FAQ cargadas: ${response.faq.length} preguntas`);
         }
+    } catch (error) {
+        console.error('❌ Error cargando FAQ:', error);
     }
+}
 
     openTicketModal() {
         console.log('🔧 SupportModule: Abriendo modal de ticket');
@@ -1509,6 +1529,60 @@ initSystemStatus() {
         showAlert(`No se encontraron resultados para "${query}"`, 'info');
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad de copiar datos de contacto
+    const copyButtons = document.querySelectorAll('.contact-copy');
+    
+    copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const textToCopy = this.getAttribute('data-text');
+            
+            // Usar la Clipboard API
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Feedback visual
+                const originalHTML = this.innerHTML;
+                this.classList.add('copied');
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                
+                // Restaurar después de 2 segundos
+                setTimeout(() => {
+                    this.classList.remove('copied');
+                    this.innerHTML = originalHTML;
+                }, 2000);
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+                // Fallback para navegadores más antiguos
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // Feedback visual incluso con fallback
+                const originalHTML = this.innerHTML;
+                this.classList.add('copied');
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                
+                setTimeout(() => {
+                    this.classList.remove('copied');
+                    this.innerHTML = originalHTML;
+                }, 2000);
+            });
+        });
+    });
+    
+    // Funcionalidad del botón de chat
+    const startChatBtn = document.getElementById('startChatBtn');
+    if (startChatBtn) {
+        startChatBtn.addEventListener('click', function() {
+            // Puedes implementar un modal de chat aquí
+            // Por ahora solo un alert
+            alert('Funcionalidad de chat en vivo - Próximamente!');
+        });
+    }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM cargado, inicializando SupportModule');

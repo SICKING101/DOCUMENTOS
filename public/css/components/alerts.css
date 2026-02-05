@@ -13,14 +13,14 @@
 
 /* Alertas de éxito (operaciones exitosas) */
 .alert--success {
-    background-color: rgba(16, 185, 129, 0.1);
+    background-color: var(--info-light);
     color: var(--success);
     border-left-color: var(--success);
 }
 
 /* Alertas de error (operaciones fallidas) */
 .alert--error {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: var(--info-light);
     color: var(--danger);
     border-left-color: var(--danger);
 }
