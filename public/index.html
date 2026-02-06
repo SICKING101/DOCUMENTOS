@@ -957,56 +957,96 @@
                     </div>
                 </section>
 
-                <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (NUEVA) -->
-                <section id="reportes" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title"><i class="fas fa-chart-bar"></i> Reportes</h2>
-                            <p class="section__subtitle">Genera y descarga reportes personalizados del sistema</p>
+<!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (RENOVADA) -->
+<section id="reportes" class="tab-content">
+    <div class="section__header">
+        <div>
+            <h2 class="section__title"><i class="fas fa-chart-bar"></i> Reportes</h2>
+            <p class="section__subtitle">Genera y descarga reportes personalizados del sistema</p>
+        </div>
+    </div>
+    
+    <div class="reportes-content">
+        <!-- Formulario de configuración de reportes -->
+        <div class="reportes-form reportes-fade-in">
+            <h3 class="reportes-form__title">
+                <i class="fas fa-cogs"></i> Configuración del Reporte
+            </h3>
+            
+            <form id="reportForm">
+                <div class="reportes-form__grid">
+                    <!-- Tipo de Reporte -->
+                    <div class="reportes-form__group">
+                        <label for="reportType" class="reportes-form__label">
+                            <i class="fas fa-chart-pie"></i> Tipo de Reporte
+                        </label>
+                        <div class="reportes-select__wrapper">
+                            <select id="reportType" class="reportes-select">
+                                <option value="general">Reporte General</option>
+                                <option value="byCategory">Por Categoría</option>
+                                <option value="byPerson">Por Persona</option>
+                                <option value="expiring">Documentos por Vencer</option>
+                                <option value="expired">Documentos Vencidos</option>
+                            </select>
+                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
                         </div>
+                        <small class="reportes-form__help">
+                            Seleccione el tipo de reporte que desea generar
+                        </small>
                     </div>
-                    <div class="reportes-content">
-                        <form id="reportForm">
-                            <div class="form__group">
-                                <label for="reportType" class="form__label">Tipo de Reporte</label>
-                                <div class="select-wrapper">
-                                    <select id="reportType" class="form__select">
-                                        <option value="general">Reporte General</option>
-                                        <option value="byCategory">Por Categoría</option>
-                                        <option value="byPerson">Por Persona</option>
-                                        <option value="expiring">Documentos por Vencer</option>
-                                        <option value="expired">Documentos Vencidos</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down select-arrow"></i>
-                                </div>
-                            </div>
-                            <div class="form__row" id="reportSpecificFilters">
-                                <!-- Filtros específicos se cargarán dinámicamente -->
-                            </div>
-                            <div class="form__group">
-                                <label for="reportFormat" class="form__label">Formato</label>
-                                <div class="select-wrapper">
-                                    <select id="reportFormat" class="form__select">
-                                        <option value="excel">Excel</option>
-                                        <option value="csv">CSV</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down select-arrow"></i>
-                                </div>
-                            </div>
-                        </form>
-                        <div class="report-preview" id="reportPreview">
-                            <h4 class="report-preview__title">Vista Previa del Reporte</h4>
-                            <div class="report-preview__content" id="reportPreviewContent">
-                                <!-- La vista previa se mostrará aquí -->
-                            </div>
+
+                    <!-- Formato del Reporte -->
+                    <div class="reportes-form__group">
+                        <label for="reportFormat" class="reportes-form__label">
+                            <i class="fas fa-file-export"></i> Formato de Salida
+                        </label>
+                        <div class="reportes-select__wrapper">
+                            <select id="reportFormat" class="reportes-select">
+                                <option value="excel">Excel (.xlsx)</option>
+                                <option value="csv">CSV (.csv)</option>
+                            </select>
+                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
                         </div>
-                        <footer class="modal__footer" style="margin-top:2rem;">
-                            <button class="btn btn--primary" id="generateReportBtn">
-                                <i class="fas fa-download"></i> Generar Reporte
-                            </button>
-                        </footer>
+                        <small class="reportes-form__help">
+                            Elija el formato de archivo para el reporte
+                        </small>
                     </div>
-                </section>
+                </div>
+
+                <!-- Filtros Específicos -->
+                <div class="reportes-form__group">
+                    <label class="reportes-form__label">
+                        <i class="fas fa-filter"></i> Filtros Específicos
+                    </label>
+                    <div id="reportSpecificFilters" class="reportes-filters">
+                        <!-- Los filtros se cargarán dinámicamente aquí -->
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Vista Previa del Reporte -->
+        <div class="reportes-preview reportes-fade-in">
+            <h3 class="reportes-preview__title">
+                <i class="fas fa-eye"></i> Vista Previa del Reporte
+            </h3>
+            <div class="reportes-preview__content" id="reportPreviewContent">
+                <div class="reportes-preview-placeholder">
+                    <i class="fas fa-chart-bar"></i>
+                    <p>Seleccione un tipo de reporte para ver la vista previa</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pie de página con botón de acción -->
+        <div class="reportes-footer">
+            <button class="reportes-btn reportes-btn--primary" id="generateReportBtn">
+                <i class="fas fa-download"></i>
+                <span>Generar Reporte</span>
+            </button>
+        </div>
+    </div>
+</section>
 
                 <!-- SECCIÓN 4.2.7: PESTAÑA CALENDARIO -->
                 <section id="calendario" class="tab-content active">
@@ -1884,9 +1924,9 @@
                                         </div>
                                         <div class="contact-details">
                                             <span class="contact-label">Teléfono</span>
-                                            <a href="tel:+1234567890" class="contact-value">+52 669-199-1113</a>
+                                            <a href="tel:+52 669-199-1113" class="contact-value">+52 669-199-1113</a>
                                         </div>
-                                        <button class="contact-copy" data-text="+1234567890" title="Copiar teléfono">
+                                        <button class="contact-copy" data-text="+52 669-199-1113" title="Copiar teléfono">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
