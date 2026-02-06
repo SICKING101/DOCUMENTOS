@@ -5,60 +5,85 @@ import FileService from '../services/fileService.js';
 import NotificationService from '../services/notificationService.js';
 
 class ReportController {
-  // Función para filtrar documentos según parámetros
+  // Función estática para filtrar documentos según parámetros
   static async filterDocuments(filters) {
-    let documents = await Document.find({ activo: true })
-      .populate('persona_id', 'nombre email departamento puesto')
-      .sort({ fecha_subida: -1 });
+    try {
+      console.log('🔍 ReportController.filterDocuments - Iniciando filtrado con:', filters);
+      
+      let query = { activo: true };
+      
+      // Aplicar filtros según el tipo de reporte
+      if (filters.reportType === 'byCategory' && filters.category) {
+        query.categoria = filters.category;
+      }
 
-    // Aplicar filtros según el tipo de reporte
-    if (filters.reportType === 'byCategory' && filters.category) {
-      documents = documents.filter(doc => doc.categoria === filters.category);
+      if (filters.reportType === 'byPerson' && filters.person) {
+        query['persona_id._id'] = filters.person; // Ajustar según tu esquema
+      }
+
+      if (filters.reportType === 'expiring' && filters.days) {
+        const now = new Date();
+        const limitDate = new Date();
+        limitDate.setDate(limitDate.getDate() + parseInt(filters.days));
+        query.fecha_vencimiento = {
+          $gte: now,
+          $lte: limitDate
+        };
+      }
+
+      if (filters.reportType === 'expired') {
+        const now = new Date();
+        query.fecha_vencimiento = { $lt: now };
+      }
+
+      // Filtrar por rango de fechas si está presente
+      if (filters.dateFrom || filters.dateTo) {
+        query.fecha_subida = {};
+        if (filters.dateFrom) query.fecha_subida.$gte = new Date(filters.dateFrom);
+        if (filters.dateTo) query.fecha_subida.$lte = new Date(filters.dateTo);
+      }
+
+      console.log('📝 Query de búsqueda:', JSON.stringify(query, null, 2));
+      
+      // Buscar documentos con el query construido
+      let documents = await Document.find(query)
+        .populate('persona_id', 'nombre email departamento puesto')
+        .sort({ fecha_subida: -1 });
+
+      console.log(`✅ Encontrados ${documents.length} documentos`);
+
+      // Para el filtro por persona, necesitamos hacer un filtro adicional en memoria
+      // porque el query con populate no funciona directamente con _id en string
+      if (filters.reportType === 'byPerson' && filters.person) {
+        documents = documents.filter(doc => {
+          return doc.persona_id && doc.persona_id._id.toString() === filters.person;
+        });
+        console.log(`📊 Documentos después de filtrar por persona: ${documents.length}`);
+      }
+
+      return documents;
+
+    } catch (error) {
+      console.error('❌ Error en ReportController.filterDocuments:', error);
+      throw error;
     }
-
-    if (filters.reportType === 'byPerson' && filters.person) {
-      documents = documents.filter(doc => doc.persona_id && doc.persona_id._id.toString() === filters.person);
-    }
-
-    if (filters.reportType === 'expiring' && filters.days) {
-      const now = new Date();
-      const limitDate = new Date();
-      limitDate.setDate(limitDate.getDate() + parseInt(filters.days));
-      documents = documents.filter(doc => {
-        if (!doc.fecha_vencimiento) return false;
-        const vencimiento = new Date(doc.fecha_vencimiento);
-        return vencimiento >= now && vencimiento <= limitDate;
-      });
-    }
-
-    if (filters.reportType === 'expired') {
-      const now = new Date();
-      documents = documents.filter(doc => {
-        if (!doc.fecha_vencimiento) return false;
-        return new Date(doc.fecha_vencimiento) < now;
-      });
-    }
-
-    if (filters.dateFrom || filters.dateTo) {
-      const from = filters.dateFrom ? new Date(filters.dateFrom) : null;
-      const to = filters.dateTo ? new Date(filters.dateTo) : null;
-      documents = documents.filter(doc => {
-        const docDate = new Date(doc.fecha_subida);
-        if (from && docDate < from) return false;
-        if (to && docDate > to) return false;
-        return true;
-      });
-    }
-
-    return documents;
   }
 
   // Generar reporte en Excel
   static async generateExcel(req, res) {
     try {
-      console.log('📊 Generando reporte en Excel...');
+      console.log('📊 ReportController.generateExcel - Iniciando...');
+      console.log('📋 Filtros recibidos:', req.body);
       
-      const documents = await this.filterDocuments(req.body);
+      // CORRECCIÓN: Usar ReportController.filterDocuments en lugar de this.filterDocuments
+      const documents = await ReportController.filterDocuments(req.body);
+
+      if (documents.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se encontraron documentos con los filtros seleccionados'
+        });
+      }
 
       // Crear libro de Excel
       const workbook = new ExcelJS.Workbook();
@@ -104,26 +129,32 @@ class ReportController {
       });
 
       // Datos
-      documents.forEach(doc => {
+      documents.forEach((doc, index) => {
         const person = doc.persona_id ? doc.persona_id.nombre : 'No asignado';
         const vencimiento = doc.fecha_vencimiento ? FileService.formatDate(doc.fecha_vencimiento) : 'Sin vencimiento';
         
         let estado = 'Activo';
+        let estadoColor = 'FF10B981'; // Verde por defecto
         if (doc.fecha_vencimiento) {
           const now = new Date();
           const vencimientoDate = new Date(doc.fecha_vencimiento);
           const diff = Math.ceil((vencimientoDate - now) / (1000 * 60 * 60 * 24));
-          if (diff <= 0) estado = 'Vencido';
-          else if (diff <= 7) estado = 'Por vencer';
+          if (diff <= 0) {
+            estado = 'Vencido';
+            estadoColor = 'FFEF4444'; // Rojo
+          } else if (diff <= 7) {
+            estado = 'Por vencer';
+            estadoColor = 'FFF59E0B'; // Amarillo
+          }
         }
 
         const row = worksheet.addRow([
           doc.nombre_original,
-          doc.tipo_archivo.toUpperCase(),
-          FileService.formatFileSize(doc.tamano_archivo),
-          doc.categoria,
+          doc.tipo_archivo ? doc.tipo_archivo.toUpperCase() : 'DESCONOCIDO',
+          FileService.formatFileSize(doc.tamano_archivo || 0),
+          doc.categoria || 'Sin categoría',
           person,
-          FileService.formatDate(doc.fecha_subida),
+          FileService.formatDate(doc.fecha_subida || doc.createdAt),
           vencimiento,
           estado
         ]);
@@ -147,6 +178,11 @@ class ReportController {
             right: { style: 'thin' }
           };
         });
+        
+        // Mostrar progreso cada 50 documentos
+        if (index % 50 === 0) {
+          console.log(`📄 Procesando documento ${index + 1} de ${documents.length}`);
+        }
       });
 
       // Ajustar ancho de columnas
@@ -166,15 +202,17 @@ class ReportController {
       const statsRow = worksheet.addRow(['Total de documentos:', documents.length]);
       statsRow.getCell(1).font = { bold: true };
       statsRow.getCell(1).alignment = { horizontal: 'right' };
+      statsRow.getCell(2).font = { bold: true };
 
       // Enviar archivo
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.xlsx`);
 
+      console.log('💾 Guardando archivo Excel...');
       await workbook.xlsx.write(res);
       res.end();
 
-      console.log('✅ Reporte Excel generado exitosamente');
+      console.log(`✅ Reporte Excel generado exitosamente con ${documents.length} documentos`);
 
       // Crear notificación de reporte generado
       try {
@@ -185,9 +223,12 @@ class ReportController {
 
     } catch (error) {
       console.error('❌ Error generando reporte Excel:', error);
+      console.error('📋 Stack trace:', error.stack);
+      
       res.status(500).json({ 
         success: false, 
-        message: 'Error al generar reporte Excel: ' + error.message 
+        message: 'Error al generar reporte Excel: ' + error.message,
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }
@@ -195,9 +236,17 @@ class ReportController {
   // Generar reporte en PDF
   static async generatePDF(req, res) {
     try {
-      console.log('📊 Generando reporte en PDF...');
+      console.log('📊 ReportController.generatePDF - Iniciando...');
       
-      const documents = await this.filterDocuments(req.body);
+      // CORRECCIÓN: Usar ReportController.filterDocuments
+      const documents = await ReportController.filterDocuments(req.body);
+
+      if (documents.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se encontraron documentos con los filtros seleccionados'
+        });
+      }
 
       // Crear documento PDF
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -280,10 +329,10 @@ class ReportController {
 
         doc.fontSize(9)
           .fillColor('#6B7280')
-          .text(`   Tipo: ${document.tipo_archivo.toUpperCase()} | Tamaño: ${FileService.formatFileSize(document.tamano_archivo)}`, { indent: 15 })
-          .text(`   Categoría: ${document.categoria}`, { indent: 15 })
+          .text(`   Tipo: ${document.tipo_archivo ? document.tipo_archivo.toUpperCase() : 'DESCONOCIDO'} | Tamaño: ${FileService.formatFileSize(document.tamano_archivo || 0)}`, { indent: 15 })
+          .text(`   Categoría: ${document.categoria || 'Sin categoría'}`, { indent: 15 })
           .text(`   Asignado a: ${person}`, { indent: 15 })
-          .text(`   Fecha de subida: ${FileService.formatDate(document.fecha_subida)}`, { indent: 15 })
+          .text(`   Fecha de subida: ${FileService.formatDate(document.fecha_subida || document.createdAt)}`, { indent: 15 })
           .text(`   Vencimiento: ${vencimiento}`, { indent: 15 })
           .fillColor(estadoColor)
           .text(`   Estado: ${estado}`, { indent: 15 })
@@ -314,7 +363,7 @@ class ReportController {
       // Finalizar documento
       doc.end();
 
-      console.log('✅ Reporte PDF generado exitosamente');
+      console.log(`✅ Reporte PDF generado exitosamente con ${documents.length} documentos`);
 
       // Crear notificación de reporte generado
       try {
@@ -335,15 +384,23 @@ class ReportController {
   // Generar reporte en CSV
   static async generateCSV(req, res) {
     try {
-      console.log('📊 Generando reporte en CSV...');
+      console.log('📊 ReportController.generateCSV - Iniciando...');
       
-      const documents = await this.filterDocuments(req.body);
+      // CORRECCIÓN: Usar ReportController.filterDocuments
+      const documents = await ReportController.filterDocuments(req.body);
+
+      if (documents.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se encontraron documentos con los filtros seleccionados'
+        });
+      }
 
       // Crear CSV
       let csv = '\uFEFF'; // BOM para UTF-8
       csv += 'Nombre del Documento,Tipo,Tamaño,Categoría,Persona Asignada,Departamento,Puesto,Fecha de Subida,Fecha de Vencimiento,Estado\n';
 
-      documents.forEach(doc => {
+      documents.forEach((doc, index) => {
         const person = doc.persona_id ? doc.persona_id.nombre : 'No asignado';
         const departamento = doc.persona_id ? doc.persona_id.departamento || '-' : '-';
         const puesto = doc.persona_id ? doc.persona_id.puesto || '-' : '-';
@@ -360,13 +417,20 @@ class ReportController {
 
         // Escapar comillas y comas en los valores
         const escapeCSV = (value) => {
-          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-            return `"${value.replace(/"/g, '""')}"`;
+          if (value === null || value === undefined) return '';
+          const valueStr = String(value);
+          if (valueStr.includes(',') || valueStr.includes('"') || valueStr.includes('\n') || valueStr.includes('\r')) {
+            return `"${valueStr.replace(/"/g, '""')}"`;
           }
-          return value;
+          return valueStr;
         };
 
-        csv += `${escapeCSV(doc.nombre_original)},${doc.tipo_archivo.toUpperCase()},${FileService.formatFileSize(doc.tamano_archivo)},${escapeCSV(doc.categoria)},${escapeCSV(person)},${escapeCSV(departamento)},${escapeCSV(puesto)},${FileService.formatDate(doc.fecha_subida)},${vencimiento},${estado}\n`;
+        csv += `${escapeCSV(doc.nombre_original)},${doc.tipo_archivo ? doc.tipo_archivo.toUpperCase() : 'DESCONOCIDO'},${FileService.formatFileSize(doc.tamano_archivo || 0)},${escapeCSV(doc.categoria)},${escapeCSV(person)},${escapeCSV(departamento)},${escapeCSV(puesto)},${FileService.formatDate(doc.fecha_subida || doc.createdAt)},${escapeCSV(vencimiento)},${escapeCSV(estado)}\n`;
+        
+        // Mostrar progreso cada 100 documentos
+        if (index % 100 === 0) {
+          console.log(`📄 Procesando documento ${index + 1} de ${documents.length}`);
+        }
       });
 
       // Enviar archivo
@@ -374,7 +438,7 @@ class ReportController {
       res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.csv`);
       res.send(csv);
 
-      console.log('✅ Reporte CSV generado exitosamente');
+      console.log(`✅ Reporte CSV generado exitosamente con ${documents.length} documentos`);
 
       // Crear notificación de reporte generado
       try {

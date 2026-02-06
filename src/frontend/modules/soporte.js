@@ -1572,16 +1572,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
-    
-    // Funcionalidad del botón de chat
-    const startChatBtn = document.getElementById('startChatBtn');
-    if (startChatBtn) {
-        startChatBtn.addEventListener('click', function() {
-            // Puedes implementar un modal de chat aquí
-            // Por ahora solo un alert
-            alert('Funcionalidad de chat en vivo - Próximamente!');
-        });
-    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
