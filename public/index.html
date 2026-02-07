@@ -957,96 +957,96 @@
                     </div>
                 </section>
 
-<!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (RENOVADA) -->
-<section id="reportes" class="tab-content">
-    <div class="section__header">
-        <div>
-            <h2 class="section__title"><i class="fas fa-chart-bar"></i> Reportes</h2>
-            <p class="section__subtitle">Genera y descarga reportes personalizados del sistema</p>
-        </div>
-    </div>
-    
-    <div class="reportes-content">
-        <!-- Formulario de configuración de reportes -->
-        <div class="reportes-form reportes-fade-in">
-            <h3 class="reportes-form__title">
-                <i class="fas fa-cogs"></i> Configuración del Reporte
-            </h3>
-            
-            <form id="reportForm">
-                <div class="reportes-form__grid">
-                    <!-- Tipo de Reporte -->
-                    <div class="reportes-form__group">
-                        <label for="reportType" class="reportes-form__label">
-                            <i class="fas fa-chart-pie"></i> Tipo de Reporte
-                        </label>
-                        <div class="reportes-select__wrapper">
-                            <select id="reportType" class="reportes-select">
-                                <option value="general">Reporte General</option>
-                                <option value="byCategory">Por Categoría</option>
-                                <option value="byPerson">Por Persona</option>
-                                <option value="expiring">Documentos por Vencer</option>
-                                <option value="expired">Documentos Vencidos</option>
-                            </select>
-                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
+                <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (RENOVADA) -->
+                <section id="reportes" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title"><i class="fas fa-chart-bar"></i> Reportes</h2>
+                            <p class="section__subtitle">Genera y descarga reportes personalizados del sistema</p>
                         </div>
-                        <small class="reportes-form__help">
-                            Seleccione el tipo de reporte que desea generar
-                        </small>
                     </div>
 
-                    <!-- Formato del Reporte -->
-                    <div class="reportes-form__group">
-                        <label for="reportFormat" class="reportes-form__label">
-                            <i class="fas fa-file-export"></i> Formato de Salida
-                        </label>
-                        <div class="reportes-select__wrapper">
-                            <select id="reportFormat" class="reportes-select">
-                                <option value="excel">Excel (.xlsx)</option>
-                                <option value="csv">CSV (.csv)</option>
-                            </select>
-                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
+                    <div class="reportes-content">
+                        <!-- Formulario de configuración de reportes -->
+                        <div class="reportes-form reportes-fade-in">
+                            <h3 class="reportes-form__title">
+                                <i class="fas fa-cogs"></i> Configuración del Reporte
+                            </h3>
+
+                            <form id="reportForm">
+                                <div class="reportes-form__grid">
+                                    <!-- Tipo de Reporte -->
+                                    <div class="reportes-form__group">
+                                        <label for="reportType" class="reportes-form__label">
+                                            <i class="fas fa-chart-pie"></i> Tipo de Reporte
+                                        </label>
+                                        <div class="reportes-select__wrapper">
+                                            <select id="reportType" class="reportes-select">
+                                                <option value="general">Reporte General</option>
+                                                <option value="byCategory">Por Categoría</option>
+                                                <option value="byPerson">Por Persona</option>
+                                                <option value="expiring">Documentos por Vencer</option>
+                                                <option value="expired">Documentos Vencidos</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
+                                        </div>
+                                        <small class="reportes-form__help">
+                                            Seleccione el tipo de reporte que desea generar
+                                        </small>
+                                    </div>
+
+                                    <!-- Formato del Reporte -->
+                                    <div class="reportes-form__group">
+                                        <label for="reportFormat" class="reportes-form__label">
+                                            <i class="fas fa-file-export"></i> Formato de Salida
+                                        </label>
+                                        <div class="reportes-select__wrapper">
+                                            <select id="reportFormat" class="reportes-select">
+                                                <option value="excel">Excel (.xlsx)</option>
+                                                <option value="csv">CSV (.csv)</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
+                                        </div>
+                                        <small class="reportes-form__help">
+                                            Elija el formato de archivo para el reporte
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <!-- Filtros Específicos -->
+                                <div class="reportes-form__group">
+                                    <label class="reportes-form__label">
+                                        <i class="fas fa-filter"></i> Filtros Específicos
+                                    </label>
+                                    <div id="reportSpecificFilters" class="reportes-filters">
+                                        <!-- Los filtros se cargarán dinámicamente aquí -->
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                        <small class="reportes-form__help">
-                            Elija el formato de archivo para el reporte
-                        </small>
+
+                        <!-- Vista Previa del Reporte -->
+                        <div class="reportes-preview reportes-fade-in">
+                            <h3 class="reportes-preview__title">
+                                <i class="fas fa-eye"></i> Vista Previa del Reporte
+                            </h3>
+                            <div class="reportes-preview__content" id="reportPreviewContent">
+                                <div class="reportes-preview-placeholder">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <p>Seleccione un tipo de reporte para ver la vista previa</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pie de página con botón de acción -->
+                        <div class="reportes-footer">
+                            <button class="reportes-btn reportes-btn--primary" id="generateReportBtn">
+                                <i class="fas fa-download"></i>
+                                <span>Generar Reporte</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Filtros Específicos -->
-                <div class="reportes-form__group">
-                    <label class="reportes-form__label">
-                        <i class="fas fa-filter"></i> Filtros Específicos
-                    </label>
-                    <div id="reportSpecificFilters" class="reportes-filters">
-                        <!-- Los filtros se cargarán dinámicamente aquí -->
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <!-- Vista Previa del Reporte -->
-        <div class="reportes-preview reportes-fade-in">
-            <h3 class="reportes-preview__title">
-                <i class="fas fa-eye"></i> Vista Previa del Reporte
-            </h3>
-            <div class="reportes-preview__content" id="reportPreviewContent">
-                <div class="reportes-preview-placeholder">
-                    <i class="fas fa-chart-bar"></i>
-                    <p>Seleccione un tipo de reporte para ver la vista previa</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pie de página con botón de acción -->
-        <div class="reportes-footer">
-            <button class="reportes-btn reportes-btn--primary" id="generateReportBtn">
-                <i class="fas fa-download"></i>
-                <span>Generar Reporte</span>
-            </button>
-        </div>
-    </div>
-</section>
+                </section>
 
                 <!-- SECCIÓN 4.2.7: PESTAÑA CALENDARIO -->
                 <section id="calendario" class="tab-content active">
@@ -1879,19 +1879,19 @@
                             </div>
 
                             <!-- Preguntas Frecuentes -->
-<div class="support-faq">
-    <div class="faq__header">
-        <h3 class="faq__title">
-            <i class="fas fa-question-circle"></i>
-            Preguntas Frecuentes (FAQ)
-        </h3>
-    </div>
-    <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
-        <div class="faq__list" id="faqList">
-            <!-- Las preguntas frecuentes se cargarán dinámicamente -->
-        </div>
-    </div>
-</div>
+                            <div class="support-faq">
+                                <div class="faq__header">
+                                    <h3 class="faq__title">
+                                        <i class="fas fa-question-circle"></i>
+                                        Preguntas Frecuentes (FAQ)
+                                    </h3>
+                                </div>
+                                <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
+                                    <div class="faq__list" id="faqList">
+                                        <!-- Las preguntas frecuentes se cargarán dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Datos de Contacto de Soporte -->
                             <div class="support-panel support-panel--contact">
@@ -1926,7 +1926,8 @@
                                             <span class="contact-label">Teléfono</span>
                                             <a href="tel:+52 669-199-1113" class="contact-value">+52 669-199-1113</a>
                                         </div>
-                                        <button class="contact-copy" data-text="+52 669-199-1113" title="Copiar teléfono">
+                                        <button class="contact-copy" data-text="+52 669-199-1113"
+                                            title="Copiar teléfono">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
@@ -2742,7 +2743,7 @@
     <!-- Modal para cambiar administrador - VERSIÓN CORREGIDA -->
     <div id="changeAdminModal" class="modal">
         <div class="modal__overlay" onclick="cerrarModalCambioAdmin()"></div>
-        <article class="modal__content modal__content--md modal__change">
+        <article class="modal__content modal__content--md">
             <header class="modal__header">
                 <h3 class="modal__title">
                     <i class="fas fa-user-shield"></i> Cambiar Administrador

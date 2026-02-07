@@ -3,55 +3,119 @@ import User from '../models/User.js';
 import AdminChangeRequest from '../models/AdminChangeRequest.js';
 import { transporter } from './authController.js';
 
-// =============================================================================
-// CONFIGURACIÓN
-// =============================================================================
+// ============================================================================
+// SECCIÓN: CONTROLADOR DE CAMBIO DE ADMINISTRADOR
+// ============================================================================
+// Este archivo maneja todas las operaciones relacionadas con la transferencia
+// de privilegios de administrador entre usuarios. Incluye solicitud, verificación,
+// confirmación y monitoreo del proceso completo de cambio de administrador.
+// ============================================================================
+
+// ============================================================================
+// SECCIÓN: CONFIGURACIÓN INICIAL
+// ============================================================================
+// Configuración de constantes y verificación de inicialización del sistema
+// ============================================================================
+
+// Configuración del remitente para todos los correos electrónicos
 const emailFrom = 'riosnavarretejared@gmail.com';
 
+// Log de inicialización del controlador
 console.log('\n🔐 ========== ADMIN CONTROLLER INICIALIZADO ==========');
 console.log(`📧 Transporter: ${transporter ? '✅ CONFIGURADO' : '❌ NO CONFIGURADO'}`);
 console.log('🔐 ====================================================\n');
 
-// =============================================================================
-// FUNCIONES AUXILIARES
-// =============================================================================
+// ============================================================================
+// SECCIÓN: FUNCIONES AUXILIARES
+// ============================================================================
+// Funciones de apoyo utilizadas en múltiples partes del controlador
+// ============================================================================
 
+// ********************************************************************
+// MÓDULO 1: GENERACIÓN DE TOKEN SEGURO
+// ********************************************************************
+// Descripción: Genera un token criptográficamente seguro utilizando
+// el módulo crypto de Node.js. Este token se usa para verificar la
+// autenticidad de las solicitudes de cambio de administrador.
+// ********************************************************************
 const generateSecureToken = () => {
+    // Genera 32 bytes aleatorios y los convierte a formato hexadecimal
     return crypto.randomBytes(32).toString('hex');
 };
 
+// ********************************************************************
+// MÓDULO 2: CONSTRUCCIÓN DE URL DE VERIFICACIÓN
+// ********************************************************************
+// Descripción: Construye la URL completa que el administrador actual
+// debe visitar para confirmar el cambio. Incluye el token como parámetro
+// de consulta para identificar la solicitud específica.
+// ********************************************************************
 const buildVerificationUrl = (token) => {
+    // Obtiene la URL base del frontend desde variables de entorno
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
+    // Construye la URL con el token como parámetro
     return `${baseUrl}/verify-admin-change.html?token=${token}`;
 };
 
+// ********************************************************************
+// MÓDULO 3: ENVÍO DE EMAIL CON REINTENTOS
+// ********************************************************************
+// Descripción: Envía correos electrónicos con un sistema de reintentos
+// automático. Si falla el primer intento, espera 2 segundos y reintenta
+// hasta 3 veces antes de considerar el envío como fallido.
+// ********************************************************************
 const enviarEmailConReintentos = async (mailOptions, intentos = 3) => {
+    // Verifica que el transporter esté configurado
     if (!transporter) throw new Error('Transporter no disponible');
 
+    // Bucle de reintentos
     for (let i = 0; i < intentos; i++) {
         try {
             console.log(`📤 Intento ${i + 1} enviando email...`);
+            // Intenta enviar el correo
             const info = await transporter.sendMail(mailOptions);
             console.log(`✅ Email enviado en intento ${i + 1}`);
             return info;
         } catch (error) {
             console.error(`❌ Intento ${i + 1} falló:`, error.message);
+            // Si es el último intento, lanza el error
             if (i === intentos - 1) throw error;
+            // Espera 2 segundos antes de reintentar
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
     }
 };
 
-// =============================================================================
-// DEBUGGING INTENSIVO - FUNCIÓN PARA LOGGEO DETALLADO
-// =============================================================================
+// ============================================================================
+// SECCIÓN: SISTEMA DE DEBUGGING
+// ============================================================================
+// Herramientas de diagnóstico y logueo detallado para monitorear
+// el funcionamiento del proceso de cambio de administrador
+// ============================================================================
 
+// ********************************************************************
+// MÓDULO 4: CONFIGURACIÓN DE DEBUGGING INTENSIVO
+// ********************************************************************
+// Descripción: Objeto que contiene todas las funciones de logging
+// detallado para cada etapa del proceso. Permite rastrear problemas
+// y entender el flujo completo de ejecución.
+// ********************************************************************
 const debugAdminChange = {
+    // ----------------------------------------------------------------
+    // BLOQUE 4.1: Inicio de operación de debug
+    // ----------------------------------------------------------------
+    // Registra el inicio de una operación específica con timestamp
+    // y marca visual en los logs
     start: (operation) => {
         console.log(`\n🔍 ========== DEBUG ${operation.toUpperCase()} ==========`);
         console.log(`🕒 Iniciado: ${new Date().toISOString()}`);
     },
     
+    // ----------------------------------------------------------------
+    // BLOQUE 4.2: Log de datos de la solicitud HTTP
+    // ----------------------------------------------------------------
+    // Extrae y muestra información detallada de la petición entrante
+    // incluyendo body, headers, usuario autenticado e IP
     logRequestData: (req) => {
         console.log('📋 DATOS DE LA SOLICITUD:');
         console.log('Body completo:', JSON.stringify(req.body, null, 2));
@@ -63,6 +127,11 @@ const debugAdminChange = {
         console.log('IP:', req.ip);
     },
     
+    // ----------------------------------------------------------------
+    // BLOQUE 4.3: Log del estado actual de la base de datos
+    // ----------------------------------------------------------------
+    // Consulta y muestra estadísticas importantes de la base de datos
+    // como cantidad de administradores activos y solicitudes pendientes
     logDatabaseState: async () => {
         try {
             const adminCount = await User.countDocuments({ rol: 'administrador', activo: true });
@@ -76,6 +145,11 @@ const debugAdminChange = {
         }
     },
     
+    // ----------------------------------------------------------------
+    // BLOQUE 4.4: Log de procesamiento de contraseñas
+    // ----------------------------------------------------------------
+    // Muestra información sensible sobre el procesamiento de contraseñas
+    // para debugging, incluyendo longitudes y hashes generados
     logPasswordProcessing: (plainPassword, hashedPassword = null) => {
         console.log('🔑 PROCESAMIENTO DE CONTRASEÑA:');
         console.log(`- Contraseña recibida: "${plainPassword ? plainPassword.substring(0, 3) + '...' : 'NULL'}"`);
@@ -83,6 +157,11 @@ const debugAdminChange = {
         console.log(`- Contraseña hasheada: ${hashedPassword ? hashedPassword.substring(0, 20) + '...' : 'NO PROCESADA'}`);
     },
     
+    // ----------------------------------------------------------------
+    // BLOQUE 4.5: Finalización de operación de debug
+    // ----------------------------------------------------------------
+    // Marca el final de una operación de debug con indicador de éxito
+    // y timestamp de finalización
     end: (operation, success = true) => {
         console.log(`✅ ${success ? 'COMPLETADO' : 'FALLADO'}: ${operation.toUpperCase()}`);
         console.log(`🕒 Finalizado: ${new Date().toISOString()}`);
@@ -90,15 +169,30 @@ const debugAdminChange = {
     }
 };
 
-// =============================================================================
-// 1. SOLICITAR CAMBIO DE ADMINISTRADOR (CORREGIDO CON DEBUGGING)
-// =============================================================================
+// ============================================================================
+// SECCIÓN: CONTROLADOR PRINCIPAL
+// ============================================================================
+// Funciones principales del controlador que manejan las rutas HTTP
+// y coordinan el proceso completo de cambio de administrador
+// ============================================================================
 
+// ********************************************************************
+// MÓDULO 5: SOLICITUD DE CAMBIO DE ADMINISTRADOR
+// ********************************************************************
+// Descripción: Endpoint principal para iniciar el proceso de cambio
+// de administrador. Valida los datos, crea la solicitud en base de datos
+// y envía el correo de confirmación al administrador actual.
+// ********************************************************************
 export const requestAdminChange = async (req, res) => {
+    // Inicia el debugging para esta operación
     debugAdminChange.start('SOLICITUD CAMBIO ADMINISTRADOR');
     debugAdminChange.logRequestData(req);
     
     try {
+        // ----------------------------------------------------------------
+        // BLOQUE 5.1: Extracción de datos de la solicitud
+        // ----------------------------------------------------------------
+        // Extrae todos los campos necesarios del body de la petición
         const { 
             nuevoUsuario, 
             nuevoCorreo, 
@@ -106,15 +200,18 @@ export const requestAdminChange = async (req, res) => {
             confirmarPassword 
         } = req.body;
 
-        // =========================================================================
-        // VALIDACIONES DETALLADAS
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 5.2: Validación detallada de datos
+        // ----------------------------------------------------------------
+        // Verifica que todos los campos requeridos estén presentes
+        // y tengan el formato correcto
         console.log('🔍 VALIDANDO DATOS:');
         console.log(`- nuevoUsuario: "${nuevoUsuario}" (${nuevoUsuario?.length || 0} chars)`);
         console.log(`- nuevoCorreo: "${nuevoCorreo}"`);
         console.log(`- nuevaPassword: "${nuevaPassword ? '***' + nuevaPassword.substring(nuevaPassword.length - 2) : 'NULL'}"`);
         console.log(`- confirmarPassword: "${confirmarPassword ? '***' + confirmarPassword.substring(confirmarPassword.length - 2) : 'NULL'}"`);
 
+        // Validación de campos requeridos
         if (!nuevoUsuario || !nuevoCorreo || !nuevaPassword || !confirmarPassword) {
             const missing = [];
             if (!nuevoUsuario) missing.push('nuevoUsuario');
@@ -132,6 +229,7 @@ export const requestAdminChange = async (req, res) => {
             });
         }
 
+        // Validación de coincidencia de contraseñas
         if (nuevaPassword !== confirmarPassword) {
             console.error('❌ Contraseñas no coinciden');
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
@@ -141,6 +239,7 @@ export const requestAdminChange = async (req, res) => {
             });
         }
 
+        // Validación de formato de correo electrónico
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(nuevoCorreo)) {
             console.error(`❌ Correo inválido: ${nuevoCorreo}`);
@@ -151,9 +250,11 @@ export const requestAdminChange = async (req, res) => {
             });
         }
 
-        // =========================================================================
-        // OBTENER ADMINISTRADOR ACTUAL
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 5.3: Obtención del administrador actual
+        // ----------------------------------------------------------------
+        // Busca al administrador actual en la base de datos usando
+        // el ID del usuario autenticado
         const currentAdminId = req.user.id;
         console.log(`👤 Buscando admin actual ID: ${currentAdminId}`);
         
@@ -170,9 +271,10 @@ export const requestAdminChange = async (req, res) => {
 
         console.log(`✅ Admin actual encontrado: ${currentAdmin.usuario} (${currentAdmin.correo})`);
 
-        // =========================================================================
-        // VERIFICAR USUARIO Y CORREO ÚNICOS
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 5.4: Verificación de unicidad de datos
+        // ----------------------------------------------------------------
+        // Verifica que el nuevo usuario y correo no existan ya en el sistema
         console.log('🔍 Verificando unicidad de datos...');
         
         const existingUser = await User.findOne({ correo: nuevoCorreo });
@@ -198,21 +300,24 @@ export const requestAdminChange = async (req, res) => {
 
         console.log('✅ Usuario y correo disponibles');
 
-        // =========================================================================
-        // PROCESAR CONTRASEÑA CORRECTAMENTE
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 5.5: Procesamiento seguro de contraseña
+        // ----------------------------------------------------------------
+        // Hashea la contraseña usando bcrypt antes de almacenarla
         debugAdminChange.logPasswordProcessing(nuevaPassword);
         
-        // IMPORTANTE: Encriptar la contraseña ANTES de guardarla en la solicitud
+        // Importación dinámica de bcrypt para hashing
         const bcrypt = await import('bcryptjs');
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(nuevaPassword, salt);
         
         debugAdminChange.logPasswordProcessing(nuevaPassword, hashedPassword);
 
-        // =========================================================================
-        // CREAR SOLICITUD DE CAMBIO
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 5.6: Creación de solicitud de cambio
+        // ----------------------------------------------------------------
+        // Crea un registro en la colección AdminChangeRequest con todos
+        // los datos necesarios para procesar el cambio
         const verificationToken = generateSecureToken();
         
         console.log('📝 Creando solicitud de cambio...');
@@ -223,7 +328,7 @@ export const requestAdminChange = async (req, res) => {
             currentAdminName: currentAdmin.usuario,
             newAdminUser: nuevoUsuario,
             newAdminEmail: nuevoCorreo,
-            newAdminPassword: hashedPassword, // ¡GUARDAR LA CONTRASEÑA HASHEADA!
+            newAdminPassword: hashedPassword, // Contraseña ya hasheada
             verificationToken,
             tokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
             status: 'pending',
@@ -250,14 +355,17 @@ export const requestAdminChange = async (req, res) => {
             expires: adminChangeRequest.tokenExpires
         });
 
-        // =========================================================================
-        // VERIFICAR ESTADO DE LA SOLICITUD
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 5.7: Verificación del estado del sistema
+        // ----------------------------------------------------------------
+        // Muestra el estado actual de la base de datos para debugging
         await debugAdminChange.logDatabaseState();
 
-        // =========================================================================
-        // ENVIAR EMAIL DE CONFIRMACIÓN
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 5.8: Envío de email de confirmación
+        // ----------------------------------------------------------------
+        // Verifica si el transporter está disponible y envía el correo
+        // de confirmación al administrador actual
         if (!transporter) {
             console.error('❌ Transporter no disponible');
             adminChangeRequest.status = 'pending_no_email';
@@ -356,6 +464,10 @@ export const requestAdminChange = async (req, res) => {
         console.log('✅✅✅ SOLICITUD PROCESADA EXITOSAMENTE ✅✅✅');
         debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', true);
         
+        // ----------------------------------------------------------------
+        // BLOQUE 5.9: Respuesta exitosa
+        // ----------------------------------------------------------------
+        // Devuelve una respuesta JSON con todos los detalles de la solicitud
         res.json({
             success: true,
             message: '✅ Solicitud de cambio enviada. Revisa tu correo para confirmar la transferencia.',
@@ -369,6 +481,10 @@ export const requestAdminChange = async (req, res) => {
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 5.10: Manejo de errores críticos
+        // ----------------------------------------------------------------
+        // Captura y loguea errores no esperados en el proceso
         console.error('🔥 ERROR CRÍTICO en requestAdminChange:');
         console.error('📌 Mensaje:', error.message);
         console.error('📌 Stack:', error.stack);
@@ -388,14 +504,19 @@ export const requestAdminChange = async (req, res) => {
     }
 };
 
-// =============================================================================
-// 2. VERIFICAR TOKEN DE CAMBIO
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 6: VERIFICACIÓN DE TOKEN DE CAMBIO
+// ********************************************************************
+// Descripción: Endpoint para validar un token de cambio de administrador.
+// Verifica que el token exista, esté activo y no haya expirado.
+// ********************************************************************
 export const verifyAdminChangeToken = async (req, res) => {
     debugAdminChange.start('VERIFICACIÓN DE TOKEN');
     
     try {
+        // ----------------------------------------------------------------
+        // BLOQUE 6.1: Extracción y validación del token
+        // ----------------------------------------------------------------
         const { token } = req.params;
 
         if (!token) {
@@ -409,6 +530,9 @@ export const verifyAdminChangeToken = async (req, res) => {
 
         console.log(`🔑 Token recibido: ${token.substring(0, 15)}...`);
 
+        // ----------------------------------------------------------------
+        // BLOQUE 6.2: Búsqueda de la solicitud en base de datos
+        // ----------------------------------------------------------------
         const changeRequest = await AdminChangeRequest.findOne({
             verificationToken: token,
             status: 'pending'
@@ -429,6 +553,9 @@ export const verifyAdminChangeToken = async (req, res) => {
             status: changeRequest.status
         });
 
+        // ----------------------------------------------------------------
+        // BLOQUE 6.3: Verificación de expiración del token
+        // ----------------------------------------------------------------
         if (changeRequest.tokenExpires < new Date()) {
             console.error('❌ Token expirado');
             changeRequest.status = 'expired';
@@ -443,13 +570,18 @@ export const verifyAdminChangeToken = async (req, res) => {
 
         console.log('✅ Token válido y vigente');
         
-        // DEBUG: Verificar que la contraseña esté almacenada
+        // ----------------------------------------------------------------
+        // BLOQUE 6.4: Verificación de contraseña almacenada
+        // ----------------------------------------------------------------
         console.log('🔍 Verificando contraseña almacenada:');
         console.log(`- Password stored: ${!!changeRequest.newAdminPassword}`);
         console.log(`- Password length in DB: ${changeRequest.newAdminPassword?.length || 0}`);
 
         debugAdminChange.end('VERIFICACIÓN DE TOKEN', true);
         
+        // ----------------------------------------------------------------
+        // BLOQUE 6.5: Respuesta con datos de la solicitud
+        // ----------------------------------------------------------------
         res.json({
             success: true,
             message: 'Token válido',
@@ -470,6 +602,9 @@ export const verifyAdminChangeToken = async (req, res) => {
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 6.6: Manejo de errores en verificación
+        // ----------------------------------------------------------------
         console.error('🔥 ERROR en verifyAdminChangeToken:', error);
         debugAdminChange.end('VERIFICACIÓN DE TOKEN', false);
         res.status(500).json({
@@ -480,14 +615,20 @@ export const verifyAdminChangeToken = async (req, res) => {
     }
 };
 
-// =============================================================================
-// 3. CONFIRMAR CAMBIO DE ADMINISTRADOR (CORREGIDO)
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 7: CONFIRMACIÓN DE CAMBIO DE ADMINISTRADOR
+// ********************************************************************
+// Descripción: Endpoint que ejecuta el cambio real de administrador.
+// Desactiva al administrador actual, crea el nuevo administrador
+// y actualiza el estado de la solicitud.
+// ********************************************************************
 export const confirmAdminChange = async (req, res) => {
     debugAdminChange.start('CONFIRMACIÓN DE CAMBIO');
     
     try {
+        // ----------------------------------------------------------------
+        // BLOQUE 7.1: Extracción y validación del token
+        // ----------------------------------------------------------------
         const { token } = req.body;
 
         if (!token) {
@@ -501,7 +642,9 @@ export const confirmAdminChange = async (req, res) => {
 
         console.log(`🔑 Token recibido: ${token.substring(0, 15)}...`);
 
-        // Buscar solicitud
+        // ----------------------------------------------------------------
+        // BLOQUE 7.2: Búsqueda de la solicitud pendiente
+        // ----------------------------------------------------------------
         const changeRequest = await AdminChangeRequest.findOne({
             verificationToken: token,
             status: 'pending'
@@ -522,6 +665,9 @@ export const confirmAdminChange = async (req, res) => {
             newAdminEmail: changeRequest.newAdminEmail
         });
 
+        // ----------------------------------------------------------------
+        // BLOQUE 7.3: Verificación de validez del token
+        // ----------------------------------------------------------------
         if (!changeRequest.isTokenValid()) {
             console.error('❌ Token inválido o expirado');
             debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
@@ -531,7 +677,9 @@ export const confirmAdminChange = async (req, res) => {
             });
         }
 
-        // DEBUG: Verificar la contraseña almacenada
+        // ----------------------------------------------------------------
+        // BLOQUE 7.4: Verificación crítica de contraseña almacenada
+        // ----------------------------------------------------------------
         console.log('🔍 VERIFICANDO CONTRASEÑA ALMACENADA:');
         console.log(`- Contraseña en DB: ${changeRequest.newAdminPassword ? 'PRESENTE' : 'FALTANTE'}`);
         console.log(`- Longitud hash: ${changeRequest.newAdminPassword?.length || 0}`);
@@ -547,14 +695,15 @@ export const confirmAdminChange = async (req, res) => {
 
         console.log('✅✅✅ INICIANDO PROCESO DE CAMBIO ✅✅✅');
 
-        // =========================================================================
-        // PASO 1: DESACTIVAR ADMINISTRADOR ACTUAL
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 7.5: Desactivación del administrador actual
+        // ----------------------------------------------------------------
         const currentAdmin = await User.findById(changeRequest.currentAdminId);
         
         if (currentAdmin) {
             console.log(`👤 Desactivando admin actual: ${currentAdmin.usuario}`);
             
+            // Modifica el email y usuario para evitar conflictos
             const backupEmail = `old_${Date.now()}_${currentAdmin.correo}`;
             const backupUsername = `old_${Date.now()}_${currentAdmin.usuario}`;
             
@@ -570,53 +719,52 @@ export const confirmAdminChange = async (req, res) => {
             changeRequest.oldAdminDeactivated = true;
         }
 
-        // =========================================================================
-// PASO 2: CREAR NUEVO ADMINISTRADOR CON LA CONTRASEÑA YA HASHEADA
-// =========================================================================
-console.log('👤 Creando nuevo administrador...');
-console.log(`- Usuario: ${changeRequest.newAdminUser}`);
-console.log(`- Email: ${changeRequest.newAdminEmail}`);
-console.log(`- Password hash: ${changeRequest.newAdminPassword.substring(0, 20)}...`);
+        // ----------------------------------------------------------------
+        // BLOQUE 7.6: Creación del nuevo administrador
+        // ----------------------------------------------------------------
+        console.log('👤 Creando nuevo administrador...');
+        console.log(`- Usuario: ${changeRequest.newAdminUser}`);
+        console.log(`- Email: ${changeRequest.newAdminEmail}`);
+        console.log(`- Password hash: ${changeRequest.newAdminPassword.substring(0, 20)}...`);
 
-// CREAR EL USUARIO PERO EVITAR QUE MONGOOSE LO HASHEE DE NUEVO
-const newAdminData = {
-    usuario: changeRequest.newAdminUser,
-    correo: changeRequest.newAdminEmail,
-    password: changeRequest.newAdminPassword, // ¡USAR EL HASH YA ALMACENADO!
-    rol: 'administrador',
-    activo: true,
-    ultimoAcceso: new Date(),
-    metadata: {
-        createdFromRequest: changeRequest._id,
-        createdByAdmin: changeRequest.currentAdminId,
-        createdAt: new Date()
-    }
-};
+        // Datos para el nuevo administrador usando el hash ya almacenado
+        const newAdminData = {
+            usuario: changeRequest.newAdminUser,
+            correo: changeRequest.newAdminEmail,
+            password: changeRequest.newAdminPassword, // Hash ya existente
+            rol: 'administrador',
+            activo: true,
+            ultimoAcceso: new Date(),
+            metadata: {
+                createdFromRequest: changeRequest._id,
+                createdByAdmin: changeRequest.currentAdminId,
+                createdAt: new Date()
+            }
+        };
 
-// SOLUCIÓN: Crear el usuario directamente con create() y deshabilitar middleware
-const newAdmin = await User.create([newAdminData], {
-    // IMPORTANTE: Esto deshabilita el middleware pre('save')
-    saveMiddleware: false
-});
+        // Creación del usuario deshabilitando middleware de hash
+        const newAdmin = await User.create([newAdminData], {
+            saveMiddleware: false // Evita que se vuelva a hashear la contraseña
+        });
 
-console.log('✅ Nuevo administrador creado:', {
-    id: newAdmin._id,
-    usuario: newAdmin.usuario,
-    correo: newAdmin.correo,
-    passwordStored: !!newAdmin.password,
-    passwordLength: newAdmin.password?.length
-});
+        console.log('✅ Nuevo administrador creado:', {
+            id: newAdmin._id,
+            usuario: newAdmin.usuario,
+            correo: newAdmin.correo,
+            passwordStored: !!newAdmin.password,
+            passwordLength: newAdmin.password?.length
+        });
 
-        // =========================================================================
-        // PASO 3: VERIFICAR QUE EL USUARIO SE PUEDE AUTENTICAR
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 7.7: Prueba de autenticación del nuevo usuario
+        // ----------------------------------------------------------------
         console.log('🔐 Probando autenticación del nuevo usuario...');
         
         try {
-            const testPassword = 'test'; // Contraseña de prueba
+            const testPassword = 'test';
             const bcrypt = await import('bcryptjs');
             
-            // IMPORTANTE: Comparar una contraseña falsa para verificar que el hash funciona
+            // Prueba que el hash almacenado sea válido
             const isValidFormat = await bcrypt.compare(testPassword, newAdmin.password);
             console.log(`✅ Formato de hash válido: ${isValidFormat ? 'NO (esperado para contraseña incorrecta)' : 'SÍ, hash funciona'}`);
             
@@ -624,9 +772,9 @@ console.log('✅ Nuevo administrador creado:', {
             console.error('⚠️ Advertencia en prueba de autenticación:', authError.message);
         }
 
-        // =========================================================================
-        // PASO 4: ACTUALIZAR ESTADO DE LA SOLICITUD
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 7.8: Actualización del estado de la solicitud
+        // ----------------------------------------------------------------
         changeRequest.newAdminCreated = true;
         changeRequest.newAdminId = newAdmin._id;
         changeRequest.status = 'approved';
@@ -635,9 +783,9 @@ console.log('✅ Nuevo administrador creado:', {
         
         console.log('✅ Solicitud marcada como aprobada');
 
-        // =========================================================================
-        // PASO 5: ENVIAR EMAIL AL NUEVO ADMINISTRADOR
-        // =========================================================================
+        // ----------------------------------------------------------------
+        // BLOQUE 7.9: Envío de email al nuevo administrador
+        // ----------------------------------------------------------------
         if (transporter) {
             try {
                 const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:4000'}/login.html`;
@@ -699,9 +847,14 @@ console.log('✅ Nuevo administrador creado:', {
         console.log('✅✅✅ CAMBIO COMPLETADO EXITOSAMENTE ✅✅✅');
         debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', true);
         
-        // DEBUG: Verificar estado final
+        // ----------------------------------------------------------------
+        // BLOQUE 7.10: Verificación final del estado del sistema
+        // ----------------------------------------------------------------
         await debugAdminChange.logDatabaseState();
 
+        // ----------------------------------------------------------------
+        // BLOQUE 7.11: Respuesta exitosa con datos del cambio
+        // ----------------------------------------------------------------
         res.json({
             success: true,
             message: '✅ Cambio de administrador completado exitosamente.',
@@ -719,6 +872,9 @@ console.log('✅ Nuevo administrador creado:', {
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 7.12: Manejo de errores críticos en confirmación
+        // ----------------------------------------------------------------
         console.error('🔥 ERROR CRÍTICO en confirmAdminChange:');
         console.error('📌 Mensaje:', error.message);
         console.error('📌 Stack:', error.stack);
@@ -734,14 +890,19 @@ console.log('✅ Nuevo administrador creado:', {
     }
 };
 
-// =============================================================================
-// 4. RECHAZAR CAMBIO
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 8: RECHAZO DE SOLICITUD DE CAMBIO
+// ********************************************************************
+// Descripción: Endpoint para que un administrador rechace una solicitud
+// de cambio pendiente. Cambia el estado de la solicitud a 'rejected'.
+// ********************************************************************
 export const rejectAdminChange = async (req, res) => {
     debugAdminChange.start('RECHAZO DE CAMBIO');
     
     try {
+        // ----------------------------------------------------------------
+        // BLOQUE 8.1: Extracción y validación del token
+        // ----------------------------------------------------------------
         const { token } = req.body;
 
         if (!token) {
@@ -752,6 +913,9 @@ export const rejectAdminChange = async (req, res) => {
             });
         }
 
+        // ----------------------------------------------------------------
+        // BLOQUE 8.2: Búsqueda de solicitud pendiente
+        // ----------------------------------------------------------------
         const changeRequest = await AdminChangeRequest.findOne({
             verificationToken: token,
             status: 'pending'
@@ -765,6 +929,9 @@ export const rejectAdminChange = async (req, res) => {
             });
         }
 
+        // ----------------------------------------------------------------
+        // BLOQUE 8.3: Actualización del estado a rechazado
+        // ----------------------------------------------------------------
         changeRequest.status = 'rejected';
         changeRequest.rejectedAt = new Date();
         await changeRequest.save();
@@ -772,12 +939,18 @@ export const rejectAdminChange = async (req, res) => {
         console.log('✅ Solicitud rechazada:', changeRequest._id);
         debugAdminChange.end('RECHAZO DE CAMBIO', true);
 
+        // ----------------------------------------------------------------
+        // BLOQUE 8.4: Respuesta de confirmación
+        // ----------------------------------------------------------------
         res.json({
             success: true,
             message: '✅ Solicitud de cambio rechazada exitosamente.'
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 8.5: Manejo de errores en rechazo
+        // ----------------------------------------------------------------
         console.error('🔥 ERROR en rejectAdminChange:', error);
         debugAdminChange.end('RECHAZO DE CAMBIO', false);
         res.status(500).json({
@@ -788,24 +961,35 @@ export const rejectAdminChange = async (req, res) => {
     }
 };
 
-// =============================================================================
-// 5. OBTENER SOLICITUDES PENDIENTES
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 9: OBTENCIÓN DE SOLICITUDES PENDIENTES
+// ********************************************************************
+// Descripción: Endpoint para que un administrador vea todas sus
+// solicitudes de cambio que están en estado pendiente.
+// ********************************************************************
 export const getPendingRequests = async (req, res) => {
     debugAdminChange.start('OBTENIENDO SOLICITUDES PENDIENTES');
     
     try {
+        // ----------------------------------------------------------------
+        // BLOQUE 9.1: Obtención del ID del administrador actual
+        // ----------------------------------------------------------------
         const currentAdminId = req.user.id;
 
+        // ----------------------------------------------------------------
+        // BLOQUE 9.2: Búsqueda de solicitudes pendientes
+        // ----------------------------------------------------------------
         const pendingRequests = await AdminChangeRequest.find({
             currentAdminId,
             status: 'pending'
-        }).sort({ requestedAt: -1 });
+        }).sort({ requestedAt: -1 }); // Orden descendente por fecha
 
         console.log(`📋 ${pendingRequests.length} solicitudes pendientes`);
         debugAdminChange.end('OBTENIENDO SOLICITUDES PENDIENTES', true);
 
+        // ----------------------------------------------------------------
+        // BLOQUE 9.3: Formateo y envío de la respuesta
+        // ----------------------------------------------------------------
         res.json({
             success: true,
             requests: pendingRequests.map(request => ({
@@ -820,6 +1004,9 @@ export const getPendingRequests = async (req, res) => {
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 9.4: Manejo de errores en obtención
+        // ----------------------------------------------------------------
         console.error('🔥 ERROR en getPendingRequests:', error);
         debugAdminChange.end('OBTENIENDO SOLICITUDES PENDIENTES', false);
         res.status(500).json({
@@ -830,14 +1017,19 @@ export const getPendingRequests = async (req, res) => {
     }
 };
 
-// =============================================================================
-// 6. VERIFICAR ESTADO DE SOLICITUD
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 10: VERIFICACIÓN DE ESTADO DE SOLICITUD
+// ********************************************************************
+// Descripción: Endpoint para obtener el estado detallado de una
+// solicitud de cambio específica usando su ID.
+// ********************************************************************
 export const getRequestStatus = async (req, res) => {
     debugAdminChange.start('VERIFICANDO ESTADO DE SOLICITUD');
     
     try {
+        // ----------------------------------------------------------------
+        // BLOQUE 10.1: Extracción y validación del ID
+        // ----------------------------------------------------------------
         const { requestId } = req.params;
 
         if (!requestId) {
@@ -848,6 +1040,9 @@ export const getRequestStatus = async (req, res) => {
             });
         }
 
+        // ----------------------------------------------------------------
+        // BLOQUE 10.2: Búsqueda de la solicitud por ID
+        // ----------------------------------------------------------------
         const changeRequest = await AdminChangeRequest.findById(requestId);
 
         if (!changeRequest) {
@@ -860,6 +1055,9 @@ export const getRequestStatus = async (req, res) => {
 
         debugAdminChange.end('VERIFICANDO ESTADO DE SOLICITUD', true);
 
+        // ----------------------------------------------------------------
+        // BLOQUE 10.3: Formateo y envío de datos de la solicitud
+        // ----------------------------------------------------------------
         res.json({
             success: true,
             request: {
@@ -883,6 +1081,9 @@ export const getRequestStatus = async (req, res) => {
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 10.4: Manejo de errores en verificación
+        // ----------------------------------------------------------------
         console.error('🔥 ERROR en getRequestStatus:', error);
         debugAdminChange.end('VERIFICANDO ESTADO DE SOLICITUD', false);
         res.status(500).json({
@@ -893,15 +1094,19 @@ export const getRequestStatus = async (req, res) => {
     }
 };
 
-// =============================================================================
-// 7. DIAGNÓSTICO COMPLETO DEL SISTEMA
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 11: DIAGNÓSTICO COMPLETO DEL SISTEMA
+// ********************************************************************
+// Descripción: Endpoint de diagnóstico que verifica el estado de
+// todos los componentes del sistema de cambio de administrador.
+// ********************************************************************
 export const testAdminChange = async (req, res) => {
     debugAdminChange.start('DIAGNÓSTICO COMPLETO DEL SISTEMA');
     
     try {
-        // Verificar configuración de email
+        // ----------------------------------------------------------------
+        // BLOQUE 11.1: Verificación de configuración de email
+        // ----------------------------------------------------------------
         let emailStatus = '❌ No configurado';
         if (transporter) {
             try {
@@ -912,13 +1117,17 @@ export const testAdminChange = async (req, res) => {
             }
         }
 
-        // Obtener estadísticas
+        // ----------------------------------------------------------------
+        // BLOQUE 11.2: Obtención de estadísticas del sistema
+        // ----------------------------------------------------------------
         const adminCount = await User.countDocuments({ rol: 'administrador', activo: true });
         const deactivatedCount = await User.countDocuments({ rol: 'desactivado' });
         const pendingRequests = await AdminChangeRequest.countDocuments({ status: 'pending' });
         const approvedRequests = await AdminChangeRequest.countDocuments({ status: 'approved' });
 
-        // Obtener solicitudes recientes
+        // ----------------------------------------------------------------
+        // BLOQUE 11.3: Obtención de solicitudes recientes
+        // ----------------------------------------------------------------
         const recentRequests = await AdminChangeRequest.find()
             .sort({ requestedAt: -1 })
             .limit(5)
@@ -933,6 +1142,9 @@ export const testAdminChange = async (req, res) => {
 
         debugAdminChange.end('DIAGNÓSTICO COMPLETO DEL SISTEMA', true);
 
+        // ----------------------------------------------------------------
+        // BLOQUE 11.4: Formateo y envío del diagnóstico completo
+        // ----------------------------------------------------------------
         res.json({
             success: true,
             status: 'Sistema listo',
@@ -950,6 +1162,9 @@ export const testAdminChange = async (req, res) => {
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 11.5: Manejo de errores en diagnóstico
+        // ----------------------------------------------------------------
         console.error('❌ ERROR en testAdminChange:', error);
         debugAdminChange.end('DIAGNÓSTICO COMPLETO DEL SISTEMA', false);
         res.status(500).json({
@@ -960,11 +1175,17 @@ export const testAdminChange = async (req, res) => {
     }
 };
 
-// =============================================================================
-// 8. ENDPOINT DE DEBUG - Ver contraseña almacenada (SOLO DESARROLLO)
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 12: ENDPOINT DE DEBUG - VISUALIZACIÓN DE CONTRASEÑA
+// ********************************************************************
+// Descripción: Endpoint exclusivo para desarrollo que muestra
+// información sensible sobre el almacenamiento de contraseñas.
+// Solo disponible en modo desarrollo.
+// ********************************************************************
 export const debugPasswordStorage = async (req, res) => {
+    // ----------------------------------------------------------------
+    // BLOQUE 12.1: Validación de entorno de desarrollo
+    // ----------------------------------------------------------------
     if (process.env.NODE_ENV !== 'development') {
         return res.status(403).json({
             success: false,
@@ -973,8 +1194,14 @@ export const debugPasswordStorage = async (req, res) => {
     }
 
     try {
+        // ----------------------------------------------------------------
+        // BLOQUE 12.2: Extracción del ID de solicitud
+        // ----------------------------------------------------------------
         const { requestId } = req.params;
         
+        // ----------------------------------------------------------------
+        // BLOQUE 12.3: Búsqueda de solicitud con campos específicos
+        // ----------------------------------------------------------------
         const changeRequest = await AdminChangeRequest.findById(requestId)
             .select('newAdminUser newAdminEmail newAdminPassword status requestedAt');
         
@@ -985,6 +1212,9 @@ export const debugPasswordStorage = async (req, res) => {
             });
         }
 
+        // ----------------------------------------------------------------
+        // BLOQUE 12.4: Formateo y envío de información sensible
+        // ----------------------------------------------------------------
         res.json({
             success: true,
             request: {
@@ -1004,6 +1234,9 @@ export const debugPasswordStorage = async (req, res) => {
         });
 
     } catch (error) {
+        // ----------------------------------------------------------------
+        // BLOQUE 12.5: Manejo de errores en endpoint de debug
+        // ----------------------------------------------------------------
         console.error('Error en debug:', error);
         res.status(500).json({
             success: false,

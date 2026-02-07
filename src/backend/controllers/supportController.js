@@ -10,16 +10,28 @@ import mongoose from 'mongoose';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configurar Cloudinary
+// ============================================================================
+// SECCIÓN: CONFIGURACIÓN DE SERVICIOS EXTERNOS
+// ============================================================================
+// Configuración inicial de Cloudinary para almacenamiento de archivos adjuntos
+// y configuración del servicio de correo electrónico para notificaciones.
+// Las credenciales se obtienen de variables de entorno con valores por defecto.
+// ============================================================================
+
+// Configurar Cloudinary con credenciales de variables de entorno
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// =============================================================================
+// ============================================================================
 // CONFIGURACIÓN EMAIL REAL CON VARIABLES DE ENTORNO
-// =============================================================================
+// ============================================================================
+// Configuración del servicio SMTP para envío de correos electrónicos.
+// Se priorizan las variables de entorno sobre valores hardcodeados.
+// Incluye validación de conexión y manejo de errores de configuración.
+// ============================================================================
 
 // Usar variables de entorno en lugar de hardcodeadas
 const SYSTEM_EMAIL = process.env.EMAIL_USER || process.env.EMAIL_FROM_ADDRESS || 'riosnavarretejared@gmail.com';
@@ -96,9 +108,13 @@ try {
     transporter = null;
 }
 
-// =============================================================================
+// ============================================================================
 // FUNCIÓN PARA ENVIAR EMAIL CON GMAIL
-// =============================================================================
+// ============================================================================
+// Envía correos electrónicos utilizando el transporter configurado.
+// Incluye reintentos automáticos y simulación de envío cuando el transporter
+// no está disponible. Maneja diferentes casos de error de conexión.
+// ============================================================================
 
 const enviarEmailGmail = async (mailOptions, intentos = 3) => {
     if (!transporter) {
@@ -145,10 +161,16 @@ const monitorMemory = () => {
 };
 
 class SupportController {
-    // =====================================================================
-    // 1. CREAR NUEVO TICKET
-    // =====================================================================
     
+    // ********************************************************************
+    // MÓDULO 1: CREACIÓN DE NUEVO TICKET DE SOPORTE
+    // ********************************************************************
+    // Descripción: Crea un nuevo ticket de soporte técnico con toda la
+    // información proporcionada por el usuario. Incluye validación de campos,
+    // procesamiento de archivos adjuntos, asignación de administrador,
+    // generación de número único y envío de notificaciones por email.
+    // Maneja tanto usuarios autenticados como no autenticados.
+    // ********************************************************************
     static async createTicket(req, res) {
         let ticketNumber = null;
         let userId = null;
@@ -161,7 +183,11 @@ class SupportController {
             console.log(`🌐 Método: ${req.method}`);
             console.log(`🔗 URL: ${req.originalUrl}`);
             
-            // DEPURACIÓN DETALLADA
+            // ----------------------------------------------------------------
+            // BLOQUE 1.1: Depuración de datos de entrada
+            // ----------------------------------------------------------------
+            // Registra en consola todos los datos recibidos en la petición
+            // para facilitar la depuración y seguimiento del proceso.
             console.log('\n📊 === DATOS DE ENTRADA ===');
             console.log('📝 Body recibido:', JSON.stringify(req.body, null, 2));
             console.log(`📎 Archivos recibidos: ${req.files ? req.files.length : 0}`);
@@ -174,6 +200,11 @@ class SupportController {
             
             console.log(`👤 Usuario en req.user:`, req.user ? JSON.stringify(req.user) : 'No autenticado');
             
+            // ----------------------------------------------------------------
+            // BLOQUE 1.2: Extracción de datos del formulario
+            // ----------------------------------------------------------------
+            // Obtiene los campos principales del ticket desde el body de la
+            // petición, estableciendo valores por defecto cuando es necesario.
             const {
                 subject,
                 description,
@@ -182,6 +213,11 @@ class SupportController {
                 emailNotifications = 'true'
             } = req.body;
             
+            // ----------------------------------------------------------------
+            // BLOQUE 1.3: Validación de campos requeridos
+            // ----------------------------------------------------------------
+            // Verifica que todos los campos obligatorios estén presentes y
+            // contengan información válida antes de continuar con el proceso.
             console.log('\n🔍 === VALIDACIÓN DE CAMPOS ===');
             console.log(`📋 Asunto: ${subject}`);
             console.log(`📝 Descripción: ${description ? `[${description.length} caracteres]` : 'NO'}`);
@@ -209,9 +245,12 @@ class SupportController {
                 });
             }
             
-            // ============================================================
-            // Manejar el caso cuando no hay usuario autenticado
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.4: Identificación del usuario creador
+            // ----------------------------------------------------------------
+            // Determina si el usuario está autenticado o es anónimo.
+            // Para usuarios autenticados, usa su información de perfil.
+            // Para usuarios no autenticados, usa valores por defecto del sistema.
             console.log('\n👤 === IDENTIFICACIÓN DE USUARIO ===');
             
             let userName;
@@ -243,9 +282,12 @@ class SupportController {
             console.log(`👤 Usuario final: ${userName} (${userEmail})`);
             console.log(`🆔 User ID: ${userId}`);
             
-            // ============================================================
-            // BUSCAR ADMINISTRADOR
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.5: Búsqueda de administrador asignado
+            // ----------------------------------------------------------------
+            // Busca en la base de datos un usuario con rol de administrador
+            // activo para asignarle el ticket. Si no encuentra, usa el
+            // administrador del sistema como fallback.
             console.log('\n👑 === BUSCANDO ADMINISTRADOR ===');
             
             let adminEmail = SYSTEM_EMAIL;
@@ -276,9 +318,12 @@ class SupportController {
                 console.log(`⚠️ Usando email del sistema como fallback: ${adminEmail}`);
             }
             
-            // ============================================================
-            // GENERAR NÚMERO DE TICKET ÚNICO
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.6: Generación de número de ticket único
+            // ----------------------------------------------------------------
+            // Crea un número de ticket único basado en fecha actual y número
+            // aleatorio. Incluye verificación para evitar duplicados y
+            // múltiples intentos en caso de colisiones.
             console.log('\n🔢 === GENERANDO NÚMERO DE TICKET ===');
             
             let ticketExists = true;
@@ -308,9 +353,11 @@ class SupportController {
                 throw new Error('No se pudo generar un número de ticket único después de varios intentos');
             }
             
-            // ============================================================
-            // CREAR TICKET CON VALORES CORRECTOS
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.7: Creación del objeto ticket
+            // ----------------------------------------------------------------
+            // Construye el objeto completo del ticket con todos los datos
+            // recopilados durante el proceso, incluyendo metadatos del sistema.
             console.log('\n💾 === CREANDO OBJETO TICKET ===');
             
             const ticketData = {
@@ -334,9 +381,12 @@ class SupportController {
             
             const newTicket = new Ticket(ticketData);
             
-            // ============================================================
-            // PROCESAR ARCHIVOS ADJUNTOS
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.8: Procesamiento de archivos adjuntos
+            // ----------------------------------------------------------------
+            // Sube cada archivo adjunto a Cloudinary, genera URLs seguras
+            // y elimina los archivos temporales del servidor después de subirlos.
+            // Incluye manejo de errores individual por archivo.
             if (req.files && req.files.length > 0) {
                 console.log('\n📎 === PROCESANDO ARCHIVOS ADJUNTOS ===');
                 const attachments = [];
@@ -391,9 +441,11 @@ class SupportController {
                 }
             }
             
-            // ============================================================
-            // AGREGAR PRIMERA ACTUALIZACIÓN
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.9: Registro de actualización inicial del sistema
+            // ----------------------------------------------------------------
+            // Crea el primer registro en el historial de actualizaciones del
+            // ticket, marcándolo como creado por el sistema.
             console.log('\n📝 === AGREGANDO PRIMERA ACTUALIZACIÓN ===');
             
             newTicket.updates = [{
@@ -404,9 +456,11 @@ class SupportController {
                 createdAt: new Date()
             }];
             
-            // ============================================================
-            // GUARDAR EN LA BASE DE DATOS
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.10: Persistencia en base de datos
+            // ----------------------------------------------------------------
+            // Guarda el ticket completo en MongoDB, incluyendo validación
+            // del esquema y manejo detallado de errores de validación.
             console.log('\n💾 === GUARDANDO EN BASE DE DATOS ===');
             
             try {
@@ -430,9 +484,11 @@ class SupportController {
                 throw saveError;
             }
             
-            // ============================================================
-            // VERIFICAR QUE SE GUARDÓ CORRECTAMENTE
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.11: Verificación del ticket guardado
+            // ----------------------------------------------------------------
+            // Recupera el ticket recién guardado desde la base de datos para
+            // confirmar que se persistió correctamente con todos sus campos.
             console.log('\n🔍 === VERIFICANDO TICKET GUARDADO ===');
             
             const savedTicket = await Ticket.findById(newTicket._id);
@@ -445,9 +501,12 @@ class SupportController {
             console.log(`📊 Total updates: ${savedTicket.updates ? savedTicket.updates.length : 0}`);
             console.log(`📎 Adjuntos: ${savedTicket.attachments ? savedTicket.attachments.length : 0}`);
             
-            // ============================================================
-            // ENVIAR EMAILS
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.12: Envío de notificaciones por email
+            // ----------------------------------------------------------------
+            // Envía dos tipos de emails: uno al administrador (verde) confirmando
+            // la creación, y otro al usuario (rojo) notificando la recepción.
+            // El envío depende de la preferencia de notificaciones del usuario.
             console.log('\n📧 ========== ENVIANDO EMAILS ==========');
             
             try {
@@ -479,6 +538,11 @@ class SupportController {
                 console.error('⚠️ Error enviando emails:', emailError.message);
             }
             
+            // ----------------------------------------------------------------
+            // BLOQUE 1.13: Resumen final del proceso
+            // ----------------------------------------------------------------
+            // Muestra un resumen detallado del ticket creado con todos sus
+            // atributos principales para registro en logs del sistema.
             console.log('\n' + '='.repeat(80));
             console.log('🎫 ========== TICKET CREADO EXITOSAMENTE ==========');
             console.log(`🎫 Número: ${savedTicket.ticketNumber}`);
@@ -490,9 +554,11 @@ class SupportController {
             console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
             console.log('='.repeat(80) + '\n');
             
-            // ============================================================
-            // RESPONDER AL CLIENTE
-            // ============================================================
+            // ----------------------------------------------------------------
+            // BLOQUE 1.14: Respuesta al cliente
+            // ----------------------------------------------------------------
+            // Devuelve una respuesta JSON estructurada con éxito, incluyendo
+            // el ticket completo y datos importantes para el frontend.
             res.status(201).json({
                 success: true,
                 message: '✅ Ticket creado exitosamente. Revisa tu correo para la confirmación.',
@@ -502,6 +568,12 @@ class SupportController {
             });
             
         } catch (error) {
+            // ----------------------------------------------------------------
+            // BLOQUE 1.15: Manejo de errores global
+            // ----------------------------------------------------------------
+            // Captura y registra cualquier error ocurrido durante el proceso,
+            // limpia archivos temporales y devuelve respuesta de error al cliente
+            // con información relevante pero segura.
             console.error('\n' + '❌'.repeat(30));
             console.error('❌❌❌ ERROR CREANDO TICKET ❌❌❌');
             console.error('❌'.repeat(30));
@@ -539,10 +611,14 @@ class SupportController {
         }
     }
     
-    // =====================================================================
-    // 2. ENVIAR EMAIL VERDE AL ADMINISTRADOR
-    // =====================================================================
-    
+    // ********************************************************************
+    // MÓDULO 2: ENVÍO DE EMAIL VERDE AL ADMINISTRADOR
+    // ********************************************************************
+    // Descripción: Envía un email de confirmación (verde) al administrador
+    // asignado cuando se crea un nuevo ticket. Incluye todos los detalles
+    // del ticket, archivos adjuntos e instrucciones de seguimiento.
+    // Utiliza plantilla HTML profesional con diseño responsive.
+    // ********************************************************************
     static async sendTicketEmailToAdmin(ticket, user, adminEmail, adminName) {
         try {
             console.log(`\n📗 Enviando email VERDE al ADMINISTRADOR: ${adminName} (${adminEmail})`);
@@ -550,6 +626,12 @@ class SupportController {
             console.log(`📋 Asunto: ${ticket.subject}`);
             console.log(`👤 Usuario: ${user.name} (${user.email})`);
             
+            // ----------------------------------------------------------------
+            // BLOQUE 2.1: Construcción de HTML para archivos adjuntos
+            // ----------------------------------------------------------------
+            // Genera secciones HTML específicas para cada tipo de archivo
+            // adjunto, diferenciando entre imágenes y otros tipos de archivos.
+            // Cada archivo incluye enlaces de visualización y descarga.
             let attachmentsHTML = '';
             if (ticket.attachments && ticket.attachments.length > 0) {
                 attachmentsHTML = `
@@ -625,6 +707,12 @@ class SupportController {
                 attachmentsHTML += `</div>`;
             }
             
+            // ----------------------------------------------------------------
+            // BLOQUE 2.2: Configuración del email para administrador
+            // ----------------------------------------------------------------
+            // Define todas las opciones del email incluyendo remitente,
+            // destinatario, asunto y contenido en formato HTML y texto plano.
+            // Incluye estilos CSS inline para compatibilidad con clientes de email.
             const mailOptions = {
                 from: `"Sistema de Soporte CBTIS051" <${SYSTEM_EMAIL}>`,
                 to: adminEmail,
@@ -737,6 +825,11 @@ Accede al sistema: ${process.env.FRONTEND_URL || 'http://localhost:4000'}/admin/
 Sistema de Gestión Documental CBTIS051\nEmail automático del sistema de soporte.`
             };
             
+            // ----------------------------------------------------------------
+            // BLOQUE 2.3: Envío del email y confirmación
+            // ----------------------------------------------------------------
+            // Utiliza la función enviarEmailGmail para enviar el correo con
+            // reintentos automáticos en caso de fallos temporales de conexión.
             const info = await enviarEmailGmail(mailOptions);
             console.log(`📗 Email VERDE enviado al ADMINISTRADOR: ${adminEmail}`);
             
@@ -746,10 +839,14 @@ Sistema de Gestión Documental CBTIS051\nEmail automático del sistema de soport
         }
     }
     
-    // =====================================================================
-    // 3. ENVIAR EMAIL ROJO AL USUARIO
-    // =====================================================================
-    
+    // ********************************************************************
+    // MÓDULO 3: ENVÍO DE EMAIL ROJO AL USUARIO
+    // ********************************************************************
+    // Descripción: Envía un email de notificación (rojo) al usuario que
+    // creó el ticket, confirmando la recepción de su solicitud. Incluye
+    // información sobre el proceso de seguimiento y advertencias sobre
+    // no responder directamente al correo.
+    // ********************************************************************
     static async sendTicketEmailToUser(ticket, user) {
         try {
             const userEmail = user.email;
@@ -758,6 +855,11 @@ Sistema de Gestión Documental CBTIS051\nEmail automático del sistema de soport
             console.log(`📧 Ticket: ${ticket.ticketNumber}`);
             console.log(`📋 Asunto: ${ticket.subject}`);
             
+            // ----------------------------------------------------------------
+            // BLOQUE 3.1: Generación de HTML para archivos adjuntos del usuario
+            // ----------------------------------------------------------------
+            // Crea una vista simplificada de los archivos adjuntos para el
+            // usuario, mostrando miniaturas de imágenes y enlaces básicos.
             let attachmentsHTML = '';
             if (ticket.attachments && ticket.attachments.length > 0) {
                 attachmentsHTML = `
@@ -825,6 +927,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático del sistema de soport
                 attachmentsHTML += `</div>`;
             }
             
+            // ----------------------------------------------------------------
+            // BLOQUE 3.2: Configuración del email para usuario
+            // ----------------------------------------------------------------
+            // Define el email con tono rojo y advertencias claras sobre el
+            // proceso de soporte. Incluye información esencial sobre qué
+            // esperar y qué acciones tomar (o no tomar).
             const mailOptions = {
                 from: `"Soporte CBTIS051" <${SYSTEM_EMAIL}>`,
                 to: userEmail,
@@ -947,6 +1055,11 @@ Ver estado del ticket: ${process.env.FRONTEND_URL || 'http://localhost:4000'}/so
 Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
             };
             
+            // ----------------------------------------------------------------
+            // BLOQUE 3.3: Envío del email al usuario
+            // ----------------------------------------------------------------
+            // Ejecuta el envío del email utilizando el servicio configurado
+            // con manejo de reintentos en caso de errores temporales.
             const info = await enviarEmailGmail(mailOptions);
             console.log(`📕 Email ROJO enviado al USUARIO: ${userEmail}`);
             
@@ -956,14 +1069,22 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 5. OBTENER GUÍA DEL SISTEMA
-    // =====================================================================
-    
+    // ********************************************************************
+    // MÓDULO 4: OBTENCIÓN DE GUÍA DEL SISTEMA DE SOPORTE
+    // ********************************************************************
+    // Descripción: Proporciona una guía paso a paso sobre cómo funciona
+    // el sistema de tickets de soporte. Incluye tiempos estimados y
+    // descripciones claras de cada etapa del proceso.
+    // ********************************************************************
     static async getSystemGuide(req, res) {
         try {
             console.log('📖 Obteniendo guía del sistema');
             
+            // ----------------------------------------------------------------
+            // BLOQUE 4.1: Definición de pasos de la guía
+            // ----------------------------------------------------------------
+            // Estructura de datos que describe el flujo completo del sistema
+            // de soporte, desde la creación hasta la resolución del ticket.
             const guide = [
                 {
                     step: 1,
@@ -1004,6 +1125,11 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
             
             console.log(`✅ ${guide.length} pasos de guía obtenidos`);
             
+            // ----------------------------------------------------------------
+            // BLOQUE 4.2: Respuesta con la guía estructurada
+            // ----------------------------------------------------------------
+            // Devuelve la guía en formato JSON para que el frontend pueda
+            // mostrarla de manera organizada al usuario.
             res.json({
                 success: true,
                 guide
@@ -1018,16 +1144,24 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 6. PRUEBA DE EMAIL
-    // =====================================================================
-    
+    // ********************************************************************
+    // MÓDULO 5: PRUEBA DEL SISTEMA DE EMAIL
+    // ********************************************************************
+    // Descripción: Permite probar el funcionamiento del sistema de envío
+    // de correos electrónicos enviando un email de prueba a una dirección
+    // específica. Útil para diagnóstico y configuración inicial.
+    // ********************************************************************
     static async testSupportEmail(req, res) {
         try {
             console.log('\n🧪 Probando sistema de emails de soporte...');
             
             const testEmail = 'riosnavarretejared@gmail.com';
             
+            // ----------------------------------------------------------------
+            // BLOQUE 5.1: Configuración del email de prueba
+            // ----------------------------------------------------------------
+            // Define un email simple de prueba con contenido básico para
+            // verificar que el servicio SMTP está funcionando correctamente.
             const mailOptions = {
                 from: `"Soporte CBTIS051" <${SYSTEM_EMAIL}>`,
                 to: testEmail,
@@ -1036,6 +1170,11 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 text: 'Prueba exitosa - El sistema de emails está funcionando correctamente.'
             };
             
+            // ----------------------------------------------------------------
+            // BLOQUE 5.2: Envío y confirmación del email de prueba
+            // ----------------------------------------------------------------
+            // Ejecuta el envío y devuelve información sobre el resultado,
+            // incluyendo el ID del mensaje si fue exitoso.
             const info = await enviarEmailGmail(mailOptions);
             
             console.log('✅ Email de prueba enviado exitosamente');
@@ -1056,14 +1195,23 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 12. OBTENER FAQ (PREGUNTAS FRECUENTES)
-    // =====================================================================
-
+    // ********************************************************************
+    // MÓDULO 6: OBTENCIÓN DE PREGUNTAS FRECUENTES (FAQ)
+    // ********************************************************************
+    // Descripción: Proporciona una lista de preguntas frecuentes sobre
+    // el sistema de soporte, organizadas por categoría y prioridad.
+    // Ayuda a los usuarios a resolver dudas comunes sin crear tickets.
+    // ********************************************************************
     static async getFAQ(req, res) {
         try {
             console.log('❓ Obteniendo FAQ de soporte');
             
+            // ----------------------------------------------------------------
+            // BLOQUE 6.1: Definición de preguntas y respuestas
+            // ----------------------------------------------------------------
+            // Base de conocimiento estructurada que cubre los aspectos más
+            // comunes del sistema de tickets, incluyendo comunicación,
+            // archivos adjuntos y seguimiento.
             const faq = [
                 {
                     question: "¿Cómo funciona el sistema de tickets?",
@@ -1099,6 +1247,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
             
             console.log(`✅ ${faq.length} preguntas frecuentes obtenidas`);
             
+            // ----------------------------------------------------------------
+            // BLOQUE 6.2: Respuesta con FAQ estructurada
+            // ----------------------------------------------------------------
+            // Devuelve las preguntas frecuentes en formato organizado para
+            // que el frontend pueda implementar un sistema de búsqueda o
+            // categorización.
             res.json({
                 success: true,
                 faq
@@ -1113,10 +1267,14 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 13. OBTENER ESTADO DEL SISTEMA - VERSIÓN CORREGIDA CON VARIABLES DE ENTORNO
-    // =====================================================================
-
+    // ********************************************************************
+    // MÓDULO 7: VERIFICACIÓN DEL ESTADO REAL DEL SISTEMA
+    // ********************************************************************
+    // Descripción: Realiza una verificación exhaustiva del estado de todos
+    // los servicios del sistema (base de datos, sistema principal,
+    // almacenamiento cloud y servicio de email). Incluye validación real
+    // de conexiones y credenciales, no solo verificación superficial.
+    // ********************************************************************
     static async getSystemStatus(req, res) {
         // Agregar timestamp de inicio para medir tiempo de respuesta
         req.startTime = Date.now();
@@ -1134,7 +1292,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 EMAIL_PORT: !!process.env.EMAIL_PORT
             });
             
-            // 1. Verificar estado de la base de datos
+            // ----------------------------------------------------------------
+            // BLOQUE 7.1: Verificación del estado de la base de datos MongoDB
+            // ----------------------------------------------------------------
+            // Realiza una verificación real de la conexión a MongoDB,
+            // incluyendo ping para confirmar que responde adecuadamente.
+            // Maneja diferentes estados de conexión con mensajes específicos.
             let dbStatus = { connected: false, message: 'No conectado' };
             try {
                 const dbState = mongoose.connection.readyState;
@@ -1207,7 +1370,11 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 };
             }
 
-            // 2. Verificar estado del sistema principal
+            // ----------------------------------------------------------------
+            // BLOQUE 7.2: Verificación del estado del sistema principal
+            // ----------------------------------------------------------------
+            // Revisa métricas del servidor como uso de memoria, versión de
+            // Node.js y tiempo de actividad. Detecta condiciones de alta carga.
             let systemStatus = { operational: true, message: 'Operacional' };
             try {
                 const systemDetails = {
@@ -1253,7 +1420,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 };
             }
 
-            // 3. Verificar almacenamiento Cloud (Cloudinary) - VERIFICACIÓN REAL
+            // ----------------------------------------------------------------
+            // BLOQUE 7.3: Verificación del servicio Cloudinary
+            // ----------------------------------------------------------------
+            // Valida las credenciales y la conexión real a Cloudinary
+            // realizando una operación de ping. Verifica que las variables
+            // de entorno estén configuradas correctamente.
             let cloudStorageStatus = { active: false, message: 'Inactivo' };
             try {
                 console.log('☁️ Verificando Cloudinary...');
@@ -1337,7 +1509,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 };
             }
 
-            // 4. Verificar servicio de Email - VERIFICACIÓN CORREGIDA
+            // ----------------------------------------------------------------
+            // BLOQUE 7.4: Verificación del servicio de Email SMTP
+            // ----------------------------------------------------------------
+            // Realiza una verificación completa del servicio de email,
+            // incluyendo validación de variables de entorno, conexión SMTP
+            // y capacidad de envío real. Maneja diferentes estados de fallo.
             let emailServiceStatus = { configured: false, canSend: false, message: 'No configurado' };
             try {
                 console.log('📧 Verificando servicio de email REAL...');
@@ -1495,7 +1672,11 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 };
             }
 
-            // Calcular estado general REAL del sistema
+            // ----------------------------------------------------------------
+            // BLOQUE 7.5: Cálculo del estado general del sistema
+            // ----------------------------------------------------------------
+            // Analiza los resultados de todas las verificaciones para
+            // determinar un estado general: healthy, warning o degraded.
             const errorCount = [
                 !dbStatus.connected,
                 !systemStatus.operational,
@@ -1516,7 +1697,11 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 overallStatus = 'warning';
             }
 
-            // Preparar respuesta REAL
+            // ----------------------------------------------------------------
+            // BLOQUE 7.6: Preparación de respuesta detallada
+            // ----------------------------------------------------------------
+            // Construye un objeto de respuesta completo con el estado de
+            // cada servicio, métricas del sistema y notas explicativas.
             const response = {
                 success: true,
                 timestamp: new Date().toISOString(),
@@ -1594,6 +1779,11 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 emailCanSend: emailServiceStatus.canSend ? '✅' : '❌'
             });
 
+            // ----------------------------------------------------------------
+            // BLOQUE 7.7: Envío de respuesta al cliente
+            // ----------------------------------------------------------------
+            // Devuelve el estado completo del sistema en formato JSON para
+            // que dashboards o herramientas de monitoreo puedan consumirlo.
             res.json(response);
 
         } catch (error) {
@@ -1634,10 +1824,13 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 14. ACTIVAR ERRORES REALES (solo desarrollo)
-    // =====================================================================
-
+    // ********************************************************************
+    // MÓDULO 8: ACTIVACIÓN DE ERRORES REALES (Solo desarrollo)
+    // ********************************************************************
+    // Descripción: Permite activar errores controlados en servicios
+    // específicos durante el desarrollo para probar el manejo de errores
+    // y la resiliencia del sistema. Solo disponible en modo desarrollo.
+    // ********************************************************************
     static async activateRealErrors(req, res) {
         try {
             if (process.env.NODE_ENV !== 'development') {
@@ -1669,10 +1862,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 15. RESTABLECER ERRORES REALES
-    // =====================================================================
-
+    // ********************************************************************
+    // MÓDULO 9: RESTABLECIMIENTO DE ERRORES REALES
+    // ********************************************************************
+    // Descripción: Restaura la configuración normal del sistema después
+    // de activar errores de prueba. Solo disponible en modo desarrollo.
+    // ********************************************************************
     static async resetRealErrors(req, res) {
         try {
             if (process.env.NODE_ENV !== 'development') {
@@ -1702,10 +1897,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 16. VALIDAR ERRORES DEL SISTEMA
-    // =====================================================================
-
+    // ********************************************************************
+    // MÓDULO 10: VALIDACIÓN DE ERRORES DEL SISTEMA
+    // ********************************************************************
+    // Descripción: Realiza validaciones específicas de cada componente
+    // del sistema y devuelve un reporte detallado del estado de salud.
+    // ********************************************************************
     static async validateSystemErrors(req, res) {
         try {
             console.log('🔍 Validando errores del sistema');
@@ -1751,10 +1948,13 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 17. SIMULAR ERROR REAL EN SERVICIO ESPECÍFICO
-    // =====================================================================
-
+    // ********************************************************************
+    // MÓDULO 11: SIMULACIÓN DE ERROR REAL EN SERVICIO ESPECÍFICO
+    // ********************************************************************
+    // Descripción: Simula un error controlado en un servicio específico
+    // para pruebas de desarrollo. Permite probar el manejo de errores
+    // sin afectar el entorno de producción.
+    // ********************************************************************
     static async simulateRealError(req, res) {
         try {
             if (process.env.NODE_ENV !== 'development') {
@@ -1806,10 +2006,12 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
         }
     }
 
-    // =====================================================================
-    // 18. RESTABLECER TODOS LOS ERRORES
-    // =====================================================================
-
+    // ********************************************************************
+    // MÓDULO 12: RESTABLECIMIENTO DE TODOS LOS ERRORES
+    // ********************************************************************
+    // Descripción: Restaura todos los servicios a su estado normal después
+    // de pruebas de errores. Solo disponible en modo desarrollo.
+    // ********************************************************************
     static async resetAllRealErrors(req, res) {
         try {
             if (process.env.NODE_ENV !== 'development') {
