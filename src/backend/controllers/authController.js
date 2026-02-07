@@ -2,19 +2,41 @@ import User from '../models/User.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
-// =============================================================================
-// CONFIGURACIÓN DEL TRANSPORTE DE EMAIL - VERSIÓN GMAIL REAL
-// =============================================================================
+// ============================================================================
+// SECCIÓN: CONTROLADOR DE AUTENTICACIÓN Y RECUPERACIÓN DE CONTRASEÑA
+// ============================================================================
+// Este archivo maneja todas las operaciones relacionadas con recuperación
+// y cambio de contraseñas. Incluye solicitud de códigos, verificación,
+// cambio de contraseña y configuración del sistema de correo con Gmail.
+// ============================================================================
 
+// ============================================================================
+// SECCIÓN: CONFIGURACIÓN DE TRANSPORTE DE EMAIL - GMAIL REAL
+// ============================================================================
+// Configuración fija para usar Gmail como servicio de envío de correos
+// con autenticación mediante contraseña de aplicación de Google
+// ============================================================================
+
+// ********************************************************************
+// MÓDULO 1: CONFIGURACIÓN INICIAL DEL TRANSPORTE GMAIL
+// ********************************************************************
+// Descripción: Configura y valida la conexión con el servicio SMTP de Gmail
+// usando credenciales fijas. Incluye validación de formato de contraseña
+// y verificación de conexión al servidor de correo.
+// ********************************************************************
+
+// Variables de configuración para el servicio Gmail
 let transporter = null;
-
-// Configuración GMAIL FIJA - SIN ETHEREAL
 const emailUser = 'riosnavarretejared@gmail.com';
-const emailPass = 'emdkqnupuzzzucnw'; // Tu contraseña de aplicación
+const emailPass = 'emdkqnupuzzzucnw'; // Contraseña de aplicación de Google
 const emailHost = 'smtp.gmail.com';
 const emailPort = 587;
 const emailFrom = 'riosnavarretejared@gmail.com';
 
+// ----------------------------------------------------------------
+// BLOQUE 1.1: Log de inicio de configuración
+// ----------------------------------------------------------------
+// Muestra en consola los detalles de la configuración Gmail
 console.log('');
 console.log('📧 ========== CONFIGURACIÓN GMAIL REAL ==========');
 console.log(`✅ CONFIGURACIÓN FIJA PARA GMAIL:`);
@@ -23,7 +45,10 @@ console.log(`   🔑 Contraseña: ${emailPass.length} caracteres (App Password)`
 console.log(`   📧 Host: ${emailHost}:${emailPort}`);
 console.log(`   📨 From: ${emailFrom}`);
 
-// VALIDACIÓN DE CONTRASEÑA DE APLICACIÓN
+// ----------------------------------------------------------------
+// BLOQUE 1.2: Validación de formato de contraseña
+// ----------------------------------------------------------------
+// Verifica que la contraseña tenga el formato esperado para App Password
 console.log('\n🔍 Validando contraseña de aplicación...');
 if (emailPass.length === 16 && !emailPass.includes(' ')) {
   console.log('✅ Contraseña de 16 caracteres - Formato App Password correcto');
@@ -33,7 +58,11 @@ if (emailPass.length === 16 && !emailPass.includes(' ')) {
   console.log(`⚠️  Contraseña de ${emailPass.length} caracteres - Verifica que sea App Password`);
 }
 
-// CONFIGURAR TRANSPORTER GMAIL CON OPCIONES OPTIMIZADAS
+// ----------------------------------------------------------------
+// BLOQUE 1.3: Configuración del transporter Gmail
+// ----------------------------------------------------------------
+// Crea y configura el objeto transporter con opciones optimizadas
+// para la conexión SMTP con Gmail
 try {
   transporter = nodemailer.createTransport({
     host: emailHost,
@@ -43,16 +72,16 @@ try {
       user: emailUser,
       pass: emailPass
     },
-    // Configuración optimizada para Gmail
+    // Configuración de TLS para compatibilidad con Gmail
     tls: {
       ciphers: 'SSLv3',
       rejectUnauthorized: false
     },
-    // Timeouts aumentados
+    // Timeouts aumentados para conexiones lentas
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 10000,
-    // Debugging completo
+    // Activación de logging para debugging
     debug: true,
     logger: true
   });
@@ -63,137 +92,146 @@ try {
   console.log(`   Port: ${transporter.options.port}`);
   console.log(`   Secure: ${transporter.options.secure}`);
   console.log(`   TLS: ${transporter.options.tls ? 'Activado' : 'Desactivado'}`);
-  
-transporter.verify(async (error, success) => {
-  if (error) {
-    console.error('❌ ERROR DE CONEXIÓN GMAIL:', error.message);
-    console.error(`🔧 Código: ${error.code}`);
-    console.error(`🔧 Comando: ${error.command}`);
-    
-    if (error.response) {
-      console.error(`🔧 Respuesta SMTP: ${error.response}`);
-    }
-    
-    // DIAGNÓSTICO ESPECÍFICO GMAIL
-    console.error('\n🔍 DIAGNÓSTICO GMAIL:');
-    if (error.code === 'EAUTH') {
-      console.error('⚠️  ERROR DE AUTENTICACIÓN');
-      console.error('   Razones comunes:');
-      console.error('   1. Contraseña incorrecta');
-      console.error('   2. No es una "Contraseña de aplicación"');
-      console.error('   3. Verificación en 2 pasos no activada');
-      console.error('   4. "Acceso de apps menos seguras" desactivado');
-      console.error('\n   🛠️  SOLUCIÓN:');
-      console.error('   1. Ve a: https://myaccount.google.com/security');
-      console.error('   2. Activa "Verificación en 2 pasos" (si no está)');
-      console.error('   3. Ve a: https://myaccount.google.com/apppasswords');
-      console.error('   4. Genera una App Password de 16 caracteres');
-      console.error('   5. Úsala en emailPass (línea 12 de este archivo)');
-    } else if (error.code === 'ECONNECTION') {
-      console.error('⚠️  ERROR DE CONEXIÓN');
-      console.error('   Verifica:');
-      console.error('   1. Conexión a internet');
-      console.error('   2. Puerto 587 no bloqueado por firewall');
-      console.error('   3. DNS funcionando correctamente');
-    }
-    
-    console.error('\n📧 El sistema NO enviará emails reales');
-    console.error('📧 Los códigos aparecerán solo en consola');
-  } else {
-    console.log('✅ CONEXIÓN GMAIL VERIFICADA CORRECTAMENTE');
-    console.log('✅ Los emails llegarán a Gmail real');
-    console.log('✅ Usuario:', emailUser);
-    
-    // ENVIAR EMAIL DE PRUEBA AUTOMÁTICO AL ADMINISTRADOR ACTUAL
-    console.log('\n🧪 Buscando administrador actual para enviar email de prueba...');
-    
-    try {
-      // BUSCAR AL ADMINISTRADOR ACTUAL EN LA BASE DE DATOS
-      const adminActual = await User.findOne({ 
-        rol: 'administrador', 
-        activo: true 
-      }).sort({ createdAt: 1 }); // Obtener el más reciente
+
+  // ----------------------------------------------------------------
+  // BLOQUE 1.4: Verificación de conexión con Gmail
+  // ----------------------------------------------------------------
+  // Prueba la conexión con el servidor SMTP y maneja errores
+  // con diagnóstico específico para problemas comunes de Gmail
+  transporter.verify(async (error, success) => {
+    if (error) {
+      console.error('❌ ERROR DE CONEXIÓN GMAIL:', error.message);
+      console.error(`🔧 Código: ${error.code}`);
+      console.error(`🔧 Comando: ${error.command}`);
       
-      let emailDestino;
-      let nombreAdmin;
-      
-      if (adminActual) {
-        emailDestino = adminActual.correo;
-        nombreAdmin = adminActual.usuario;
-        console.log(`✅ Administrador actual encontrado: ${nombreAdmin} (${emailDestino})`);
-      } else {
-        // Si no hay admin en la BD, usar el email configurado
-        emailDestino = emailUser;
-        nombreAdmin = 'Administrador';
-        console.log(`⚠️  No se encontró admin en BD, usando email configurado: ${emailDestino}`);
+      if (error.response) {
+        console.error(`🔧 Respuesta SMTP: ${error.response}`);
       }
       
-      // PREPARAR EMAIL DE PRUEBA MEJORADO
-      const testMailOptions = {
-        from: `"Sistema CBTIS051" <${emailFrom}>`,
-        to: emailDestino, // ✅ AHORA USA EL CORREO DEL ADMIN ACTUAL
-        subject: '✅ Sistema CBTIS051 - Configuración Gmail Correcta',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
-            <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-              <h2 style="color: #2d3748; text-align: center; margin-bottom: 20px;">✅ CONFIGURACIÓN EXITOSA</h2>
-              <p style="color: #4a5568; font-size: 16px; line-height: 1.6;">
-                ${nombreAdmin ? `Hola <strong>${nombreAdmin}</strong>,<br>` : ''}
-                El sistema de gestión documental <strong>CBTIS051</strong> ha sido configurado correctamente con Gmail.
-              </p>
-              <div style="background: #f7fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4299e1;">
-                <p style="margin: 0; color: #2d3748;">
-                  <strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}<br>
-                  <strong>📧 Servidor Gmail:</strong> smtp.gmail.com:587<br>
-                  <strong>👤 Cuenta Gmail configurada:</strong> ${emailUser}<br>
-                  <strong>👤 Administrador actual:</strong> ${nombreAdmin}<br>
-                  <strong>📨 Correo del admin:</strong> ${emailDestino}<br>
-                  <strong>✅ Estado:</strong> Sistema operativo
+      // ----------------------------------------------------------------
+      // BLOQUE 1.4.1: Diagnóstico específico para errores de Gmail
+      // ----------------------------------------------------------------
+      console.error('\n🔍 DIAGNÓSTICO GMAIL:');
+      if (error.code === 'EAUTH') {
+        console.error('⚠️  ERROR DE AUTENTICACIÓN');
+        console.error('   Razones comunes:');
+        console.error('   1. Contraseña incorrecta');
+        console.error('   2. No es una "Contraseña de aplicación"');
+        console.error('   3. Verificación en 2 pasos no activada');
+        console.error('   4. "Acceso de apps menos seguras" desactivado');
+        console.error('\n   🛠️  SOLUCIÓN:');
+        console.error('   1. Ve a: https://myaccount.google.com/security');
+        console.error('   2. Activa "Verificación en 2 pasos" (si no está)');
+        console.error('   3. Ve a: https://myaccount.google.com/apppasswords');
+        console.error('   4. Genera una App Password de 16 caracteres');
+        console.error('   5. Úsala en emailPass (línea 12 de este archivo)');
+      } else if (error.code === 'ECONNECTION') {
+        console.error('⚠️  ERROR DE CONEXIÓN');
+        console.error('   Verifica:');
+        console.error('   1. Conexión a internet');
+        console.error('   2. Puerto 587 no bloqueado por firewall');
+        console.error('   3. DNS funcionando correctamente');
+      }
+      
+      console.error('\n📧 El sistema NO enviará emails reales');
+      console.error('📧 Los códigos aparecerán solo en consola');
+    } else {
+      console.log('✅ CONEXIÓN GMAIL VERIFICADA CORRECTAMENTE');
+      console.log('✅ Los emails llegarán a Gmail real');
+      console.log('✅ Usuario:', emailUser);
+      
+      // ----------------------------------------------------------------
+      // BLOQUE 1.4.2: Envío de email de prueba automático
+      // ----------------------------------------------------------------
+      console.log('\n🧪 Buscando administrador actual para enviar email de prueba...');
+      
+      try {
+        // Buscar al administrador actual en la base de datos
+        const adminActual = await User.findOne({ 
+          rol: 'administrador', 
+          activo: true 
+        }).sort({ createdAt: 1 }); // Obtener el más reciente
+        
+        let emailDestino;
+        let nombreAdmin;
+        
+        if (adminActual) {
+          emailDestino = adminActual.correo;
+          nombreAdmin = adminActual.usuario;
+          console.log(`✅ Administrador actual encontrado: ${nombreAdmin} (${emailDestino})`);
+        } else {
+          // Si no hay admin en la BD, usar el email configurado
+          emailDestino = emailUser;
+          nombreAdmin = 'Administrador';
+          console.log(`⚠️  No se encontró admin en BD, usando email configurado: ${emailDestino}`);
+        }
+        
+        // Preparar email de prueba mejorado
+        const testMailOptions = {
+          from: `"Sistema CBTIS051" <${emailFrom}>`,
+          to: emailDestino,
+          subject: '✅ Sistema CBTIS051 - Configuración Gmail Correcta',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
+              <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                <h2 style="color: #2d3748; text-align: center; margin-bottom: 20px;">✅ CONFIGURACIÓN EXITOSA</h2>
+                <p style="color: #4a5568; font-size: 16px; line-height: 1.6;">
+                  ${nombreAdmin ? `Hola <strong>${nombreAdmin}</strong>,<br>` : ''}
+                  El sistema de gestión documental <strong>CBTIS051</strong> ha sido configurado correctamente con Gmail.
+                </p>
+                <div style="background: #f7fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4299e1;">
+                  <p style="margin: 0; color: #2d3748;">
+                    <strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}<br>
+                    <strong>📧 Servidor Gmail:</strong> smtp.gmail.com:587<br>
+                    <strong>👤 Cuenta Gmail configurada:</strong> ${emailUser}<br>
+                    <strong>👤 Administrador actual:</strong> ${nombreAdmin}<br>
+                    <strong>📨 Correo del admin:</strong> ${emailDestino}<br>
+                    <strong>✅ Estado:</strong> Sistema operativo
+                  </p>
+                </div>
+                <div style="background: #dbeafe; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                  <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                    <strong>📌 INFORMACIÓN IMPORTANTE:</strong><br>
+                    - Todos los correos del sistema (recuperación, notificaciones, cambios de admin) 
+                    se enviarán usando la cuenta Gmail configurada.<br>
+                    - Los correos llegarán a la bandeja del destinatario correspondiente.<br>
+                    - El cambio de administrador actualiza automáticamente el destino de los emails.
+                  </p>
+                </div>
+                <p style="color: #718096; font-size: 14px; text-align: center;">
+                  Los correos de recuperación de contraseña ahora llegarán a tu bandeja de entrada de Gmail.
                 </p>
               </div>
-              <div style="background: #dbeafe; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #3b82f6;">
-                <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                  <strong>📌 INFORMACIÓN IMPORTANTE:</strong><br>
-                  - Todos los correos del sistema (recuperación, notificaciones, cambios de admin) 
-                  se enviarán usando la cuenta Gmail configurada.<br>
-                  - Los correos llegarán a la bandeja del destinatario correspondiente.<br>
-                  - El cambio de administrador actualiza automáticamente el destino de los emails.
-                </p>
-              </div>
-              <p style="color: #718096; font-size: 14px; text-align: center;">
-                Los correos de recuperación de contraseña ahora llegarán a tu bandeja de entrada de Gmail.
-              </p>
             </div>
-          </div>
-        `,
-        text: `CONFIGURACIÓN EXITOSA CBTIS051\n\n${nombreAdmin ? `Hola ${nombreAdmin},\n\n` : ''}El sistema ha sido configurado correctamente con Gmail.\n\n📅 Fecha: ${new Date().toLocaleString('es-MX')}\n📧 Cuenta Gmail: ${emailUser}\n👤 Administrador actual: ${nombreAdmin}\n📨 Correo admin: ${emailDestino}\n\nIMPORTANTE:\n- Todos los correos del sistema se enviarán usando la cuenta Gmail configurada\n- Los correos llegarán al destinatario correspondiente\n- El cambio de administrador actualiza el destino de los emails\n\nEl sistema está listo para enviar correos reales.`
-      };
-      
-      console.log('\n📤 ENVIANDO EMAIL DE PRUEBA...');
-      console.log(`   📨 Para: ${emailDestino}`);
-      console.log(`   👤 Administrador: ${nombreAdmin}`);
-      
-      const info = await transporter.sendMail(testMailOptions);
-      
-      console.log('\n✅✅✅ EMAIL DE PRUEBA ENVIADO EXITOSAMENTE ✅✅✅');
-      console.log(`   📨 Destinatario: ${emailDestino}`);
-      console.log(`   👤 Nombre: ${nombreAdmin}`);
-      console.log(`   📧 Message ID: ${info.messageId}`);
-      console.log(`   📤 Respuesta SMTP: ${info.response}`);
-      
-      console.log('\n📌 INSTRUCCIONES PARA EL ADMINISTRADOR ACTUAL:');
-      console.log('   1. Revisa tu bandeja de entrada de Gmail');
-      console.log('   2. Busca el asunto: "✅ Sistema CBTIS051 - Configuración Gmail Correcta"');
-      console.log('   3. Si no está en principal, revisa SPAM/Promociones');
-      console.log('   4. Todos los correos del sistema llegarán al destinatario correcto');
-      
-    } catch (adminError) {
-      console.error('\n⚠️  ERROR al buscar administrador o enviar email:', adminError.message);
-      console.log('📧 El sistema está configurado, pero no se pudo enviar email de prueba');
-      console.log('📧 La funcionalidad de correos seguirá funcionando normalmente');
+          `,
+          text: `CONFIGURACIÓN EXITOSA CBTIS051\n\n${nombreAdmin ? `Hola ${nombreAdmin},\n\n` : ''}El sistema ha sido configurado correctamente con Gmail.\n\n📅 Fecha: ${new Date().toLocaleString('es-MX')}\n📧 Cuenta Gmail: ${emailUser}\n👤 Administrador actual: ${nombreAdmin}\n📨 Correo admin: ${emailDestino}\n\nIMPORTANTE:\n- Todos los correos del sistema se enviarán usando la cuenta Gmail configurada\n- Los correos llegarán al destinatario correspondiente\n- El cambio de administrador actualiza el destino de los emails\n\nEl sistema está listo para enviar correos reales.`
+        };
+        
+        console.log('\n📤 ENVIANDO EMAIL DE PRUEBA...');
+        console.log(`   📨 Para: ${emailDestino}`);
+        console.log(`   👤 Administrador: ${nombreAdmin}`);
+        
+        const info = await transporter.sendMail(testMailOptions);
+        
+        console.log('\n✅✅✅ EMAIL DE PRUEBA ENVIADO EXITOSAMENTE ✅✅✅');
+        console.log(`   📨 Destinatario: ${emailDestino}`);
+        console.log(`   👤 Nombre: ${nombreAdmin}`);
+        console.log(`   📧 Message ID: ${info.messageId}`);
+        console.log(`   📤 Respuesta SMTP: ${info.response}`);
+        
+        console.log('\n📌 INSTRUCCIONES PARA EL ADMINISTRADOR ACTUAL:');
+        console.log('   1. Revisa tu bandeja de entrada de Gmail');
+        console.log('   2. Busca el asunto: "✅ Sistema CBTIS051 - Configuración Gmail Correcta"');
+        console.log('   3. Si no está en principal, revisa SPAM/Promociones');
+        console.log('   4. Todos los correos del sistema llegarán al destinatario correcto');
+        
+      } catch (adminError) {
+        console.error('\n⚠️  ERROR al buscar administrador o enviar email:', adminError.message);
+        console.log('📧 El sistema está configurado, pero no se pudo enviar email de prueba');
+        console.log('📧 La funcionalidad de correos seguirá funcionando normalmente');
+      }
     }
-  }
-});
+  });
   
 } catch (error) {
   console.error('❌ ERROR CRÍTICO al configurar Gmail:', error.message);
@@ -204,14 +242,29 @@ transporter.verify(async (error, success) => {
 console.log('\n📧 ===========================================');
 console.log('');
 
-// =============================================================================
-// FUNCIONES AUXILIARES
-// =============================================================================
+// ============================================================================
+// SECCIÓN: FUNCIONES AUXILIARES
+// ============================================================================
+// Funciones de apoyo utilizadas en múltiples partes del controlador
+// ============================================================================
 
+// ********************************************************************
+// MÓDULO 2: GENERACIÓN DE CÓDIGO DE VERIFICACIÓN
+// ********************************************************************
+// Descripción: Genera un código numérico de 6 dígitos para verificación
+// de identidad en procesos de recuperación de contraseña.
+// ********************************************************************
 const generarCodigoVerificacion = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// ********************************************************************
+// MÓDULO 3: MUESTRA DE CÓDIGO EN CONSOLA (BACKUP)
+// ********************************************************************
+// Descripción: Muestra en consola el código de verificación cuando falla
+// el envío por email. Funciona como sistema de respaldo para desarrollo
+// y debugging.
+// ********************************************************************
 const mostrarCodigoEnConsola = (correo, codigo) => {
   console.log('');
   console.log('═══════════════════════════════════════════════════════');
@@ -223,9 +276,12 @@ const mostrarCodigoEnConsola = (correo, codigo) => {
   console.log('');
 };
 
-// =============================================================================
-// FUNCIÓN MEJORADA PARA ENVIAR EMAIL CON GMAIL
-// =============================================================================
+// ********************************************************************
+// MÓDULO 4: ENVÍO DE EMAIL CON GMAIL CON REINTENTOS
+// ********************************************************************
+// Descripción: Envía correos electrónicos usando Gmail con un sistema
+// de reintentos automático para manejar fallos temporales de conexión.
+// ********************************************************************
 const enviarEmailGmail = async (mailOptions, intentos = 3) => {
   if (!transporter) {
     throw new Error('Gmail no configurado. Transporter no disponible.');
@@ -253,9 +309,20 @@ const enviarEmailGmail = async (mailOptions, intentos = 3) => {
   }
 };
 
-// =============================================================================
-// SOLICITAR CÓDIGO DE RECUPERACIÓN - VERSIÓN GMAIL REAL
-// =============================================================================
+// ============================================================================
+// SECCIÓN: CONTROLADOR DE RECUPERACIÓN DE CONTRASEÑA
+// ============================================================================
+// Funciones principales para manejar el proceso completo de recuperación
+// y cambio de contraseña
+// ============================================================================
+
+// ********************************************************************
+// MÓDULO 5: SOLICITUD DE CÓDIGO DE RECUPERACIÓN
+// ********************************************************************
+// Descripción: Endpoint principal para solicitar un código de recuperación.
+// Genera código, lo almacena hasheado en la base de datos y lo envía
+// por email al usuario solicitante.
+// ********************************************************************
 export const solicitarCodigoRecuperacion = async (req, res) => {
   try {
     console.log('');
@@ -263,6 +330,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
     console.log(`🔧 Usando: ${emailHost} (Gmail Real)`);
     
+    // ----------------------------------------------------------------
+    // BLOQUE 5.1: Extracción y validación del correo
+    // ----------------------------------------------------------------
     const { correo } = req.body;
 
     if (!correo) {
@@ -274,7 +344,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
 
     console.log(`📨 Correo solicitado: ${correo}`);
 
-    // Buscar usuario
+    // ----------------------------------------------------------------
+    // BLOQUE 5.2: Búsqueda del usuario en la base de datos
+    // ----------------------------------------------------------------
     const user = await User.findOne({ correo });
 
     // Por seguridad, siempre devolvemos éxito aunque el correo no exista
@@ -290,7 +362,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
     console.log(`✅ Usuario encontrado: ${user.usuario}`);
     console.log(`🆔 ID: ${user._id}`);
 
-    // Generar código de 6 dígitos
+    // ----------------------------------------------------------------
+    // BLOQUE 5.3: Generación y almacenamiento del código
+    // ----------------------------------------------------------------
     const codigo = generarCodigoVerificacion();
     
     console.log(`🔑 Código generado: ${codigo}`);
@@ -307,7 +381,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
     console.log(`💾 Código guardado en base de datos`);
     console.log(`⏰ Expira a las: ${new Date(user.resetPasswordExpires).toLocaleTimeString()}`);
 
-    // PREPARAR EMAIL PARA GMAIL
+    // ----------------------------------------------------------------
+    // BLOQUE 5.4: Preparación del email de recuperación
+    // ----------------------------------------------------------------
     const mailOptions = {
       from: `"Sistema CBTIS051" <${emailFrom}>`,
       to: user.correo,
@@ -353,7 +429,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       text: `CBTIS051 - Código de recuperación\n\nHola ${user.usuario},\n\nTu código de verificación es: ${codigo}\n\nEste código expira en 15 minutos.\n\nSi no solicitaste este cambio, ignora este mensaje.\n\nSistema de Gestión Documental CBTIS051`
     };
 
-    // INTENTAR ENVIAR EL CORREO CON GMAIL
+    // ----------------------------------------------------------------
+    // BLOQUE 5.5: Envío del email por Gmail
+    // ----------------------------------------------------------------
     console.log('\n📤 ENVIANDO A GMAIL REAL...');
     console.log(`   📨 De: ${mailOptions.from}`);
     console.log(`   📨 Para: ${mailOptions.to}`);
@@ -386,6 +464,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       });
       
     } catch (emailError) {
+      // ----------------------------------------------------------------
+      // BLOQUE 5.6: Manejo de fallo en envío de email
+      // ----------------------------------------------------------------
       console.error('\n❌❌❌ ERROR AL ENVIAR A GMAIL ❌❌❌');
       console.error(`   📨 Para: ${user.correo}`);
       console.error(`   📧 Error: ${emailError.message}`);
@@ -395,7 +476,7 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
         console.error(`   🔧 Respuesta: ${emailError.response}`);
       }
       
-      // MOSTRAR CÓDIGO EN CONSOLA COMO BACKUP
+      // Mostrar código en consola como backup
       mostrarCodigoEnConsola(user.correo, codigo);
       
       console.log('\n📌 USANDO MODO DE EMERGENCIA:');
@@ -417,6 +498,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
     console.log('');
     
   } catch (error) {
+    // ----------------------------------------------------------------
+    // BLOQUE 5.7: Manejo de errores generales
+    // ----------------------------------------------------------------
     console.error('🔥 ERROR en solicitarCodigoRecuperacion:', error.message);
     console.error('🔧 Stack:', error.stack);
     res.status(500).json({
@@ -427,15 +511,22 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
   }
 };
 
-// =============================================================================
-// VERIFICAR CÓDIGO DE RECUPERACIÓN
-// =============================================================================
+// ********************************************************************
+// MÓDULO 6: VERIFICACIÓN DE CÓDIGO DE RECUPERACIÓN
+// ********************************************************************
+// Descripción: Endpoint para validar un código de recuperación.
+// Compara el código ingresado con el hash almacenado y verifica
+// que no haya expirado.
+// ********************************************************************
 export const verificarCodigoRecuperacion = async (req, res) => {
   try {
     console.log('');
     console.log('🔐 ========== VERIFICACIÓN DE CÓDIGO ==========');
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
     
+    // ----------------------------------------------------------------
+    // BLOQUE 6.1: Extracción y validación de datos
+    // ----------------------------------------------------------------
     const { correo, codigo } = req.body;
 
     if (!correo || !codigo) {
@@ -448,7 +539,9 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     console.log(`📨 Verificando para: ${correo}`);
     console.log(`🔑 Código recibido: ${codigo}`);
 
-    // Hash del código ingresado
+    // ----------------------------------------------------------------
+    // BLOQUE 6.2: Hash del código ingresado
+    // ----------------------------------------------------------------
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(codigo)
@@ -456,7 +549,9 @@ export const verificarCodigoRecuperacion = async (req, res) => {
 
     console.log(`🔐 Hash calculado: ${resetPasswordToken.substring(0, 20)}...`);
 
-    // Buscar usuario con código válido y no expirado
+    // ----------------------------------------------------------------
+    // BLOQUE 6.3: Búsqueda de usuario con código válido
+    // ----------------------------------------------------------------
     const user = await User.findOne({
       correo,
       resetPasswordToken,
@@ -489,7 +584,9 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     console.log('✅ Código verificado correctamente');
     console.log(`👤 Usuario: ${user.usuario}`);
 
-    // Generar token temporal para cambiar contraseña
+    // ----------------------------------------------------------------
+    // BLOQUE 6.4: Generación de token temporal para cambio
+    // ----------------------------------------------------------------
     const tokenTemporal = crypto.randomBytes(32).toString('hex');
     user.changePasswordToken = crypto
       .createHash('sha256')
@@ -508,6 +605,9 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     console.log(`🔐 Token (inicio): ${tokenTemporal.substring(0, 10)}...`);
     console.log(`⏰ Expira a las: ${new Date(user.changePasswordExpires).toLocaleTimeString()}`);
 
+    // ----------------------------------------------------------------
+    // BLOQUE 6.5: Respuesta exitosa
+    // ----------------------------------------------------------------
     res.json({
       success: true,
       message: '✅ Código verificado correctamente',
@@ -521,6 +621,9 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     console.log('');
     
   } catch (error) {
+    // ----------------------------------------------------------------
+    // BLOQUE 6.6: Manejo de errores en verificación
+    // ----------------------------------------------------------------
     console.error('🔥 ERROR en verificarCodigoRecuperacion:', error.message);
     res.status(500).json({
       success: false,
@@ -530,15 +633,21 @@ export const verificarCodigoRecuperacion = async (req, res) => {
   }
 };
 
-// =============================================================================
-// CAMBIAR CONTRASEÑA
-// =============================================================================
+// ********************************************************************
+// MÓDULO 7: CAMBIO DE CONTRASEÑA CON TOKEN TEMPORAL
+// ********************************************************************
+// Descripción: Endpoint para cambiar la contraseña usando un token
+// temporal generado después de la verificación del código.
+// ********************************************************************
 export const cambiarContraseña = async (req, res) => {
   try {
     console.log('');
     console.log('🔑 ========== CAMBIO DE CONTRASEÑA ==========');
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
     
+    // ----------------------------------------------------------------
+    // BLOQUE 7.1: Extracción y validación de datos
+    // ----------------------------------------------------------------
     const { token, password } = req.body;
 
     if (!token || !password) {
@@ -558,7 +667,9 @@ export const cambiarContraseña = async (req, res) => {
     console.log(`🔑 Token recibido: ${token.substring(0, 10)}...`);
     console.log(`🔐 Nueva contraseña: ${'*'.repeat(password.length)} (${password.length} chars)`);
 
-    // Hash del token
+    // ----------------------------------------------------------------
+    // BLOQUE 7.2: Hash del token y búsqueda de usuario
+    // ----------------------------------------------------------------
     const changePasswordToken = crypto
       .createHash('sha256')
       .update(token)
@@ -566,7 +677,6 @@ export const cambiarContraseña = async (req, res) => {
 
     console.log(`🔐 Hash del token: ${changePasswordToken.substring(0, 20)}...`);
 
-    // Buscar usuario con token válido
     const user = await User.findOne({
       changePasswordToken,
       changePasswordExpires: { $gt: Date.now() }
@@ -583,7 +693,9 @@ export const cambiarContraseña = async (req, res) => {
     console.log(`✅ Usuario encontrado: ${user.usuario}`);
     console.log(`📧 Correo: ${user.correo}`);
 
-    // Actualizar contraseña
+    // ----------------------------------------------------------------
+    // BLOQUE 7.3: Actualización de la contraseña
+    // ----------------------------------------------------------------
     user.password = password;
     user.changePasswordToken = undefined;
     user.changePasswordExpires = undefined;
@@ -593,7 +705,9 @@ export const cambiarContraseña = async (req, res) => {
 
     console.log(`✅ Contraseña cambiada exitosamente`);
 
-    // ENVIAR CORREO DE CONFIRMACIÓN POR GMAIL
+    // ----------------------------------------------------------------
+    // BLOQUE 7.4: Envío de email de confirmación
+    // ----------------------------------------------------------------
     if (transporter) {
       try {
         const mailOptions = {
@@ -655,6 +769,9 @@ export const cambiarContraseña = async (req, res) => {
       console.log('📧 Transporter no disponible - No se envía email de confirmación');
     }
 
+    // ----------------------------------------------------------------
+    // BLOQUE 7.5: Respuesta exitosa
+    // ----------------------------------------------------------------
     res.json({
       success: true,
       message: '✅ Contraseña cambiada exitosamente',
@@ -666,6 +783,9 @@ export const cambiarContraseña = async (req, res) => {
     console.log('');
     
   } catch (error) {
+    // ----------------------------------------------------------------
+    // BLOQUE 7.6: Manejo de errores en cambio de contraseña
+    // ----------------------------------------------------------------
     console.error('🔥 ERROR en cambiarContraseña:', error.message);
     console.error('🔧 Stack:', error.stack);
     res.status(500).json({
@@ -676,83 +796,102 @@ export const cambiarContraseña = async (req, res) => {
   }
 };
 
-// =============================================================================
-// VERIFICAR CONTRASEÑA ACTUAL
-// =============================================================================
-
+// ********************************************************************
+// MÓDULO 8: VERIFICACIÓN DE CONTRASEÑA ACTUAL
+// ********************************************************************
+// Descripción: Endpoint para que un usuario verifique su contraseña
+// actual antes de realizar operaciones sensibles.
+// ********************************************************************
 export const verifyPassword = async (req, res) => {
-    try {
-        console.log('🔐 ========== VERIFICACIÓN DE CONTRASEÑA ==========');
-        console.log('📅 Hora:', new Date().toLocaleString('es-MX'));
-        
-        const { password } = req.body;
-        const userId = req.user.id;
-        
-        console.log('👤 Usuario ID:', userId);
-        console.log('🔑 Contraseña recibida:', password ? '***' + password.slice(-2) : 'No proporcionada');
+  try {
+    console.log('🔐 ========== VERIFICACIÓN DE CONTRASEÑA ==========');
+    console.log('📅 Hora:', new Date().toLocaleString('es-MX'));
+    
+    // ----------------------------------------------------------------
+    // BLOQUE 8.1: Extracción y validación de datos
+    // ----------------------------------------------------------------
+    const { password } = req.body;
+    const userId = req.user.id;
+    
+    console.log('👤 Usuario ID:', userId);
+    console.log('🔑 Contraseña recibida:', password ? '***' + password.slice(-2) : 'No proporcionada');
 
-        if (!password) {
-            console.log('❌ No se proporcionó contraseña');
-            return res.status(400).json({
-                success: false,
-                message: 'La contraseña es requerida'
-            });
-        }
-
-        // Buscar usuario
-        const user = await User.findById(userId);
-        
-        if (!user) {
-            console.log('❌ Usuario no encontrado');
-            return res.status(404).json({
-                success: false,
-                message: 'Usuario no encontrado'
-            });
-        }
-        
-        console.log('✅ Usuario encontrado:', user.usuario);
-        
-        // Verificar contraseña
-        const isValid = await user.compararPassword(password);
-        
-        if (!isValid) {
-            console.log('❌ Contraseña incorrecta');
-            return res.status(400).json({
-                success: false,
-                message: 'Contraseña actual incorrecta'
-            });
-        }
-        
-        console.log('✅ Contraseña verificada correctamente');
-        console.log('🔐 ========== FIN VERIFICACIÓN ==========\n');
-        
-        res.json({
-            success: true,
-            message: 'Contraseña verificada correctamente',
-            usuario: user.usuario,
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('🔥 ERROR en verifyPassword:', error.message);
-        console.error('🔧 Stack:', error.stack);
-        res.status(500).json({
-            success: false,
-            message: 'Error del servidor al verificar contraseña',
-            timestamp: new Date().toISOString()
-        });
+    if (!password) {
+      console.log('❌ No se proporcionó contraseña');
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña es requerida'
+      });
     }
+
+    // ----------------------------------------------------------------
+    // BLOQUE 8.2: Búsqueda del usuario y verificación
+    // ----------------------------------------------------------------
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      console.log('❌ Usuario no encontrado');
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+    
+    console.log('✅ Usuario encontrado:', user.usuario);
+    
+    // Verificar contraseña usando el método del modelo
+    const isValid = await user.compararPassword(password);
+    
+    if (!isValid) {
+      console.log('❌ Contraseña incorrecta');
+      return res.status(400).json({
+        success: false,
+        message: 'Contraseña actual incorrecta'
+      });
+    }
+    
+    console.log('✅ Contraseña verificada correctamente');
+    console.log('🔐 ========== FIN VERIFICACIÓN ==========\n');
+    
+    // ----------------------------------------------------------------
+    // BLOQUE 8.3: Respuesta exitosa
+    // ----------------------------------------------------------------
+    res.json({
+      success: true,
+      message: 'Contraseña verificada correctamente',
+      usuario: user.usuario,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    // ----------------------------------------------------------------
+    // BLOQUE 8.4: Manejo de errores en verificación
+    // ----------------------------------------------------------------
+    console.error('🔥 ERROR en verifyPassword:', error.message);
+    console.error('🔧 Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error del servidor al verificar contraseña',
+      timestamp: new Date().toISOString()
+    });
+  }
 };
 
-// =============================================================================
-// VERIFICAR TOKEN DE CAMBIO
-// =============================================================================
+// ********************************************************************
+// MÓDULO 9: VERIFICACIÓN DE TOKEN DE CAMBIO
+// ********************************************************************
+// Descripción: Endpoint para verificar la validez de un token de cambio
+// de contraseña antes de permitir el cambio.
+// ********************************************************************
 export const verificarTokenCambio = async (req, res) => {
   try {
     console.log('');
     console.log('🔐 ========== VERIFICACIÓN DE TOKEN ==========');
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
     
+    // ----------------------------------------------------------------
+    // BLOQUE 9.1: Extracción y validación del token
+    // ----------------------------------------------------------------
     const { token } = req.params;
 
     if (!token) {
@@ -764,7 +903,9 @@ export const verificarTokenCambio = async (req, res) => {
 
     console.log(`🔑 Token recibido: ${token.substring(0, 10)}...`);
 
-    // Hash del token
+    // ----------------------------------------------------------------
+    // BLOQUE 9.2: Hash del token y búsqueda
+    // ----------------------------------------------------------------
     const changePasswordToken = crypto
       .createHash('sha256')
       .update(token)
@@ -772,7 +913,6 @@ export const verificarTokenCambio = async (req, res) => {
 
     console.log(`🔐 Hash calculado: ${changePasswordToken.substring(0, 20)}...`);
 
-    // Buscar usuario con token válido
     const user = await User.findOne({
       changePasswordToken,
       changePasswordExpires: { $gt: Date.now() }
@@ -791,6 +931,9 @@ export const verificarTokenCambio = async (req, res) => {
     console.log(`📧 Correo: ${user.correo}`);
     console.log(`⏰ Expira a las: ${new Date(user.changePasswordExpires).toLocaleTimeString()}`);
 
+    // ----------------------------------------------------------------
+    // BLOQUE 9.3: Respuesta con información del token
+    // ----------------------------------------------------------------
     res.json({
       success: true,
       message: 'Token válido',
@@ -805,6 +948,9 @@ export const verificarTokenCambio = async (req, res) => {
     console.log('');
     
   } catch (error) {
+    // ----------------------------------------------------------------
+    // BLOQUE 9.4: Manejo de errores en verificación de token
+    // ----------------------------------------------------------------
     console.error('🔥 ERROR en verificarTokenCambio:', error.message);
     res.status(500).json({
       success: false,
@@ -814,15 +960,21 @@ export const verificarTokenCambio = async (req, res) => {
   }
 };
 
-// =============================================================================
-// ENDPOINT DE PRUEBA DE EMAIL - GMAIL REAL (ACTUALIZADO PARA USAR ADMIN ACTUAL)
-// =============================================================================
+// ********************************************************************
+// MÓDULO 10: PRUEBA DE EMAIL GMAIL REAL
+// ********************************************************************
+// Descripción: Endpoint de diagnóstico que envía un email de prueba
+// para verificar que la configuración de Gmail funciona correctamente.
+// ********************************************************************
 export const pruebaEmail = async (req, res) => {
   try {
     console.log('');
     console.log('🧪 ========== PRUEBA GMAIL REAL ==========');
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
     
+    // ----------------------------------------------------------------
+    // BLOQUE 10.1: Verificación del transporter
+    // ----------------------------------------------------------------
     if (!transporter) {
       console.log('❌ Transporter Gmail no configurado');
       return res.status(400).json({
@@ -837,7 +989,9 @@ export const pruebaEmail = async (req, res) => {
       });
     }
 
-    // BUSCAR ADMINISTRADOR ACTUAL
+    // ----------------------------------------------------------------
+    // BLOQUE 10.2: Búsqueda del administrador actual
+    // ----------------------------------------------------------------
     let adminActual = null;
     let emailDestino = req.body.email || emailUser;
     let nombreAdmin = 'Administrador';
@@ -867,6 +1021,9 @@ export const pruebaEmail = async (req, res) => {
     console.log(`🔧 Usando cuenta Gmail: ${emailUser}`);
     console.log(`👤 Administrador: ${nombreAdmin}`);
     
+    // ----------------------------------------------------------------
+    // BLOQUE 10.3: Preparación del email de prueba
+    // ----------------------------------------------------------------
     const mailOptions = {
       from: `"Sistema CBTIS051" <${emailFrom}>`,
       to: emailDestino,
@@ -918,6 +1075,9 @@ export const pruebaEmail = async (req, res) => {
       text: `PRUEBA GMAIL REAL - CBTIS051\n\nHola ${nombreAdmin},\n\nEste email prueba que el sistema está configurado con Gmail real.\n\n📅 Fecha: ${new Date().toLocaleString('es-MX')}\n📧 Servidor: ${emailHost}:${emailPort}\n👤 Cuenta Gmail: ${emailUser}\n👤 Administrador: ${nombreAdmin}\n📨 Destino: ${emailDestino}\n\n✅ Configuración correcta - Los correos del sistema funcionarán correctamente.\n\nIMPORTANTE:\n- Los emails se envían desde: ${emailUser}\n- Llegan al destinatario correspondiente\n- Cambios de admin actualizan el destino automáticamente`
     };
 
+    // ----------------------------------------------------------------
+    // BLOQUE 10.4: Envío del email de prueba
+    // ----------------------------------------------------------------
     console.log('\n📤 Enviando email de prueba por Gmail...');
     const info = await transporter.sendMail(mailOptions);
     
@@ -938,6 +1098,9 @@ export const pruebaEmail = async (req, res) => {
     console.log('\n🧪 ========== FIN PRUEBA ==========');
     console.log('');
 
+    // ----------------------------------------------------------------
+    // BLOQUE 10.5: Respuesta detallada
+    // ----------------------------------------------------------------
     res.json({
       success: true,
       message: '✅ Email de prueba enviado exitosamente por Gmail real',
@@ -959,6 +1122,9 @@ export const pruebaEmail = async (req, res) => {
       note: 'Revisa la bandeja de entrada del destinatario. Si no lo ves, revisa SPAM.'
     });
   } catch (error) {
+    // ----------------------------------------------------------------
+    // BLOQUE 10.6: Manejo de errores en prueba de email
+    // ----------------------------------------------------------------
     console.error('\n❌ ERROR en prueba de Gmail:');
     console.error(`   📧 Para: ${emailDestino}`);
     console.error(`   🔧 Error: ${error.message}`);
@@ -980,9 +1146,12 @@ export const pruebaEmail = async (req, res) => {
   }
 };
 
-// =============================================================================
-// FUNCIÓN PARA REINICIAR CONFIGURACIÓN GMAIL
-// =============================================================================
+// ********************************************************************
+// MÓDULO 11: REINICIO DE CONFIGURACIÓN GMAIL
+// ********************************************************************
+// Descripción: Función para reiniciar la configuración del transporter
+// Gmail. Útil cuando hay problemas de conexión o se cambian credenciales.
+// ********************************************************************
 export const reiniciarConfiguracionGmail = async () => {
   console.log('\n🔄 ========== REINICIANDO CONFIGURACIÓN GMAIL ==========');
   
@@ -1014,14 +1183,21 @@ export const reiniciarConfiguracionGmail = async () => {
   }
 };
 
-// =============================================================================
-// ESTADO DEL SISTEMA DE EMAIL
-// =============================================================================
+// ********************************************************************
+// MÓDULO 12: ESTADO DEL SISTEMA DE EMAIL
+// ********************************************************************
+// Descripción: Endpoint que devuelve información detallada sobre el
+// estado de la configuración de email, incluyendo conexión Gmail
+// y administrador actual.
+// ********************************************************************
 export const estadoEmail = async (req, res) => {
   try {
     console.log('');
     console.log('📊 ========== ESTADO GMAIL ==========');
     
+    // ----------------------------------------------------------------
+    // BLOQUE 12.1: Configuración básica del estado
+    // ----------------------------------------------------------------
     const estado = {
       configuracion: {
         emailUser: emailUser,
@@ -1050,7 +1226,9 @@ export const estadoEmail = async (req, res) => {
     console.log(`   🔑 Contraseña: ${estado.configuracion.passLength} caracteres`);
     console.log(`   🖥️  Host: ${estado.configuracion.emailHost}:${estado.configuracion.emailPort}`);
     
-    // Intentar verificar conexión si hay transporter
+    // ----------------------------------------------------------------
+    // BLOQUE 12.2: Verificación de conexión
+    // ----------------------------------------------------------------
     if (transporter) {
       try {
         await transporter.verify();
@@ -1065,9 +1243,41 @@ export const estadoEmail = async (req, res) => {
       console.log('   🔗 Conexión: ❌ NO CONFIGURADO');
     }
     
+    // ----------------------------------------------------------------
+    // BLOQUE 12.3: Búsqueda del administrador actual
+    // ----------------------------------------------------------------
+    try {
+      const adminActual = await User.findOne({ 
+        rol: 'administrador', 
+        activo: true 
+      }).select('usuario correo createdAt').lean();
+      
+      estado.administradorActual = adminActual ? {
+        usuario: adminActual.usuario,
+        correo: adminActual.correo,
+        fechaCreacion: adminActual.createdAt
+      } : {
+        mensaje: 'No se encontró administrador en la base de datos',
+        usandoEmailConfigurado: emailUser
+      };
+      
+      console.log('   👤 Admin actual:', estado.administradorActual.usuario || 'No encontrado');
+      console.log('   📧 Email admin:', estado.administradorActual.correo || emailUser);
+      
+    } catch (adminError) {
+      estado.administradorActual = {
+        error: adminError.message,
+        usandoEmailConfigurado: emailUser
+      };
+      console.log('   👤 Admin: ❌ Error obteniendo datos');
+    }
+    
     console.log('\n📊 ====================================');
     console.log('');
     
+    // ----------------------------------------------------------------
+    // BLOQUE 12.4: Respuesta con estado completo
+    // ----------------------------------------------------------------
     res.json({
       success: true,
       estado,
@@ -1075,6 +1285,9 @@ export const estadoEmail = async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    // ----------------------------------------------------------------
+    // BLOQUE 12.5: Manejo de errores en obtención de estado
+    // ----------------------------------------------------------------
     console.error('❌ ERROR en estadoEmail:', error);
     res.status(500).json({
       success: false,
@@ -1083,44 +1296,19 @@ export const estadoEmail = async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
-
-  // AGREGAR ESTO DENTRO DE LA FUNCIÓN estadoEmail, después de configurar el estado:
-
-// Buscar administrador actual
-try {
-  const adminActual = await User.findOne({ 
-    rol: 'administrador', 
-    activo: true 
-  }).select('usuario correo createdAt').lean();
-  
-  estado.administradorActual = adminActual ? {
-    usuario: adminActual.usuario,
-    correo: adminActual.correo,
-    fechaCreacion: adminActual.createdAt
-  } : {
-    mensaje: 'No se encontró administrador en la base de datos',
-    usandoEmailConfigurado: emailUser
-  };
-  
-  console.log('   👤 Admin actual:', estado.administradorActual.usuario || 'No encontrado');
-  console.log('   📧 Email admin:', estado.administradorActual.correo || emailUser);
-  
-} catch (adminError) {
-  estado.administradorActual = {
-    error: adminError.message,
-    usandoEmailConfigurado: emailUser
-  };
-  console.log('   👤 Admin: ❌ Error obteniendo datos');
-}
 };
 
-export { transporter };
+// ============================================================================
+// SECCIÓN: EXPORTACIÓN Y FINALIZACIÓN
+// ============================================================================
 
+// Exportar el transporter para uso en otros controladores
+export { transporter };
 console.log('✅ Transporter exportado para uso en otros controladores');
 
-// =============================================================================
-// INICIALIZACIÓN FINAL
-// =============================================================================
+// ----------------------------------------------------------------
+// BLOQUE FINAL: Log de inicialización del sistema
+// ----------------------------------------------------------------
 console.log('\n🚀 ========== SISTEMA CBTIS051 INICIADO ==========');
 console.log(`📅 ${new Date().toLocaleString('es-MX')}`);
 console.log(`📧 Sistema de email: GMAIL REAL`);
