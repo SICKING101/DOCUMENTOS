@@ -117,7 +117,7 @@ const notificationSchema = new mongoose.Schema({
   // ----------------------------------------------------------------
   // Enlace opcional a la persona asociada con la notificación
   // (cuando el evento está relacionado con una persona).
-  documento_id: {
+  persona_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Person',
     default: null
