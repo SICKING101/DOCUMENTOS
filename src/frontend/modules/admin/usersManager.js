@@ -1,104 +1,100 @@
-// =============================================================================
-// GESTIÓN DE USUARIOS Y PERMISOS PARA PANEL DE ADMIN
-// Versión completa con sistema de permisos funcional
-// =============================================================================
+// ============================================================================
+// src/frontend/modules/admin/usersManager.js
+// ============================================================================
+// GESTIÓN DE USUARIOS Y PERMISOS - VERSIÓN FINAL CON UI MEJORADA
+// ============================================================================
 
 const API_URL = window.location.origin;
 
-// =============================================================================
+// ============================================================================
 // CONFIGURACIÓN DE PERMISOS
-// =============================================================================
+// ============================================================================
 
-// Lista completa de permisos disponibles organizados por categoría
 const PERMISOS_DISPONIBLES = [
     // Dashboard
-    { id: 'ver_dashboard', nombre: 'Ver Dashboard', categoria: 'Dashboard', descripcion: 'Acceso al panel principal' },
-    { id: 'editar_dashboard', nombre: 'Personalizar Dashboard', categoria: 'Dashboard', descripcion: 'Modificar widgets y layout' },
+    { id: 'ver_dashboard', nombre: 'Ver Dashboard', categoria: 'Dashboard' },
     
     // Personas
-    { id: 'ver_personas', nombre: 'Ver Personas', categoria: 'Personas', descripcion: 'Listar y ver detalles de personas' },
-    { id: 'crear_personas', nombre: 'Crear Personas', categoria: 'Personas', descripcion: 'Registrar nuevas personas' },
-    { id: 'editar_personas', nombre: 'Editar Personas', categoria: 'Personas', descripcion: 'Modificar información de personas' },
-    { id: 'eliminar_personas', nombre: 'Eliminar Personas', categoria: 'Personas', descripcion: 'Eliminar personas del sistema' },
+    { id: 'ver_personas', nombre: 'Ver Personas', categoria: 'Personas' },
+    { id: 'crear_personas', nombre: 'Crear Personas', categoria: 'Personas' },
+    { id: 'editar_personas', nombre: 'Editar Personas', categoria: 'Personas' },
+    { id: 'eliminar_personas', nombre: 'Eliminar Personas', categoria: 'Personas' },
     
     // Documentos
-    { id: 'ver_documentos', nombre: 'Ver Documentos', categoria: 'Documentos', descripcion: 'Listar y ver documentos' },
-    { id: 'subir_documentos', nombre: 'Subir Documentos', categoria: 'Documentos', descripcion: 'Cargar nuevos documentos' },
-    { id: 'editar_documentos', nombre: 'Editar Documentos', categoria: 'Documentos', descripcion: 'Modificar metadatos de documentos' },
-    { id: 'eliminar_documentos', nombre: 'Eliminar Documentos', categoria: 'Documentos', descripcion: 'Eliminar documentos' },
-    { id: 'descargar_documentos', nombre: 'Descargar Documentos', categoria: 'Documentos', descripcion: 'Permite descargar archivos' },
+    { id: 'ver_documentos', nombre: 'Ver Documentos', categoria: 'Documentos' },
+    { id: 'subir_documentos', nombre: 'Subir Documentos', categoria: 'Documentos' },
+    { id: 'editar_documentos', nombre: 'Editar Documentos', categoria: 'Documentos' },
+    { id: 'eliminar_documentos', nombre: 'Eliminar Documentos', categoria: 'Documentos' },
+    { id: 'descargar_documentos', nombre: 'Descargar Documentos', categoria: 'Documentos' },
     
     // Categorías
-    { id: 'ver_categorias', nombre: 'Ver Categorías', categoria: 'Categorías', descripcion: 'Listar categorías' },
-    { id: 'crear_categorias', nombre: 'Crear Categorías', categoria: 'Categorías', descripcion: 'Crear nuevas categorías' },
-    { id: 'editar_categorias', nombre: 'Editar Categorías', categoria: 'Categorías', descripcion: 'Modificar categorías' },
-    { id: 'eliminar_categorias', nombre: 'Eliminar Categorías', categoria: 'Categorías', descripcion: 'Eliminar categorías' },
+    { id: 'ver_categorias', nombre: 'Ver Categorías', categoria: 'Categorías' },
+    { id: 'crear_categorias', nombre: 'Crear Categorías', categoria: 'Categorías' },
+    { id: 'editar_categorias', nombre: 'Editar Categorías', categoria: 'Categorías' },
+    { id: 'eliminar_categorias', nombre: 'Eliminar Categorías', categoria: 'Categorías' },
     
     // Departamentos
-    { id: 'ver_departamentos', nombre: 'Ver Departamentos', categoria: 'Departamentos', descripcion: 'Listar departamentos' },
-    { id: 'crear_departamentos', nombre: 'Crear Departamentos', categoria: 'Departamentos', descripcion: 'Crear nuevos departamentos' },
-    { id: 'editar_departamentos', nombre: 'Editar Departamentos', categoria: 'Departamentos', descripcion: 'Modificar departamentos' },
-    { id: 'eliminar_departamentos', nombre: 'Eliminar Departamentos', categoria: 'Departamentos', descripcion: 'Eliminar departamentos' },
+    { id: 'ver_departamentos', nombre: 'Ver Departamentos', categoria: 'Departamentos' },
+    { id: 'crear_departamentos', nombre: 'Crear Departamentos', categoria: 'Departamentos' },
+    { id: 'editar_departamentos', nombre: 'Editar Departamentos', categoria: 'Departamentos' },
+    { id: 'eliminar_departamentos', nombre: 'Eliminar Departamentos', categoria: 'Departamentos' },
     
     // Tareas
-    { id: 'ver_tareas', nombre: 'Ver Tareas', categoria: 'Tareas', descripcion: 'Listar y ver tareas' },
-    { id: 'crear_tareas', nombre: 'Crear Tareas', categoria: 'Tareas', descripcion: 'Crear nuevas tareas' },
-    { id: 'editar_tareas', nombre: 'Editar Tareas', categoria: 'Tareas', descripcion: 'Modificar tareas' },
-    { id: 'eliminar_tareas', nombre: 'Eliminar Tareas', categoria: 'Tareas', descripcion: 'Eliminar tareas' },
-    { id: 'asignar_tareas', nombre: 'Asignar Tareas', categoria: 'Tareas', descripcion: 'Asignar tareas a usuarios' },
+    { id: 'ver_tareas', nombre: 'Ver Tareas', categoria: 'Tareas' },
+    { id: 'crear_tareas', nombre: 'Crear Tareas', categoria: 'Tareas' },
+    { id: 'editar_tareas', nombre: 'Editar Tareas', categoria: 'Tareas' },
+    { id: 'eliminar_tareas', nombre: 'Eliminar Tareas', categoria: 'Tareas' },
+    { id: 'asignar_tareas', nombre: 'Asignar Tareas', categoria: 'Tareas' },
     
     // Reportes
-    { id: 'ver_reportes', nombre: 'Ver Reportes', categoria: 'Reportes', descripcion: 'Acceder a reportes' },
-    { id: 'generar_reportes', nombre: 'Generar Reportes', categoria: 'Reportes', descripcion: 'Crear nuevos reportes' },
-    { id: 'exportar_reportes', nombre: 'Exportar Reportes', categoria: 'Reportes', descripcion: 'Exportar a PDF/Excel' },
+    { id: 'ver_reportes', nombre: 'Ver Reportes', categoria: 'Reportes' },
+    { id: 'generar_reportes', nombre: 'Generar Reportes', categoria: 'Reportes' },
+    { id: 'exportar_reportes', nombre: 'Exportar Reportes', categoria: 'Reportes' },
     
     // Calendario
-    { id: 'ver_calendario', nombre: 'Ver Calendario', categoria: 'Calendario', descripcion: 'Acceder al calendario' },
-    { id: 'crear_eventos', nombre: 'Crear Eventos', categoria: 'Calendario', descripcion: 'Crear eventos en calendario' },
-    { id: 'editar_eventos', nombre: 'Editar Eventos', categoria: 'Calendario', descripcion: 'Modificar eventos' },
-    { id: 'eliminar_eventos', nombre: 'Eliminar Eventos', categoria: 'Calendario', descripcion: 'Eliminar eventos' },
+    { id: 'ver_calendario', nombre: 'Ver Calendario', categoria: 'Calendario' },
+    { id: 'crear_eventos', nombre: 'Crear Eventos', categoria: 'Calendario' },
+    { id: 'editar_eventos', nombre: 'Editar Eventos', categoria: 'Calendario' },
+    { id: 'eliminar_eventos', nombre: 'Eliminar Eventos', categoria: 'Calendario' },
     
     // Historial
-    { id: 'ver_historial', nombre: 'Ver Historial', categoria: 'Historial', descripcion: 'Acceder al historial' },
-    { id: 'exportar_historial', nombre: 'Exportar Historial', categoria: 'Historial', descripcion: 'Exportar logs' },
+    { id: 'ver_historial', nombre: 'Ver Historial', categoria: 'Historial' },
+    { id: 'exportar_historial', nombre: 'Exportar Historial', categoria: 'Historial' },
     
     // Soporte
-    { id: 'ver_soporte', nombre: 'Ver Soporte', categoria: 'Soporte', descripcion: 'Acceder al centro de soporte' },
-    { id: 'crear_tickets', nombre: 'Crear Tickets', categoria: 'Soporte', descripcion: 'Crear tickets de soporte' },
-    { id: 'responder_tickets', nombre: 'Responder Tickets', categoria: 'Soporte', descripcion: 'Responder a tickets' },
-    { id: 'cerrar_tickets', nombre: 'Cerrar Tickets', categoria: 'Soporte', descripcion: 'Cerrar tickets' },
+    { id: 'ver_soporte', nombre: 'Ver Soporte', categoria: 'Soporte' },
+    { id: 'crear_tickets', nombre: 'Crear Tickets', categoria: 'Soporte' },
+    { id: 'responder_tickets', nombre: 'Responder Tickets', categoria: 'Soporte' },
+    { id: 'cerrar_tickets', nombre: 'Cerrar Tickets', categoria: 'Soporte' },
     
     // Papelera
-    { id: 'ver_papelera', nombre: 'Ver Papelera', categoria: 'Papelera', descripcion: 'Acceder a elementos eliminados' },
-    { id: 'restaurar_documentos', nombre: 'Restaurar Documentos', categoria: 'Papelera', descripcion: 'Restaurar desde papelera' },
-    { id: 'vaciar_papelera', nombre: 'Vaciar Papelera', categoria: 'Papelera', descripcion: 'Eliminar permanentemente' },
+    { id: 'ver_papelera', nombre: 'Ver Papelera', categoria: 'Papelera' },
+    { id: 'restaurar_documentos', nombre: 'Restaurar Documentos', categoria: 'Papelera' },
+    { id: 'vaciar_papelera', nombre: 'Vaciar Papelera', categoria: 'Papelera' },
     
     // Administración
-    { id: 'ver_usuarios', nombre: 'Ver Usuarios', categoria: 'Administración', descripcion: 'Listar usuarios del sistema' },
-    { id: 'crear_usuarios', nombre: 'Crear Usuarios', categoria: 'Administración', descripcion: 'Crear nuevos usuarios' },
-    { id: 'editar_usuarios', nombre: 'Editar Usuarios', categoria: 'Administración', descripcion: 'Modificar usuarios' },
-    { id: 'eliminar_usuarios', nombre: 'Eliminar Usuarios', categoria: 'Administración', descripcion: 'Desactivar/eliminar usuarios' },
-    { id: 'ver_roles', nombre: 'Ver Roles', categoria: 'Administración', descripcion: 'Listar roles' },
-    { id: 'crear_roles', nombre: 'Crear Roles', categoria: 'Administración', descripcion: 'Crear nuevos roles' },
-    { id: 'editar_roles', nombre: 'Editar Roles', categoria: 'Administración', descripcion: 'Modificar roles' },
-    { id: 'eliminar_roles', nombre: 'Eliminar Roles', categoria: 'Administración', descripcion: 'Eliminar roles' },
-    { id: 'ver_permisos', nombre: 'Ver Permisos', categoria: 'Administración', descripcion: 'Ver configuración de permisos' }
+    { id: 'ver_usuarios', nombre: 'Ver Usuarios', categoria: 'Administración' },
+    { id: 'crear_usuarios', nombre: 'Crear Usuarios', categoria: 'Administración' },
+    { id: 'editar_usuarios', nombre: 'Editar Usuarios', categoria: 'Administración' },
+    { id: 'eliminar_usuarios', nombre: 'Eliminar Usuarios', categoria: 'Administración' },
+    { id: 'ver_roles', nombre: 'Ver Roles', categoria: 'Administración' },
+    { id: 'crear_roles', nombre: 'Crear Roles', categoria: 'Administración' },
+    { id: 'editar_roles', nombre: 'Editar Roles', categoria: 'Administración' },
+    { id: 'eliminar_roles', nombre: 'Eliminar Roles', categoria: 'Administración' }
 ];
 
-// =============================================================================
+// ============================================================================
 // ESTADO GLOBAL
-// =============================================================================
+// ============================================================================
 
 let usuarios = [];
 let roles = [];
-let permisos = PERMISOS_DISPONIBLES;
-let currentUserId = null;
-let currentRoleId = null;
-let permisosEditando = null;
+let auditLogs = [];
+let esAdminUnico = false;
 
-// =============================================================================
+// ============================================================================
 // INICIALIZACIÓN
-// =============================================================================
+// ============================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando panel de administración...');
@@ -111,24 +107,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // Mostrar preloaders
-        mostrarPreloaders();
+        // Verificar si es admin único
+        await verificarAdminUnico();
         
         // Inicializar componentes
+        inicializarSidebar();
         inicializarTabs();
         configurarEventos();
+        actualizarFechaHora();
+        
+        // Configurar alerta de salida al dashboard
+        configurarDashboardLink();
         
         // Cargar datos
         await Promise.all([
             cargarUsuarios(),
-            cargarRoles()
+            cargarRoles(),
+            cargarAuditLogs()
         ]);
-        
-        // Cargar logs (simulados)
-        cargarLogs();
-        
-        // Mostrar todos los permisos en la pestaña correspondiente
-        mostrarTodosPermisos();
         
         console.log('✅ Panel inicializado correctamente');
         
@@ -138,42 +134,128 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-function mostrarPreloaders() {
-    // Los preloaders ya están visibles por defecto
-    document.getElementById('usersTable').style.display = 'none';
-    document.getElementById('rolesTable').style.display = 'none';
-    document.getElementById('logsTable').style.display = 'none';
-}
-
-function ocultarPreloader(tab) {
-    const preloader = document.getElementById(`${tab}Preloader`);
-    const table = document.getElementById(`${tab}Table`);
+/**
+ * Configurar el enlace al dashboard con confirmación
+ */
+function configurarDashboardLink() {
+    const dashboardLink = document.getElementById('dashboardLink');
+    const dashboardModal = document.getElementById('dashboardConfirmModal');
+    const closeModalBtn = document.getElementById('closeDashboardConfirmModal');
+    const cancelBtn = document.getElementById('cancelDashboardBtn');
+    const confirmBtn = document.getElementById('confirmDashboardBtn');
     
-    if (preloader) preloader.style.display = 'none';
-    if (table) table.style.display = 'table';
+    if (dashboardLink) {
+        dashboardLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardModal.showModal();
+        });
+    }
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            dashboardModal.close();
+        });
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            dashboardModal.close();
+        });
+    }
+    
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+            window.location.href = '/';
+        });
+    }
 }
 
-// =============================================================================
+/**
+ * Verificar si el usuario actual es el admin único
+ */
+async function verificarAdminUnico() {
+    try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            esAdminUnico = user.rol === 'administrador';
+            
+            // Mostrar nombre en sidebar
+            document.getElementById('adminName').textContent = user.usuario || 'Administrador';
+            document.getElementById('adminAvatar').textContent = (user.usuario || 'A').charAt(0).toUpperCase();
+            
+            // Si no es admin, redirigir
+            if (!esAdminUnico) {
+                mostrarError('No tienes permisos de administrador');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            }
+        }
+    } catch (error) {
+        console.error('Error verificando admin:', error);
+    }
+}
+
+function inicializarSidebar() {
+    const sidebar = document.getElementById('adminSidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        });
+        
+        // Recuperar estado guardado
+        const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (collapsed) {
+            sidebar.classList.add('collapsed');
+        }
+    }
+}
+
+function actualizarFechaHora() {
+    const updateDateTime = () => {
+        const now = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        document.getElementById('currentDateTime').textContent = 
+            now.toLocaleDateString('es-MX', options).replace(',', '');
+    };
+    
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
+}
+
+// ============================================================================
 // CONFIGURACIÓN DE TABS
-// =============================================================================
+// ============================================================================
 
 function inicializarTabs() {
-    const tabs = document.querySelectorAll('.admin-tab');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
+    const navItems = document.querySelectorAll('.admin-panel-nav-item[data-tab]');
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = item.dataset.tab;
             
-            // Actualizar tabs
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
+            // Actualizar navegación
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
             
-            // Actualizar contenido
-            document.querySelectorAll('.admin-tab-content').forEach(content => {
-                content.classList.remove('active');
+            // Actualizar paneles
+            document.querySelectorAll('.admin-panel-tab-pane').forEach(pane => {
+                pane.classList.remove('active');
             });
-            document.getElementById(`${tabId}Tab`).classList.add('active');
+            document.getElementById(`${tabId}Pane`).classList.add('active');
             
-            // Si es la pestaña de permisos, actualizar grid
+            // Cargar contenido específico si es necesario
             if (tabId === 'permissions') {
                 mostrarTodosPermisos();
             }
@@ -181,9 +263,9 @@ function inicializarTabs() {
     });
 }
 
-// =============================================================================
+// ============================================================================
 // CONFIGURACIÓN DE EVENTOS
-// =============================================================================
+// ============================================================================
 
 function configurarEventos() {
     // Búsqueda de usuarios
@@ -191,6 +273,12 @@ function configurarEventos() {
     if (searchUsers) {
         searchUsers.addEventListener('input', filtrarUsuarios);
     }
+    
+    // Filtros de usuarios
+    const roleFilter = document.getElementById('roleFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    if (roleFilter) roleFilter.addEventListener('change', filtrarUsuarios);
+    if (statusFilter) statusFilter.addEventListener('change', filtrarUsuarios);
     
     // Búsqueda de roles
     const searchRoles = document.getElementById('searchRoles');
@@ -210,50 +298,84 @@ function configurarEventos() {
         createRoleBtn.addEventListener('click', () => abrirModalRol());
     }
     
+    // Botón refresh
+    const refreshBtn = document.getElementById('refreshData');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', recargarDatos);
+    }
+    
+    // Botón fullscreen
+    const fullscreenBtn = document.getElementById('fullscreenToggle');
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+    }
+    
     // Modal de usuario
-    const closeUserModal = document.getElementById('closeUserModal');
-    const cancelUserBtn = document.getElementById('cancelUserBtn');
-    const saveUserBtn = document.getElementById('saveUserBtn');
+    document.getElementById('closeUserModal')?.addEventListener('click', cerrarModalUsuario);
+    document.getElementById('cancelUserBtn')?.addEventListener('click', cerrarModalUsuario);
+    document.getElementById('saveUserBtn')?.addEventListener('click', guardarUsuario);
     
-    closeUserModal?.addEventListener('click', cerrarModalUsuario);
-    cancelUserBtn?.addEventListener('click', cerrarModalUsuario);
-    saveUserBtn?.addEventListener('click', guardarUsuario);
+    // Modal de rol
+    document.getElementById('closeRoleModal')?.addEventListener('click', cerrarModalRol);
+    document.getElementById('cancelRoleBtn')?.addEventListener('click', cerrarModalRol);
+    document.getElementById('saveRoleBtn')?.addEventListener('click', guardarRol);
     
-    // Cerrar modal con ESC
+    // Modal de confirmación
+    document.getElementById('closeConfirmModal')?.addEventListener('click', cerrarConfirmModal);
+    document.getElementById('cancelConfirmBtn')?.addEventListener('click', cerrarConfirmModal);
+    
+    // Cerrar modales con ESC
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            const userModal = document.getElementById('userModal');
-            const roleModal = document.getElementById('roleModal');
-            const permissionsModal = document.getElementById('permissionsModal');
-            
-            if (userModal?.open) userModal.close();
-            if (roleModal?.open) roleModal.close();
-            if (permissionsModal?.open) permissionsModal.close();
+            document.querySelectorAll('dialog[open]').forEach(dialog => {
+                dialog.close();
+            });
         }
     });
     
-    // Modal de rol
-    const closeRoleModal = document.getElementById('closeRoleModal');
-    const cancelRoleBtn = document.getElementById('cancelRoleBtn');
-    const saveRoleBtn = document.getElementById('saveRoleBtn');
-    
-    closeRoleModal?.addEventListener('click', cerrarModalRol);
-    cancelRoleBtn?.addEventListener('click', cerrarModalRol);
-    saveRoleBtn?.addEventListener('click', guardarRol);
-    
-    // Modal de permisos
-    const closePermissionsModal = document.getElementById('closePermissionsModal');
-    const cancelPermissionsBtn = document.getElementById('cancelPermissionsBtn');
-    const savePermissionsBtn = document.getElementById('savePermissionsBtn');
-    
-    closePermissionsModal?.addEventListener('click', cerrarModalPermisos);
-    cancelPermissionsBtn?.addEventListener('click', cerrarModalPermisos);
-    savePermissionsBtn?.addEventListener('click', guardarPermisosEspecificos);
+    // Global search
+    const globalSearch = document.getElementById('globalSearch');
+    if (globalSearch) {
+        globalSearch.addEventListener('input', (e) => {
+            const term = e.target.value;
+            // Determinar pestaña activa y buscar
+            const activeTab = document.querySelector('.admin-panel-tab-pane.active').id;
+            if (activeTab === 'usersPane') {
+                document.getElementById('searchUsers').value = term;
+                filtrarUsuarios();
+            } else if (activeTab === 'rolesPane') {
+                document.getElementById('searchRoles').value = term;
+                filtrarRoles();
+            }
+        });
+    }
 }
 
-// =============================================================================
-// FUNCIONES DE UTILIDAD (NOTIFICACIONES)
-// =============================================================================
+async function recargarDatos() {
+    mostrarNotificacion('Actualizando datos...', 'info');
+    await Promise.all([
+        cargarUsuarios(),
+        cargarRoles(),
+        cargarAuditLogs()
+    ]);
+    mostrarExito('Datos actualizados');
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        document.getElementById('fullscreenToggle').innerHTML = '<i class="fas fa-compress"></i>';
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+            document.getElementById('fullscreenToggle').innerHTML = '<i class="fas fa-expand"></i>';
+        }
+    }
+}
+
+// ============================================================================
+// NOTIFICACIONES
+// ============================================================================
 
 function mostrarNotificacion(mensaje, tipo = 'info', titulo = '') {
     const container = document.getElementById('notificationContainer');
@@ -268,24 +390,23 @@ function mostrarNotificacion(mensaje, tipo = 'info', titulo = '') {
     };
     
     const notif = document.createElement('div');
-    notif.className = `notification ${tipo}`;
+    notif.className = `admin-panel-notification ${tipo}`;
     notif.id = id;
     notif.innerHTML = `
-        <div class="notification-icon">
+        <div class="admin-panel-notification-icon">
             <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'exclamation-circle' : tipo === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
         </div>
-        <div class="notification-content">
-            <div class="notification-title">${titulo || titulos[tipo]}</div>
-            <div class="notification-message">${mensaje}</div>
+        <div class="admin-panel-notification-content">
+            <div class="admin-panel-notification-title">${titulo || titulos[tipo]}</div>
+            <div class="admin-panel-notification-message">${mensaje}</div>
         </div>
-        <button class="notification-close" onclick="this.parentElement.remove()">
+        <button class="admin-panel-notification-close" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
         </button>
     `;
     
     container.appendChild(notif);
     
-    // Auto-cerrar después de 5 segundos
     setTimeout(() => {
         const elem = document.getElementById(id);
         if (elem) elem.remove();
@@ -304,76 +425,14 @@ function mostrarAdvertencia(mensaje) {
     mostrarNotificacion(mensaje, 'warning');
 }
 
-// =============================================================================
-// FUNCIONES DE PERMISOS (NÚCLEO DEL SISTEMA)
-// =============================================================================
-
-/**
- * Obtiene los permisos efectivos de un usuario
- * Combina permisos del rol + permisos específicos
- */
-function obtenerPermisosEfectivos(usuario) {
-    if (!usuario) return [];
-    
-    // Encontrar el rol del usuario
-    const rol = roles.find(r => r.nombre === usuario.rol);
-    
-    // Permisos del rol (si existe)
-    const permisosRol = rol?.permisos || [];
-    
-    // Permisos específicos del usuario
-    const permisosEspecificos = usuario.permisos || [];
-    
-    // Combinar (los específicos sobrescriben a los del rol)
-    const permisosCombinados = [...new Set([...permisosRol, ...permisosEspecificos])];
-    
-    return permisosCombinados;
-}
-
-/**
- * Verifica si un usuario tiene un permiso específico
- */
-function usuarioTienePermiso(usuario, permisoId) {
-    if (!usuario) return false;
-    
-    // Admin tiene todos los permisos
-    if (usuario.rol === 'administrador') return true;
-    
-    const permisosEfectivos = obtenerPermisosEfectivos(usuario);
-    return permisosEfectivos.includes(permisoId);
-}
-
-/**
- * Verifica si un usuario tiene TODOS los permisos especificados
- */
-function usuarioTieneTodosPermisos(usuario, permisosRequeridos) {
-    if (!usuario || !permisosRequeridos.length) return false;
-    if (usuario.rol === 'administrador') return true;
-    
-    const permisosEfectivos = obtenerPermisosEfectivos(usuario);
-    return permisosRequeridos.every(p => permisosEfectivos.includes(p));
-}
-
-/**
- * Verifica si un usuario tiene ALGUNO de los permisos especificados
- */
-function usuarioTieneAlgunPermiso(usuario, permisosRequeridos) {
-    if (!usuario || !permisosRequeridos.length) return false;
-    if (usuario.rol === 'administrador') return true;
-    
-    const permisosEfectivos = obtenerPermisosEfectivos(usuario);
-    return permisosRequeridos.some(p => permisosEfectivos.includes(p));
-}
-
-// =============================================================================
-// FUNCIONES PARA MOSTRAR PERMISOS EN GRID
-// =============================================================================
+// ============================================================================
+// FUNCIONES PARA PERMISOS
+// ============================================================================
 
 function cargarPermisosGrid(containerId, permisosSeleccionados = [], soloLectura = false) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    // Agrupar permisos por categoría
     const permisosPorCategoria = {};
     PERMISOS_DISPONIBLES.forEach(permiso => {
         if (!permisosPorCategoria[permiso.categoria]) {
@@ -383,14 +442,11 @@ function cargarPermisosGrid(containerId, permisosSeleccionados = [], soloLectura
     });
     
     let html = '';
-    
-    // Ordenar categorías alfabéticamente
     const categorias = Object.keys(permisosPorCategoria).sort();
     
     categorias.forEach(categoria => {
-        html += `<div class="permission-category">${categoria}</div>`;
+        html += `<div class="admin-panel-permission-category">${categoria}</div>`;
         
-        // Ordenar permisos por nombre
         const permisosCategoria = permisosPorCategoria[categoria].sort((a, b) => 
             a.nombre.localeCompare(b.nombre)
         );
@@ -400,9 +456,9 @@ function cargarPermisosGrid(containerId, permisosSeleccionados = [], soloLectura
             const disabled = soloLectura ? 'disabled' : '';
             
             html += `
-                <label class="permission-item">
+                <label class="admin-panel-permission-item">
                     <input type="checkbox" value="${permiso.id}" ${checked} ${disabled}>
-                    <span title="${permiso.descripcion || ''}">${permiso.nombre}</span>
+                    <span>${permiso.nombre}</span>
                 </label>
             `;
         });
@@ -424,22 +480,23 @@ function mostrarTodosPermisos() {
     });
     
     let html = '';
+    let totalPermisos = 0;
     const categorias = Object.keys(permisosPorCategoria).sort();
     
     categorias.forEach(categoria => {
-        html += `<div class="permission-category">📌 ${categoria}</div>`;
+        html += `<div class="admin-panel-permission-category">📌 ${categoria}</div>`;
         
         const permisosCategoria = permisosPorCategoria[categoria].sort((a, b) => 
             a.nombre.localeCompare(b.nombre)
         );
         
         permisosCategoria.forEach(permiso => {
+            totalPermisos++;
             html += `
-                <div class="permission-item" style="background: var(--bg-secondary);">
-                    <i class="fas fa-check-circle" style="color: var(--success-color);"></i>
+                <div class="admin-panel-permission-item">
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
                     <span>
                         <strong>${permiso.nombre}</strong>
-                        <small style="display: block; color: var(--text-muted);">${permiso.descripcion || 'Sin descripción'}</small>
                     </span>
                 </div>
             `;
@@ -447,13 +504,19 @@ function mostrarTodosPermisos() {
     });
     
     container.innerHTML = html;
+    
+    // Actualizar stats
+    document.getElementById('totalPermisos').textContent = totalPermisos;
+    document.getElementById('totalCategorias').textContent = categorias.length;
 }
 
-// =============================================================================
+// ============================================================================
 // FUNCIONES PARA USUARIOS
-// =============================================================================
+// ============================================================================
 
 async function cargarUsuarios() {
+    mostrarPreloader('users');
+    
     try {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/api/admin/users`, {
@@ -473,26 +536,58 @@ async function cargarUsuarios() {
             usuarios = data.usuarios || [];
             actualizarTablaUsuarios(usuarios);
             actualizarStats();
+            actualizarFiltrosRoles();
             ocultarPreloader('users');
         } else {
             mostrarError(data.message || 'Error al cargar usuarios');
+            cargarUsuariosEjemplo();
         }
     } catch (error) {
         console.error('Error cargando usuarios:', error);
         mostrarError('Error de conexión al cargar usuarios');
-        
-        // Mostrar datos de ejemplo para desarrollo
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log('⚠️ Usando datos de ejemplo para desarrollo');
-            usuarios = [
-                { _id: '1', usuario: 'admin', correo: 'admin@cbtis051.edu.mx', rol: 'administrador', activo: true, ultimoAcceso: new Date().toISOString(), permisos: [] },
-                { _id: '2', usuario: 'juan.perez', correo: 'juan.perez@cbtis051.edu.mx', rol: 'usuario', activo: true, ultimoAcceso: new Date().toISOString(), permisos: ['ver_documentos', 'subir_documentos'] },
-                { _id: '3', usuario: 'maria.garcia', correo: 'maria.garcia@cbtis051.edu.mx', rol: 'usuario', activo: false, ultimoAcceso: null, permisos: [] }
-            ];
-            actualizarTablaUsuarios(usuarios);
-            actualizarStats();
-            ocultarPreloader('users');
-        }
+        cargarUsuariosEjemplo();
+    }
+}
+
+function cargarUsuariosEjemplo() {
+    // Datos de ejemplo para desarrollo
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        usuarios = [
+            { 
+                _id: '1', 
+                usuario: 'admin', 
+                correo: 'admin@cbtis051.edu.mx', 
+                rol: 'administrador', 
+                activo: true, 
+                esAdminUnico: true,
+                ultimoAcceso: new Date().toISOString(),
+                createdAt: new Date().toISOString()
+            },
+            { 
+                _id: '2', 
+                usuario: 'juan.perez', 
+                correo: 'juan.perez@cbtis051.edu.mx', 
+                rol: 'usuario', 
+                activo: true,
+                esAdminUnico: false,
+                ultimoAcceso: new Date(Date.now() - 86400000).toISOString(),
+                createdAt: new Date(Date.now() - 604800000).toISOString()
+            },
+            { 
+                _id: '3', 
+                usuario: 'maria.garcia', 
+                correo: 'maria.garcia@cbtis051.edu.mx', 
+                rol: 'editor', 
+                activo: false,
+                esAdminUnico: false,
+                ultimoAcceso: null,
+                createdAt: new Date(Date.now() - 1209600000).toISOString()
+            }
+        ];
+        actualizarTablaUsuarios(usuarios);
+        actualizarStats();
+        actualizarFiltrosRoles();
+        ocultarPreloader('users');
     }
 }
 
@@ -502,7 +597,7 @@ function actualizarTablaUsuarios(usuariosFiltrados) {
     if (!usuariosFiltrados || usuariosFiltrados.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="no-data">
+                <td colspan="6" class="admin-panel-no-data">
                     <i class="fas fa-users"></i>
                     <p>No hay usuarios registrados</p>
                     <small>Haz clic en "Nuevo Usuario" para comenzar</small>
@@ -513,52 +608,67 @@ function actualizarTablaUsuarios(usuariosFiltrados) {
     }
     
     tbody.innerHTML = usuariosFiltrados.map(user => {
-        const permisosEfectivos = obtenerPermisosEfectivos(user);
-        const totalPermisos = permisosEfectivos.length;
+        const esAdminUnico = user.esAdminUnico === true;
+        const fechaCreacion = user.createdAt ? new Date(user.createdAt).toLocaleDateString('es-MX') : 'N/A';
+        const ultimoAcceso = user.ultimoAcceso 
+            ? new Date(user.ultimoAcceso).toLocaleString('es-MX', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+            : 'Nunca';
+        
+        const rolClass = user.rol === 'administrador' ? 'admin' : 
+                        user.rol === 'editor' ? 'editor' : '';
         
         return `
         <tr>
             <td>
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                <div class="admin-panel-user-info-cell">
+                    <div class="admin-panel-user-avatar-sm">
                         ${user.usuario?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                    <div>
-                        <strong style="color: var(--text-primary); display: block;">${user.usuario}</strong>
-                        <small style="color: var(--text-muted);">ID: ${user._id?.substring(0, 8) || 'N/A'}</small>
+                    <div class="admin-panel-user-details">
+                        <span class="admin-panel-user-name-full">
+                            ${user.usuario}
+                            ${esAdminUnico ? '<span style="background: #f59e0b; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Único</span>' : ''}
+                        </span>
+                        <span class="admin-panel-user-meta">Creado: ${fechaCreacion}</span>
                     </div>
                 </div>
             </td>
             <td>${user.correo}</td>
             <td>
-                <span class="role-badge">
-                    ${user.rol === 'administrador' ? '👑 Administrador' : 
-                      user.rol === 'usuario' ? '👤 Usuario' : '🔰 ' + (user.rol || 'Sin rol')}
+                <span class="admin-panel-role-badge ${rolClass}">
+                    <i class="fas fa-${user.rol === 'administrador' ? 'crown' : 'user'}"></i>
+                    ${user.rol === 'administrador' ? 'Administrador' : 
+                      user.rol === 'usuario' ? 'Usuario' : user.rol || 'Sin rol'}
                 </span>
             </td>
             <td>
-                <span class="role-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color); cursor: pointer;" onclick="window.verPermisosUsuario('${user._id}')">
-                    <i class="fas fa-shield-alt"></i> ${totalPermisos} permisos
-                </span>
-            </td>
-            <td>
-                <span class="status-badge ${user.activo ? 'active' : 'inactive'}">
+                <span class="admin-panel-status-badge ${user.activo ? 'active' : 'inactive'}">
                     <i class="fas fa-${user.activo ? 'check-circle' : 'times-circle'}"></i>
                     ${user.activo ? 'Activo' : 'Inactivo'}
                 </span>
             </td>
-            <td>${user.ultimoAcceso ? new Date(user.ultimoAcceso).toLocaleString('es-MX') : 'Nunca'}</td>
+            <td>${ultimoAcceso}</td>
             <td>
-                <div class="action-buttons">
-                    <button class="action-btn" onclick="window.editarUsuario('${user._id}')" title="Editar usuario">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn" onclick="window.verPermisosUsuario('${user._id}')" title="Gestionar permisos">
-                        <i class="fas fa-shield-alt"></i>
-                    </button>
-                    <button class="action-btn delete" onclick="window.eliminarUsuario('${user._id}')" title="${user.activo ? 'Desactivar' : 'Activar'} usuario">
-                        <i class="fas fa-${user.activo ? 'user-slash' : 'user-check'}"></i>
-                    </button>
+                <div class="admin-panel-action-buttons">
+                    ${!esAdminUnico ? `
+                        <button class="admin-panel-action-btn" onclick="window.editarUsuario('${user._id}')" title="Editar usuario">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="admin-panel-action-btn delete" onclick="window.cambiarEstadoUsuario('${user._id}')" title="${user.activo ? 'Desactivar' : 'Activar'} usuario">
+                            <i class="fas fa-${user.activo ? 'user-slash' : 'user-check'}"></i>
+                        </button>
+                        <button class="admin-panel-action-btn permanent-delete" onclick="window.eliminarUsuarioPermanente('${user._id}')" title="Eliminar permanentemente">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    ` : `
+                        <span class="admin-panel-role-badge" style="background: #f59e0b; color: white; border: none;">Admin Único</span>
+                    `}
                 </div>
             </td>
         </tr>
@@ -567,12 +677,29 @@ function actualizarTablaUsuarios(usuariosFiltrados) {
 
 function filtrarUsuarios() {
     const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
     
-    const filtrados = usuarios.filter(user => 
-        (user.usuario?.toLowerCase() || '').includes(searchTerm) ||
-        (user.correo?.toLowerCase() || '').includes(searchTerm) ||
-        (user.rol?.toLowerCase() || '').includes(searchTerm)
-    );
+    let filtrados = usuarios;
+    
+    // Filtro de búsqueda
+    if (searchTerm) {
+        filtrados = filtrados.filter(user => 
+            (user.usuario?.toLowerCase() || '').includes(searchTerm) ||
+            (user.correo?.toLowerCase() || '').includes(searchTerm)
+        );
+    }
+    
+    // Filtro de rol
+    if (roleFilter) {
+        filtrados = filtrados.filter(user => user.rol === roleFilter);
+    }
+    
+    // Filtro de estado
+    if (statusFilter) {
+        const activo = statusFilter === 'activo';
+        filtrados = filtrados.filter(user => user.activo === activo);
+    }
     
     actualizarTablaUsuarios(filtrados);
 }
@@ -585,12 +712,28 @@ function actualizarStats() {
     document.getElementById('totalUsers').textContent = total;
     document.getElementById('activeUsers').textContent = activos;
     document.getElementById('inactiveUsers').textContent = inactivos;
+    document.getElementById('totalRoles').textContent = roles.length;
 }
 
-// =============================================================================
-// MODAL DE USUARIO
-// =============================================================================
+function actualizarFiltrosRoles() {
+    const roleFilter = document.getElementById('roleFilter');
+    if (!roleFilter) return;
+    
+    const rolesUnicos = [...new Set(usuarios.map(u => u.rol).filter(Boolean))];
+    
+    let options = '<option value="">Todos los roles</option>';
+    rolesUnicos.forEach(rol => {
+        options += `<option value="${rol}">${rol}</option>`;
+    });
+    
+    roleFilter.innerHTML = options;
+}
 
+// ============================================================================
+// MODAL DE USUARIO (SIN PERMISOS ESPECÍFICOS)
+// ============================================================================
+
+// Funciones para abrir modales - usa showModal() para dialog
 async function abrirModalUsuario(userId = null) {
     const modal = document.getElementById('userModal');
     const title = document.getElementById('userModalTitle');
@@ -600,31 +743,39 @@ async function abrirModalUsuario(userId = null) {
     // Cargar roles en el select
     roleSelect.innerHTML = '<option value="">Seleccionar rol...</option>';
     roles.forEach(rol => {
-        roleSelect.innerHTML += `<option value="${rol.nombre}">${rol.nombre}</option>`;
+        if (rol.nombre !== 'administrador') {
+            roleSelect.innerHTML += `<option value="${rol.nombre}">${rol.nombre}</option>`;
+        }
     });
     
     if (userId) {
-        title.textContent = 'Editar Usuario';
+        title.innerHTML = '<i class="fas fa-edit"></i><span>Editar Usuario</span>';
         passwordGroup.style.display = 'none';
         await cargarDatosUsuario(userId);
     } else {
-        title.textContent = 'Nuevo Usuario';
+        title.innerHTML = '<i class="fas fa-user-plus"></i><span>Nuevo Usuario</span>';
         passwordGroup.style.display = 'block';
         document.getElementById('userId').value = '';
         document.getElementById('userName').value = '';
         document.getElementById('userEmail').value = '';
         document.getElementById('userPassword').value = '';
         document.getElementById('userActive').checked = true;
-        cargarPermisosGrid('permissionsGrid', []);
+        document.getElementById('userRole').value = '';
+        
+        // Habilitar campos
+        document.getElementById('userName').disabled = false;
+        document.getElementById('userEmail').disabled = false;
+        document.getElementById('userActive').disabled = false;
+        document.getElementById('userRole').disabled = false;
     }
     
+    // Usar showModal() para dialog
     modal.showModal();
 }
 
 async function cargarDatosUsuario(userId) {
     try {
-        const user = usuarios.find(u => u._id === userId) || 
-                    await fetchUsuario(userId);
+        const user = usuarios.find(u => u._id === userId);
         
         if (user) {
             document.getElementById('userId').value = user._id;
@@ -633,8 +784,18 @@ async function cargarDatosUsuario(userId) {
             document.getElementById('userActive').checked = user.activo;
             document.getElementById('userRole').value = user.rol || '';
             
-            // Cargar permisos del usuario
-            cargarPermisosGrid('permissionsGrid', user.permisos || []);
+            // Si es admin único, deshabilitar campos
+            if (user.esAdminUnico) {
+                document.getElementById('userName').disabled = true;
+                document.getElementById('userEmail').disabled = true;
+                document.getElementById('userActive').disabled = true;
+                document.getElementById('userRole').disabled = true;
+            } else {
+                document.getElementById('userName').disabled = false;
+                document.getElementById('userEmail').disabled = false;
+                document.getElementById('userActive').disabled = false;
+                document.getElementById('userRole').disabled = false;
+            }
         }
     } catch (error) {
         console.error('Error cargando datos del usuario:', error);
@@ -642,24 +803,15 @@ async function cargarDatosUsuario(userId) {
     }
 }
 
-async function fetchUsuario(userId) {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        const data = await response.json();
-        return data.success ? data.usuario : null;
-    } catch (error) {
-        console.error('Error fetching user:', error);
-        return null;
-    }
-}
-
 function cerrarModalUsuario() {
     const modal = document.getElementById('userModal');
     modal.close();
+    
+    // Resetear campos
+    document.getElementById('userName').disabled = false;
+    document.getElementById('userEmail').disabled = false;
+    document.getElementById('userActive').disabled = false;
+    document.getElementById('userRole').disabled = false;
 }
 
 async function guardarUsuario() {
@@ -669,12 +821,6 @@ async function guardarUsuario() {
     const password = document.getElementById('userPassword').value;
     const activo = document.getElementById('userActive').checked;
     const rol = document.getElementById('userRole').value;
-    
-    // Obtener permisos seleccionados
-    const permisos = [];
-    document.querySelectorAll('#permissionsGrid input:checked').forEach(cb => {
-        permisos.push(cb.value);
-    });
     
     // Validaciones
     if (!usuario || !correo) {
@@ -706,14 +852,12 @@ async function guardarUsuario() {
             usuario,
             correo,
             rol,
-            permisos,
             activo
         } : {
             usuario,
             correo,
             password,
-            rol,
-            permisos
+            rol
         };
         
         const response = await fetch(url, {
@@ -740,119 +884,158 @@ async function guardarUsuario() {
     }
 }
 
-async function eliminarUsuario(userId) {
+/**
+ * Cambiar estado del usuario (activar/desactivar)
+ */
+async function cambiarEstadoUsuario(userId) {
     const user = usuarios.find(u => u._id === userId);
     if (!user) return;
     
-    const accion = user.activo ? 'desactivar' : 'activar';
-    const confirmacion = confirm(`¿Estás seguro de ${accion} al usuario ${user.usuario}?`);
-    
-    if (!confirmacion) return;
-    
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            await cargarUsuarios();
-            mostrarExito(`Usuario ${user.activo ? 'desactivado' : 'activado'}`);
-        } else {
-            mostrarError(data.message || 'Error al cambiar estado');
-        }
-    } catch (error) {
-        console.error('Error eliminando usuario:', error);
-        mostrarError('Error de conexión');
-    }
-}
-
-// =============================================================================
-// GESTIÓN DE PERMISOS ESPECÍFICOS
-// =============================================================================
-
-async function verPermisosUsuario(userId) {
-    const user = usuarios.find(u => u._id === userId);
-    if (!user) return;
-    
-    const modal = document.getElementById('permissionsModal');
-    const title = document.getElementById('permissionsModalTitle');
-    const userName = document.getElementById('permissionsUserName');
-    const userRole = document.getElementById('permissionsUserRole');
-    
-    title.textContent = `Permisos: ${user.usuario}`;
-    userName.innerHTML = `<i class="fas fa-user"></i> ${user.usuario} <small style="color: var(--text-muted);">(${user.correo})</small>`;
-    userRole.innerHTML = `<i class="fas fa-tag"></i> Rol: <strong>${user.rol || 'Sin rol'}</strong>`;
-    
-    // Obtener permisos efectivos
-    const permisosEfectivos = obtenerPermisosEfectivos(user);
-    
-    // Mostrar permisos efectivos (solo lectura)
-    cargarPermisosGrid('userEffectivePermissions', permisosEfectivos, true);
-    
-    // Mostrar permisos específicos (editables)
-    cargarPermisosGrid('userSpecificPermissionsEdit', user.permisos || [], false);
-    
-    // Guardar userId para editar
-    permisosEditando = userId;
-    
-    modal.showModal();
-}
-
-function cerrarModalPermisos() {
-    const modal = document.getElementById('permissionsModal');
-    modal.close();
-    permisosEditando = null;
-}
-
-async function guardarPermisosEspecificos() {
-    if (!permisosEditando) {
-        cerrarModalPermisos();
+    // No permitir desactivar admin único
+    if (user.esAdminUnico) {
+        mostrarError('No puedes cambiar el estado del administrador único');
         return;
     }
     
-    // Obtener permisos seleccionados
-    const permisos = [];
-    document.querySelectorAll('#userSpecificPermissionsEdit input:checked').forEach(cb => {
-        permisos.push(cb.value);
-    });
+    const accion = user.activo ? 'desactivar' : 'activar';
     
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/api/admin/users/${permisosEditando}/permisos`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ permisos })
-        });
+    // Usar modal de confirmación
+    const confirmModal = document.getElementById('confirmModal');
+    document.getElementById('confirmMessage').textContent = 
+        `¿Estás seguro de ${accion} al usuario ${user.usuario}?`;
+    document.getElementById('confirmModalTitle').textContent = 'Confirmar acción';
+    
+    confirmModal.showModal();
+    
+    // Configurar acción de confirmación
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    const cancelar = () => {
+        confirmModal.close();
+        confirmBtn.removeEventListener('click', handleConfirm);
+    };
+    
+    const handleConfirm = async () => {
+        confirmBtn.disabled = true;
         
-        const data = await response.json();
-        
-        if (data.success) {
-            cerrarModalPermisos();
-            await cargarUsuarios();
-            mostrarExito('Permisos actualizados');
-        } else {
-            mostrarError(data.message || 'Error al guardar permisos');
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                await cargarUsuarios();
+                mostrarExito(`Usuario ${user.activo ? 'desactivado' : 'activado'}`);
+                confirmModal.close();
+            } else {
+                mostrarError(data.message || 'Error al cambiar estado');
+            }
+        } catch (error) {
+            console.error('Error cambiando estado:', error);
+            mostrarError('Error de conexión');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.removeEventListener('click', handleConfirm);
         }
-    } catch (error) {
-        console.error('Error guardando permisos:', error);
-        mostrarError('Error de conexión');
-    }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    
+    // Limpiar al cerrar
+    const closeHandler = () => {
+        confirmBtn.removeEventListener('click', handleConfirm);
+        confirmModal.removeEventListener('close', closeHandler);
+    };
+    confirmModal.addEventListener('close', closeHandler);
 }
 
-// =============================================================================
+/**
+ * Eliminar usuario permanentemente
+ */
+async function eliminarUsuarioPermanente(userId) {
+    const user = usuarios.find(u => u._id === userId);
+    if (!user) return;
+    
+    if (user.esAdminUnico) {
+        mostrarError('No puedes eliminar al administrador único');
+        return;
+    }
+    
+    const confirmModal = document.getElementById('confirmModal');
+    document.getElementById('confirmMessage').innerHTML = 
+        `<strong style="color: var(--danger);">¿Estás seguro de ELIMINAR PERMANENTEMENTE al usuario ${user.usuario}?</strong><br><br>
+        <span style="color: var(--text-secondary); font-size: 0.9rem;">Esta acción no se puede deshacer. Todos los datos asociados a este usuario serán eliminados.</span>`;
+    document.getElementById('confirmModalTitle').textContent = '⚠️ Eliminación Permanente';
+    
+    // Cambiar el icono
+    const icon = confirmModal.querySelector('.action-modal__icon i');
+    if (icon) {
+        icon.className = 'fas fa-trash-alt';
+        icon.style.color = 'var(--danger)';
+    }
+    
+    confirmModal.showModal();
+    
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    confirmBtn.classList.add('btn--danger');
+    
+    const handleConfirm = async () => {
+        confirmBtn.disabled = true;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/admin/users/${userId}/permanent`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                await cargarUsuarios();
+                mostrarExito('Usuario eliminado permanentemente');
+                confirmModal.close();
+            } else {
+                mostrarError(data.message || 'Error al eliminar usuario');
+            }
+        } catch (error) {
+            console.error('Error eliminando usuario:', error);
+            mostrarError('Error de conexión');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('btn--danger');
+            confirmBtn.removeEventListener('click', handleConfirm);
+        }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    
+    const closeHandler = () => {
+        confirmBtn.removeEventListener('click', handleConfirm);
+        confirmBtn.classList.remove('btn--danger');
+        confirmModal.removeEventListener('close', closeHandler);
+    };
+    confirmModal.addEventListener('close', closeHandler);
+}
+
+function cerrarConfirmModal() {
+    document.getElementById('confirmModal').close();
+}
+
+// ============================================================================
 // FUNCIONES PARA ROLES
-// =============================================================================
+// ============================================================================
 
 async function cargarRoles() {
+    mostrarPreloader('roles');
+    
     try {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/api/admin/roles`, {
@@ -875,22 +1058,25 @@ async function cargarRoles() {
             ocultarPreloader('roles');
         } else {
             mostrarError(data.message || 'Error al cargar roles');
+            cargarRolesEjemplo();
         }
     } catch (error) {
         console.error('Error cargando roles:', error);
         mostrarError('Error de conexión al cargar roles');
-        
-        // Datos de ejemplo para desarrollo
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            roles = [
-                { _id: '1', nombre: 'administrador', descripcion: 'Acceso completo al sistema', permisos: PERMISOS_DISPONIBLES.map(p => p.id) },
-                { _id: '2', nombre: 'usuario', descripcion: 'Usuario básico', permisos: ['ver_dashboard', 'ver_documentos', 'subir_documentos'] },
-                { _id: '3', nombre: 'editor', descripcion: 'Puede editar documentos', permisos: ['ver_dashboard', 'ver_documentos', 'subir_documentos', 'editar_documentos'] }
-            ];
-            actualizarTablaRoles(roles);
-            document.getElementById('totalRoles').textContent = roles.length;
-            ocultarPreloader('roles');
-        }
+        cargarRolesEjemplo();
+    }
+}
+
+function cargarRolesEjemplo() {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        roles = [
+            { _id: '1', nombre: 'usuario', descripcion: 'Usuario básico', permisos: ['ver_dashboard', 'ver_documentos', 'subir_documentos'], esProtegido: true },
+            { _id: '2', nombre: 'editor', descripcion: 'Puede editar documentos', permisos: ['ver_dashboard', 'ver_documentos', 'subir_documentos', 'editar_documentos', 'eliminar_documentos'], esProtegido: false },
+            { _id: '3', nombre: 'supervisor', descripcion: 'Supervisor de documentos', permisos: ['ver_dashboard', 'ver_documentos', 'ver_personas', 'ver_reportes'], esProtegido: false }
+        ];
+        actualizarTablaRoles(roles);
+        document.getElementById('totalRoles').textContent = roles.length;
+        ocultarPreloader('roles');
     }
 }
 
@@ -900,7 +1086,7 @@ function actualizarTablaRoles(rolesFiltrados) {
     if (!rolesFiltrados || rolesFiltrados.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="no-data">
+                <td colspan="5" class="admin-panel-no-data">
                     <i class="fas fa-tags"></i>
                     <p>No hay roles definidos</p>
                     <small>Haz clic en "Nuevo Rol" para comenzar</small>
@@ -912,36 +1098,42 @@ function actualizarTablaRoles(rolesFiltrados) {
     
     tbody.innerHTML = rolesFiltrados.map(rol => {
         const usuariosConRol = usuarios.filter(u => u.rol === rol.nombre).length;
+        const esProtegido = rol.esProtegido === true;
         
         return `
         <tr>
             <td>
-                <strong style="color: var(--text-primary); font-size: 1rem;">${rol.nombre}</strong>
+                <strong style="color: var(--text-primary); font-size: 1rem;">
+                    ${rol.nombre}
+                    ${esProtegido ? '<span style="background: #6b7280; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Protegido</span>' : ''}
+                </strong>
             </td>
             <td>${rol.descripcion || '-'}</td>
             <td>
-                <span class="role-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">
+                <span class="admin-panel-role-badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
                     <i class="fas fa-key"></i> ${rol.permisos?.length || 0} permisos
                 </span>
             </td>
             <td>
-                <span class="role-badge">
+                <span class="admin-panel-role-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
                     <i class="fas fa-users"></i> ${usuariosConRol} usuario${usuariosConRol !== 1 ? 's' : ''}
                 </span>
             </td>
             <td>
-                <div class="action-buttons">
-                    <button class="action-btn" onclick="window.editarRol('${rol._id}')" title="Editar rol">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn" onclick="window.verPermisosRol('${rol._id}')" title="Ver permisos del rol">
-                        <i class="fas fa-shield-alt"></i>
-                    </button>
-                    ${rol.nombre !== 'administrador' ? `
-                        <button class="action-btn delete" onclick="window.eliminarRol('${rol._id}')" title="Eliminar rol">
+                <div class="admin-panel-action-buttons">
+                    ${!esProtegido ? `
+                        <button class="admin-panel-action-btn" onclick="window.editarRol('${rol._id}')" title="Editar rol">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="admin-panel-action-btn" onclick="window.verPermisosRol('${rol._id}')" title="Ver permisos">
+                            <i class="fas fa-shield-alt"></i>
+                        </button>
+                        <button class="admin-panel-action-btn delete" onclick="window.eliminarRol('${rol._id}')" title="Eliminar rol" ${usuariosConRol > 0 ? 'disabled' : ''}>
                             <i class="fas fa-trash"></i>
                         </button>
-                    ` : ''}
+                    ` : `
+                        <span class="admin-panel-role-badge" style="background: #6b7280; color: white;">Sistema</span>
+                    `}
                 </div>
             </td>
         </tr>
@@ -959,23 +1151,27 @@ function filtrarRoles() {
     actualizarTablaRoles(filtrados);
 }
 
-// =============================================================================
+// ============================================================================
 // MODAL DE ROL
-// =============================================================================
+// ============================================================================
 
 function abrirModalRol(roleId = null) {
     const modal = document.getElementById('roleModal');
     const title = document.getElementById('roleModalTitle');
     
     if (roleId) {
-        title.textContent = 'Editar Rol';
+        title.innerHTML = '<i class="fas fa-edit"></i><span>Editar Rol</span>';
         cargarDatosRol(roleId);
     } else {
-        title.textContent = 'Nuevo Rol';
+        title.innerHTML = '<i class="fas fa-plus"></i><span>Nuevo Rol</span>';
         document.getElementById('roleId').value = '';
         document.getElementById('roleName').value = '';
         document.getElementById('roleDescription').value = '';
         cargarPermisosGrid('rolePermissionsGrid', []);
+        
+        // Habilitar campos
+        document.getElementById('roleName').disabled = false;
+        document.getElementById('roleDescription').disabled = false;
     }
     
     modal.showModal();
@@ -988,12 +1184,28 @@ function cargarDatosRol(roleId) {
         document.getElementById('roleName').value = rol.nombre;
         document.getElementById('roleDescription').value = rol.descripcion || '';
         cargarPermisosGrid('rolePermissionsGrid', rol.permisos || []);
+        
+        // Si es rol protegido, deshabilitar edición
+        if (rol.esProtegido) {
+            document.getElementById('roleName').disabled = true;
+            document.getElementById('roleDescription').disabled = true;
+            document.querySelectorAll('#rolePermissionsGrid input').forEach(cb => {
+                cb.disabled = true;
+            });
+        } else {
+            document.getElementById('roleName').disabled = false;
+            document.getElementById('roleDescription').disabled = false;
+        }
     }
 }
 
 function cerrarModalRol() {
     const modal = document.getElementById('roleModal');
     modal.close();
+    
+    // Resetear campos
+    document.getElementById('roleName').disabled = false;
+    document.getElementById('roleDescription').disabled = false;
 }
 
 async function guardarRol() {
@@ -1011,8 +1223,10 @@ async function guardarRol() {
         return;
     }
     
-    if (permisos.length === 0) {
-        mostrarAdvertencia('El rol no tiene permisos asignados');
+    // No permitir crear rol 'administrador'
+    if (nombre.toLowerCase() === 'administrador') {
+        mostrarError('No puedes crear un rol llamado "administrador"');
+        return;
     }
     
     try {
@@ -1051,19 +1265,33 @@ function verPermisosRol(roleId) {
     const permisosTexto = rol.permisos?.length 
         ? rol.permisos.map(p => {
             const permiso = PERMISOS_DISPONIBLES.find(per => per.id === p);
-            return permiso ? `• ${permiso.nombre} (${permiso.categoria})` : `• ${p}`;
+            return permiso ? `• ${permiso.nombre}` : `• ${p}`;
           }).join('\n')
         : 'Sin permisos asignados';
     
-    alert(`Permisos del rol "${rol.nombre}":\n\n${permisosTexto}`);
+    // Mostrar en modal de confirmación como información
+    document.getElementById('confirmModalTitle').textContent = `Permisos: ${rol.nombre}`;
+    document.getElementById('confirmMessage').innerHTML = `<pre style="text-align: left; white-space: pre-wrap;">${permisosTexto}</pre>`;
+    
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    confirmBtn.style.display = 'none';
+    
+    confirmModal.showModal();
+    
+    const closeHandler = () => {
+        confirmBtn.style.display = 'flex';
+        confirmModal.removeEventListener('close', closeHandler);
+    };
+    confirmModal.addEventListener('close', closeHandler);
 }
 
 async function eliminarRol(roleId) {
     const rol = roles.find(r => r._id === roleId);
     if (!rol) return;
     
-    if (rol.nombre === 'administrador') {
-        mostrarError('No se puede eliminar el rol de administrador');
+    if (rol.esProtegido) {
+        mostrarError('No se puede eliminar un rol protegido');
         return;
     }
     
@@ -1074,87 +1302,194 @@ async function eliminarRol(roleId) {
         return;
     }
     
-    const confirmacion = confirm(`¿Estás seguro de eliminar el rol "${rol.nombre}"?`);
-    if (!confirmacion) return;
+    // Usar modal de confirmación
+    const confirmModal = document.getElementById('confirmModal');
+    document.getElementById('confirmMessage').textContent = 
+        `¿Estás seguro de eliminar el rol "${rol.nombre}"?`;
+    document.getElementById('confirmModalTitle').textContent = 'Eliminar rol';
+    
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    confirmBtn.style.display = 'flex';
+    
+    confirmModal.showModal();
+    
+    const handleConfirm = async () => {
+        confirmBtn.disabled = true;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/admin/roles/${roleId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                await cargarRoles();
+                mostrarExito('Rol eliminado');
+                confirmModal.close();
+            } else {
+                mostrarError(data.message || 'Error al eliminar');
+            }
+        } catch (error) {
+            console.error('Error eliminando rol:', error);
+            mostrarError('Error de conexión');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.removeEventListener('click', handleConfirm);
+        }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    
+    const closeHandler = () => {
+        confirmBtn.removeEventListener('click', handleConfirm);
+        confirmModal.removeEventListener('close', closeHandler);
+    };
+    confirmModal.addEventListener('close', closeHandler);
+}
+
+// ============================================================================
+// LOGS DE AUDITORÍA
+// ============================================================================
+
+async function cargarAuditLogs() {
+    mostrarPreloader('logs');
     
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/api/admin/roles/${roleId}`, {
-            method: 'DELETE',
+        const response = await fetch(`${API_URL}/api/admin/audit-logs?limite=100`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
         
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
-            await cargarRoles();
-            mostrarExito('Rol eliminado');
+            auditLogs = data.logs || [];
+            actualizarTablaLogs(auditLogs);
+            ocultarPreloader('logs');
         } else {
-            mostrarError(data.message || 'Error al eliminar');
+            mostrarError(data.message || 'Error al cargar logs');
+            cargarLogsEjemplo();
         }
     } catch (error) {
-        console.error('Error eliminando rol:', error);
-        mostrarError('Error de conexión');
+        console.error('Error cargando logs:', error);
+        cargarLogsEjemplo();
     }
 }
 
-// =============================================================================
-// LOGS DE AUDITORÍA
-// =============================================================================
-
-function cargarLogs() {
-    const tbody = document.getElementById('logsTableBody');
-    
-    // Datos de ejemplo
-    const logs = [
-        { fecha: new Date(), usuario: 'admin', accion: 'Acceso al panel', detalles: 'Inicio de sesión', ip: '127.0.0.1' },
-        { fecha: new Date(Date.now() - 3600000), usuario: 'admin', accion: 'Creación de usuario', detalles: 'Nuevo usuario: juan.perez', ip: '127.0.0.1' },
-        { fecha: new Date(Date.now() - 7200000), usuario: 'admin', accion: 'Modificación de rol', detalles: 'Rol "editor" actualizado', ip: '127.0.0.1' },
-        { fecha: new Date(Date.now() - 86400000), usuario: 'admin', accion: 'Cambio de permisos', detalles: 'Permisos actualizados para maria.garcia', ip: '127.0.0.1' }
-    ];
-    
-    tbody.innerHTML = logs.map(log => `
-        <tr>
-            <td>${log.fecha.toLocaleString('es-MX')}</td>
-            <td><strong>${log.usuario}</strong></td>
-            <td>${log.accion}</td>
-            <td>${log.detalles}</td>
-            <td><code>${log.ip}</code></td>
-        </tr>
-    `).join('');
-    
-    ocultarPreloader('logs');
+function cargarLogsEjemplo() {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const logs = [
+            { 
+                nombreUsuario: 'admin', 
+                accion: 'INICIO_SESIÓN', 
+                descripcion: 'Inicio de sesión exitoso', 
+                ip: '127.0.0.1', 
+                createdAt: new Date().toISOString(),
+                resultado: 'exito'
+            },
+            { 
+                nombreUsuario: 'admin', 
+                accion: 'CREAR_USUARIO', 
+                descripcion: 'Creó usuario: juan.perez', 
+                ip: '127.0.0.1', 
+                createdAt: new Date(Date.now() - 3600000).toISOString(),
+                resultado: 'exito'
+            },
+            { 
+                nombreUsuario: 'admin', 
+                accion: 'EDITAR_ROL', 
+                descripcion: 'Editó rol: editor', 
+                ip: '127.0.0.1', 
+                createdAt: new Date(Date.now() - 7200000).toISOString(),
+                resultado: 'exito'
+            }
+        ];
+        
+        actualizarTablaLogs(logs);
+        ocultarPreloader('logs');
+    }
 }
 
-// =============================================================================
+function actualizarTablaLogs(logs) {
+    const tbody = document.getElementById('logsTableBody');
+    
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="admin-panel-no-data">
+                    <i class="fas fa-history"></i>
+                    <p>No hay registros de auditoría</p>
+                    <small>Las acciones se registrarán aquí automáticamente</small>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = logs.map(log => {
+        const fecha = log.createdAt ? new Date(log.createdAt).toLocaleString('es-MX', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        }) : 'N/A';
+        
+        const icono = log.resultado === 'exito' ? '✅' : log.resultado === 'error' ? '❌' : '⚠️';
+        
+        return `
+        <tr>
+            <td>${fecha}</td>
+            <td><strong>${log.nombreUsuario || 'Sistema'}</strong></td>
+            <td>${icono} ${log.accion}</td>
+            <td>${log.descripcion}</td>
+            <td><code>${log.ip || 'N/A'}</code></td>
+        </tr>
+    `}).join('');
+}
+
+// ============================================================================
+// PRELOADERS
+// ============================================================================
+
+function mostrarPreloader(tab) {
+    const preloader = document.getElementById(`${tab}Preloader`);
+    if (preloader) {
+        preloader.style.display = 'flex';
+    }
+}
+
+function ocultarPreloader(tab) {
+    const preloader = document.getElementById(`${tab}Preloader`);
+    if (preloader) {
+        preloader.style.display = 'none';
+    }
+}
+
+// ============================================================================
 // EXPORTAR FUNCIONES GLOBALES
-// =============================================================================
+// ============================================================================
 
 // Funciones para usuarios
 window.editarUsuario = (userId) => abrirModalUsuario(userId);
-window.verPermisosUsuario = verPermisosUsuario;
-window.eliminarUsuario = eliminarUsuario;
+window.cambiarEstadoUsuario = cambiarEstadoUsuario;
+window.eliminarUsuarioPermanente = eliminarUsuarioPermanente;
 
 // Funciones para roles
 window.editarRol = (roleId) => abrirModalRol(roleId);
 window.verPermisosRol = verPermisosRol;
 window.eliminarRol = eliminarRol;
 
-// Funciones de utilidad
-window.mostrarNotificacion = mostrarNotificacion;
-window.mostrarExito = mostrarExito;
-window.mostrarError = mostrarError;
-window.mostrarAdvertencia = mostrarAdvertencia;
-
-// Sistema de permisos (para usar desde otros módulos)
-window.permisos = {
-    verificar: usuarioTienePermiso,
-    verificarTodos: usuarioTieneTodosPermisos,
-    verificarAlguno: usuarioTieneAlgunPermiso,
-    obtenerEfectivos: obtenerPermisosEfectivos,
-    listaCompleta: PERMISOS_DISPONIBLES
-};
-
-console.log('📦 Sistema de permisos cargado:', PERMISOS_DISPONIBLES.length, 'permisos disponibles');
+console.log('📦 Sistema de administración cargado');

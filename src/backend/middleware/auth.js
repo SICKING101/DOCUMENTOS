@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
+
 // ============================================================================
 // SECCIÓN: MIDDLEWARES DE AUTENTICACIÓN Y AUTORIZACIÓN
 // ============================================================================
@@ -180,10 +181,10 @@ export const verificarCualquierPermiso = (permisos) => {
     };
 };
 
-// Middleware para verificar que solo haya un admin
+// Middleware para verificar que solo haya un admin (ya lo tienes, pero actualizado)
 export const verificarUnicoAdmin = async (req, res, next) => {
     try {
-        if (req.user.rol === 'administrador') {
+        if (req.user && req.user.rol === 'administrador') {
             const adminCount = await User.countDocuments({ 
                 rol: 'administrador',
                 activo: true 
@@ -193,12 +194,22 @@ export const verificarUnicoAdmin = async (req, res, next) => {
             if (adminCount > 1 && !req.user.esAdminUnico) {
                 // Desactivar permisos de admin para este usuario
                 req.user.rol = 'usuario';
+                req.user.esAdminUnico = false;
                 await req.user.save();
                 
+                // Invalidar token actual
                 return res.status(403).json({
                     success: false,
-                    message: 'Ya existe un administrador único. Contacta al administrador actual.'
+                    message: 'Ya existe un administrador único. Contacta al administrador actual.',
+                    redirectTo: '/login.html'
                 });
+            }
+            
+            // Si es el único, asegurar que tenga la marca
+            if (adminCount === 1 && !req.user.esAdminUnico) {
+                req.user.esAdminUnico = true;
+                await req.user.save();
+                console.log(`✅ ${req.user.usuario} marcado como único administrador`);
             }
         }
         next();

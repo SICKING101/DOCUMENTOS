@@ -1,1104 +1,522 @@
+<!-- ============================================================================
+     public/admin-panel.html (REDISEÑADO)
+     Panel de Administración Profesional - UI/UX Mejorada
+     ============================================================================ -->
+
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - CBTIS051</title>
-    
+    <title>Admin Panel | CBTIS051</title>
+
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Styles -->
     <link rel="stylesheet" href="css/main.css">
-    
-    <style>
-        /* Estilos específicos para el panel de admin */
-        :root {
-            --primary-color: #4361ee;
-            --primary-dark: #3a56d4;
-            --primary-light: #4895ef;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --info-color: #3b82f6;
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-tertiary: #f1f5f9;
-            --bg-hover: #e2e8f0;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-            --radius-sm: 0.375rem;
-            --radius-md: 0.5rem;
-            --radius-lg: 0.75rem;
-            --radius-xl: 1rem;
-        }
-
-        [data-theme="dark"] {
-            --bg-primary: #1e293b;
-            --bg-secondary: #0f172a;
-            --bg-tertiary: #334155;
-            --bg-hover: #475569;
-            --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            line-height: 1.5;
-            min-height: 100vh;
-        }
-
-        .admin-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--border-color);
-        }
-        
-        .admin-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .admin-title i {
-            color: var(--primary-color);
-            font-size: 2rem;
-        }
-        
-        .admin-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: var(--bg-primary);
-            border-radius: var(--radius-xl);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-        }
-        
-        .stat-card:hover::before {
-            opacity: 1;
-        }
-        
-        .stat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .stat-icon {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.75rem;
-            box-shadow: var(--shadow-md);
-        }
-        
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.2;
-            margin-bottom: 0.25rem;
-        }
-        
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-        
-        .admin-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 0.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .admin-tab {
-            padding: 0.875rem 1.75rem;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            border-radius: var(--radius-md) var(--radius-md) 0 0;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .admin-tab i {
-            font-size: 1rem;
-        }
-        
-        .admin-tab:hover {
-            color: var(--primary-color);
-            background: var(--bg-tertiary);
-        }
-        
-        .admin-tab.active {
-            color: var(--primary-color);
-            border-bottom: 3px solid var(--primary-color);
-            background: linear-gradient(to top, var(--bg-tertiary), transparent);
-            font-weight: 700;
-        }
-        
-        .admin-tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .admin-tab-content.active {
-            display: block;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Tabla de usuarios mejorada */
-        .users-table-container {
-            background: var(--bg-primary);
-            border-radius: var(--radius-xl);
-            overflow: hidden;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border-color);
-        }
-        
-        .users-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .users-table th {
-            background: var(--bg-tertiary);
-            padding: 1.25rem 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: var(--text-primary);
-            border-bottom: 2px solid var(--border-color);
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .users-table td {
-            padding: 1.25rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-        
-        .users-table tr {
-            transition: background 0.2s ease;
-        }
-        
-        .users-table tr:hover {
-            background: var(--bg-secondary);
-        }
-        
-        .users-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .role-badge {
-            background: rgba(67, 97, 238, 0.1);
-            color: var(--primary-color);
-            padding: 0.375rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            border: 1px solid rgba(67, 97, 238, 0.2);
-        }
-        
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.375rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        
-        .status-badge.active {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success-color);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-        
-        .status-badge.inactive {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger-color);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .action-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: var(--radius-md);
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-        
-        .action-btn:hover {
-            background: var(--bg-tertiary);
-            color: var(--primary-color);
-            transform: translateY(-2px);
-        }
-        
-        .action-btn.delete:hover {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger-color);
-        }
-        
-        /* Búsqueda y toolbar */
-        .admin-toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .search-box {
-            position: relative;
-            min-width: 320px;
-        }
-        
-        .search-box i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
-        
-        .search-box input {
-            width: 100%;
-            padding: 0.875rem 1rem 0.875rem 2.75rem;
-            border: 2px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-        }
-        
-        .search-box input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-        }
-        
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-lg);
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 2px solid transparent;
-            background: transparent;
-            color: var(--text-primary);
-        }
-        
-        .btn--primary {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-        
-        .btn--primary:hover {
-            background: var(--primary-dark);
-            border-color: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-        
-        .btn--outline {
-            background: transparent;
-            border-color: var(--border-color);
-            color: var(--text-secondary);
-        }
-        
-        .btn--outline:hover {
-            background: var(--bg-tertiary);
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-            transform: translateY(-2px);
-        }
-        
-        .btn--danger {
-            background: var(--danger-color);
-            color: white;
-            border-color: var(--danger-color);
-        }
-        
-        .btn--danger:hover {
-            background: #dc2626;
-            border-color: #dc2626;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-        
-        /* Permisos grid */
-        .permissions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 0.5rem;
-            background: var(--bg-secondary);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--border-color);
-        }
-        
-        .permission-item {
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
-            padding: 0.75rem;
-            background: var(--bg-primary);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        
-        .permission-item:hover {
-            background: var(--bg-tertiary);
-            border-color: var(--primary-color);
-            transform: translateX(4px);
-        }
-        
-        .permission-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: var(--primary-color);
-        }
-        
-        .permission-category {
-            grid-column: 1 / -1;
-            margin-top: 0.75rem;
-            margin-bottom: 0.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            padding: 0.5rem;
-            background: var(--bg-tertiary);
-            border-radius: var(--radius-md);
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 4rem 2rem;
-            color: var(--text-secondary);
-        }
-        
-        .no-data i {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            opacity: 0.3;
-            color: var(--primary-color);
-        }
-        
-        .no-data p {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
-        
-        .no-data small {
-            color: var(--text-muted);
-        }
-        
-        /* Switch toggle */
-        .switch-label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.5rem;
-            background: var(--bg-secondary);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-        }
-        
-        .switch-text {
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-        
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 52px;
-            height: 28px;
-        }
-        
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--bg-tertiary);
-            transition: .3s;
-            border-radius: 34px;
-            border: 2px solid var(--border-color);
-        }
-        
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 3px;
-            bottom: 2px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-            box-shadow: var(--shadow-sm);
-        }
-        
-        input:checked + .slider {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(24px);
-        }
-        
-        /* Password toggle */
-        .form__password-wrapper {
-            position: relative;
-        }
-        
-        .form__password-toggle {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 0.25rem;
-            font-size: 1rem;
-            transition: color 0.2s ease;
-        }
-        
-        .form__password-toggle:hover {
-            color: var(--primary-color);
-        }
-        
-        .form__input,
-        .form__select,
-        .form__textarea {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 2px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-        }
-        
-        .form__input:focus,
-        .form__select:focus,
-        .form__textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-        }
-        
-        .form__group {
-            margin-bottom: 1.25rem;
-        }
-        
-        .form__label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 0.95rem;
-        }
-        
-        /* Notificaciones */
-        .notification-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .notification {
-            background: var(--bg-primary);
-            border-radius: var(--radius-lg);
-            padding: 1rem 1.25rem;
-            box-shadow: var(--shadow-xl);
-            border-left: 4px solid;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            min-width: 320px;
-            max-width: 400px;
-            animation: slideInRight 0.3s ease;
-            border: 1px solid var(--border-color);
-        }
-        
-        .notification.success {
-            border-left-color: var(--success-color);
-        }
-        
-        .notification.success .notification-icon {
-            color: var(--success-color);
-        }
-        
-        .notification.error {
-            border-left-color: var(--danger-color);
-        }
-        
-        .notification.error .notification-icon {
-            color: var(--danger-color);
-        }
-        
-        .notification.warning {
-            border-left-color: var(--warning-color);
-        }
-        
-        .notification.warning .notification-icon {
-            color: var(--warning-color);
-        }
-        
-        .notification.info {
-            border-left-color: var(--info-color);
-        }
-        
-        .notification.info .notification-icon {
-            color: var(--info-color);
-        }
-        
-        .notification-icon {
-            font-size: 1.5rem;
-        }
-        
-        .notification-content {
-            flex: 1;
-        }
-        
-        .notification-title {
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-            color: var(--text-primary);
-        }
-        
-        .notification-message {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-        
-        .notification-close {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 1.25rem;
-            padding: 0.25rem;
-            transition: color 0.2s ease;
-        }
-        
-        .notification-close:hover {
-            color: var(--danger-color);
-        }
-        
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .admin-container {
-                padding: 1rem;
-            }
-            
-            .admin-stats {
-                grid-template-columns: 1fr;
-            }
-            
-            .admin-toolbar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .search-box {
-                min-width: 100%;
-            }
-            
-            .users-table {
-                display: block;
-                overflow-x: auto;
-            }
-            
-            .permissions-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .modal__content {
-                margin: 1rem;
-                max-height: 90vh;
-            }
-            
-            .admin-tabs {
-                flex-wrap: wrap;
-            }
-            
-            .admin-tab {
-                flex: 1;
-                justify-content: center;
-                padding: 0.75rem 1rem;
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* Scrollbar personalizada */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-    </style>
 </head>
-<body>
-    <div class="notification-container" id="notificationContainer"></div>
-    
-    <div class="admin-container">
-        <div class="admin-header">
-            <div class="admin-title">
-                <i class="fas fa-user-shield"></i>
-                Panel de Administración
-            </div>
-            <a href="/" class="btn btn--outline">
-                <i class="fas fa-arrow-left"></i> Volver al Dashboard
-            </a>
-        </div>
-        
-        <!-- Stats -->
-        <div class="admin-stats">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
-                <div class="stat-value" id="totalUsers">0</div>
-                <div class="stat-label">Usuarios Totales</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                </div>
-                <div class="stat-value" id="activeUsers">0</div>
-                <div class="stat-label">Usuarios Activos</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-clock"></i>
-                    </div>
-                </div>
-                <div class="stat-value" id="inactiveUsers">0</div>
-                <div class="stat-label">Usuarios Inactivos</div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon">
-                        <i class="fas fa-tags"></i>
-                    </div>
-                </div>
-                <div class="stat-value" id="totalRoles">0</div>
-                <div class="stat-label">Roles Definidos</div>
-            </div>
-        </div>
-        
-        <!-- Tabs -->
-        <div class="admin-tabs">
-            <button class="admin-tab active" data-tab="users">
-                <i class="fas fa-users"></i> Usuarios
-            </button>
-            <button class="admin-tab" data-tab="roles">
-                <i class="fas fa-tags"></i> Roles
-            </button>
-            <button class="admin-tab" data-tab="permissions">
-                <i class="fas fa-shield-alt"></i> Permisos
-            </button>
-            <button class="admin-tab" data-tab="logs">
-                <i class="fas fa-history"></i> Auditoría
-            </button>
-        </div>
-        
-        <!-- Tab: Usuarios -->
-        <div class="admin-tab-content active" id="usersTab">
-            <div class="admin-toolbar">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchUsers" placeholder="Buscar por usuario o correo...">
-                </div>
-                <button class="btn btn--primary" id="createUserBtn">
-                    <i class="fas fa-user-plus"></i> Nuevo Usuario
-                </button>
-            </div>
-            
-            <div class="users-table-container">
-                <div id="usersPreloader" class="preloader">
-                    <div class="preloader__spinner"></div>
-                    <div class="preloader__text">Cargando usuarios...</div>
-                </div>
-                <table class="users-table" id="usersTable" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>Usuario</th>
-                            <th>Correo</th>
-                            <th>Rol</th>
-                            <th>Permisos</th>
-                            <th>Estado</th>
-                            <th>Último Acceso</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Tab: Roles -->
-        <div class="admin-tab-content" id="rolesTab">
-            <div class="admin-toolbar">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchRoles" placeholder="Buscar roles...">
-                </div>
-                <button class="btn btn--primary" id="createRoleBtn">
-                    <i class="fas fa-plus"></i> Nuevo Rol
-                </button>
-            </div>
-            
-            <div class="users-table-container">
-                <div id="rolesPreloader" class="preloader">
-                    <div class="preloader__spinner"></div>
-                    <div class="preloader__text">Cargando roles...</div>
-                </div>
-                <table class="users-table" id="rolesTable" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>Rol</th>
-                            <th>Descripción</th>
-                            <th>Permisos</th>
-                            <th>Usuarios</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rolesTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Tab: Permisos -->
-        <div class="admin-tab-content" id="permissionsTab">
-            <div class="users-table-container">
-                <div style="padding: 2rem;">
-                    <h3 style="margin-bottom: 1.5rem; color: var(--text-primary);">Lista de Permisos Disponibles</h3>
-                    <div class="permissions-grid" id="allPermissionsGrid"></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Tab: Auditoría -->
-        <div class="admin-tab-content" id="logsTab">
-            <div class="users-table-container">
-                <div id="logsPreloader" class="preloader">
-                    <div class="preloader__spinner"></div>
-                    <div class="preloader__text">Cargando registros...</div>
-                </div>
-                <table class="users-table" id="logsTable" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Usuario</th>
-                            <th>Acción</th>
-                            <th>Detalles</th>
-                            <th>IP</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTableBody"></tbody>
-                </table>
-            </div>
-        </div>
+
+<body class="admin-panel-body">
+    <!-- Sistema de notificaciones mejorado -->
+    <div class="admin-panel-notification-container" id="notificationContainer"></div>
+
+    <!-- Preloader de página completo (se oculta al cargar) -->
+    <div class="admin-panel-page-preloader" id="pagePreloader">
+        <div class="admin-panel-page-preloader__spinner"></div>
+        <div class="admin-panel-page-preloader__text">Cargando panel administrativo...</div>
     </div>
-    
-    <!-- Modal de Usuario -->
-    <dialog id="userModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title" id="userModalTitle">Nuevo Usuario</h3>
-                <button class="modal__close" id="closeUserModal">&times;</button>
+
+    <div class="admin-panel-wrapper">
+        <!-- Sidebar de navegación -->
+        <aside class="admin-panel-sidebar" id="adminSidebar">
+            <div class="admin-panel-sidebar-header">
+                <div class="admin-panel-sidebar-logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Admin <span class="admin-panel-logo-accent">CBTIS</span></span>
+                </div>
+            </div>
+
+            <div class="admin-panel-sidebar-user">
+                <div class="admin-panel-user-avatar" id="adminAvatar">A</div>
+                <div class="admin-panel-user-info">
+                    <div class="admin-panel-user-name" id="adminName">Administrador</div>
+                    <div class="admin-panel-user-role">Super Admin</div>
+                </div>
+            </div>
+
+            <nav class="admin-panel-sidebar-nav">
+                <a href="/" class="admin-panel-nav-item" id="dashboardLink">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard Principal</span>
+                </a>
+                <a href="#" class="admin-panel-nav-item active" data-tab="users">
+                    <i class="fas fa-users"></i>
+                    <span>Usuarios</span>
+                </a>
+                <a href="#" class="admin-panel-nav-item" data-tab="roles">
+                    <i class="fas fa-tags"></i>
+                    <span>Roles</span>
+                </a>
+                <a href="#" class="admin-panel-nav-item" data-tab="permissions">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Permisos</span>
+                </a>
+                <a href="#" class="admin-panel-nav-item" data-tab="logs">
+                    <i class="fas fa-history"></i>
+                    <span>Auditoría</span>
+                </a>
+            </nav>
+
+            <div class="admin-panel-sidebar-footer">
+                <div class="admin-panel-system-info">
+                    <i class="fas fa-circle" style="color: var(--success); font-size: 0.5rem;"></i>
+                    <span>Sistema activo</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Contenido principal -->
+        <main class="admin-panel-main">
+            <!-- Header superior -->
+            <header class="admin-panel-main-header">
+                <div class="admin-panel-header-actions">
+                    <button class="admin-panel-header-btn" id="refreshData">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="admin-panel-header-btn" id="fullscreenToggle">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="admin-panel-header-date" id="currentDateTime"></div>
+                </div>
             </header>
-            <section class="modal__body">
-                <form id="userForm">
-                    <input type="hidden" id="userId">
-                    
-                    <div class="form__group">
-                        <label for="userName" class="form__label">Usuario *</label>
-                        <input type="text" id="userName" class="form__input" required placeholder="Nombre de usuario">
+
+            <!-- Contenido dinámico de pestañas -->
+            <div class="admin-panel-tab-content-container">
+                <!-- Pestaña: Usuarios -->
+                <div class="admin-panel-tab-pane active" id="usersPane">
+                    <div class="admin-panel-pane-header">
+                        <div class="admin-panel-pane-title">
+                            <i class="fas fa-users"></i>
+                            <h2>Gestión de Usuarios</h2>
+                        </div>
+                        <button class="admin-panel-btn admin-panel-btn--primary" id="createUserBtn">
+                            <i class="fas fa-user-plus"></i>
+                            Nuevo Usuario
+                        </button>
                     </div>
-                    
-                    <div class="form__group">
-                        <label for="userEmail" class="form__label">Correo *</label>
-                        <input type="email" id="userEmail" class="form__input" required placeholder="correo@ejemplo.com">
-                    </div>
-                    
-                    <div class="form__group" id="passwordGroup">
-                        <label for="userPassword" class="form__label">Contraseña *</label>
-                        <div class="form__password-wrapper">
-                            <input type="password" id="userPassword" class="form__input" minlength="6" placeholder="Mínimo 6 caracteres">
-                            <button type="button" class="form__password-toggle" onclick="togglePassword('userPassword')">
-                                <i class="fas fa-eye"></i>
-                            </button>
+
+                    <!-- Stats cards -->
+                    <div class="admin-panel-stats-grid">
+                        <div class="admin-panel-stat-card">
+                            <div class="admin-panel-stat-icon"
+                                style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="admin-panel-stat-content">
+                                <div class="admin-panel-stat-value" id="totalUsers">0</div>
+                                <div class="admin-panel-stat-label">Total Usuarios</div>
+                            </div>
+                        </div>
+                        <div class="admin-panel-stat-card">
+                            <div class="admin-panel-stat-icon"
+                                style="background: linear-gradient(135deg, #10b981, #059669);">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="admin-panel-stat-content">
+                                <div class="admin-panel-stat-value" id="activeUsers">0</div>
+                                <div class="admin-panel-stat-label">Activos</div>
+                            </div>
+                        </div>
+                        <div class="admin-panel-stat-card">
+                            <div class="admin-panel-stat-icon"
+                                style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                <i class="fas fa-user-clock"></i>
+                            </div>
+                            <div class="admin-panel-stat-content">
+                                <div class="admin-panel-stat-value" id="inactiveUsers">0</div>
+                                <div class="admin-panel-stat-label">Inactivos</div>
+                            </div>
+                        </div>
+                        <div class="admin-panel-stat-card">
+                            <div class="admin-panel-stat-icon"
+                                style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <div class="admin-panel-stat-content">
+                                <div class="admin-panel-stat-value" id="totalRoles">0</div>
+                                <div class="admin-panel-stat-label">Roles</div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="form__group">
-                        <label for="userRole" class="form__label">Rol</label>
-                        <select id="userRole" class="form__select">
-                            <option value="">Seleccionar rol...</option>
-                        </select>
+
+                    <!-- Filtros y tabla -->
+                    <div class="admin-panel-table-container">
+                        <div class="admin-panel-table-toolbar">
+                            <div class="admin-panel-filter-group">
+                                <div class="admin-panel-filter-select">
+                                    <select id="roleFilter">
+                                        <option value="">Todos los roles</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                                <div class="admin-panel-filter-select">
+                                    <select id="statusFilter">
+                                        <option value="">Todos los estados</option>
+                                        <option value="activo">Activos</option>
+                                        <option value="inactivo">Inactivos</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <div class="admin-panel-search-wrapper">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchUsers" placeholder="Buscar por nombre o email...">
+                            </div>
+                        </div>
+
+                        <div class="admin-panel-table-wrapper">
+                            <div class="admin-panel-preloader" id="usersPreloader">
+                                <div class="admin-panel-preloader__spinner"></div>
+                                <div class="admin-panel-preloader__text">Cargando usuarios...</div>
+                            </div>
+                            <table class="admin-panel-data-table" id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Correo</th>
+                                        <th>Rol</th>
+                                        <th>Estado</th>
+                                        <th>Último acceso</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody"></tbody>
+                            </table>
+                        </div>
                     </div>
-                    
-                    <div class="form__group">
-                        <label class="form__label">Estado</label>
-                        <label class="switch-label">
-                            <span class="switch-text">Usuario activo</span>
-                            <label class="switch">
-                                <input type="checkbox" id="userActive" checked>
-                                <span class="slider"></span>
+                </div>
+
+                <!-- Pestaña: Roles -->
+                <div class="admin-panel-tab-pane" id="rolesPane">
+                    <div class="admin-panel-pane-header">
+                        <div class="admin-panel-pane-title">
+                            <i class="fas fa-tags"></i>
+                            <h2>Gestión de Roles</h2>
+                        </div>
+                        <button class="admin-panel-btn admin-panel-btn--primary" id="createRoleBtn">
+                            <i class="fas fa-plus"></i>
+                            Nuevo Rol
+                        </button>
+                    </div>
+
+                    <div class="admin-panel-table-container">
+                        <div class="admin-panel-table-toolbar">
+                            <div class="admin-panel-search-wrapper">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchRoles" placeholder="Buscar roles...">
+                            </div>
+                        </div>
+
+                        <div class="admin-panel-table-wrapper">
+                            <div class="admin-panel-preloader" id="rolesPreloader">
+                                <div class="admin-panel-preloader__spinner"></div>
+                                <div class="admin-panel-preloader__text">Cargando roles...</div>
+                            </div>
+                            <table class="admin-panel-data-table" id="rolesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Rol</th>
+                                        <th>Descripción</th>
+                                        <th>Permisos</th>
+                                        <th>Usuarios</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rolesTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestaña: Permisos -->
+                <div class="admin-panel-tab-pane" id="permissionsPane">
+                    <div class="admin-panel-pane-header">
+                        <div class="admin-panel-pane-title">
+                            <i class="fas fa-shield-alt"></i>
+                            <h2>Permisos del Sistema</h2>
+                        </div>
+                    </div>
+
+                    <div class="admin-panel-permissions-explorer">
+                        <div class="admin-panel-permissions-stats">
+                            <div class="admin-panel-stat-mini">
+                                <span class="admin-panel-stat-mini-label">Total permisos</span>
+                                <span class="admin-panel-stat-mini-value" id="totalPermisos">0</span>
+                            </div>
+                            <div class="admin-panel-stat-mini">
+                                <span class="admin-panel-stat-mini-label">Categorías</span>
+                                <span class="admin-panel-stat-mini-value" id="totalCategorias">0</span>
+                            </div>
+                        </div>
+
+                        <div class="admin-panel-permissions-grid-container">
+                            <div id="allPermissionsGrid" class="admin-panel-permissions-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestaña: Auditoría -->
+                <div class="admin-panel-tab-pane" id="logsPane">
+                    <div class="admin-panel-pane-header">
+                        <div class="admin-panel-pane-title">
+                            <i class="fas fa-history"></i>
+                            <h2>Registro de Auditoría</h2>
+                        </div>
+                        <button class="admin-panel-btn admin-panel-btn--outline" id="exportLogsBtn">
+                            <i class="fas fa-download"></i>
+                            Exportar
+                        </button>
+                    </div>
+
+                    <div class="admin-panel-table-container">
+                        <div class="admin-panel-table-wrapper">
+                            <div class="admin-panel-preloader" id="logsPreloader">
+                                <div class="admin-panel-preloader__spinner"></div>
+                                <div class="admin-panel-preloader__text">Cargando registros...</div>
+                            </div>
+                            <table class="admin-panel-data-table" id="logsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha/Hora</th>
+                                        <th>Usuario</th>
+                                        <th>Acción</th>
+                                        <th>Detalles</th>
+                                        <th>IP</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: Usuario (REDISEÑADO) -->
+    <dialog id="userModal" class="admin-panel-modal">
+        <div class="admin-panel-modal__content">
+            <div class="admin-panel-modal__header">
+                <h3 class="admin-panel-modal__title" id="userModalTitle">
+                    <i class="fas fa-user"></i>
+                    <span>Nuevo Usuario</span>
+                </h3>
+                <button class="admin-panel-modal__close" id="closeUserModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="userForm" class="admin-panel-modal__form">
+                <input type="hidden" id="userId">
+
+                <div class="admin-panel-form-section">
+                    <div class="admin-panel-form-row">
+                        <div class="admin-panel-form-group">
+                            <label for="userName" class="admin-panel-form-label">
+                                <i class="fas fa-user"></i>
+                                Usuario *
                             </label>
-                        </label>
+                            <input type="text" id="userName" class="admin-panel-form-input" required
+                                placeholder="ej: juan.perez">
+                        </div>
+
+                        <div class="admin-panel-form-group">
+                            <label for="userEmail" class="admin-panel-form-label">
+                                <i class="fas fa-envelope"></i>
+                                Correo *
+                            </label>
+                            <input type="email" id="userEmail" class="admin-panel-form-input" required
+                                placeholder="usuario@cbtis051.edu.mx">
+                        </div>
                     </div>
-                    
-                    <div class="form__group">
-                        <label class="form__label">Permisos Específicos (adicionales al rol)</label>
-                        <div class="permissions-grid" id="permissionsGrid"></div>
+
+                    <div class="admin-panel-form-row">
+                        <div class="admin-panel-form-group" id="passwordGroup">
+                            <label for="userPassword" class="admin-panel-form-label">
+                                <i class="fas fa-lock"></i>
+                                Contraseña *
+                            </label>
+                            <div class="admin-panel-password-input-wrapper">
+                                <input type="password" id="userPassword" class="admin-panel-form-input" minlength="6"
+                                    placeholder="Mínimo 6 caracteres">
+                                <button type="button" class="admin-panel-password-toggle"
+                                    onclick="togglePassword('userPassword')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="admin-panel-form-group">
+                            <label for="userRole" class="admin-panel-form-label">
+                                <i class="fas fa-tag"></i>
+                                Rol
+                            </label>
+                            <div class="admin-panel-select-wrapper">
+                                <select id="userRole" class="admin-panel-form-select">
+                                    <option value="">Seleccionar rol...</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
                     </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelUserBtn">Cancelar</button>
-                <button class="btn btn--primary" id="saveUserBtn">Guardar</button>
-            </footer>
-        </article>
-    </dialog>
-    
-    <!-- Modal de Rol -->
-    <dialog id="roleModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title" id="roleModalTitle">Nuevo Rol</h3>
-                <button class="modal__close" id="closeRoleModal">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="roleForm">
-                    <input type="hidden" id="roleId">
-                    
-                    <div class="form__group">
-                        <label for="roleName" class="form__label">Nombre del Rol *</label>
-                        <input type="text" id="roleName" class="form__input" required placeholder="Ej: Editor, Supervisor">
+
+                    <div class="admin-panel-form-row">
+                        <div class="admin-panel-form-group admin-panel-toggle-group">
+                            <label class="admin-panel-form-label">Estado del usuario</label>
+                            <div class="admin-panel-toggle-switch">
+                                <span class="admin-panel-toggle-label">Usuario activo</span>
+                                <label class="admin-panel-switch">
+                                    <input type="checkbox" id="userActive" checked>
+                                    <span class="admin-panel-slider"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="form__group">
-                        <label for="roleDescription" class="form__label">Descripción</label>
-                        <textarea id="roleDescription" class="form__textarea" rows="2" placeholder="Descripción del rol..."></textarea>
-                    </div>
-                    
-                    <div class="form__group">
-                        <label class="form__label">Permisos del Rol</label>
-                        <div class="permissions-grid" id="rolePermissionsGrid"></div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelRoleBtn">Cancelar</button>
-                <button class="btn btn--primary" id="saveRoleBtn">Guardar</button>
-            </footer>
-        </article>
-    </dialog>
-    
-    <!-- Modal de Permisos de Usuario -->
-    <dialog id="permissionsModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title" id="permissionsModalTitle">Permisos de Usuario</h3>
-                <button class="modal__close" id="closePermissionsModal">&times;</button>
-            </header>
-            <section class="modal__body">
-                <div id="permissionsUserInfo" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-lg);">
-                    <h4 id="permissionsUserName" style="margin-bottom: 0.5rem;"></h4>
-                    <p id="permissionsUserRole"></p>
                 </div>
-                
-                <div class="form__group">
-                    <label class="form__label">Permisos Efectivos (Rol + Específicos)</label>
-                    <div class="permissions-grid" id="userEffectivePermissions"></div>
-                </div>
-                
-                <div class="form__group" style="margin-top: 1.5rem;">
-                    <label class="form__label">Permisos Específicos (sobrescriben al rol)</label>
-                    <div class="permissions-grid" id="userSpecificPermissionsEdit"></div>
-                </div>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelPermissionsBtn">Cerrar</button>
-                <button class="btn btn--primary" id="savePermissionsBtn">Guardar Permisos</button>
-            </footer>
-        </article>
+            </form>
+
+            <div class="admin-panel-modal__footer">
+                <button type="button" class="admin-panel-btn admin-panel-btn--text" id="cancelUserBtn">Cancelar</button>
+                <button type="button" class="admin-panel-btn admin-panel-btn--primary" id="saveUserBtn">
+                    <i class="fas fa-save"></i>
+                    Guardar Usuario
+                </button>
+            </div>
+        </div>
     </dialog>
-    
+
+    <!-- MODAL: Rol (REDISEÑADO) -->
+    <dialog id="roleModal" class="admin-panel-modal admin-panel-modal--large">
+        <div class="admin-panel-modal__content">
+            <div class="admin-panel-modal__header">
+                <h3 class="admin-panel-modal__title" id="roleModalTitle">
+                    <i class="fas fa-tag"></i>
+                    <span>Nuevo Rol</span>
+                </h3>
+                <button class="admin-panel-modal__close" id="closeRoleModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="roleForm" class="admin-panel-modal__form">
+                <input type="hidden" id="roleId">
+
+                <div class="admin-panel-form-section">
+                    <div class="admin-panel-form-row">
+                        <div class="admin-panel-form-group">
+                            <label for="roleName" class="admin-panel-form-label">
+                                <i class="fas fa-tag"></i>
+                                Nombre del Rol *
+                            </label>
+                            <input type="text" id="roleName" class="admin-panel-form-input" required
+                                placeholder="Ej: editor, supervisor">
+                            <small class="admin-panel-form-hint">No usar "administrador" como nombre</small>
+                        </div>
+
+                        <div class="admin-panel-form-group">
+                            <label for="roleDescription" class="admin-panel-form-label">
+                                <i class="fas fa-align-left"></i>
+                                Descripción
+                            </label>
+                            <textarea id="roleDescription" class="admin-panel-form-input" rows="2"
+                                placeholder="Descripción del rol..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-panel-form-section">
+                    <label class="admin-panel-form-label">Permisos del Rol</label>
+                    <div class="admin-panel-permissions-selector" id="rolePermissionsGrid"></div>
+                </div>
+            </form>
+
+            <div class="admin-panel-modal__footer">
+                <button type="button" class="admin-panel-btn admin-panel-btn--text" id="cancelRoleBtn">Cancelar</button>
+                <button type="button" class="admin-panel-btn admin-panel-btn--primary" id="saveRoleBtn">
+                    <i class="fas fa-save"></i>
+                    Guardar Rol
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- MODAL: Confirmación (REDISEÑADO) -->
+    <dialog id="confirmModal" class="admin-panel-modal admin-panel-modal--small">
+        <div class="admin-panel-modal__content">
+            <div class="admin-panel-modal__header">
+                <h3 class="admin-panel-modal__title" id="confirmModalTitle">Confirmar acción</h3>
+                <button class="admin-panel-modal__close" id="closeConfirmModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="admin-panel-modal__body">
+                <div class="admin-panel-confirm-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <p id="confirmMessage" class="admin-panel-confirm-message">¿Estás seguro de realizar esta acción?</p>
+            </div>
+
+            <div class="admin-panel-modal__footer">
+                <button type="button" class="admin-panel-btn admin-panel-btn--text"
+                    id="cancelConfirmBtn">Cancelar</button>
+                <button type="button" class="admin-panel-btn admin-panel-btn--danger"
+                    id="confirmActionBtn">Confirmar</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- MODAL: Confirmación de salida al dashboard -->
+    <dialog id="dashboardConfirmModal" class="admin-panel-modal admin-panel-modal--small">
+        <div class="admin-panel-modal__content">
+            <div class="admin-panel-modal__header">
+                <h3 class="admin-panel-modal__title">Volver al Dashboard</h3>
+                <button class="admin-panel-modal__close" id="closeDashboardConfirmModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="admin-panel-modal__body">
+                <div class="admin-panel-confirm-icon" style="color: var(--warning);">
+                    <i class="fas fa-sign-out-alt"></i>
+                </div>
+                <p class="admin-panel-confirm-message">¿Estás seguro de volver al dashboard principal?</p>
+                <p style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                    Perderás los cambios no guardados</p>
+            </div>
+
+            <div class="admin-panel-modal__footer">
+                <button type="button" class="admin-panel-btn admin-panel-btn--text"
+                    id="cancelDashboardBtn">Cancelar</button>
+                <button type="button" class="admin-panel-btn admin-panel-btn--primary" id="confirmDashboardBtn">Volver
+                    al Dashboard</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Scripts -->
+    <script type="module" src="/src/frontend/modules/admin/usersManager.js"></script>
     <script>
-        // Función global para toggle de password
-        window.togglePassword = function(inputId) {
+        // Funciones globales
+        window.togglePassword = function (inputId) {
             const input = document.getElementById(inputId);
-            const button = input.parentElement.querySelector('.form__password-toggle');
+            const button = input.parentElement.querySelector('.admin-panel-password-toggle');
             const icon = button.querySelector('i');
-            
+
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.classList.remove('fa-eye');
@@ -1109,8 +527,17 @@
                 icon.classList.add('fa-eye');
             }
         };
+
+        // Ocultar preloader cuando todo esté cargado
+        window.addEventListener('load', function () {
+            setTimeout(() => {
+                document.getElementById('pagePreloader').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('pagePreloader').style.display = 'none';
+                }, 300);
+            }, 500);
+        });
     </script>
-    
-    <script type="module" src="/src/frontend/modules/admin/usersManager.js"></script>
 </body>
+
 </html>
