@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import User from '../models/User.js';
+import Role from '../models/Role.js';
 import AdminChangeRequest from '../models/AdminChangeRequest.js';
 import { transporter } from './authController.js';
+import nodemailer from 'nodemailer';
 
 // ============================================================================
 // SECCIÓN: CONTROLADOR DE CAMBIO DE ADMINISTRADOR
@@ -1090,6 +1092,212 @@ export const getRequestStatus = async (req, res) => {
             success: false,
             message: 'Error al verificar estado',
             timestamp: new Date().toISOString()
+        });
+    }
+};
+
+// Obtener todos los usuarios (no admins)
+export const getUsuarios = async (req, res) => {
+    try {
+        const usuarios = await User.find({ 
+            rol: { $ne: 'administrador' } 
+        }).select('-password').lean();
+        
+        res.json({
+            success: true,
+            usuarios
+        });
+    } catch (error) {
+        console.error('Error getUsuarios:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener usuarios'
+        });
+    }
+};
+
+// Crear nuevo usuario (no admin)
+export const crearUsuario = async (req, res) => {
+    try {
+        const { usuario, correo, password, rol, permisos } = req.body;
+        
+        // Verificar si ya existe
+        const existe = await User.findOne({
+            $or: [{ usuario }, { correo }]
+        });
+        
+        if (existe) {
+            return res.status(400).json({
+                success: false,
+                message: 'El usuario o correo ya existe'
+            });
+        }
+        
+        // Crear usuario
+        const nuevoUsuario = new User({
+            usuario,
+            correo,
+            password,
+            rol: rol || 'usuario',
+            permisos: permisos || []
+        });
+        
+        await nuevoUsuario.save();
+        
+        res.status(201).json({
+            success: true,
+            message: 'Usuario creado exitosamente',
+            user: {
+                id: nuevoUsuario._id,
+                usuario: nuevoUsuario.usuario,
+                correo: nuevoUsuario.correo,
+                rol: nuevoUsuario.rol,
+                permisos: nuevoUsuario.permisos
+            }
+        });
+    } catch (error) {
+        console.error('Error crearUsuario:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al crear usuario'
+        });
+    }
+};
+
+// Editar usuario
+export const editarUsuario = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { usuario, correo, rol, permisos, activo } = req.body;
+        
+        // No permitir editar al admin único
+        const userToEdit = await User.findById(id);
+        if (userToEdit.esAdminUnico) {
+            return res.status(403).json({
+                success: false,
+                message: 'No puedes editar al administrador único'
+            });
+        }
+        
+        const updatedUser = await User.findByIdAndUpdate(
+            id,
+            { usuario, correo, rol, permisos, activo },
+            { new: true, runValidators: true }
+        ).select('-password');
+        
+        res.json({
+            success: true,
+            message: 'Usuario actualizado',
+            user: updatedUser
+        });
+    } catch (error) {
+        console.error('Error editarUsuario:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al actualizar usuario'
+        });
+    }
+};
+
+// Eliminar usuario (dar de baja)
+export const eliminarUsuario = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // No permitir eliminar al admin único
+        const userToDelete = await User.findById(id);
+        if (userToDelete.esAdminUnico) {
+            return res.status(403).json({
+                success: false,
+                message: 'No puedes eliminar al administrador único'
+            });
+        }
+        
+        // Soft delete - solo desactivar
+        await User.findByIdAndUpdate(id, { 
+            activo: false,
+            rol: 'desactivado'
+        });
+        
+        res.json({
+            success: true,
+            message: 'Usuario desactivado exitosamente'
+        });
+    } catch (error) {
+        console.error('Error eliminarUsuario:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al eliminar usuario'
+        });
+    }
+};
+
+// Obtener roles disponibles
+export const getRoles = async (req, res) => {
+    try {
+        const roles = await Role.find().lean();
+        res.json({
+            success: true,
+            roles
+        });
+    } catch (error) {
+        console.error('Error getRoles:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener roles'
+        });
+    }
+};
+
+// Crear nuevo rol
+export const crearRol = async (req, res) => {
+    try {
+        const { nombre, descripcion, permisos } = req.body;
+        
+        const nuevoRol = new Role({
+            nombre,
+            descripcion,
+            permisos,
+            creadoPor: req.user._id
+        });
+        
+        await nuevoRol.save();
+        
+        res.status(201).json({
+            success: true,
+            message: 'Rol creado exitosamente',
+            rol: nuevoRol
+        });
+    } catch (error) {
+        console.error('Error crearRol:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al crear rol'
+        });
+    }
+};
+
+// Verificar si se puede cambiar admin
+export const verificarCambioAdmin = async (req, res) => {
+    try {
+        const adminCount = await User.countDocuments({ 
+            rol: 'administrador',
+            activo: true 
+        });
+        
+        // Solo permitir cambio si es el único admin activo
+        const puedeCambiar = adminCount === 1 && req.user.esAdminUnico;
+        
+        res.json({
+            success: true,
+            puedeCambiar,
+            adminCount
+        });
+    } catch (error) {
+        console.error('Error verificarCambioAdmin:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al verificar'
         });
     }
 };

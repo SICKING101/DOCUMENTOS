@@ -7,11 +7,41 @@ import {
     getPendingRequests,
     getRequestStatus,
     testAdminChange,
-    debugPasswordStorage
+    debugPasswordStorage,
+    getUsuarios,
+    crearUsuario,
+    editarUsuario,
+    eliminarUsuario,
+    getRoles,
+    crearRol,
+    verificarCambioAdmin
 } from '../controllers/adminController.js';
-import { protegerRuta, soloAdministrador } from '../middleware/auth.js';
+import { 
+    protegerRuta, 
+    soloAdministrador,
+    verificarUnicoAdmin
+} from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Todas las rutas requieren autenticación y ser admin
+router.use(protegerRuta);
+router.use(soloAdministrador);
+router.use(verificarUnicoAdmin);
+
+// Gestión de usuarios
+router.get('/users', getUsuarios);
+router.post('/users', crearUsuario);
+router.put('/users/:id', editarUsuario);
+router.delete('/users/:id', eliminarUsuario);
+
+// Gestión de roles
+router.get('/roles', getRoles);
+router.post('/roles', crearRol);
+
+// Verificaciones
+router.get('/verify-admin-change', verificarCambioAdmin);
+
 
 // ============================================================================
 // SECCIÓN: RUTAS DE CAMBIO DE ADMINISTRADOR

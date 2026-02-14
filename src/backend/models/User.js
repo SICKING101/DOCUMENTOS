@@ -73,6 +73,49 @@ const userSchema = new mongoose.Schema({
         enum: ['administrador', 'desactivado', 'usuario'], 
         default: 'administrador'
     },
+
+    // Agregar después del campo 'rol' (línea ~65)
+permisos: {
+    type: [String],
+    default: [], // Array de permisos específicos
+    enum: [
+        'ver_dashboard',
+        'ver_personas',
+        'crear_personas', 
+        'editar_personas',
+        'eliminar_personas',
+        'ver_documentos',
+        'subir_documentos',
+        'editar_documentos',
+        'eliminar_documentos',
+        'ver_categorias',
+        'crear_categorias',
+        'editar_categorias',
+        'eliminar_categorias',
+        'ver_departamentos',
+        'crear_departamentos',
+        'editar_departamentos',
+        'eliminar_departamentos',
+        'ver_tareas',
+        'crear_tareas',
+        'editar_tareas',
+        'eliminar_tareas',
+        'ver_reportes',
+        'generar_reportes',
+        'ver_calendario',
+        'crear_eventos',
+        'ver_historial',
+        'ver_soporte',
+        'crear_tickets',
+        'ver_papelera',
+        'restaurar_documentos',
+        'vaciar_papelera'
+    ]
+},
+esAdminUnico: {
+    type: Boolean,
+    default: false
+}, 
     
     // ----------------------------------------------------------------
     // BLOQUE 1.5: Estado activo/inactivo de la cuenta

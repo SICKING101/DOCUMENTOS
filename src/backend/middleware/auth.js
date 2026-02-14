@@ -136,6 +136,78 @@ export const soloAdministrador = (req, res, next) => {
     }
 };
 
+// Agregar después de soloAdministrador (línea ~90)
+
+// Middleware para verificar permisos específicos
+export const verificarPermiso = (permiso) => {
+    return (req, res, next) => {
+        // Admin tiene todos los permisos automáticamente
+        if (req.user.rol === 'administrador') {
+            return next();
+        }
+        
+        // Verificar si el usuario tiene el permiso específico
+        if (req.user.permisos && req.user.permisos.includes(permiso)) {
+            return next();
+        }
+        
+        return res.status(403).json({
+            success: false,
+            message: `No tienes permiso para: ${permiso}`
+        });
+    };
+};
+
+// Middleware para verificar múltiples permisos (al menos uno)
+export const verificarCualquierPermiso = (permisos) => {
+    return (req, res, next) => {
+        if (req.user.rol === 'administrador') {
+            return next();
+        }
+        
+        const tienePermiso = permisos.some(p => 
+            req.user.permisos && req.user.permisos.includes(p)
+        );
+        
+        if (tienePermiso) {
+            return next();
+        }
+        
+        return res.status(403).json({
+            success: false,
+            message: 'No tienes los permisos necesarios'
+        });
+    };
+};
+
+// Middleware para verificar que solo haya un admin
+export const verificarUnicoAdmin = async (req, res, next) => {
+    try {
+        if (req.user.rol === 'administrador') {
+            const adminCount = await User.countDocuments({ 
+                rol: 'administrador',
+                activo: true 
+            });
+            
+            // Si es admin y hay más de uno, pero este no es el único admin
+            if (adminCount > 1 && !req.user.esAdminUnico) {
+                // Desactivar permisos de admin para este usuario
+                req.user.rol = 'usuario';
+                await req.user.save();
+                
+                return res.status(403).json({
+                    success: false,
+                    message: 'Ya existe un administrador único. Contacta al administrador actual.'
+                });
+            }
+        }
+        next();
+    } catch (error) {
+        console.error('Error en verificarUnicoAdmin:', error);
+        next(error);
+    }
+};
+
 // ********************************************************************
 // MÓDULO 3: PERMISOS HÍBRIDOS PARA TICKETS
 // ********************************************************************
