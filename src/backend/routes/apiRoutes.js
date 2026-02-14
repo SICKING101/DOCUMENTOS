@@ -28,6 +28,11 @@ import { protegerRuta } from '../middleware/auth.js';
 // Importar middleware de Multer
 import upload from '../config/multerConfig.js';
 
+import adminRoutes from './adminRoutes.js';
+
+// Agregar antes de la exportación (después de las rutas de soporte)
+router.use('/admin', adminRoutes);
+
 // ********************************************************************
 // MÓDULO 1: RUTAS DE SALUD Y DIAGNÓSTICO DEL SISTEMA
 // ********************************************************************
