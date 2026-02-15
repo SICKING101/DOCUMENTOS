@@ -788,6 +788,75 @@ export const inicializarSistema = async (req, res) => {
     }
 };
 
+/**
+ * Eliminar usuario permanentemente
+ * DELETE /api/admin/users/:id/permanent
+ */
+export const eliminarUsuarioPermanente = async (req, res) => {
+    try {
+        // Verificar que sea admin único
+        if (!esAdminUnico(req.user)) {
+            return res.status(403).json({
+                success: false,
+                message: 'Solo el administrador único puede eliminar usuarios permanentemente'
+            });
+        }
+        
+        const { id } = req.params;
+        
+        // Buscar usuario a eliminar
+        const userToDelete = await User.findById(id);
+        if (!userToDelete) {
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+        }
+        
+        // NO PERMITIR ELIMINAR AL ADMIN ÚNICO
+        if (userToDelete.esAdminUnico) {
+            return res.status(403).json({
+                success: false,
+                message: 'No puedes eliminar al administrador único'
+            });
+        }
+        
+        // Guardar datos para auditoría
+        const usuarioInfo = {
+            usuario: userToDelete.usuario,
+            correo: userToDelete.correo,
+            rol: userToDelete.rol
+        };
+        
+        // Eliminar permanentemente
+        await userToDelete.deleteOne();
+        
+        // Registrar auditoría
+        await registrarAuditoria(
+            req,
+            'ELIMINAR_PERMANENTE_USUARIO',
+            `Eliminó permanentemente usuario: ${usuarioInfo.usuario} (${usuarioInfo.correo})`,
+            {
+                recursoId: id,
+                recursoTipo: 'User',
+                datosAnteriores: usuarioInfo
+            }
+        );
+        
+        res.json({
+            success: true,
+            message: 'Usuario eliminado permanentemente'
+        });
+        
+    } catch (error) {
+        console.error('Error eliminarUsuarioPermanente:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al eliminar usuario permanentemente'
+        });
+    }
+};
+
 // ============================================================================
 // VERIFICACIONES
 // ============================================================================

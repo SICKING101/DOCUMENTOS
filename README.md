@@ -154,10 +154,12 @@ DOCUMENTOS/
 │   │   │   ├── auth/              # Autenticacion
 │   │   │   │   ├── forgot.js
 │   │   │   │   ├── resetPassword.js
+│   │   │   │   ├── verify-admin-change.js
 │   │   │   │   └── verification.js
 │   │   │   │
 |   │   │   ├── admin/             # Módulo de administración
 │   │   │   │   ├── adminChange.js
+│   │   │   │   ├── usersManager.js
 │   │   │   │
 │   │   │   ├── documentos/        # Modulo documentos
 │   │   │   |    │
@@ -244,6 +246,8 @@ DOCUMENTOS/
 │       │   ├── Category.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
+│       │   ├── AuditLog.js
+│       │   ├── Role.js
 │       │   ├── Ticket.js
 │       │   └── Notification.js
 │       │

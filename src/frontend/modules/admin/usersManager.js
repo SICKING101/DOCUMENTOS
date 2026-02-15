@@ -1,7 +1,7 @@
 // ============================================================================
 // src/frontend/modules/admin/usersManager.js
 // ============================================================================
-// GESTIÓN DE USUARIOS Y PERMISOS - VERSIÓN FINAL CON UI MEJORADA
+// GESTIÓN DE USUARIOS Y PERMISOS - VERSIÓN CORREGIDA CON VALIDACIONES MEJORADAS
 // ============================================================================
 
 const API_URL = window.location.origin;
@@ -147,19 +147,19 @@ function configurarDashboardLink() {
     if (dashboardLink) {
         dashboardLink.addEventListener('click', (e) => {
             e.preventDefault();
-            dashboardModal.showModal();
+            if (dashboardModal) dashboardModal.showModal();
         });
     }
     
     if (closeModalBtn) {
         closeModalBtn.addEventListener('click', () => {
-            dashboardModal.close();
+            if (dashboardModal) dashboardModal.close();
         });
     }
     
     if (cancelBtn) {
         cancelBtn.addEventListener('click', () => {
-            dashboardModal.close();
+            if (dashboardModal) dashboardModal.close();
         });
     }
     
@@ -181,8 +181,11 @@ async function verificarAdminUnico() {
             esAdminUnico = user.rol === 'administrador';
             
             // Mostrar nombre en sidebar
-            document.getElementById('adminName').textContent = user.usuario || 'Administrador';
-            document.getElementById('adminAvatar').textContent = (user.usuario || 'A').charAt(0).toUpperCase();
+            const adminNameEl = document.getElementById('adminName');
+            const adminAvatarEl = document.getElementById('adminAvatar');
+            
+            if (adminNameEl) adminNameEl.textContent = user.usuario || 'Administrador';
+            if (adminAvatarEl) adminAvatarEl.textContent = (user.usuario || 'A').charAt(0).toUpperCase();
             
             // Si no es admin, redirigir
             if (!esAdminUnico) {
@@ -201,7 +204,7 @@ function inicializarSidebar() {
     const sidebar = document.getElementById('adminSidebar');
     const toggleBtn = document.getElementById('sidebarToggle');
     
-    if (toggleBtn) {
+    if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
@@ -226,8 +229,10 @@ function actualizarFechaHora() {
             hour: '2-digit',
             minute: '2-digit'
         };
-        document.getElementById('currentDateTime').textContent = 
-            now.toLocaleDateString('es-MX', options).replace(',', '');
+        const dateTimeEl = document.getElementById('currentDateTime');
+        if (dateTimeEl) {
+            dateTimeEl.textContent = now.toLocaleDateString('es-MX', options).replace(',', '');
+        }
     };
     
     updateDateTime();
@@ -253,7 +258,9 @@ function inicializarTabs() {
             document.querySelectorAll('.admin-panel-tab-pane').forEach(pane => {
                 pane.classList.remove('active');
             });
-            document.getElementById(`${tabId}Pane`).classList.add('active');
+            
+            const targetPane = document.getElementById(`${tabId}Pane`);
+            if (targetPane) targetPane.classList.add('active');
             
             // Cargar contenido específico si es necesario
             if (tabId === 'permissions') {
@@ -339,13 +346,19 @@ function configurarEventos() {
         globalSearch.addEventListener('input', (e) => {
             const term = e.target.value;
             // Determinar pestaña activa y buscar
-            const activeTab = document.querySelector('.admin-panel-tab-pane.active').id;
+            const activeTab = document.querySelector('.admin-panel-tab-pane.active')?.id;
             if (activeTab === 'usersPane') {
-                document.getElementById('searchUsers').value = term;
-                filtrarUsuarios();
+                const searchUsers = document.getElementById('searchUsers');
+                if (searchUsers) {
+                    searchUsers.value = term;
+                    filtrarUsuarios();
+                }
             } else if (activeTab === 'rolesPane') {
-                document.getElementById('searchRoles').value = term;
-                filtrarRoles();
+                const searchRoles = document.getElementById('searchRoles');
+                if (searchRoles) {
+                    searchRoles.value = term;
+                    filtrarRoles();
+                }
             }
         });
     }
@@ -364,11 +377,13 @@ async function recargarDatos() {
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
-        document.getElementById('fullscreenToggle').innerHTML = '<i class="fas fa-compress"></i>';
+        const fullscreenBtn = document.getElementById('fullscreenToggle');
+        if (fullscreenBtn) fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
     } else {
         if (document.exitFullscreen) {
             document.exitFullscreen();
-            document.getElementById('fullscreenToggle').innerHTML = '<i class="fas fa-expand"></i>';
+            const fullscreenBtn = document.getElementById('fullscreenToggle');
+            if (fullscreenBtn) fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
         }
     }
 }
@@ -506,8 +521,11 @@ function mostrarTodosPermisos() {
     container.innerHTML = html;
     
     // Actualizar stats
-    document.getElementById('totalPermisos').textContent = totalPermisos;
-    document.getElementById('totalCategorias').textContent = categorias.length;
+    const totalPermisosEl = document.getElementById('totalPermisos');
+    const totalCategoriasEl = document.getElementById('totalCategorias');
+    
+    if (totalPermisosEl) totalPermisosEl.textContent = totalPermisos;
+    if (totalCategoriasEl) totalCategoriasEl.textContent = categorias.length;
 }
 
 // ============================================================================
@@ -530,7 +548,16 @@ async function cargarUsuarios() {
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
-        const data = await response.json();
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            // Si no es JSON, es probablemente un HTML (error 404)
+            const text = await response.text();
+            console.error('Respuesta no JSON:', text.substring(0, 200));
+            throw new Error('El servidor devolvió HTML en lugar de JSON');
+        }
         
         if (data.success) {
             usuarios = data.usuarios || [];
@@ -593,6 +620,7 @@ function cargarUsuariosEjemplo() {
 
 function actualizarTablaUsuarios(usuariosFiltrados) {
     const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
     
     if (!usuariosFiltrados || usuariosFiltrados.length === 0) {
         tbody.innerHTML = `
@@ -676,9 +704,13 @@ function actualizarTablaUsuarios(usuariosFiltrados) {
 }
 
 function filtrarUsuarios() {
-    const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
-    const roleFilter = document.getElementById('roleFilter').value;
-    const statusFilter = document.getElementById('statusFilter').value;
+    const searchUsers = document.getElementById('searchUsers');
+    const roleFilter = document.getElementById('roleFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    const searchTerm = searchUsers ? searchUsers.value.toLowerCase() : '';
+    const roleFilterValue = roleFilter ? roleFilter.value : '';
+    const statusFilterValue = statusFilter ? statusFilter.value : '';
     
     let filtrados = usuarios;
     
@@ -691,13 +723,13 @@ function filtrarUsuarios() {
     }
     
     // Filtro de rol
-    if (roleFilter) {
-        filtrados = filtrados.filter(user => user.rol === roleFilter);
+    if (roleFilterValue) {
+        filtrados = filtrados.filter(user => user.rol === roleFilterValue);
     }
     
     // Filtro de estado
-    if (statusFilter) {
-        const activo = statusFilter === 'activo';
+    if (statusFilterValue) {
+        const activo = statusFilterValue === 'activo';
         filtrados = filtrados.filter(user => user.activo === activo);
     }
     
@@ -709,10 +741,15 @@ function actualizarStats() {
     const activos = usuarios.filter(u => u.activo).length;
     const inactivos = total - activos;
     
-    document.getElementById('totalUsers').textContent = total;
-    document.getElementById('activeUsers').textContent = activos;
-    document.getElementById('inactiveUsers').textContent = inactivos;
-    document.getElementById('totalRoles').textContent = roles.length;
+    const totalUsersEl = document.getElementById('totalUsers');
+    const activeUsersEl = document.getElementById('activeUsers');
+    const inactiveUsersEl = document.getElementById('inactiveUsers');
+    const totalRolesEl = document.getElementById('totalRoles');
+    
+    if (totalUsersEl) totalUsersEl.textContent = total;
+    if (activeUsersEl) activeUsersEl.textContent = activos;
+    if (inactiveUsersEl) inactiveUsersEl.textContent = inactivos;
+    if (totalRolesEl) totalRolesEl.textContent = roles.length;
 }
 
 function actualizarFiltrosRoles() {
@@ -730,15 +767,16 @@ function actualizarFiltrosRoles() {
 }
 
 // ============================================================================
-// MODAL DE USUARIO (SIN PERMISOS ESPECÍFICOS)
+// MODAL DE USUARIO
 // ============================================================================
 
-// Funciones para abrir modales - usa showModal() para dialog
 async function abrirModalUsuario(userId = null) {
     const modal = document.getElementById('userModal');
     const title = document.getElementById('userModalTitle');
     const passwordGroup = document.getElementById('passwordGroup');
     const roleSelect = document.getElementById('userRole');
+    
+    if (!modal || !title || !passwordGroup || !roleSelect) return;
     
     // Cargar roles en el select
     roleSelect.innerHTML = '<option value="">Seleccionar rol...</option>';
@@ -769,7 +807,6 @@ async function abrirModalUsuario(userId = null) {
         document.getElementById('userRole').disabled = false;
     }
     
-    // Usar showModal() para dialog
     modal.showModal();
 }
 
@@ -805,7 +842,7 @@ async function cargarDatosUsuario(userId) {
 
 function cerrarModalUsuario() {
     const modal = document.getElementById('userModal');
-    modal.close();
+    if (modal) modal.close();
     
     // Resetear campos
     document.getElementById('userName').disabled = false;
@@ -869,7 +906,13 @@ async function guardarUsuario() {
             body: JSON.stringify(body)
         });
         
-        const data = await response.json();
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            throw new Error('Respuesta no válida del servidor');
+        }
         
         if (data.success) {
             cerrarModalUsuario();
@@ -901,14 +944,20 @@ async function cambiarEstadoUsuario(userId) {
     
     // Usar modal de confirmación
     const confirmModal = document.getElementById('confirmModal');
-    document.getElementById('confirmMessage').textContent = 
-        `¿Estás seguro de ${accion} al usuario ${user.usuario}?`;
-    document.getElementById('confirmModalTitle').textContent = 'Confirmar acción';
+    const confirmMessage = document.getElementById('confirmMessage');
+    const confirmTitle = document.getElementById('confirmModalTitle');
+    
+    if (!confirmModal || !confirmMessage || !confirmTitle) return;
+    
+    confirmMessage.textContent = `¿Estás seguro de ${accion} al usuario ${user.usuario}?`;
+    confirmTitle.textContent = 'Confirmar acción';
     
     confirmModal.showModal();
     
     // Configurar acción de confirmación
     const confirmBtn = document.getElementById('confirmActionBtn');
+    if (!confirmBtn) return;
+    
     const cancelar = () => {
         confirmModal.close();
         confirmBtn.removeEventListener('click', handleConfirm);
@@ -926,7 +975,13 @@ async function cambiarEstadoUsuario(userId) {
                 }
             });
             
-            const data = await response.json();
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                throw new Error('Respuesta no válida');
+            }
             
             if (data.success) {
                 await cargarUsuarios();
@@ -967,10 +1022,16 @@ async function eliminarUsuarioPermanente(userId) {
     }
     
     const confirmModal = document.getElementById('confirmModal');
-    document.getElementById('confirmMessage').innerHTML = 
+    const confirmMessage = document.getElementById('confirmMessage');
+    const confirmTitle = document.getElementById('confirmModalTitle');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    
+    if (!confirmModal || !confirmMessage || !confirmTitle || !confirmBtn) return;
+    
+    confirmMessage.innerHTML = 
         `<strong style="color: var(--danger);">¿Estás seguro de ELIMINAR PERMANENTEMENTE al usuario ${user.usuario}?</strong><br><br>
         <span style="color: var(--text-secondary); font-size: 0.9rem;">Esta acción no se puede deshacer. Todos los datos asociados a este usuario serán eliminados.</span>`;
-    document.getElementById('confirmModalTitle').textContent = '⚠️ Eliminación Permanente';
+    confirmTitle.textContent = '⚠️ Eliminación Permanente';
     
     // Cambiar el icono
     const icon = confirmModal.querySelector('.action-modal__icon i');
@@ -981,7 +1042,6 @@ async function eliminarUsuarioPermanente(userId) {
     
     confirmModal.showModal();
     
-    const confirmBtn = document.getElementById('confirmActionBtn');
     confirmBtn.classList.add('btn--danger');
     
     const handleConfirm = async () => {
@@ -996,7 +1056,13 @@ async function eliminarUsuarioPermanente(userId) {
                 }
             });
             
-            const data = await response.json();
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                throw new Error('Respuesta no válida');
+            }
             
             if (data.success) {
                 await cargarUsuarios();
@@ -1026,7 +1092,8 @@ async function eliminarUsuarioPermanente(userId) {
 }
 
 function cerrarConfirmModal() {
-    document.getElementById('confirmModal').close();
+    const confirmModal = document.getElementById('confirmModal');
+    if (confirmModal) confirmModal.close();
 }
 
 // ============================================================================
@@ -1049,12 +1116,19 @@ async function cargarRoles() {
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
-        const data = await response.json();
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            throw new Error('Respuesta no JSON');
+        }
         
         if (data.success) {
             roles = data.roles || [];
             actualizarTablaRoles(roles);
-            document.getElementById('totalRoles').textContent = roles.length;
+            const totalRolesEl = document.getElementById('totalRoles');
+            if (totalRolesEl) totalRolesEl.textContent = roles.length;
             ocultarPreloader('roles');
         } else {
             mostrarError(data.message || 'Error al cargar roles');
@@ -1075,13 +1149,15 @@ function cargarRolesEjemplo() {
             { _id: '3', nombre: 'supervisor', descripcion: 'Supervisor de documentos', permisos: ['ver_dashboard', 'ver_documentos', 'ver_personas', 'ver_reportes'], esProtegido: false }
         ];
         actualizarTablaRoles(roles);
-        document.getElementById('totalRoles').textContent = roles.length;
+        const totalRolesEl = document.getElementById('totalRoles');
+        if (totalRolesEl) totalRolesEl.textContent = roles.length;
         ocultarPreloader('roles');
     }
 }
 
 function actualizarTablaRoles(rolesFiltrados) {
     const tbody = document.getElementById('rolesTableBody');
+    if (!tbody) return;
     
     if (!rolesFiltrados || rolesFiltrados.length === 0) {
         tbody.innerHTML = `
@@ -1141,7 +1217,8 @@ function actualizarTablaRoles(rolesFiltrados) {
 }
 
 function filtrarRoles() {
-    const searchTerm = document.getElementById('searchRoles').value.toLowerCase();
+    const searchRoles = document.getElementById('searchRoles');
+    const searchTerm = searchRoles ? searchRoles.value.toLowerCase() : '';
     
     const filtrados = roles.filter(rol => 
         (rol.nombre?.toLowerCase() || '').includes(searchTerm) ||
@@ -1158,6 +1235,8 @@ function filtrarRoles() {
 function abrirModalRol(roleId = null) {
     const modal = document.getElementById('roleModal');
     const title = document.getElementById('roleModalTitle');
+    
+    if (!modal || !title) return;
     
     if (roleId) {
         title.innerHTML = '<i class="fas fa-edit"></i><span>Editar Rol</span>';
@@ -1201,7 +1280,7 @@ function cargarDatosRol(roleId) {
 
 function cerrarModalRol() {
     const modal = document.getElementById('roleModal');
-    modal.close();
+    if (modal) modal.close();
     
     // Resetear campos
     document.getElementById('roleName').disabled = false;
@@ -1243,11 +1322,18 @@ async function guardarRol() {
             body: JSON.stringify({ nombre, descripcion, permisos })
         });
         
-        const data = await response.json();
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            throw new Error('Respuesta no válida');
+        }
         
         if (data.success) {
             cerrarModalRol();
             await cargarRoles();
+            await cargarUsuarios(); // Recargar usuarios para actualizar roles
             mostrarExito(roleId ? 'Rol actualizado' : 'Rol creado');
         } else {
             mostrarError(data.message || 'Error al guardar');
@@ -1270,22 +1356,29 @@ function verPermisosRol(roleId) {
         : 'Sin permisos asignados';
     
     // Mostrar en modal de confirmación como información
-    document.getElementById('confirmModalTitle').textContent = `Permisos: ${rol.nombre}`;
-    document.getElementById('confirmMessage').innerHTML = `<pre style="text-align: left; white-space: pre-wrap;">${permisosTexto}</pre>`;
+    const confirmTitle = document.getElementById('confirmModalTitle');
+    const confirmMessage = document.getElementById('confirmMessage');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    
+    if (confirmTitle) confirmTitle.textContent = `Permisos: ${rol.nombre}`;
+    if (confirmMessage) confirmMessage.innerHTML = `<pre style="text-align: left; white-space: pre-wrap;">${permisosTexto}</pre>`;
     
     const confirmModal = document.getElementById('confirmModal');
-    const confirmBtn = document.getElementById('confirmActionBtn');
-    confirmBtn.style.display = 'none';
+    if (confirmBtn) confirmBtn.style.display = 'none';
     
-    confirmModal.showModal();
+    if (confirmModal) confirmModal.showModal();
     
     const closeHandler = () => {
-        confirmBtn.style.display = 'flex';
-        confirmModal.removeEventListener('close', closeHandler);
+        if (confirmBtn) confirmBtn.style.display = 'flex';
+        if (confirmModal) confirmModal.removeEventListener('close', closeHandler);
     };
-    confirmModal.addEventListener('close', closeHandler);
+    if (confirmModal) confirmModal.addEventListener('close', closeHandler);
 }
 
+/**
+ * Eliminar rol con verificación de usuarios asignados
+ * Si hay usuarios con ese rol, se les asigna rol por defecto o se les deja sin rol
+ */
 async function eliminarRol(roleId) {
     const rol = roles.find(r => r._id === roleId);
     if (!rol) return;
@@ -1295,61 +1388,137 @@ async function eliminarRol(roleId) {
         return;
     }
     
-    const usuariosConRol = usuarios.filter(u => u.rol === rol.nombre).length;
+    // Buscar usuarios con este rol
+    const usuariosConRol = usuarios.filter(u => u.rol === rol.nombre);
     
-    if (usuariosConRol > 0) {
-        mostrarError(`No se puede eliminar el rol porque ${usuariosConRol} usuario${usuariosConRol !== 1 ? 's' : ''} lo tienen asignado`);
-        return;
-    }
-    
-    // Usar modal de confirmación
-    const confirmModal = document.getElementById('confirmModal');
-    document.getElementById('confirmMessage').textContent = 
-        `¿Estás seguro de eliminar el rol "${rol.nombre}"?`;
-    document.getElementById('confirmModalTitle').textContent = 'Eliminar rol';
-    
-    const confirmBtn = document.getElementById('confirmActionBtn');
-    confirmBtn.style.display = 'flex';
-    
-    confirmModal.showModal();
-    
-    const handleConfirm = async () => {
-        confirmBtn.disabled = true;
+    if (usuariosConRol.length > 0) {
+        // Preguntar qué hacer con los usuarios afectados
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmTitle = document.getElementById('confirmModalTitle');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmBtn = document.getElementById('confirmActionBtn');
         
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/admin/roles/${roleId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
+        if (!confirmModal || !confirmTitle || !confirmMessage || !confirmBtn) return;
+        
+        confirmTitle.textContent = '⚠️ Usuarios afectados';
+        confirmMessage.innerHTML = `
+            <p>El rol <strong>"${rol.nombre}"</strong> está asignado a <strong>${usuariosConRol.length} usuario${usuariosConRol.length !== 1 ? 's' : ''}</strong>.</p>
+            <p>¿Qué deseas hacer?</p>
+            <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: center;">
+                <button id="assignDefaultRole" class="btn btn--primary" style="flex: 1;">Asignar rol por defecto</button>
+                <button id="removeRoleFromUsers" class="btn btn--warning" style="flex: 1;">Dejar sin rol</button>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.9rem; color: var(--text-secondary);">
+                <i class="fas fa-info-circle"></i> Si eliges "Dejar sin rol", los usuarios no tendrán permisos hasta que se les asigne uno.
+            </p>
+        `;
+        
+        // Ocultar botones por defecto
+        confirmBtn.style.display = 'none';
+        
+        confirmModal.showModal();
+        
+        // Manejadores para las opciones
+        const handleDefaultRole = async () => {
+            await procesarEliminacionRol(roleId, 'default');
+            confirmModal.close();
+        };
+        
+        const handleNoRole = async () => {
+            await procesarEliminacionRol(roleId, 'none');
+            confirmModal.close();
+        };
+        
+        // Agregar botones temporales
+        const defaultRoleBtn = document.getElementById('assignDefaultRole');
+        const noRoleBtn = document.getElementById('removeRoleFromUsers');
+        
+        if (defaultRoleBtn) defaultRoleBtn.addEventListener('click', handleDefaultRole);
+        if (noRoleBtn) noRoleBtn.addEventListener('click', handleNoRole);
+        
+        // Limpiar al cerrar
+        const closeHandler = () => {
+            if (defaultRoleBtn) defaultRoleBtn.removeEventListener('click', handleDefaultRole);
+            if (noRoleBtn) noRoleBtn.removeEventListener('click', handleNoRole);
+            confirmBtn.style.display = 'flex';
+            confirmModal.removeEventListener('close', closeHandler);
+        };
+        confirmModal.addEventListener('close', closeHandler);
+        
+    } else {
+        // No hay usuarios con este rol, eliminar directamente
+        await procesarEliminacionRol(roleId, 'none');
+    }
+}
+
+/**
+ * Procesar la eliminación de un rol
+ * @param {string} roleId - ID del rol a eliminar
+ * @param {string} accion - 'default' para asignar rol por defecto, 'none' para dejar sin rol
+ */
+async function procesarEliminacionRol(roleId, accion) {
+    const rol = roles.find(r => r._id === roleId);
+    if (!rol) return;
+    
+    try {
+        const token = localStorage.getItem('token');
+        
+        // Primero, si hay usuarios con este rol y se eligió asignar rol por defecto
+        if (accion === 'default') {
+            const usuariosConRol = usuarios.filter(u => u.rol === rol.nombre);
+            
+            // Buscar un rol por defecto (podría ser 'usuario' o el primero disponible)
+            const rolDefault = roles.find(r => r.nombre === 'usuario' && r._id !== roleId) || 
+                              roles.find(r => r._id !== roleId);
+            
+            if (rolDefault && usuariosConRol.length > 0) {
+                // Actualizar cada usuario
+                for (const user of usuariosConRol) {
+                    await fetch(`${API_URL}/api/admin/users/${user._id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            usuario: user.usuario,
+                            correo: user.correo,
+                            rol: rolDefault.nombre,
+                            activo: user.activo
+                        })
+                    });
                 }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                await cargarRoles();
-                mostrarExito('Rol eliminado');
-                confirmModal.close();
-            } else {
-                mostrarError(data.message || 'Error al eliminar');
+                mostrarExito(`${usuariosConRol.length} usuario${usuariosConRol.length !== 1 ? 's' : ''} actualizado${usuariosConRol.length !== 1 ? 's' : ''} al rol "${rolDefault.nombre}"`);
             }
-        } catch (error) {
-            console.error('Error eliminando rol:', error);
-            mostrarError('Error de conexión');
-        } finally {
-            confirmBtn.disabled = false;
-            confirmBtn.removeEventListener('click', handleConfirm);
         }
-    };
-    
-    confirmBtn.addEventListener('click', handleConfirm);
-    
-    const closeHandler = () => {
-        confirmBtn.removeEventListener('click', handleConfirm);
-        confirmModal.removeEventListener('close', closeHandler);
-    };
-    confirmModal.addEventListener('close', closeHandler);
+        
+        // Ahora eliminar el rol
+        const response = await fetch(`${API_URL}/api/admin/roles/${roleId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            throw new Error('Respuesta no válida');
+        }
+        
+        if (data.success) {
+            await cargarRoles();
+            await cargarUsuarios(); // Recargar usuarios para ver los cambios
+            mostrarExito('Rol eliminado correctamente');
+        } else {
+            mostrarError(data.message || 'Error al eliminar rol');
+        }
+    } catch (error) {
+        console.error('Error eliminando rol:', error);
+        mostrarError('Error de conexión');
+    }
 }
 
 // ============================================================================
@@ -1371,7 +1540,13 @@ async function cargarAuditLogs() {
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
-        const data = await response.json();
+        let data;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            throw new Error('Respuesta no JSON');
+        }
         
         if (data.success) {
             auditLogs = data.logs || [];
@@ -1423,6 +1598,7 @@ function cargarLogsEjemplo() {
 
 function actualizarTablaLogs(logs) {
     const tbody = document.getElementById('logsTableBody');
+    if (!tbody) return;
     
     if (!logs || logs.length === 0) {
         tbody.innerHTML = `

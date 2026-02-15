@@ -15,6 +15,7 @@ import {
     editarRol,
     eliminarRol,
     actualizarPermisosUsuario,
+    eliminarUsuarioPermanente,
     getAuditLogs,
     inicializarSistema,
     verificarCambioAdmin
@@ -47,6 +48,9 @@ router.put('/users/:id', editarUsuario);
 
 // Eliminar usuario (dar de baja/activar)
 router.delete('/users/:id', eliminarUsuario);
+
+// ELIMINAR USUARIO PERMANENTEMENTE (nueva ruta)
+router.delete('/users/:id/permanent', eliminarUsuarioPermanente);
 
 // Actualizar permisos específicos de usuario
 router.put('/users/:id/permisos', actualizarPermisosUsuario);
