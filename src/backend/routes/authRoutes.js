@@ -10,6 +10,8 @@ import {
   verifyPassword,
   estadoEmail
 } from '../controllers/authController.js';
+// Importar el controlador de permisos
+import { obtenerMisPermisos } from '../middleware/permisos.js';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -548,6 +550,12 @@ router.get('/confirm-admin-change/:token', async (req, res) => {
         });
     }
 });
+
+// Ruta para obtener permisos del usuario actual
+router.get('/mis-permisos', 
+    protegerRuta, 
+    obtenerMisPermisos
+);
 
 // ********************************************************************
 // MÓDULO 7: VERIFICACIÓN ADICIONAL DE SEGURIDAD

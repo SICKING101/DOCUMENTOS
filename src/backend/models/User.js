@@ -232,6 +232,14 @@ userSchema.statics.asegurarUnicoAdmin = async function() {
     console.log(`✅ ${admins[0].usuario} es ahora el único administrador`);
 };
 
+// Método para verificar múltiples permisos (útil para middlewares)
+userSchema.methods.tieneAlgunPermiso = async function(permisosRequeridos) {
+    if (this.esAdminUnico) return true;
+    
+    const permisosEfectivos = await this.obtenerPermisosEfectivos();
+    return permisosRequeridos.some(p => permisosEfectivos.includes(p));
+};
+
 const User = mongoose.model('User', userSchema);
 
 export default User;

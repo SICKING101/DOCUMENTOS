@@ -30,6 +30,8 @@ const auditLogSchema = new mongoose.Schema({
         enum: [
             // Usuarios
             'CREAR_USUARIO',
+            'VER_USUARIOS', 
+            'ELIMINAR_PERMANENTE_USUARIO',
             'EDITAR_USUARIO',
             'ELIMINAR_USUARIO',
             'ACTIVAR_USUARIO',
