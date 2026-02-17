@@ -1332,6 +1332,24 @@ export function initReportsModule() {
     }
 }
 
+// Eliminar el estilo inline que oculta Reportes
+    (function() {
+        function fixReportes() {
+            const reportesLink = document.getElementById('sidebarReportesLink');
+            if (reportesLink) {
+                reportesLink.style.display = ''; // Eliminar el inline style
+                console.log('✅ Reportes visible');
+            }
+        }
+        
+        // Ejecutar inmediatamente y después de cada cambio
+        fixReportes();
+        
+        // También observar cambios en el DOM
+        const observer = new MutationObserver(fixReportes);
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    })();
+
 // =============================================================================
 // 6. EXPORTACIONES (MANTENIDAS)
 // =============================================================================

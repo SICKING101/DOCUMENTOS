@@ -13,74 +13,47 @@ const API_URL = window.location.origin;
 const PERMISOS_DISPONIBLES = [
     // Dashboard
     { id: 'ver_dashboard', nombre: 'Ver Dashboard', categoria: 'Dashboard' },
+    { id: 'acciones_dashboard', nombre: 'Actualizar/Refrescar Dashboard', categoria: 'Dashboard' },
     
     // Personas
     { id: 'ver_personas', nombre: 'Ver Personas', categoria: 'Personas' },
-    { id: 'crear_personas', nombre: 'Crear Personas', categoria: 'Personas' },
-    { id: 'editar_personas', nombre: 'Editar Personas', categoria: 'Personas' },
-    { id: 'eliminar_personas', nombre: 'Eliminar Personas', categoria: 'Personas' },
+    { id: 'acciones_personas', nombre: 'Gestionar Personas (Crear/Editar/Eliminar)', categoria: 'Personas' },
     
     // Documentos
     { id: 'ver_documentos', nombre: 'Ver Documentos', categoria: 'Documentos' },
-    { id: 'subir_documentos', nombre: 'Subir Documentos', categoria: 'Documentos' },
-    { id: 'editar_documentos', nombre: 'Editar Documentos', categoria: 'Documentos' },
-    { id: 'eliminar_documentos', nombre: 'Eliminar Documentos', categoria: 'Documentos' },
-    { id: 'descargar_documentos', nombre: 'Descargar Documentos', categoria: 'Documentos' },
+    { id: 'acciones_documentos', nombre: 'Gestionar Documentos (Subir/Editar/Eliminar/Descargar)', categoria: 'Documentos' },
     
     // Categorías
     { id: 'ver_categorias', nombre: 'Ver Categorías', categoria: 'Categorías' },
-    { id: 'crear_categorias', nombre: 'Crear Categorías', categoria: 'Categorías' },
-    { id: 'editar_categorias', nombre: 'Editar Categorías', categoria: 'Categorías' },
-    { id: 'eliminar_categorias', nombre: 'Eliminar Categorías', categoria: 'Categorías' },
+    { id: 'acciones_categorias', nombre: 'Gestionar Categorías', categoria: 'Categorías' },
     
     // Departamentos
     { id: 'ver_departamentos', nombre: 'Ver Departamentos', categoria: 'Departamentos' },
-    { id: 'crear_departamentos', nombre: 'Crear Departamentos', categoria: 'Departamentos' },
-    { id: 'editar_departamentos', nombre: 'Editar Departamentos', categoria: 'Departamentos' },
-    { id: 'eliminar_departamentos', nombre: 'Eliminar Departamentos', categoria: 'Departamentos' },
+    { id: 'acciones_departamentos', nombre: 'Gestionar Departamentos', categoria: 'Departamentos' },
     
     // Tareas
     { id: 'ver_tareas', nombre: 'Ver Tareas', categoria: 'Tareas' },
-    { id: 'crear_tareas', nombre: 'Crear Tareas', categoria: 'Tareas' },
-    { id: 'editar_tareas', nombre: 'Editar Tareas', categoria: 'Tareas' },
-    { id: 'eliminar_tareas', nombre: 'Eliminar Tareas', categoria: 'Tareas' },
-    { id: 'asignar_tareas', nombre: 'Asignar Tareas', categoria: 'Tareas' },
+    { id: 'acciones_tareas', nombre: 'Gestionar Tareas (Crear/Editar/Eliminar/Asignar)', categoria: 'Tareas' },
     
     // Reportes
     { id: 'ver_reportes', nombre: 'Ver Reportes', categoria: 'Reportes' },
-    { id: 'generar_reportes', nombre: 'Generar Reportes', categoria: 'Reportes' },
-    { id: 'exportar_reportes', nombre: 'Exportar Reportes', categoria: 'Reportes' },
+    { id: 'acciones_reportes', nombre: 'Generar/Exportar Reportes', categoria: 'Reportes' },
     
     // Calendario
     { id: 'ver_calendario', nombre: 'Ver Calendario', categoria: 'Calendario' },
-    { id: 'crear_eventos', nombre: 'Crear Eventos', categoria: 'Calendario' },
-    { id: 'editar_eventos', nombre: 'Editar Eventos', categoria: 'Calendario' },
-    { id: 'eliminar_eventos', nombre: 'Eliminar Eventos', categoria: 'Calendario' },
-    
-    // Historial
-    { id: 'ver_historial', nombre: 'Ver Historial', categoria: 'Historial' },
-    { id: 'exportar_historial', nombre: 'Exportar Historial', categoria: 'Historial' },
+    { id: 'acciones_calendario', nombre: 'Gestionar Eventos', categoria: 'Calendario' },
     
     // Soporte
     { id: 'ver_soporte', nombre: 'Ver Soporte', categoria: 'Soporte' },
-    { id: 'crear_tickets', nombre: 'Crear Tickets', categoria: 'Soporte' },
-    { id: 'responder_tickets', nombre: 'Responder Tickets', categoria: 'Soporte' },
-    { id: 'cerrar_tickets', nombre: 'Cerrar Tickets', categoria: 'Soporte' },
+    { id: 'acciones_soporte', nombre: 'Gestionar Tickets', categoria: 'Soporte' },
     
     // Papelera
     { id: 'ver_papelera', nombre: 'Ver Papelera', categoria: 'Papelera' },
-    { id: 'restaurar_documentos', nombre: 'Restaurar Documentos', categoria: 'Papelera' },
-    { id: 'vaciar_papelera', nombre: 'Vaciar Papelera', categoria: 'Papelera' },
+    { id: 'acciones_papelera', nombre: 'Gestionar Papelera (Restaurar/Vaciar)', categoria: 'Papelera' },
     
     // Administración
-    { id: 'ver_usuarios', nombre: 'Ver Usuarios', categoria: 'Administración' },
-    { id: 'crear_usuarios', nombre: 'Crear Usuarios', categoria: 'Administración' },
-    { id: 'editar_usuarios', nombre: 'Editar Usuarios', categoria: 'Administración' },
-    { id: 'eliminar_usuarios', nombre: 'Eliminar Usuarios', categoria: 'Administración' },
-    { id: 'ver_roles', nombre: 'Ver Roles', categoria: 'Administración' },
-    { id: 'crear_roles', nombre: 'Crear Roles', categoria: 'Administración' },
-    { id: 'editar_roles', nombre: 'Editar Roles', categoria: 'Administración' },
-    { id: 'eliminar_roles', nombre: 'Eliminar Roles', categoria: 'Administración' }
+    { id: 'ver_administracion', nombre: 'Ver Administración', categoria: 'Administración' },
+    { id: 'acciones_administracion', nombre: 'Gestionar Usuarios/Roles', categoria: 'Administración' }
 ];
 
 // ============================================================================

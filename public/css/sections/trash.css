@@ -818,6 +818,7 @@ body.dark-theme .empty-state-icon {
     font-weight: 600;
     color: #111827;
     margin-bottom: 0.5rem;
+    overflow-wrap: break-word;  
 }
 
 .empty-state p {
@@ -828,6 +829,7 @@ body.dark-theme .empty-state-icon {
     margin-right: auto;
     font-size: 0.875rem;
     line-height: 1.5;
+    overflow-wrap: break-word;     
 }
 
 .empty-state-tips {
