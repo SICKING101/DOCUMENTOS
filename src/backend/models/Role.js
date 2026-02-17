@@ -9,81 +9,56 @@ import mongoose from 'mongoose';
 // Lista completa de permisos disponibles
 export const PERMISOS_DISPONIBLES = [
     // Dashboard
-    { id: 'ver_dashboard', nombre: 'Ver Dashboard', categoria: 'Dashboard', descripcion: 'Acceso al panel principal' },
-
+    { id: 'ver_dashboard', nombre: 'Ver Dashboard', categoria: 'Dashboard' },
+    { id: 'acciones_dashboard', nombre: 'Actualizar/Refrescar Dashboard', categoria: 'Dashboard' },
+    
     // Personas
-    { id: 'ver_personas', nombre: 'Ver Personas', categoria: 'Personas', descripcion: 'Listar y ver detalles de personas' },
-    { id: 'crear_personas', nombre: 'Crear Personas', categoria: 'Personas', descripcion: 'Registrar nuevas personas' },
-    { id: 'editar_personas', nombre: 'Editar Personas', categoria: 'Personas', descripcion: 'Modificar información de personas' },
-    { id: 'eliminar_personas', nombre: 'Eliminar Personas', categoria: 'Personas', descripcion: 'Eliminar personas del sistema' },
-
+    { id: 'ver_personas', nombre: 'Ver Personas', categoria: 'Personas' },
+    { id: 'acciones_personas', nombre: 'Gestionar Personas (Crear/Editar/Eliminar)', categoria: 'Personas' },
+    
     // Documentos
-    { id: 'ver_documentos', nombre: 'Ver Documentos', categoria: 'Documentos', descripcion: 'Listar y ver documentos' },
-    { id: 'subir_documentos', nombre: 'Subir Documentos', categoria: 'Documentos', descripcion: 'Cargar nuevos documentos' },
-    { id: 'editar_documentos', nombre: 'Editar Documentos', categoria: 'Documentos', descripcion: 'Modificar metadatos de documentos' },
-    { id: 'eliminar_documentos', nombre: 'Eliminar Documentos', categoria: 'Documentos', descripcion: 'Eliminar documentos' },
-    { id: 'descargar_documentos', nombre: 'Descargar Documentos', categoria: 'Documentos', descripcion: 'Permite descargar archivos' },
-
+    { id: 'ver_documentos', nombre: 'Ver Documentos', categoria: 'Documentos' },
+    { id: 'acciones_documentos', nombre: 'Gestionar Documentos (Subir/Editar/Eliminar/Descargar)', categoria: 'Documentos' },
+    
     // Categorías
-    { id: 'ver_categorias', nombre: 'Ver Categorías', categoria: 'Categorías', descripcion: 'Listar categorías' },
-    { id: 'crear_categorias', nombre: 'Crear Categorías', categoria: 'Categorías', descripcion: 'Crear nuevas categorías' },
-    { id: 'editar_categorias', nombre: 'Editar Categorías', categoria: 'Categorías', descripcion: 'Modificar categorías' },
-    { id: 'eliminar_categorias', nombre: 'Eliminar Categorías', categoria: 'Categorías', descripcion: 'Eliminar categorías' },
-
+    { id: 'ver_categorias', nombre: 'Ver Categorías', categoria: 'Categorías' },
+    { id: 'acciones_categorias', nombre: 'Gestionar Categorías', categoria: 'Categorías' },
+    
     // Departamentos
-    { id: 'ver_departamentos', nombre: 'Ver Departamentos', categoria: 'Departamentos', descripcion: 'Listar departamentos' },
-    { id: 'crear_departamentos', nombre: 'Crear Departamentos', categoria: 'Departamentos', descripcion: 'Crear nuevos departamentos' },
-    { id: 'editar_departamentos', nombre: 'Editar Departamentos', categoria: 'Departamentos', descripcion: 'Modificar departamentos' },
-    { id: 'eliminar_departamentos', nombre: 'Eliminar Departamentos', categoria: 'Departamentos', descripcion: 'Eliminar departamentos' },
-
+    { id: 'ver_departamentos', nombre: 'Ver Departamentos', categoria: 'Departamentos' },
+    { id: 'acciones_departamentos', nombre: 'Gestionar Departamentos', categoria: 'Departamentos' },
+    
     // Tareas
-    { id: 'ver_tareas', nombre: 'Ver Tareas', categoria: 'Tareas', descripcion: 'Listar y ver tareas' },
-    { id: 'crear_tareas', nombre: 'Crear Tareas', categoria: 'Tareas', descripcion: 'Crear nuevas tareas' },
-    { id: 'editar_tareas', nombre: 'Editar Tareas', categoria: 'Tareas', descripcion: 'Modificar tareas' },
-    { id: 'eliminar_tareas', nombre: 'Eliminar Tareas', categoria: 'Tareas', descripcion: 'Eliminar tareas' },
-    { id: 'asignar_tareas', nombre: 'Asignar Tareas', categoria: 'Tareas', descripcion: 'Asignar tareas a usuarios' },
-
+    { id: 'ver_tareas', nombre: 'Ver Tareas', categoria: 'Tareas' },
+    { id: 'acciones_tareas', nombre: 'Gestionar Tareas (Crear/Editar/Eliminar/Asignar)', categoria: 'Tareas' },
+    
     // Reportes
-    { id: 'ver_reportes', nombre: 'Ver Reportes', categoria: 'Reportes', descripcion: 'Acceder a reportes' },
-    { id: 'generar_reportes', nombre: 'Generar Reportes', categoria: 'Reportes', descripcion: 'Crear nuevos reportes' },
-    { id: 'exportar_reportes', nombre: 'Exportar Reportes', categoria: 'Reportes', descripcion: 'Exportar a PDF/Excel' },
-
+    { id: 'ver_reportes', nombre: 'Ver Reportes', categoria: 'Reportes' },
+    { id: 'acciones_reportes', nombre: 'Generar/Exportar Reportes', categoria: 'Reportes' },
+    
     // Calendario
-    { id: 'ver_calendario', nombre: 'Ver Calendario', categoria: 'Calendario', descripcion: 'Acceder al calendario' },
-    { id: 'crear_eventos', nombre: 'Crear Eventos', categoria: 'Calendario', descripcion: 'Crear eventos en calendario' },
-    { id: 'editar_eventos', nombre: 'Editar Eventos', categoria: 'Calendario', descripcion: 'Modificar eventos' },
-    { id: 'eliminar_eventos', nombre: 'Eliminar Eventos', categoria: 'Calendario', descripcion: 'Eliminar eventos' },
-
-    // Historial
-    { id: 'ver_historial', nombre: 'Ver Historial', categoria: 'Historial', descripcion: 'Acceder al historial' },
-    { id: 'exportar_historial', nombre: 'Exportar Historial', categoria: 'Historial', descripcion: 'Exportar logs' },
-
+    { id: 'ver_calendario', nombre: 'Ver Calendario', categoria: 'Calendario' },
+    { id: 'acciones_calendario', nombre: 'Gestionar Eventos', categoria: 'Calendario' },
+    
     // Soporte
-    { id: 'ver_soporte', nombre: 'Ver Soporte', categoria: 'Soporte', descripcion: 'Acceder al centro de soporte' },
-    { id: 'crear_tickets', nombre: 'Crear Tickets', categoria: 'Soporte', descripcion: 'Crear tickets de soporte' },
-    { id: 'responder_tickets', nombre: 'Responder Tickets', categoria: 'Soporte', descripcion: 'Responder a tickets' },
-    { id: 'cerrar_tickets', nombre: 'Cerrar Tickets', categoria: 'Soporte', descripcion: 'Cerrar tickets' },
-
+    { id: 'ver_soporte', nombre: 'Ver Soporte', categoria: 'Soporte' },
+    { id: 'acciones_soporte', nombre: 'Gestionar Tickets', categoria: 'Soporte' },
+    
     // Papelera
-    { id: 'ver_papelera', nombre: 'Ver Papelera', categoria: 'Papelera', descripcion: 'Acceder a elementos eliminados' },
-    { id: 'restaurar_documentos', nombre: 'Restaurar Documentos', categoria: 'Papelera', descripcion: 'Restaurar desde papelera' },
-    { id: 'vaciar_papelera', nombre: 'Vaciar Papelera', categoria: 'Papelera', descripcion: 'Eliminar permanentemente' },
+    { id: 'ver_papelera', nombre: 'Ver Papelera', categoria: 'Papelera' },
+    { id: 'acciones_papelera', nombre: 'Gestionar Papelera (Restaurar/Vaciar)', categoria: 'Papelera' },
+    
+    // Administración
+    { id: 'ver_administracion', nombre: 'Ver Administración', categoria: 'Administración' },
+    { id: 'acciones_administracion', nombre: 'Gestionar Usuarios/Roles', categoria: 'Administración' }
+];
 
-    // Administración (solo admin puede tener estos)
-    { id: 'ver_usuarios', nombre: 'Ver Usuarios', categoria: 'Administración', descripcion: 'Listar usuarios del sistema' },
-    { id: 'crear_usuarios', nombre: 'Crear Usuarios', categoria: 'Administración', descripcion: 'Crear nuevos usuarios' },
-    { id: 'editar_usuarios', nombre: 'Editar Usuarios', categoria: 'Administración', descripcion: 'Modificar usuarios' },
-    { id: 'eliminar_usuarios', nombre: 'Eliminar Usuarios', categoria: 'Administración', descripcion: 'Desactivar/eliminar usuarios' },
-    { id: 'ver_roles', nombre: 'Ver Roles', categoria: 'Administración', descripcion: 'Listar roles' },
-    { id: 'crear_roles', nombre: 'Crear Roles', categoria: 'Administración', descripcion: 'Crear nuevos roles' },
-    { id: 'editar_roles', nombre: 'Editar Roles', categoria: 'Administración', descripcion: 'Modificar roles' },
-    { id: 'eliminar_roles', nombre: 'Eliminar Roles', categoria: 'Administración', descripcion: 'Eliminar roles' },
-
-    // Agrega estos al array PERMISOS_DISPONIBLES:
-    { id: 'editar_cualquier_documento', nombre: 'Editar Cualquier Documento', categoria: 'Documentos', descripcion: 'Permite editar documentos de otros usuarios' },
-    { id: 'editar_cualquier_persona', nombre: 'Editar Cualquier Persona', categoria: 'Personas', descripcion: 'Permite editar personas creadas por otros' },
-    { id: 'editar_cualquier_tarea', nombre: 'Editar Cualquier Tarea', categoria: 'Tareas', descripcion: 'Permite editar tareas de otros usuarios' },
-    { id: 'ver_notificaciones', nombre: 'Ver Notificaciones', categoria: 'Notificaciones', descripcion: 'Acceso al sistema de notificaciones' }
+// SECCIONES SIEMPRE VISIBLES (no requieren permiso)
+export const SECCIONES_PUBLICAS = [
+    'historial',
+    'notificaciones',
+    'ajustes',
+    'perfil'
 ];
 
 // Solo los IDs para el enum del schema

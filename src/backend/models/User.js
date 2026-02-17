@@ -168,22 +168,28 @@ userSchema.methods.generarTokenCambioAdmin = function() {
     return token;
 };
 
-// Método para obtener permisos efectivos (rol + específicos)
+// Método para obtener permisos efectivos (rol + específicos) - VERSIÓN CORREGIDA
 userSchema.methods.obtenerPermisosEfectivos = async function() {
-    // Si es admin único, tiene todos los permisos
-    if (this.esAdminUnico) {
-        return PERMISOS_IDS;
+    try {
+        // Si es admin único, tiene todos los permisos
+        if (this.esAdminUnico) {
+            const { PERMISOS_IDS } = await import('./Role.js');
+            return PERMISOS_IDS;
+        }
+        
+        // Buscar el rol - asegurar que existe el modelo
+        const Role = mongoose.model('Role');
+        const rol = await Role.findOne({ nombre: this.rol });
+        
+        const permisosRol = rol?.permisos || [];
+        const permisosEspecificos = this.permisos || [];
+        
+        // Combinar (específicos sobrescriben a rol)
+        return [...new Set([...permisosRol, ...permisosEspecificos])];
+    } catch (error) {
+        console.error('Error obteniendo permisos efectivos:', error);
+        return []; // En caso de error, devolver array vacío
     }
-    
-    // Buscar el rol
-    const Role = mongoose.model('Role');
-    const rol = await Role.findOne({ nombre: this.rol });
-    
-    const permisosRol = rol?.permisos || [];
-    const permisosEspecificos = this.permisos || [];
-    
-    // Combinar (específicos sobrescriben a rol)
-    return [...new Set([...permisosRol, ...permisosEspecificos])];
 };
 
 // Método para verificar si tiene un permiso específico

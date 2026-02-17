@@ -2,6 +2,185 @@ import { DOM } from '../dom.js';
 import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
 import { setLoadingState, showAlert, getFileIcon, formatDate } from '../utils.js';
 import { showFloatingNotification } from './personas.js';  // CAMBIADO: importar showFloatingNotification
+import validador from '../services/permisos.js';
+
+/**
+ * VALIDAR ACCESO A DASHBOARD - Primera función a ejecutar
+ * Muestra alerta visual si no tiene permiso y redirige
+ */
+export async function validarAccesoDashboard() {
+    console.log('🔐 Validando permisos de dashboard...');
+    
+    // Esperar a que carguen los permisos
+    await validador.init();
+    
+    // Verificar permiso para ver dashboard
+    const tienePermiso = validador.validar('ver_dashboard', {
+        mostrarAlerta: true,
+        accion: 'ver el dashboard'
+    });
+    
+    if (!tienePermiso) {
+        // Mostrar mensaje amigable y redirigir
+        mostrarPantallaSinPermiso('dashboard');
+        return false;
+    }
+    
+    return true;
+}
+
+/**
+ * Mostrar pantalla de "sin permiso" en lugar de error
+ */
+function mostrarPantallaSinPermiso(seccion) {
+    const container = document.querySelector('main') || document.body;
+    
+    container.innerHTML = `
+        <div style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            text-align: center;
+            padding: 2rem;
+        ">
+            <div style="
+                background: #fef3c7;
+                border-radius: 50%;
+                width: 80px;
+                height: 80px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 1.5rem;
+            ">
+                <i class="fas fa-lock" style="font-size: 2rem; color: #d97706;"></i>
+            </div>
+            <h2 style="color: #1f2937; margin-bottom: 0.5rem;">Acceso Restringido</h2>
+            <p style="color: #6b7280; max-width: 400px; margin-bottom: 1.5rem;">
+                No tienes permisos para ver el dashboard. Contacta al administrador si necesitas acceso.
+            </p>
+            <button onclick="window.location.href='/'" style="
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 500;
+            ">
+                <i class="fas fa-home"></i> Volver al Inicio
+            </button>
+        </div>
+    `;
+    
+    // Ocultar cualquier loader
+    const loader = document.getElementById('pagePreloader');
+    if (loader) loader.style.display = 'none';
+}
+
+/**
+ * VALIDAR ACCIONES EN DASHBOARD
+ * Ejemplo para el botón de refresh
+ */
+export const handleRefreshDashboardConPermiso = validador.conPermiso(
+    'refresh',
+    'acciones_dashboard',
+    async function(appState) {
+        // Aquí va la lógica original de handleRefreshDashboard
+        console.log('🔄 Refrescando dashboard con permiso concedido');
+        // ... tu código existente de refresh
+    }
+);
+
+/**
+ * Inicializar dashboard con validación
+ */
+export async function iniciarDashboard(appState) {
+    // 1. PRIMERO validar acceso
+    const puedeAcceder = await validarAccesoDashboard();
+    if (!puedeAcceder) return;
+    
+    // 2. Si tiene permiso, cargar datos normalmente
+    try {
+        await loadDashboardData(appState);
+        
+        // 3. Configurar botones con validación de permisos
+        configurarBotonesConPermisos();
+        
+    } catch (error) {
+        console.error('Error cargando dashboard:', error);
+        mostrarErrorCarga();
+    }
+}
+
+/**
+ * Configurar botones con validación de permisos
+ */
+function configurarBotonesConPermisos() {
+    // Botón de refresh
+    const refreshBtn = document.getElementById('refreshData');
+    if (refreshBtn) {
+        const originalHandler = refreshBtn.onclick;
+        refreshBtn.onclick = validador.conPermiso(
+            'refresh',
+            'acciones_dashboard',
+            (e) => {
+                if (originalHandler) originalHandler.call(refreshBtn, e);
+            }
+        );
+    }
+    
+    // Ocultar elementos que requieren acciones si no tiene permisos
+    if (!validador.validar('acciones_dashboard', { mostrarAlerta: false })) {
+        document.querySelectorAll('.dashboard-action-btn').forEach(btn => {
+            btn.style.display = 'none';
+        });
+    }
+}
+
+/**
+ * Mostrar error de carga amigable
+ */
+function mostrarErrorCarga() {
+    const container = document.querySelector('.dashboard-stats');
+    if (container) {
+        container.innerHTML = `
+            <div class="error-carga" style="
+                background: #fee2e2;
+                border-radius: 8px;
+                padding: 2rem;
+                text-align: center;
+                color: #dc2626;
+            ">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <h3>Error al cargar el dashboard</h3>
+                <p>Por favor, intenta de nuevo más tarde</p>
+                <button onclick="location.reload()" style="
+                    background: #dc2626;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    margin-top: 1rem;
+                    cursor: pointer;
+                ">
+                    Reintentar
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Modificar la función loadDashboardData original para incluir validación
+export async function loadDashboardDataConPermisos(appState) {
+    if (!validador.validar('ver_dashboard', { mostrarAlerta: false })) {
+        return;
+    }
+    
+    return loadDashboardData(appState); // Tu función original
+}
 
 // =============================================================================
 // 1. CARGA DE DATOS DEL DASHBOARD

@@ -5,10 +5,10 @@
 // ============================================================================
 
 import User from '../models/User.js';
+import { SECCIONES_PUBLICAS } from '../models/Role.js';
 
 /**
  * Middleware para verificar si el usuario tiene un permiso específico
- * @param {string} permiso - ID del permiso requerido (ej. 'ver_documentos')
  */
 export const requierePermiso = (permiso) => {
     return async (req, res, next) => {
@@ -17,16 +17,17 @@ export const requierePermiso = (permiso) => {
             if (!req.user) {
                 return res.status(401).json({
                     success: false,
-                    friendly: true,
-                    type: 'warning',
-                    title: 'Sesión no iniciada',
-                    message: 'Por favor inicia sesión para continuar',
-                    action: 'redirect',
-                    redirectTo: '/login.html'
+                    message: 'Por favor inicia sesión para continuar'
                 });
             }
 
-            // Admin único tiene todos los permisos
+            // ✅ 1. SECCIONES PÚBLICAS - SIEMPRE ACCESIBLES
+            if (SECCIONES_PUBLICAS.some(seccion => permiso.includes(seccion))) {
+                console.log(`📢 Acceso público a ${permiso} - permitido para todos`);
+                return next();
+            }
+
+            // ✅ 2. Admin único tiene todos los permisos
             if (req.user.esAdminUnico) {
                 return next();
             }
@@ -38,34 +39,17 @@ export const requierePermiso = (permiso) => {
                 return next();
             }
 
-            // Buscar información del permiso para mostrar mensaje amigable
-            const permisoInfo = await obtenerInfoPermiso(permiso);
-            
-            // Respuesta amigable - NO es un error crítico
+            // ❌ PERMISO DENEGADO
             return res.status(403).json({
                 success: false,
-                friendly: true,
-                type: 'permission-denied',
-                title: 'Permiso denegado',
-                message: `No tienes permiso para: ${permisoInfo.nombre || permiso}`,
-                description: permisoInfo.descripcion || 'Contacta al administrador si necesitas este acceso',
-                icon: '🔒',
-                action: 'notification', // Solo mostrar notificación, no interrumpir
-                showAs: 'toast', // Mostrar como toast notification
-                duration: 5000,
-                permiso: permiso,
-                permisoInfo: permisoInfo
+                message: 'No tienes permiso para realizar esta acción'
             });
 
         } catch (error) {
             console.error('Error en middleware de permisos:', error);
             return res.status(500).json({
                 success: false,
-                friendly: true,
-                type: 'error',
-                title: 'Error del sistema',
-                message: 'Ocurrió un error al verificar permisos',
-                action: 'none'
+                message: 'Error del sistema'
             });
         }
     };

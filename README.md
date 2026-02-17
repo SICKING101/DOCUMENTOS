@@ -151,6 +151,12 @@ DOCUMENTOS/
 │   │   │   ├── search.js
 │   │   │   ├── systemStatus.js
 │   │   │   │
+│   │   │   ├── components/            # Componentes UI
+│   │   │   │   ├── PermisoDenegado.js
+│   │   │   │
+│   │   │   │   ├── hooks/             # Módulo de administración
+│   │   │   │   │   ├── usePermisos.js
+│   │   │   │
 │   │   │   ├── auth/              # Autenticacion
 │   │   │   │   ├── forgot.js
 │   │   │   │   ├── resetPassword.js
@@ -200,7 +206,9 @@ DOCUMENTOS/
 │   │   │   |    └── compatibility.js
 │   │   │
 |   │   ├── services/
+|   │   │   ├── permisos.js            
 |   │   │   └── api.js              # Cliente API
+│   │   │   
 │   │   ├── app.js                  # Inicializacion global
 │   │   ├── auth.js                 # Auth general
 │   │   ├── authGuard.js            # Proteccion rutas
@@ -236,6 +244,7 @@ DOCUMENTOS/
 │       │   └── taskController.js
 │       │
 │       ├── middleware/
+│       │   ├── permisos.js
 │       │   └── auth.js
 │       │
 │       ├── models/                 # Modelos MongoDB
