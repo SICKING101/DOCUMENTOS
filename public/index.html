@@ -61,7 +61,7 @@
                         <span class="sidebar__nav-text">Personas</span>
                         <div class="sidebar__nav-active-indicator"></div>
                     </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="documentos">
+                    <a href="#" class="sidebar__nav-link" data-tab="documentos" id="nav-documentos">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-file-alt"></i>
                         </div>
@@ -128,6 +128,27 @@
                         <div class="sidebar__nav-active-indicator"></div>
                     </a>
                 </div>
+
+                <!-- Grupo 4: Administración -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Administración</p>
+                    <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Admin</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <div class="dropdown" id="admin-dropdown">
+                        <p class="sidebar__nav-group-title">Admin Opciones</p>
+                        <a href="#" class="sidebar__nav-link" id="agregar-admin-link">
+                            <div class="sidebar__nav-icon-wrapper">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <span class="sidebar__nav-text">Agregar Administrador</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
 
             <!-- Pie de la barra lateral -->
@@ -167,13 +188,6 @@
                     <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
                         <i class="fas fa-user-shield"></i>
                         <span>Cambiar Administrador</span>
-                    </button>
-
-                    <div class="user-menu__divider"></div>
-
-                    <button class="user-menu__option" id="adminPanelBtn">
-                        <i class="fas fa-cog"></i>
-                        <span>Panel de Administración</span>
                     </button>
 
                     <div class="user-menu__divider"></div>
@@ -964,7 +978,7 @@
                     </div>
                 </section>
 
-                <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (RENOVADA) -->
+                <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (NUEVA) -->
                 <section id="reportes" class="tab-content">
                     <div class="section__header">
                         <div>
@@ -972,86 +986,46 @@
                             <p class="section__subtitle">Genera y descarga reportes personalizados del sistema</p>
                         </div>
                     </div>
-
                     <div class="reportes-content">
-                        <!-- Formulario de configuración de reportes -->
-                        <div class="reportes-form reportes-fade-in">
-                            <h3 class="reportes-form__title">
-                                <i class="fas fa-cogs"></i> Configuración del Reporte
-                            </h3>
-
-                            <form id="reportForm">
-                                <div class="reportes-form__grid">
-                                    <!-- Tipo de Reporte -->
-                                    <div class="reportes-form__group">
-                                        <label for="reportType" class="reportes-form__label">
-                                            <i class="fas fa-chart-pie"></i> Tipo de Reporte
-                                        </label>
-                                        <div class="reportes-select__wrapper">
-                                            <select id="reportType" class="reportes-select">
-                                                <option value="general">Reporte General</option>
-                                                <option value="byCategory">Por Categoría</option>
-                                                <option value="byPerson">Por Persona</option>
-                                                <option value="expiring">Documentos por Vencer</option>
-                                                <option value="expired">Documentos Vencidos</option>
-                                            </select>
-                                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
-                                        </div>
-                                        <small class="reportes-form__help">
-                                            Seleccione el tipo de reporte que desea generar
-                                        </small>
-                                    </div>
-
-                                    <!-- Formato del Reporte -->
-                                    <div class="reportes-form__group">
-                                        <label for="reportFormat" class="reportes-form__label">
-                                            <i class="fas fa-file-export"></i> Formato de Salida
-                                        </label>
-                                        <div class="reportes-select__wrapper">
-                                            <select id="reportFormat" class="reportes-select">
-                                                <option value="excel">Excel (.xlsx)</option>
-                                                <option value="csv">CSV (.csv)</option>
-                                            </select>
-                                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
-                                        </div>
-                                        <small class="reportes-form__help">
-                                            Elija el formato de archivo para el reporte
-                                        </small>
-                                    </div>
-                                </div>
-
-                                <!-- Filtros Específicos -->
-                                <div class="reportes-form__group">
-                                    <label class="reportes-form__label">
-                                        <i class="fas fa-filter"></i> Filtros Específicos
-                                    </label>
-                                    <div id="reportSpecificFilters" class="reportes-filters">
-                                        <!-- Los filtros se cargarán dinámicamente aquí -->
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- Vista Previa del Reporte -->
-                        <div class="reportes-preview reportes-fade-in">
-                            <h3 class="reportes-preview__title">
-                                <i class="fas fa-eye"></i> Vista Previa del Reporte
-                            </h3>
-                            <div class="reportes-preview__content" id="reportPreviewContent">
-                                <div class="reportes-preview-placeholder">
-                                    <i class="fas fa-chart-bar"></i>
-                                    <p>Seleccione un tipo de reporte para ver la vista previa</p>
+                        <form id="reportForm">
+                            <div class="form__group">
+                                <label for="reportType" class="form__label">Tipo de Reporte</label>
+                                <div class="select-wrapper">
+                                    <select id="reportType" class="form__select">
+                                        <option value="general">Reporte General</option>
+                                        <option value="byCategory">Por Categoría</option>
+                                        <option value="byPerson">Por Persona</option>
+                                        <option value="expiring">Documentos por Vencer</option>
+                                        <option value="expired">Documentos Vencidos</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
                                 </div>
                             </div>
+                            <div class="form__row" id="reportSpecificFilters">
+                                <!-- Filtros específicos se cargarán dinámicamente -->
+                            </div>
+                            <div class="form__group">
+                                <label for="reportFormat" class="form__label">Formato</label>
+                                <div class="select-wrapper">
+                                    <select id="reportFormat" class="form__select">
+                                        <option value="excel">Excel</option>
+                                        <option value="csv">CSV</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="report-preview" id="reportPreview">
+                            <h4 class="report-preview__title">Vista Previa del Reporte</h4>
+                            <div class="report-preview__content" id="reportPreviewContent">
+                                <!-- La vista previa se mostrará aquí -->
+                            </div>
                         </div>
-
-                        <!-- Pie de página con botón de acción -->
-                        <div class="reportes-footer">
-                            <button class="reportes-btn reportes-btn--primary" id="generateReportBtn">
-                                <i class="fas fa-download"></i>
-                                <span>Generar Reporte</span>
+                        <footer class="modal__footer" style="margin-top:2rem;">
+                            <button class="btn btn--primary" id="generateReportBtn">
+                                <i class="fas fa-download"></i> Generar Reporte
                             </button>
-                        </div>
+                        </footer>
                     </div>
                 </section>
 
@@ -1164,24 +1138,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Mini calendario -->
-                                <div class="calendar__mini">
-                                    <div class="calendar__mini-header">
-                                        <button class="calendar__mini-nav" id="miniPrev">
-                                            <i class="fas fa-chevron-left"></i>
-                                        </button>
-                                        <span class="calendar__mini-month" id="miniMonth">Feb 2024</span>
-                                        <button class="calendar__mini-nav" id="miniNext">
-                                            <i class="fas fa-chevron-right"></i>
-                                        </button>
-                                    </div>
-                                    <div class="calendar__mini-weekdays">
-                                        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-                                    </div>
-                                    <div class="calendar__mini-days" id="miniCalendar">
-                                        <!-- Mini calendario se genera dinámicamente -->
-                                    </div>
-                                </div>
+                                <!-- Mini calendario removido -->
                             </div>
                         </div>
                     </div>
@@ -1313,16 +1270,7 @@
                                     </div>
 
                                     <div class="settings-group">
-                                        <label class="switch-label">
-                                            <div class="switch-text">
-                                                <span class="switch-title">Texto grande</span>
-                                                <span class="switch-description">Aumenta el tamaño de la fuente</span>
-                                            </div>
-                                            <label class="switch">
-                                                <input type="checkbox" name="largeFont">
-                                                <span class="slider"></span>
-                                            </label>
-                                        </label>
+                                        <!-- Eliminado: Texto grande (se manejará solo por tamaños predefinidos) -->
                                     </div>
 
                                     <div class="settings-group">
@@ -1341,17 +1289,6 @@
 
                                     <div class="settings-group">
                                         <label class="settings-label">Tamaño de fuente</label>
-                                        <div class="font-size-control">
-                                            <button type="button" class="font-size-btn decrease">
-                                                <i class="fas fa-minus"></i>
-                                            </button>
-                                            <div class="font-size-display">
-                                                <span class="current-size">16px</span>
-                                            </div>
-                                            <button type="button" class="font-size-btn increase">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
                                         <div class="font-size-presets">
                                             <button type="button" class="font-size-preset"
                                                 data-size="14">Pequeño</button>
@@ -1416,7 +1353,7 @@
 
                             <!-- Botones de acción -->
                             <div class="settings-actions">
-                                <button type="submit" class="btn" id="save-btn">
+                                <button type="submit" class="btn btn--primary btn--lg" id="save-btn">
                                     <i class="fas fa-save"></i>
                                     Guardar cambios
                                 </button>
@@ -1457,7 +1394,24 @@
                                 <p class="support__subtitle">Ayuda, guías y tickets de soporte para el sistema</p>
                             </div>
                             <div class="support__header-right">
-                                <button class="btn btn--primary" id="newTicketBtn">
+                                <!-- Botón 'Nuevo Ticket' removido del header; usar el callout inferior -->
+                            </div>
+                        </div>
+
+                        <!-- Llamado destacado para crear ticket -->
+                        <div class="ticket-callout">
+                            <div class="ticket-callout__icon">
+                                <i class="fas fa-life-ring"></i>
+                            </div>
+                            <div class="ticket-callout__content">
+                                <h3 class="ticket-callout__title">¿Necesitas ayuda?</h3>
+                                <p class="ticket-callout__desc">
+                                    Crea un <strong>ticket de soporte</strong> para contactar al equipo.
+                                    Describe tu problema o solicitud y te responderemos lo antes posible.
+                                </p>
+                            </div>
+                            <div class="ticket-callout__action">
+                                <button class="btn btn--primary btn--lg" id="newTicketBtnAlt">
                                     <i class="fas fa-plus-circle"></i> Nuevo Ticket
                                 </button>
                             </div>
@@ -1505,7 +1459,7 @@
                                                     <i class="fas fa-users"></i>
                                                 </div>
                                                 <div class="guide-section-info">
-                                                    <h4 class="guide-section-title">Gestión de Personas</h4>
+                                                    <h4 class="guide-section-title">Gestión de Personas</h2>
                                                     <p class="guide-section-subtitle">Usuarios, roles y permisos</p>
                                                 </div>
                                                 <button class="guide-view-btn" data-section="personas"
@@ -1781,17 +1735,11 @@
                                                     <span class="guide-nav-badge">10</span>
                                                 </a>
 
-                                                <a href="#" class="guide-nav-item" data-section="papelera" role="tab">
-                                                    <i class="fas fa-trash-restore guide-nav-icon"></i>
-                                                    <span class="guide-nav-text">Papelera</span>
-                                                    <span class="guide-nav-badge">11</span>
-                                                </a>
-
                                                 <a href="#" class="guide-nav-item" data-section="notificaciones"
                                                     role="tab">
                                                     <i class="fas fa-bell guide-nav-icon"></i>
                                                     <span class="guide-nav-text">Notificaciones</span>
-                                                    <span class="guide-nav-badge">12</span>
+                                                    <span class="guide-nav-badge">11</span>
                                                 </a>
                                             </nav>
                                         </div>
@@ -1886,19 +1834,19 @@
                             </div>
 
                             <!-- Preguntas Frecuentes -->
-                            <div class="support-faq">
-                                <div class="faq__header">
-                                    <h3 class="faq__title">
-                                        <i class="fas fa-question-circle"></i>
-                                        Preguntas Frecuentes (FAQ)
-                                    </h3>
-                                </div>
-                                <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
-                                    <div class="faq__list" id="faqList">
-                                        <!-- Las preguntas frecuentes se cargarán dinámicamente -->
-                                    </div>
-                                </div>
-                            </div>
+<div class="support-faq">
+    <div class="faq__header">
+        <h3 class="faq__title">
+            <i class="fas fa-question-circle"></i>
+            Preguntas Frecuentes (FAQ)
+        </h3>
+    </div>
+    <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
+        <div class="faq__list" id="faqList">
+            <!-- Las preguntas frecuentes se cargarán dinámicamente -->
+        </div>
+    </div>
+</div>
 
                             <!-- Datos de Contacto de Soporte -->
                             <div class="support-panel support-panel--contact">
@@ -1931,10 +1879,9 @@
                                         </div>
                                         <div class="contact-details">
                                             <span class="contact-label">Teléfono</span>
-                                            <a href="tel:+52 669-199-1113" class="contact-value">+52 669-199-1113</a>
+                                            <a href="tel:+1234567890" class="contact-value">+52 669-199-1113</a>
                                         </div>
-                                        <button class="contact-copy" data-text="+52 669-199-1113"
-                                            title="Copiar teléfono">
+                                        <button class="contact-copy" data-text="+1234567890" title="Copiar teléfono">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
@@ -2832,7 +2779,7 @@
                 <button class="btn" id="confirmActionBtn">Confirmar</button>
             </footer>
         </article>
-    </dialog>
+    </div>
 
     <!-- Modal para crear/editar evento de calendario -->
     <div id="calendarEventModal" class="modal">

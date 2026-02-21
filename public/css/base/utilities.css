@@ -198,15 +198,7 @@ html, body {
     margin-left: 1rem;
 }
 
-/* Agrega esta regla a tu CSS */
-#changeAdminModal.modal {
-  animation: none !important;
-}
-
-#changeAdminModal .modal__content {
-  animation: none !important;
-  opacity: 1 !important;
-}
+/* Animación para fadeIn */
 
 /* Utilidades para animaciones */
 .animate-fade-in {

@@ -1,36 +1,24 @@
 import Notification from '../models/Notification.js';
 
-// ============================================================================
-// SECCIÓN: SERVICIO DE NOTIFICACIONES
-// ============================================================================
-// Este archivo define la clase principal que centraliza todas las operaciones
-// relacionadas con notificaciones del sistema. Proporciona métodos para
-// creación de diferentes tipos de notificaciones, consultas filtradas,
-// gestión de estado y operaciones de mantenimiento.
-// ============================================================================
+// =============================================================================
+// 1. DEFINICIÓN DEL SERVICIO DE NOTIFICACIONES
+// =============================================================================
 
-// ********************************************************************
-// MÓDULO 1: CLASE PRINCIPAL DEL SERVICIO DE NOTIFICACIONES
-// ********************************************************************
-// Descripción: Clase estática que encapsula toda la lógica de negocio
-// relacionada con notificaciones. No necesita instanciación, todos sus
-// métodos son estáticos y pueden llamarse directamente desde controladores.
-// ********************************************************************
+/**
+ * 1.1 Clase principal del servicio de notificaciones
+ * Servicio para gestionar todas las operaciones relacionadas con notificaciones,
+ * incluyendo creación, consulta y gestión del ciclo de vida.
+ */
 class NotificationService {
   
-  // ********************************************************************
-  // MÓDULO 2: MÉTODO BASE PARA CREACIÓN DE NOTIFICACIONES
-  // ********************************************************************
-  // Descripción: Método genérico que crea cualquier tipo de notificación
-  // en la base de datos. Sirve como base para todos los métodos específicos
-  // que crean notificaciones de diferentes tipos y contextos.
-  // ********************************************************************
+  // =============================================================================
+  // 2. MÉTODOS GENERALES DE CREACIÓN
+  // =============================================================================
   
-  // ----------------------------------------------------------------
-  // BLOQUE 2.1: Creación genérica de notificación
-  // ----------------------------------------------------------------
-  // Método interno utilizado por todas las funciones específicas para
-  // persistir notificaciones en la base de datos con validación y logging.
+  /**
+   * 2.1 Crear notificación genérica
+   * Método base para crear cualquier tipo de notificación en la base de datos.
+   */
   static async crear(data) {
     try {
       const notificacion = new Notification(data);
@@ -42,20 +30,38 @@ class NotificationService {
       throw error;
     }
   }
+
+  // =============================================================================
+  // 2.x NOTIFICACIONES DE USUARIOS
+  // =============================================================================
+
+  /**
+   * Notificar creación de usuario
+   */
+  static async usuarioCreado(nuevoUsuario, creadoPor = 'Administrador') {
+    return await this.crear({
+      tipo: 'usuario_creado',
+      titulo: '👤 Nuevo usuario creado',
+      mensaje: `${creadoPor} creó el usuario "${nuevoUsuario.usuario}" (${nuevoUsuario.correo}) con rol ${nuevoUsuario.rol}`,
+      icono: 'user-plus',
+      prioridad: 'media',
+      metadata: {
+        usuario: nuevoUsuario.usuario,
+        correo: nuevoUsuario.correo,
+        rol: nuevoUsuario.rol,
+        creado_por: creadoPor
+      }
+    });
+  }
   
-  // ********************************************************************
-  // MÓDULO 3: NOTIFICACIONES ESPECÍFICAS PARA OPERACIONES CON DOCUMENTOS
-  // ********************************************************************
-  // Descripción: Métodos especializados para crear notificaciones
-  // relacionadas con operaciones del módulo de documentos (subida,
-  // eliminación, restauración, vencimientos).
-  // ********************************************************************
+  // =============================================================================
+  // 3. NOTIFICACIONES ESPECÍFICAS DE DOCUMENTOS
+  // =============================================================================
   
-  // ----------------------------------------------------------------
-  // BLOQUE 3.1: Notificación de subida exitosa de documento
-  // ----------------------------------------------------------------
-  // Genera una notificación cuando un usuario sube un nuevo documento
-  // al sistema, incluyendo detalles como nombre, categoría y persona asociada.
+  /**
+   * 3.1 Notificar subida de documento
+   * Genera notificación cuando un usuario sube un nuevo documento al sistema.
+   */
   static async documentoSubido(documento, persona = null) {
     const nombrePersona = persona ? persona.nombre : 'Usuario';
     return await this.crear({
@@ -74,11 +80,10 @@ class NotificationService {
     });
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 3.2: Notificación de eliminación de documento
-  // ----------------------------------------------------------------
-  // Crea una notificación cuando un documento es eliminado del sistema,
-  // ya sea por eliminación directa o mediante envío a la papelera.
+  /**
+   * 3.2 Notificar eliminación de documento
+   * Alerta sobre la eliminación de un documento del sistema.
+   */
   static async documentoEliminado(nombreDocumento, categoria, usuario = 'Usuario') {
     return await this.crear({
       tipo: 'documento_eliminado',
@@ -93,11 +98,10 @@ class NotificationService {
     });
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 3.3: Notificación de restauración desde papelera
-  // ----------------------------------------------------------------
-  // Genera notificación cuando un documento previamente eliminado
-  // (enviado a papelera) es restaurado al sistema principal.
+  /**
+   * 3.3 Notificar documento restaurado
+   * Alerta cuando se restaura un documento desde la papelera.
+   */
   static async documentoRestaurado(nombreDocumento, categoria, usuario = 'Usuario') {
     return await this.crear({
       tipo: 'documento_restaurado',
@@ -112,12 +116,10 @@ class NotificationService {
     });
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 3.4: Notificación preventiva de vencimiento cercano
-  // ----------------------------------------------------------------
-  // Crea alertas preventivas para documentos cuya fecha de vencimiento
-  // está próxima (menos de 7 días). La prioridad aumenta a medida que
-  // se acerca la fecha límite.
+  /**
+   * 3.4 Notificar documento próximo a vencer
+   * Alerta preventiva sobre documentos con fecha de vencimiento cercana.
+   */
   static async documentoProximoVencer(documento, diasRestantes) {
     return await this.crear({
       tipo: 'documento_proximo_vencer',
@@ -133,11 +135,10 @@ class NotificationService {
     });
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 3.5: Notificación crítica de documento vencido
-  // ----------------------------------------------------------------
-  // Genera alerta de prioridad crítica para documentos cuya fecha
-  // de vencimiento ya ha pasado, requiriendo atención inmediata.
+  /**
+   * 3.4 Notificar documento vencido
+   * Alerta crítica sobre documentos cuya fecha de vencimiento ha expirado
+   */
   static async documentoVencido(documento) {
     return await this.crear({
       tipo: 'documento_vencido',
@@ -152,18 +153,14 @@ class NotificationService {
     });
   }
   
-  // ********************************************************************
-  // MÓDULO 4: NOTIFICACIONES PARA OPERACIONES CON PERSONAS
-  // ********************************************************************
-  // Descripción: Métodos para crear notificaciones relacionadas con
-  // la gestión de personas en el sistema (altas, bajas, modificaciones).
-  // ********************************************************************
+  // =============================================================================
+  // 4. NOTIFICACIONES DE PERSONAS
+  // =============================================================================
   
-  // ----------------------------------------------------------------
-  // BLOQUE 4.1: Notificación de nueva persona agregada
-  // ----------------------------------------------------------------
-  // Informa sobre la creación de un nuevo registro de persona en el
-  // sistema, incluyendo detalles como nombre, puesto y departamento.
+  /**
+   * 4.1 Notificar agregado de persona
+   * Informa sobre la creación de un nuevo registro de persona en el sistema.
+   */
   static async personaAgregada(persona) {
     return await this.crear({
       tipo: 'persona_agregada',
@@ -179,11 +176,10 @@ class NotificationService {
     });
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 4.2: Notificación de persona eliminada
-  // ----------------------------------------------------------------
-  // Informa sobre la eliminación de un registro de persona del sistema,
-  // manteniendo trazabilidad de cambios en la base de contactos.
+  /**
+   * 4.2 Notificar eliminación de persona
+   * Informa sobre la eliminación de un registro de persona del sistema.
+   */
   static async personaEliminada(nombrePersona) {
     return await this.crear({
       tipo: 'persona_eliminada',
@@ -194,18 +190,14 @@ class NotificationService {
     });
   }
   
-  // ********************************************************************
-  // MÓDULO 5: NOTIFICACIONES PARA OPERACIONES CON CATEGORÍAS
-  // ********************************************************************
-  // Descripción: Métodos para notificar operaciones relacionadas con
-  // la gestión de categorías de documentos en el sistema.
-  // ********************************************************************
+  // =============================================================================
+  // 5. NOTIFICACIONES DE CATEGORÍAS
+  // =============================================================================
   
-  // ----------------------------------------------------------------
-  // BLOQUE 5.1: Notificación de nueva categoría creada
-  // ----------------------------------------------------------------
-  // Informa sobre la creación de una nueva categoría para clasificar
-  // documentos, facilitando la organización y filtrado del contenido.
+  /**
+   * 5.1 Notificar creación de categoría
+   * Informa sobre la creación de una nueva categoría para documentos.
+   */
   static async categoriaAgregada(categoria) {
     return await this.crear({
       tipo: 'categoria_agregada',
@@ -217,18 +209,14 @@ class NotificationService {
     });
   }
   
-  // ********************************************************************
-  // MÓDULO 6: NOTIFICACIONES DE REPORTES Y ESTADO DEL SISTEMA
-  // ********************************************************************
-  // Descripción: Métodos para notificaciones relacionadas con reportes
-  // generados, eventos del sistema y errores críticos que requieren atención.
-  // ********************************************************************
+  // =============================================================================
+  // 6. NOTIFICACIONES DE REPORTES Y SISTEMA
+  // =============================================================================
   
-  // ----------------------------------------------------------------
-  // BLOQUE 6.1: Notificación de reporte generado exitosamente
-  // ----------------------------------------------------------------
-  // Confirma la generación exitosa de un reporte en el sistema,
-  // incluyendo tipo de reporte, formato y cantidad de registros procesados.
+  /**
+   * 6.1 Notificar generación de reporte
+   * Confirma la creación exitosa de un reporte en el sistema.
+   */
   static async reporteGenerado(tipoReporte, formato, cantidadRegistros) {
     const nombresReportes = {
       general: 'General',
@@ -252,11 +240,10 @@ class NotificationService {
     });
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 6.2: Notificación de inicio exitoso del sistema
-  // ----------------------------------------------------------------
-  // Registra el evento de inicio del sistema para propósitos de
-  // auditoría, monitoreo y diagnóstico de disponibilidad del servicio.
+  /**
+   * 6.2 Notificar inicio del sistema
+   * Registra el evento de inicio del sistema para auditoría y monitoreo.
+   */
   static async sistemaIniciado() {
     return await this.crear({
       tipo: 'sistema_iniciado',
@@ -271,11 +258,10 @@ class NotificationService {
     });
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 6.3: Notificación de error crítico del sistema
-  // ----------------------------------------------------------------
-  // Crea alertas de alta prioridad para errores críticos que
-  // requieren atención administrativa inmediata y seguimiento.
+  /**
+   * 6.3 Notificar error del sistema
+   * Alerta sobre errores críticos que requieren atención administrativa.
+   */
   static async errorSistema(mensaje, detalles = {}) {
     return await this.crear({
       tipo: 'error_sistema',
@@ -287,19 +273,14 @@ class NotificationService {
     });
   }
   
-  // ********************************************************************
-  // MÓDULO 7: CONSULTAS Y GESTIÓN DE NOTIFICACIONES EXISTENTES
-  // ********************************************************************
-  // Descripción: Métodos para consultar, filtrar y gestionar el estado
-  // de notificaciones ya creadas en el sistema (marcar como leídas,
-  // eliminar, obtener listados).
-  // ********************************************************************
+  // =============================================================================
+  // 7. CONSULTAS Y GESTIÓN DE NOTIFICACIONES
+  // =============================================================================
   
-  // ----------------------------------------------------------------
-  // BLOQUE 7.1: Consulta paginada con filtros múltiples
-  // ----------------------------------------------------------------
-  // Método principal para obtener notificaciones con soporte para
-  // paginación, filtrado por tipo/estado/prioridad y rangos de fechas.
+  /**
+   * 7.1 Obtener notificaciones con filtros
+   * Consulta paginada con múltiples filtros para listar notificaciones en el frontend.
+   */
   static async obtener(filtros = {}, opciones = {}) {
     const {
       leida = null,
@@ -343,11 +324,10 @@ class NotificationService {
     };
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 7.2: Marcar notificación individual como leída
-  // ----------------------------------------------------------------
-  // Cambia el estado de una notificación específica a "leída" cuando
-  // el usuario la visualiza o interactúa con ella en la interfaz.
+  /**
+   * 7.2 Marcar notificación individual como leída
+   * Cambia el estado de una notificación específica a "leída".
+   */
   static async marcarLeida(id) {
     const notificacion = await Notification.findById(id);
     if (!notificacion) {
@@ -356,11 +336,10 @@ class NotificationService {
     return await notificacion.marcarLeida();
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 7.3: Marcar todas las notificaciones como leídas (masivo)
-  // ----------------------------------------------------------------
-  // Cambia masivamente el estado de todas las notificaciones no leídas
-  // a leídas, útil para limpiar badges de notificaciones pendientes.
+  /**
+   * 7.3 Marcar todas las notificaciones como leídas
+   * Cambia masivamente el estado de todas las notificaciones no leídas.
+   */
   static async marcarTodasLeidas() {
     const resultado = await Notification.updateMany(
       { leida: false },
@@ -369,37 +348,30 @@ class NotificationService {
     return resultado.modifiedCount;
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 7.4: Eliminar notificación específica permanentemente
-  // ----------------------------------------------------------------
-  // Elimina una notificación específica de la base de datos de manera
-  // permanente, sin opción de restauración.
+  /**
+   * 7.4 Eliminar notificación específica
+   * Remueve permanentemente una notificación de la base de datos.
+   */
   static async eliminar(id) {
     return await Notification.findByIdAndDelete(id);
   }
   
-  // ********************************************************************
-  // MÓDULO 8: ESTADÍSTICAS Y OPERACIONES DE MANTENIMIENTO
-  // ********************************************************************
-  // Descripción: Métodos para obtener métricas del sistema y realizar
-  // tareas de mantenimiento como limpieza automática de notificaciones antiguas.
-  // ********************************************************************
+  // =============================================================================
+  // 8. ESTADÍSTICAS Y MANTENIMIENTO
+  // =============================================================================
   
-  // ----------------------------------------------------------------
-  // BLOQUE 8.1: Obtener estadísticas generales del sistema
-  // ----------------------------------------------------------------
-  // Genera métricas agregadas sobre las notificaciones (totales,
-  // leídas, no leídas, distribución por tipo) para dashboards de administración.
+  /**
+   * 8.1 Obtener estadísticas generales
+   * Genera métricas sobre el estado de las notificaciones para dashboards.
+   */
   static async obtenerEstadisticas() {
     return await Notification.obtenerEstadisticas();
   }
 
-  // ----------------------------------------------------------------
-  // BLOQUE 8.2: Limpieza programada de notificaciones antiguas
-  // ----------------------------------------------------------------
-  // Elimina automáticamente notificaciones leídas que son más antiguas
-  // que un número específico de días, previniendo crecimiento excesivo
-  // de la base de datos y manteniendo el rendimiento del sistema.
+  /**
+   * 8.2 Limpiar notificaciones antiguas
+   * Tarea de mantenimiento para eliminar notificaciones leídas antiguas.
+   */
   static async limpiarAntiguas(dias = 30) {
     return await Notification.limpiarAntiguas(dias);
   }

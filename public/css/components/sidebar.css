@@ -647,3 +647,8 @@
         margin-bottom: 4px;
     }
 }
+
+/* Ocultar opción extra de administración en sidebar (se gestiona dentro de la pestaña Admin) */
+#admin-dropdown {
+    display: none !important;
+}

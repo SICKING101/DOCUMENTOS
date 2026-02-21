@@ -1,95 +1,65 @@
-// ============================================================================
-// src/backend/routes/adminRoutes.js
-// ============================================================================
-// RUTAS DE ADMINISTRACIÓN COMPLETAS
-// ============================================================================
-
 import express from 'express';
 import { 
-    getUsuarios,
-    crearUsuario,
-    editarUsuario,
-    eliminarUsuario,
-    getRoles,
-    crearRol,
-    editarRol,
-    eliminarRol,
-    actualizarPermisosUsuario,
-    eliminarUsuarioPermanente,
-    getAuditLogs,
-    inicializarSistema,
-    verificarCambioAdmin
+    requestAdminChange,
+    verifyAdminChangeToken,
+    confirmAdminChange,
+    rejectAdminChange,
+    getPendingRequests,
+    getRequestStatus,
+    testAdminChange,
+    debugPasswordStorage,
+    createUserWithRole,
+    getUsers,
+    updateUser,
+    reactivateUser, 
+    deleteUserPermanently,
+    deactivateUser
 } from '../controllers/adminController.js';
-import { 
-    protegerRuta, 
-    soloAdministrador,
-    verificarUnicoAdmin
-} from '../middleware/auth.js';
+import { protegerRuta, soloAdministrador } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Todas las rutas requieren autenticación y ser admin
-router.use(protegerRuta);
-router.use(soloAdministrador);
-router.use(verificarUnicoAdmin);
+// =============================================================================
+// RUTAS PROTEGIDAS
+// =============================================================================
 
-// ============================================================================
-// GESTIÓN DE USUARIOS
-// ============================================================================
+router.post('/request-change', protegerRuta, soloAdministrador, requestAdminChange);
+router.get('/pending-requests', protegerRuta, soloAdministrador, getPendingRequests);
 
-// Obtener todos los usuarios
-router.get('/users', getUsuarios);
+// Crear usuarios con rol - SOLO ADMIN
+router.post('/users', protegerRuta, soloAdministrador, createUserWithRole);
 
-// Crear nuevo usuario
-router.post('/users', crearUsuario);
+// Listar usuarios - SOLO ADMIN
+router.get('/users', protegerRuta, soloAdministrador, getUsers);
 
-// Editar usuario
-router.put('/users/:id', editarUsuario);
+// ACTUALIZAR usuario - SOLO ADMIN
+router.patch('/users/:id', protegerRuta, soloAdministrador, updateUser);
 
-// Eliminar usuario (dar de baja/activar)
-router.delete('/users/:id', eliminarUsuario);
+// PRIMERO LAS RUTAS ESPECÍFICAS (con sub-rutas)
+// DESACTIVAR usuario - SOLO ADMIN
+router.patch('/users/:id/deactivate', protegerRuta, soloAdministrador, deactivateUser);
 
-// ELIMINAR USUARIO PERMANENTEMENTE (nueva ruta)
-router.delete('/users/:id/permanent', eliminarUsuarioPermanente);
+// REACTIVAR usuario - SOLO ADMIN
+router.patch('/users/:id/reactivate', protegerRuta, soloAdministrador, reactivateUser);
 
-// Actualizar permisos específicos de usuario
-router.put('/users/:id/permisos', actualizarPermisosUsuario);
+// LUEGO LA RUTA GENÉRICA DELETE
+// ELIMINAR PERMANENTEMENTE usuario - SOLO ADMIN
+router.delete('/users/:id', protegerRuta, soloAdministrador, deleteUserPermanently);
 
-// ============================================================================
-// GESTIÓN DE ROLES
-// ============================================================================
+// =============================================================================
+// RUTAS PÚBLICAS
+// =============================================================================
 
-// Obtener todos los roles
-router.get('/roles', getRoles);
+router.get('/verify-token/:token', verifyAdminChangeToken);
+router.post('/confirm-change', confirmAdminChange);
+router.post('/reject-change', rejectAdminChange);
 
-// Crear nuevo rol
-router.post('/roles', crearRol);
+// =============================================================================
+// RUTAS DE DIAGNÓSTICO Y DEBUG
+// =============================================================================
 
-// Editar rol
-router.put('/roles/:id', editarRol);
-
-// Eliminar rol
-router.delete('/roles/:id', eliminarRol);
-
-// ============================================================================
-// AUDITORÍA
-// ============================================================================
-
-// Obtener logs de auditoría
-router.get('/audit-logs', getAuditLogs);
-
-// ============================================================================
-// VERIFICACIONES
-// ============================================================================
-
-// Verificar si se puede cambiar admin
-router.get('/verify-admin-change', verificarCambioAdmin);
-
-// ============================================================================
-// INICIALIZACIÓN (SOLO USAR UNA VEZ)
-// ============================================================================
-
-// Inicializar sistema (crear admin único y roles por defecto)
-router.post('/init', inicializarSistema);
+router.get('/request-status/:requestId', getRequestStatus);
+router.get('/test', testAdminChange);
+router.get('/debug/:requestId', debugPasswordStorage);
 
 export default router;

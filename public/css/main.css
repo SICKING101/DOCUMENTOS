@@ -48,10 +48,8 @@
 @import url('components/preloader/variants.css');
 @import url('components/preloader/categorias-preloader.css');
 @import url('components/preloader/departamentos-preloader.css');
-@import url('components/preloader/reports.css');
 @import url('components/status.css');
 
-@import url('sections/admin-panel.css');
 @import url('sections/dashboard.css');
 @import url('sections/task.css');
 @import url('sections/documents.css');
@@ -64,7 +62,7 @@
 @import url('sections/calendario.css');
 @import url('sections/soporte.css');
 @import url('sections/settings.css');
-@import url('sections/reportes.css');
+@import url('sections/admin.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');

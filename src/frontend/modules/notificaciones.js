@@ -53,6 +53,11 @@ export function initNotificaciones() {
     // Cargar notificaciones iniciales
     fetchNotificaciones();
 
+    // Permitir refresco inmediato desde otros módulos (ej: Admin crea usuario)
+    document.addEventListener('notifications:refresh', () => {
+        fetchNotificaciones();
+    });
+
     // Actualizar cada 5 segundos (para testing)
     setInterval(fetchNotificaciones, 5000);
 

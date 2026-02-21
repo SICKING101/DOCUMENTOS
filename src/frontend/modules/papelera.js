@@ -673,7 +673,7 @@ async function handleRestoreDocument(docId) {
     if (!doc) return;
 
     const confirmed = await showConfirmationModal(
-        'Restaurar documento ahora',
+        'Restaurar documento',
         `¿Restaurar "${doc.nombre_original}"?`,
         'El documento volverá a estar disponible en su ubicación original.',
         'success',

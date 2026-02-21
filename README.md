@@ -94,6 +94,7 @@ DOCUMENTOS/
 │   │   │
 │   │   ├── sections/              # Estilos por pagina/modulo
 │   │   │   ├── dashboard.css
+│   │   │   ├── admin.css
 │   │   │   ├── tasks.css
 │   │   │   ├── documents.css
 │   │   │   ├── categories.css
@@ -144,6 +145,7 @@ DOCUMENTOS/
 │   │   │   ├── documentos.js
 │   │   │   ├── historial.js
 |   │   │   ├── i18n.js                  # Traducciones (proximamente)
+│   │   │   ├── permissions.js
 │   │   │   ├── notificaciones.js
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
@@ -151,21 +153,14 @@ DOCUMENTOS/
 │   │   │   ├── search.js
 │   │   │   ├── systemStatus.js
 │   │   │   │
-│   │   │   ├── components/            # Componentes UI
-│   │   │   │   ├── PermisoDenegado.js
-│   │   │   │
-│   │   │   │   ├── hooks/             # Módulo de administración
-│   │   │   │   │   ├── usePermisos.js
-│   │   │   │
 │   │   │   ├── auth/              # Autenticacion
 │   │   │   │   ├── forgot.js
 │   │   │   │   ├── resetPassword.js
-│   │   │   │   ├── verify-admin-change.js
 │   │   │   │   └── verification.js
 │   │   │   │
 |   │   │   ├── admin/             # Módulo de administración
+│   │   │   │   ├── index.js
 │   │   │   │   ├── adminChange.js
-│   │   │   │   ├── usersManager.js
 │   │   │   │
 │   │   │   ├── documentos/        # Modulo documentos
 │   │   │   |    │
@@ -206,9 +201,7 @@ DOCUMENTOS/
 │   │   │   |    └── compatibility.js
 │   │   │
 |   │   ├── services/
-|   │   │   ├── permisos.js            
 |   │   │   └── api.js              # Cliente API
-│   │   │   
 │   │   ├── app.js                  # Inicializacion global
 │   │   ├── auth.js                 # Auth general
 │   │   ├── authGuard.js            # Proteccion rutas
@@ -227,6 +220,7 @@ DOCUMENTOS/
 │       │
 │       ├── config/
 │       │   ├── cloudinaryConfig.js
+│       │   ├── permissions.js
 │       │   └── multerConfig.js
 │       │
 │       ├── controllers/            # Controladores REST
@@ -244,7 +238,6 @@ DOCUMENTOS/
 │       │   └── taskController.js
 │       │
 │       ├── middleware/
-│       │   ├── permisos.js
 │       │   └── auth.js
 │       │
 │       ├── models/                 # Modelos MongoDB
@@ -255,8 +248,6 @@ DOCUMENTOS/
 │       │   ├── Category.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
-│       │   ├── AuditLog.js
-│       │   ├── Role.js
 │       │   ├── Ticket.js
 │       │   └── Notification.js
 │       │

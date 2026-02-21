@@ -898,6 +898,88 @@ export function showActionModal(options) {
     modal.addEventListener('click', cleanup, { once: true });
 }
 
+/**
+ * Mostrar modal de confirmación personalizado
+ */
+export function confirmAction({
+  title = 'Confirmar acción',
+  message = '¿Estás seguro de que quieres continuar?',
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  type = 'primary' // primary, danger, warning, success
+} = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('actionModal');
+    if (!modal) {
+      // Fallback a confirm nativo si no existe el modal
+      return resolve(window.confirm(message));
+    }
+
+    const titleEl = document.getElementById('actionModalTitle');
+    const messageEl = document.getElementById('actionModalMessage');
+    const iconEl = document.getElementById('actionModalIcon');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    const cancelBtn = document.getElementById('cancelActionBtn');
+
+    // Configurar contenido
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.textContent = message;
+    
+    // Configurar ícono según tipo
+    if (iconEl) {
+      const icons = {
+        primary: 'fa-question-circle',
+        danger: 'fa-exclamation-triangle',
+        warning: 'fa-exclamation-circle',
+        success: 'fa-check-circle'
+      };
+      iconEl.innerHTML = `<i class="fas ${icons[type] || icons.primary}"></i>`;
+      iconEl.className = `action-modal__icon action-modal__icon--${type}`;
+    }
+
+    // Configurar botones
+    if (confirmBtn) {
+      confirmBtn.textContent = confirmText;
+      confirmBtn.className = `btn btn--${type}`;
+    }
+    if (cancelBtn) cancelBtn.textContent = cancelText;
+
+    // Mostrar modal
+    modal.showModal();
+
+    // Manejar confirmación
+    const handleConfirm = () => {
+      modal.close();
+      cleanup();
+      resolve(true);
+    };
+
+    const handleCancel = () => {
+      modal.close();
+      cleanup();
+      resolve(false);
+    };
+
+    const handleClose = (e) => {
+      if (e.target === modal) {
+        modal.close();
+        cleanup();
+        resolve(false);
+      }
+    };
+
+    const cleanup = () => {
+      confirmBtn?.removeEventListener('click', handleConfirm);
+      cancelBtn?.removeEventListener('click', handleCancel);
+      modal.removeEventListener('click', handleClose);
+    };
+
+    confirmBtn?.addEventListener('click', handleConfirm);
+    cancelBtn?.addEventListener('click', handleCancel);
+    modal.addEventListener('click', handleClose);
+  });
+}
+
 // =============================================================================
 // 8. EXPORTACIÓN DE FUNCIONES
 // =============================================================================

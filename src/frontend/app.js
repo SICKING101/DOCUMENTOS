@@ -6,6 +6,7 @@ import { CONFIG } from './config.js';
 import { AppState } from './state.js';
 import { DOM } from './dom.js';
 import { showAlert, setupModalBackdropClose } from './utils.js';
+import { applyVisibilityRules, hasPermission, PERMISSIONS } from './permissions.js';
 import TaskManager from './task.js';
 import SupportModule from './modules/soporte.js';
 // Importar servicios
@@ -132,6 +133,29 @@ let taskManager = null;
  */
 documentos.setupCompatibilityGlobals();
 
+// =============================================================================
+// Permisos UI (mostrar/ocultar y bloquear vistas)
+// =============================================================================
+
+function applyRoleBasedUI() {
+    applyVisibilityRules([
+        // Admin (gestión de usuarios)
+        { selector: '#nav-admin, #admin-dropdown', permission: PERMISSIONS.MANAGE_USERS },
+
+        // Papelera (acciones destructivas)
+        { selector: 'a.sidebar__nav-link[data-tab="papelera"]', permission: PERMISSIONS.DELETE_DOCUMENTS },
+
+        // Subida de documentos
+        {
+            selector: '#addDocumentBtn, #addFirstDocument, #uploadDocumentBtn, #uploadMultipleDocumentsBtn, .action-card[onclick*="openDocumentModal"]',
+            permission: PERMISSIONS.UPLOAD_DOCUMENTS
+        },
+
+        // Eliminación masiva
+        { selector: '#bulkDeleteTriggerBtn, #selectionInfoBar, #bulkActionsContainer', permission: PERMISSIONS.DELETE_DOCUMENTS }
+    ]);
+}
+
 /**
  * 1.4 Evento DOMContentLoaded principal
  * Punto de entrada de la aplicación cuando el DOM está completamente cargado.
@@ -147,6 +171,18 @@ document.addEventListener('DOMContentLoaded', async function () {
     initHistorial(); // Inicializar historial
     initNotificaciones(); // Inicializar notificaciones
     inicializarMenuUsuario(); // Inicializar menú de usuario
+
+    // Aplicar reglas de UI según rol (puede re-ejecutarse cuando authGuard actualice el usuario)
+    applyRoleBasedUI();
+
+    // Re-aplicar permisos cuando se actualice usuario/rol
+    window.addEventListener('auth:user-updated', () => {
+        applyRoleBasedUI();
+        // Re-render para que la tabla de documentos quite/añada acciones
+        if (window.appState?.currentTab === 'documentos' && documentos?.renderDocumentsTable) {
+            documentos.renderDocumentsTable();
+        }
+    });
 
     try {
         // Inicializar módulo de documentos
@@ -560,7 +596,7 @@ async function handleTabNavigation(e) {
     const tabId = this.getAttribute('data-tab');
     
     // Validar que sea una pestaña válida
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes', 'admin'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida en enlace:', tabId);
         return;
@@ -575,8 +611,19 @@ async function handleTabNavigation(e) {
  * Función principal que actualiza interfaz y estado al cambiar de sección.
  */
 async function switchTab(tabId) {
+    // Bloquear pestañas según permisos
+    if (tabId === 'admin' && !hasPermission(PERMISSIONS.MANAGE_USERS)) {
+        showAlert('No tienes permisos para acceder a Admin', 'error');
+        tabId = 'dashboard';
+    }
+
+    if (tabId === 'papelera' && !hasPermission(PERMISSIONS.DELETE_DOCUMENTS)) {
+        showAlert('No tienes permisos para acceder a Papelera', 'error');
+        tabId = 'dashboard';
+    }
+
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes', 'admin'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
@@ -612,7 +659,34 @@ async function switchTab(tabId) {
     });
 
     // 4. Mostrar SOLO el contenido activo
-    const activeTab = document.getElementById(tabId);
+    let activeTab = document.getElementById(tabId);
+
+    // Si la pestaña Admin no existe en el HTML, crearla dinámicamente
+    if (!activeTab && tabId === 'admin') {
+        const mainContent = document.querySelector('.main-content');
+
+        if (mainContent) {
+            activeTab = document.createElement('section');
+            activeTab.id = 'admin';
+            activeTab.className = 'tab-content';
+            activeTab.style.display = 'none';
+            activeTab.innerHTML = `
+                <div class="section__header">
+                    <div>
+                        <h2 class="section__title">Admin</h2>
+                        <p class="section__subtitle">Administración del sistema</p>
+                    </div>
+                </div>
+                <div id="admin-content"></div>
+            `;
+            mainContent.appendChild(activeTab);
+
+            // Actualizar lista de contenidos para futuras transiciones
+            DOM.tabContents = document.querySelectorAll('.tab-content');
+            console.log('✅ Contenido Admin creado dinámicamente');
+        }
+    }
+
     if (activeTab) {
         activeTab.classList.add('tab-content--active');
         activeTab.style.display = 'block';
@@ -715,6 +789,12 @@ async function loadTabSpecificData(tabId) {
         showAlert(`Error al cargar ajustes: ${error.message}`, 'error');
     }
     break;
+
+            case 'admin':
+                import('./modules/admin/index.js').then(module => {
+                    module.renderAgregarAdministrador();
+                });
+                break;
 
             default:
                 console.log(`ℹ️ No hay carga específica para la pestaña: ${tabId}`);

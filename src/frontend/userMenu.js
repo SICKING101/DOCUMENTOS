@@ -58,17 +58,6 @@ export function inicializarMenuUsuario() {
     if (changeAdminModal) {
         setupChangeAdminModal();
     }
-
-    const adminPanelBtn = document.getElementById('adminPanelBtn'); // Necesitas agregarlo al HTML
-
-// Si existe el botón, agregar event listener
-if (adminPanelBtn) {
-    adminPanelBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.href = '/admin-panel.html';
-    });
-}
-
     
     console.log('✅ Menú de usuario inicializado');
 }
