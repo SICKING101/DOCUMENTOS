@@ -317,6 +317,7 @@
     max-width: 400px;
     animation: slideInRight 0.3s ease;
     border-left: 4px solid;
+    color: var(--text-primary);
 }
 
 .toast.fade-out {
@@ -341,6 +342,12 @@
 .toast--info {
     border-left-color: #3b82f6;
     background: linear-gradient(to right, #dbeafe, white);
+}
+
+/* Ajustes de contraste por tema */
+body.dark-theme .toast {
+    color: #e2e8f0;
+    background: #1f2937;
 }
 
 .toast-content {

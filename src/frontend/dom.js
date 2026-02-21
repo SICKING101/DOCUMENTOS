@@ -744,6 +744,7 @@ const DOM = {
 
     // Soporte
     newTicketBtn: document.getElementById('newTicketBtn'),
+    newTicketBtnAlt: document.getElementById('newTicketBtnAlt'),
     faqList: document.getElementById('faqList'),
     guideSteps: document.getElementById('guideSteps'),
     

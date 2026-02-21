@@ -4,6 +4,7 @@
 
 import { DOM } from '../../../dom.js';
 import { showAlert } from '../../../utils.js';
+import { requirePermission, PERMISSIONS } from '../../../permissions.js';
 import { handleUploadDocument } from '../upload/uploadSingle.js';
 import { handleUploadMultipleDocuments, getMultipleUploadState } from '../upload/uploadMultiple.js';
 import { 
@@ -132,6 +133,10 @@ export async function openDocumentModal(mode = 'single') {
     console.group(`📂 openDocumentModal - Abriendo en modo: ${mode}`);
     
     try {
+        if (!requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS, { onDenied: (msg) => showAlert(msg, 'error') })) {
+            return;
+        }
+
         // Cargar módulo de uploadMultiple primero
         await loadUploadMultipleModule();
         

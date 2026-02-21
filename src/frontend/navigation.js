@@ -440,6 +440,15 @@ function initializeNavigation() {
     console.log('✅ DEBUG: Sistema de navegación inicializado');
 }
 
+// Controlar visibilidad de enlaces según rol
+    const userRole = window.localStorage.getItem('userRole'); // Obtener rol del usuario
+    if (userRole !== 'administrador' && userRole !== 'editor') {
+        const navDocumentos = document.getElementById('nav-documentos');
+        if (navDocumentos) {
+            navDocumentos.style.display = 'none';
+        }
+    }
+
 // Agregar esta ruta
 routes['/calendario'] = {
     title: 'Calendario',
@@ -462,6 +471,18 @@ routes['/calendario'] = {
         }
     }
 };
+
+// Initialize Admin section rendering
+    const adminNavLink = document.getElementById('nav-admin');
+    if (adminNavLink) {
+        adminNavLink.addEventListener('click', () => {
+            import('./modules/admin/index.js').then(module => {
+                module.renderAgregarAdministrador();
+            });
+        });
+    }
+
+
 
 // Exportar todas las funciones
 export {

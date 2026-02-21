@@ -7,6 +7,7 @@ import { formatFileSize, formatDate, getFileIcon } from '../../../utils.js';
 import { canPreviewDocument } from '../preview/previewManager.js';
 import { downloadDocument } from '../download/downloadManager.js';
 import { bulkDeleteState } from '../core/BulkDeleteState.js';
+import { hasPermission, PERMISSIONS } from '../../../permissions.js';
 
 /**
  * Renderiza la tabla de documentos con filtros y búsqueda aplicados.
@@ -296,15 +297,27 @@ function getDocumentStatus(doc) {
 function createActionButtons(doc, canPreview) {
     const docId = doc._id || doc.id;
     if (!docId) return '';
+
+    const canDownload = hasPermission(PERMISSIONS.DOWNLOAD_DOCUMENTS);
+    const canView = hasPermission(PERMISSIONS.VIEW_DOCUMENTS);
+    const canEdit = hasPermission(PERMISSIONS.EDIT_DOCUMENTS);
+    const canDelete = hasPermission(PERMISSIONS.DELETE_DOCUMENTS);
+    const canApprove = hasPermission(PERMISSIONS.APPROVE_DOCUMENTS);
+
     // Si el documento está vencido, solo mostrar Renovar y Eliminar
-    let buttons = `
-        <button class=\"btn btn--sm btn--outline btn--download\" 
-                onclick=\"if (window.downloadDocument) window.downloadDocument('${docId}')\" 
-                title=\"Descargar\">
-            <i class=\"fas fa-download\"></i>
-        </button>
-    `;
-    if (canPreview) {
+    let buttons = '';
+
+    if (canDownload) {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline btn--download\" 
+                    onclick=\"if (window.downloadDocument) window.downloadDocument('${docId}')\" 
+                    title=\"Descargar\">
+                <i class=\"fas fa-download\"></i>
+            </button>
+        `;
+    }
+
+    if (canPreview && canView) {
         buttons += `
             <button class=\"btn btn--sm btn--outline btn--view\" 
                     onclick=\"if (window.previewDocument) window.previewDocument('${docId}')\" 
@@ -313,20 +326,43 @@ function createActionButtons(doc, canPreview) {
             </button>
         `;
     }
-    buttons += `
-        <button class=\"btn btn--sm btn--outline btn--edit\" 
-                onclick=\"if (window.editDocument) window.editDocument('${docId}')\" 
-                title=\"Editar documento\">
-            <i class=\"fas fa-edit\"></i>
-        </button>
-    `;
-    buttons += `
-        <button class=\"btn btn--sm btn--outline btn--delete\" 
-                onclick=\"if (window.deleteDocument) window.deleteDocument('${docId}')\" 
-                title=\"Eliminar\">
-            <i class=\"fas fa-trash\"></i>
-        </button>
-    `;
+
+    // Revisión: solo si está pendiente
+    if (canApprove && doc.status === 'pending') {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline\" 
+                    onclick=\"if (window.approveDocument) window.approveDocument('${docId}')\" 
+                    title=\"Aprobar\">
+                <i class=\"fas fa-check\"></i>
+            </button>
+            <button class=\"btn btn--sm btn--outline\" 
+                    onclick=\"if (window.rejectDocument) window.rejectDocument('${docId}')\" 
+                    title=\"Rechazar\">
+                <i class=\"fas fa-times\"></i>
+            </button>
+        `;
+    }
+
+    if (canEdit) {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline btn--edit\" 
+                    onclick=\"if (window.editDocument) window.editDocument('${docId}')\" 
+                    title=\"Editar documento\">
+                <i class=\"fas fa-edit\"></i>
+            </button>
+        `;
+    }
+
+    if (canDelete) {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline btn--delete\" 
+                    onclick=\"if (window.deleteDocument) window.deleteDocument('${docId}')\" 
+                    title=\"Eliminar\">
+                <i class=\"fas fa-trash\"></i>
+            </button>
+        `;
+    }
+
     return buttons;
 }
 

@@ -13,20 +13,16 @@ import ReportController from '../controllers/reportController.js';
 import TrashController from '../controllers/trashController.js';
 import SupportController from '../controllers/supportController.js';
 
-// Importar middlewares
-import { protegerRuta } from '../middleware/auth.js';
-import { requierePermiso, requiereCualquierPermiso, verificarPropietario } from '../middleware/permisos.js';
+// Importar middleware
+import { protegerRuta, requirePermission } from '../middleware/auth.js';
+
+// Permisos (roles)
+import { PERMISSIONS } from '../config/permissions.js';
 
 // Importar middleware de Multer
 import upload from '../config/multerConfig.js';
-import adminRoutes from './adminRoutes.js';
 
-// Rutas de administración
-router.use('/admin', protegerRuta, requierePermiso('ver_administracion'), adminRoutes);
-
-// ********************************************************************
-// MÓDULO 1: RUTAS DE SALUD Y DIAGNÓSTICO
-// ********************************************************************
+// Ruta de prueba
 router.get('/health', (req, res) => {
   res.json({ 
     success: true, 
@@ -35,410 +31,115 @@ router.get('/health', (req, res) => {
   });
 });
 
-// ********************************************************************
-// MÓDULO 2: DASHBOARD
-// ********************************************************************
-router.get('/dashboard', 
-  protegerRuta, 
-  requierePermiso('ver_dashboard'), 
-  DashboardController.getDashboardStats
-);
+// -----------------------------
+// DASHBOARD
+// -----------------------------
+router.get('/dashboard', protegerRuta, DashboardController.getDashboardStats);
 
-// ********************************************************************
-// MÓDULO 3: GESTIÓN DE PERSONAS - CORREGIDO
-// ********************************************************************
-router.get('/persons', 
-  protegerRuta, 
-  requierePermiso('ver_personas'), 
-  PersonController.getAll
-);
+// -----------------------------
+// PERSONAS - RUTAS ACTUALIZADAS PARA ELIMINACIÓN PERMANENTE
+// -----------------------------
+router.get('/persons', protegerRuta, PersonController.getAll);
+router.post('/persons', protegerRuta, PersonController.create);
+router.put('/persons/:id', protegerRuta, PersonController.update);
 
-router.post('/persons', 
-  protegerRuta, 
-  requierePermiso('acciones_personas'), 
-  PersonController.create
-);
+// ELIMINACIÓN PERMANENTE (HARD DELETE) - QUITAR DE LA BASE DE DATOS
+router.delete('/persons/:id', protegerRuta, PersonController.delete);
 
-router.put('/persons/:id', 
-  protegerRuta, 
-  requiereCualquierPermiso(['acciones_personas', 'editar_cualquier_persona']),
-  verificarPropietario('Person', 'id'),
-  PersonController.update
-);
+// RUTAS OPCIONALES PARA GESTIÓN DE ESTADO (si quieres mantener ambas funcionalidades)
+router.patch('/persons/:id/deactivate', protegerRuta, PersonController.deactivate);
+router.patch('/persons/:id/reactivate', protegerRuta, PersonController.reactivate);
+router.get('/persons/inactive', protegerRuta, PersonController.getInactive);
 
-router.delete('/persons/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_personas'),
-  verificarPropietario('Person', 'id'),
-  PersonController.delete
-);
+// -----------------------------
+// CATEGORÍAS
+// -----------------------------
+router.get('/categories', protegerRuta, CategoryController.getAll);
+router.post('/categories', protegerRuta, CategoryController.create);
+router.put('/categories/:id', protegerRuta, CategoryController.update);
+router.delete('/categories/:id', protegerRuta, CategoryController.delete);
 
-router.patch('/persons/:id/deactivate', 
-  protegerRuta, 
-  requierePermiso('acciones_personas'),
-  PersonController.deactivate
-);
+// -----------------------------
+// DEPARTAMENTOS
+// -----------------------------
+router.get('/departments', protegerRuta, DepartmentController.getAll);
+router.post('/departments', protegerRuta, DepartmentController.create);
+router.put('/departments/:id', protegerRuta, DepartmentController.update);
+router.delete('/departments/:id', protegerRuta, DepartmentController.delete);
 
-router.patch('/persons/:id/reactivate', 
-  protegerRuta, 
-  requierePermiso('acciones_personas'),
-  PersonController.reactivate
-);
+// -----------------------------
+// DOCUMENTOS
+// -----------------------------
+router.get('/documents', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getAll);
+router.post('/documents', protegerRuta, requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS), upload.single('file'), DocumentController.create);
+router.put('/documents/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_DOCUMENTS), upload.single('file'), DocumentController.update);
+router.get('/documents/:id/preview', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.preview);
+router.get('/documents/:id/download', protegerRuta, requirePermission(PERMISSIONS.DOWNLOAD_DOCUMENTS), DocumentController.download);
+router.get('/documents/:id/content', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getContent);
+router.get('/documents/:id/info', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getInfo);
+router.delete('/documents/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.delete);
 
-router.get('/persons/inactive', 
-  protegerRuta, 
-  requierePermiso('ver_personas'), 
-  PersonController.getInactive
-);
+// Revisión/Aprobación
+router.patch('/documents/:id/approve', protegerRuta, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.approve);
+router.patch('/documents/:id/reject', protegerRuta, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.reject);
 
-// ********************************************************************
-// MÓDULO 4: GESTIÓN DE CATEGORÍAS - CORREGIDO
-// ********************************************************************
-router.get('/categories', 
-  protegerRuta, 
-  requierePermiso('ver_categorias'), 
-  CategoryController.getAll
-);
+// -----------------------------
+// TAREAS
+// -----------------------------
+router.get('/tasks', protegerRuta, TaskController.getAll);
+router.post('/tasks', protegerRuta, TaskController.create);
+router.put('/tasks/:id', protegerRuta, TaskController.update);
+router.delete('/tasks/:id', protegerRuta, TaskController.delete);
+router.patch('/tasks/:id/status', protegerRuta, TaskController.updateStatus);
+router.get('/tasks/stats', protegerRuta, TaskController.getStats);
+router.get('/tasks/high-priority', protegerRuta, TaskController.getHighPriority);
+router.get('/tasks/today', protegerRuta, TaskController.getTodayTasks);
 
-router.post('/categories', 
-  protegerRuta, 
-  requierePermiso('acciones_categorias'), 
-  CategoryController.create
-);
+// -----------------------------
+// REPORTES
+// -----------------------------
+router.post('/reports/excel', protegerRuta, ReportController.generateExcel);
+router.post('/reports/pdf', protegerRuta, ReportController.generatePDF);
+router.post('/reports/csv', protegerRuta, ReportController.generateCSV);
 
-router.put('/categories/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_categorias'), 
-  CategoryController.update
-);
+// -----------------------------
+// NOTIFICACIONES
+// -----------------------------
+router.get('/notifications', protegerRuta, NotificationController.getAll);
+router.get('/notifications/unread', protegerRuta, NotificationController.getUnread);
+router.get('/notifications/stats', protegerRuta, NotificationController.getStats);
+router.patch('/notifications/:id/read', protegerRuta, NotificationController.markAsRead);
+router.patch('/notifications/read-all', protegerRuta, NotificationController.markAllAsRead);
+router.delete('/notifications/:id', protegerRuta, NotificationController.delete);
+router.post('/notifications/cleanup', protegerRuta, NotificationController.cleanup);
 
-router.delete('/categories/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_categorias'), 
-  CategoryController.delete
-);
+// -----------------------------
+// PAPELERA
+// -----------------------------
+router.get('/trash', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.getTrashDocuments);
+router.post('/trash/empty-all', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.emptyTrash);
+router.post('/trash/auto-cleanup', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.autoCleanup);
+router.post('/trash/:id/restore', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.restoreDocument);
+router.delete('/trash/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.deletePermanently);
 
-// ********************************************************************
-// MÓDULO 5: GESTIÓN DE DEPARTAMENTOS - CORREGIDO
-// ********************************************************************
-router.get('/departments', 
-  protegerRuta, 
-  requierePermiso('ver_departamentos'), 
-  DepartmentController.getAll
-);
+// -----------------------------
+// SOPORTE Y TICKETS
+// -----------------------------
+router.post('/tickets', protegerRuta, upload.array('files', 10), SupportController.createTicket);
 
-router.post('/departments', 
-  protegerRuta, 
-  requierePermiso('acciones_departamentos'), 
-  DepartmentController.create
-);
+// ✅ RUTAS PARA ESTADO DEL SISTEMA
+router.get('/support/status', protegerRuta, SupportController.getSystemStatus);
+router.get('/support/faq', protegerRuta, SupportController.getFAQ);
+router.post('/support/test-email', protegerRuta, SupportController.testSupportEmail);
 
-router.put('/departments/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_departamentos'), 
-  DepartmentController.update
-);
-
-router.delete('/departments/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_departamentos'), 
-  DepartmentController.delete
-);
-
-// ********************************************************************
-// MÓDULO 6: GESTIÓN DE DOCUMENTOS - CORREGIDO
-// ********************************************************************
-router.get('/documents', 
-  protegerRuta, 
-  requierePermiso('ver_documentos'), 
-  DocumentController.getAll
-);
-
-router.post('/documents', 
-  protegerRuta, 
-  requierePermiso('acciones_documentos'), 
-  upload.single('file'), 
-  DocumentController.create
-);
-
-router.put('/documents/:id', 
-  protegerRuta, 
-  requiereCualquierPermiso(['acciones_documentos', 'editar_cualquier_documento']),
-  verificarPropietario('Document', 'id'),
-  upload.single('file'), 
-  DocumentController.update
-);
-
-router.delete('/documents/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_documentos'),
-  verificarPropietario('Document', 'id'),
-  DocumentController.delete
-);
-
-router.get('/documents/:id/preview', 
-  protegerRuta, 
-  requierePermiso('ver_documentos'), 
-  DocumentController.preview
-);
-
-router.get('/documents/:id/download', 
-  protegerRuta, 
-  requierePermiso('ver_documentos'), 
-  DocumentController.download
-);
-
-router.get('/documents/:id/content', 
-  protegerRuta, 
-  requierePermiso('ver_documentos'), 
-  DocumentController.getContent
-);
-
-router.get('/documents/:id/info', 
-  protegerRuta, 
-  requierePermiso('ver_documentos'), 
-  DocumentController.getInfo
-);
-
-// ********************************************************************
-// MÓDULO 7: GESTIÓN DE TAREAS - CORREGIDO
-// ********************************************************************
-router.get('/tasks', 
-  protegerRuta, 
-  requierePermiso('ver_tareas'), 
-  TaskController.getAll
-);
-
-router.post('/tasks', 
-  protegerRuta, 
-  requierePermiso('acciones_tareas'), 
-  TaskController.create
-);
-
-router.put('/tasks/:id', 
-  protegerRuta, 
-  requiereCualquierPermiso(['acciones_tareas', 'editar_cualquier_tarea']),
-  verificarPropietario('Task', 'id'),
-  TaskController.update
-);
-
-router.delete('/tasks/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_tareas'),
-  verificarPropietario('Task', 'id'),
-  TaskController.delete
-);
-
-router.patch('/tasks/:id/status', 
-  protegerRuta, 
-  requierePermiso('acciones_tareas'),
-  verificarPropietario('Task', 'id'),
-  TaskController.updateStatus
-);
-
-router.get('/tasks/stats', 
-  protegerRuta, 
-  requierePermiso('ver_tareas'), 
-  TaskController.getStats
-);
-
-router.get('/tasks/high-priority', 
-  protegerRuta, 
-  requierePermiso('ver_tareas'), 
-  TaskController.getHighPriority
-);
-
-router.get('/tasks/today', 
-  protegerRuta, 
-  requierePermiso('ver_tareas'), 
-  TaskController.getTodayTasks
-);
-
-// ********************************************************************
-// MÓDULO 7.5: VISUALIZACIÓN DE REPORTES - NUEVO
-// ********************************************************************
-router.get('/reports', 
-  protegerRuta, 
-  (req, res, next) => {
-    // Todos los usuarios autenticados pueden VER la sección de reportes
-    console.log('📊 Acceso a sección de reportes');
-    next();
-  },
-  (req, res) => {
-    res.json({ 
-      success: true, 
-      message: 'Sección de reportes',
-      data: {
-        titulo: 'Centro de Reportes',
-        descripcion: 'Genera y exporta reportes del sistema',
-        tipos: ['excel', 'pdf', 'csv']
-      }
-    });
-  }
-);
-
-// ********************************************************************
-// MÓDULO 8: GENERACIÓN DE REPORTES - CORREGIDO
-// ********************************************************************
-router.post('/reports/excel', 
-  protegerRuta, 
-  requierePermiso('acciones_reportes'), 
-  ReportController.generateExcel
-);
-
-router.post('/reports/pdf', 
-  protegerRuta, 
-  requierePermiso('acciones_reportes'), 
-  ReportController.generatePDF
-);
-
-router.post('/reports/csv', 
-  protegerRuta, 
-  requierePermiso('acciones_reportes'), 
-  ReportController.generateCSV
-);
-
-// ********************************************************************
-// MÓDULO 9: GESTIÓN DE NOTIFICACIONES - SECCIÓN PÚBLICA
-// ********************************************************************
-router.get('/notifications', 
-  protegerRuta, 
-  (req, res, next) => next(), // Sin permiso - público
-  NotificationController.getAll
-);
-
-router.get('/notifications/unread', 
-  protegerRuta, 
-  (req, res, next) => next(), // Sin permiso - público
-  NotificationController.getUnread
-);
-
-router.get('/notifications/stats', 
-  protegerRuta, 
-  (req, res, next) => next(), // Sin permiso - público
-  NotificationController.getStats
-);
-
-router.patch('/notifications/:id/read', 
-  protegerRuta, 
-  (req, res, next) => next(), // Sin permiso - público
-  NotificationController.markAsRead
-);
-
-router.patch('/notifications/read-all', 
-  protegerRuta, 
-  (req, res, next) => next(), // Sin permiso - público
-  NotificationController.markAllAsRead
-);
-
-router.delete('/notifications/:id', 
-  protegerRuta, 
-  (req, res, next) => next(), // Sin permiso - público
-  NotificationController.delete
-);
-
-router.post('/notifications/cleanup', 
-  protegerRuta, 
-  requierePermiso('acciones_administracion'), // Solo admins
-  NotificationController.cleanup
-);
-
-// ********************************************************************
-// MÓDULO 10: GESTIÓN DE PAPELERA - CORREGIDO
-// ********************************************************************
-router.get('/trash', 
-  protegerRuta, 
-  requierePermiso('ver_papelera'), 
-  TrashController.getTrashDocuments
-);
-
-router.post('/trash/:id/restore', 
-  protegerRuta, 
-  requierePermiso('acciones_papelera'),
-  TrashController.restoreDocument
-);
-
-router.delete('/trash/:id', 
-  protegerRuta, 
-  requierePermiso('acciones_papelera'),
-  TrashController.deletePermanently
-);
-
-router.post('/trash/empty-all', 
-  protegerRuta, 
-  requierePermiso('acciones_papelera'),
-  TrashController.emptyTrash
-);
-
-router.post('/trash/auto-cleanup', 
-  protegerRuta, 
-  requierePermiso('acciones_papelera'),
-  TrashController.autoCleanup
-);
-
-// ********************************************************************
-// MÓDULO 11: SISTEMA DE SOPORTE - CORREGIDO
-// ********************************************************************
-router.post('/tickets', 
-  protegerRuta, 
-  requierePermiso('acciones_soporte'), 
-  upload.array('files', 10), 
-  SupportController.createTicket
-);
-
-router.get('/support/status', 
-  protegerRuta, 
-  requierePermiso('ver_soporte'), 
-  SupportController.getSystemStatus
-);
-
-router.get('/support/faq', 
-  protegerRuta, 
-  (req, res, next) => next(), // FAQ es público
-  SupportController.getFAQ
-);
-
-router.post('/support/test-email', 
-  protegerRuta, 
-  requierePermiso('acciones_soporte'), 
-  SupportController.testSupportEmail
-);
-
-// ********************************************************************
-// MÓDULO 12: RUTAS DE DESARROLLO
-// ********************************************************************
+// ✅ RUTAS PARA DESARROLLO (SOLO SI ESTÁ EN MODO DESARROLLO)
 if (process.env.NODE_ENV === 'development') {
   console.log('🧪 Modo desarrollo activado: Habilitando rutas de prueba');
-  
-  router.post('/support/activate-errors', 
-    protegerRuta, 
-    requierePermiso('acciones_soporte'), 
-    SupportController.activateRealErrors
-  );
-  
-  router.post('/support/reset-errors', 
-    protegerRuta, 
-    requierePermiso('acciones_soporte'), 
-    SupportController.resetRealErrors
-  );
-  
-  router.post('/support/reset-all-errors', 
-    protegerRuta, 
-    requierePermiso('acciones_soporte'), 
-    SupportController.resetAllRealErrors
-  );
-  
-  router.get('/support/validate-errors', 
-    protegerRuta, 
-    requierePermiso('acciones_soporte'), 
-    SupportController.validateSystemErrors
-  );
-  
-  router.post('/support/simulate-error/:service', 
-    protegerRuta, 
-    requierePermiso('acciones_soporte'), 
-    SupportController.simulateRealError
-  );
+  router.post('/support/activate-errors', protegerRuta, SupportController.activateRealErrors);
+  router.post('/support/reset-errors', protegerRuta, SupportController.resetRealErrors);
+  router.get('/support/validate-errors', protegerRuta, SupportController.validateSystemErrors);
+  router.post('/support/simulate-error/:service', protegerRuta, SupportController.simulateRealError);
+  router.post('/support/reset-all-errors', protegerRuta, SupportController.resetAllRealErrors);
 } else {
   console.log('🚀 Modo producción: Rutas de prueba deshabilitadas');
 }

@@ -1,13 +1,6 @@
-// ============================================================================
-// src/backend/models/User.js (ACTUALIZADO)
-// ============================================================================
-// MODELO DE USUARIOS CON SOPORTE PARA ÚNICO ADMINISTRADOR
-// ============================================================================
-
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { PERMISOS_IDS } from './Role.js';
 
 const userSchema = new mongoose.Schema({
     usuario: {
@@ -15,10 +8,8 @@ const userSchema = new mongoose.Schema({
         required: [true, 'El usuario es requerido'],
         unique: true,
         trim: true,
-        minlength: [3, 'El usuario debe tener al menos 3 caracteres'],
-        maxlength: [30, 'El usuario no puede exceder 30 caracteres']
+        minlength: [3, 'El usuario debe tener al menos 3 caracteres']
     },
-    
     correo: {
         type: String,
         required: [true, 'El correo es requerido'],
@@ -27,95 +18,71 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         match: [/^\S+@\S+\.\S+$/, 'Por favor ingrese un correo válido']
     },
-    
     password: {
         type: String,
         required: [true, 'La contraseña es requerida'],
         minlength: [6, 'La contraseña debe tener al menos 6 caracteres']
     },
-    
-    // Rol del usuario (referencia a Role)
     rol: {
         type: String,
-        required: true,
+        enum: [        'administrador', 
+        'gerente',        // NUEVO
+        'supervisor',     // NUEVO
+        'editor', 
+        'revisor', 
+        'lector', 
+        'moderador', 
+        'desactivado', 
+        'usuario'], 
         default: 'usuario'
-        // No ponemos enum fijo porque los roles pueden ser dinámicos
     },
-    
-    // Permisos específicos (adicionales al rol)
-    permisos: [{
-        type: String,
-        enum: PERMISOS_IDS
-    }],
-    
-    // Indicador de único administrador
-    esAdminUnico: {
-        type: Boolean,
-        default: false
-    },
-    
     activo: {
         type: Boolean,
         default: true
     },
-    
-    // Tokens de recuperación
+    // Para código de 6 dígitos
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    
+    // Para token de cambio de contraseña (después de verificar código)
     changePasswordToken: String,
     changePasswordExpires: Date,
+    
     changeAdminToken: String,
     changeAdminExpires: Date,
-    
     ultimoAcceso: {
         type: Date,
         default: Date.now
     },
-    
+    // Campos para respaldo de desactivación
     deactivationBackup: {
         originalEmail: String,
         originalUsername: String,
         deactivatedAt: Date
     },
-    
-    deactivatedAt: Date,
-    
-    // Metadatos
-    creadoPor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    },
-    
-    editadoPor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }
+    deactivatedAt: Date
 }, {
     timestamps: true
 });
 
-// Índices
-userSchema.index({ usuario: 1 });
-userSchema.index({ correo: 1 });
-userSchema.index({ rol: 1 });
-userSchema.index({ activo: 1 });
-userSchema.index({ esAdminUnico: 1 });
-
-// Middleware pre-save para hashear contraseña
+// ¡¡¡SOLUCIÓN RADICAL: DESACTIVAR ENCRIPTACIÓN AUTOMÁTICA PARA ADMIN CHANGE!!!
 userSchema.pre('save', async function(next) {
-    // Si la contraseña ya es un hash bcrypt, no la hasheamos de nuevo
+    // NO hacer nada si es una contraseña ya encriptada (viene de admin change)
+    // Las contraseñas bcrypt tienen este patrón: $2a$10$... o $2b$10$...
     const bcryptPattern = /^\$2[abxy]\$\d{1,2}\$[A-Za-z0-9./]{53}$/;
     
     if (this.password && bcryptPattern.test(this.password)) {
-        console.log('🔐 Contraseña ya encriptada, omitiendo hasheo');
+        console.log('🔐 Contraseña ya encriptada (de admin change), omitiendo encriptación automática');
         return next();
     }
     
-    if (!this.isModified('password')) {
+    // Solo hashear si la contraseña ha sido modificada y NO es de admin change
+    if (!this.isModified('password') || this.password.startsWith('$2')) {
         return next();
     }
 
     try {
+        console.log('🔐 Encriptando contraseña nueva...');
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
         next();
@@ -124,11 +91,12 @@ userSchema.pre('save', async function(next) {
     }
 });
 
-// Métodos de instancia
+// Método para comparar contraseñas
 userSchema.methods.compararPassword = async function(passwordIngresada) {
     return await bcrypt.compare(passwordIngresada, this.password);
 };
 
+// Método para generar token de recuperación de 6 dígitos
 userSchema.methods.generarCodigoRecuperacion = function() {
     const codigo = Math.floor(100000 + Math.random() * 900000).toString();
     
@@ -137,11 +105,13 @@ userSchema.methods.generarCodigoRecuperacion = function() {
         .update(codigo)
         .digest('hex');
     
+    // Código expira en 15 minutos
     this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
     
     return codigo;
 };
 
+// Método para generar token de cambio de contraseña (después de verificar código)
 userSchema.methods.generarTokenCambioPassword = function() {
     const token = crypto.randomBytes(32).toString('hex');
     
@@ -150,11 +120,13 @@ userSchema.methods.generarTokenCambioPassword = function() {
         .update(token)
         .digest('hex');
     
+    // Token expira en 30 minutos
     this.changePasswordExpires = Date.now() + 30 * 60 * 1000;
     
     return token;
 };
 
+// Método para generar token de cambio de administrador
 userSchema.methods.generarTokenCambioAdmin = function() {
     const token = crypto.randomBytes(32).toString('hex');
     
@@ -163,87 +135,10 @@ userSchema.methods.generarTokenCambioAdmin = function() {
         .update(token)
         .digest('hex');
     
+    // Token expira en 24 horas
     this.changeAdminExpires = Date.now() + 86400000;
     
     return token;
-};
-
-// Método para obtener permisos efectivos (rol + específicos) - VERSIÓN CORREGIDA
-userSchema.methods.obtenerPermisosEfectivos = async function() {
-    try {
-        // Si es admin único, tiene todos los permisos
-        if (this.esAdminUnico) {
-            const { PERMISOS_IDS } = await import('./Role.js');
-            return PERMISOS_IDS;
-        }
-        
-        // Buscar el rol - asegurar que existe el modelo
-        const Role = mongoose.model('Role');
-        const rol = await Role.findOne({ nombre: this.rol });
-        
-        const permisosRol = rol?.permisos || [];
-        const permisosEspecificos = this.permisos || [];
-        
-        // Combinar (específicos sobrescriben a rol)
-        return [...new Set([...permisosRol, ...permisosEspecificos])];
-    } catch (error) {
-        console.error('Error obteniendo permisos efectivos:', error);
-        return []; // En caso de error, devolver array vacío
-    }
-};
-
-// Método para verificar si tiene un permiso específico
-userSchema.methods.tienePermiso = async function(permisoId) {
-    if (this.esAdminUnico) return true;
-    
-    const permisos = await this.obtenerPermisosEfectivos();
-    return permisos.includes(permisoId);
-};
-
-// Método estático para asegurar único administrador
-userSchema.statics.asegurarUnicoAdmin = async function() {
-    const admins = await this.find({ 
-        rol: 'administrador', 
-        activo: true 
-    });
-    
-    if (admins.length === 0) {
-        console.log('⚠️ No hay administradores activos');
-        return;
-    }
-    
-    if (admins.length === 1) {
-        // Marcar como único
-        if (!admins[0].esAdminUnico) {
-            admins[0].esAdminUnico = true;
-            await admins[0].save();
-            console.log(`✅ ${admins[0].usuario} marcado como único administrador`);
-        }
-        return;
-    }
-    
-    // Si hay múltiples, desactivar todos menos el primero
-    console.log(`⚠️ Detectados ${admins.length} administradores. Corrigiendo...`);
-    
-    for (let i = 1; i < admins.length; i++) {
-        admins[i].rol = 'usuario';
-        admins[i].esAdminUnico = false;
-        await admins[i].save();
-        console.log(`➡️ ${admins[i].usuario} convertido a usuario normal`);
-    }
-    
-    // Marcar el primero como único
-    admins[0].esAdminUnico = true;
-    await admins[0].save();
-    console.log(`✅ ${admins[0].usuario} es ahora el único administrador`);
-};
-
-// Método para verificar múltiples permisos (útil para middlewares)
-userSchema.methods.tieneAlgunPermiso = async function(permisosRequeridos) {
-    if (this.esAdminUnico) return true;
-    
-    const permisosEfectivos = await this.obtenerPermisosEfectivos();
-    return permisosRequeridos.some(p => permisosEfectivos.includes(p));
 };
 
 const User = mongoose.model('User', userSchema);

@@ -123,6 +123,12 @@
     background: var(--bg-tertiary);
 }
 
+/* Variante grande para mayor énfasis */
+.btn--lg {
+    padding: 1rem 2rem;
+    font-size: 1.05rem;
+}
+
 /* Botón de icono */
 .btn--icon {
     width: 40px;

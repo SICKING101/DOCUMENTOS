@@ -9,38 +9,225 @@ let currentFilters = {
     sort: 'nombre-asc'
 };
 
-// Cache para validaciones de duplicados
-let validationCache = {
-    email: { value: '', isValid: true, message: '' },
-    telefono: { value: '', isValid: true, message: '' },
-    nombre: { value: '', isValid: true, message: '' }
-};
-
-let validationTimeouts = {
-    email: null,
-    telefono: null,
-    nombre: null
-};
-
 // =============================================================================
-// 1. MANEJO DEL MODAL DE PERSONAS
+// 1. SISTEMA DE ALERTAS MEJORADO
 // =============================================================================
 
 /**
- * 1.1 Abrir modal para crear/editar persona
+ * Mostrar alerta específica para formularios - Versión mejorada
+ */
+function showFormAlert(message, type = 'error', field = null) {
+    // Primero, eliminar cualquier alerta existente
+    removeExistingAlerts();
+    
+    // Crear contenedor de alertas principal si no existe
+    let alertContainer = document.querySelector('.form-alerts-container');
+    if (!alertContainer) {
+        alertContainer = document.createElement('div');
+        alertContainer.className = 'form-alerts-container form-alerts-container--global';
+        
+        // Insertar al principio del body para que sea visible en toda la pantalla
+        const appContainer = document.querySelector('.app-container') || document.querySelector('main') || document.body;
+        appContainer.insertBefore(alertContainer, appContainer.firstChild);
+    }
+    
+    // Crear alerta con estilos mejorados
+    const alert = document.createElement('div');
+    alert.className = `alert alert--${type} alert--form alert--global`;
+    alert.setAttribute('role', 'alert');
+    alert.setAttribute('aria-live', 'assertive');
+    
+    // Determinar icono según tipo
+    let iconClass = 'fa-exclamation-circle';
+    let alertTitle = 'Error';
+    
+    switch(type) {
+        case 'success':
+            iconClass = 'fa-check-circle';
+            alertTitle = 'Éxito';
+            break;
+        case 'warning':
+            iconClass = 'fa-exclamation-triangle';
+            alertTitle = 'Advertencia';
+            break;
+        case 'info':
+            iconClass = 'fa-info-circle';
+            alertTitle = 'Información';
+            break;
+        default:
+            iconClass = 'fa-exclamation-circle';
+            alertTitle = 'Error';
+    }
+    
+    alert.innerHTML = `
+        <div class="alert__icon">
+            <i class="fas ${iconClass}"></i>
+        </div>
+        <div class="alert__content">
+            <h4 class="alert__title">${alertTitle}</h4>
+            <p class="alert__message">${message}</p>
+        </div>
+        <button class="alert__close" onclick="this.parentElement.remove()" aria-label="Cerrar alerta">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    alertContainer.appendChild(alert);
+    
+    // Agregar animación de entrada
+    setTimeout(() => {
+        alert.classList.add('alert--visible');
+    }, 10);
+    
+    // Si hay un campo específico, resaltarlo
+    if (field) {
+        highlightField(field);
+    }
+    
+    // Auto-remover después de 10 segundos para alertas de error
+    if (type === 'error' || type === 'warning') {
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.classList.add('fade-out');
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                    // Limpiar contenedor si está vacío
+                    if (alertContainer.children.length === 0) {
+                        alertContainer.remove();
+                    }
+                }, 300);
+            }
+        }, 10000);
+    }
+}
+
+/**
+ * Mostrar alerta de eliminación específica
+ */
+function showDeleteAlert(personName, errorMessage, type = 'error') {
+    // Crear una alerta especial para eliminación
+    const alertContainer = document.createElement('div');
+    alertContainer.className = 'delete-alert-container';
+    
+    const alert = document.createElement('div');
+    alert.className = `alert alert--${type} alert--delete`;
+    alert.innerHTML = `
+        <div class="alert__icon">
+            <i class="fas fa-trash"></i>
+        </div>
+        <div class="alert__content">
+            <h4 class="alert__title">Error al eliminar a "${personName}"</h4>
+            <p class="alert__message">${errorMessage}</p>
+            <div class="alert__actions">
+                <button class="btn btn--sm btn--outline" onclick="this.closest('.alert').remove()">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    alertContainer.appendChild(alert);
+    
+    // Insertar después de la tabla
+    const personasTab = document.querySelector('.tab-content[data-tab="personas"]');
+    if (personasTab) {
+        personasTab.insertBefore(alertContainer, personasTab.firstChild);
+    } else {
+        document.body.insertBefore(alertContainer, document.body.firstChild);
+    }
+    
+    // Auto-remover después de 10 segundos
+    setTimeout(() => {
+        alert.classList.add('fade-out');
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+            if (alertContainer.parentNode) {
+                alertContainer.remove();
+            }
+        }, 300);
+    }, 10000);
+}
+
+/**
+ * Remover alertas existentes
+ */
+function removeExistingAlerts() {
+    const alerts = document.querySelectorAll('.alert--form');
+    alerts.forEach(alert => {
+        alert.classList.add('fade-out');
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 300);
+    });
+    
+    // Limpiar contenedor de alertas si está vacío
+    const alertContainer = document.querySelector('.form-alerts-container');
+    if (alertContainer && alertContainer.children.length === 0) {
+        alertContainer.remove();
+    }
+}
+
+/**
+ * Resaltar campo con error
+ */
+function highlightField(fieldName) {
+    let fieldElement;
+    
+    switch(fieldName) {
+        case 'nombre':
+            fieldElement = DOM.personName;
+            break;
+        case 'email':
+            fieldElement = DOM.personEmail;
+            break;
+        case 'telefono':
+            fieldElement = DOM.personPhone;
+            break;
+        case 'departamento':
+            fieldElement = document.getElementById('personDepartment');
+            break;
+        case 'puesto':
+            fieldElement = DOM.personPosition;
+            break;
+        default:
+            return;
+    }
+    
+    if (fieldElement) {
+        fieldElement.classList.add('field--error-highlight');
+        
+        // Scroll al campo si es necesario
+        fieldElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+        
+        // Remover resaltado después de 3 segundos
+        setTimeout(() => {
+            fieldElement.classList.remove('field--error-highlight');
+        }, 3000);
+    }
+}
+
+// =============================================================================
+// 2. MANEJO DEL MODAL DE PERSONAS CON ALERTAS
+// =============================================================================
+
+/**
+ * 2.1 Abrir modal para crear/editar persona
  */
 async function openPersonModal(personId = null) {
     console.log(`👤 Abriendo modal de persona: ${personId || 'Nueva'}`);
     
     try {
-        // Limpiar caché de validaciones
-        clearValidationCache();
-        
-        // Remover validaciones existentes
-        removeRealTimeValidation();
-        
-        // Mostrar preloader en el modal mientras carga
-        showModalPreloader('Cargando datos...', 'Preparando formulario');
+        // Remover alertas existentes al abrir modal
+        removeExistingAlerts();
         
         // Cargar departamentos antes de abrir el modal
         await loadDepartmentsForModal();
@@ -75,7 +262,14 @@ async function openPersonModal(personId = null) {
                 }
                 
                 DOM.personPosition.value = person.puesto || '';
+                
+                // Mostrar alerta informativa para edición
+                showFormAlert(
+                    `Estás editando a "${person.nombre}". Recuerda guardar los cambios al finalizar.`,
+                    'info'
+                );
             } else {
+                showFormAlert('No se encontró la persona solicitada', 'error');
                 return;
             }
         } else {
@@ -88,117 +282,28 @@ async function openPersonModal(personId = null) {
             if (departmentSelect) {
                 departmentSelect.value = '';
             }
+            
+            // Mostrar alerta guía para nueva persona
+            showFormAlert(
+                'Completa todos los campos requeridos (*) para agregar una nueva persona.',
+                'info'
+            );
         }
-        
-        // Remover preloader
-        removeModalPreloader();
         
         DOM.personModal.style.display = 'flex';
         
         // Agregar validación en tiempo real
         addRealTimeValidation();
         
-        // Validar campos inicialmente
-        validateInitialFields();
-        
     } catch (error) {
         console.error('❌ Error abriendo modal de persona:', error);
-        removeModalPreloader();
-        showFloatingNotification('Error al cargar el formulario', 'error');
+        showAlert('Error al cargar departamentos', 'error');
+        showFormAlert('No se pudieron cargar los departamentos. Por favor, intenta nuevamente.', 'error');
     }
 }
 
 /**
- * 1.2 Mostrar preloader en el modal
- */
-function showModalPreloader(title = 'Cargando...', subtitle = 'Por favor espera un momento') {
-    const modalContent = document.querySelector('.modal__content');
-    if (!modalContent) return;
-    
-    // Remover preloader existente
-    const existingPreloader = modalContent.querySelector('.modal-preloader');
-    if (existingPreloader) {
-        existingPreloader.remove();
-    }
-    
-    // Crear nuevo preloader
-    const preloader = document.createElement('div');
-    preloader.className = 'preloader-overlay preloader-overlay--light modal-preloader';
-    preloader.innerHTML = `
-        <div class="preloader-overlay__content">
-            <div class="preloader__spinner preloader--primary preloader--lg"></div>
-            <p class="preloader__text">${title}</p>
-            <p class="preloader-overlay__subtitle">${subtitle}</p>
-        </div>
-    `;
-    
-    modalContent.style.position = 'relative';
-    modalContent.appendChild(preloader);
-}
-
-/**
- * 1.3 Remover preloader del modal
- */
-function removeModalPreloader() {
-    const preloader = document.querySelector('.modal-preloader');
-    if (preloader) {
-        preloader.classList.add('fade-out');
-        setTimeout(() => {
-            preloader.remove();
-            const modalContent = document.querySelector('.modal__content');
-            if (modalContent) {
-                modalContent.style.position = '';
-            }
-        }, 300);
-    }
-}
-
-/**
- * 1.4 Limpiar caché de validaciones
- */
-function clearValidationCache() {
-    validationCache = {
-        email: { value: '', isValid: true, message: '' },
-        telefono: { value: '', isValid: true, message: '' },
-        nombre: { value: '', isValid: true, message: '' }
-    };
-}
-
-/**
- * 1.5 Validar campos iniciales
- */
-function validateInitialFields() {
-    // Validar nombre si tiene valor
-    if (DOM.personName.value.trim() !== '') {
-        validateNameWithDelay(DOM.personName.value);
-    }
-    
-    // Validar email si tiene valor
-    if (DOM.personEmail.value.trim() !== '') {
-        validateEmailWithDelay(DOM.personEmail.value);
-    }
-    
-    // Validar teléfono si tiene valor
-    if (DOM.personPhone.value.trim() !== '') {
-        validatePhoneWithDelay(DOM.personPhone.value);
-    }
-    
-    // Validar departamento si tiene valor
-    const departmentSelect = document.getElementById('personDepartment');
-    if (departmentSelect && departmentSelect.value && departmentSelect.value !== 'Nuevo Departamento') {
-        const validation = validateDepartment(departmentSelect.value);
-        updateFieldValidation(departmentSelect, validation);
-    }
-    
-    // Validar puesto si tiene valor
-    if (DOM.personPosition.value.trim() !== '') {
-        const validation = validatePosition(DOM.personPosition.value);
-        updateFieldValidation(DOM.personPosition, validation);
-    }
-}
-
-/**
- * 1.6 Cargar departamentos para el modal
+ * 2.2 Cargar departamentos para el modal
  */
 async function loadDepartmentsForModal() {
     try {
@@ -238,6 +343,15 @@ async function loadDepartmentsForModal() {
                     <option value="Nuevo Departamento">+ Crear nuevo departamento</option>
                 `;
                 departmentSelect.disabled = false;
+                
+                // Mostrar alerta informativa
+                if (!document.querySelector('.alert--warning')) {
+                    showFormAlert(
+                        'No hay departamentos registrados. Puedes crear uno nuevo seleccionando "+ Crear nuevo departamento".',
+                        'warning',
+                        'departamento'
+                    );
+                }
             }
         }
         
@@ -250,11 +364,13 @@ async function loadDepartmentsForModal() {
             `;
             departmentSelect.disabled = false;
         }
+        
+        showFormAlert('Error al cargar los departamentos. Intenta recargar la página.', 'error');
     }
 }
 
 /**
- * 1.7 Poblar el select de departamentos
+ * 2.3 Poblar el select de departamentos
  */
 function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById('personDepartment');
@@ -268,6 +384,14 @@ function populateDepartmentSelect(departments) {
         <option value="">Seleccionar departamento *</option>
         <option value="Nuevo Departamento">+ Crear nuevo departamento</option>
     `;
+    
+    if (departments.length === 0) {
+        showFormAlert(
+            'No hay departamentos registrados. Crea un nuevo departamento para asignar a la persona.',
+            'warning',
+            'departamento'
+        );
+    }
     
     departments.forEach(dept => {
         const option = document.createElement('option');
@@ -285,23 +409,22 @@ function populateDepartmentSelect(departments) {
     }
     
     // Agregar event listener para detectar "Crear nuevo"
-    departmentSelect.removeEventListener('change', handleDepartmentSelection);
     departmentSelect.addEventListener('change', handleDepartmentSelection);
 }
 
 /**
- * 1.8 Manejar selección de departamento
+ * 2.4 Manejar selección de departamento
  */
 function handleDepartmentSelection(e) {
     if (e.target.value === "Nuevo Departamento") {
+        // Mostrar alerta informativa
+        showFormAlert(
+            'Serás redirigido al formulario de creación de departamento. Después de crear el departamento, regresa aquí para continuar.',
+            'info'
+        );
+        
         // Resetear
         e.target.value = "";
-        
-        // Remover validación actual
-        const validationMsg = e.target.parentNode.querySelector('.validation-message');
-        if (validationMsg) {
-            validationMsg.remove();
-        }
         
         // Cerrar modal actual
         closePersonModal();
@@ -312,327 +435,42 @@ function handleDepartmentSelection(e) {
                 window.openDepartmentModal();
             }
         }, 500);
-    } else {
-        // Validar el departamento seleccionado
-        const validation = validateDepartment(e.target.value);
-        updateFieldValidation(e.target, validation);
     }
 }
 
 /**
- * 1.9 Cerrar modal de personas
+ * 2.5 Cerrar modal de personas
  */
 function closePersonModal() {
     console.log('❌ Cerrando modal de persona');
+    DOM.personModal.style.display = 'none';
     
-    // Mostrar animación de salida
-    const modalContent = document.querySelector('.modal__content');
-    if (modalContent) {
-        modalContent.classList.add('modal-exit');
-    }
+    // Remover alertas
+    removeExistingAlerts();
     
-    setTimeout(() => {
-        DOM.personModal.style.display = 'none';
-        
-        // Remover clases de animación
-        if (modalContent) {
-            modalContent.classList.remove('modal-exit');
-        }
-        
-        // Limpiar timeouts
-        Object.keys(validationTimeouts).forEach(key => {
-            if (validationTimeouts[key]) {
-                clearTimeout(validationTimeouts[key]);
-                validationTimeouts[key] = null;
-            }
-        });
-        
-        // Remover validaciones
-        removeRealTimeValidation();
-        
-        // Limpiar mensajes de validación
-        clearValidationMessages();
-        
-        // Limpiar caché
-        clearValidationCache();
-        
-        // Remover cualquier preloader
-        removeModalPreloader();
-    }, 300);
-}
-
-/**
- * 1.10 Limpiar mensajes de validación
- */
-function clearValidationMessages() {
-    const validationMessages = document.querySelectorAll('.validation-message');
-    validationMessages.forEach(msg => msg.remove());
-    
-    // Remover clases de validación
-    [DOM.personName, DOM.personEmail, DOM.personPhone, DOM.personPosition].forEach(field => {
-        if (field) {
-            field.classList.remove('field--valid', 'field--invalid');
-        }
-    });
-    
+    // Remover event listener temporal
     const departmentSelect = document.getElementById('personDepartment');
     if (departmentSelect) {
-        departmentSelect.classList.remove('field--valid', 'field--invalid');
+        departmentSelect.removeEventListener('change', handleDepartmentSelection);
     }
+    
+    // Remover validación en tiempo real
+    removeRealTimeValidation();
 }
 
 // =============================================================================
-// 2. VALIDACIONES CON VERIFICACIÓN DE DUPLICADOS
+// 3. VALIDACIONES CON ALERTAS DETALLADAS
 // =============================================================================
 
 /**
- * 2.1 Verificar email duplicado
- */
-async function checkDuplicateEmail(email, currentPersonId = null) {
-    if (!email || email.trim() === '') {
-        return { isDuplicate: false, message: '' };
-    }
-    
-    try {
-        // Obtener todas las personas
-        const response = await api.getPersons();
-        if (response.success && response.persons) {
-            // Buscar si existe otra persona con el mismo email (que no sea la actual)
-            const existingPerson = response.persons.find(p => 
-                p.email.toLowerCase() === email.toLowerCase() && 
-                p._id !== currentPersonId
-            );
-            
-            if (existingPerson) {
-                return { 
-                    isDuplicate: true, 
-                    message: `Este email ya está registrado por: ${existingPerson.nombre}` 
-                };
-            }
-        }
-        return { isDuplicate: false, message: '' };
-    } catch (error) {
-        console.error('Error verificando email duplicado:', error);
-        return { isDuplicate: false, message: '' };
-    }
-}
-
-/**
- * 2.2 Verificar teléfono duplicado
- */
-async function checkDuplicatePhone(phone, currentPersonId = null) {
-    if (!phone || phone.trim() === '') {
-        return { isDuplicate: false, message: '' };
-    }
-    
-    try {
-        // Limpiar el teléfono para comparación
-        const cleanPhone = phone.replace(/[+\s\-()]/g, '');
-        
-        // Obtener todas las personas
-        const response = await api.getPersons();
-        if (response.success && response.persons) {
-            // Buscar si existe otra persona con el mismo teléfono (que no sea la actual)
-            const existingPerson = response.persons.find(p => {
-                if (!p.telefono) return false;
-                const cleanExistingPhone = p.telefono.replace(/[+\s\-()]/g, '');
-                return cleanExistingPhone === cleanPhone && p._id !== currentPersonId;
-            });
-            
-            if (existingPerson) {
-                return { 
-                    isDuplicate: true, 
-                    message: `Este teléfono ya está registrado por: ${existingPerson.nombre}` 
-                };
-            }
-        }
-        return { isDuplicate: false, message: '' };
-    } catch (error) {
-        console.error('Error verificando teléfono duplicado:', error);
-        return { isDuplicate: false, message: '' };
-    }
-}
-
-/**
- * 2.3 Verificar nombre duplicado
- */
-async function checkDuplicateName(name, currentPersonId = null) {
-    if (!name || name.trim() === '') {
-        return { isDuplicate: false, message: '' };
-    }
-    
-    try {
-        // Obtener todas las personas
-        const response = await api.getPersons();
-        if (response.success && response.persons) {
-            // Buscar si existe otra persona con el mismo nombre (que no sea la actual)
-            const existingPerson = response.persons.find(p => 
-                p.nombre.toLowerCase() === name.toLowerCase() && 
-                p._id !== currentPersonId
-            );
-            
-            if (existingPerson) {
-                return { 
-                    isDuplicate: true, 
-                    message: `Ya existe una persona con este nombre` 
-                };
-            }
-        }
-        return { isDuplicate: false, message: '' };
-    } catch (error) {
-        console.error('Error verificando nombre duplicado:', error);
-        return { isDuplicate: false, message: '' };
-    }
-}
-
-/**
- * 2.4 Validar email con verificación de duplicado
- */
-async function validateEmailWithDelay(emailValue) {
-    const currentPersonId = DOM.personId.value || null;
-    
-    // Validación básica primero
-    const basicValidation = validateEmail(emailValue);
-    
-    if (!basicValidation.isValid) {
-        updateFieldValidation(DOM.personEmail, basicValidation);
-        return;
-    }
-    
-    // Mostrar "Verificando..." mientras se comprueba duplicado
-    showVerifyingMessage(DOM.personEmail, 'Verificando email...');
-    
-    // Verificar duplicado
-    const duplicateCheck = await checkDuplicateEmail(emailValue, currentPersonId);
-    
-    if (duplicateCheck.isDuplicate) {
-        const validation = {
-            isValid: false,
-            message: duplicateCheck.message,
-            field: 'email'
-        };
-        updateFieldValidation(DOM.personEmail, validation);
-    } else {
-        const validation = {
-            isValid: true,
-            message: 'Email disponible',
-            field: 'email'
-        };
-        updateFieldValidation(DOM.personEmail, validation);
-    }
-}
-
-/**
- * 2.5 Validar teléfono con verificación de duplicado
- */
-async function validatePhoneWithDelay(phoneValue) {
-    const currentPersonId = DOM.personId.value || null;
-    
-    // Validación básica primero
-    const basicValidation = validatePhone(phoneValue);
-    
-    if (!basicValidation.isValid) {
-        updateFieldValidation(DOM.personPhone, basicValidation);
-        return;
-    }
-    
-    // Si está vacío (opcional), no verificar duplicado
-    if (!phoneValue || phoneValue.trim() === '') {
-        updateFieldValidation(DOM.personPhone, basicValidation);
-        return;
-    }
-    
-    // Mostrar "Verificando..." mientras se comprueba duplicado
-    showVerifyingMessage(DOM.personPhone, 'Verificando teléfono...');
-    
-    // Verificar duplicado
-    const duplicateCheck = await checkDuplicatePhone(phoneValue, currentPersonId);
-    
-    if (duplicateCheck.isDuplicate) {
-        const validation = {
-            isValid: false,
-            message: duplicateCheck.message,
-            field: 'telefono'
-        };
-        updateFieldValidation(DOM.personPhone, validation);
-    } else {
-        const validation = {
-            isValid: true,
-            message: 'Teléfono disponible',
-            field: 'telefono'
-        };
-        updateFieldValidation(DOM.personPhone, validation);
-    }
-}
-
-/**
- * 2.6 Validar nombre con verificación de duplicado
- */
-async function validateNameWithDelay(nameValue) {
-    const currentPersonId = DOM.personId.value || null;
-    
-    // Validación básica primero
-    const basicValidation = validateName(nameValue);
-    
-    if (!basicValidation.isValid) {
-        updateFieldValidation(DOM.personName, basicValidation);
-        return;
-    }
-    
-    // Mostrar "Verificando..." mientras se comprueba duplicado
-    showVerifyingMessage(DOM.personName, 'Verificando nombre...');
-    
-    // Verificar duplicado
-    const duplicateCheck = await checkDuplicateName(nameValue, currentPersonId);
-    
-    if (duplicateCheck.isDuplicate) {
-        const validation = {
-            isValid: false,
-            message: duplicateCheck.message,
-            field: 'nombre'
-        };
-        updateFieldValidation(DOM.personName, validation);
-    } else {
-        const validation = {
-            isValid: true,
-            message: 'Nombre disponible',
-            field: 'nombre'
-        };
-        updateFieldValidation(DOM.personName, validation);
-    }
-}
-
-/**
- * 2.7 Mostrar mensaje de verificación
- */
-function showVerifyingMessage(field, message) {
-    if (!field) return;
-    
-    // Remover clases anteriores
-    field.classList.remove('field--valid', 'field--invalid');
-    
-    // Remover mensaje anterior si existe
-    const existingMessage = field.parentNode.querySelector('.validation-message');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
-    
-    // Crear mensaje de verificación
-    const messageElement = document.createElement('div');
-    messageElement.className = 'validation-message validation-message--verifying';
-    messageElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${message}`;
-    
-    field.parentNode.appendChild(messageElement);
-}
-
-/**
- * 2.8 Validar email (validación básica)
+ * 3.1 Validar email con alertas específicas
  */
 function validateEmail(email) {
     if (!email || email.trim() === '') {
         return { 
             isValid: false, 
             message: 'El email es obligatorio',
+            alertMessage: '❌ Debes ingresar un email para la persona.',
             field: 'email'
         };
     }
@@ -645,6 +483,7 @@ function validateEmail(email) {
         return { 
             isValid: false, 
             message: 'El email debe contener un símbolo @',
+            alertMessage: '❌ El email debe contener un símbolo @ (ejemplo: usuario@dominio.com)',
             field: 'email'
         };
     }
@@ -652,6 +491,7 @@ function validateEmail(email) {
         return { 
             isValid: false, 
             message: 'El email solo puede contener un símbolo @',
+            alertMessage: '❌ El email solo puede contener un símbolo @. Elimina los adicionales.',
             field: 'email'
         };
     }
@@ -661,7 +501,8 @@ function validateEmail(email) {
     if (!emailRegex.test(emailValue)) {
         return { 
             isValid: false, 
-            message: 'Formato inválido. Ejemplo: usuario@dominio.com',
+            message: 'Formato de email inválido (ejemplo: usuario@dominio.com)',
+            alertMessage: '❌ Formato de email inválido. Usa: nombre@dominio.com',
             field: 'email'
         };
     }
@@ -672,7 +513,8 @@ function validateEmail(email) {
         emailValue.startsWith('@') || emailValue.endsWith('@')) {
         return { 
             isValid: false, 
-            message: 'El email no puede empezar o terminar con símbolos especiales',
+            message: 'Formato de email inválido',
+            alertMessage: '❌ El email no puede empezar o terminar con puntos, guiones o @',
             field: 'email'
         };
     }
@@ -685,6 +527,7 @@ function validateEmail(email) {
         return { 
             isValid: false, 
             message: 'Dominio de email muy corto',
+            alertMessage: '❌ El dominio del email es muy corto. Usa un dominio válido.',
             field: 'email'
         };
     }
@@ -693,7 +536,8 @@ function validateEmail(email) {
     if (!domain.includes('.')) {
         return { 
             isValid: false, 
-            message: 'El dominio necesita un punto (ejemplo: gmail.com)',
+            message: 'Dominio de email inválido',
+            alertMessage: '❌ El dominio del email necesita un punto (ejemplo: gmail.com)',
             field: 'email'
         };
     }
@@ -705,19 +549,21 @@ function validateEmail(email) {
         return { 
             isValid: false, 
             message: 'Extensión del dominio inválida',
+            alertMessage: '❌ La extensión del dominio es muy corta (ejemplo: .com, .org, .net)',
             field: 'email'
         };
     }
     
     return { 
         isValid: true, 
-        message: 'Formato de email válido',
+        message: 'Email válido',
+        alertMessage: '✓ Email válido',
         field: 'email'
     };
 }
 
 /**
- * 2.9 Validar teléfono (validación básica)
+ * 3.2 Validar teléfono con alertas específicas
  */
 function validatePhone(phone) {
     // Si el teléfono está vacío, es opcional
@@ -725,6 +571,7 @@ function validatePhone(phone) {
         return { 
             isValid: true, 
             message: 'Teléfono (opcional)',
+            alertMessage: 'ℹ️ Teléfono es opcional, pero recomendado',
             field: 'telefono'
         };
     }
@@ -738,7 +585,8 @@ function validatePhone(phone) {
     if (!/^\d+$/.test(cleanPhone)) {
         return { 
             isValid: false, 
-            message: 'Solo números, sin letras ni símbolos',
+            message: 'El teléfono solo puede contener números',
+            alertMessage: '❌ El teléfono solo puede contener números. Elimina letras o símbolos especiales.',
             field: 'telefono'
         };
     }
@@ -747,7 +595,8 @@ function validatePhone(phone) {
     if (cleanPhone.length > 10) {
         return { 
             isValid: false, 
-            message: 'Máximo 10 dígitos',
+            message: 'El teléfono no puede exceder los 10 dígitos',
+            alertMessage: '❌ El teléfono no puede tener más de 10 dígitos.',
             field: 'telefono'
         };
     }
@@ -756,35 +605,39 @@ function validatePhone(phone) {
     if (cleanPhone.length < 8) {
         return { 
             isValid: false, 
-            message: 'Mínimo 8 dígitos',
+            message: 'El teléfono debe tener al menos 8 dígitos',
+            alertMessage: '❌ El teléfono debe tener al menos 8 dígitos.',
             field: 'telefono'
         };
     }
     
-    // Validar formato del número (no puede empezar con 0)
+    // Validar formato del número (no puede empezar con 0 en algunos países, ajusta según necesidad)
     if (cleanPhone.startsWith('0')) {
         return { 
             isValid: false, 
-            message: 'No puede comenzar con 0',
+            message: 'El teléfono no puede comenzar con 0',
+            alertMessage: '❌ El teléfono no puede comenzar con 0. Ejemplo correcto: 5512345678',
             field: 'telefono'
         };
     }
     
     return { 
         isValid: true, 
-        message: 'Formato de teléfono válido',
+        message: 'Teléfono válido',
+        alertMessage: '✓ Teléfono válido',
         field: 'telefono'
     };
 }
 
 /**
- * 2.10 Validar nombre (validación básica)
+ * 3.3 Validar nombre con alertas específicas
  */
 function validateName(name) {
     if (!name || name.trim() === '') {
         return { 
             isValid: false, 
             message: 'El nombre es obligatorio',
+            alertMessage: '❌ ¡Olvidaste poner el nombre de la persona!',
             field: 'nombre'
         };
     }
@@ -795,7 +648,8 @@ function validateName(name) {
     if (nameValue.length < 2) {
         return { 
             isValid: false, 
-            message: 'Mínimo 2 caracteres',
+            message: 'El nombre debe tener al menos 2 caracteres',
+            alertMessage: '❌ El nombre es muy corto. Debe tener al menos 2 caracteres.',
             field: 'nombre'
         };
     }
@@ -804,7 +658,8 @@ function validateName(name) {
     if (nameValue.length > 100) {
         return { 
             isValid: false, 
-            message: 'Máximo 100 caracteres',
+            message: 'El nombre no puede exceder los 100 caracteres',
+            alertMessage: '❌ El nombre es muy largo. Máximo 100 caracteres.',
             field: 'nombre'
         };
     }
@@ -814,7 +669,8 @@ function validateName(name) {
     if (!nameRegex.test(nameValue)) {
         return { 
             isValid: false, 
-            message: 'Solo letras y espacios',
+            message: 'El nombre contiene caracteres inválidos',
+            alertMessage: '❌ El nombre contiene caracteres inválidos. Solo letras, espacios y algunos símbolos.',
             field: 'nombre'
         };
     }
@@ -823,26 +679,29 @@ function validateName(name) {
     if (!nameValue.replace(/\s/g, '').length) {
         return { 
             isValid: false, 
-            message: 'No puede contener solo espacios',
+            message: 'El nombre no puede contener solo espacios',
+            alertMessage: '❌ El nombre no puede contener solo espacios.',
             field: 'nombre'
         };
     }
     
     return { 
         isValid: true, 
-        message: 'Formato de nombre válido',
+        message: 'Nombre válido',
+        alertMessage: '✓ Nombre válido',
         field: 'nombre'
     };
 }
 
 /**
- * 2.11 Validar puesto (opcional)
+ * 3.4 Validar puesto (opcional)
  */
 function validatePosition(position) {
     if (!position || position.trim() === '') {
         return { 
             isValid: true, 
             message: 'Puesto (opcional)',
+            alertMessage: '',
             field: 'puesto'
         };
     }
@@ -853,7 +712,8 @@ function validatePosition(position) {
     if (positionValue.length > 100) {
         return { 
             isValid: false, 
-            message: 'Máximo 100 caracteres',
+            message: 'El puesto no puede exceder los 100 caracteres',
+            alertMessage: '❌ El puesto es muy largo. Máximo 100 caracteres.',
             field: 'puesto'
         };
     }
@@ -861,18 +721,20 @@ function validatePosition(position) {
     return { 
         isValid: true, 
         message: 'Puesto válido',
+        alertMessage: '✓ Puesto válido',
         field: 'puesto'
     };
 }
 
 /**
- * 2.12 Validar departamento
+ * 3.5 Validar departamento con alertas específicas
  */
 function validateDepartment(department) {
     if (!department || department.trim() === '') {
         return { 
             isValid: false, 
-            message: 'Selecciona un departamento',
+            message: 'El departamento es obligatorio',
+            alertMessage: '❌ ¡Olvidaste seleccionar el departamento! Es un campo obligatorio.',
             field: 'departamento'
         };
     }
@@ -881,6 +743,7 @@ function validateDepartment(department) {
         return { 
             isValid: false, 
             message: 'Selecciona un departamento válido o crea uno nuevo',
+            alertMessage: '❌ Selecciona un departamento existente o crea uno nuevo.',
             field: 'departamento'
         };
     }
@@ -888,86 +751,56 @@ function validateDepartment(department) {
     return { 
         isValid: true, 
         message: 'Departamento válido',
+        alertMessage: '✓ Departamento seleccionado',
         field: 'departamento'
     };
 }
 
 /**
- * 2.13 Agregar validación en tiempo real con delay
+ * 3.6 Agregar validación en tiempo real con alertas
  */
 function addRealTimeValidation() {
-    // Remove previous listeners
+    // Remove previous listeners if they exist
     removeRealTimeValidation();
 
-    // Validate name with delay
+    // Helper function to display validation message below the input field
+    function displayValidationMessage(inputElement, message, isValid) {
+        let messageElement = inputElement.nextElementSibling;
+        if (!messageElement || !messageElement.classList.contains('validation-message')) {
+            messageElement = document.createElement('div');
+            messageElement.className = 'validation-message';
+            inputElement.parentNode.insertBefore(messageElement, inputElement.nextSibling);
+        }
+        messageElement.textContent = message;
+        messageElement.style.color = isValid ? 'green' : 'red';
+    }
+
+    // Validate name
     DOM.personName.addEventListener('input', function() {
-        const value = this.value;
-        
-        // Limpiar timeout anterior
-        if (validationTimeouts.nombre) {
-            clearTimeout(validationTimeouts.nombre);
-        }
-        
-        // Validación básica inmediata
-        const basicValidation = validateName(value);
-        if (!basicValidation.isValid || value.trim() === '') {
-            updateFieldValidation(this, basicValidation);
-            return;
-        }
-        
-        // Delay para verificación de duplicado
-        validationTimeouts.nombre = setTimeout(() => {
-            validateNameWithDelay(value);
-        }, 500);
+        const validation = validateName(this.value);
+        updateFieldValidation(this, validation);
+        displayValidationMessage(this, validation.alertMessage, validation.isValid);
     });
 
-    // Validate email with delay
+    // Validate email
     DOM.personEmail.addEventListener('input', function() {
-        const value = this.value;
-        
-        // Limpiar timeout anterior
-        if (validationTimeouts.email) {
-            clearTimeout(validationTimeouts.email);
-        }
-        
-        // Validación básica inmediata
-        const basicValidation = validateEmail(value);
-        if (!basicValidation.isValid || value.trim() === '') {
-            updateFieldValidation(this, basicValidation);
-            return;
-        }
-        
-        // Delay para verificación de duplicado
-        validationTimeouts.email = setTimeout(() => {
-            validateEmailWithDelay(value);
-        }, 500);
+        const validation = validateEmail(this.value);
+        updateFieldValidation(this, validation);
+        displayValidationMessage(this, validation.alertMessage, validation.isValid);
     });
 
-    // Validate phone with delay
+    // Validate phone
     DOM.personPhone.addEventListener('input', function() {
-        const value = this.value;
-        
-        // Limpiar timeout anterior
-        if (validationTimeouts.telefono) {
-            clearTimeout(validationTimeouts.telefono);
-        }
-        
-        // Validación básica inmediata
-        const basicValidation = validatePhone(value);
-        updateFieldValidation(this, basicValidation);
-        
-        // Si es válido y no está vacío, verificar duplicado con delay
-        if (basicValidation.isValid && value.trim() !== '') {
-            validationTimeouts.telefono = setTimeout(() => {
-                validatePhoneWithDelay(value);
-            }, 500);
-        }
+        const validation = validatePhone(this.value);
+        updateFieldValidation(this, validation);
+        displayValidationMessage(this, validation.alertMessage, validation.isValid);
     });
 
     // Validate position
     DOM.personPosition.addEventListener('input', function() {
         const validation = validatePosition(this.value);
         updateFieldValidation(this, validation);
+        displayValidationMessage(this, validation.alertMessage, validation.isValid);
     });
 
     // Validate department
@@ -976,26 +809,19 @@ function addRealTimeValidation() {
         departmentSelect.addEventListener('change', function() {
             const validation = validateDepartment(this.value);
             updateFieldValidation(this, validation);
+            displayValidationMessage(this, validation.alertMessage, validation.isValid);
         });
     }
 }
 
 /**
- * 2.14 Remover validación en tiempo real
+ * 3.7 Remover validación en tiempo real
  */
 function removeRealTimeValidation() {
-    if (DOM.personName) {
-        DOM.personName.removeEventListener('input', () => {});
-    }
-    if (DOM.personEmail) {
-        DOM.personEmail.removeEventListener('input', () => {});
-    }
-    if (DOM.personPhone) {
-        DOM.personPhone.removeEventListener('input', () => {});
-    }
-    if (DOM.personPosition) {
-        DOM.personPosition.removeEventListener('input', () => {});
-    }
+    DOM.personName.removeEventListener('input', () => {});
+    DOM.personEmail.removeEventListener('input', () => {});
+    DOM.personPhone.removeEventListener('input', () => {});
+    DOM.personPosition.removeEventListener('input', () => {});
     
     const departmentSelect = document.getElementById('personDepartment');
     if (departmentSelect) {
@@ -1004,13 +830,11 @@ function removeRealTimeValidation() {
 }
 
 /**
- * 2.15 Actualizar estado de validación del campo
+ * 3.8 Actualizar estado de validación del campo
  */
 function updateFieldValidation(field, validation) {
-    if (!field) return;
-    
     // Remover clases anteriores
-    field.classList.remove('field--valid', 'field--invalid');
+    field.classList.remove('field--valid', 'field--invalid', 'field--error-highlight');
     
     // Remover mensaje anterior si existe
     const existingMessage = field.parentNode.querySelector('.validation-message');
@@ -1018,89 +842,77 @@ function updateFieldValidation(field, validation) {
         existingMessage.remove();
     }
     
-    // No mostrar mensaje para campos vacíos no obligatorios
-    if (field.value.trim() === '' && field !== DOM.personName && field !== DOM.personEmail && field.id !== 'personDepartment') {
+    if (field.value.trim() === '') {
+        // Para campos vacíos, solo mostrar mensaje si son requeridos
+        if ((field === DOM.personName || field === DOM.personEmail || 
+             (field.id === 'personDepartment' && field.value === '')) && 
+            !validation.isValid) {
+            field.classList.add('field--invalid');
+            
+            // Crear y mostrar mensaje de error
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'validation-message validation-message--error';
+            errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${validation.message}`;
+            field.parentNode.appendChild(errorMessage);
+        }
         return;
     }
     
-    // Crear y mostrar mensaje de validación
-    const messageElement = document.createElement('div');
-    messageElement.className = 'validation-message';
-    
     if (validation.isValid) {
         field.classList.add('field--valid');
-        messageElement.classList.add('validation-message--success');
-        messageElement.innerHTML = `<i class="fas fa-check-circle"></i> ${validation.message}`;
+        
+        // Crear y mostrar mensaje de éxito
+        const successMessage = document.createElement('div');
+        successMessage.className = 'validation-message validation-message--success';
+        successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${validation.message}`;
+        field.parentNode.appendChild(successMessage);
     } else {
         field.classList.add('field--invalid');
-        messageElement.classList.add('validation-message--error');
-        messageElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${validation.message}`;
+        
+        // Crear y mostrar mensaje de error
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'validation-message validation-message--error';
+        errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${validation.message}`;
+        field.parentNode.appendChild(errorMessage);
     }
-    
-    field.parentNode.appendChild(messageElement);
 }
 
 /**
- * 2.16 Validar formulario completo
+ * 3.9 Validar formulario completo con alertas detalladas
  */
-async function validateForm() {
+function validateForm() {
     let isValid = true;
+    const errors = [];
+    const errorDetails = [];
     
     // Validar nombre
-    const nameValue = DOM.personName.value;
-    const nameValidation = validateName(nameValue);
+    const nameValidation = validateName(DOM.personName.value);
     if (!nameValidation.isValid) {
         isValid = false;
-        updateFieldValidation(DOM.personName, nameValidation);
-    } else {
-        // Verificar duplicado de nombre
-        const duplicateCheck = await checkDuplicateName(nameValue, DOM.personId.value);
-        if (duplicateCheck.isDuplicate) {
-            isValid = false;
-            updateFieldValidation(DOM.personName, {
-                isValid: false,
-                message: duplicateCheck.message,
-                field: 'nombre'
-            });
-        }
+        errors.push(nameValidation.message);
+        errorDetails.push(nameValidation.alertMessage);
+        DOM.personName.classList.add('field--invalid');
+        highlightField('nombre');
     }
     
     // Validar email
-    const emailValue = DOM.personEmail.value;
-    const emailValidation = validateEmail(emailValue);
+    const emailValidation = validateEmail(DOM.personEmail.value);
     if (!emailValidation.isValid) {
         isValid = false;
-        updateFieldValidation(DOM.personEmail, emailValidation);
-    } else {
-        // Verificar duplicado de email
-        const duplicateCheck = await checkDuplicateEmail(emailValue, DOM.personId.value);
-        if (duplicateCheck.isDuplicate) {
-            isValid = false;
-            updateFieldValidation(DOM.personEmail, {
-                isValid: false,
-                message: duplicateCheck.message,
-                field: 'email'
-            });
-        }
+        errors.push(emailValidation.message);
+        errorDetails.push(emailValidation.alertMessage);
+        DOM.personEmail.classList.add('field--invalid');
+        highlightField('email');
     }
     
     // Validar teléfono
-    const phoneValue = DOM.personPhone.value;
-    const phoneValidation = validatePhone(phoneValue);
+    const phoneValidation = validatePhone(DOM.personPhone.value);
     if (!phoneValidation.isValid) {
         isValid = false;
-        updateFieldValidation(DOM.personPhone, phoneValidation);
-    } else if (phoneValue.trim() !== '') {
-        // Verificar duplicado de teléfono solo si tiene valor
-        const duplicateCheck = await checkDuplicatePhone(phoneValue, DOM.personId.value);
-        if (duplicateCheck.isDuplicate) {
-            isValid = false;
-            updateFieldValidation(DOM.personPhone, {
-                isValid: false,
-                message: duplicateCheck.message,
-                field: 'telefono'
-            });
-        }
+        errors.push(phoneValidation.message);
+        errorDetails.push(phoneValidation.alertMessage);
+        DOM.personPhone.classList.add('field--invalid');
+        highlightField('telefono');
     }
     
     // Validar departamento
@@ -1109,29 +921,47 @@ async function validateForm() {
     const departmentValidation = validateDepartment(departmentValue);
     if (!departmentValidation.isValid) {
         isValid = false;
+        errors.push(departmentValidation.message);
+        errorDetails.push(departmentValidation.alertMessage);
         if (departmentSelect) {
-            updateFieldValidation(departmentSelect, departmentValidation);
+            departmentSelect.classList.add('field--invalid');
+            highlightField('departamento');
         }
     }
     
-    // Validar puesto (solo si tiene valor)
+    // Validar puesto (opcional, solo si hay valor)
     if (DOM.personPosition.value.trim() !== '') {
         const positionValidation = validatePosition(DOM.personPosition.value);
         if (!positionValidation.isValid) {
             isValid = false;
-            updateFieldValidation(DOM.personPosition, positionValidation);
+            errors.push(positionValidation.message);
+            errorDetails.push(positionValidation.alertMessage);
+            DOM.personPosition.classList.add('field--invalid');
+            highlightField('puesto');
         }
     }
     
-    return isValid;
+    // Si hay errores, mostrar alerta consolidada
+    if (!isValid) {
+        const errorList = errorDetails.map(error => `• ${error.replace(/[❌✓ℹ️]/g, '').trim()}`).join('\n');
+        showFormAlert(
+            `Se encontraron ${errors.length} error(es) en el formulario:\n${errorList}`,
+            'error'
+        );
+        
+        // También mostrar alerta global
+        showAlert(`Por favor corrige los ${errors.length} error(es) en el formulario`, 'error');
+    }
+    
+    return { isValid, errors, errorDetails };
 }
 
 // =============================================================================
-// 3. FILTROS Y ORDENAMIENTO
+// 4. FILTROS Y ORDENAMIENTO
 // =============================================================================
 
 /**
- * 3.1 Inicializar filtros
+ * 4.1 Inicializar filtros
  */
 function initializeFilters() {
     // Inicializar búsqueda
@@ -1140,6 +970,14 @@ function initializeFilters() {
         searchInput.addEventListener('input', function(e) {
             currentFilters.search = e.target.value.toLowerCase();
             applyFilters();
+            
+            // Mostrar alerta si la búsqueda no arroja resultados
+            setTimeout(() => {
+                const noResults = document.querySelector('.empty-state .empty-state__title');
+                if (noResults && noResults.textContent.includes('No se encontraron resultados')) {
+                    showAlert('No se encontraron personas que coincidan con tu búsqueda', 'warning');
+                }
+            }, 500);
         });
     }
     
@@ -1149,6 +987,13 @@ function initializeFilters() {
         puestoFilter.addEventListener('change', function(e) {
             currentFilters.puesto = e.target.value;
             applyFilters();
+            
+            // Mostrar alerta informativa
+            if (e.target.value) {
+                showAlert(`Filtrando por puesto: ${e.target.value}`, 'info');
+            } else {
+                showAlert('Mostrando todos los puestos', 'info');
+            }
         });
     }
     
@@ -1158,17 +1003,25 @@ function initializeFilters() {
         sortFilter.addEventListener('change', function(e) {
             currentFilters.sort = e.target.value;
             applyFilters();
+            
+            // Mostrar alerta informativa
+            const sortText = e.target.options[e.target.selectedIndex].text;
+            showAlert(`Ordenando personas: ${sortText}`, 'info');
         });
     }
 }
 
 /**
- * 3.2 Aplicar filtros
+ * 4.2 Aplicar filtros
  */
 function applyFilters() {
     console.log('🔍 Aplicando filtros:', currentFilters);
     
     if (!window.appState.persons || window.appState.persons.length === 0) {
+        // Mostrar alerta si no hay personas
+        if (window.appState.persons && window.appState.persons.length === 0) {
+            showAlert('No hay personas registradas para aplicar filtros', 'warning');
+        }
         return;
     }
     
@@ -1205,10 +1058,17 @@ function applyFilters() {
     
     // Actualizar tabla con las personas filtradas
     renderFilteredPersonsTable(filteredPersons);
+    
+    // Mostrar alerta de resultados
+    if (filteredPersons.length === 0 && (currentFilters.search || currentFilters.puesto)) {
+        showAlert('No se encontraron resultados con los filtros aplicados', 'warning');
+    } else if (filteredPersons.length > 0 && (currentFilters.search || currentFilters.puesto)) {
+        showAlert(`Mostrando ${filteredPersons.length} persona(s)`, 'info');
+    }
 }
 
 /**
- * 3.3 Renderizar tabla filtrada
+ * 4.3 Renderizar tabla filtrada
  */
 function renderFilteredPersonsTable(persons) {
     if (!DOM.personasTableBody) return;
@@ -1286,7 +1146,7 @@ function renderFilteredPersonsTable(persons) {
 }
 
 /**
- * 3.4 Actualizar lista de puestos en el filtro
+ * 4.4 Actualizar lista de puestos en el filtro
  */
 function updatePuestosFilter() {
     const puestoFilter = document.getElementById('personasPuestoFilter');
@@ -1319,10 +1179,16 @@ function updatePuestosFilter() {
     if (currentValue && Array.from(puestos).includes(currentValue)) {
         puestoFilter.value = currentValue;
     }
+    
+    // Mostrar alerta si hay personas sin puesto
+    const personsWithoutPosition = window.appState.persons.filter(p => !p.puesto || p.puesto.trim() === '');
+    if (personsWithoutPosition.length > 0) {
+        showAlert(`${personsWithoutPosition.length} persona(s) no tienen puesto asignado`, 'warning');
+    }
 }
 
 /**
- * 3.5 Limpiar filtros
+ * 4.5 Limpiar filtros
  */
 function clearFilters() {
     // Resetear valores de los filtros
@@ -1342,23 +1208,24 @@ function clearFilters() {
     const sortFilter = document.getElementById('personasSortFilter');
     if (sortFilter) sortFilter.value = 'nombre-asc';
     
+    // Mostrar alerta
+    showAlert('Filtros limpiados correctamente', 'success');
+    
     // Renderizar tabla original
     renderPersonsTable();
 }
 
 // =============================================================================
-// 4. OPERACIONES CRUD DE PERSONAS
+// 5. OPERACIONES CRUD DE PERSONAS CON ALERTAS MEJORADAS
 // =============================================================================
 
-/**
- * 4.1 Guardar persona (Crear/Actualizar)
- */
 async function savePerson() {
     console.log('💾 Intentando guardar persona...');
     
     // Validar formulario antes de enviar
-    const isValid = await validateForm();
-    if (!isValid) {
+    const formValidation = validateForm();
+    if (!formValidation.isValid) {
+        // Las alertas ya se mostraron en validateForm()
         return;
     }
     
@@ -1366,12 +1233,41 @@ async function savePerson() {
     const departmentSelect = document.getElementById('personDepartment');
     const selectedDepartment = departmentSelect ? departmentSelect.value : '';
     
-    const isEditing = DOM.personId.value ? true : false;
-    const actionText = isEditing ? 'Actualizando persona...' : 'Creando persona...';
+    // Verificar si el departamento está vacío
+    if (!selectedDepartment || selectedDepartment.trim() === '') {
+        showFormAlert('❌ ¡Olvidaste seleccionar el departamento! Es un campo obligatorio.', 'error', 'departamento');
+        showAlert('Debes seleccionar un departamento para la persona', 'error');
+        return;
+    }
     
     try {
-        // Mostrar preloader mejorado con animación
-        await showSavePreloader(actionText, isEditing);
+        // Mostrar alerta de proceso
+        showFormAlert(
+            DOM.personId.value ? 'Actualizando información de la persona...' : 'Creando nueva persona...',
+            'info'
+        );
+        
+        // Crear preloader overlay dentro del modal
+        const modalContent = document.querySelector('.modal__content');
+        const preloader = document.createElement('div');
+        preloader.className = 'preloader-overlay preloader-overlay--light modal-preloader';
+        preloader.innerHTML = `
+            <div class="preloader-overlay__content">
+                <div class="preloader__spinner preloader--primary preloader--lg"></div>
+                <p class="preloader__text">${DOM.personId.value ? 'Actualizando persona...' : 'Creando persona...'}</p>
+                <p class="preloader-overlay__subtitle">Por favor espera un momento</p>
+            </div>
+        `;
+        
+        modalContent.style.position = 'relative';
+        modalContent.appendChild(preloader);
+        
+        // Deshabilitar formulario
+        const formElements = DOM.personForm.querySelectorAll('input, select, button');
+        formElements.forEach(el => {
+            el.disabled = true;
+            el.style.opacity = '0.6';
+        });
         
         const personData = {
             nombre: DOM.personName.value.trim(),
@@ -1384,25 +1280,49 @@ async function savePerson() {
         console.log('💾 Guardando persona:', personData);
         
         let data;
-        if (isEditing) {
+        if (DOM.personId.value) {
             data = await api.updatePerson(DOM.personId.value, personData);
         } else {
             data = await api.createPerson(personData);
         }
         
         if (data.success) {
+            // Mostrar alerta de éxito
+            showFormAlert(`✅ ${data.message}`, 'success');
+            
             // Mostrar animación de éxito
-            await showSuccessAnimation(isEditing ? '¡Persona actualizada!' : '¡Persona creada!', data.message);
+            preloader.innerHTML = `
+                <div class="preloader-overlay__content">
+                    <div class="success-animation" style="font-size: 4rem; color: #4CAF50; margin-bottom: 1rem;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 class="preloader-overlay__title">¡Éxito!</h3>
+                    <p class="preloader-overlay__subtitle">${data.message}</p>
+                    <div class="preloader-message">
+                        <p class="preloader-message__text">Redirigiendo en 2 segundos...</p>
+                    </div>
+                </div>
+            `;
+            
+            // Aplicar animación de éxito al modal
+            modalContent.classList.add('modal-success');
+            
+            // Esperar un momento antes de continuar
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Limpiar preloader
+            preloader.classList.add('fade-out');
+            setTimeout(() => {
+                preloader.remove();
+                modalContent.classList.remove('modal-success');
+            }, 300);
             
             // Cerrar modal y recargar datos
             closePersonModal();
             await loadPersons();
             
-            // Mostrar notificación flotante de éxito
-            showFloatingNotification(
-                isEditing ? 'Persona actualizada exitosamente' : 'Persona creada exitosamente',
-                'success'
-            );
+            // Mostrar notificación de éxito global
+            showAlert(data.message, 'success');
             
             // Actualizar dashboard si existe la función
             try {
@@ -1420,292 +1340,185 @@ async function savePerson() {
     } catch (error) {
         console.error('❌ Error guardando persona:', error);
         
+        // Mostrar alerta de error
+        let errorMessage = 'Error al guardar persona: ' + error.message;
+        
+        // Mensajes más amigables para errores comunes
+        if (error.message.includes('duplicate') || error.message.includes('ya existe')) {
+            errorMessage = '❌ Ya existe una persona con ese email. Usa un email diferente.';
+            showFormAlert(errorMessage, 'error', 'email');
+        } else if (error.message.includes('departamento')) {
+            errorMessage = '❌ Error con el departamento. Verifica que exista o crea uno nuevo.';
+            showFormAlert(errorMessage, 'error', 'departamento');
+        } else if (error.message.includes('required')) {
+            errorMessage = '❌ Faltan campos obligatorios. Revisa el formulario.';
+            showFormAlert(errorMessage, 'error');
+        } else {
+            showFormAlert(`❌ ${errorMessage}`, 'error');
+        }
+        
         // Mostrar error en el preloader
-        await showErrorAnimation(error.message);
-        
-        // Mostrar notificación flotante de error
-        showFloatingNotification(error.message || 'Error al guardar la persona', 'error');
-    }
-}
-
-/**
- * 4.2 Mostrar preloader de guardado
- */
-function showSavePreloader(actionText, isEditing = false) {
-    return new Promise((resolve) => {
-        const modalContent = document.querySelector('.modal__content');
-        if (!modalContent) {
-            resolve();
-            return;
-        }
-        
-        // Remover preloader existente
-        const existingPreloader = modalContent.querySelector('.modal-preloader');
-        if (existingPreloader) {
-            existingPreloader.remove();
-        }
-        
-        // Crear preloader mejorado
-        const preloader = document.createElement('div');
-        preloader.className = 'preloader-overlay preloader-overlay--light modal-preloader save-preloader';
-        preloader.innerHTML = `
-            <div class="preloader-overlay__content">
-                <div class="preloader__spinner preloader--${isEditing ? 'warning' : 'primary'} preloader--lg"></div>
-                <div class="preloader__progress">
-                    <div class="preloader__progress-bar" style="width: 0%;"></div>
-                </div>
-                <p class="preloader__text">${actionText}</p>
-                <p class="preloader-overlay__subtitle">Por favor espera un momento</p>
-                <div class="preloader__dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-        `;
-        
-        modalContent.style.position = 'relative';
-        modalContent.appendChild(preloader);
-        
-        // Deshabilitar formulario
-        const formElements = DOM.personForm.querySelectorAll('input, select, button');
-        formElements.forEach(el => {
-            el.disabled = true;
-            el.style.opacity = '0.6';
-            el.style.pointerEvents = 'none';
-        });
-        
-        // Animar barra de progreso
-        setTimeout(() => {
-            const progressBar = preloader.querySelector('.preloader__progress-bar');
-            if (progressBar) {
-                progressBar.style.width = '70%';
-                progressBar.style.transition = 'width 0.8s ease';
-            }
-        }, 100);
-        
-        setTimeout(() => {
-            const progressBar = preloader.querySelector('.preloader__progress-bar');
-            if (progressBar) {
-                progressBar.style.width = '90%';
-            }
-            resolve();
-        }, 500);
-    });
-}
-
-/**
- * 4.3 Mostrar animación de éxito
- */
-function showSuccessAnimation(title, message) {
-    return new Promise((resolve) => {
         const preloader = document.querySelector('.modal-preloader');
-        if (!preloader) {
-            resolve();
-            return;
-        }
-        
-        // Completar barra de progreso
-        const progressBar = preloader.querySelector('.preloader__progress-bar');
-        if (progressBar) {
-            progressBar.style.width = '100%';
-        }
-        
-        // Cambiar contenido a éxito
-        setTimeout(() => {
+        if (preloader) {
             preloader.innerHTML = `
                 <div class="preloader-overlay__content">
-                    <div class="success-animation">
-                        <i class="fas fa-check-circle"></i>
+                    <div class="error-animation" style="font-size: 4rem; color: #f44336; margin-bottom: 1rem;">
+                        <i class="fas fa-exclamation-circle"></i>
                     </div>
-                    <h3 class="preloader-overlay__title" style="color: #4CAF50; margin-bottom: 0.5rem;">${title}</h3>
-                    <p class="preloader-overlay__subtitle">${message || 'La operación se completó exitosamente'}</p>
-                    <div class="preloader-message">
-                        <p class="preloader-message__text">Redirigiendo en <span class="countdown">2</span> segundos...</p>
+                    <h3 class="preloader-overlay__title">¡Error!</h3>
+                    <p class="preloader-overlay__subtitle">${error.message}</p>
+                    <div class="preloader-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                        <button class="btn btn--outline btn--sm" onclick="this.closest('.preloader-overlay').remove(); 
+                                                                         document.querySelectorAll('#personForm input, #personForm select, #personForm button').forEach(el => {
+                                                                             el.disabled = false;
+                                                                             el.style.opacity = '1';
+                                                                         });">
+                            Corregir datos
+                        </button>
+                        <button class="btn btn--primary btn--sm" onclick="window.savePerson()">
+                            Reintentar
+                        </button>
                     </div>
                 </div>
             `;
             
-            // Agregar animación de pulso al modal
+            // Aplicar animación de error al modal
             const modalContent = document.querySelector('.modal__content');
             if (modalContent) {
-                modalContent.classList.add('modal-success');
+                modalContent.classList.add('modal-error');
+                setTimeout(() => {
+                    modalContent.classList.remove('modal-error');
+                }, 1000);
+            }
+        }
+        
+        // Mostrar alerta general
+        showAlert(errorMessage, 'error');
+    } finally {
+        // Limpieza final
+        setTimeout(() => {
+            const preloader = document.querySelector('.modal-preloader');
+            if (preloader) {
+                preloader.remove();
             }
             
-            // Contador regresivo
-            let seconds = 2;
-            const countdownEl = preloader.querySelector('.countdown');
-            const interval = setInterval(() => {
-                seconds--;
-                if (countdownEl) countdownEl.textContent = seconds;
-                if (seconds <= 0) {
-                    clearInterval(interval);
-                    resolve();
-                }
-            }, 1000);
+            const modalContent = document.querySelector('.modal__content');
+            if (modalContent) {
+                modalContent.classList.remove('modal-success', 'modal-error');
+            }
             
-        }, 300);
-    });
-}
-
-/**
- * 4.4 Mostrar animación de error
- */
-function showErrorAnimation(errorMessage) {
-    return new Promise((resolve) => {
-        const preloader = document.querySelector('.modal-preloader');
-        if (!preloader) {
-            resolve();
-            return;
-        }
-        
-        // Cambiar contenido a error
-        preloader.innerHTML = `
-            <div class="preloader-overlay__content">
-                <div class="error-animation">
-                    <i class="fas fa-exclamation-circle"></i>
-                </div>
-                <h3 class="preloader-overlay__title" style="color: #f44336; margin-bottom: 0.5rem;">¡Error!</h3>
-                <p class="preloader-overlay__subtitle">${errorMessage || 'Ocurrió un error al guardar la persona'}</p>
-                <div class="preloader-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
-                    <button class="btn btn--outline btn--sm" id="error-correct-btn">
-                        <i class="fas fa-edit"></i> Corregir datos
-                    </button>
-                    <button class="btn btn--primary btn--sm" id="error-retry-btn">
-                        <i class="fas fa-redo"></i> Reintentar
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        // Agregar animación de error al modal
-        const modalContent = document.querySelector('.modal__content');
-        if (modalContent) {
-            modalContent.classList.add('modal-error');
-            setTimeout(() => {
-                modalContent.classList.remove('modal-error');
-            }, 1000);
-        }
-        
-        // Agregar event listeners para los botones
-        const correctBtn = preloader.querySelector('#error-correct-btn');
-        const retryBtn = preloader.querySelector('#error-retry-btn');
-        
-        if (correctBtn) {
-            correctBtn.addEventListener('click', () => {
-                preloader.remove();
-                
-                // Rehabilitar formulario
-                const formElements = DOM.personForm.querySelectorAll('input, select, button');
-                formElements.forEach(el => {
-                    el.disabled = false;
-                    el.style.opacity = '1';
-                    el.style.pointerEvents = '';
-                });
-                
-                resolve();
+            // Rehabilitar formulario
+            const formElements = DOM.personForm.querySelectorAll('input, select, button');
+            formElements.forEach(el => {
+                el.disabled = false;
+                el.style.opacity = '1';
             });
-        }
-        
-        if (retryBtn) {
-            retryBtn.addEventListener('click', () => {
-                preloader.remove();
-                
-                // Rehabilitar formulario
-                const formElements = DOM.personForm.querySelectorAll('input, select, button');
-                formElements.forEach(el => {
-                    el.disabled = false;
-                    el.style.opacity = '1';
-                    el.style.pointerEvents = '';
-                });
-                
-                // Reintentar guardado
-                savePerson();
-                resolve();
-            });
-        }
-    });
-}
-
-/**
- * 4.5 Mostrar notificación flotante
- */
-function showFloatingNotification(message, type = 'success', duration = 5000) {
-    // Remover notificaciones existentes
-    const existingNotifications = document.querySelectorAll('.floating-notification');
-    existingNotifications.forEach(notification => {
-        notification.classList.remove('floating-notification--visible');
-        setTimeout(() => notification.remove(), 300);
-    });
-    
-    // Crear nueva notificación
-    const notification = document.createElement('div');
-    notification.className = `floating-notification floating-notification--${type}`;
-    
-    const icon = type === 'success' ? 'fa-check-circle' : 
-                 type === 'error' ? 'fa-exclamation-circle' : 
-                 type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-    
-    notification.innerHTML = `
-        <div class="floating-notification__content">
-            <i class="fas ${icon}"></i>
-            <span>${message}</span>
-        </div>
-        <button class="floating-notification__close">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Mostrar con animación
-    setTimeout(() => {
-        notification.classList.add('floating-notification--visible');
-    }, 10);
-    
-    // Configurar cierre automático
-    const timeoutId = setTimeout(() => {
-        notification.classList.remove('floating-notification--visible');
-        setTimeout(() => notification.remove(), 300);
-    }, duration);
-    
-    // Configurar cierre manual
-    const closeBtn = notification.querySelector('.floating-notification__close');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            clearTimeout(timeoutId);
-            notification.classList.remove('floating-notification--visible');
-            setTimeout(() => notification.remove(), 300);
-        });
+        }, 500);
     }
-    
-    // Cerrar al hacer clic fuera
-    setTimeout(() => {
-        document.addEventListener('click', function closeOnOutsideClick(e) {
-            if (!notification.contains(e.target)) {
-                notification.classList.remove('floating-notification--visible');
-                setTimeout(() => notification.remove(), 300);
-                document.removeEventListener('click', closeOnOutsideClick);
-                clearTimeout(timeoutId);
-            }
-        });
-    }, 100);
 }
 
-/**
- * 4.6 Cargar personas
- */
 async function loadPersons() {
     try {
         console.log('👥 Cargando personas...');
         
-        // Mostrar preloader de tabla
-        showTablePreloader();
+        // Mostrar alerta de carga
+        showAlert('Cargando lista de personas...', 'info');
+        
+        // Mostrar preloader de tabla completo
+        const tableContainer = document.querySelector('.tab-content[data-tab="personas"]');
+        if (tableContainer) {
+            const existingPreloader = tableContainer.querySelector('.table-preloader-overlay');
+            if (existingPreloader) existingPreloader.remove();
+            
+            const tablePreloader = document.createElement('div');
+            tablePreloader.className = 'table-preloader-overlay';
+            tablePreloader.innerHTML = `
+                <div class="preloader">
+                    <div class="preloader__spinner preloader--primary preloader--lg"></div>
+                    <p class="preloader__text">Cargando personas...</p>
+                    <p class="preloader-overlay__subtitle">Obteniendo información del servidor</p>
+                </div>
+            `;
+            
+            const tableElement = tableContainer.querySelector('table');
+            if (tableElement) {
+                tableElement.style.opacity = '0.3';
+                tableElement.insertAdjacentElement('beforebegin', tablePreloader);
+            }
+        }
+        
+        // Si ya hay datos, mostrar skeletons solo en el cuerpo de la tabla
+        if (DOM.personasTableBody && (!window.appState.persons || window.appState.persons.length === 0)) {
+            DOM.personasTableBody.innerHTML = '';
+            
+            // Crear filas de skeleton loader mejoradas
+            for (let i = 0; i < 5; i++) {
+                const skeletonRow = document.createElement('tr');
+                skeletonRow.className = 'skeleton-row';
+                skeletonRow.innerHTML = `
+                    <td>
+                        <div class="skeleton-loader skeleton-text skeleton-text--large" style="width: 80%"></div>
+                        <div class="skeleton-loader skeleton-text skeleton-text--small" style="width: 60%; margin-top: 8px;"></div>
+                    </td>
+                    <td>
+                        <div class="skeleton-loader skeleton-text" style="width: 90%"></div>
+                    </td>
+                    <td>
+                        <div class="skeleton-loader skeleton-text skeleton-text--small" style="width: 70%"></div>
+                    </td>
+                    <td>
+                        <div class="skeleton-loader skeleton-text" style="width: 60%"></div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <div class="skeleton-loader skeleton-avatar" style="width: 32px; height: 32px;"></div>
+                            <div class="skeleton-loader skeleton-avatar" style="width: 32px; height: 32px;"></div>
+                        </div>
+                    </td>
+                `;
+                DOM.personasTableBody.appendChild(skeletonRow);
+            }
+        }
         
         const data = await api.getPersons();
         
+        // Remover preloader
+        const preloader = document.querySelector('.table-preloader-overlay');
+        if (preloader) {
+            preloader.classList.add('fade-out');
+            setTimeout(() => {
+                preloader.remove();
+                const tableElement = tableContainer?.querySelector('table');
+                if (tableElement) {
+                    tableElement.style.opacity = '1';
+                }
+            }, 300);
+        }
+        
         if (data.success) {
             window.appState.persons = data.persons || [];
+            
+            // Mostrar alerta de resultados
+            if (window.appState.persons.length === 0) {
+                showAlert('No hay personas registradas. ¡Agrega la primera!', 'warning');
+            } else {
+                showAlert(`✅ Se cargaron ${window.appState.persons.length} persona(s)`, 'success');
+                
+                // Verificar datos incompletos
+                const personsWithoutDept = window.appState.persons.filter(p => !p.departamento);
+                const personsWithoutPhone = window.appState.persons.filter(p => !p.telefono);
+                const personsWithoutPosition = window.appState.persons.filter(p => !p.puesto);
+                
+                if (personsWithoutDept.length > 0) {
+                    showAlert(`${personsWithoutDept.length} persona(s) no tienen departamento asignado`, 'warning');
+                }
+                if (personsWithoutPhone.length > 0) {
+                    showAlert(`${personsWithoutPhone.length} persona(s) no tienen teléfono registrado`, 'info');
+                }
+                if (personsWithoutPosition.length > 0) {
+                    showAlert(`${personsWithoutPosition.length} persona(s) no tienen puesto definido`, 'info');
+                }
+            }
             
             // Actualizar filtro de puestos
             updatePuestosFilter();
@@ -1725,172 +1538,136 @@ async function loadPersons() {
     } catch (error) {
         console.error('❌ Error cargando personas:', error);
         
-        // Mostrar estado de error mejorado
-        showTableError(error.message);
-        
-    } finally {
         // Remover preloader
-        removeTablePreloader();
-    }
-}
-
-/**
- * 4.7 Mostrar preloader de tabla
- */
-function showTablePreloader() {
-    const tableContainer = document.querySelector('.tab-content[data-tab="personas"]');
-    if (!tableContainer) return;
-    
-    // Remover preloader existente
-    const existingPreloader = tableContainer.querySelector('.table-preloader-overlay');
-    if (existingPreloader) {
-        existingPreloader.remove();
-    }
-    
-    // Crear preloader
-    const tablePreloader = document.createElement('div');
-    tablePreloader.className = 'table-preloader-overlay';
-    tablePreloader.innerHTML = `
-        <div class="preloader">
-            <div class="preloader__spinner preloader--primary preloader--lg"></div>
-            <p class="preloader__text">Cargando personas...</p>
-            <p class="preloader-overlay__subtitle">Obteniendo información del servidor</p>
-            <div class="preloader__dots">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    `;
-    
-    const tableElement = tableContainer.querySelector('table');
-    if (tableElement) {
-        tableElement.style.opacity = '0.3';
-        tableElement.style.pointerEvents = 'none';
-        tableElement.insertAdjacentElement('beforebegin', tablePreloader);
-    }
-    
-    // Mostrar skeletons mientras carga
-    if (DOM.personasTableBody && (!window.appState.persons || window.appState.persons.length === 0)) {
-        DOM.personasTableBody.innerHTML = '';
+        const preloader = document.querySelector('.table-preloader-overlay');
+        if (preloader) preloader.remove();
         
-        for (let i = 0; i < 5; i++) {
-            const skeletonRow = document.createElement('tr');
-            skeletonRow.className = 'skeleton-row';
-            skeletonRow.innerHTML = `
-                <td>
-                    <div class="skeleton-loader skeleton-text skeleton-text--large" style="width: 80%"></div>
-                    <div class="skeleton-loader skeleton-text skeleton-text--small" style="width: 60%; margin-top: 8px;"></div>
-                </td>
-                <td>
-                    <div class="skeleton-loader skeleton-text" style="width: 90%"></div>
-                </td>
-                <td>
-                    <div class="skeleton-loader skeleton-text skeleton-text--small" style="width: 70%"></div>
-                </td>
-                <td>
-                    <div class="skeleton-loader skeleton-text" style="width: 60%"></div>
-                </td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        <div class="skeleton-loader skeleton-avatar" style="width: 32px; height: 32px;"></div>
-                        <div class="skeleton-loader skeleton-avatar" style="width: 32px; height: 32px;"></div>
-                    </div>
-                </td>
+        // Mostrar alerta de error
+        showAlert(`Error al cargar personas: ${error.message}`, 'error');
+        
+        // Mostrar estado de error mejorado
+        if (DOM.personasTableBody) {
+            DOM.personasTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty-state error-state">
+                        <div class="error-state__icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h3 class="empty-state__title">Error al cargar personas</h3>
+                        <p class="empty-state__description">${error.message || 'No se pudieron cargar las personas'}</p>
+                        <div class="empty-state__actions" style="margin-top: 1rem;">
+                            <button class="btn btn--primary" onclick="loadPersons()">
+                                <i class="fas fa-redo"></i> Reintentar
+                            </button>
+                            <button class="btn btn--outline" onclick="openPersonModal()">
+                                <i class="fas fa-user-plus"></i> Agregar persona manualmente
+                            </button>
+                        </div>
+                    </td>
+                </tr>
             `;
-            DOM.personasTableBody.appendChild(skeletonRow);
         }
     }
 }
 
-/**
- * 4.8 Remover preloader de tabla
- */
-function removeTablePreloader() {
-    const preloader = document.querySelector('.table-preloader-overlay');
-    if (preloader) {
-        preloader.classList.add('fade-out');
-        setTimeout(() => {
-            preloader.remove();
-            const tableElement = document.querySelector('.tab-content[data-tab="personas"] table');
-            if (tableElement) {
-                tableElement.style.opacity = '1';
-                tableElement.style.pointerEvents = '';
-            }
-        }, 300);
-    }
-}
-
-/**
- * 4.9 Mostrar error en tabla
- */
-function showTableError(errorMessage) {
-    if (!DOM.personasTableBody) return;
-    
-    DOM.personasTableBody.innerHTML = `
-        <tr>
-            <td colspan="5" class="empty-state error-state">
-                <div class="error-state__icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h3 class="empty-state__title">Error al cargar personas</h3>
-                <p class="empty-state__description">${errorMessage || 'No se pudieron cargar las personas'}</p>
-                <div class="empty-state__actions" style="margin-top: 1rem;">
-                    <button class="btn btn--primary" onclick="loadPersons()">
-                        <i class="fas fa-redo"></i> Reintentar
-                    </button>
-                    <button class="btn btn--outline" onclick="openPersonModal()">
-                        <i class="fas fa-user-plus"></i> Agregar persona manualmente
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `;
-}
-
-/**
- * 4.10 Editar persona
- */
 function editPerson(id) {
     console.log('✏️ Editando persona:', id);
     openPersonModal(id);
 }
 
-/**
- * 4.11 Eliminar persona (mejorado con preloaders)
- */
+// =============================================================================
+// 5. OPERACIONES CRUD DE PERSONAS CON ALERTAS MEJORADAS
+// =============================================================================
+
 async function deletePerson(id) {
-    const person = window.appState.persons.find(p => p._id === id);
-    if (!person) {
-        return;
+  const person = window.appState.persons.find(p => p._id === id);
+  if (!person) {
+    showAlert('No se encontró la persona a eliminar', 'error');
+    return;
+  }
+  
+  // Mostrar alerta de advertencia antes de la confirmación
+  showAlert(`Preparando para eliminar a ${person.nombre}...`, 'warning');
+  
+  // Mostrar modal de confirmación mejorado
+  const confirmed = await showDeleteConfirmation(person.nombre);
+  if (!confirmed) {
+    showAlert('Eliminación cancelada', 'info');
+    return;
+  }
+  
+  try {
+    console.log('🗑️ Eliminando persona PERMANENTEMENTE:', id);
+    
+    // Mostrar alerta de proceso
+    showAlert(`Eliminando a ${person.nombre} permanentemente...`, 'info');
+    
+    // Encontrar la fila en la tabla
+    const tableRow = document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
+    const rowIndex = tableRow ? Array.from(tableRow.parentNode.children).indexOf(tableRow) : -1;
+    
+    if (tableRow) {
+      // Agregar estado de eliminación
+      tableRow.classList.add('table__row--deleting');
+      
+      // Crear overlay de eliminación
+      const deleteOverlay = document.createElement('div');
+      deleteOverlay.className = 'delete-overlay';
+      deleteOverlay.innerHTML = `
+        <div class="delete-overlay__content">
+          <div class="preloader-inline preloader-inline--large">
+            <div class="preloader-inline__spinner preloader--error"></div>
+          </div>
+          <span class="delete-overlay__text">Eliminando permanentemente...</span>
+        </div>
+      `;
+      
+      // Ocultar contenido original
+      const cells = tableRow.querySelectorAll('td');
+      cells.forEach(cell => {
+        cell.style.opacity = '0.3';
+      });
+      
+      tableRow.appendChild(deleteOverlay);
+      
+      // Aplicar efecto de pulso para indicar eliminación
+      tableRow.style.animation = 'deleting-pulse 1.5s infinite';
     }
     
-    // Mostrar modal de confirmación mejorado
-    const confirmed = await showDeleteConfirmation(person.nombre);
-    if (!confirmed) {
-        return;
-    }
+    const data = await api.deletePerson(id);
     
-    try {
-        console.log('🗑️ Eliminando persona:', id);
+    if (data.success) {
+      // Mostrar alerta de éxito
+      showAlert(`✅ ${data.message}`, 'success');
+      
+      // Mostrar animación de éxito
+      if (tableRow) {
+        tableRow.style.animation = '';
+        tableRow.classList.remove('table__row--deleting');
+        tableRow.classList.add('table__row--success');
         
-        // Encontrar la fila en la tabla
-        const tableRow = document.querySelector(`[data-person-id="${id}"]`) || 
-                        document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
-        
-        if (tableRow) {
-            // Agregar estado de eliminación mejorado
-            await showDeleteAnimation(tableRow);
+        // Actualizar overlay a éxito
+        const deleteOverlay = tableRow.querySelector('.delete-overlay');
+        if (deleteOverlay) {
+          deleteOverlay.innerHTML = `
+            <div class="delete-overlay__content">
+              <div class="success-icon" style="color: #4CAF50; font-size: 1.5rem;">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <span class="delete-overlay__text" style="color: #4CAF50;">¡Eliminado permanentemente!</span>
+            </div>
+          `;
         }
         
-        const data = await api.deletePerson(id);
-        
-        if (data.success) {
-            // Mostrar animación de éxito en la fila
-            if (tableRow) {
-                await showDeleteSuccessAnimation(tableRow);
-            }
-            
+        // Animar eliminación de la fila
+        setTimeout(() => {
+          tableRow.style.transform = 'translateX(-100%)';
+          tableRow.style.opacity = '0';
+          tableRow.style.height = '0';
+          tableRow.style.overflow = 'hidden';
+          tableRow.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+          
+          setTimeout(async () => {
             // Eliminar del estado global
             window.appState.persons = window.appState.persons.filter(p => p._id !== id);
             
@@ -1904,166 +1681,111 @@ async function deletePerson(id) {
             populatePersonSelect();
             populateSearchPersonSelect();
             
-            // Mostrar notificación flotante
-            showFloatingNotification(`"${person.nombre}" ha sido eliminado`, 'success');
+            // Mostrar notificación flotante de éxito
+            showFloatingNotification('Persona eliminada permanentemente del sistema', 'success');
             
             // Actualizar dashboard si existe
             try {
-                if (typeof window.loadDashboardData === 'function') {
-                    await window.loadDashboardData();
-                }
+              if (typeof window.loadDashboardData === 'function') {
+                await window.loadDashboardData();
+              }
             } catch (dashboardError) {
-                console.log('Dashboard no disponible:', dashboardError);
+              console.log('Dashboard no disponible:', dashboardError);
             }
-        } else {
-            throw new Error(data.message || 'Error desconocido al eliminar');
+          }, 500);
+        }, 1000);
+      } else {
+        // Si no se encontró la fila, recargar normalmente
+        await loadPersons();
+        
+        try {
+          if (typeof window.loadDashboardData === 'function') {
+            await window.loadDashboardData();
+          }
+        } catch (dashboardError) {
+          console.log('Dashboard no disponible:', dashboardError);
         }
-        
-    } catch (error) {
-        console.error('❌ Error eliminando persona:', error);
-        
-        // Revertir cambios en la fila
-        revertDeleteAnimation(error.message);
-        
-        // Mostrar notificación de error
-        showFloatingNotification(error.message || 'Error al eliminar la persona', 'error');
+      }
+    } else {
+      throw new Error(data.message || 'Error desconocido al eliminar');
     }
-}
-
-/**
- * 4.12 Mostrar animación de eliminación
- */
-function showDeleteAnimation(tableRow) {
-    return new Promise((resolve) => {
-        if (!tableRow) {
-            resolve();
-            return;
-        }
-        
-        // Agregar clases de animación
-        tableRow.classList.add('table__row--deleting');
-        
-        // Crear overlay de eliminación mejorado
-        const deleteOverlay = document.createElement('div');
-        deleteOverlay.className = 'delete-overlay';
-        deleteOverlay.innerHTML = `
-            <div class="delete-overlay__content">
-                <div class="preloader-inline preloader-inline--large">
-                    <div class="preloader-inline__spinner preloader--error"></div>
-                </div>
-                <span class="delete-overlay__text">Eliminando persona...</span>
-                <span class="delete-overlay__subtext">Por favor espera</span>
-            </div>
-        `;
-        
-        // Ocultar contenido original
-        const cells = tableRow.querySelectorAll('td');
-        cells.forEach(cell => {
-            cell.style.opacity = '0.3';
-        });
-        
-        tableRow.appendChild(deleteOverlay);
-        
-        // Aplicar efecto de pulso
-        tableRow.style.animation = 'deletingPulse 1.5s infinite';
-        
-        setTimeout(resolve, 500);
-    });
-}
-
-/**
- * 4.13 Mostrar animación de éxito en eliminación
- */
-function showDeleteSuccessAnimation(tableRow) {
-    return new Promise((resolve) => {
-        if (!tableRow) {
-            resolve();
-            return;
-        }
-        
-        tableRow.style.animation = '';
-        tableRow.classList.remove('table__row--deleting');
-        tableRow.classList.add('table__row--success');
-        
-        // Actualizar overlay a éxito
-        const deleteOverlay = tableRow.querySelector('.delete-overlay');
-        if (deleteOverlay) {
-            deleteOverlay.innerHTML = `
-                <div class="delete-overlay__content">
-                    <div class="success-icon" style="color: #4CAF50; font-size: 2rem;">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <span class="delete-overlay__text" style="color: #4CAF50;">¡Eliminado!</span>
-                    <span class="delete-overlay__subtext" style="color: #4CAF50;">Redirigiendo...</span>
-                </div>
-            `;
-        }
-        
-        // Animar eliminación de la fila
-        setTimeout(() => {
-            tableRow.style.transform = 'translateX(-100%)';
-            tableRow.style.opacity = '0';
-            tableRow.style.height = '0';
-            tableRow.style.overflow = 'hidden';
-            tableRow.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-            
-            setTimeout(resolve, 500);
-        }, 800);
-    });
-}
-
-/**
- * 4.14 Revertir animación de eliminación en caso de error
- */
-function revertDeleteAnimation(errorMessage) {
-    const tableRow = document.querySelector('.table__row--deleting');
+    
+  } catch (error) {
+    console.error('❌ Error eliminando persona:', error);
+    
+    // Extraer mensaje específico del error
+    let errorMessage = error.message || 'Error desconocido';
+    let detailedMessage = '';
+    
+    // Analizar el mensaje de error para dar más detalles
+    if (errorMessage.includes('dependencia') || errorMessage.includes('asociado') || 
+        errorMessage.includes('documentos asociados') || errorMessage.includes('tiene documentos')) {
+      detailedMessage = 'La persona tiene documentos vinculados. Primero elimina o reasigna los documentos asociados.';
+    } else if (errorMessage.includes('no encontrado') || errorMessage.includes('no existe')) {
+      detailedMessage = 'La persona ya no existe en el sistema.';
+    } else if (errorMessage.includes('email') || errorMessage.includes('duplicate')) {
+      detailedMessage = 'Ya existe una persona con ese email.';
+    } else if (errorMessage.includes('permiso') || errorMessage.includes('autorización')) {
+      detailedMessage = 'No tienes permisos para eliminar esta persona.';
+    } else if (errorMessage.includes('conexión') || errorMessage.includes('red')) {
+      detailedMessage = 'Error de conexión con el servidor. Verifica tu conexión a internet.';
+    } else if (errorMessage.includes('base de datos') || errorMessage.includes('database')) {
+      detailedMessage = 'Error en la base de datos. Intenta nuevamente o contacta al administrador.';
+    } else {
+      detailedMessage = errorMessage;
+    }
+    
+    // Mostrar alerta de error con detalles usando showFormAlert (visible en todo el modal)
+    showFormAlert(`Error al eliminar: ${detailedMessage}`, 'error');
+    
+    // También mostrar alerta global
+    showAlert(`Error al eliminar a ${person.nombre}: ${detailedMessage}`, 'error');
+    
+    // Revertir cambios en la fila
+    const tableRow = document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
     if (tableRow) {
-        tableRow.style.animation = '';
-        tableRow.classList.remove('table__row--deleting');
-        tableRow.classList.add('table__row--error');
-        
-        // Limpiar overlay de eliminación
-        const deleteOverlay = tableRow.querySelector('.delete-overlay');
-        if (deleteOverlay) {
-            deleteOverlay.remove();
-        }
-        
-        // Restaurar contenido original
-        const cells = tableRow.querySelectorAll('td');
-        cells.forEach(cell => {
-            cell.style.opacity = '1';
-        });
-        
-        // Restaurar altura
-        tableRow.style.height = '';
-        
-        // Mostrar mensaje de error en la fila
-        setTimeout(() => {
-            tableRow.classList.remove('table__row--error');
-        }, 3000);
+      tableRow.style.animation = '';
+      tableRow.classList.remove('table__row--deleting');
+      
+      // Limpiar completamente el overlay de eliminación
+      const deleteOverlay = tableRow.querySelector('.delete-overlay');
+      if (deleteOverlay) {
+        deleteOverlay.remove();
+      }
+      
+      // Restaurar contenido original
+      const cells = tableRow.querySelectorAll('td');
+      cells.forEach(cell => {
+        cell.style.opacity = '1';
+      });
+      
+      // Restaurar altura
+      tableRow.style.height = '';
     }
+  }
 }
 
+
 // =============================================================================
-// 5. FUNCIONES AUXILIARES
+// 6. FUNCIONES AUXILIARES
 // =============================================================================
 
 /**
- * 5.1 Mostrar modal de confirmación de eliminación (mejorado)
+ * Mostrar modal de confirmación de eliminación mejorado
  */
 function showDeleteConfirmation(personName) {
     return new Promise((resolve) => {
-        // Crear modal de confirmación mejorado
+        // Crear modal de confirmación
         const confirmModal = document.createElement('div');
-        confirmModal.className = 'modal confirm-modal confirm-modal--delete';
+        confirmModal.className = 'modal confirm-modal';
         confirmModal.innerHTML = `
-            <div class="modal__content" style="max-width: 500px;">
+            <div class="modal__content" style="max-width: 450px;">
                 <div class="modal__header">
                     <h3 class="modal__title">
                         <i class="fas fa-exclamation-triangle" style="color: #f44336; margin-right: 10px;"></i>
                         Confirmar Eliminación
                     </h3>
-                    <button class="modal__close" id="closeConfirmBtn">
+                    <button class="modal__close" onclick="this.closest('.modal').remove();">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -2073,14 +1795,12 @@ function showDeleteConfirmation(personName) {
                             <i class="fas fa-user-slash"></i>
                         </div>
                         <h4 class="confirm-title">¿Estás seguro de eliminar a "${personName}"?</h4>
+                        <p class="confirm-message">
+                            Esta acción <strong>no se puede deshacer</strong>. Todos los datos relacionados con esta persona serán eliminados permanentemente.
+                        </p>
                         <div class="confirm-warning">
                             <i class="fas fa-exclamation-circle"></i>
-                            <div>
-                                <strong>Esta acción no se puede deshacer</strong>
-                                <p style="margin-top: 0.5rem; font-size: 0.9rem;">
-                                    La persona será eliminada permanentemente del sistema y no podrá recuperarse.
-                                </p>
-                            </div>
+                            <span>Esta acción también eliminará cualquier documento asociado a esta persona.</span>
                         </div>
                     </div>
                 </div>
@@ -2089,7 +1809,7 @@ function showDeleteConfirmation(personName) {
                         <i class="fas fa-times"></i> Cancelar
                     </button>
                     <button class="btn btn--danger" id="confirmDeleteBtn">
-                        <i class="fas fa-trash"></i> Sí, eliminar permanentemente
+                        <i class="fas fa-trash"></i> Sí, eliminar
                     </button>
                 </div>
             </div>
@@ -2103,55 +1823,116 @@ function showDeleteConfirmation(personName) {
             confirmModal.classList.add('modal--visible');
         }, 10);
         
-        // Agregar event listeners
+        // Agregar event listeners después de que el modal esté en el DOM
         setTimeout(() => {
             const cancelBtn = confirmModal.querySelector('#cancelDeleteBtn');
             const confirmBtn = confirmModal.querySelector('#confirmDeleteBtn');
-            const closeBtn = confirmModal.querySelector('#closeConfirmBtn');
             
-            const closeModal = (result) => {
-                confirmModal.classList.remove('modal--visible');
-                setTimeout(() => {
-                    confirmModal.remove();
-                    resolve(result);
-                }, 300);
-            };
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    confirmModal.classList.remove('modal--visible');
+                    setTimeout(() => {
+                        confirmModal.remove();
+                        resolve(false);
+                    }, 300);
+                });
+            }
             
-            if (cancelBtn) cancelBtn.addEventListener('click', () => closeModal(false));
-            if (confirmBtn) confirmBtn.addEventListener('click', () => closeModal(true));
-            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(false));
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', () => {
+                    confirmModal.classList.remove('modal--visible');
+                    setTimeout(() => {
+                        confirmModal.remove();
+                        resolve(true);
+                    }, 300);
+                });
+            }
             
-            // Cerrar al hacer clic fuera
+            // También manejar el botón de cerrar
+            const closeBtn = confirmModal.querySelector('.modal__close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    confirmModal.classList.remove('modal--visible');
+                    setTimeout(() => {
+                        confirmModal.remove();
+                        resolve(false);
+                    }, 300);
+                });
+            }
+            
+            // Cerrar al hacer clic fuera del modal
             confirmModal.addEventListener('click', (e) => {
-                if (e.target === confirmModal) closeModal(false);
+                if (e.target === confirmModal) {
+                    confirmModal.classList.remove('modal--visible');
+                    setTimeout(() => {
+                        confirmModal.remove();
+                        resolve(false);
+                    }, 300);
+                }
             });
             
-            // Cerrar con Escape
+            // Cerrar con Escape key
             const handleEscape = (e) => {
                 if (e.key === 'Escape') {
-                    closeModal(false);
+                    confirmModal.classList.remove('modal--visible');
+                    setTimeout(() => {
+                        confirmModal.remove();
+                        resolve(false);
+                    }, 300);
                     document.removeEventListener('keydown', handleEscape);
                 }
             };
+            
             document.addEventListener('keydown', handleEscape);
             
         }, 50);
     });
 }
 
+/**
+ * Mostrar notificación flotante
+ */
+function showFloatingNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `floating-notification floating-notification--${type}`;
+    notification.innerHTML = `
+        <div class="floating-notification__content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="floating-notification__close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Mostrar con animación
+    setTimeout(() => {
+        notification.classList.add('floating-notification--visible');
+    }, 10);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        notification.classList.remove('floating-notification--visible');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, 5000);
+}
+
 // =============================================================================
-// 6. RENDERIZADO DE INTERFAZ
+// 7. RENDERIZADO DE INTERFAZ CON ALERTAS VISUALES
 // =============================================================================
 
-/**
- * 6.1 Renderizar tabla de personas
- */
 function renderPersonsTable() {
     if (!DOM.personasTableBody) return;
     
     DOM.personasTableBody.innerHTML = '';
     
-    if (!window.appState.persons || window.appState.persons.length === 0) {
+    if (window.appState.persons.length === 0) {
         DOM.personasTableBody.innerHTML = `
             <tr>
                 <td colspan="5" class="empty-state">
@@ -2169,6 +1950,19 @@ function renderPersonsTable() {
             </tr>
         `;
         return;
+    }
+    
+    // Verificar datos incompletos para mostrar alertas visuales
+    const personsWithIssues = window.appState.persons.filter(p => 
+        !p.departamento || !p.telefono || !p.puesto
+    );
+    
+    if (personsWithIssues.length > 0) {
+        // Mostrar alerta general
+        showAlert(
+            `${personsWithIssues.length} persona(s) tienen información incompleta. Considera actualizarlas.`,
+            'warning'
+        );
     }
     
     window.appState.persons.forEach(person => {
@@ -2241,12 +2035,9 @@ function renderPersonsTable() {
 }
 
 // =============================================================================
-// 7. MANEJO DE SELECTS/FILTROS
+// 8. MANEJO DE SELECTS/FILTROS
 // =============================================================================
 
-/**
- * 7.1 Poblar select de personas para documentos
- */
 function populatePersonSelect() {
     if (!DOM.documentPerson) return;
     
@@ -2263,9 +2054,6 @@ function populatePersonSelect() {
     });
 }
 
-/**
- * 7.2 Poblar select de búsqueda de personas
- */
 function populateSearchPersonSelect() {
     if (!DOM.searchPerson) return;
     
@@ -2280,20 +2068,15 @@ function populateSearchPersonSelect() {
 }
 
 // =============================================================================
-// 8. HANDLERS/CONTROLADORES
+// 9. HANDLERS/CONTROLADORES
 // =============================================================================
 
-/**
- * 8.1 Handler para guardar persona
- */
 function handleSavePerson() {
     console.log('💾 Guardando persona...');
     savePerson();
 }
 
-/**
- * 8.2 Función para refrescar el select de departamentos
- */
+// Función para refrescar el select de departamentos
 function refreshDepartmentSelect() {
     loadDepartmentsForModal();
 }
@@ -2305,14 +2088,6 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeFilters();
     }, 100);
 });
-
-// Exponer funciones globalmente para los onclick
-window.openPersonModal = openPersonModal;
-window.editPerson = editPerson;
-window.deletePerson = deletePerson;
-window.savePerson = savePerson;
-window.clearFilters = clearFilters;
-window.loadPersons = loadPersons;
 
 export { 
     openPersonModal, 
@@ -2329,9 +2104,11 @@ export {
     validateEmail,
     validatePhone,
     validateName,
+    showFloatingNotification,
     validateForm,
     initializeFilters,
     applyFilters,
     clearFilters,
-    showFloatingNotification
+    showFormAlert,
+    removeExistingAlerts
 };
