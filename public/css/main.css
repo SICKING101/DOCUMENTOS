@@ -48,6 +48,7 @@
 @import url('components/preloader/variants.css');
 @import url('components/preloader/categorias-preloader.css');
 @import url('components/preloader/departamentos-preloader.css');
+@import url('components/preloader/admin-preloader.css');
 @import url('components/status.css');
 
 @import url('sections/dashboard.css');

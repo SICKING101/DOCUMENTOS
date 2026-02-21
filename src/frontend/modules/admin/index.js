@@ -67,11 +67,187 @@ function truncateText(text, maxLength) {
 }
 
 // =============================================================================
-// FUNCIONES DE ACCIONES
+// PRELOADER - CORREGIDO
+// =============================================================================
+
+let activePreloader = null;
+
+function showPreloader(message = 'Procesando...') {
+  // Ocultar preloader anterior si existe
+  if (activePreloader) {
+    hidePreloader();
+  }
+  
+  const preloaderId = 'admin-preloader-' + Date.now();
+  const preloaderHTML = `
+    <div id="${preloaderId}" class="admin-preloader-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999999; display: flex; align-items: center; justify-content: center; margin: 0; padding: 0;">
+      <div class="admin-preloader-content" style="text-align: center; max-width: 400px; padding: 2rem; background: var(--bg-primary); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); border: 1px solid var(--border); animation: preloaderFadeIn 0.3s ease;">
+        <div class="admin-preloader-spinner" style="color: var(--primary); margin-bottom: 1rem; font-size: 2rem;">
+          <i class="fas fa-spinner fa-spin fa-3x"></i>
+        </div>
+        <div class="admin-preloader-message" style="color: var(--text-primary); font-size: 1rem; font-weight: 500;">${message}</div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', preloaderHTML);
+  document.body.classList.add('preloader-active');
+  
+  activePreloader = preloaderId;
+  
+  // Forzar un reflow para asegurar que se muestre
+  setTimeout(() => {
+    const preloader = document.getElementById(preloaderId);
+    if (preloader) {
+      preloader.style.display = 'flex';
+    }
+  }, 10);
+  
+  return preloaderId;
+}
+
+function hidePreloader() {
+  if (activePreloader) {
+    const preloader = document.getElementById(activePreloader);
+    if (preloader) {
+      preloader.remove();
+    }
+    activePreloader = null;
+  }
+  
+  if (!document.querySelector('.admin-preloader-overlay')) {
+    document.body.classList.remove('preloader-active');
+  }
+}
+
+// =============================================================================
+// MODAL DE CONFIRMACIÓN - CORREGIDO
+// =============================================================================
+
+let activeModal = null;
+
+function closeModal() {
+  if (activeModal) {
+    // Remover el modal del DOM
+    if (activeModal.parentNode) {
+      activeModal.remove();
+    }
+    activeModal = null;
+    document.body.classList.remove('modal-open');
+  }
+}
+
+function createConfirmModal(options) {
+  return new Promise((resolve) => {
+    // Cerrar modal anterior si existe
+    closeModal();
+
+    const modal = document.createElement('div');
+    modal.className = 'admin-modal';
+    modal.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-color: rgba(0, 0, 0, 0.7) !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+      z-index: 1000000 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      margin: 0 !important;
+      padding: 20px !important;
+      box-sizing: border-box !important;
+    `;
+    
+    const iconMap = {
+      warning: 'fa-exclamation-triangle',
+      danger: 'fa-trash-alt',
+      success: 'fa-check-circle',
+      info: 'fa-info-circle'
+    };
+    
+    const colorMap = {
+      warning: 'var(--warning)',
+      danger: 'var(--danger)',
+      success: 'var(--success)',
+      info: 'var(--info)'
+    };
+    
+    const icon = iconMap[options.type] || 'fa-question-circle';
+    const color = colorMap[options.type] || 'var(--primary)';
+    
+    modal.innerHTML = `
+      <div class="modal__content" style="max-width: 450px; width: 100%; background: var(--bg-primary); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); border: 1px solid var(--border); position: relative; animation: modalSlideIn 0.3s ease;">
+        <header class="modal__header" style="padding: 1.75rem 1.75rem 1rem; display: flex; justify-content: space-between; align-items: flex-start; position: relative;">
+          <h3 class="modal__title" style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${options.title || 'Confirmar acción'}</h3>
+          <button class="modal__close admin-modal-close" style="background: var(--bg-tertiary); border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-left: auto;">&times;</button>
+        </header>
+        <section class="modal__body" style="padding: 1.75rem; overflow-y: auto;">
+          <div class="action-modal__content" style="text-align: center;">
+            <div class="action-modal__icon" style="color: ${color}; font-size: 48px; margin-bottom: 16px;">
+              <i class="fas ${icon} fa-3x"></i>
+            </div>
+            <p class="action-modal__message" style="font-size: 16px; line-height: 1.5; color: var(--text-primary); margin: 0 0 0.5rem 0;">${options.message || '¿Estás seguro?'}</p>
+            ${options.details ? `<p class="action-modal__details" style="color: var(--text-secondary); font-size: 0.9rem;">${options.details}</p>` : ''}
+          </div>
+        </section>
+        <footer class="modal__footer modal__footer--centered" style="padding: 1rem 1.75rem 1.75rem; display: flex; justify-content: center; gap: 0.75rem; position: relative;">
+          <button class="btn btn--outline admin-modal-cancel" style="padding: 0.6rem 1.2rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer;">${options.cancelText || 'Cancelar'}</button>
+          <button class="btn btn--${options.type === 'danger' ? 'danger' : 'primary'} admin-modal-confirm" style="padding: 0.6rem 1.2rem; border-radius: var(--radius-md); font-size: 0.9rem; cursor: pointer;">${options.confirmText || 'Confirmar'}</button>
+        </footer>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    activeModal = modal;
+    document.body.classList.add('modal-open');
+    
+    // Configurar eventos
+    const closeBtn = modal.querySelector('.admin-modal-close');
+    const cancelBtn = modal.querySelector('.admin-modal-cancel');
+    const confirmBtn = modal.querySelector('.admin-modal-confirm');
+    
+    const handleClose = () => {
+      closeModal();
+      resolve(false);
+    };
+    
+    const handleConfirm = () => {
+      closeModal();
+      resolve(true);
+    };
+    
+    closeBtn.addEventListener('click', handleClose);
+    cancelBtn.addEventListener('click', handleClose);
+    confirmBtn.addEventListener('click', handleConfirm);
+    
+    // Cerrar con Escape
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        document.removeEventListener('keydown', handleEscape);
+        handleClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // Clic fuera del modal
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        handleClose();
+      }
+    });
+  });
+}
+
+// =============================================================================
+// FUNCIONES DE ACCIONES CON PRELOADER CORREGIDO
 // =============================================================================
 
 async function deactivateUser(userId, userName) {
-  const confirmed = await confirmAction({
+  const confirmed = await createConfirmModal({
     title: '¿Desactivar usuario?',
     message: `El usuario "${userName}" no podrá iniciar sesión hasta que sea reactivado.`,
     confirmText: 'Desactivar',
@@ -81,12 +257,22 @@ async function deactivateUser(userId, userName) {
   
   if (!confirmed) return false;
   
+  // Mostrar preloader antes de la petición
+  const preloaderId = showPreloader('Desactivando usuario...');
+  
+  // Pequeño retraso para asegurar que el preloader se muestre
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
   try {
-    setLoadingState(true);
     const response = await api.call(`/admin/users/${userId}/deactivate`, { 
       method: 'PATCH',
       body: { activo: false }
     });
+
+        // 👇 AGREGAR RETRASO ARTIFICIAL DE 1 SEGUNDO
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    hidePreloader();
     
     if (response?.success) {
       showAlert('Usuario desactivado correctamente', 'success');
@@ -95,18 +281,18 @@ async function deactivateUser(userId, userName) {
       throw new Error(response?.message || 'Error al desactivar usuario');
     }
   } catch (error) {
+    hidePreloader();
     console.error('Error desactivando usuario:', error);
     showAlert(error.message || 'Error al desactivar usuario', 'error');
     return false;
-  } finally {
-    setLoadingState(false);
   }
 }
 
 async function deleteUserPermanently(userId, userName) {
-  const confirmed = await confirmAction({
+  const confirmed = await createConfirmModal({
     title: '⚠️ ¿Eliminar usuario permanentemente?',
-    message: `Esta acción eliminará permanentemente al usuario "${userName}". NO SE PUEDE DESHACER.`,
+    message: `Esta acción eliminará permanentemente al usuario "${userName}".`,
+    details: 'NO SE PUEDE DESHACER. Todos sus datos serán eliminados.',
     confirmText: 'Eliminar permanentemente',
     cancelText: 'Cancelar',
     type: 'danger'
@@ -114,11 +300,21 @@ async function deleteUserPermanently(userId, userName) {
   
   if (!confirmed) return false;
   
+  // Mostrar preloader antes de la petición
+  const preloaderId = showPreloader('Eliminando usuario permanentemente...');
+  
+  // Pequeño retraso para asegurar que el preloader se muestre
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
   try {
-    setLoadingState(true);
     const response = await api.call(`/admin/users/${userId}`, { 
       method: 'DELETE' 
     });
+
+        // 👇 AGREGAR RETRASO ARTIFICIAL DE 1 SEGUNDO
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    hidePreloader();
     
     if (response?.success) {
       showAlert('Usuario eliminado permanentemente', 'success');
@@ -127,16 +323,15 @@ async function deleteUserPermanently(userId, userName) {
       throw new Error(response?.message || 'Error al eliminar usuario');
     }
   } catch (error) {
+    hidePreloader();
     console.error('Error eliminando usuario:', error);
     showAlert(error.message || 'Error al eliminar usuario', 'error');
     return false;
-  } finally {
-    setLoadingState(false);
   }
 }
 
 async function reactivateUser(userId, userName) {
-  const confirmed = await confirmAction({
+  const confirmed = await createConfirmModal({
     title: '¿Reactivar usuario?',
     message: `El usuario "${userName}" podrá iniciar sesión nuevamente.`,
     confirmText: 'Reactivar',
@@ -146,12 +341,22 @@ async function reactivateUser(userId, userName) {
   
   if (!confirmed) return false;
   
+  // Mostrar preloader antes de la petición
+  const preloaderId = showPreloader('Reactivando usuario...');
+  
+  // Pequeño retraso para asegurar que el preloader se muestre
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
   try {
-    setLoadingState(true);
     const response = await api.call(`/admin/users/${userId}/reactivate`, { 
       method: 'PATCH',
       body: { activo: true, rol: 'lector' }
     });
+
+        // 👇 AGREGAR RETRASO ARTIFICIAL DE 1 SEGUNDO
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    hidePreloader();
     
     if (response?.success) {
       showAlert('Usuario reactivado correctamente', 'success');
@@ -160,11 +365,72 @@ async function reactivateUser(userId, userName) {
       throw new Error(response?.message || 'Error al reactivar usuario');
     }
   } catch (error) {
+    hidePreloader();
     console.error('Error reactivando usuario:', error);
     showAlert(error.message || 'Error al reactivar usuario', 'error');
     return false;
-  } finally {
-    setLoadingState(false);
+  }
+}
+
+async function updateUser(userId, userData) {
+  // Mostrar preloader antes de la petición
+  const preloaderId = showPreloader('Actualizando usuario...');
+  
+  // Pequeño retraso para asegurar que el preloader se muestre
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  try {
+    const response = await api.call(`/admin/users/${userId}`, {
+      method: 'PATCH',
+      body: userData
+    });
+
+        // 👇 AGREGAR RETRASO ARTIFICIAL DE 1 SEGUNDO
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    hidePreloader();
+    
+    if (response?.success) {
+      showAlert('Usuario actualizado correctamente', 'success');
+      return true;
+    } else {
+      throw new Error(response?.message || 'Error al actualizar usuario');
+    }
+  } catch (error) {
+    hidePreloader();
+    showAlert(error.message || 'Error al actualizar usuario', 'error');
+    return false;
+  }
+}
+
+async function createUser(userData) {
+  // Mostrar preloader antes de la petición
+  const preloaderId = showPreloader('Creando usuario...');
+  
+  // Pequeño retraso para asegurar que el preloader se muestre
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  try {
+    const response = await api.call('/admin/users', {
+      method: 'POST',
+      body: userData
+    });
+
+        // 👇 AGREGAR RETRASO ARTIFICIAL DE 1 SEGUNDO
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    hidePreloader();
+    
+    if (response?.success) {
+      showAlert('Usuario creado exitosamente', 'success');
+      return true;
+    } else {
+      throw new Error(response?.message || 'Error al crear usuario');
+    }
+  } catch (error) {
+    hidePreloader();
+    showAlert(error.message || 'Error al crear usuario', 'error');
+    return false;
   }
 }
 
@@ -348,6 +614,75 @@ function renderRoleDescriptions() {
 }
 
 // =============================================================================
+// RENDERIZADO DE ESTADÍSTICAS DE ROLES
+// =============================================================================
+
+function renderRoleStats(users) {
+  // Calcular estadísticas por rol
+  const roleStats = {};
+  
+  Object.values(ROLES).forEach(role => {
+    if (role !== ROLES.DISABLED) {
+      roleStats[role] = users.filter(u => u.rol === role && u.activo !== false).length;
+    }
+  });
+  
+  // Total de usuarios activos
+  const totalActivos = users.filter(u => u.activo !== false && u.rol !== ROLES.DISABLED).length;
+  
+  return `
+    <div class="role-stats">
+      <div class="role-stats-header">
+        <h3 class="role-stats-title">
+          <i class="fas fa-chart-pie"></i>
+          Distribución por Rol
+        </h3>
+        <span class="role-stats-total">${totalActivos} activos</span>
+      </div>
+      <div class="role-stats-grid">
+        ${Object.entries(roleStats)
+          .filter(([role, count]) => count > 0 || role === ROLES.LECTOR)
+          .map(([role, count]) => {
+            const percentage = totalActivos > 0 ? Math.round((count / totalActivos) * 100) : 0;
+            const roleClass = ROLE_COLORS[role] || 'secondary';
+            
+            return `
+              <div class="role-stat-item" title="${ROLE_DESCRIPTIONS[role]}">
+                <div class="role-stat-info">
+                  <div class="role-stat-label">
+                    <i class="${ROLE_ICONS[role]}" style="color: var(--${roleClass});"></i>
+                    <span>${getRoleDisplayName(role)}</span>
+                  </div>
+                  <span class="role-stat-count">${count}</span>
+                </div>
+                <div class="role-stat-bar">
+                  <div class="role-stat-progress" style="width: ${percentage}%; background-color: var(--${roleClass});"></div>
+                </div>
+                <span class="role-stat-percentage">${percentage}%</span>
+              </div>
+            `;
+          }).join('')}
+      </div>
+      
+      <div class="role-stats-footer">
+        <div class="role-stat-quick">
+          <i class="fas fa-user-check" style="color: var(--success);"></i>
+          <span>${users.filter(u => u.activo !== false).length} activos</span>
+        </div>
+        <div class="role-stat-quick">
+          <i class="fas fa-user-slash" style="color: var(--warning);"></i>
+          <span>${users.filter(u => u.activo === false || u.rol === ROLES.DISABLED).length} inactivos</span>
+        </div>
+        <div class="role-stat-quick">
+          <i class="fas fa-crown" style="color: var(--danger);"></i>
+          <span>${users.filter(u => u.rol === ROLES.ADMIN).length} admin</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// =============================================================================
 // RENDERIZADO PRINCIPAL
 // =============================================================================
 
@@ -494,6 +829,11 @@ export async function renderAgregarAdministrador() {
                   </button>
                 </div>
               </form>
+
+              <!-- ESTADÍSTICAS DE ROLES -->
+              <div class="role-stats-container">
+                ${renderRoleStats(users)}
+              </div>
             </div>
           </div>
 
@@ -643,21 +983,9 @@ export async function renderAgregarAdministrador() {
             return;
           }
 
-          try {
-            setLoadingState(true);
-            const response = await api.call(`/admin/users/${id}`, {
-              method: 'PATCH',
-              body: { usuario, correo, rol, activo }
-            });
-
-            if (response?.success) {
-              showAlert('Usuario actualizado correctamente', 'success');
-              await renderAgregarAdministrador();
-            }
-          } catch (error) {
-            showAlert('Error al actualizar usuario', 'error');
-          } finally {
-            setLoadingState(false);
+          const updated = await updateUser(id, { usuario, correo, rol, activo });
+          if (updated) {
+            await renderAgregarAdministrador();
           }
           break;
 
@@ -697,23 +1025,10 @@ export async function renderAgregarAdministrador() {
         return;
       }
 
-      try {
-        setLoadingState(true, document.getElementById('adminCreateUserBtn'));
-
-        const response = await api.call('/admin/users', {
-          method: 'POST',
-          body: { usuario, correo, password, rol }
-        });
-
-        if (response?.success) {
-          showAlert('Usuario creado exitosamente', 'success');
-          form.reset();
-          await renderAgregarAdministrador();
-        }
-      } catch (error) {
-        showAlert(error.message || 'Error al crear usuario', 'error');
-      } finally {
-        setLoadingState(false);
+      const created = await createUser({ usuario, correo, password, rol });
+      if (created) {
+        form.reset();
+        await renderAgregarAdministrador();
       }
     });
 

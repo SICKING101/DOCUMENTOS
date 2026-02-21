@@ -24,6 +24,7 @@ class SettingsManager {
             },
             accessibility: {
                 highContrast: false,
+                largeFont: false,
                 reducedMotion: false,
                 fontSize: 16,
             },
@@ -385,6 +386,7 @@ class SettingsManager {
     updateSettingFromSwitch(name, value) {
         switch(name) {
             case 'highContrast':
+            case 'largeFont':
             case 'reducedMotion':
                 this.settings.accessibility[name] = value;
                 this.applyAccessibility();
@@ -443,14 +445,27 @@ class SettingsManager {
     calculateAndSetTheme() {
         if (this.settings.appearance.theme !== 'auto') {
             this.settings.appearance.currentTheme = this.settings.appearance.theme;
-            return this.settings.appearance.currentTheme;
+            return;
         }
-
-        // En modo automático, usar preferencia del sistema
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const calculatedTheme = mediaQuery.matches ? 'dark' : 'light';
+        
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        const darkTime = this.timeToMinutes(this.settings.appearance.autoDarkTime);
+        const lightTime = this.timeToMinutes(this.settings.appearance.autoLightTime);
+        
+        let calculatedTheme = 'light';
+        
+        if (darkTime > lightTime) {
+            calculatedTheme = (currentTime >= darkTime || currentTime < lightTime) ? 'dark' : 'light';
+        } else {
+            calculatedTheme = (currentTime >= darkTime && currentTime < lightTime) ? 'dark' : 'light';
+        }
+        
         this.settings.appearance.currentTheme = calculatedTheme;
-        this.log(`🧮 Tema calculado por sistema: ${calculatedTheme}`);
+        
+        this.log(`🧮 Tema calculado: ${calculatedTheme} (Hora actual: ${currentTime}min, Oscuro: ${darkTime}min, Claro: ${lightTime}min)`);
+        
         return calculatedTheme;
     }
 
@@ -460,12 +475,16 @@ class SettingsManager {
     startThemeChecker() {
         if (this.themeCheckInterval) {
             clearInterval(this.themeCheckInterval);
-            this.themeCheckInterval = null;
         }
 
         if (this.settings.appearance.theme === 'auto') {
-            // Con modo automático basado en sistema, no necesitamos verificador por hora
-            this.log('🔁 Modo automático (sistema): sin verificador por hora');
+            this.log('⏰ Iniciando verificador de tema automático');
+            
+            this.checkAndApplyAutoTheme();
+            
+            this.themeCheckInterval = setInterval(() => {
+                this.checkAndApplyAutoTheme();
+            }, 60000);
         }
     }
 
@@ -474,23 +493,38 @@ class SettingsManager {
      */
     checkAndApplyAutoTheme(forceRecalculation = false) {
         if (this.settings.appearance.theme !== 'auto') return;
-        // En modo automático usar preferencia del sistema
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const calculatedTheme = mediaQuery.matches ? 'dark' : 'light';
+
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        
+        const darkTime = this.timeToMinutes(this.settings.appearance.autoDarkTime);
+        const lightTime = this.timeToMinutes(this.settings.appearance.autoLightTime);
+        
+        let shouldBeDark = false;
+        
+        if (darkTime > lightTime) {
+            shouldBeDark = currentTime >= darkTime || currentTime < lightTime;
+        } else {
+            shouldBeDark = currentTime >= darkTime && currentTime < lightTime;
+        }
+        
+        const calculatedTheme = shouldBeDark ? 'dark' : 'light';
         const currentStoredTheme = this.settings.appearance.currentTheme;
         const body = document.body;
         const currentAppliedTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
-
-        this.log(`⏱️ Verificación tema (sistema): Calculado=${calculatedTheme}, Guardado=${currentStoredTheme}, Aplicado=${currentAppliedTheme}`);
-
+        
+        this.log(`⏱️ Verificación tema: Calculado=${calculatedTheme}, Guardado=${currentStoredTheme}, Aplicado=${currentAppliedTheme}`);
+        
         if (forceRecalculation || currentStoredTheme !== calculatedTheme) {
+            this.log(`🔄 Actualizando tema guardado de ${currentStoredTheme} a ${calculatedTheme}`);
             this.settings.appearance.currentTheme = calculatedTheme;
             this.saveSettings();
         }
-
+        
         if (calculatedTheme !== currentAppliedTheme) {
-            body.classList.toggle('dark-theme', calculatedTheme === 'dark');
-            body.classList.toggle('light-theme', calculatedTheme === 'light');
+            this.log(`🎨 Aplicando cambio de tema: ${currentAppliedTheme} → ${calculatedTheme}`);
+            body.classList.toggle('dark-theme', shouldBeDark);
+            body.classList.toggle('light-theme', !shouldBeDark);
         }
     }
 
@@ -644,21 +678,20 @@ collectFormData() {
         body.classList.remove('light-theme', 'dark-theme');
         
         if (theme === 'auto') {
+            if (currentTheme) {
+                this.log(`🔁 Usando tema guardado: ${currentTheme}`);
+                body.classList.add(`${currentTheme}-theme`);
+            } else {
+                this.log('⚠️ No hay tema guardado, calculando...');
+                const calculatedTheme = this.calculateAndSetTheme();
+                body.classList.add(`${calculatedTheme}-theme`);
+            }
+            
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            const systemTheme = mediaQuery.matches ? 'dark' : 'light';
-            this.settings.appearance.currentTheme = systemTheme;
-            body.classList.add(`${systemTheme}-theme`);
-
             const handleSystemChange = (e) => {
-                const newTheme = e.matches ? 'dark' : 'light';
-                this.log('🖥️ Preferencia del sistema cambiada:', newTheme);
-                this.settings.appearance.currentTheme = newTheme;
-                body.classList.toggle('dark-theme', newTheme === 'dark');
-                body.classList.toggle('light-theme', newTheme === 'light');
-                this.saveThemeInMultiplePlaces();
-                this.saveSettings();
+                this.log('🖥️ Preferencia del sistema cambiada:', e.matches ? 'dark' : 'light');
             };
-
+            
             mediaQuery.addEventListener('change', handleSystemChange);
             this.systemThemeListener = handleSystemChange;
         } else {
@@ -734,12 +767,13 @@ collectFormData() {
      * Aplicar ajustes de accesibilidad
      */
     applyAccessibility() {
-        const { highContrast, reducedMotion, fontSize } = this.settings.accessibility;
+        const { highContrast, largeFont, reducedMotion, fontSize } = this.settings.accessibility;
         const body = document.body;
         
-        this.log(`♿ Aplicando accesibilidad`, { highContrast, reducedMotion, fontSize });
+        this.log(`♿ Aplicando accesibilidad`, { highContrast, largeFont, reducedMotion, fontSize });
         
         body.classList.toggle('high-contrast', highContrast);
+        body.classList.toggle('large-font', largeFont);
         body.classList.toggle('reduced-motion', reducedMotion);
         
         const validSizes = [14, 16, 18];
@@ -1040,19 +1074,24 @@ updateForm() {
 
     // Accesibilidad - Verificar que los elementos existen
     const highContrastInput = form.querySelector('input[name="highContrast"]');
+    const largeFontInput = form.querySelector('input[name="largeFont"]');
     const reducedMotionInput = form.querySelector('input[name="reducedMotion"]');
     
     if (highContrastInput) highContrastInput.checked = this.settings.accessibility.highContrast;
+    if (largeFontInput) largeFontInput.checked = this.settings.accessibility.largeFont;
     if (reducedMotionInput) reducedMotionInput.checked = this.settings.accessibility.reducedMotion;
     
     // Tamaño de fuente - Verificar que los elementos existen
     const fontSizeInput = document.getElementById('font-size');
+    const fontSizeDisplay = document.querySelector('.current-size');
     const fontPresets = document.querySelectorAll('.font-size-preset');
     
     if (fontSizeInput) {
         fontSizeInput.value = this.settings.accessibility.fontSize || 16;
         
-        // Eliminado display de tamaño actual; se usan presets
+        if (fontSizeDisplay) {
+            fontSizeDisplay.textContent = `${this.settings.accessibility.fontSize || 16}px`;
+        }
         
         fontPresets.forEach(preset => {
             preset.classList.remove('active');
@@ -1136,11 +1175,13 @@ updateForm() {
         this.settings.accessibility.fontSize = size;
         
         const fontSizeInput = document.getElementById('font-size');
+        const fontSizeDisplay = document.querySelector('.current-size');
         const fontPresets = document.querySelectorAll('.font-size-preset');
-
-        if (fontSizeInput) {
+        
+        if (fontSizeInput && fontSizeDisplay) {
             fontSizeInput.value = size;
-
+            fontSizeDisplay.textContent = `${size}px`;
+            
             fontPresets.forEach(preset => {
                 preset.classList.remove('active');
                 if (parseInt(preset.dataset.size) === size) {
