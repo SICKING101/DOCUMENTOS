@@ -388,6 +388,11 @@ body.dark-theme .form__textarea:focus {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
+.dark-theme .global-preloader,
+.dark-theme .preloader-overlay__content {
+    background: var(--bg-primary);
+}
+
 /* =============================================================================
  * DARK MODE SUPPORT
  * ============================================================================= */
