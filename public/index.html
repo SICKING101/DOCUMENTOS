@@ -61,7 +61,7 @@
                         <span class="sidebar__nav-text">Personas</span>
                         <div class="sidebar__nav-active-indicator"></div>
                     </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="documentos" id="nav-documentos">
+                    <a href="#" class="sidebar__nav-link" data-tab="documentos">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-file-alt"></i>
                         </div>
@@ -129,7 +129,7 @@
                     </a>
                 </div>
 
-                <!-- Grupo 4: Administración -->
+                 <!-- Grupo 4: Administración -->
                 <div class="sidebar__nav-group">
                     <p class="sidebar__nav-group-title">Administración</p>
                     <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin">
@@ -177,8 +177,8 @@
                             <i class="fas fa-user-shield"></i>
                         </div>
                         <div class="user-menu__info">
-                            <p class="user-menu__name">Usuario del Sistema</p>
-                            <p class="user-menu__email" id="userEmail">user@cbtis051.edu.mx</p>
+                            <p class="user-menu__name">Administrador del Sistema</p>
+                            <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
                             <p class="user-menu__status">En línea</p>
                         </div>
                     </div>
@@ -1177,8 +1177,6 @@
                                         <!-- Los eventos próximos se cargan dinámicamente -->
                                     </div>
                                 </div>
-
-                                <!-- Mini calendario removido -->
                             </div>
                         </div>
                     </div>
@@ -1310,7 +1308,16 @@
                                     </div>
 
                                     <div class="settings-group">
-                                        <!-- Eliminado: Texto grande (se manejará solo por tamaños predefinidos) -->
+                                        <label class="switch-label">
+                                            <div class="switch-text">
+                                                <span class="switch-title">Texto grande</span>
+                                                <span class="switch-description">Aumenta el tamaño de la fuente</span>
+                                            </div>
+                                            <label class="switch">
+                                                <input type="checkbox" name="largeFont">
+                                                <span class="slider"></span>
+                                            </label>
+                                        </label>
                                     </div>
 
                                     <div class="settings-group">
@@ -1329,6 +1336,17 @@
 
                                     <div class="settings-group">
                                         <label class="settings-label">Tamaño de fuente</label>
+                                        <div class="font-size-control">
+                                            <button type="button" class="font-size-btn decrease">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <div class="font-size-display">
+                                                <span class="current-size">16px</span>
+                                            </div>
+                                            <button type="button" class="font-size-btn increase">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
                                         <div class="font-size-presets">
                                             <button type="button" class="font-size-preset"
                                                 data-size="14">Pequeño</button>
@@ -1393,7 +1411,7 @@
 
                             <!-- Botones de acción -->
                             <div class="settings-actions">
-                                <button type="submit" class="btn btn--primary btn--lg" id="save-btn">
+                                <button type="submit" class="btn" id="save-btn">
                                     <i class="fas fa-save"></i>
                                     Guardar cambios
                                 </button>
@@ -1434,24 +1452,7 @@
                                 <p class="support__subtitle">Ayuda, guías y tickets de soporte para el sistema</p>
                             </div>
                             <div class="support__header-right">
-                                <!-- Botón 'Nuevo Ticket' removido del header; usar el callout inferior -->
-                            </div>
-                        </div>
-
-                        <!-- Llamado destacado para crear ticket -->
-                        <div class="ticket-callout">
-                            <div class="ticket-callout__icon">
-                                <i class="fas fa-life-ring"></i>
-                            </div>
-                            <div class="ticket-callout__content">
-                                <h3 class="ticket-callout__title">¿Necesitas ayuda?</h3>
-                                <p class="ticket-callout__desc">
-                                    Crea un <strong>ticket de soporte</strong> para contactar al equipo.
-                                    Describe tu problema o solicitud y te responderemos lo antes posible.
-                                </p>
-                            </div>
-                            <div class="ticket-callout__action">
-                                <button class="btn btn--primary btn--lg" id="newTicketBtnAlt">
+                                <button class="btn btn--primary" id="newTicketBtn">
                                     <i class="fas fa-plus-circle"></i> Nuevo Ticket
                                 </button>
                             </div>
@@ -1499,7 +1500,7 @@
                                                     <i class="fas fa-users"></i>
                                                 </div>
                                                 <div class="guide-section-info">
-                                                    <h4 class="guide-section-title">Gestión de Personas</h2>
+                                                    <h4 class="guide-section-title">Gestión de Personas</h4>
                                                     <p class="guide-section-subtitle">Usuarios, roles y permisos</p>
                                                 </div>
                                                 <button class="guide-view-btn" data-section="personas"
@@ -1775,11 +1776,17 @@
                                                     <span class="guide-nav-badge">10</span>
                                                 </a>
 
+                                                <a href="#" class="guide-nav-item" data-section="papelera" role="tab">
+                                                    <i class="fas fa-trash-restore guide-nav-icon"></i>
+                                                    <span class="guide-nav-text">Papelera</span>
+                                                    <span class="guide-nav-badge">11</span>
+                                                </a>
+
                                                 <a href="#" class="guide-nav-item" data-section="notificaciones"
                                                     role="tab">
                                                     <i class="fas fa-bell guide-nav-icon"></i>
                                                     <span class="guide-nav-text">Notificaciones</span>
-                                                    <span class="guide-nav-badge">11</span>
+                                                    <span class="guide-nav-badge">12</span>
                                                 </a>
                                             </nav>
                                         </div>
@@ -2819,7 +2826,7 @@
                 <button class="btn" id="confirmActionBtn">Confirmar</button>
             </footer>
         </article>
-    </div>
+    </dialog>
 
     <!-- Modal para crear/editar evento de calendario -->
     <div id="calendarEventModal" class="modal">

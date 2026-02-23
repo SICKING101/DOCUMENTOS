@@ -1,3 +1,43 @@
+/* Variables para el tema oscuro */
+body.dark-theme {
+    /* Colores invertidos para modo oscuro */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #64748b;
+    --border: #334155;
+    
+    /* Ajustes específicos para sidebar en modo oscuro */
+    --sidebar-bg: #020617;
+    --sidebar-hover: #1e293b;
+
+    --success-light: #064e3b;
+    --success-lighter: #059d19;
+    --danger-light: #7f1d1d;
+    --warning-light: #78350f;
+    --info-light: #0c4a6e;
+    --border-dark: #4b5563;
+    
+    /* Variables adicionales para componentes específicos */
+    --card-bg: #1e293b;
+    --dark-card-bg: #0f172a;
+    --border-color: #334155;
+    --dark-border-color: #475569;
+    --border-color-light: #475569;
+    --dark-border-color-light: #64748b;
+    --input-bg: #1e293b;
+    --dark-input-bg: #0f172a;
+    --table-header-bg: #1e293b;
+    --dark-table-header-bg: #0f172a;
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --hover-dark: rgba(255, 255, 255, 0.08);
+    --disabled-bg: rgba(255, 255, 255, 0.1);
+    --scrollbar-track: #1e293b;
+    --scrollbar-thumb: #475569;
+}
+
 /* Prohibido blanco en calendario modo oscuro: todo fondo claro reemplazado */
 body.dark-theme .calendar-section,
 body.dark-theme .calendar__main-view,
@@ -303,44 +343,6 @@ body.dark-theme .modal__footer button {
     background: var(--bg-tertiary) !important;
     border-color: var(--border) !important;
 }
-/* Variables para el tema oscuro */
-body.dark-theme {
-    /* Colores invertidos para modo oscuro */
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-tertiary: #64748b;
-    --border: #334155;
-    
-    /* Ajustes específicos para sidebar en modo oscuro */
-    --sidebar-bg: #020617;
-    --sidebar-hover: #1e293b;
-
-        --success-light: #064e3b;
-    --danger-light: #7f1d1d;
-    --warning-light: #78350f;
-    --info-light: #0c4a6e;
-    --border-dark: #4b5563;
-    
-    /* Variables adicionales para componentes específicos */
-    --card-bg: #1e293b;
-    --dark-card-bg: #0f172a;
-    --border-color: #334155;
-    --dark-border-color: #475569;
-    --border-color-light: #475569;
-    --dark-border-color-light: #64748b;
-    --input-bg: #1e293b;
-    --dark-input-bg: #0f172a;
-    --table-header-bg: #1e293b;
-    --dark-table-header-bg: #0f172a;
-    --hover-bg: rgba(255, 255, 255, 0.05);
-    --hover-dark: rgba(255, 255, 255, 0.08);
-    --disabled-bg: rgba(255, 255, 255, 0.1);
-    --scrollbar-track: #1e293b;
-    --scrollbar-thumb: #475569;
-}
 
 /* Ajustes específicos para modo oscuro */
 body.dark-theme .task-card {
@@ -391,6 +393,11 @@ body.dark-theme .form__textarea:focus {
 .dark-theme .global-preloader,
 .dark-theme .preloader-overlay__content {
     background: var(--bg-primary);
+}
+
+.dark-theme .status-item--operational,
+.dark-theme .status-value {
+    color: var(--success-lighter);
 }
 
 /* =============================================================================
