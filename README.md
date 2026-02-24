@@ -52,6 +52,7 @@ DOCUMENTOS/
 │   │   ├── components/            
 |   │   │   ├── preloader/
 |   │   │   │   ├── bulk-delete.css
+|   │   │   │   ├── admin-preloader.css
 |   │   │   │   ├── buttons.css
 |   │   │   │   ├── categorias-preloader.css
 |   │   │   │   ├── confirmation.css
@@ -238,6 +239,7 @@ DOCUMENTOS/
 │       │   └── taskController.js
 │       │
 │       ├── middleware/
+│       │   ├── auditMiddleware.js
 │       │   └── auth.js
 │       │
 │       ├── models/                 # Modelos MongoDB

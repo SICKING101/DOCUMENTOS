@@ -4,6 +4,7 @@ import cloudinary from '../config/cloudinaryConfig.js';
 import FileService from '../services/fileService.js';
 import NotificationService from '../services/notificationService.js';
 import { PERMISSIONS, hasPermission } from '../config/permissions.js';
+import { logAudit } from '../middleware/auditMiddleware.js'; // ✅ IMPORTACIÓN DE AUDITORÍA
 
 function canBypassApprovalGate(role) {
   // Compatibilidad: admin/editor/moderador mantienen acceso a todo
@@ -20,9 +21,13 @@ function canAccessDocumentByStatus(role, status) {
 }
 
 class DocumentController {
-  // Obtener todos los documentos
+  // ===========================================================================
+  // OBTENER TODOS LOS DOCUMENTOS
+  // ===========================================================================
   static async getAll(req, res) {
     try {
+      console.log('📋 DocumentController.getAll - Iniciando');
+      
       const role = req.user?.rol;
       const statusFilter = canBypassApprovalGate(role) ? {} : { status: 'approved' };
 
@@ -37,20 +42,30 @@ class DocumentController {
         .populate('persona_id', 'nombre email departamento puesto')
         .sort({ fecha_subida: -1 });
 
+      console.log(`✅ ${documents.length} documentos encontrados`);
+      
       res.json({ success: true, documents });
     } catch (error) {
-      console.error('Error obteniendo documentos:', error);
+      console.error('❌ Error obteniendo documentos:', error);
       res.status(500).json({ success: false, message: 'Error al obtener documentos' });
     }
   }
 
-  // Crear/subir documento
+  // ===========================================================================
+  // CREAR/SUBIR DOCUMENTO - CON AUDITORÍA
+  // ===========================================================================
   static async create(req, res) {
-    try {
-      console.log('📥 Recibiendo solicitud de upload de documento...');
-      console.log('📋 Body:', req.body);
-      console.log('📋 File:', req.file);
+    console.log('\n🔍 ========== SUBIENDO NUEVO DOCUMENTO ==========');
+    console.log('📝 Body recibido:', req.body);
+    console.log('📋 File:', req.file);
+    console.log('👤 Usuario autenticado:', req.user ? {
+      id: req.user._id,
+      usuario: req.user.usuario,
+      rol: req.user.rol,
+      email: req.user.correo
+    } : '❌ NO HAY USUARIO');
 
+    try {
       if (!req.file) {
         console.error('❌ No se recibió archivo en la solicitud');
         return res.status(400).json({ 
@@ -73,7 +88,6 @@ class DocumentController {
         console.log('✅ Archivo subido a Cloudinary:', cloudinaryResult.secure_url);
       } catch (cloudinaryError) {
         console.error('❌ Error subiendo a Cloudinary:', cloudinaryError);
-        // Limpiar archivo temporal
         FileService.cleanTempFile(req.file.path);
         return res.status(500).json({ 
           success: false, 
@@ -95,7 +109,6 @@ class DocumentController {
         cloudinary_url: cloudinaryResult.secure_url,
         public_id: cloudinaryResult.public_id,
         resource_type: cloudinaryResult.resource_type,
-        // Nuevo flujo: los documentos subidos entran como pendientes
         status: 'pending'
       });
 
@@ -109,17 +122,57 @@ class DocumentController {
       const documentoConPersona = await Document.findById(nuevoDocumento._id)
         .populate('persona_id', 'nombre');
 
+      // =======================================================================
+      // REGISTRAR EN AUDITORÍA USANDO logAudit
+      // =======================================================================
+      
+      console.log('📝 Intentando registrar en auditoría...');
+      
+      try {
+        await logAudit(req, {
+          action: 'DOCUMENT_CREATE',
+          actionType: 'CREATE',
+          actionCategory: 'DOCUMENTS',
+          targetId: nuevoDocumento._id,
+          targetModel: 'Document',
+          targetName: nuevoDocumento.nombre_original,
+          description: `Documento subido: ${nuevoDocumento.nombre_original} (${(nuevoDocumento.tamano_archivo / 1024).toFixed(2)} KB)`,
+          severity: 'INFO',
+          metadata: {
+            nombre_original: nuevoDocumento.nombre_original,
+            tipo_archivo: nuevoDocumento.tipo_archivo,
+            tamano_archivo: nuevoDocumento.tamano_archivo,
+            categoria: nuevoDocumento.categoria,
+            persona_id: nuevoDocumento.persona_id ? nuevoDocumento.persona_id.toString() : null,
+            cloudinary_url: nuevoDocumento.cloudinary_url,
+            public_id: nuevoDocumento.public_id,
+            status: nuevoDocumento.status,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        console.log('✅✅✅ AUDITORÍA REGISTRADA EXITOSAMENTE');
+
+      } catch (auditError) {
+        console.error('❌ ERROR REGISTRANDO AUDITORÍA:');
+        console.error('📌 Mensaje:', auditError.message);
+        console.error('📌 Stack:', auditError.stack);
+        // NO interrumpimos el flujo principal si falla la auditoría
+      }
+
       // Crear notificación de documento subido
       try {
         await NotificationService.documentoSubido(
           documentoConPersona,
           documentoConPersona.persona_id
         );
+        console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
 
-      console.log('✅ Upload completado exitosamente');
+      console.log('✅✅✅ UPLOAD COMPLETADO EXITOSAMENTE');
+      console.log('🔍 ========== FIN ==========\n');
 
       res.json({
         success: true,
@@ -128,10 +181,12 @@ class DocumentController {
       });
 
     } catch (error) {
-      console.error('❌ Error general subiendo documento:', error);
-      console.error('❌ Stack trace:', error.stack);
-      // Limpiar archivo temporal si existe
+      console.error('🔥 ERROR CRÍTICO en create:');
+      console.error('📌 Mensaje:', error.message);
+      console.error('📌 Stack:', error.stack);
+      
       FileService.cleanTempFile(req.file && req.file.path);
+      
       res.status(500).json({ 
         success: false, 
         message: 'Error al subir documento: ' + error.message 
@@ -139,20 +194,36 @@ class DocumentController {
     }
   }
 
-  // Aprobar documento (Revisor/Moderador/Admin)
+  // ===========================================================================
+  // APROBAR DOCUMENTO - CON AUDITORÍA
+  // ===========================================================================
   static async approve(req, res) {
+    console.log('\n🔍 ========== APROBANDO DOCUMENTO ==========');
+    console.log('📝 ID:', req.params.id);
+    console.log('👤 Usuario:', req.user?.usuario);
+
     try {
       const { id } = req.params;
       const { comment } = req.body || {};
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log('❌ ID inválido:', id);
         return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
       const documento = await Document.findOne({ _id: id, activo: true });
       if (!documento) {
+        console.log('❌ Documento no encontrado:', id);
         return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
+
+      // Guardar estado anterior
+      const beforeState = {
+        status: documento.status,
+        reviewedAt: documento.reviewedAt,
+        reviewedBy: documento.reviewedBy,
+        reviewComment: documento.reviewComment
+      };
 
       documento.status = 'approved';
       documento.reviewedAt = new Date();
@@ -160,27 +231,85 @@ class DocumentController {
       documento.reviewComment = comment ? String(comment) : '';
       await documento.save();
 
+      console.log('✅ Documento aprobado:', documento.nombre_original);
+
+      // =======================================================================
+      // REGISTRAR APROBACIÓN EN AUDITORÍA
+      // =======================================================================
+      
+      try {
+        const afterState = {
+          status: documento.status,
+          reviewedAt: documento.reviewedAt,
+          reviewedBy: documento.reviewedBy,
+          reviewComment: documento.reviewComment
+        };
+
+        await logAudit(req, {
+          action: 'DOCUMENT_APPROVE',
+          actionType: 'UPDATE',
+          actionCategory: 'DOCUMENTS',
+          targetId: documento._id,
+          targetModel: 'Document',
+          targetName: documento.nombre_original,
+          description: `Documento aprobado: ${documento.nombre_original}`,
+          severity: 'INFO',
+          changes: {
+            before: beforeState,
+            after: afterState
+          },
+          metadata: {
+            comment: comment || 'Sin comentario',
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        console.log('✅✅✅ APROBACIÓN REGISTRADA');
+
+      } catch (auditError) {
+        console.error('❌ Error registrando aprobación:', auditError.message);
+      }
+
+      console.log('✅✅✅ APROBACIÓN COMPLETADA');
+      console.log('🔍 ========== FIN ==========\n');
+
       return res.json({ success: true, message: 'Documento aprobado', document: documento });
     } catch (error) {
-      console.error('Error aprobando documento:', error);
+      console.error('🔥 Error aprobando documento:', error);
       return res.status(500).json({ success: false, message: 'Error al aprobar documento' });
     }
   }
 
-  // Rechazar documento (Revisor/Moderador/Admin)
+  // ===========================================================================
+  // RECHAZAR DOCUMENTO - CON AUDITORÍA
+  // ===========================================================================
   static async reject(req, res) {
+    console.log('\n🔍 ========== RECHAZANDO DOCUMENTO ==========');
+    console.log('📝 ID:', req.params.id);
+    console.log('👤 Usuario:', req.user?.usuario);
+
     try {
       const { id } = req.params;
       const { comment } = req.body || {};
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log('❌ ID inválido:', id);
         return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
       const documento = await Document.findOne({ _id: id, activo: true });
       if (!documento) {
+        console.log('❌ Documento no encontrado:', id);
         return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
+
+      // Guardar estado anterior
+      const beforeState = {
+        status: documento.status,
+        reviewedAt: documento.reviewedAt,
+        reviewedBy: documento.reviewedBy,
+        reviewComment: documento.reviewComment
+      };
 
       documento.status = 'rejected';
       documento.reviewedAt = new Date();
@@ -188,14 +317,58 @@ class DocumentController {
       documento.reviewComment = comment ? String(comment) : '';
       await documento.save();
 
+      console.log('✅ Documento rechazado:', documento.nombre_original);
+
+      // =======================================================================
+      // REGISTRAR RECHAZO EN AUDITORÍA
+      // =======================================================================
+      
+      try {
+        const afterState = {
+          status: documento.status,
+          reviewedAt: documento.reviewedAt,
+          reviewedBy: documento.reviewedBy,
+          reviewComment: documento.reviewComment
+        };
+
+        await logAudit(req, {
+          action: 'DOCUMENT_REJECT',
+          actionType: 'UPDATE',
+          actionCategory: 'DOCUMENTS',
+          targetId: documento._id,
+          targetModel: 'Document',
+          targetName: documento.nombre_original,
+          description: `Documento rechazado: ${documento.nombre_original} - Motivo: ${comment || 'No especificado'}`,
+          severity: 'WARNING',
+          changes: {
+            before: beforeState,
+            after: afterState
+          },
+          metadata: {
+            comment: comment || 'Sin comentario',
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        console.log('✅✅✅ RECHAZO REGISTRADO');
+
+      } catch (auditError) {
+        console.error('❌ Error registrando rechazo:', auditError.message);
+      }
+
+      console.log('✅✅✅ RECHAZO COMPLETADO');
+      console.log('🔍 ========== FIN ==========\n');
+
       return res.json({ success: true, message: 'Documento rechazado', document: documento });
     } catch (error) {
-      console.error('Error rechazando documento:', error);
+      console.error('🔥 Error rechazando documento:', error);
       return res.status(500).json({ success: false, message: 'Error al rechazar documento' });
     }
   }
 
-  // Vista previa de documento
+  // ===========================================================================
+  // VISTA PREVIA DE DOCUMENTO
+  // ===========================================================================
   static async preview(req, res) {
     try {
       const { id } = req.params;
@@ -233,8 +406,26 @@ class DocumentController {
 
       console.log('👁️ Vista previa para:', documento.nombre_original);
       
-      // PARA PDF: Cloudinary puede mostrar vista previa
-      // PARA IMÁGENES: Redirigir directamente
+      // Registrar visualización en auditoría (opcional)
+      try {
+        await logAudit(req, {
+          action: 'DOCUMENT_PREVIEW',
+          actionType: 'READ',
+          actionCategory: 'DOCUMENTS',
+          targetId: documento._id,
+          targetModel: 'Document',
+          targetName: documento.nombre_original,
+          description: `Vista previa de documento: ${documento.nombre_original}`,
+          severity: 'INFO',
+          metadata: {
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (auditError) {
+        // No interrumpir la vista previa si falla la auditoría
+        console.error('❌ Error registrando vista previa:', auditError.message);
+      }
+      
       res.redirect(documento.cloudinary_url);
 
     } catch (error) {
@@ -246,12 +437,19 @@ class DocumentController {
     }
   }
 
-  // Eliminar documento
+  // ===========================================================================
+  // ELIMINAR DOCUMENTO (SOFT DELETE) - CON AUDITORÍA
+  // ===========================================================================
   static async delete(req, res) {
+    console.log('\n🔍 ========== ELIMINANDO DOCUMENTO ==========');
+    console.log('📝 ID:', req.params.id);
+    console.log('👤 Usuario:', req.user?.usuario);
+
     try {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log('❌ ID inválido:', id);
         return res.status(400).json({ 
           success: false, 
           message: 'ID inválido' 
@@ -261,26 +459,85 @@ class DocumentController {
       const documento = await Document.findOne({ _id: id, activo: true });
 
       if (!documento) {
+        console.log('❌ Documento no encontrado:', id);
         return res.status(404).json({ 
           success: false, 
           message: 'Documento no encontrado' 
         });
       }
 
+      console.log('📋 Documento a eliminar:', {
+        nombre: documento.nombre_original,
+        categoria: documento.categoria,
+        status: documento.status
+      });
+
+      // Guardar datos para auditoría
+      const documentoData = {
+        id: documento._id,
+        nombre_original: documento.nombre_original,
+        tipo_archivo: documento.tipo_archivo,
+        tamano_archivo: documento.tamano_archivo,
+        categoria: documento.categoria,
+        persona_id: documento.persona_id,
+        cloudinary_url: documento.cloudinary_url,
+        public_id: documento.public_id,
+        status: documento.status
+      };
+
       // Soft delete - mover a papelera
       documento.isDeleted = true;
       documento.deletedAt = new Date();
-      documento.deletedBy = req.body.deletedBy || 'Usuario';
+      documento.deletedBy = req.user?.usuario || req.body.deletedBy || 'Usuario';
       await documento.save();
 
       console.log(`🗑️ Documento movido a papelera: ${documento.nombre_original}`);
 
+      // =======================================================================
+      // REGISTRAR ELIMINACIÓN EN AUDITORÍA
+      // =======================================================================
+      
+      try {
+        await logAudit(req, {
+          action: 'DOCUMENT_DELETE',
+          actionType: 'DELETE',
+          actionCategory: 'DOCUMENTS',
+          targetId: documento._id,
+          targetModel: 'Document',
+          targetName: documento.nombre_original,
+          description: `Documento eliminado (soft delete): ${documento.nombre_original}`,
+          severity: 'WARNING',
+          metadata: {
+            documentoEliminado: {
+              nombre_original: documentoData.nombre_original,
+              tipo_archivo: documentoData.tipo_archivo,
+              tamano_archivo: documentoData.tamano_archivo,
+              categoria: documentoData.categoria,
+              status: documentoData.status
+            },
+            deletedAt: documento.deletedAt,
+            deletedBy: documento.deletedBy,
+            softDelete: true,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        console.log('✅✅✅ ELIMINACIÓN REGISTRADA EN AUDITORÍA');
+
+      } catch (auditError) {
+        console.error('❌ Error registrando eliminación:', auditError.message);
+      }
+
       // Crear notificación de documento movido a papelera
       try {
         await NotificationService.documentoEliminado(documento.nombre_original, documento.categoria);
+        console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
+
+      console.log('✅✅✅ ELIMINACIÓN COMPLETADA');
+      console.log('🔍 ========== FIN ==========\n');
 
       res.json({ 
         success: true, 
@@ -288,7 +545,7 @@ class DocumentController {
       });
 
     } catch (error) {
-      console.error('Error eliminando documento:', error);
+      console.error('🔥 Error eliminando documento:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Error al eliminar documento' 
@@ -296,7 +553,9 @@ class DocumentController {
     }
   }
 
-  // Descargar documento
+  // ===========================================================================
+  // DESCARGA DE DOCUMENTO - CON AUDITORÍA
+  // ===========================================================================
   static async download(req, res) {
     console.log('📥 ====== INICIO ENDPOINT DESCARGA ======');
 
@@ -306,7 +565,6 @@ class DocumentController {
 
       console.log('📋 Parámetros recibidos:', { id, filename });
 
-      // 1. Validar ID
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({
           success: false,
@@ -314,7 +572,6 @@ class DocumentController {
         });
       }
 
-      // 2. Buscar en BD
       const documento = await Document.findOne({ 
         _id: id, 
         activo: true 
@@ -352,24 +609,42 @@ class DocumentController {
         });
       }
 
+      // Registrar descarga en auditoría (asíncrono, no bloqueante)
+      try {
+        logAudit(req, {
+          action: 'DOCUMENT_DOWNLOAD',
+          actionType: 'READ',
+          actionCategory: 'DOCUMENTS',
+          targetId: documento._id,
+          targetModel: 'Document',
+          targetName: documento.nombre_original,
+          description: `Documento descargado: ${documento.nombre_original}`,
+          severity: 'INFO',
+          metadata: {
+            fileName,
+            fileExtension,
+            fileSize: documento.tamano_archivo,
+            timestamp: new Date().toISOString()
+          }
+        }).catch(err => console.error('❌ Error registrando descarga:', err.message));
+      } catch (auditError) {
+        console.error('❌ Error preparando registro de descarga:', auditError.message);
+      }
+
       // Tipos de archivo
       const isImage = ['png','jpg','jpeg','gif','webp','bmp'].includes(fileExtension);
       const isPDF = fileExtension === 'pdf';
 
-      // ESTRATEGIA 1: Redireccion directa para IMAGENES
       if (isImage) {
         console.log('🖼️ Imagen detectada → redireccion directa');
         let finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
         return res.redirect(finalUrl);
       }
 
-      // ESTRATEGIA 2: SERVIDOR PROXY PARA PDF, DOCX, XLSX, TXT, ETC
       console.log('📄 Documento → usando servidor proxy');
 
-      // Intento 1: URL original
       let response = await this.tryFetch(cloudinaryUrl);
 
-      // Si fallo, intentamos con URL modificada
       if (!response.ok) {
         console.log('⚠️ Intento 1 fallo, probando URL mejorada para Cloudinary...');
         
@@ -387,7 +662,6 @@ class DocumentController {
         }
       }
 
-      // Procesar archivo
       await this.processAndSendFile(response, res, fileName, fileExtension);
 
     } catch (error) {
@@ -402,7 +676,9 @@ class DocumentController {
     }
   }
 
-  // Método auxiliar para fetch
+  // ===========================================================================
+  // MÉTODOS AUXILIARES PARA DESCARGA
+  // ===========================================================================
   static async tryFetch(url) {
     try {
       const { default: fetch } = await import('node-fetch');
@@ -419,7 +695,6 @@ class DocumentController {
     }
   }
 
-  // Método auxiliar para procesar y enviar archivo
   static async processAndSendFile(fetchResponse, res, fileName, fileExtension) {
     const buffer = await fetchResponse.arrayBuffer();
     const nodeBuffer = Buffer.from(buffer);
@@ -428,7 +703,6 @@ class DocumentController {
       throw new Error('Buffer vacio');
     }
 
-    // Verificación PDF
     if (fileExtension === 'pdf') {
       const firstBytes = nodeBuffer.slice(0, 5).toString();
       if (!firstBytes.includes('%PDF')) {
@@ -437,7 +711,6 @@ class DocumentController {
       }
     }
 
-    // Headers
     const contentType = FileService.getContentType(fileExtension);
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', nodeBuffer.length);
@@ -446,7 +719,9 @@ class DocumentController {
     return res.end(nodeBuffer);
   }
 
-  // Obtener contenido de archivo de texto
+  // ===========================================================================
+  // OBTENER CONTENIDO DE ARCHIVO DE TEXTO - CON AUDITORÍA
+  // ===========================================================================
   static async getContent(req, res) {
     console.log('📝 Obteniendo contenido para vista previa de texto');
     
@@ -461,7 +736,6 @@ class DocumentController {
         });
       }
 
-      // Buscar documento
       const documento = await Document.findOne({ 
         _id: id, 
         activo: true 
@@ -482,7 +756,6 @@ class DocumentController {
         });
       }
 
-      // Verificar que sea archivo de texto
       const extension = documento.nombre_original.split('.').pop().toLowerCase();
       const textExtensions = ['txt', 'csv', 'json', 'xml', 'html', 'htm', 'js', 'css', 'md'];
       
@@ -502,6 +775,27 @@ class DocumentController {
         });
       }
 
+      // Registrar acceso a contenido en auditoría
+      try {
+        await logAudit(req, {
+          action: 'DOCUMENT_CONTENT_VIEW',
+          actionType: 'READ',
+          actionCategory: 'DOCUMENTS',
+          targetId: documento._id,
+          targetModel: 'Document',
+          targetName: documento.nombre_original,
+          description: `Visualización de contenido de texto: ${documento.nombre_original}`,
+          severity: 'INFO',
+          metadata: {
+            extension,
+            limit: parseInt(limit),
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (auditError) {
+        console.error('❌ Error registrando visualización de contenido:', auditError.message);
+      }
+
       console.log('📥 Descargando contenido desde Cloudinary...');
 
       let finalUrl = cloudinaryUrl;
@@ -511,7 +805,6 @@ class DocumentController {
         }
       }
 
-      // Descargar desde Cloudinary
       const { default: fetch } = await import('node-fetch');
       const response = await fetch(finalUrl, {
         headers: {
@@ -523,7 +816,6 @@ class DocumentController {
         throw new Error(`Error al descargar desde Cloudinary: ${response.status}`);
       }
 
-      // Leer el contenido
       const buffer = await response.arrayBuffer();
       
       if (buffer.byteLength === 0) {
@@ -533,7 +825,6 @@ class DocumentController {
         });
       }
 
-      // Convertir a texto
       let textContent;
       try {
         textContent = new TextDecoder('utf-8').decode(buffer);
@@ -548,7 +839,6 @@ class DocumentController {
         }
       }
 
-      // Limitar contenido si es muy grande
       const maxLength = parseInt(limit);
       let isTruncated = false;
       
@@ -557,7 +847,6 @@ class DocumentController {
         isTruncated = true;
       }
 
-      // Determinar tipo de contenido
       let contentType = 'text/plain; charset=utf-8';
       if (extension === 'html' || extension === 'htm') contentType = 'text/html; charset=utf-8';
       if (extension === 'json') contentType = 'application/json; charset=utf-8';
@@ -567,7 +856,6 @@ class DocumentController {
       if (extension === 'csv') contentType = 'text/csv; charset=utf-8';
       if (extension === 'md') contentType = 'text/markdown; charset=utf-8';
 
-      // Configurar respuesta
       res.setHeader('Content-Type', contentType);
       res.setHeader('X-File-Name', encodeURIComponent(documento.nombre_original));
       res.setHeader('X-File-Size', buffer.byteLength);
@@ -577,7 +865,6 @@ class DocumentController {
         res.setHeader('X-Original-Length', buffer.byteLength);
       }
 
-      // Enviar contenido
       res.send(textContent);
 
       console.log(`✅ Contenido enviado: ${textContent.length} caracteres`);
@@ -592,7 +879,9 @@ class DocumentController {
     }
   }
 
-  // Obtener información del documento
+  // ===========================================================================
+  // OBTENER INFORMACIÓN DEL DOCUMENTO - CON AUDITORÍA
+  // ===========================================================================
   static async getInfo(req, res) {
     try {
       const { id } = req.params;
@@ -614,6 +903,25 @@ class DocumentController {
           message: 'No tienes permisos para acceder a este documento.'
         });
       }
+
+      // Registrar consulta de información en auditoría
+      try {
+        await logAudit(req, {
+          action: 'DOCUMENT_INFO_VIEW',
+          actionType: 'READ',
+          actionCategory: 'DOCUMENTS',
+          targetId: documento._id,
+          targetModel: 'Document',
+          targetName: documento.nombre_original,
+          description: `Consulta de información: ${documento.nombre_original}`,
+          severity: 'INFO',
+          metadata: {
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (auditError) {
+        console.error('❌ Error registrando consulta de información:', auditError.message);
+      }
       
       res.json({
         success: true,
@@ -629,7 +937,10 @@ class DocumentController {
           persona: documento.persona_id,
           cloudinary_url: documento.cloudinary_url,
           public_id: documento.public_id,
-          resource_type: documento.resource_type
+          resource_type: documento.resource_type,
+          status: documento.status,
+          reviewedAt: documento.reviewedAt,
+          reviewedBy: documento.reviewedBy
         }
       });
       
@@ -642,37 +953,70 @@ class DocumentController {
     }
   }
 
-  // Actualizar documento (renovar o editar)
+  // ===========================================================================
+  // ACTUALIZAR DOCUMENTO (RENOVAR O EDITAR) - CON AUDITORÍA
+  // ===========================================================================
   static async update(req, res) {
+    console.log('\n🔍 ========== ACTUALIZANDO DOCUMENTO ==========');
+    console.log('📝 ID:', req.params.id);
+    console.log('📝 Body:', req.body);
+    console.log('📋 File:', req.file ? 'Nuevo archivo recibido' : 'Sin nuevo archivo');
+    console.log('👤 Usuario:', req.user?.usuario);
+
     try {
       const { id } = req.params;
       console.log('📝 Actualizando documento:', id);
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log('❌ ID inválido:', id);
         return res.status(400).json({ 
           success: false, 
           message: 'ID inválido' 
         });
       }
 
-      const documento = await Document.findOne({ _id: id, activo: true });
+      const documentoOriginal = await Document.findOne({ _id: id, activo: true });
 
-      if (!documento) {
+      if (!documentoOriginal) {
+        console.log('❌ Documento no encontrado:', id);
         return res.status(404).json({ 
           success: false, 
           message: 'Documento no encontrado' 
         });
       }
 
+      console.log('📋 Documento original:', {
+        nombre: documentoOriginal.nombre_original,
+        categoria: documentoOriginal.categoria,
+        status: documentoOriginal.status
+      });
+
+      // Guardar estado anterior
+      const beforeState = {
+        nombre_original: documentoOriginal.nombre_original,
+        tipo_archivo: documentoOriginal.tipo_archivo,
+        tamano_archivo: documentoOriginal.tamano_archivo,
+        descripcion: documentoOriginal.descripcion,
+        categoria: documentoOriginal.categoria,
+        fecha_vencimiento: documentoOriginal.fecha_vencimiento,
+        persona_id: documentoOriginal.persona_id ? documentoOriginal.persona_id.toString() : null,
+        cloudinary_url: documentoOriginal.cloudinary_url,
+        public_id: documentoOriginal.public_id,
+        status: documentoOriginal.status
+      };
+
+      let archivoReemplazado = false;
+
       // Si se envió un nuevo archivo, reemplazar en Cloudinary
       if (req.file) {
         console.log('📤 Nuevo archivo detectado, reemplazando en Cloudinary...');
+        archivoReemplazado = true;
         
         try {
           // Eliminar archivo anterior de Cloudinary
-          if (documento.public_id) {
-            await cloudinary.uploader.destroy(documento.public_id, {
-              resource_type: documento.resource_type || 'auto'
+          if (documentoOriginal.public_id) {
+            await cloudinary.uploader.destroy(documentoOriginal.public_id, {
+              resource_type: documentoOriginal.resource_type || 'auto'
             });
             console.log('🗑️ Archivo anterior eliminado de Cloudinary');
           }
@@ -682,12 +1026,12 @@ class DocumentController {
           console.log('✅ Nuevo archivo subido a Cloudinary');
 
           // Actualizar campos relacionados con el archivo
-          documento.nombre_original = req.file.originalname;
-          documento.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
-          documento.tamano_archivo = req.file.size;
-          documento.cloudinary_url = cloudinaryResult.secure_url;
-          documento.public_id = cloudinaryResult.public_id;
-          documento.resource_type = cloudinaryResult.resource_type;
+          documentoOriginal.nombre_original = req.file.originalname;
+          documentoOriginal.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
+          documentoOriginal.tamano_archivo = req.file.size;
+          documentoOriginal.cloudinary_url = cloudinaryResult.secure_url;
+          documentoOriginal.public_id = cloudinaryResult.public_id;
+          documentoOriginal.resource_type = cloudinaryResult.resource_type;
 
           // Limpiar archivo temporal
           FileService.cleanTempFile(req.file.path);
@@ -704,29 +1048,89 @@ class DocumentController {
       // Actualizar campos permitidos (excepto fecha_subida)
       const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
       
-      if (descripcion !== undefined) documento.descripcion = descripcion;
-      if (categoria !== undefined) documento.categoria = categoria;
-      if (fecha_vencimiento !== undefined) documento.fecha_vencimiento = fecha_vencimiento || null;
-      if (persona_id !== undefined) documento.persona_id = persona_id || null;
+      if (descripcion !== undefined) documentoOriginal.descripcion = descripcion;
+      if (categoria !== undefined) documentoOriginal.categoria = categoria;
+      if (fecha_vencimiento !== undefined) documentoOriginal.fecha_vencimiento = fecha_vencimiento || null;
+      if (persona_id !== undefined) documentoOriginal.persona_id = persona_id || null;
 
-      await documento.save();
+      await documentoOriginal.save();
       console.log('✅ Documento actualizado exitosamente');
 
       // Obtener documento con datos de persona
-      const documentoActualizado = await Document.findById(documento._id)
+      const documentoActualizado = await Document.findById(documentoOriginal._id)
         .populate('persona_id', 'nombre');
+
+      // =======================================================================
+      // REGISTRAR ACTUALIZACIÓN EN AUDITORÍA
+      // =======================================================================
+      
+      try {
+        const afterState = {
+          nombre_original: documentoOriginal.nombre_original,
+          tipo_archivo: documentoOriginal.tipo_archivo,
+          tamano_archivo: documentoOriginal.tamano_archivo,
+          descripcion: documentoOriginal.descripcion,
+          categoria: documentoOriginal.categoria,
+          fecha_vencimiento: documentoOriginal.fecha_vencimiento,
+          persona_id: documentoOriginal.persona_id ? documentoOriginal.persona_id.toString() : null,
+          cloudinary_url: documentoOriginal.cloudinary_url,
+          public_id: documentoOriginal.public_id,
+          status: documentoOriginal.status
+        };
+
+        // Calcular qué campos cambiaron
+        const camposModificados = [];
+        for (const key in beforeState) {
+          if (beforeState[key] !== afterState[key]) {
+            camposModificados.push(key);
+          }
+        }
+
+        if (archivoReemplazado) {
+          camposModificados.push('archivo');
+        }
+
+        await logAudit(req, {
+          action: 'DOCUMENT_UPDATE',
+          actionType: 'UPDATE',
+          actionCategory: 'DOCUMENTS',
+          targetId: documentoOriginal._id,
+          targetModel: 'Document',
+          targetName: documentoOriginal.nombre_original,
+          description: `Documento actualizado: ${documentoOriginal.nombre_original} - Campos: ${camposModificados.join(', ')}`,
+          severity: 'INFO',
+          changes: {
+            before: beforeState,
+            after: afterState
+          },
+          metadata: {
+            archivoReemplazado,
+            camposModificados,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        console.log('✅✅✅ ACTUALIZACIÓN REGISTRADA EN AUDITORÍA');
+
+      } catch (auditError) {
+        console.error('❌ Error registrando actualización:', auditError.message);
+      }
 
       // Crear notificación de documento actualizado
       try {
         await NotificationService.create({
           titulo: 'Documento actualizado',
-          mensaje: `El documento "${documento.nombre_original}" ha sido actualizado`,
+          mensaje: `El documento "${documentoOriginal.nombre_original}" ha sido actualizado`,
           tipo: 'info',
           categoria: 'documento'
         });
+        console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
+
+      console.log('✅✅✅ ACTUALIZACIÓN COMPLETADA');
+      console.log('🔍 ========== FIN ==========\n');
 
       res.json({
         success: true,
@@ -735,7 +1139,7 @@ class DocumentController {
       });
 
     } catch (error) {
-      console.error('❌ Error actualizando documento:', error);
+      console.error('🔥 Error actualizando documento:', error);
       FileService.cleanTempFile(req.file && req.file.path);
       res.status(500).json({ 
         success: false, 
@@ -743,7 +1147,6 @@ class DocumentController {
       });
     }
   }
-  
 }
 
 export default DocumentController;

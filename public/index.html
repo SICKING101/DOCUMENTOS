@@ -105,6 +105,7 @@
 
                 <!-- Grupo 3: Configuración -->
                 <div class="sidebar__nav-group">
+
                     <p class="sidebar__nav-group-title">Configuración</p>
                     <a href="#" class="sidebar__nav-link" data-tab="ajustes">
                         <div class="sidebar__nav-icon-wrapper">
@@ -129,7 +130,7 @@
                     </a>
                 </div>
 
-                 <!-- Grupo 4: Administración -->
+                <!-- Grupo 4: Administración -->
                 <div class="sidebar__nav-group">
                     <p class="sidebar__nav-group-title">Administración</p>
                     <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin">
@@ -137,6 +138,14 @@
                             <i class="fas fa-user-shield"></i>
                         </div>
                         <span class="sidebar__nav-text">Admin</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <!-- NUEVO: Enlace a Auditoría -->
+                    <a href="#" class="sidebar__nav-link" data-tab="auditoria">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Auditoría</span>
                         <div class="sidebar__nav-active-indicator"></div>
                     </a>
                     <div class="dropdown" id="admin-dropdown">
@@ -1881,19 +1890,19 @@
                             </div>
 
                             <!-- Preguntas Frecuentes -->
-<div class="support-faq">
-    <div class="faq__header">
-        <h3 class="faq__title">
-            <i class="fas fa-question-circle"></i>
-            Preguntas Frecuentes (FAQ)
-        </h3>
-    </div>
-    <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
-        <div class="faq__list" id="faqList">
-            <!-- Las preguntas frecuentes se cargarán dinámicamente -->
-        </div>
-    </div>
-</div>
+                            <div class="support-faq">
+                                <div class="faq__header">
+                                    <h3 class="faq__title">
+                                        <i class="fas fa-question-circle"></i>
+                                        Preguntas Frecuentes (FAQ)
+                                    </h3>
+                                </div>
+                                <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
+                                    <div class="faq__list" id="faqList">
+                                        <!-- Las preguntas frecuentes se cargarán dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Datos de Contacto de Soporte -->
                             <div class="support-panel support-panel--contact">
@@ -1969,6 +1978,19 @@
                                 </div>
                             </div>
                         </div>
+                </section>
+
+                <!-- SECCIÓN 4.2.X: PESTAÑA AUDITORÍA -->
+                <section id="auditoria" class="tab-content">
+                    <div id="auditoria-content" class="auditoria-container">
+                        <!-- El contenido se cargará dinámicamente desde el módulo -->
+                        <div class="loading-state">
+                            <div class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                            </div>
+                            <p>Cargando módulo de auditoría...</p>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>
