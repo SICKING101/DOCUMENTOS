@@ -530,20 +530,25 @@ function showLogDetails(log) {
                         </div>
                     ` : ''}
 
-                    <!-- Cambios (si existen) -->
+                    <!-- ================================================================= -->
+                    <!-- SECCIÓN CORREGIDA: CAMBIOS EN VERTICAL (UNO DEBAJO DEL OTRO)     -->
+                    <!-- ================================================================= -->
                     ${hasChanges ? `
                         <div class="audit-detail__section">
                             <h4 class="audit-detail__section-title">
                                 <i class="fas fa-code-branch"></i> Cambios realizados
                             </h4>
-                            <div class="audit-detail__changes">
-                                <div class="change-column">
+                            <div class="audit-detail__changes-vertical">
+                                <!-- Bloque ANTES -->
+                                <div class="change-block">
                                     <h5 class="change-title change-title--before">
                                         <i class="fas fa-arrow-left"></i> Antes
                                     </h5>
                                     <pre class="change-content">${JSON.stringify(log.changes.before, null, 2)}</pre>
                                 </div>
-                                <div class="change-column">
+                                
+                                <!-- Bloque DESPUÉS (debajo) -->
+                                <div class="change-block">
                                     <h5 class="change-title change-title--after">
                                         <i class="fas fa-arrow-right"></i> Después
                                     </h5>
@@ -552,6 +557,7 @@ function showLogDetails(log) {
                             </div>
                         </div>
                     ` : ''}
+                    <!-- =========================== FIN SECCIÓN ========================== -->
                 </div>
             </div>
 
