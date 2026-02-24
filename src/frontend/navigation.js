@@ -303,6 +303,9 @@ function loadTabSpecificData(tabId) {
         case 'soporte':
             console.log('🛟 DEBUG: Sección de soporte - Sin carga específica');
             break;
+        case 'auditoria':
+            console.log('📋 DEBUG: Sección de auditoría - Sin carga específica');
+            break;
         default:
             console.log(`ℹ️ INFO: No hay datos específicos para la pestaña: ${tabId}`);
     }
@@ -441,13 +444,13 @@ function initializeNavigation() {
 }
 
 // Controlar visibilidad de enlaces según rol
-    const userRole = window.localStorage.getItem('userRole'); // Obtener rol del usuario
-    if (userRole !== 'administrador' && userRole !== 'editor') {
-        const navDocumentos = document.getElementById('nav-documentos');
-        if (navDocumentos) {
-            navDocumentos.style.display = 'none';
-        }
+const userRole = window.localStorage.getItem('userRole'); // Obtener rol del usuario
+if (userRole !== 'administrador' && userRole !== 'editor') {
+    const navDocumentos = document.getElementById('nav-documentos');
+    if (navDocumentos) {
+        navDocumentos.style.display = 'none';
     }
+}
 
 // Agregar esta ruta
 routes['/calendario'] = {
@@ -473,14 +476,14 @@ routes['/calendario'] = {
 };
 
 // Initialize Admin section rendering
-    const adminNavLink = document.getElementById('nav-admin');
-    if (adminNavLink) {
-        adminNavLink.addEventListener('click', () => {
-            import('./modules/admin/index.js').then(module => {
-                module.renderAgregarAdministrador();
-            });
+const adminNavLink = document.getElementById('nav-admin');
+if (adminNavLink) {
+    adminNavLink.addEventListener('click', () => {
+        import('./modules/admin/index.js').then(module => {
+            module.renderAgregarAdministrador();
         });
-    }
+    });
+}
 
 
 

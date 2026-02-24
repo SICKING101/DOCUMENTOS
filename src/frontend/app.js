@@ -323,13 +323,13 @@ function initializeActiveNavigation() {
             dashboardLink.classList.add('sidebar__nav-link--active');
             const indicator = dashboardLink.querySelector('.sidebar__nav-active-indicator');
             if (indicator) indicator.style.visibility = 'visible';
-            
+
             const dashboardContent = document.getElementById('dashboard');
             if (dashboardContent) {
                 dashboardContent.classList.add('tab-content--active');
                 dashboardContent.style.display = 'block';
             }
-            
+
             appState.currentTab = 'dashboard';
         }
     }
@@ -594,14 +594,14 @@ const toggleTheme = () => {
 async function handleTabNavigation(e) {
     e.preventDefault();
     const tabId = this.getAttribute('data-tab');
-    
+
     // Validar que sea una pestaña válida
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes', 'admin'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes', 'admin', 'auditoria'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida en enlace:', tabId);
         return;
     }
-    
+
     console.log(`📂 Cambiando a pestaña: ${tabId}`);
     await switchTab(tabId);
 }
@@ -623,7 +623,7 @@ async function switchTab(tabId) {
     }
 
     // Validar tabId
-    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes', 'admin'];
+    const validTabs = ['dashboard', 'personas', 'documentos', 'categorias', 'tareas', 'historial', 'papelera', 'calendario', 'reportes', 'soporte', 'ajustes', 'admin', 'auditoria'];
     if (!validTabs.includes(tabId)) {
         console.error('❌ Pestaña no válida:', tabId);
         return;
@@ -771,28 +771,37 @@ async function loadTabSpecificData(tabId) {
                 break;
 
             case 'ajustes':
-    console.log('⚙️ Inicializando módulo de ajustes...');
-    try {
-        // El módulo exporta una instancia ya creada por defecto
-        if (typeof window.settingsManager === 'undefined') {
-            const ajustesModule = await import('./modules/ajustes.js');
-            window.settingsManager = ajustesModule.default;
-            console.log('✅ Módulo de ajustes cargado');
-        }
-        
-        // Actualizar la interfaz
-        if (window.settingsManager && typeof window.settingsManager.updateForm === 'function') {
-            window.settingsManager.updateForm();
-        }
-    } catch (error) {
-        console.error('❌ Error al cargar módulo de ajustes:', error);
-        showAlert(`Error al cargar ajustes: ${error.message}`, 'error');
-    }
-    break;
+                console.log('⚙️ Inicializando módulo de ajustes...');
+                try {
+                    // El módulo exporta una instancia ya creada por defecto
+                    if (typeof window.settingsManager === 'undefined') {
+                        const ajustesModule = await import('./modules/ajustes.js');
+                        window.settingsManager = ajustesModule.default;
+                        console.log('✅ Módulo de ajustes cargado');
+                    }
+
+                    // Actualizar la interfaz
+                    if (window.settingsManager && typeof window.settingsManager.updateForm === 'function') {
+                        window.settingsManager.updateForm();
+                    }
+                } catch (error) {
+                    console.error('❌ Error al cargar módulo de ajustes:', error);
+                    showAlert(`Error al cargar ajustes: ${error.message}`, 'error');
+                }
+                break;
 
             case 'admin':
                 import('./modules/admin/index.js').then(module => {
                     module.renderAgregarAdministrador();
+                });
+                break;
+            case 'auditoria':
+                console.log('📋 Cargando módulo de auditoría...');
+                import('./modules/auditoria.js').then(module => {
+                    module.renderAuditoria();
+                }).catch(error => {
+                    console.error('❌ Error cargando auditoría:', error);
+                    showAlert('Error al cargar módulo de auditoría', 'error');
                 });
                 break;
 

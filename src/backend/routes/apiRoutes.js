@@ -21,6 +21,8 @@ import { PERMISSIONS } from '../config/permissions.js';
 
 // Importar middleware de Multer
 import upload from '../config/multerConfig.js';
+// Importar rutas de auditoría
+import auditRoutes from './auditRoutes.js';
 
 // Ruta de prueba
 router.get('/health', (req, res) => {
@@ -30,6 +32,11 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// -----------------------------
+// AUDITORÍA
+// -----------------------------
+router.use('/audit', auditRoutes);
 
 // -----------------------------
 // DASHBOARD
