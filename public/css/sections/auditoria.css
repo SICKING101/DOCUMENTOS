@@ -870,3 +870,53 @@
         font-size: 0.75rem;
     }
 }
+
+/* Contenedor principal de metadata */
+.metadata-content {
+    background-color: var(--gray-50, #f8f9fa);
+    border: 1px solid var(--gray-200, #e9ecef);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 8px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--gray-800, #212529);
+    
+    /* IMPORTANTE: Control de desbordamiento */
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-all;
+    max-width: 100%;
+    
+    /* Scroll personalizado */
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-400, #ced4da) var(--gray-200, #e9ecef);
+}
+
+.metadata-content::-webkit-scrollbar {
+    height: 8px;
+}
+
+.metadata-content::-webkit-scrollbar-track {
+    background: var(--gray-200, #e9ecef);
+    border-radius: 4px;
+}
+
+.metadata-content::-webkit-scrollbar-thumb {
+    background: var(--gray-400, #ced4da);
+    border-radius: 4px;
+}
+
+.metadata-content::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500, #adb5bd);
+}
+
+/* Para JSON específicamente */
+.metadata-content.json-content {
+    white-space: pre;
+    word-wrap: normal;
+    overflow-x: auto;
+}

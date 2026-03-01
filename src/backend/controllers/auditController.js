@@ -1,5 +1,5 @@
 import AuditLog from '../models/AuditLog.js';
-import { logAudit } from '../middleware/auditMiddleware.js';
+import AuditService from '../services/auditService.js';
 
 /**
  * Controlador para el módulo de Auditoría
@@ -14,7 +14,6 @@ class AuditController {
             const {
                 page = 1,
                 limit = 50,
-                userId,
                 username,
                 action,
                 actionCategory,
@@ -26,8 +25,12 @@ class AuditController {
                 search
             } = req.query;
 
+            console.log('\n🔍 ========== CONSULTANDO LOGS DE AUDITORÍA ==========');
+            console.log('📋 Filtros aplicados:', {
+                page, limit, username, action, actionCategory, severity, status, targetModel, startDate, endDate, search
+            });
+
             const filters = {
-                userId,
                 username,
                 action,
                 actionCategory,
@@ -50,15 +53,13 @@ class AuditController {
                 parseInt(limit)
             );
 
+            console.log(`✅ Logs encontrados: ${result.logs.length} de ${result.total}`);
+            
             // Registrar consulta en auditoría (solo para administradores)
-            if (req.user.rol === 'administrador') {
-                await logAudit(req, {
-                    action: 'AUDIT_VIEW',
-                    actionType: 'READ',
-                    actionCategory: 'SYSTEM',
-                    description: `Consultó logs de auditoría (página ${page})`,
-                    metadata: { filters }
-                });
+            if (req.user?.rol === 'administrador') {
+                await AuditService.logAuditView(req, filters).catch(err => 
+                    console.error('❌ Error registrando AUDIT_VIEW:', err.message)
+                );
             }
 
             res.json({
@@ -164,14 +165,10 @@ class AuditController {
                 .populate('userId', 'usuario correo rol')
                 .lean();
 
+            console.log(`📤 Exportando ${logs.length} logs en formato ${format}`);
+
             // Registrar exportación
-            await logAudit(req, {
-                action: 'AUDIT_EXPORT',
-                actionType: 'EXPORT',
-                actionCategory: 'SYSTEM',
-                description: `Exportó ${logs.length} logs en formato ${format}`,
-                metadata: { format, count: logs.length, filters }
-            });
+            await AuditService.logAuditExport(req, format, logs.length, filters);
 
             if (format === 'csv') {
                 // Generar CSV
@@ -228,13 +225,7 @@ class AuditController {
             const result = await AuditLog.cleanupOldLogs(daysToKeep);
 
             // Registrar limpieza
-            await logAudit(req, {
-                action: 'AUDIT_CLEANUP',
-                actionType: 'DELETE',
-                actionCategory: 'SYSTEM',
-                description: `Limpió logs anteriores a ${daysToKeep} días`,
-                metadata: { daysToKeep, deletedCount: result.deletedCount }
-            });
+            await AuditService.logAuditCleanup(req, result.deletedCount, daysToKeep);
 
             res.json({
                 success: true,

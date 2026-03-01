@@ -24,15 +24,8 @@ const auditLogSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: [
-            'administrador', 
-            'gerente', 
-            'supervisor', 
-            'editor', 
-            'revisor', 
-            'lector', 
-            'moderador', 
-            'desactivado', 
-            'usuario'
+            'administrador', 'gerente', 'supervisor', 'editor', 
+            'revisor', 'lector', 'moderador', 'desactivado', 'usuario'
         ],
         index: true
     },
@@ -70,10 +63,19 @@ const auditLogSchema = new mongoose.Schema({
             'DEPARTMENT_CREATE', 'DEPARTMENT_UPDATE', 'DEPARTMENT_DELETE',
             
             // Personas
-            'PERSON_CREATE', 'PERSON_UPDATE', 'PERSON_DELETE',
+            'PERSON_CREATE', 'PERSON_UPDATE', 'PERSON_DELETE', 'PERSON_DEACTIVATE', 'PERSON_REACTIVATE',
             
             // Tareas
             'TASK_CREATE', 'TASK_UPDATE', 'TASK_DELETE', 'TASK_COMPLETE',
+            
+            // Soporte
+            'SUPPORT_TICKET_CREATE', 'SUPPORT_TICKET_UPDATE', 'SUPPORT_TICKET_CLOSE',
+            
+            // Papelera
+            'TRASH_VIEW', 'TRASH_EMPTY', 'TRASH_AUTO_CLEANUP',
+            
+            // Auditoría
+            'AUDIT_VIEW', 'AUDIT_EXPORT', 'AUDIT_CLEANUP',
             
             // Sistema
             'SYSTEM_CONFIG_CHANGE', 'SYSTEM_ERROR', 'EXPORT_DATA', 'IMPORT_DATA'
@@ -83,14 +85,16 @@ const auditLogSchema = new mongoose.Schema({
     
     actionType: {
         type: String,
-        enum: ['CREATE', 'READ', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'DOWNLOAD', 'VIEW', 'EXPORT', 'CONFIG'],
+        enum: ['CREATE', 'READ', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 
+               'DOWNLOAD', 'VIEW', 'EXPORT', 'CONFIG', 'APPROVE', 'REJECT'],
         required: true,
         index: true
     },
 
     actionCategory: {
         type: String,
-        enum: ['AUTH', 'DOCUMENTS', 'USERS', 'ADMIN', 'CATEGORIES', 'DEPARTMENTS', 'PERSONS', 'TASKS', 'SYSTEM'],
+        enum: ['AUTH', 'DOCUMENTS', 'USERS', 'ADMIN', 'CATEGORIES', 'DEPARTMENTS', 
+               'PERSONS', 'TASKS', 'SYSTEM', 'TRASH', 'SUPPORT', 'AUDIT'],
         required: true,
         index: true
     },
@@ -106,7 +110,8 @@ const auditLogSchema = new mongoose.Schema({
     
     targetModel: {
         type: String,
-        enum: ['User', 'Document', 'Category', 'Department', 'Person', 'Task', 'AdminChangeRequest', 'Notification'],
+        enum: ['User', 'Document', 'Category', 'Department', 'Person', 'Task', 
+               'AdminChangeRequest', 'Notification', 'Ticket'],
         index: true
     },
 
@@ -135,7 +140,6 @@ const auditLogSchema = new mongoose.Schema({
     metadata: {
         ipAddress: String,
         userAgent: String,
-        timestamp: { type: Date, default: Date.now },
         
         // Documentos
         fileSize: Number,
@@ -171,7 +175,7 @@ const auditLogSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ['SUCCESS', 'FAILED', 'PENDING'],
+        enum: ['SUCCESS', 'FAILED', 'PENDING', 'PARTIAL'],
         default: 'SUCCESS',
         index: true
     },
@@ -198,14 +202,11 @@ const auditLogSchema = new mongoose.Schema({
 // ÍNDICES PARA OPTIMIZACIÓN DE CONSULTAS
 // =============================================================================
 
-// Índices compuestos para búsquedas comunes
 auditLogSchema.index({ createdAt: -1, actionCategory: 1 });
 auditLogSchema.index({ userId: 1, createdAt: -1 });
 auditLogSchema.index({ action: 1, createdAt: -1 });
 auditLogSchema.index({ severity: 1, createdAt: -1 });
 auditLogSchema.index({ targetId: 1, targetModel: 1 });
-
-// Índice TTL para expiración automática (90 días)
 auditLogSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // =============================================================================
@@ -217,6 +218,11 @@ auditLogSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
  */
 auditLogSchema.statics.log = async function(data) {
     try {
+        console.log('\n📝 ===== REGISTRO DE AUDITORÍA =====');
+        console.log(`👤 Usuario: ${data.username} (${data.userRole})`);
+        console.log(`🔹 Acción: ${data.action}`);
+        console.log(`📋 Descripción: ${data.description}`);
+
         const logEntry = new this({
             userId: data.userId,
             username: data.username,
@@ -240,10 +246,13 @@ auditLogSchema.statics.log = async function(data) {
         });
 
         await logEntry.save();
+        console.log(`✅ Auditoría registrada ID: ${logEntry._id}`);
+        console.log('=====================================\n');
+        
         return logEntry;
     } catch (error) {
         console.error('❌ Error registrando auditoría:', error);
-        // No lanzar error para no interrumpir el flujo principal
+        console.error('📌 Datos que causaron el error:', JSON.stringify(data, null, 2));
         return null;
     }
 };
