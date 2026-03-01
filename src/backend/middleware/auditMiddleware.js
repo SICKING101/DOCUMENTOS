@@ -1,4 +1,4 @@
-import AuditLog from '../models/AuditLog.js';
+import AuditService from '../services/auditService.js';
 
 /**
  * Middleware de auditoría universal
@@ -7,8 +7,8 @@ import AuditLog from '../models/AuditLog.js';
 export const auditMiddleware = (req, res, next) => {
     // Agregar metadata de auditoría a la request
     req.audit = {
-        ipAddress: req.ip || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent'],
+        ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
+        userAgent: req.headers['user-agent'] || 'Desconocido',
         timestamp: new Date().toISOString(),
         method: req.method,
         path: req.path,
@@ -55,56 +55,10 @@ export const auditMiddleware = (req, res, next) => {
 };
 
 /**
- * Registrar acción de auditoría desde el controlador
- */
-export const logAudit = async (req, actionData) => {
-    try {
-        if (!req.user) {
-            console.warn('⚠️ Intento de auditoría sin usuario autenticado');
-            return null;
-        }
-
-        const auditData = {
-            userId: req.user._id,
-            username: req.user.usuario,
-            userRole: req.user.rol,
-            userEmail: req.user.correo,
-            ipAddress: req.audit?.ipAddress || req.ip,
-            userAgent: req.audit?.userAgent || req.headers['user-agent'],
-            ...actionData
-        };
-
-        return await AuditLog.log(auditData);
-    } catch (error) {
-        console.error('❌ Error en logAudit:', error);
-        return null;
-    }
-};
-
-/**
- * Auditoría específica para autenticación (sin req.user)
- */
-export const logAuthAudit = async (data) => {
-    try {
-        return await AuditLog.log({
-            userId: data.userId || null,
-            username: data.username || 'Desconocido',
-            userRole: data.userRole || 'visitante',
-            userEmail: data.userEmail || '',
-            ipAddress: data.ipAddress,
-            userAgent: data.userAgent,
-            ...data.actionData
-        });
-    } catch (error) {
-        console.error('❌ Error en logAuthAudit:', error);
-        return null;
-    }
-};
-
-/**
  * Decorador para funciones de controlador que registra automáticamente la acción
+ * USO: @audit({ action: 'DOCUMENT_UPLOAD', targetModel: 'Document' })
  */
-export const audit = (actionConfig) => {
+export const audit = (config) => {
     return (target, propertyKey, descriptor) => {
         const originalMethod = descriptor.value;
 
@@ -115,23 +69,35 @@ export const audit = (actionConfig) => {
                 // Ejecutar el método original
                 const result = await originalMethod.apply(this, [req, res, ...args]);
 
-                // Registrar auditoría si fue exitosa
+                // Registrar auditoría si fue exitosa y hay usuario
                 if (req.user && !res.headersSent) {
                     const duration = Date.now() - startTime;
                     
-                    await logAudit(req, {
-                        action: actionConfig.action,
-                        actionType: actionConfig.actionType,
-                        actionCategory: actionConfig.actionCategory,
-                        targetId: actionConfig.getTargetId ? actionConfig.getTargetId(req) : req.params.id,
-                        targetModel: actionConfig.targetModel,
-                        targetName: actionConfig.getTargetName ? actionConfig.getTargetName(req, result) : undefined,
-                        description: actionConfig.getDescription(req, result),
-                        severity: actionConfig.severity || 'INFO',
+                    // Determinar targetName si hay función para obtenerlo
+                    let targetName = config.targetName;
+                    if (config.getTargetName && result) {
+                        targetName = config.getTargetName(result);
+                    } else if (result?.document?.nombre_original) {
+                        targetName = result.document.nombre_original;
+                    } else if (result?.person?.nombre) {
+                        targetName = result.person.nombre;
+                    }
+
+                    await AuditService.log(req, {
+                        action: config.action,
+                        actionType: config.actionType,
+                        actionCategory: config.actionCategory,
+                        targetId: config.targetId || req.params.id,
+                        targetModel: config.targetModel,
+                        targetName,
+                        description: config.getDescription 
+                            ? config.getDescription(req, result)
+                            : `Acción ${config.action} realizada`,
+                        severity: config.severity || 'INFO',
                         status: 'SUCCESS',
                         metadata: {
                             duration,
-                            ...(actionConfig.metadata ? actionConfig.metadata(req, result) : {})
+                            ...(config.metadata ? config.metadata(req, result) : {})
                         }
                     });
                 }
@@ -142,22 +108,21 @@ export const audit = (actionConfig) => {
                 if (req.user) {
                     const duration = Date.now() - startTime;
                     
-                    await logAudit(req, {
-                        action: actionConfig.action,
-                        actionType: actionConfig.actionType,
-                        actionCategory: actionConfig.actionCategory,
+                    await AuditService.log(req, {
+                        action: config.action,
+                        actionType: config.actionType,
+                        actionCategory: config.actionCategory,
                         targetId: req.params.id,
-                        targetModel: actionConfig.targetModel,
-                        description: actionConfig.getErrorDescription 
-                            ? actionConfig.getErrorDescription(req, error)
-                            : `Error: ${error.message}`,
+                        targetModel: config.targetModel,
+                        description: config.getErrorDescription 
+                            ? config.getErrorDescription(req, error)
+                            : `Error en ${config.action}: ${error.message}`,
                         severity: 'ERROR',
                         status: 'FAILED',
                         metadata: {
                             duration,
                             errorMessage: error.message,
-                            errorCode: error.code,
-                            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                            errorCode: error.code
                         }
                     });
                 }
@@ -169,3 +134,6 @@ export const audit = (actionConfig) => {
         return descriptor;
     };
 };
+
+// Exportar también el servicio directamente para facilitar su uso
+export { AuditService };

@@ -1,11 +1,11 @@
 import Document from '../models/Document.js';
 import cloudinary from 'cloudinary';
-import AuditLog from '../models/AuditLog.js'; // ✅ IMPORTACIÓN DIRECTA DEL MODELO
+import AuditService from '../services/auditService.js';
 import mongoose from 'mongoose';
 
 class TrashController {
   // ===========================================================================
-  // OBTENER DOCUMENTOS EN PAPELERA - CON AUDITORÍA (SOLO LECTURA, OPCIONAL)
+  // OBTENER DOCUMENTOS EN PAPELERA
   // ===========================================================================
   static async getTrashDocuments(req, res) {
     try {
@@ -37,39 +37,18 @@ class TrashController {
       });
 
       // =======================================================================
-      // REGISTRAR EN AUDITORÍA (OPCIONAL, ES UNA CONSULTA DE LECTURA)
+      // REGISTRAR EN AUDITORÍA
       // =======================================================================
+      
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'TRASH_VIEW',
-          actionType: 'VIEW',
-          actionCategory: 'TRASH',
-          targetId: null,
-          targetModel: 'Trash',
-          targetName: 'Papelera',
-          description: `Usuario visualizó la papelera (${documents.length} documentos)`,
-          severity: 'INFO',
-          status: 'SUCCESS',
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            documentCount: documents.length,
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        await AuditLog.create(auditData);
+        await AuditService.logTrashView(req, documents.length);
         console.log('✅✅✅ VISUALIZACIÓN DE PAPELERA REGISTRADA EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando visualización de papelera:', auditError.message);
-        // No interrumpimos el flujo principal
       }
 
       console.log('🗑️ ========== FIN OBTENER PAPELERA ==========');
+      
       res.json({ 
         success: true, 
         documents: documentsWithDaysLeft,
@@ -80,11 +59,7 @@ class TrashController {
       
       // Registrar error en auditoría
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
+        await AuditService.log(req, {
           action: 'TRASH_VIEW',
           actionType: 'VIEW',
           actionCategory: 'TRASH',
@@ -95,26 +70,22 @@ class TrashController {
           severity: 'ERROR',
           status: 'FAILED',
           metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            error: error.message,
-            timestamp: new Date().toISOString()
+            error: error.message
           }
-        };
-        await AuditLog.create(auditData);
+        });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de visualización:', auditError.message);
       }
 
       res.status(500).json({ 
         success: false, 
-        message: 'Error al obtener documentos de la papelera' 
+        message: 'Error al obtener documentos de la papelera: ' + error.message 
       });
     }
   }
 
   // ===========================================================================
-  // RESTAURAR DOCUMENTO - CON AUDITORÍA (CORREGIDO)
+  // RESTAURAR DOCUMENTO
   // ===========================================================================
   static async restoreDocument(req, res) {
     console.log('\n🔍 ========== RESTAURANDO DOCUMENTO ==========');
@@ -161,51 +132,22 @@ class TrashController {
       document.deletedBy = null;
       await document.save();
 
+      // Estado después
+      const afterState = {
+        isDeleted: document.isDeleted,
+        deletedAt: document.deletedAt,
+        deletedBy: document.deletedBy
+      };
+
       console.log(`✅ Documento restaurado exitosamente: ${document.nombre_original}`);
 
       // =======================================================================
-      // REGISTRAR RESTAURACIÓN EN AUDITORÍA (CORREGIDO)
+      // REGISTRAR RESTAURACIÓN EN AUDITORÍA
       // =======================================================================
+      
       try {
-        const afterState = {
-          isDeleted: document.isDeleted,
-          deletedAt: document.deletedAt,
-          deletedBy: document.deletedBy
-        };
-
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'DOCUMENT_RESTORE',
-          actionType: 'UPDATE',
-          actionCategory: 'DOCUMENTS',
-          targetId: document._id,
-          targetModel: 'Document',
-          targetName: document.nombre_original, // ✅ CORREGIDO: nombre_original en lugar de nombre
-          description: `Documento restaurado desde papelera: ${document.nombre_original}`, // ✅ CORREGIDO
-          severity: 'INFO',
-          status: 'SUCCESS',
-          changes: {
-            before: beforeState,
-            after: afterState
-          },
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            documentId: document._id.toString(),
-            documentName: document.nombre_original,
-            documentType: document.tipo_archivo,
-            personaId: document.persona_id?.toString(),
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        const auditLog = new AuditLog(auditData);
-        await auditLog.save();
-        console.log('✅✅✅ RESTAURACIÓN REGISTRADA EN AUDITORÍA - ID:', auditLog._id);
-
+        await AuditService.logDocumentRestore(req, document, beforeState, afterState);
+        console.log('✅✅✅ RESTAURACIÓN REGISTRADA EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando restauración:', auditError.message);
       }
@@ -223,11 +165,7 @@ class TrashController {
       
       // Registrar error en auditoría
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
+        await AuditService.log(req, {
           action: 'DOCUMENT_RESTORE',
           actionType: 'UPDATE',
           actionCategory: 'DOCUMENTS',
@@ -238,27 +176,23 @@ class TrashController {
           severity: 'ERROR',
           status: 'FAILED',
           metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
             error: error.message,
-            documentId: req.params.id,
-            timestamp: new Date().toISOString()
+            documentId: req.params.id
           }
-        };
-        await AuditLog.create(auditData);
+        });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de restauración:', auditError.message);
       }
 
       res.status(500).json({ 
         success: false, 
-        message: 'Error al restaurar documento' 
+        message: 'Error al restaurar documento: ' + error.message 
       });
     }
   }
 
   // ===========================================================================
-  // ELIMINAR DOCUMENTO PERMANENTEMENTE - CON AUDITORÍA
+  // ELIMINAR DOCUMENTO PERMANENTEMENTE
   // ===========================================================================
   static async deletePermanently(req, res) {
     console.log('\n🔍 ========== ELIMINANDO PERMANENTEMENTE DOCUMENTO ==========');
@@ -284,18 +218,15 @@ class TrashController {
         });
       }
 
-      // Guardar datos del documento para auditoría
+      // Guardar datos del documento para referencia
       const documentData = {
-        id: document._id,
+        _id: document._id,
         nombre_original: document.nombre_original,
         tipo_archivo: document.tipo_archivo,
         tamano_archivo: document.tamano_archivo,
         public_id: document.public_id,
         persona_id: document.persona_id,
-        categoria: document.categoria,
-        isDeleted: document.isDeleted,
-        deletedAt: document.deletedAt,
-        deletedBy: document.deletedBy
+        categoria: document.categoria
       };
 
       // Eliminar de Cloudinary
@@ -306,8 +237,7 @@ class TrashController {
           });
           console.log(`☁️ Archivo eliminado de Cloudinary: ${document.public_id}`);
         } catch (cloudinaryError) {
-          console.error('⚠️ Error eliminando de Cloudinary:', cloudinaryError);
-          // No interrumpimos el flujo si falla Cloudinary
+          console.error('⚠️ Error eliminando de Cloudinary:', cloudinaryError.message);
         }
       }
 
@@ -319,40 +249,10 @@ class TrashController {
       // =======================================================================
       // REGISTRAR ELIMINACIÓN PERMANENTE EN AUDITORÍA
       // =======================================================================
+      
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'DOCUMENT_PERMANENT_DELETE',
-          actionType: 'DELETE',
-          actionCategory: 'DOCUMENTS',
-          targetId: document._id,
-          targetModel: 'Document',
-          targetName: document.nombre_original,
-          description: `Documento eliminado permanentemente de la papelera: ${document.nombre_original}`,
-          severity: 'WARNING',
-          status: 'SUCCESS',
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            documentId: document._id.toString(),
-            documentName: document.nombre_original,
-            documentType: document.tipo_archivo,
-            documentSize: document.tamano_archivo,
-            public_id: document.public_id,
-            personaId: document.persona_id?.toString(),
-            categoria: document.categoria,
-            eliminacionPermanente: true,
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        const auditLog = new AuditLog(auditData);
-        await auditLog.save();
-        console.log('✅✅✅ ELIMINACIÓN PERMANENTE REGISTRADA EN AUDITORÍA - ID:', auditLog._id);
-
+        await AuditService.logDocumentDelete(req, document, false); // false = eliminación permanente
+        console.log('✅✅✅ ELIMINACIÓN PERMANENTE REGISTRADA EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando eliminación permanente:', auditError.message);
       }
@@ -369,11 +269,7 @@ class TrashController {
       
       // Registrar error en auditoría
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
+        await AuditService.log(req, {
           action: 'DOCUMENT_PERMANENT_DELETE',
           actionType: 'DELETE',
           actionCategory: 'DOCUMENTS',
@@ -384,27 +280,23 @@ class TrashController {
           severity: 'ERROR',
           status: 'FAILED',
           metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
             error: error.message,
-            documentId: req.params.id,
-            timestamp: new Date().toISOString()
+            documentId: req.params.id
           }
-        };
-        await AuditLog.create(auditData);
+        });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de eliminación permanente:', auditError.message);
       }
 
       res.status(500).json({ 
         success: false, 
-        message: 'Error al eliminar documento permanentemente' 
+        message: 'Error al eliminar documento permanentemente: ' + error.message 
       });
     }
   }
 
   // ===========================================================================
-  // VACIAR PAPELERA COMPLETA - CON AUDITORÍA
+  // VACIAR PAPELERA COMPLETA
   // ===========================================================================
   static async emptyTrash(req, res) {
     console.log('\n🔍 ========== VACIANDO PAPELERA COMPLETA ==========');
@@ -417,17 +309,16 @@ class TrashController {
 
       let deletedCount = 0;
       let errors = [];
-      const deletedDocuments = []; // Para auditoría
+      const deletedDocuments = [];
 
       for (const doc of documents) {
         try {
           // Guardar datos para auditoría
           deletedDocuments.push({
-            id: doc._id,
+            _id: doc._id,
             nombre_original: doc.nombre_original,
             tipo_archivo: doc.tipo_archivo,
-            public_id: doc.public_id,
-            persona_id: doc.persona_id
+            public_id: doc.public_id
           });
 
           // Eliminar de Cloudinary
@@ -442,7 +333,7 @@ class TrashController {
           await doc.save();
           deletedCount++;
         } catch (error) {
-          console.error(`Error eliminando documento ${doc._id}:`, error);
+          console.error(`Error eliminando documento ${doc._id}:`, error.message);
           errors.push({ id: doc._id, error: error.message });
         }
       }
@@ -452,39 +343,10 @@ class TrashController {
       // =======================================================================
       // REGISTRAR VACIADO DE PAPELERA EN AUDITORÍA
       // =======================================================================
+      
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'TRASH_EMPTY',
-          actionType: 'DELETE',
-          actionCategory: 'TRASH',
-          targetId: null,
-          targetModel: 'Trash',
-          targetName: 'Papelera',
-          description: `Papelera vaciada: ${deletedCount} documentos eliminados permanentemente`,
-          severity: 'WARNING',
-          status: errors.length > 0 ? 'PARTIAL' : 'SUCCESS',
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            deletedCount,
-            errors: errors.length > 0 ? errors : undefined,
-            deletedDocuments: deletedDocuments.map(d => ({
-              id: d.id.toString(),
-              nombre_original: d.nombre_original,
-              tipo_archivo: d.tipo_archivo
-            })),
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        const auditLog = new AuditLog(auditData);
-        await auditLog.save();
-        console.log('✅✅✅ VACIADO DE PAPELERA REGISTRADO EN AUDITORÍA - ID:', auditLog._id);
-
+        await AuditService.logTrashEmpty(req, deletedCount, deletedDocuments);
+        console.log('✅✅✅ VACIADO DE PAPELERA REGISTRADO EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando vaciado de papelera:', auditError.message);
       }
@@ -503,11 +365,7 @@ class TrashController {
       
       // Registrar error en auditoría
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
+        await AuditService.log(req, {
           action: 'TRASH_EMPTY',
           actionType: 'DELETE',
           actionCategory: 'TRASH',
@@ -518,26 +376,22 @@ class TrashController {
           severity: 'ERROR',
           status: 'FAILED',
           metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            error: error.message,
-            timestamp: new Date().toISOString()
+            error: error.message
           }
-        };
-        await AuditLog.create(auditData);
+        });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de vaciado:', auditError.message);
       }
 
       res.status(500).json({ 
         success: false, 
-        message: 'Error al vaciar papelera' 
+        message: 'Error al vaciar papelera: ' + error.message 
       });
     }
   }
 
   // ===========================================================================
-  // LIMPIEZA AUTOMÁTICA (documentos con más de 30 días) - CON AUDITORÍA
+  // LIMPIEZA AUTOMÁTICA (documentos con más de 30 días)
   // ===========================================================================
   static async autoCleanup(req, res) {
     console.log('\n🔍 ========== INICIANDO LIMPIEZA AUTOMÁTICA DE PAPELERA ==========');
@@ -553,17 +407,16 @@ class TrashController {
       });
 
       let deletedCount = 0;
-      const deletedDocuments = []; // Para auditoría
+      const deletedDocuments = [];
 
       for (const doc of documents) {
         try {
           // Guardar datos para auditoría
           deletedDocuments.push({
-            id: doc._id,
+            _id: doc._id,
             nombre_original: doc.nombre_original,
             tipo_archivo: doc.tipo_archivo,
             public_id: doc.public_id,
-            persona_id: doc.persona_id,
             deletedAt: doc.deletedAt
           });
 
@@ -579,7 +432,7 @@ class TrashController {
           await doc.save();
           deletedCount++;
         } catch (error) {
-          console.error(`Error en limpieza automática del documento ${doc._id}:`, error);
+          console.error(`Error en limpieza automática del documento ${doc._id}:`, error.message);
         }
       }
 
@@ -588,41 +441,10 @@ class TrashController {
       // =======================================================================
       // REGISTRAR LIMPIEZA AUTOMÁTICA EN AUDITORÍA
       // =======================================================================
+      
       try {
-        const auditData = {
-          userId: new mongoose.Types.ObjectId(), // Sistema
-          username: 'sistema',
-          userRole: 'sistema',
-          userEmail: 'sistema@local',
-          action: 'TRASH_AUTO_CLEANUP',
-          actionType: 'DELETE',
-          actionCategory: 'TRASH',
-          targetId: null,
-          targetModel: 'Trash',
-          targetName: 'Papelera',
-          description: `Limpieza automática: ${deletedCount} documentos con más de 30 días eliminados permanentemente`,
-          severity: 'INFO',
-          status: 'SUCCESS',
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            deletedCount,
-            daysThreshold: 30,
-            cutoffDate: thirtyDaysAgo.toISOString(),
-            deletedDocuments: deletedDocuments.map(d => ({
-              id: d.id.toString(),
-              nombre_original: d.nombre_original,
-              tipo_archivo: d.tipo_archivo,
-              deletedAt: d.deletedAt
-            })),
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        const auditLog = new AuditLog(auditData);
-        await auditLog.save();
-        console.log('✅✅✅ LIMPIEZA AUTOMÁTICA REGISTRADA EN AUDITORÍA - ID:', auditLog._id);
-
+        await AuditService.logTrashAutoCleanup(req, deletedCount, 30);
+        console.log('✅✅✅ LIMPIEZA AUTOMÁTICA REGISTRADA EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando limpieza automática:', auditError.message);
       }
@@ -640,11 +462,7 @@ class TrashController {
       
       // Registrar error en auditoría
       try {
-        const auditData = {
-          userId: new mongoose.Types.ObjectId(), // Sistema
-          username: 'sistema',
-          userRole: 'sistema',
-          userEmail: 'sistema@local',
+        await AuditService.log(req, {
           action: 'TRASH_AUTO_CLEANUP',
           actionType: 'DELETE',
           actionCategory: 'TRASH',
@@ -655,20 +473,16 @@ class TrashController {
           severity: 'ERROR',
           status: 'FAILED',
           metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            error: error.message,
-            timestamp: new Date().toISOString()
+            error: error.message
           }
-        };
-        await AuditLog.create(auditData);
+        });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de limpieza automática:', auditError.message);
       }
 
       res.status(500).json({ 
         success: false, 
-        message: 'Error en limpieza automática' 
+        message: 'Error en limpieza automática: ' + error.message 
       });
     }
   }

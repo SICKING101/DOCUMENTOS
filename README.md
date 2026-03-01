@@ -139,6 +139,7 @@ DOCUMENTOS/
 │   │   │
 │   │   ├── modules/               # Modulos por funcionalidad
 │   │   │   ├── ajustes.js
+│   │   │   ├── auditoria.js
 |   │   │   ├── calendario.js
 │   │   │   ├── categorias.js
 │   │   │   ├── dashboard.js
@@ -226,7 +227,8 @@ DOCUMENTOS/
 │       │
 │       ├── controllers/            # Controladores REST
 │       │   ├── authController.js
-|   │   │   ├── adminController.js
+│       │   ├── auditController.js.js
+|       │   ├── adminController.js
 │       │   ├── categoryController.js
 │       │   ├── dashboardController.js
 │       │   ├── departmentController.js

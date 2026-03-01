@@ -6,7 +6,7 @@ import { hasPermission, PERMISSIONS } from '../permissions.js';
 // CONSTANTES Y CONFIGURACIÓN
 // =============================================================================
 
-const ITEMS_PER_PAGE = 20; // Reducido para mejor visualización
+const ITEMS_PER_PAGE = 20;
 
 // Mapeo de acciones a colores e iconos
 const ACTION_CONFIG = {
@@ -57,10 +57,21 @@ const ACTION_CONFIG = {
     'ADMIN_CHANGE_REQUEST': { icon: 'fa-user-shield', color: 'warning', label: 'Solicitud cambio admin' },
     'ADMIN_CHANGE_CONFIRM': { icon: 'fa-check-double', color: 'success', label: 'Cambio admin confirmado' },
     
+    // Papelera
+    'TRASH_VIEW': { icon: 'fa-trash', color: 'secondary', label: 'Vista papelera' },
+    'TRASH_EMPTY': { icon: 'fa-trash-alt', color: 'danger', label: 'Papelera vaciada' },
+    'TRASH_AUTO_CLEANUP': { icon: 'fa-broom', color: 'info', label: 'Limpieza automática' },
+    
+    // Soporte
+    'SUPPORT_TICKET_CREATE': { icon: 'fa-ticket-alt', color: 'info', label: 'Ticket creado' },
+    
+    // Auditoría
+    'AUDIT_VIEW': { icon: 'fa-history', color: 'info', label: 'Consulta auditoría' },
+    'AUDIT_CLEANUP': { icon: 'fa-broom', color: 'warning', label: 'Limpieza logs' },
+    
     // Sistema
     'SYSTEM_CONFIG_CHANGE': { icon: 'fa-cog', color: 'warning', label: 'Configuración cambiada' },
     'SYSTEM_ERROR': { icon: 'fa-bug', color: 'danger', label: 'Error del sistema' },
-    'EXPORT_DATA': { icon: 'fa-file-export', color: 'info', label: 'Datos exportados' }
 };
 
 // Severidad a color
@@ -392,13 +403,12 @@ function renderStats() {
 
     const bySeverity = state.stats.bySeverity || [];
     const total = state.stats.total?.[0]?.count || 0;
-    const byAction = state.stats.byAction || [];
 
     container.innerHTML = `
         <div class="stats-grid">
             <!-- Total -->
             <div class="stat-card">
-                <div class="stat-card__icon stat-card__icon--info stat-card__down">
+                <div class="stat-card__icon stat-card__icon--info">
                     <i class="fas fa-history"></i>
                 </div>
                 <div class="stat-card__content">
@@ -410,7 +420,7 @@ function renderStats() {
             <!-- Por severidad -->
             ${bySeverity.slice(0, 3).map(sev => `
                 <div class="stat-card stat-card--${SEVERITY_COLORS[sev._id] || 'info'}">
-                    <div class="stat-card__icon stat-card__down">
+                    <div class="stat-card__icon">
                         <i class="fas fa-${sev._id === 'CRITICAL' ? 'fire' : 'exclamation-circle'}"></i>
                     </div>
                     <div class="stat-card__content">
@@ -431,7 +441,7 @@ function updateResultsCount() {
 }
 
 // =============================================================================
-// MODAL DE DETALLES (CORREGIDO)
+// MODAL DE DETALLES
 // =============================================================================
 
 let activeModal = null;
@@ -495,6 +505,10 @@ function showLogDetails(log) {
                                 <span class="audit-detail__value">${escapeHtml(log.userRole)}</span>
                             </div>
                             <div class="audit-detail__item">
+                                <span class="audit-detail__label">Email:</span>
+                                <span class="audit-detail__value">${escapeHtml(log.userEmail)}</span>
+                            </div>
+                            <div class="audit-detail__item">
                                 <span class="audit-detail__label">IP:</span>
                                 <span class="audit-detail__value">${escapeHtml(log.metadata?.ipAddress || '—')}</span>
                             </div>
@@ -530,24 +544,19 @@ function showLogDetails(log) {
                         </div>
                     ` : ''}
 
-                    <!-- ================================================================= -->
-                    <!-- SECCIÓN CORREGIDA: CAMBIOS EN VERTICAL (UNO DEBAJO DEL OTRO)     -->
-                    <!-- ================================================================= -->
+                    <!-- Cambios (si existen) -->
                     ${hasChanges ? `
                         <div class="audit-detail__section">
                             <h4 class="audit-detail__section-title">
                                 <i class="fas fa-code-branch"></i> Cambios realizados
                             </h4>
                             <div class="audit-detail__changes-vertical">
-                                <!-- Bloque ANTES -->
                                 <div class="change-block">
                                     <h5 class="change-title change-title--before">
                                         <i class="fas fa-arrow-left"></i> Antes
                                     </h5>
                                     <pre class="change-content">${JSON.stringify(log.changes.before, null, 2)}</pre>
                                 </div>
-                                
-                                <!-- Bloque DESPUÉS (debajo) -->
                                 <div class="change-block">
                                     <h5 class="change-title change-title--after">
                                         <i class="fas fa-arrow-right"></i> Después
@@ -557,7 +566,16 @@ function showLogDetails(log) {
                             </div>
                         </div>
                     ` : ''}
-                    <!-- =========================== FIN SECCIÓN ========================== -->
+
+                    <!-- Metadata adicional -->
+                    ${log.metadata && Object.keys(log.metadata).length > 0 ? `
+                        <div class="audit-detail__section">
+                            <h4 class="audit-detail__section-title">
+                                <i class="fas fa-info-circle"></i> Metadatos
+                            </h4>
+                            <pre class="metadata-content">${JSON.stringify(log.metadata, null, 2)}</pre>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
 
@@ -583,69 +601,7 @@ function closeLogModal() {
 }
 
 // =============================================================================
-// EXPORTACIÓN DE DATOS
-// =============================================================================
-
-async function exportLogs(format = 'json') {
-    if (!state.isAdmin) {
-        showAlert('Solo administradores pueden exportar logs', 'error');
-        return;
-    }
-
-    const confirmed = await confirmAction({
-        title: 'Exportar logs',
-        message: `¿Deseas exportar los logs en formato ${format.toUpperCase()}?`,
-        confirmText: 'Exportar',
-        cancelText: 'Cancelar',
-        type: 'info'
-    });
-
-    if (!confirmed) return;
-
-    try {
-        // Construir query params
-        const params = new URLSearchParams({
-            format,
-            ...state.filters
-        });
-
-        // Eliminar filtros vacíos
-        Object.keys(state.filters).forEach(key => {
-            if (!state.filters[key]) params.delete(key);
-        });
-
-        // Mostrar loader
-        showAlert('Preparando exportación...', 'info');
-
-        // Hacer fetch directamente (no por api.call para manejar blob)
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/audit/export?${params}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) throw new Error('Error en exportación');
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        showAlert('Exportación completada', 'success');
-    } catch (error) {
-        console.error('Error exportando:', error);
-        showAlert('Error al exportar: ' + error.message, 'error');
-    }
-}
-
-// =============================================================================
-// LIMPIEZA DE LOGS (SOLO ADMIN) - CORREGIDO
+// LIMPIEZA DE LOGS (SOLO ADMIN)
 // =============================================================================
 
 async function cleanupOldLogs() {
@@ -654,7 +610,6 @@ async function cleanupOldLogs() {
         return;
     }
 
-    // Crear modal directamente en lugar de usar confirmAction que podría tener problemas
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.id = 'cleanupConfirmModal';
@@ -696,14 +651,11 @@ async function cleanupOldLogs() {
     document.body.appendChild(modal);
     document.body.classList.add('modal-open');
 
-    // Agregar event listener para el botón de confirmación
     document.getElementById('confirmCleanupBtn')?.addEventListener('click', async () => {
         try {
-            // Cerrar modal
             modal.remove();
             document.body.classList.remove('modal-open');
 
-            // Mostrar loading
             showAlert('Limpiando logs antiguos...', 'info');
 
             const response = await api.call('/audit/cleanup', {
@@ -793,19 +745,6 @@ export async function renderAuditoria() {
                     </button>
                     ${state.isAdmin ? `
                         <div class="audit-actions">
-                            <div class="dropdown">
-                                <button class="btn btn--outline" id="exportDropdownBtn">
-                                    <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down"></i>
-                                </button>
-                                <div class="dropdown-menu" id="exportDropdownMenu">
-                                    <button class="dropdown-item" onclick="window.exportAuditLogs('json')">
-                                        <i class="fas fa-file-code"></i> JSON
-                                    </button>
-                                    <button class="dropdown-item" onclick="window.exportAuditLogs('csv')">
-                                        <i class="fas fa-file-csv"></i> CSV
-                                    </button>
-                                </div>
-                            </div>
                             <button class="btn btn--danger" id="cleanupAuditBtn" title="Limpiar logs antiguos">
                                 <i class="fas fa-trash-alt"></i> Limpiar
                             </button>
@@ -963,22 +902,8 @@ function setupEventListeners() {
         loadLogs(1);
     });
 
-    // Export dropdown (solo admin)
+    // Limpiar logs (solo admin)
     if (state.isAdmin) {
-        const exportBtn = document.getElementById('exportDropdownBtn');
-        const exportMenu = document.getElementById('exportDropdownMenu');
-
-        if (exportBtn && exportMenu) {
-            exportBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                exportMenu.classList.toggle('show');
-            });
-
-            document.addEventListener('click', () => {
-                exportMenu.classList.remove('show');
-            });
-        }
-
         document.getElementById('cleanupAuditBtn')?.addEventListener('click', cleanupOldLogs);
     }
 }
@@ -1004,4 +929,3 @@ window.viewAuditLog = async (id) => {
 window.closeAuditModal = closeLogModal;
 window.changeAuditPage = (page) => loadLogs(page);
 window.clearAuditFilters = clearFilters;
-window.exportAuditLogs = exportLogs;

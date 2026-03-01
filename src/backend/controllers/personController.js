@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import Person from '../models/Person.js';
 import Document from '../models/Document.js';
 import NotificationService from '../services/notificationService.js';
-import AuditLog from '../models/AuditLog.js'; // ✅ IMPORTACIÓN DIRECTA DEL MODELO
+import AuditService from '../services/auditService.js';
 
 class PersonController {
   // ===========================================================================
@@ -19,12 +19,15 @@ class PersonController {
       res.json({ success: true, persons });
     } catch (error) {
       console.error('❌ Error obteniendo personas:', error);
-      res.status(500).json({ success: false, message: 'Error al obtener personas' });
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener personas' 
+      });
     }
   }
 
   // ===========================================================================
-  // CREAR NUEVA PERSONA - CON AUDITORÍA
+  // CREAR NUEVA PERSONA
   // ===========================================================================
   static async create(req, res) {
     console.log('\n🔍 ========== CREANDO NUEVA PERSONA ==========');
@@ -74,67 +77,20 @@ class PersonController {
       console.log('✅ Persona guardada en BD con ID:', nuevaPersona._id);
       
       // =======================================================================
-      // REGISTRAR EN AUDITORÍA - VERSIÓN DIRECTA Y ROBUSTA
+      // REGISTRAR EN AUDITORÍA
       // =======================================================================
       
       console.log('📝 Intentando registrar en auditoría...');
       
       try {
-        // Preparar datos para auditoría
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'PERSON_CREATE',
-          actionType: 'CREATE',
-          actionCategory: 'PERSONS',
-          targetId: nuevaPersona._id,
-          targetModel: 'Person',
-          targetName: nuevaPersona.nombre,
-          description: `Persona creada: ${nuevaPersona.nombre} (${nuevaPersona.email})`,
-          severity: 'INFO',
-          status: 'SUCCESS',
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            email: nuevaPersona.email,
-            telefono: nuevaPersona.telefono || 'No especificado',
-            departamento: nuevaPersona.departamento || 'No especificado',
-            puesto: nuevaPersona.puesto || 'No especificado',
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        console.log('📊 Datos de auditoría preparados:', JSON.stringify({
-          ...auditData,
-          userId: auditData.userId.toString()
-        }, null, 2));
-
-        // Guardar en auditoría
-        const auditLog = new AuditLog(auditData);
-        await auditLog.save();
-        
+        await AuditService.logPersonCreate(req, nuevaPersona);
         console.log('✅✅✅ AUDITORÍA REGISTRADA EXITOSAMENTE');
-        console.log('📌 ID del registro:', auditLog._id);
-        
-        // Verificar que se guardó
-        const verificado = await AuditLog.findById(auditLog._id);
-        if (verificado) {
-          console.log('✅ Verificación: registro existe en BD');
-        } else {
-          console.log('❌ Verificación: registro NO encontrado después de guardar');
-        }
-
       } catch (auditError) {
-        console.error('❌ ERROR REGISTRANDO AUDITORÍA:');
-        console.error('📌 Mensaje:', auditError.message);
-        console.error('📌 Stack:', auditError.stack);
-        
-        // NO interrumpimos el flujo principal si falla la auditoría
+        console.error('❌ ERROR REGISTRANDO AUDITORÍA:', auditError.message);
+        // No interrumpimos el flujo principal si falla la auditoría
       }
       
-      // Crear notificación (opcional, no crítica)
+      // Crear notificación
       try {
         await NotificationService.personaAgregada(nuevaPersona);
         console.log('✅ Notificación creada');
@@ -158,13 +114,13 @@ class PersonController {
       
       res.status(500).json({ 
         success: false, 
-        message: 'Error al crear persona' 
+        message: 'Error al crear persona: ' + error.message 
       });
     }
   }
 
   // ===========================================================================
-  // ACTUALIZAR PERSONA - CON AUDITORÍA
+  // ACTUALIZAR PERSONA
   // ===========================================================================
   static async update(req, res) {
     console.log('\n🔍 ========== ACTUALIZANDO PERSONA ==========');
@@ -214,7 +170,13 @@ class PersonController {
       // Actualizar
       const personaActualizada = await Person.findByIdAndUpdate(
         id,
-        { nombre, email, telefono, departamento, puesto },
+        { 
+          nombre: nombre || personaOriginal.nombre,
+          email: email || personaOriginal.email,
+          telefono: telefono || personaOriginal.telefono,
+          departamento: departamento || personaOriginal.departamento,
+          puesto: puesto || personaOriginal.puesto
+        },
         { new: true, runValidators: true }
       );
 
@@ -227,59 +189,35 @@ class PersonController {
 
       console.log('✅ Persona actualizada:', personaActualizada.nombre);
 
+      // Estado después
+      const afterState = {
+        nombre: personaActualizada.nombre,
+        email: personaActualizada.email,
+        telefono: personaActualizada.telefono,
+        departamento: personaActualizada.departamento,
+        puesto: personaActualizada.puesto
+      };
+
+      // Calcular qué campos cambiaron
+      const camposModificados = [];
+      for (const key in beforeState) {
+        if (JSON.stringify(beforeState[key]) !== JSON.stringify(afterState[key])) {
+          camposModificados.push(key);
+        }
+      }
+
       // =======================================================================
       // REGISTRAR EN AUDITORÍA
       // =======================================================================
       
+      console.log('📝 Intentando registrar en auditoría...');
+      
       try {
-        const afterState = {
-          nombre: personaActualizada.nombre,
-          email: personaActualizada.email,
-          telefono: personaActualizada.telefono,
-          departamento: personaActualizada.departamento,
-          puesto: personaActualizada.puesto
-        };
-
-        // Calcular qué campos cambiaron
-        const camposModificados = [];
-        for (const key in beforeState) {
-          if (JSON.stringify(beforeState[key]) !== JSON.stringify(afterState[key])) {
-            camposModificados.push(key);
-          }
-        }
-
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'PERSON_UPDATE',
-          actionType: 'UPDATE',
-          actionCategory: 'PERSONS',
-          targetId: personaActualizada._id,
-          targetModel: 'Person',
-          targetName: personaActualizada.nombre,
-          description: `Persona actualizada: ${personaActualizada.nombre} - Campos: ${camposModificados.join(', ')}`,
-          severity: 'INFO',
-          status: 'SUCCESS',
-          changes: {
-            before: beforeState,
-            after: afterState
-          },
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            camposModificados,
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        const auditLog = new AuditLog(auditData);
-        await auditLog.save();
-        console.log('✅✅✅ AUDITORÍA REGISTRADA - ID:', auditLog._id);
-
+        await AuditService.logPersonUpdate(req, personaActualizada, beforeState, afterState, camposModificados);
+        console.log('✅✅✅ AUDITORÍA REGISTRADA EXITOSAMENTE');
       } catch (auditError) {
-        console.error('❌ Error registrando auditoría:', auditError.message);
+        console.error('❌ ERROR REGISTRANDO AUDITORÍA:', auditError.message);
+        // No interrumpimos el flujo principal si falla la auditoría
       }
 
       console.log('✅✅✅ ACTUALIZACIÓN COMPLETADA');
@@ -295,13 +233,13 @@ class PersonController {
       console.error('🔥 Error en update:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Error al actualizar persona' 
+        message: 'Error al actualizar persona: ' + error.message 
       });
     }
   }
 
   // ===========================================================================
-  // ELIMINAR PERSONA PERMANENTEMENTE - CON AUDITORÍA
+  // ELIMINAR PERSONA PERMANENTEMENTE
   // ===========================================================================
   static async delete(req, res) {
     console.log('\n🔍 ========== ELIMINANDO PERSONA ==========');
@@ -334,16 +272,6 @@ class PersonController {
         email: personaExistente.email
       });
 
-      // Guardar datos para auditoría
-      const personaData = {
-        id: personaExistente._id,
-        nombre: personaExistente.nombre,
-        email: personaExistente.email,
-        telefono: personaExistente.telefono,
-        departamento: personaExistente.departamento,
-        puesto: personaExistente.puesto
-      };
-
       // Verificar documentos asociados
       const documentosAsociados = await Document.countDocuments({ 
         persona_id: id, 
@@ -356,13 +284,12 @@ class PersonController {
       if (documentosAsociados > 0) {
         console.log(`❌ Persona tiene ${documentosAsociados} documentos asociados`);
         
-        // Registrar intento fallido
+        // =======================================================================
+        // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+        // =======================================================================
+        
         try {
-          const auditData = {
-            userId: req.user?._id || new mongoose.Types.ObjectId(),
-            username: req.user?.usuario || 'sistema',
-            userRole: req.user?.rol || 'sistema',
-            userEmail: req.user?.correo || 'sistema@local',
+          await AuditService.log(req, {
             action: 'PERSON_DELETE',
             actionType: 'DELETE',
             actionCategory: 'PERSONS',
@@ -373,13 +300,10 @@ class PersonController {
             severity: 'WARNING',
             status: 'FAILED',
             metadata: {
-              ipAddress: req.ip || '0.0.0.0',
               documentosAsociados,
               reason: 'Tiene documentos asociados'
             }
-          };
-          
-          await AuditLog.create(auditData);
+          });
           console.log('✅ Intento fallido registrado en auditoría');
         } catch (auditError) {
           console.error('❌ Error registrando intento fallido:', auditError.message);
@@ -400,40 +324,15 @@ class PersonController {
       // =======================================================================
       
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'PERSON_DELETE',
-          actionType: 'DELETE',
-          actionCategory: 'PERSONS',
-          targetId: id,
-          targetModel: 'Person',
-          targetName: personaData.nombre,
-          description: `Persona eliminada permanentemente: ${personaData.nombre} (${personaData.email})`,
-          severity: 'WARNING',
-          status: 'SUCCESS',
-          metadata: {
-            ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido',
-            personaEliminada: personaData,
-            eliminacionPermanente: true,
-            timestamp: new Date().toISOString()
-          }
-        };
-
-        const auditLog = new AuditLog(auditData);
-        await auditLog.save();
-        console.log('✅✅✅ ELIMINACIÓN REGISTRADA EN AUDITORÍA - ID:', auditLog._id);
-
+        await AuditService.logPersonDelete(req, personaExistente, false);
+        console.log('✅✅✅ ELIMINACIÓN REGISTRADA EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando eliminación:', auditError.message);
       }
 
       // Crear notificación
       try {
-        await NotificationService.personaEliminada(personaData.nombre);
+        await NotificationService.personaEliminada(personaExistente.nombre);
         console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
@@ -451,7 +350,7 @@ class PersonController {
       console.error('🔥 Error en delete:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Error al eliminar persona' 
+        message: 'Error al eliminar persona: ' + error.message 
       });
     }
   }
@@ -473,7 +372,7 @@ class PersonController {
   }
 
   // ===========================================================================
-  // DESACTIVAR PERSONA - CON AUDITORÍA
+  // DESACTIVAR PERSONA
   // ===========================================================================
   static async deactivate(req, res) {
     console.log('\n🔍 ========== DESACTIVANDO PERSONA ==========');
@@ -483,6 +382,7 @@ class PersonController {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log('❌ ID inválido:', id);
         return res.status(400).json({ 
           success: false, 
           message: 'ID inválido' 
@@ -492,6 +392,7 @@ class PersonController {
       const personaOriginal = await Person.findById(id);
       
       if (!personaOriginal) {
+        console.log('❌ Persona no encontrada:', id);
         return res.status(404).json({ 
           success: false, 
           message: 'Persona no encontrada' 
@@ -509,33 +410,8 @@ class PersonController {
       // =======================================================================
       
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'PERSON_DEACTIVATE',
-          actionType: 'UPDATE',
-          actionCategory: 'PERSONS',
-          targetId: personaDesactivada._id,
-          targetModel: 'Person',
-          targetName: personaDesactivada.nombre,
-          description: `Persona desactivada: ${personaDesactivada.nombre}`,
-          severity: 'WARNING',
-          status: 'SUCCESS',
-          changes: {
-            before: { activo: true },
-            after: { activo: false }
-          },
-          metadata: {
-            ipAddress: req.ip || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido'
-          }
-        };
-
-        await AuditLog.create(auditData);
+        await AuditService.logPersonDeactivate(req, personaDesactivada);
         console.log('✅✅✅ DESACTIVACIÓN REGISTRADA');
-
       } catch (auditError) {
         console.error('❌ Error registrando desactivación:', auditError.message);
       }
@@ -550,13 +426,13 @@ class PersonController {
       console.error('Error desactivando persona:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Error al desactivar persona' 
+        message: 'Error al desactivar persona: ' + error.message 
       });
     }
   }
 
   // ===========================================================================
-  // REACTIVAR PERSONA - CON AUDITORÍA
+  // REACTIVAR PERSONA
   // ===========================================================================
   static async reactivate(req, res) {
     console.log('\n🔍 ========== REACTIVANDO PERSONA ==========');
@@ -566,6 +442,7 @@ class PersonController {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log('❌ ID inválido:', id);
         return res.status(400).json({ 
           success: false, 
           message: 'ID inválido' 
@@ -575,6 +452,7 @@ class PersonController {
       const personaOriginal = await Person.findById(id);
       
       if (!personaOriginal) {
+        console.log('❌ Persona no encontrada:', id);
         return res.status(404).json({ 
           success: false, 
           message: 'Persona no encontrada' 
@@ -592,33 +470,8 @@ class PersonController {
       // =======================================================================
       
       try {
-        const auditData = {
-          userId: req.user?._id || new mongoose.Types.ObjectId(),
-          username: req.user?.usuario || 'sistema',
-          userRole: req.user?.rol || 'sistema',
-          userEmail: req.user?.correo || 'sistema@local',
-          action: 'PERSON_REACTIVATE',
-          actionType: 'UPDATE',
-          actionCategory: 'PERSONS',
-          targetId: personaReactivada._id,
-          targetModel: 'Person',
-          targetName: personaReactivada.nombre,
-          description: `Persona reactivada: ${personaReactivada.nombre}`,
-          severity: 'INFO',
-          status: 'SUCCESS',
-          changes: {
-            before: { activo: false },
-            after: { activo: true }
-          },
-          metadata: {
-            ipAddress: req.ip || '0.0.0.0',
-            userAgent: req.headers['user-agent'] || 'Desconocido'
-          }
-        };
-
-        await AuditLog.create(auditData);
+        await AuditService.logPersonReactivate(req, personaReactivada);
         console.log('✅✅✅ REACTIVACIÓN REGISTRADA');
-
       } catch (auditError) {
         console.error('❌ Error registrando reactivación:', auditError.message);
       }
@@ -633,7 +486,7 @@ class PersonController {
       console.error('Error reactivando persona:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Error al reactivar persona' 
+        message: 'Error al reactivar persona: ' + error.message 
       });
     }
   }
