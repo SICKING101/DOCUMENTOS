@@ -68,6 +68,22 @@ const ACTION_CONFIG = {
     // Auditoría
     'AUDIT_VIEW': { icon: 'fa-history', color: 'info', label: 'Consulta auditoría' },
     'AUDIT_CLEANUP': { icon: 'fa-broom', color: 'warning', label: 'Limpieza logs' },
+
+    'FRONTEND_LOGIN_ATTEMPT': { 
+        icon: 'fa-sign-in-alt', 
+        color: 'info', 
+        label: 'Intento de acceso'  
+    },
+    'FRONTEND_LOGIN_SUCCESS': { 
+        icon: 'fa-sign-in-alt', 
+        color: 'success', 
+        label: 'Acceso al sistema'  
+    },
+    'FRONTEND_LOGIN_FAILED': { 
+        icon: 'fa-exclamation-triangle', 
+        color: 'danger', 
+        label: 'Acceso fallido'
+    },
     
     // Sistema
     'SYSTEM_CONFIG_CHANGE': { icon: 'fa-cog', color: 'warning', label: 'Configuración cambiada' },
@@ -331,13 +347,6 @@ function renderFilterSelects() {
                 const config = getActionConfig(action);
                 return `<option value="${action}">${config.label}</option>`;
             }).join('')}
-        `;
-    }
-
-    if (categoryFilter) {
-        categoryFilter.innerHTML = `
-            <option value="">Todas las categorías</option>
-            ${state.categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
         `;
     }
 
@@ -774,13 +783,6 @@ export async function renderAuditoria() {
                         <label class="filter-label">Acción</label>
                         <select class="filter-select" id="filterAction">
                             <option value="">Todas las acciones</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label class="filter-label">Categoría</label>
-                        <select class="filter-select" id="filterCategory">
-                            <option value="">Todas las categorías</option>
                         </select>
                     </div>
 

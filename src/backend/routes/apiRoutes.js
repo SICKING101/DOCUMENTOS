@@ -12,6 +12,8 @@ import NotificationController from '../controllers/notificationController.js';
 import ReportController from '../controllers/reportController.js';
 import TrashController from '../controllers/trashController.js';
 import SupportController from '../controllers/supportController.js';
+// Importar auditController
+import AuditController from '../controllers/auditController.js';
 
 // Importar middleware
 import { protegerRuta, requirePermission } from '../middleware/auth.js';
@@ -36,6 +38,9 @@ router.get('/health', (req, res) => {
 // -----------------------------
 // AUDITORÍA
 // -----------------------------
+
+// Ruta pública para logs del frontend (NO requiere autenticación)
+router.post('/frontend-log', AuditController.frontendLog);
 router.use('/audit', auditRoutes);
 
 // -----------------------------

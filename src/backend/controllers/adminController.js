@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import AdminChangeRequest from '../models/AdminChangeRequest.js';
 import { transporter } from './authController.js';
 import NotificationService from '../services/notificationService.js';
+import AuditService from '../services/auditService.js'; // ✅ IMPORTACIÓN DEL SERVICIO DE AUDITORÍA
 
 // =============================================================================
 // CONFIGURACIÓN
@@ -92,7 +93,7 @@ const debugAdminChange = {
 };
 
 // =============================================================================
-// 1. SOLICITAR CAMBIO DE ADMINISTRADOR (CORREGIDO CON DEBUGGING)
+// 1. SOLICITAR CAMBIO DE ADMINISTRADOR (CORREGIDO CON DEBUGGING Y AUDITORÍA)
 // =============================================================================
 
 export const requestAdminChange = async (req, res) => {
@@ -124,6 +125,27 @@ export const requestAdminChange = async (req, res) => {
             if (!confirmarPassword) missing.push('confirmarPassword');
             
             console.error(`❌ Campos faltantes: ${missing.join(', ')}`);
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REQUEST',
+                actionType: 'CREATE',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: nuevoUsuario || 'Desconocido',
+                description: `Intento fallido - Campos faltantes: ${missing.join(', ')}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    missingFields: missing,
+                    nuevoUsuario,
+                    nuevoCorreo
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
             
             return res.status(400).json({
@@ -135,6 +157,27 @@ export const requestAdminChange = async (req, res) => {
 
         if (nuevaPassword !== confirmarPassword) {
             console.error('❌ Contraseñas no coinciden');
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REQUEST',
+                actionType: 'CREATE',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: nuevoUsuario,
+                description: `Intento fallido - Contraseñas no coinciden`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    nuevoUsuario,
+                    nuevoCorreo,
+                    reason: 'password_mismatch'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
             return res.status(400).json({
                 success: false,
@@ -145,6 +188,27 @@ export const requestAdminChange = async (req, res) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(nuevoCorreo)) {
             console.error(`❌ Correo inválido: ${nuevoCorreo}`);
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REQUEST',
+                actionType: 'CREATE',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: nuevoUsuario,
+                description: `Intento fallido - Correo inválido: ${nuevoCorreo}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    nuevoUsuario,
+                    nuevoCorreo,
+                    reason: 'invalid_email'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
             return res.status(400).json({
                 success: false,
@@ -162,6 +226,25 @@ export const requestAdminChange = async (req, res) => {
 
         if (!currentAdmin) {
             console.error(`❌ Admin no encontrado con ID: ${currentAdminId}`);
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REQUEST',
+                actionType: 'CREATE',
+                actionCategory: 'ADMIN',
+                targetId: currentAdminId,
+                targetModel: 'User',
+                targetName: 'Admin actual',
+                description: `Intento fallido - Admin actual no encontrado`,
+                severity: 'ERROR',
+                status: 'FAILED',
+                metadata: {
+                    adminId: currentAdminId
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
             return res.status(404).json({
                 success: false,
@@ -179,6 +262,28 @@ export const requestAdminChange = async (req, res) => {
         const existingUser = await User.findOne({ correo: nuevoCorreo });
         if (existingUser) {
             console.error(`❌ Correo ya registrado: ${nuevoCorreo}`);
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REQUEST',
+                actionType: 'CREATE',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: nuevoUsuario,
+                description: `Intento fallido - Correo ya registrado: ${nuevoCorreo}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    nuevoUsuario,
+                    nuevoCorreo,
+                    existingUser: existingUser.usuario,
+                    reason: 'email_exists'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
             return res.status(400).json({
                 success: false,
@@ -190,6 +295,27 @@ export const requestAdminChange = async (req, res) => {
         const existingUsername = await User.findOne({ usuario: nuevoUsuario });
         if (existingUsername) {
             console.error(`❌ Usuario ya existe: ${nuevoUsuario}`);
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REQUEST',
+                actionType: 'CREATE',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: nuevoUsuario,
+                description: `Intento fallido - Usuario ya existe: ${nuevoUsuario}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    nuevoUsuario,
+                    nuevoCorreo,
+                    reason: 'username_exists'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
             return res.status(400).json({
                 success: false,
@@ -266,6 +392,28 @@ export const requestAdminChange = async (req, res) => {
             
             const verificationUrl = buildVerificationUrl(verificationToken);
             console.log('🔗 ENLACE DE VERIFICACIÓN (modo desarrollo):', verificationUrl);
+            
+            // =======================================================================
+            // REGISTRAR SOLICITUD CREADA (SIN EMAIL)
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REQUEST',
+                actionType: 'CREATE',
+                actionCategory: 'ADMIN',
+                targetId: adminChangeRequest._id,
+                targetModel: 'AdminChangeRequest',
+                targetName: `Cambio a ${nuevoUsuario}`,
+                description: `Solicitud de cambio de administrador creada (sin email) - Nuevo admin: ${nuevoUsuario}`,
+                severity: 'WARNING',
+                status: 'PENDING',
+                metadata: {
+                    requestId: adminChangeRequest._id,
+                    currentAdmin: currentAdmin.usuario,
+                    newAdmin: nuevoUsuario,
+                    newAdminEmail: nuevoCorreo,
+                    emailStatus: 'not_sent'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
             
             debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
             
@@ -354,6 +502,31 @@ export const requestAdminChange = async (req, res) => {
             console.log('🔗 ENLACE DE VERIFICACIÓN:', verificationUrl);
         }
 
+        // =======================================================================
+        // REGISTRAR SOLICITUD CREADA EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_REQUEST',
+            actionType: 'CREATE',
+            actionCategory: 'ADMIN',
+            targetId: adminChangeRequest._id,
+            targetModel: 'AdminChangeRequest',
+            targetName: `Cambio a ${nuevoUsuario}`,
+            description: `Solicitud de cambio de administrador creada - Nuevo admin: ${nuevoUsuario}`,
+            severity: 'WARNING',
+            status: 'PENDING',
+            metadata: {
+                requestId: adminChangeRequest._id,
+                currentAdmin: currentAdmin.usuario,
+                newAdmin: nuevoUsuario,
+                newAdminEmail: nuevoCorreo,
+                expiresAt: adminChangeRequest.tokenExpires,
+                notificationSent: adminChangeRequest.notificationSent,
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent']
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
         console.log('✅✅✅ SOLICITUD PROCESADA EXITOSAMENTE ✅✅✅');
         debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', true);
         
@@ -374,6 +547,25 @@ export const requestAdminChange = async (req, res) => {
         console.error('📌 Mensaje:', error.message);
         console.error('📌 Stack:', error.stack);
         console.error('📌 Timestamp:', new Date().toISOString());
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_REQUEST',
+            actionType: 'CREATE',
+            actionCategory: 'ADMIN',
+            targetId: null,
+            targetModel: 'AdminChangeRequest',
+            targetName: 'Error',
+            description: `Error crítico en solicitud de cambio: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message,
+                stack: error.stack
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
         
         debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
         
@@ -417,6 +609,25 @@ export const verifyAdminChangeToken = async (req, res) => {
 
         if (!changeRequest) {
             console.error('❌ Solicitud no encontrada');
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_VERIFY',
+                actionType: 'READ',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: 'Token inválido',
+                description: `Intento de verificación con token inválido o expirado`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    tokenPreview: token.substring(0, 15) + '...'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('VERIFICACIÓN DE TOKEN', false);
             return res.status(404).json({
                 success: false,
@@ -435,6 +646,25 @@ export const verifyAdminChangeToken = async (req, res) => {
             changeRequest.status = 'expired';
             await changeRequest.save();
             
+            // =======================================================================
+            // REGISTRAR EXPIRACIÓN EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_VERIFY',
+                actionType: 'READ',
+                actionCategory: 'ADMIN',
+                targetId: changeRequest._id,
+                targetModel: 'AdminChangeRequest',
+                targetName: `Cambio a ${changeRequest.newAdminUser}`,
+                description: `Token expirado para solicitud de cambio`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    requestId: changeRequest._id,
+                    expiresAt: changeRequest.tokenExpires
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('VERIFICACIÓN DE TOKEN', false);
             return res.status(400).json({
                 success: false,
@@ -448,6 +678,26 @@ export const verifyAdminChangeToken = async (req, res) => {
         console.log('🔍 Verificando contraseña almacenada:');
         console.log(`- Password stored: ${!!changeRequest.newAdminPassword}`);
         console.log(`- Password length in DB: ${changeRequest.newAdminPassword?.length || 0}`);
+
+        // =======================================================================
+        // REGISTRAR VERIFICACIÓN EXITOSA EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_VERIFY',
+            actionType: 'READ',
+            actionCategory: 'ADMIN',
+            targetId: changeRequest._id,
+            targetModel: 'AdminChangeRequest',
+            targetName: `Cambio a ${changeRequest.newAdminUser}`,
+            description: `Token verificado exitosamente para cambio de administrador`,
+            severity: 'INFO',
+            status: 'SUCCESS',
+            metadata: {
+                requestId: changeRequest._id,
+                newAdmin: changeRequest.newAdminUser,
+                newAdminEmail: changeRequest.newAdminEmail
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
         debugAdminChange.end('VERIFICACIÓN DE TOKEN', true);
         
@@ -472,6 +722,25 @@ export const verifyAdminChangeToken = async (req, res) => {
 
     } catch (error) {
         console.error('🔥 ERROR en verifyAdminChangeToken:', error);
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_VERIFY',
+            actionType: 'READ',
+            actionCategory: 'ADMIN',
+            targetId: null,
+            targetModel: 'AdminChangeRequest',
+            targetName: 'Error',
+            description: `Error en verificación de token: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         debugAdminChange.end('VERIFICACIÓN DE TOKEN', false);
         res.status(500).json({
             success: false,
@@ -482,7 +751,7 @@ export const verifyAdminChangeToken = async (req, res) => {
 };
 
 // =============================================================================
-// 3. CONFIRMAR CAMBIO DE ADMINISTRADOR (CORREGIDO)
+// 3. CONFIRMAR CAMBIO DE ADMINISTRADOR (CORREGIDO CON AUDITORÍA)
 // =============================================================================
 
 export const confirmAdminChange = async (req, res) => {
@@ -510,6 +779,25 @@ export const confirmAdminChange = async (req, res) => {
 
         if (!changeRequest) {
             console.error('❌ Solicitud no encontrada');
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_CONFIRM',
+                actionType: 'UPDATE',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: 'Solicitud no encontrada',
+                description: `Intento de confirmación con token inválido`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    tokenPreview: token.substring(0, 15) + '...'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
             return res.status(404).json({
                 success: false,
@@ -525,6 +813,26 @@ export const confirmAdminChange = async (req, res) => {
 
         if (!changeRequest.isTokenValid()) {
             console.error('❌ Token inválido o expirado');
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_CONFIRM',
+                actionType: 'UPDATE',
+                actionCategory: 'ADMIN',
+                targetId: changeRequest._id,
+                targetModel: 'AdminChangeRequest',
+                targetName: `Cambio a ${changeRequest.newAdminUser}`,
+                description: `Intento de confirmación con token expirado`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    requestId: changeRequest._id,
+                    expiresAt: changeRequest.tokenExpires
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
             return res.status(400).json({
                 success: false,
@@ -539,6 +847,25 @@ export const confirmAdminChange = async (req, res) => {
         
         if (!changeRequest.newAdminPassword) {
             console.error('❌ ERROR CRÍTICO: No hay contraseña almacenada en la solicitud');
+            
+            // =======================================================================
+            // REGISTRAR ERROR EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_CONFIRM',
+                actionType: 'UPDATE',
+                actionCategory: 'ADMIN',
+                targetId: changeRequest._id,
+                targetModel: 'AdminChangeRequest',
+                targetName: `Cambio a ${changeRequest.newAdminUser}`,
+                description: `Error crítico: Contraseña no almacenada en solicitud`,
+                severity: 'ERROR',
+                status: 'FAILED',
+                metadata: {
+                    requestId: changeRequest._id
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
             return res.status(500).json({
                 success: false,
@@ -692,10 +1019,45 @@ export const confirmAdminChange = async (req, res) => {
                 await enviarEmailConReintentos(newAdminEmailOptions);
                 console.log('✅ Email enviado al nuevo administrador');
                 
+                changeRequest.notificationSentNewAdmin = true;
+                await changeRequest.save();
+                
             } catch (emailError) {
                 console.warn('⚠️ No se pudo enviar email:', emailError.message);
+                changeRequest.notificationSentNewAdmin = false;
+                await changeRequest.save();
             }
         }
+
+        // =======================================================================
+        // REGISTRAR CONFIRMACIÓN DE CAMBIO EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_CONFIRM',
+            actionType: 'UPDATE',
+            actionCategory: 'ADMIN',
+            targetId: changeRequest._id,
+            targetModel: 'AdminChangeRequest',
+            targetName: `Cambio a ${changeRequest.newAdminUser}`,
+            description: `Cambio de administrador confirmado y completado - Nuevo admin: ${changeRequest.newAdminUser}`,
+            severity: 'CRITICAL',
+            status: 'SUCCESS',
+            metadata: {
+                requestId: changeRequest._id,
+                oldAdmin: {
+                    id: changeRequest.currentAdminId,
+                    name: changeRequest.currentAdminName,
+                    email: changeRequest.currentAdminEmail
+                },
+                newAdmin: {
+                    id: newAdmin._id,
+                    name: changeRequest.newAdminUser,
+                    email: changeRequest.newAdminEmail
+                },
+                approvedAt: changeRequest.approvedAt,
+                oldAdminDeactivated: changeRequest.oldAdminDeactivated
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
         console.log('✅✅✅ CAMBIO COMPLETADO EXITOSAMENTE ✅✅✅');
         debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', true);
@@ -723,6 +1085,25 @@ export const confirmAdminChange = async (req, res) => {
         console.error('🔥 ERROR CRÍTICO en confirmAdminChange:');
         console.error('📌 Mensaje:', error.message);
         console.error('📌 Stack:', error.stack);
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_CONFIRM',
+            actionType: 'UPDATE',
+            actionCategory: 'ADMIN',
+            targetId: req.body?.token ? 'token_provided' : null,
+            targetModel: 'AdminChangeRequest',
+            targetName: 'Error',
+            description: `Error crítico en confirmación de cambio: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message,
+                stack: error.stack
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
         
         debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
         
@@ -759,6 +1140,25 @@ export const rejectAdminChange = async (req, res) => {
         });
 
         if (!changeRequest) {
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_REJECT',
+                actionType: 'UPDATE',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: 'Solicitud no encontrada',
+                description: `Intento de rechazo con token inválido`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    tokenPreview: token.substring(0, 15) + '...'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             debugAdminChange.end('RECHAZO DE CAMBIO', false);
             return res.status(404).json({
                 success: false,
@@ -771,6 +1171,28 @@ export const rejectAdminChange = async (req, res) => {
         await changeRequest.save();
 
         console.log('✅ Solicitud rechazada:', changeRequest._id);
+
+        // =======================================================================
+        // REGISTRAR RECHAZO EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_REJECT',
+            actionType: 'UPDATE',
+            actionCategory: 'ADMIN',
+            targetId: changeRequest._id,
+            targetModel: 'AdminChangeRequest',
+            targetName: `Cambio a ${changeRequest.newAdminUser}`,
+            description: `Solicitud de cambio de administrador rechazada`,
+            severity: 'INFO',
+            status: 'SUCCESS',
+            metadata: {
+                requestId: changeRequest._id,
+                newAdmin: changeRequest.newAdminUser,
+                newAdminEmail: changeRequest.newAdminEmail,
+                rejectedAt: changeRequest.rejectedAt
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
         debugAdminChange.end('RECHAZO DE CAMBIO', true);
 
         res.json({
@@ -780,6 +1202,25 @@ export const rejectAdminChange = async (req, res) => {
 
     } catch (error) {
         console.error('🔥 ERROR en rejectAdminChange:', error);
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_CHANGE_REJECT',
+            actionType: 'UPDATE',
+            actionCategory: 'ADMIN',
+            targetId: null,
+            targetModel: 'AdminChangeRequest',
+            targetName: 'Error',
+            description: `Error al rechazar solicitud: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         debugAdminChange.end('RECHAZO DE CAMBIO', false);
         res.status(500).json({
             success: false,
@@ -805,6 +1246,28 @@ export const getPendingRequests = async (req, res) => {
         }).sort({ requestedAt: -1 });
 
         console.log(`📋 ${pendingRequests.length} solicitudes pendientes`);
+
+        // =======================================================================
+        // REGISTRAR CONSULTA EN AUDITORÍA
+        // =======================================================================
+        if (pendingRequests.length > 0) {
+            await AuditService.log(req, {
+                action: 'ADMIN_CHANGE_VIEW',
+                actionType: 'READ',
+                actionCategory: 'ADMIN',
+                targetId: null,
+                targetModel: 'AdminChangeRequest',
+                targetName: 'Solicitudes pendientes',
+                description: `Consultó solicitudes de cambio pendientes (${pendingRequests.length} encontradas)`,
+                severity: 'INFO',
+                status: 'SUCCESS',
+                metadata: {
+                    count: pendingRequests.length,
+                    requestIds: pendingRequests.map(r => r._id)
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        }
+
         debugAdminChange.end('OBTENIENDO SOLICITUDES PENDIENTES', true);
 
         res.json({
@@ -932,6 +1395,28 @@ export const testAdminChange = async (req, res) => {
         console.log(`- Solicitudes aprobadas: ${approvedRequests}`);
         console.log(`- Email: ${emailStatus}`);
 
+        // =======================================================================
+        // REGISTRAR DIAGNÓSTICO EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ADMIN_DIAGNOSTIC',
+            actionType: 'READ',
+            actionCategory: 'ADMIN',
+            targetId: null,
+            targetModel: 'System',
+            targetName: 'Diagnóstico Admin',
+            description: `Diagnóstico del sistema de administración ejecutado`,
+            severity: 'INFO',
+            status: 'SUCCESS',
+            metadata: {
+                adminCount,
+                deactivatedCount,
+                pendingRequests,
+                approvedRequests,
+                emailStatus
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
         debugAdminChange.end('DIAGNÓSTICO COMPLETO DEL SISTEMA', true);
 
         res.json({
@@ -1014,9 +1499,10 @@ export const debugPasswordStorage = async (req, res) => {
     }
 };
 
-/**
- * REACTIVAR USUARIO - VERSIÓN CORREGIDA
- */
+// =============================================================================
+// 9. REACTIVAR USUARIO - VERSIÓN CORREGIDA CON AUDITORÍA
+// =============================================================================
+
 export const reactivateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1046,6 +1532,13 @@ export const reactivateUser = async (req, res) => {
       });
     }
 
+    // Guardar estado anterior para auditoría
+    const beforeState = {
+      activo: user.activo,
+      rol: user.rol,
+      deactivatedAt: user.deactivatedAt
+    };
+
     // Reactivar el usuario
     user.activo = true;
     user.rol = 'lector'; // Por defecto reactivar como lector
@@ -1058,6 +1551,35 @@ export const reactivateUser = async (req, res) => {
       nuevoRol: user.rol,
       activo: user.activo
     });
+
+    // =======================================================================
+    // REGISTRAR REACTIVACIÓN EN AUDITORÍA
+    // =======================================================================
+    const afterState = {
+      activo: user.activo,
+      rol: user.rol,
+      deactivatedAt: user.deactivatedAt
+    };
+
+    await AuditService.log(req, {
+      action: 'USER_REACTIVATE',
+      actionType: 'UPDATE',
+      actionCategory: 'USERS',
+      targetId: user._id,
+      targetModel: 'User',
+      targetName: user.usuario,
+      description: `Usuario reactivado: ${user.usuario} (rol asignado: lector)`,
+      severity: 'INFO',
+      changes: {
+        before: beforeState,
+        after: afterState
+      },
+      metadata: {
+        usuario: user.usuario,
+        correo: user.correo,
+        nuevoRol: 'lector'
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
     res.json({
       success: true,
@@ -1072,6 +1594,25 @@ export const reactivateUser = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error reactivando usuario:', error);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'USER_REACTIVATE',
+      actionType: 'UPDATE',
+      actionCategory: 'USERS',
+      targetId: req.params.id,
+      targetModel: 'User',
+      targetName: 'Usuario',
+      description: `Error al reactivar usuario: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     res.status(500).json({
       success: false,
       message: 'Error al reactivar usuario: ' + error.message
@@ -1079,9 +1620,10 @@ export const reactivateUser = async (req, res) => {
   }
 };
 
-/**
- * Eliminar usuario permanentemente - VERSIÓN CON DEBUGGING EXTREMO
- */
+// =============================================================================
+// 10. ELIMINAR USUARIO PERMANENTEMENTE - VERSIÓN CON DEBUGGING EXTREMO Y AUDITORÍA
+// =============================================================================
+
 export const deleteUserPermanently = async (req, res) => {
   console.log('\n🔴 ========== ELIMINACIÓN PERMANENTE DE USUARIO ==========');
   console.log(`🕒 Timestamp: ${new Date().toISOString()}`);
@@ -1103,6 +1645,26 @@ export const deleteUserPermanently = async (req, res) => {
 
     if (!isValidObjectId(id)) {
       console.error('❌ ID de usuario no es un ObjectId válido de MongoDB');
+      
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'USER_DELETE',
+        actionType: 'DELETE',
+        actionCategory: 'USERS',
+        targetId: id,
+        targetModel: 'User',
+        targetName: 'ID inválido',
+        description: `Intento de eliminar usuario con ID inválido`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          providedId: id,
+          reason: 'invalid_object_id'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.status(400).json({
         success: false,
         message: 'ID de usuario inválido',
@@ -1116,6 +1678,26 @@ export const deleteUserPermanently = async (req, res) => {
     
     if (!userToDelete) {
       console.error('❌ Usuario NO encontrado en la base de datos');
+      
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'USER_DELETE',
+        actionType: 'DELETE',
+        actionCategory: 'USERS',
+        targetId: id,
+        targetModel: 'User',
+        targetName: 'Usuario no encontrado',
+        description: `Intento de eliminar usuario inexistente`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          providedId: id,
+          reason: 'user_not_found'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.status(404).json({
         success: false,
         message: 'Usuario no encontrado en la base de datos'
@@ -1131,6 +1713,27 @@ export const deleteUserPermanently = async (req, res) => {
     // VALIDACIÓN 3: No eliminar al administrador
     if (userToDelete.rol === 'administrador') {
       console.error('❌ Intento de eliminar al administrador');
+      
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'USER_DELETE',
+        actionType: 'DELETE',
+        actionCategory: 'USERS',
+        targetId: id,
+        targetModel: 'User',
+        targetName: userToDelete.usuario,
+        description: `Intento de eliminar al administrador del sistema`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          usuario: userToDelete.usuario,
+          correo: userToDelete.correo,
+          reason: 'cannot_delete_admin'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.status(400).json({
         success: false,
         message: 'No se puede eliminar al administrador del sistema'
@@ -1140,6 +1743,26 @@ export const deleteUserPermanently = async (req, res) => {
     // VALIDACIÓN 4: No eliminarse a sí mismo
     if (id === requestingUserId) {
       console.error('❌ Intento de eliminarse a sí mismo');
+      
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'USER_DELETE',
+        actionType: 'DELETE',
+        actionCategory: 'USERS',
+        targetId: id,
+        targetModel: 'User',
+        targetName: userToDelete.usuario,
+        description: `Intento de eliminar su propio usuario`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          usuario: userToDelete.usuario,
+          reason: 'cannot_delete_self'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.status(400).json({
         success: false,
         message: 'No puedes eliminar tu propio usuario'
@@ -1151,12 +1774,42 @@ export const deleteUserPermanently = async (req, res) => {
       const adminCount = await User.countDocuments({ rol: 'administrador', activo: true });
       if (adminCount <= 1) {
         console.error('❌ Intento de eliminar al último administrador');
+        
+        // =======================================================================
+        // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+          action: 'USER_DELETE',
+          actionType: 'DELETE',
+          actionCategory: 'USERS',
+          targetId: id,
+          targetModel: 'User',
+          targetName: userToDelete.usuario,
+          description: `Intento de eliminar al último administrador`,
+          severity: 'WARNING',
+          status: 'FAILED',
+          metadata: {
+            usuario: userToDelete.usuario,
+            adminCount,
+            reason: 'last_admin'
+          }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         return res.status(400).json({
           success: false,
           message: 'No se puede eliminar al último administrador del sistema'
         });
       }
     }
+
+    // Guardar datos del usuario para auditoría
+    const userData = {
+      _id: userToDelete._id,
+      usuario: userToDelete.usuario,
+      correo: userToDelete.correo,
+      rol: userToDelete.rol,
+      activo: userToDelete.activo
+    };
 
     // =========================================================================
     // EJECUTAR LA ELIMINACIÓN
@@ -1181,17 +1834,27 @@ export const deleteUserPermanently = async (req, res) => {
     if (!verifyDeletion) {
       console.log('✅✅✅ ELIMINACIÓN EXITOSA ✅✅✅');
       
-      // Registrar en historial (opcional)
-      try {
-        // Aquí puedes agregar código para registrar en historial si lo tienes
-        console.log('📝 Usuario eliminado permanentemente:', {
-          usuario: userToDelete.usuario,
-          correo: userToDelete.correo,
+      // =======================================================================
+      // REGISTRAR ELIMINACIÓN EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'USER_DELETE',
+        actionType: 'DELETE',
+        actionCategory: 'USERS',
+        targetId: id,
+        targetModel: 'User',
+        targetName: userData.usuario,
+        description: `Usuario eliminado permanentemente: ${userData.usuario} (${userData.correo})`,
+        severity: 'WARNING',
+        status: 'SUCCESS',
+        metadata: {
+          usuario: userData.usuario,
+          correo: userData.correo,
+          rol: userData.rol,
+          eliminacionPermanente: true,
           eliminadoPor: req.user?.usuario || 'admin'
-        });
-      } catch (logError) {
-        console.warn('⚠️ No se pudo registrar en historial:', logError.message);
-      }
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
       console.log('🔴 ========== ELIMINACIÓN COMPLETADA ==========\n');
       
@@ -1206,6 +1869,25 @@ export const deleteUserPermanently = async (req, res) => {
       });
     } else {
       console.error('❌❌❌ LA ELIMINACIÓN FALLÓ - EL USUARIO AÚN EXISTE ❌❌❌');
+      
+      // =======================================================================
+      // REGISTRAR ERROR EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'USER_DELETE',
+        actionType: 'DELETE',
+        actionCategory: 'USERS',
+        targetId: id,
+        targetModel: 'User',
+        targetName: userData.usuario,
+        description: `Error en eliminación: el usuario aún existe después del intento`,
+        severity: 'ERROR',
+        status: 'FAILED',
+        metadata: {
+          usuario: userData.usuario,
+          error: 'user_still_exists_after_deletion'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
       
       return res.status(500).json({
         success: false,
@@ -1222,6 +1904,26 @@ export const deleteUserPermanently = async (req, res) => {
     console.error('📌 Mensaje:', error.message);
     console.error('📌 Stack:', error.stack);
     console.error('📌 Nombre del error:', error.name);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'USER_DELETE',
+      actionType: 'DELETE',
+      actionCategory: 'USERS',
+      targetId: req.params.id,
+      targetModel: 'User',
+      targetName: 'Usuario',
+      description: `Error crítico al eliminar usuario: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message,
+        stack: error.stack,
+        errorName: error.name
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
     
     if (error.name === 'CastError') {
       return res.status(400).json({
@@ -1240,7 +1942,7 @@ export const deleteUserPermanently = async (req, res) => {
 };
 
 // =============================================================================
-// 9. ASIGNAR ROL A OTRO USUARIO
+// 11. ASIGNAR ROL A OTRO USUARIO
 // =============================================================================
 
 export const assignRole = async (req, res) => {
@@ -1269,8 +1971,42 @@ export const assignRole = async (req, res) => {
             });
         }
 
+        // Guardar estado anterior
+        const beforeState = {
+            rol: user.rol
+        };
+
         user.rol = newRole;
         await user.save();
+
+        // =======================================================================
+        // REGISTRAR ASIGNACIÓN DE ROL EN AUDITORÍA
+        // =======================================================================
+        const afterState = {
+            rol: user.rol
+        };
+
+        await AuditService.log(req, {
+            action: 'ROLE_CHANGE',
+            actionType: 'UPDATE',
+            actionCategory: 'USERS',
+            targetId: user._id,
+            targetModel: 'User',
+            targetName: user.usuario,
+            description: `Rol de usuario cambiado de ${beforeState.rol} a ${newRole}`,
+            severity: 'WARNING',
+            changes: {
+                before: beforeState,
+                after: afterState
+            },
+            metadata: {
+                usuario: user.usuario,
+                correo: user.correo,
+                rolAnterior: beforeState.rol,
+                rolNuevo: newRole,
+                asignadoPor: req.user?.usuario
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
         res.json({
             success: true,
@@ -1278,6 +2014,26 @@ export const assignRole = async (req, res) => {
         });
     } catch (error) {
         console.error('Error asignando rol:', error);
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'ROLE_CHANGE',
+            actionType: 'UPDATE',
+            actionCategory: 'USERS',
+            targetId: userId,
+            targetModel: 'User',
+            targetName: 'Usuario',
+            description: `Error al asignar rol: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message,
+                newRole
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         res.status(500).json({
             success: false,
             message: 'Error del servidor al asignar rol.'
@@ -1286,12 +2042,9 @@ export const assignRole = async (req, res) => {
 };
 
 // =============================================================================
-// 10. CREAR USUARIO CON ROL (SOLO ADMIN)
+// 12. CREAR USUARIO CON ROL (SOLO ADMIN)
 // =============================================================================
 
-/**
- * CREAR USUARIO CON ROL (SOLO ADMIN) - VERSIÓN ACTUALIZADA
- */
 export const createUserWithRole = async (req, res) => {
     try {
         const { usuario, correo, password, rol } = req.body;
@@ -1376,6 +2129,27 @@ export const createUserWithRole = async (req, res) => {
             rol: newUser.rol
         });
 
+        // =======================================================================
+        // REGISTRAR CREACIÓN DE USUARIO EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'USER_CREATE',
+            actionType: 'CREATE',
+            actionCategory: 'USERS',
+            targetId: newUser._id,
+            targetModel: 'User',
+            targetName: newUser.usuario,
+            description: `Usuario creado con rol ${rol}: ${newUser.usuario} (${newUser.correo})`,
+            severity: 'INFO',
+            status: 'SUCCESS',
+            metadata: {
+                usuario: newUser.usuario,
+                correo: newUser.correo,
+                rol: newUser.rol,
+                creadoPor: req.user?.usuario
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
         return res.status(201).json({
             success: true,
             message: `Usuario creado con rol ${rol}`,
@@ -1388,6 +2162,28 @@ export const createUserWithRole = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Error creando usuario:', error);
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'USER_CREATE',
+            actionType: 'CREATE',
+            actionCategory: 'USERS',
+            targetId: null,
+            targetModel: 'User',
+            targetName: req.body?.usuario || 'Nuevo usuario',
+            description: `Error al crear usuario: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message,
+                usuario: req.body?.usuario,
+                correo: req.body?.correo,
+                rol: req.body?.rol
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         return res.status(500).json({
             success: false,
             message: 'Error del servidor al crear usuario'
@@ -1395,9 +2191,10 @@ export const createUserWithRole = async (req, res) => {
     }
 };
 
-/**
- * ACTUALIZAR USUARIO - VERSIÓN CORREGIDA
- */
+// =============================================================================
+// 13. ACTUALIZAR USUARIO - VERSIÓN CORREGIDA CON AUDITORÍA
+// =============================================================================
+
 export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -1411,6 +2208,14 @@ export const updateUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
         }
+
+        // Guardar estado anterior para auditoría
+        const beforeState = {
+            usuario: user.usuario,
+            correo: user.correo,
+            rol: user.rol,
+            activo: user.activo
+        };
 
         // No permitir que el admin se modifique a sí mismo (excepto cosas básicas)
         const isSelf = String(req.user?.id) === String(user._id);
@@ -1529,12 +2334,54 @@ export const updateUser = async (req, res) => {
 
         await user.save();
 
+        // Estado después para auditoría
+        const afterState = {
+            usuario: user.usuario,
+            correo: user.correo,
+            rol: user.rol,
+            activo: user.activo
+        };
+
+        // Calcular campos modificados
+        const camposModificados = [];
+        for (const key in beforeState) {
+            if (beforeState[key] !== afterState[key]) {
+                camposModificados.push(key);
+            }
+        }
+
         console.log('✅ Usuario actualizado exitosamente:', {
             id: user._id,
             usuario: user.usuario,
             rol: user.rol,
             activo: user.activo
         });
+
+        // =======================================================================
+        // REGISTRAR ACTUALIZACIÓN EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'USER_UPDATE',
+            actionType: 'UPDATE',
+            actionCategory: 'USERS',
+            targetId: user._id,
+            targetModel: 'User',
+            targetName: user.usuario,
+            description: `Usuario actualizado - Campos: ${camposModificados.join(', ')}`,
+            severity: 'INFO',
+            changes: {
+                before: beforeState,
+                after: afterState
+            },
+            metadata: {
+                camposModificados,
+                usuario: user.usuario,
+                correo: user.correo,
+                rol: user.rol,
+                activo: user.activo,
+                actualizadoPor: req.user?.usuario
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
         return res.json({
             success: true,
@@ -1549,6 +2396,25 @@ export const updateUser = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Error actualizando usuario:', error);
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'USER_UPDATE',
+            actionType: 'UPDATE',
+            actionCategory: 'USERS',
+            targetId: req.params.id,
+            targetModel: 'User',
+            targetName: 'Usuario',
+            description: `Error al actualizar usuario: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         return res.status(500).json({
             success: false,
             message: 'Error del servidor al actualizar usuario: ' + error.message
@@ -1557,7 +2423,7 @@ export const updateUser = async (req, res) => {
 };
 
 // =============================================================================
-// 11. LISTAR USUARIOS (SOLO ADMIN)
+// 14. LISTAR USUARIOS (SOLO ADMIN)
 // =============================================================================
 
 export const getUsers = async (req, res) => {
@@ -1565,6 +2431,26 @@ export const getUsers = async (req, res) => {
         const users = await User.find()
             .select('_id usuario correo rol activo createdAt updatedAt ultimoAcceso deactivatedAt')
             .sort({ createdAt: -1 });
+
+        // =======================================================================
+        // REGISTRAR CONSULTA EN AUDITORÍA (SOLO SI HAY MUCHOS USUARIOS)
+        // =======================================================================
+        if (users.length > 50) {
+            AuditService.log(req, {
+                action: 'USER_LIST_VIEW',
+                actionType: 'READ',
+                actionCategory: 'USERS',
+                targetId: null,
+                targetModel: 'User',
+                targetName: 'Lista de usuarios',
+                description: `Consultó lista de usuarios (${users.length} usuarios)`,
+                severity: 'INFO',
+                status: 'SUCCESS',
+                metadata: {
+                    userCount: users.length
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        }
 
         return res.json({
             success: true,
@@ -1580,12 +2466,9 @@ export const getUsers = async (req, res) => {
 };
 
 // =============================================================================
-// 13. DESACTIVAR ("QUITAR") USUARIO (SOLO ADMIN)
+// 15. DESACTIVAR ("QUITAR") USUARIO (SOLO ADMIN) - CON AUDITORÍA
 // =============================================================================
 
-/**
- * Desactivar usuario (sin modificar el nombre)
- */
 export const deactivateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1615,11 +2498,54 @@ export const deactivateUser = async (req, res) => {
       });
     }
 
+    // Guardar estado anterior para auditoría
+    const beforeState = {
+      activo: user.activo,
+      rol: user.rol
+    };
+
     // Desactivar SIN modificar el nombre de usuario
     user.activo = false;
     user.rol = 'desactivado';
+    user.deactivatedAt = new Date();
     // IMPORTANTE: NO modificar user.usuario
     await user.save();
+
+    console.log('✅ Usuario desactivado:', {
+      usuario: user.usuario,
+      rol: user.rol,
+      activo: user.activo
+    });
+
+    // =======================================================================
+    // REGISTRAR DESACTIVACIÓN EN AUDITORÍA
+    // =======================================================================
+    const afterState = {
+      activo: user.activo,
+      rol: user.rol
+    };
+
+    await AuditService.log(req, {
+      action: 'USER_DEACTIVATE',
+      actionType: 'UPDATE',
+      actionCategory: 'USERS',
+      targetId: user._id,
+      targetModel: 'User',
+      targetName: user.usuario,
+      description: `Usuario desactivado: ${user.usuario}`,
+      severity: 'WARNING',
+      changes: {
+        before: beforeState,
+        after: afterState
+      },
+      metadata: {
+        usuario: user.usuario,
+        correo: user.correo,
+        rolAnterior: beforeState.rol,
+        rolNuevo: 'desactivado',
+        desactivadoPor: req.user?.usuario
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
     res.json({
       success: true,
@@ -1634,9 +2560,28 @@ export const deactivateUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error desactivando usuario:', error);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'USER_DEACTIVATE',
+      actionType: 'UPDATE',
+      actionCategory: 'USERS',
+      targetId: req.params.id,
+      targetModel: 'User',
+      targetName: 'Usuario',
+      description: `Error al desactivar usuario: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     res.status(500).json({
       success: false,
-      message: 'Error al desactivar usuario'
+      message: 'Error al desactivar usuario: ' + error.message
     });
   }
 };

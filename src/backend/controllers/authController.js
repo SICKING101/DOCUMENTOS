@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import AuditService from '../services/auditService.js'; // ✅ IMPORTACIÓN DEL SERVICIO DE AUDITORÍA
 
 // =============================================================================
 // CONFIGURACIÓN DEL TRANSPORTE DE EMAIL - VERSIÓN GMAIL REAL
@@ -254,7 +255,7 @@ const enviarEmailGmail = async (mailOptions, intentos = 3) => {
 };
 
 // =============================================================================
-// SOLICITAR CÓDIGO DE RECUPERACIÓN - VERSIÓN GMAIL REAL
+// SOLICITAR CÓDIGO DE RECUPERACIÓN - VERSIÓN GMAIL REAL CON AUDITORÍA
 // =============================================================================
 export const solicitarCodigoRecuperacion = async (req, res) => {
   try {
@@ -281,6 +282,26 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
     if (!user) {
       console.log('⚠️  Correo no registrado en el sistema');
       console.log('📧 Se devuelve éxito por seguridad (sin enviar email)');
+      
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA (CORREO NO EXISTE)
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'PASSWORD_RESET_REQUEST',
+        actionType: 'CREATE',
+        actionCategory: 'AUTH',
+        targetId: null,
+        targetModel: 'User',
+        targetName: 'Desconocido',
+        description: `Intento de recuperación de contraseña para correo no registrado: ${correo}`,
+        severity: 'INFO',
+        status: 'FAILED',
+        metadata: {
+          correo,
+          reason: 'user_not_found'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.json({
         success: true,
         message: 'Si el correo existe, recibirás un código de verificación'
@@ -377,6 +398,27 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       console.log('   4. El código es de 6 dígitos numéricos');
       console.log('   5. Expira en 15 minutos');
       
+      // =======================================================================
+      // REGISTRAR SOLICITUD EXITOSA EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'PASSWORD_RESET_REQUEST',
+        actionType: 'CREATE',
+        actionCategory: 'AUTH',
+        targetId: user._id,
+        targetModel: 'User',
+        targetName: user.usuario,
+        description: `Solicitud de recuperación de contraseña para: ${user.usuario} (${user.correo})`,
+        severity: 'INFO',
+        status: 'SUCCESS',
+        metadata: {
+          usuario: user.usuario,
+          correo: user.correo,
+          emailEnviado: true,
+          expira: user.resetPasswordExpires
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       res.json({
         success: true,
         message: '✅ Código de verificación enviado a tu correo Gmail',
@@ -402,6 +444,30 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       console.log('   El código se muestra arriba ↑↑↑');
       console.log('   El usuario debe usar ese código');
       
+      // =======================================================================
+      // REGISTRAR SOLICITUD CON ERROR EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'PASSWORD_RESET_REQUEST',
+        actionType: 'CREATE',
+        actionCategory: 'AUTH',
+        targetId: user._id,
+        targetModel: 'User',
+        targetName: user.usuario,
+        description: `Solicitud de recuperación de contraseña - Error al enviar email`,
+        severity: 'WARNING',
+        status: 'PARTIAL',
+        metadata: {
+          usuario: user.usuario,
+          correo: user.correo,
+          emailEnviado: false,
+          error: emailError.message,
+          modoEmergencia: true,
+          codigoBackup: codigo,
+          expira: user.resetPasswordExpires
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       res.json({
         success: true,
         message: '⚠️ Error temporal al enviar email. Usa el código de la consola del servidor.',
@@ -419,6 +485,27 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
   } catch (error) {
     console.error('🔥 ERROR en solicitarCodigoRecuperacion:', error.message);
     console.error('🔧 Stack:', error.stack);
+    
+    // =======================================================================
+    // REGISTRAR ERROR CRÍTICO EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_RESET_REQUEST',
+      actionType: 'CREATE',
+      actionCategory: 'AUTH',
+      targetId: null,
+      targetModel: 'User',
+      targetName: 'Error',
+      description: `Error crítico en solicitud de recuperación: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message,
+        stack: error.stack,
+        correo: req.body?.correo
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     res.status(500).json({
       success: false,
       message: 'Error del servidor al procesar solicitud',
@@ -428,7 +515,7 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
 };
 
 // =============================================================================
-// VERIFICAR CÓDIGO DE RECUPERACIÓN
+// VERIFICAR CÓDIGO DE RECUPERACIÓN - CON AUDITORÍA
 // =============================================================================
 export const verificarCodigoRecuperacion = async (req, res) => {
   try {
@@ -480,6 +567,26 @@ export const verificarCodigoRecuperacion = async (req, res) => {
         }
       }
       
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'PASSWORD_RESET_VERIFY',
+        actionType: 'READ',
+        actionCategory: 'AUTH',
+        targetId: userExiste?._id || null,
+        targetModel: 'User',
+        targetName: userExiste?.usuario || 'Desconocido',
+        description: `Intento fallido de verificación de código para: ${correo}`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          correo,
+          reason: userExiste ? 'invalid_or_expired_code' : 'user_not_found',
+          codigoIngresado: codigo
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.status(400).json({
         success: false,
         message: 'Código inválido o expirado'
@@ -508,6 +615,26 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     console.log(`🔐 Token (inicio): ${tokenTemporal.substring(0, 10)}...`);
     console.log(`⏰ Expira a las: ${new Date(user.changePasswordExpires).toLocaleTimeString()}`);
 
+    // =======================================================================
+    // REGISTRAR VERIFICACIÓN EXITOSA EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_RESET_VERIFY',
+      actionType: 'READ',
+      actionCategory: 'AUTH',
+      targetId: user._id,
+      targetModel: 'User',
+      targetName: user.usuario,
+      description: `Código de recuperación verificado correctamente para: ${user.usuario}`,
+      severity: 'INFO',
+      status: 'SUCCESS',
+      metadata: {
+        usuario: user.usuario,
+        correo: user.correo,
+        tokenExpira: user.changePasswordExpires
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
     res.json({
       success: true,
       message: '✅ Código verificado correctamente',
@@ -522,6 +649,26 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     
   } catch (error) {
     console.error('🔥 ERROR en verificarCodigoRecuperacion:', error.message);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_RESET_VERIFY',
+      actionType: 'READ',
+      actionCategory: 'AUTH',
+      targetId: null,
+      targetModel: 'User',
+      targetName: 'Error',
+      description: `Error en verificación de código: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message,
+        correo: req.body?.correo
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     res.status(500).json({
       success: false,
       message: 'Error del servidor al verificar código',
@@ -531,7 +678,7 @@ export const verificarCodigoRecuperacion = async (req, res) => {
 };
 
 // =============================================================================
-// CAMBIAR CONTRASEÑA
+// CAMBIAR CONTRASEÑA - CON AUDITORÍA
 // =============================================================================
 export const cambiarContraseña = async (req, res) => {
   try {
@@ -574,6 +721,26 @@ export const cambiarContraseña = async (req, res) => {
 
     if (!user) {
       console.log('❌ Token inválido o expirado');
+      
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'PASSWORD_CHANGE',
+        actionType: 'UPDATE',
+        actionCategory: 'AUTH',
+        targetId: null,
+        targetModel: 'User',
+        targetName: 'Desconocido',
+        description: `Intento de cambio de contraseña con token inválido o expirado`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          tokenPreview: token.substring(0, 10) + '...',
+          reason: 'invalid_token'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.status(400).json({
         success: false,
         message: 'Token inválido o expirado'
@@ -582,6 +749,11 @@ export const cambiarContraseña = async (req, res) => {
 
     console.log(`✅ Usuario encontrado: ${user.usuario}`);
     console.log(`📧 Correo: ${user.correo}`);
+
+    // Guardar estado anterior para auditoría (solo para referencia)
+    const beforeState = {
+      passwordUpdated: user.password ? 'hash_existente' : 'sin_hash'
+    };
 
     // Actualizar contraseña
     user.password = password;
@@ -592,6 +764,31 @@ export const cambiarContraseña = async (req, res) => {
     await user.save();
 
     console.log(`✅ Contraseña cambiada exitosamente`);
+
+    // =======================================================================
+    // REGISTRAR CAMBIO DE CONTRASEÑA EXITOSO EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_CHANGE',
+      actionType: 'UPDATE',
+      actionCategory: 'AUTH',
+      targetId: user._id,
+      targetModel: 'User',
+      targetName: user.usuario,
+      description: `Contraseña cambiada exitosamente para: ${user.usuario} (${user.correo})`,
+      severity: 'WARNING',
+      status: 'SUCCESS',
+      changes: {
+        before: beforeState,
+        after: { passwordUpdated: 'nuevo_hash' }
+      },
+      metadata: {
+        usuario: user.usuario,
+        correo: user.correo,
+        metodo: 'recuperación',
+        ipAddress: req.ip || req.connection?.remoteAddress
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
     // ENVIAR CORREO DE CONFIRMACIÓN POR GMAIL
     if (transporter) {
@@ -668,6 +865,25 @@ export const cambiarContraseña = async (req, res) => {
   } catch (error) {
     console.error('🔥 ERROR en cambiarContraseña:', error.message);
     console.error('🔧 Stack:', error.stack);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_CHANGE',
+      actionType: 'UPDATE',
+      actionCategory: 'AUTH',
+      targetId: null,
+      targetModel: 'User',
+      targetName: 'Error',
+      description: `Error al cambiar contraseña: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     res.status(500).json({
       success: false,
       message: 'Error del servidor al cambiar contraseña',
@@ -677,7 +893,7 @@ export const cambiarContraseña = async (req, res) => {
 };
 
 // =============================================================================
-// VERIFICAR CONTRASEÑA ACTUAL
+// VERIFICAR CONTRASEÑA ACTUAL - CON AUDITORÍA
 // =============================================================================
 
 export const verifyPassword = async (req, res) => {
@@ -717,6 +933,26 @@ export const verifyPassword = async (req, res) => {
         
         if (!isValid) {
             console.log('❌ Contraseña incorrecta');
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'PASSWORD_VERIFY',
+                actionType: 'READ',
+                actionCategory: 'AUTH',
+                targetId: user._id,
+                targetModel: 'User',
+                targetName: user.usuario,
+                description: `Intento fallido de verificación de contraseña actual`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    usuario: user.usuario,
+                    reason: 'incorrect_password'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             return res.status(400).json({
                 success: false,
                 message: 'Contraseña actual incorrecta'
@@ -724,6 +960,25 @@ export const verifyPassword = async (req, res) => {
         }
         
         console.log('✅ Contraseña verificada correctamente');
+        
+        // =======================================================================
+        // REGISTRAR VERIFICACIÓN EXITOSA EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'PASSWORD_VERIFY',
+            actionType: 'READ',
+            actionCategory: 'AUTH',
+            targetId: user._id,
+            targetModel: 'User',
+            targetName: user.usuario,
+            description: `Verificación de contraseña actual exitosa`,
+            severity: 'INFO',
+            status: 'SUCCESS',
+            metadata: {
+                usuario: user.usuario
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         console.log('🔐 ========== FIN VERIFICACIÓN ==========\n');
         
         res.json({
@@ -736,6 +991,25 @@ export const verifyPassword = async (req, res) => {
     } catch (error) {
         console.error('🔥 ERROR en verifyPassword:', error.message);
         console.error('🔧 Stack:', error.stack);
+        
+        // =======================================================================
+        // REGISTRAR ERROR EN AUDITORÍA
+        // =======================================================================
+        await AuditService.log(req, {
+            action: 'PASSWORD_VERIFY',
+            actionType: 'READ',
+            actionCategory: 'AUTH',
+            targetId: req.user?.id || null,
+            targetModel: 'User',
+            targetName: 'Error',
+            description: `Error al verificar contraseña: ${error.message}`,
+            severity: 'ERROR',
+            status: 'FAILED',
+            metadata: {
+                error: error.message
+            }
+        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        
         res.status(500).json({
             success: false,
             message: 'Error del servidor al verificar contraseña',
@@ -745,7 +1019,7 @@ export const verifyPassword = async (req, res) => {
 };
 
 // =============================================================================
-// VERIFICAR TOKEN DE CAMBIO
+// VERIFICAR TOKEN DE CAMBIO - CON AUDITORÍA
 // =============================================================================
 export const verificarTokenCambio = async (req, res) => {
   try {
@@ -780,6 +1054,25 @@ export const verificarTokenCambio = async (req, res) => {
 
     if (!user) {
       console.log('❌ Token inválido o expirado');
+      
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'PASSWORD_RESET_TOKEN_VERIFY',
+        actionType: 'READ',
+        actionCategory: 'AUTH',
+        targetId: null,
+        targetModel: 'User',
+        targetName: 'Desconocido',
+        description: `Intento de verificación de token inválido o expirado`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          tokenPreview: token.substring(0, 10) + '...'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
       return res.status(400).json({
         success: false,
         message: 'Token inválido o expirado'
@@ -790,6 +1083,26 @@ export const verificarTokenCambio = async (req, res) => {
     console.log(`👤 Usuario: ${user.usuario}`);
     console.log(`📧 Correo: ${user.correo}`);
     console.log(`⏰ Expira a las: ${new Date(user.changePasswordExpires).toLocaleTimeString()}`);
+
+    // =======================================================================
+    // REGISTRAR VERIFICACIÓN EXITOSA EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_RESET_TOKEN_VERIFY',
+      actionType: 'READ',
+      actionCategory: 'AUTH',
+      targetId: user._id,
+      targetModel: 'User',
+      targetName: user.usuario,
+      description: `Token de cambio de contraseña verificado correctamente`,
+      severity: 'INFO',
+      status: 'SUCCESS',
+      metadata: {
+        usuario: user.usuario,
+        correo: user.correo,
+        expira: user.changePasswordExpires
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
     res.json({
       success: true,
@@ -806,6 +1119,26 @@ export const verificarTokenCambio = async (req, res) => {
     
   } catch (error) {
     console.error('🔥 ERROR en verificarTokenCambio:', error.message);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_RESET_TOKEN_VERIFY',
+      actionType: 'READ',
+      actionCategory: 'AUTH',
+      targetId: null,
+      targetModel: 'User',
+      targetName: 'Error',
+      description: `Error al verificar token: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message,
+        tokenPreview: req.params?.token?.substring(0, 10)
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     res.status(500).json({
       success: false,
       message: 'Error del servidor al verificar token',
@@ -815,7 +1148,7 @@ export const verificarTokenCambio = async (req, res) => {
 };
 
 // =============================================================================
-// ENDPOINT DE PRUEBA DE EMAIL - GMAIL REAL (ACTUALIZADO PARA USAR ADMIN ACTUAL)
+// ENDPOINT DE PRUEBA DE EMAIL - GMAIL REAL CON AUDITORÍA
 // =============================================================================
 export const pruebaEmail = async (req, res) => {
   try {
@@ -935,6 +1268,27 @@ export const pruebaEmail = async (req, res) => {
     console.log('   3. Correo del admin:', emailDestino);
     console.log('   4. Todos los emails funcionan correctamente');
     
+    // =======================================================================
+    // REGISTRAR PRUEBA DE EMAIL EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'EMAIL_TEST',
+      actionType: 'CREATE',
+      actionCategory: 'SYSTEM',
+      targetId: adminActual?._id || null,
+      targetModel: 'User',
+      targetName: nombreAdmin,
+      description: `Prueba de email Gmail real ejecutada - Destino: ${emailDestino}`,
+      severity: 'INFO',
+      status: 'SUCCESS',
+      metadata: {
+        destino: emailDestino,
+        administrador: nombreAdmin,
+        cuentaGmail: emailUser,
+        messageId: info.messageId
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     console.log('\n🧪 ========== FIN PRUEBA ==========');
     console.log('');
 
@@ -964,6 +1318,25 @@ export const pruebaEmail = async (req, res) => {
     console.error(`   🔧 Error: ${error.message}`);
     console.error(`   🔧 Código: ${error.code}`);
     console.error(`   🔧 Respuesta: ${error.response}`);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'EMAIL_TEST',
+      actionType: 'CREATE',
+      actionCategory: 'SYSTEM',
+      targetId: null,
+      targetModel: 'System',
+      targetName: 'Prueba Email',
+      description: `Error en prueba de email Gmail: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message,
+        destino: req.body?.email || emailUser
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
     
     res.status(500).json({
       success: false,
@@ -1015,7 +1388,7 @@ export const reiniciarConfiguracionGmail = async () => {
 };
 
 // =============================================================================
-// ESTADO DEL SISTEMA DE EMAIL
+// ESTADO DEL SISTEMA DE EMAIL - CON AUDITORÍA
 // =============================================================================
 export const estadoEmail = async (req, res) => {
   try {
@@ -1065,8 +1438,54 @@ export const estadoEmail = async (req, res) => {
       console.log('   🔗 Conexión: ❌ NO CONFIGURADO');
     }
     
+    // Buscar administrador actual
+    try {
+      const adminActual = await User.findOne({ 
+        rol: 'administrador', 
+        activo: true 
+      }).select('usuario correo createdAt').lean();
+      
+      estado.administradorActual = adminActual ? {
+        usuario: adminActual.usuario,
+        correo: adminActual.correo,
+        fechaCreacion: adminActual.createdAt
+      } : {
+        mensaje: 'No se encontró administrador en la base de datos',
+        usandoEmailConfigurado: emailUser
+      };
+      
+      console.log('   👤 Admin actual:', estado.administradorActual.usuario || 'No encontrado');
+      console.log('   📧 Email admin:', estado.administradorActual.correo || emailUser);
+      
+    } catch (adminError) {
+      estado.administradorActual = {
+        error: adminError.message,
+        usandoEmailConfigurado: emailUser
+      };
+      console.log('   👤 Admin: ❌ Error obteniendo datos');
+    }
+    
     console.log('\n📊 ====================================');
     console.log('');
+    
+    // =======================================================================
+    // REGISTRAR CONSULTA DE ESTADO EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'SYSTEM_CONFIG_VIEW',
+      actionType: 'READ',
+      actionCategory: 'SYSTEM',
+      targetId: null,
+      targetModel: 'System',
+      targetName: 'Configuración Email',
+      description: `Consulta de estado del sistema de email`,
+      severity: 'INFO',
+      status: 'SUCCESS',
+      metadata: {
+        configurado: !!transporter,
+        usuario: emailUser
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
     
     res.json({
       success: true,
@@ -1076,6 +1495,25 @@ export const estadoEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ ERROR en estadoEmail:', error);
+    
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'SYSTEM_CONFIG_VIEW',
+      actionType: 'READ',
+      actionCategory: 'SYSTEM',
+      targetId: null,
+      targetModel: 'System',
+      targetName: 'Configuración Email',
+      description: `Error al consultar estado de email: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+    
     res.status(500).json({
       success: false,
       message: 'Error al obtener estado',
@@ -1083,35 +1521,6 @@ export const estadoEmail = async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
-
-  // AGREGAR ESTO DENTRO DE LA FUNCIÓN estadoEmail, después de configurar el estado:
-
-// Buscar administrador actual
-try {
-  const adminActual = await User.findOne({ 
-    rol: 'administrador', 
-    activo: true 
-  }).select('usuario correo createdAt').lean();
-  
-  estado.administradorActual = adminActual ? {
-    usuario: adminActual.usuario,
-    correo: adminActual.correo,
-    fechaCreacion: adminActual.createdAt
-  } : {
-    mensaje: 'No se encontró administrador en la base de datos',
-    usandoEmailConfigurado: emailUser
-  };
-  
-  console.log('   👤 Admin actual:', estado.administradorActual.usuario || 'No encontrado');
-  console.log('   📧 Email admin:', estado.administradorActual.correo || emailUser);
-  
-} catch (adminError) {
-  estado.administradorActual = {
-    error: adminError.message,
-    usandoEmailConfigurado: emailUser
-  };
-  console.log('   👤 Admin: ❌ Error obteniendo datos');
-}
 };
 
 export { transporter };

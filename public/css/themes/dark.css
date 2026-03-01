@@ -481,6 +481,12 @@ body.dark-theme .form__textarea:focus {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
 }
 
+.dark-theme .metadata-content {
+    background-color: var(--gray-900, #1a202c);
+    border-color: var(--gray-700, #374151);
+    color: var(--gray-300, #e2e8f0);
+}
+
 /* Ajustes para modo oscuro en subida múltiple */
 .dark-theme .file-item {
     background: rgba(255, 255, 255, 0.05);
