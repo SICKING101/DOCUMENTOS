@@ -1595,8 +1595,11 @@ export async function handleUploadMultipleDocuments() {
                 }
             }));
             
-            // Recargar la lista de documentos
-            if (window.loadDocuments) {
+            // Recargar la vista de documentos (lista + filtros + categorías)
+            if (window.refreshDocumentsView) {
+                await window.refreshDocumentsView();
+                console.log('✅ Vista de documentos recargada');
+            } else if (window.loadDocuments) {
                 await window.loadDocuments();
                 console.log('✅ Lista de documentos recargada');
             }

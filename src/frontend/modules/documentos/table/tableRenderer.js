@@ -9,6 +9,31 @@ import { downloadDocument } from '../download/downloadManager.js';
 import { bulkDeleteState } from '../core/BulkDeleteState.js';
 import { hasPermission, PERMISSIONS } from '../../../permissions.js';
 
+function syncDocumentsTableHeader() {
+    if (!DOM.documentosTableBody) return;
+
+    const table = DOM.documentosTableBody.closest('table');
+    if (!table) return;
+
+    table.classList.toggle('documents-table--selection', !!bulkDeleteState.isSelectionMode);
+
+    const headerRow = table.querySelector('thead tr');
+    if (!headerRow) return;
+
+    const existing = headerRow.querySelector('th[data-selection-column="true"]');
+
+    if (bulkDeleteState.isSelectionMode) {
+        if (!existing) {
+            const th = document.createElement('th');
+            th.setAttribute('data-selection-column', 'true');
+            th.setAttribute('aria-label', 'Selección');
+            headerRow.insertBefore(th, headerRow.firstChild);
+        }
+    } else if (existing) {
+        existing.remove();
+    }
+}
+
 /**
  * Renderiza la tabla de documentos con filtros y búsqueda aplicados.
  * Muestra estado, acciones y formatos los datos apropiadamente.
@@ -21,6 +46,8 @@ export function renderDocumentsTable() {
         console.error('❌ DOM.documentosTableBody no encontrado');
         return;
     }
+
+    syncDocumentsTableHeader();
     
     DOM.documentosTableBody.innerHTML = '';
     

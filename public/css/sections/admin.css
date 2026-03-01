@@ -334,6 +334,21 @@
   border-top: 1px solid var(--border);
 }
 
+/* Hacer más visible el botón principal de "Crear Usuario" */
+#adminCreateUserBtn.btn--primary {
+  border: 1px solid var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-alpha), var(--shadow-lg);
+}
+
+#adminCreateUserBtn.btn--primary:hover {
+  box-shadow: 0 0 0 4px var(--primary-alpha), var(--shadow-xl);
+}
+
+#adminCreateUserBtn.btn--primary:active {
+  transform: translateY(0);
+  box-shadow: 0 0 0 2px var(--primary-alpha), var(--shadow-md);
+}
+
 /* ============================================================================
    DESCRIPCIONES DE ROLES - COMPACTAS
    ============================================================================ */
@@ -660,14 +675,6 @@
   color: var(--primary);
   font-size: 0.8rem;
   flex-shrink: 0;
-}
-
-/* Botones de acción - COMPACTOS */
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-wrap: nowrap;
 }
 
 .action-btn {

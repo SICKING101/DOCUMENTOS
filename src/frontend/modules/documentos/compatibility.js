@@ -274,7 +274,9 @@ export async function deleteDocument(id) {
                     closeModal();
                     
                     // Cargar documentos actualizados
-                    if (window.loadDocuments) {
+                    if (window.refreshDocumentsView) {
+                        await window.refreshDocumentsView();
+                    } else if (window.loadDocuments) {
                         await window.loadDocuments();
                     }
                     
@@ -380,6 +382,33 @@ export async function loadDocuments() {
     } catch (error) {
         console.error('❌ Error cargando documentos:', error);
         showAlert('Error al cargar documentos: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Refresca la vista de Documentos (lista + filtros + categorías).
+ * Útil después de subir/aprobar/rechazar/eliminar.
+ */
+export async function refreshDocumentsView({ reloadCategories = true, refreshFilters = true } = {}) {
+    await loadDocuments();
+
+    if (refreshFilters) {
+        try {
+            const filtersModule = await import('./table/tableFilters.js');
+            if (typeof filtersModule.initializeTableFilters === 'function') {
+                filtersModule.initializeTableFilters();
+            }
+        } catch (e) {
+            console.warn('⚠️ No se pudieron refrescar los filtros de Documentos:', e);
+        }
+    }
+
+    if (reloadCategories && typeof window !== 'undefined' && typeof window.loadCategories === 'function') {
+        try {
+            await window.loadCategories();
+        } catch (e) {
+            console.warn('⚠️ No se pudieron refrescar las categorías:', e);
+        }
     }
 }
 
@@ -522,6 +551,7 @@ export function setupCompatibilityGlobals() {
     // Asignar funciones esenciales
     window.deleteDocument = deleteDocument;
     window.loadDocuments = loadDocuments;
+    window.refreshDocumentsView = refreshDocumentsView;
     window.debugMultipleUpload = debugMultipleUpload;
     window.testMultipleUploadWithMockFiles = testMultipleUploadWithMockFiles;
     window.cancelMultipleUpload = cancelMultipleUpload;
@@ -564,7 +594,9 @@ export async function approveDocument(documentId, comment = '') {
 
         if (response?.success) {
             showAlert(response.message || 'Documento aprobado', 'success');
-            if (typeof loadDocuments === 'function') {
+            if (typeof refreshDocumentsView === 'function') {
+                await refreshDocumentsView();
+            } else if (typeof loadDocuments === 'function') {
                 await loadDocuments();
             }
         } else {
@@ -590,7 +622,9 @@ export async function rejectDocument(documentId, comment = '') {
 
         if (response?.success) {
             showAlert(response.message || 'Documento rechazado', 'success');
-            if (typeof loadDocuments === 'function') {
+            if (typeof refreshDocumentsView === 'function') {
+                await refreshDocumentsView();
+            } else if (typeof loadDocuments === 'function') {
                 await loadDocuments();
             }
         } else {
