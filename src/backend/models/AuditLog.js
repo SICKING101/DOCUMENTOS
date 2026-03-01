@@ -25,7 +25,7 @@ const auditLogSchema = new mongoose.Schema({
         required: true,
         enum: [
             'administrador', 'gerente', 'supervisor', 'editor', 
-            'revisor', 'lector', 'moderador', 'desactivado', 'usuario'
+            'revisor', 'lector', 'moderador', 'desactivado', 'usuario', 'visitante'
         ],
         index: true
     },
@@ -78,7 +78,16 @@ const auditLogSchema = new mongoose.Schema({
             'AUDIT_VIEW', 'AUDIT_EXPORT', 'AUDIT_CLEANUP',
             
             // Sistema
-            'SYSTEM_CONFIG_CHANGE', 'SYSTEM_ERROR', 'EXPORT_DATA', 'IMPORT_DATA'
+            'SYSTEM_CONFIG_CHANGE', 'SYSTEM_ERROR', 'EXPORT_DATA', 'IMPORT_DATA',
+
+            // NUEVAS - Frontend Auth
+        'FRONTEND_LOGIN_ATTEMPT',
+        'FRONTEND_LOGIN_SUCCESS',
+        'FRONTEND_LOGIN_FAILED',
+        'FRONTEND_REGISTER_ATTEMPT',
+        'FRONTEND_REGISTER_SUCCESS',
+        'FRONTEND_REGISTER_FAILED',
+        'FRONTEND_TEST'
         ],
         index: true
     },
@@ -86,7 +95,7 @@ const auditLogSchema = new mongoose.Schema({
     actionType: {
         type: String,
         enum: ['CREATE', 'READ', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 
-               'DOWNLOAD', 'VIEW', 'EXPORT', 'CONFIG', 'APPROVE', 'REJECT'],
+               'DOWNLOAD', 'VIEW', 'EXPORT', 'CONFIG', 'APPROVE', 'REJECT', 'EVENT'],
         required: true,
         index: true
     },
@@ -111,7 +120,7 @@ const auditLogSchema = new mongoose.Schema({
     targetModel: {
         type: String,
         enum: ['User', 'Document', 'Category', 'Department', 'Person', 'Task', 
-               'AdminChangeRequest', 'Notification', 'Ticket'],
+               'AdminChangeRequest', 'Notification', 'Ticket', 'Audit'],
         index: true
     },
 

@@ -1,9 +1,60 @@
 // src/frontend/auth.js
-// Módulo ES6 para autenticación
+// Módulo ES6 para autenticación con auditoría básica
 
 const API_URL = window.location.origin;
 
-// Exportar funciones principales que necesiten ser accesibles globalmente
+// =============================================================================
+// FUNCIÓN SIMPLIFICADA DE AUDITORÍA
+// =============================================================================
+
+/**
+ * Registrar eventos de autenticación en el frontend
+ * Solo: login_attempt, login_success, login_failed, register_attempt, register_success, register_failed
+ */
+async function logAuthEvent(eventType, data = {}) {
+    try {
+        const eventData = {
+            eventType,
+            timestamp: new Date().toISOString(),
+            ...data
+        };
+
+        // Mostrar en consola para debugging
+        console.log(`📝 [AUDIT] ${eventType}:`, data);
+
+        // Determinar si debe incluir token (solo después de login exitoso)
+        const includeToken = eventType === 'login_success' || 
+                             eventType === 'register_success' || 
+                             (eventType.includes('success') && localStorage.getItem('token'));
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        // Solo agregar token si es necesario y existe
+        if (includeToken) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+        }
+
+        // Enviar al backend
+        fetch(`${API_URL}/api/frontend-log`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(eventData)
+        }).catch(err => console.warn('⚠️ No se pudo enviar log:', err.message));
+
+    } catch (error) {
+        console.warn('⚠️ Error en logAuthEvent:', error.message);
+    }
+}
+
+// =============================================================================
+// FUNCIONES DE ALERTA
+// =============================================================================
+
 export function showAlert(message, type = 'success') {
     const container = document.getElementById('alertContainer');
     if (!container) return;
@@ -32,7 +83,6 @@ export function togglePassword(inputId) {
     if (input && button) {
         if (input.type === 'password') {
             input.type = 'text';
-            // Cambiar el icono dentro del botón
             const icon = button.querySelector('i');
             if (icon) {
                 icon.classList.remove('fa-eye');
@@ -40,7 +90,6 @@ export function togglePassword(inputId) {
             }
         } else {
             input.type = 'password';
-            // Cambiar el icono dentro del botón
             const icon = button.querySelector('i');
             if (icon) {
                 icon.classList.remove('fa-eye-slash');
@@ -50,7 +99,10 @@ export function togglePassword(inputId) {
     }
 }
 
-// Verificar si ya existe un administrador
+// =============================================================================
+// VERIFICACIÓN DE ADMINISTRADOR
+// =============================================================================
+
 export async function checkAdminExists() {
     try {
         const response = await fetch(`${API_URL}/api/auth/check-admin`);
@@ -61,20 +113,23 @@ export async function checkAdminExists() {
         } else {
             showRegisterForm();
         }
+        
     } catch (error) {
         console.error('Error al verificar admin:', error);
         showAlert('Error al conectar con el servidor', 'error');
     }
 }
 
-// Mostrar formularios
+// =============================================================================
+// MOSTRAR FORMULARIOS
+// =============================================================================
+
 export function showLoginForm() {
     document.getElementById('authTitle').textContent = 'Iniciar Sesión';
     document.getElementById('authSubtitle').textContent = 'Accede al sistema de gestión';
     document.getElementById('loginForm').classList.remove('hidden');
     document.getElementById('registerForm').classList.add('hidden');
     
-    // Ocultar enlace de registro cuando ya hay admin
     const registerLink = document.getElementById('registerLinkContainer');
     if (registerLink) registerLink.style.display = 'none';
 }
@@ -85,23 +140,23 @@ export function showRegisterForm() {
     document.getElementById('loginForm').classList.add('hidden');
     document.getElementById('registerForm').classList.remove('hidden');
     
-    // Mostrar enlace de registro solo cuando NO hay admin
     const registerLink = document.getElementById('registerLinkContainer');
     if (registerLink) registerLink.style.display = 'block';
 }
 
-// Alternar visibilidad de contraseña - FUNCIÓN CORREGIDA
+// =============================================================================
+// ALTERNAR VISIBILIDAD DE CONTRASEÑA
+// =============================================================================
+
 export function setupPasswordToggles() {
     document.querySelectorAll('.password-toggle').forEach(toggle => {
         toggle.addEventListener('click', function() {
-            // El input está justo antes del botón (hermano anterior)
             const input = this.previousElementSibling;
             if (!input) return;
             
             const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
             input.setAttribute('type', type);
             
-            // Cambiar el icono dentro del botón
             const icon = this.querySelector('i');
             if (icon) {
                 icon.classList.toggle('fa-eye');
@@ -111,9 +166,18 @@ export function setupPasswordToggles() {
     });
 }
 
-// Login handler
+// =============================================================================
+// LOGIN HANDLER CON AUDITORÍA SIMPLIFICADA
+// =============================================================================
+
 export async function handleLogin(e) {
     e.preventDefault();
+    
+    const usuarioOCorreo = document.getElementById('loginUsuario').value;
+    
+    // Registrar INTENTO de login
+    logAuthEvent('login_attempt', { usuario: usuarioOCorreo });
+    
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
@@ -123,7 +187,7 @@ export async function handleLogin(e) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                usuarioOCorreo: document.getElementById('loginUsuario').value,
+                usuarioOCorreo,
                 password: document.getElementById('loginPassword').value
             })
         });
@@ -133,34 +197,69 @@ export async function handleLogin(e) {
         if (data.success) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Registrar LOGIN EXITOSO
+            logAuthEvent('login_success', { 
+                usuario: data.user.usuario
+            });
+            
             showAlert('Inicio de sesión exitoso', 'success');
             setTimeout(() => window.location.href = '/', 1500);
         } else {
+            // Registrar LOGIN FALLIDO
+            logAuthEvent('login_failed', { 
+                usuario: usuarioOCorreo,
+                motivo: data.message || 'Credenciales incorrectas'
+            });
+            
             showAlert(data.message || 'Error al iniciar sesión', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
         }
     } catch (error) {
         console.error('Error en login:', error);
-        showAlert('Error al iniciar sesión', 'error');
+        
+        // Registrar ERROR DE CONEXIÓN como fallido
+        logAuthEvent('login_failed', { 
+            usuario: usuarioOCorreo,
+            motivo: 'Error de conexión'
+        });
+        
+        showAlert('Error al conectar con el servidor', 'error');
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
     }
 }
 
-// Registro handler
+// =============================================================================
+// REGISTRO HANDLER CON AUDITORÍA SIMPLIFICADA
+// =============================================================================
+
 export async function handleRegister(e) {
     e.preventDefault();
-    const btn = document.getElementById('registerBtn');
     
+    const usuario = document.getElementById('registerUsuario').value;
+    const correo = document.getElementById('registerCorreo').value;
     const password = document.getElementById('registerPassword').value;
     const confirmPassword = document.getElementById('registerPasswordConfirm').value;
     
+    // Registrar INTENTO de registro
+    logAuthEvent('register_attempt', { usuario, correo });
+    
     if (password !== confirmPassword) {
         showAlert('Las contraseñas no coinciden', 'error');
+        
+        // Registrar REGISTRO FALLIDO por contraseñas
+        logAuthEvent('register_failed', { 
+            usuario, 
+            correo,
+            motivo: 'Las contraseñas no coinciden'
+        });
+        
         return;
     }
     
+    const btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
     
@@ -168,11 +267,7 @@ export async function handleRegister(e) {
         const response = await fetch(`${API_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                usuario: document.getElementById('registerUsuario').value,
-                correo: document.getElementById('registerCorreo').value,
-                password: password
-            })
+            body: JSON.stringify({ usuario, correo, password })
         });
         
         const data = await response.json();
@@ -180,23 +275,82 @@ export async function handleRegister(e) {
         if (data.success) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Registrar REGISTRO EXITOSO
+            logAuthEvent('register_success', { 
+                usuario: data.user.usuario
+            });
+            
             showAlert('Administrador registrado exitosamente', 'success');
             setTimeout(() => window.location.href = '/', 1500);
         } else {
+            // Registrar REGISTRO FALLIDO
+            logAuthEvent('register_failed', { 
+                usuario, 
+                correo,
+                motivo: data.message || 'Error en registro'
+            });
+            
             showAlert(data.message || 'Error al registrar', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
         }
     } catch (error) {
         console.error('Error en registro:', error);
-        showAlert('Error al registrar', 'error');
+        
+        // Registrar ERROR DE CONEXIÓN como fallido
+        logAuthEvent('register_failed', { 
+            usuario, 
+            correo,
+            motivo: 'Error de conexión'
+        });
+        
+        showAlert('Error al conectar con el servidor', 'error');
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
     }
 }
 
-// Inicialización del módulo
+// =============================================================================
+// LOGOUT
+// =============================================================================
+
+export async function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login.html';
+}
+
+// =============================================================================
+// VERIFICAR SESIÓN ACTIVA
+// =============================================================================
+
+export function checkAuth() {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+}
+
+// =============================================================================
+// OBTENER USUARIO ACTUAL
+// =============================================================================
+
+export function getCurrentUser() {
+    try {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// =============================================================================
+// INICIALIZACIÓN DEL MÓDULO
+// =============================================================================
+
 export function initializeAuth() {
+    console.log('🔐 Inicializando módulo de autenticación...');
+    
     // Configurar eventos
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
@@ -217,17 +371,33 @@ export function initializeAuth() {
         });
     }
     
-    // Configurar toggles de contraseña - USANDO LA FUNCIÓN CORREGIDA
+    // Configurar botones de logout
+    document.querySelectorAll('.logout-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+    });
+    
+    // Configurar toggles de contraseña
     setupPasswordToggles();
     
     // Verificar si existe administrador
     checkAdminExists();
+    
+    console.log('✅ Módulo de autenticación inicializado');
 }
 
-// Inicializar cuando el DOM esté listo
+// =============================================================================
+// INICIALIZAR CUANDO EL DOM ESTÉ LISTO
+// =============================================================================
+
 document.addEventListener('DOMContentLoaded', initializeAuth);
 
-// Exportar por defecto en dado caso que se necesite en otros módulos (opcional eh)
+// =============================================================================
+// EXPORTAR POR DEFECTO
+// =============================================================================
+
 export default {
     showAlert,
     togglePassword,
@@ -236,5 +406,8 @@ export default {
     showRegisterForm,
     handleLogin,
     handleRegister,
+    logout,
+    checkAuth,
+    getCurrentUser,
     initializeAuth
 };

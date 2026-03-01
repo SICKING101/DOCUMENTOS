@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { hasPermission } from '../config/permissions.js';
+import AuditService from '../services/auditService.js'; // ✅ IMPORTACIÓN DEL SERVICIO DE AUDITORÍA
 
 /**
  * Middleware para proteger rutas que requieren autenticación
@@ -255,35 +256,88 @@ export const generarToken = (id) => {
 };
 
 /**
- * Configurar cookie con el token
+ * Configurar cookie con el token - AHORA CON AUDITORÍA DE LOGIN
  */
-export const enviarTokenRespuesta = (user, statusCode, res, message = 'Autenticación exitosa') => {
-    // Crear token
-    const token = generarToken(user._id);
+export const enviarTokenRespuesta = async (user, statusCode, res, message = 'Autenticación exitosa', req = null) => {
+    try {
+        // Crear token
+        const token = generarToken(user._id);
 
-    // Opciones de cookie
-    const options = {
-        expires: new Date(
-            Date.now() + (process.env.JWT_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
-        ),
-        httpOnly: true, // Prevenir ataques XSS
-        secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-        sameSite: 'strict' // Prevenir CSRF
-    };
+        // Opciones de cookie
+        const options = {
+            expires: new Date(
+                Date.now() + (process.env.JWT_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
+            ),
+            httpOnly: true, // Prevenir ataques XSS
+            secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+            sameSite: 'strict' // Prevenir CSRF
+        };
 
-    res.status(statusCode)
-        .cookie('token', token, options)
-        .json({
-            success: true,
-            message,
-            token,
-            user: {
-                id: user._id,
-                usuario: user.usuario,
-                correo: user.correo,
-                rol: user.rol
-            }
-        });
+        // =======================================================================
+        // REGISTRAR LOGIN EXITOSO EN AUDITORÍA (si tenemos req)
+        // =======================================================================
+        if (req) {
+            // Registrar login exitoso de forma asíncrona (no bloqueante)
+            AuditService.log(req, {
+                action: 'LOGIN_SUCCESS',
+                actionType: 'LOGIN',
+                actionCategory: 'AUTH',
+                targetId: user._id,
+                targetModel: 'User',
+                targetName: user.usuario,
+                description: `Inicio de sesión exitoso: ${user.usuario} (${user.correo})`,
+                severity: 'INFO',
+                status: 'SUCCESS',
+                metadata: {
+                    usuario: user.usuario,
+                    correo: user.correo,
+                    rol: user.rol,
+                    timestamp: new Date().toISOString()
+                }
+            }).catch(err => console.error('❌ Error registrando LOGIN_SUCCESS:', err.message));
+
+            console.log(`✅ Login exitoso registrado en auditoría: ${user.usuario}`);
+        }
+
+        res.status(statusCode)
+            .cookie('token', token, options)
+            .json({
+                success: true,
+                message,
+                token,
+                user: {
+                    id: user._id,
+                    usuario: user.usuario,
+                    correo: user.correo,
+                    rol: user.rol
+                }
+            });
+
+    } catch (error) {
+        console.error('🔥 Error en enviarTokenRespuesta:', error);
+        
+        // Si falla la auditoría, aún así responder con éxito (el login fue exitoso)
+        res.status(statusCode)
+            .cookie('token', generarToken(user._id), {
+                expires: new Date(
+                    Date.now() + (process.env.JWT_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
+                ),
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict'
+            })
+            .json({
+                success: true,
+                message,
+                token: generarToken(user._id),
+                user: {
+                    id: user._id,
+                    usuario: user.usuario,
+                    correo: user.correo,
+                    rol: user.rol
+                }
+            });
+    }
 };
 
 /**

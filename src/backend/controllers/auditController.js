@@ -1,3 +1,5 @@
+import User from '../models/User.js';
+import mongoose from 'mongoose';
 import AuditLog from '../models/AuditLog.js';
 import AuditService from '../services/auditService.js';
 
@@ -266,6 +268,172 @@ class AuditController {
             });
         }
     }
+
+// =============================================================================
+// RECIBIR LOGS DEL FRONTEND (AUTH) - VERSIÓN CORREGIDA
+// =============================================================================
+static async frontendLog(req, res) {
+    try {
+        const { eventType, timestamp, usuario, correo, motivo } = req.body;
+        
+        console.log('\n📱 ===== LOG DESDE FRONTEND =====');
+        console.log(`🔹 Evento: ${eventType}`);
+        console.log(`👤 Usuario: ${usuario || correo || 'anónimo'}`);
+        console.log(`📋 Motivo: ${motivo || 'N/A'}`);
+
+        // Validar datos mínimos
+        if (!eventType) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'eventType es requerido' 
+            });
+        }
+
+        // Mapear eventType a acción de auditoría con descripciones AMIGABLES
+        let action = '';
+        let severity = 'INFO';
+        let status = 'SUCCESS';
+        let friendlyDescription = '';
+        
+        switch(eventType) {
+            case 'login_attempt':
+                action = 'FRONTEND_LOGIN_ATTEMPT';
+                severity = 'INFO';
+                status = 'PENDING';
+                friendlyDescription = 'Intento de acceso al sistema';
+                break;
+            case 'login_success':
+                action = 'FRONTEND_LOGIN_SUCCESS';
+                severity = 'INFO';
+                status = 'SUCCESS';
+                friendlyDescription = 'Acceso al sistema';  // ← Cambiado
+                break;
+            case 'login_failed':
+                action = 'FRONTEND_LOGIN_FAILED';
+                severity = 'WARNING';
+                status = 'FAILED';
+                friendlyDescription = 'Intento fallido de acceso';
+                break;
+            case 'register_attempt':
+                action = 'FRONTEND_REGISTER_ATTEMPT';
+                severity = 'INFO';
+                status = 'PENDING';
+                friendlyDescription = 'Intento de registro';
+                break;
+            case 'register_success':
+                action = 'FRONTEND_REGISTER_SUCCESS';
+                severity = 'INFO';
+                status = 'SUCCESS';
+                friendlyDescription = 'Registro de nuevo usuario';
+                break;
+            case 'register_failed':
+                action = 'FRONTEND_REGISTER_FAILED';
+                severity = 'WARNING';
+                status = 'FAILED';
+                friendlyDescription = 'Registro fallido';
+                break;
+            case 'test':
+                action = 'FRONTEND_TEST';
+                severity = 'INFO';
+                status = 'SUCCESS';
+                friendlyDescription = 'Prueba de auditoría';
+                break;
+            default:
+                action = 'FRONTEND_' + (eventType || 'UNKNOWN').toUpperCase();
+                friendlyDescription = `Evento: ${eventType}`;
+        }
+
+        // Buscar usuario si existe
+        let userId = null;
+        let username = usuario || correo || 'visitante';
+        let userRole = 'visitante';
+        let userEmail = correo || '';
+
+        // Solo buscar usuario si tenemos identificador
+        if (usuario || correo) {
+            try {
+                const User = (await import('../models/User.js')).default;
+                const user = await User.findOne({ 
+                    $or: [
+                        { usuario: usuario },
+                        { correo: correo }
+                    ]
+                }).select('_id usuario rol correo').lean();
+                
+                if (user) {
+                    userId = user._id;
+                    username = user.usuario;
+                    userRole = user.rol;
+                    userEmail = user.correo;
+                }
+            } catch (userError) {
+                console.warn('⚠️ No se pudo buscar usuario:', userError.message);
+            }
+        }
+
+        // Crear descripción AMIGABLE
+        let description = '';
+        if (eventType === 'login_success') {
+            description = `El usuario ${username} accedió al sistema`;  // ← Formato específico
+        } else if (eventType === 'login_attempt') {
+            description = `Intento de acceso - Usuario: ${username}`;
+        } else if (eventType === 'login_failed') {
+            description = `Intento fallido de acceso - Usuario: ${username} - Motivo: ${motivo || 'Credenciales incorrectas'}`;
+        } else if (eventType === 'register_success') {
+            description = `Nuevo usuario registrado: ${username}`;
+        } else {
+            description = `${friendlyDescription} - Usuario: ${username}`;
+            if (motivo) description += ` - Motivo: ${motivo}`;
+        }
+
+        // Crear objeto de auditoría
+        const auditData = {
+            userId: userId || new mongoose.Types.ObjectId(),
+            username: username,
+            userRole: userRole,
+            userEmail: userEmail,
+            action: action,
+            actionType: 'EVENT',
+            actionCategory: 'AUTH',
+            targetId: userId,
+            targetModel: userId ? 'User' : null,
+            targetName: username,
+            description: description,  // ← Usamos la descripción amigable
+            severity: severity,
+            status: status,
+            metadata: {
+                eventType,
+                usuario: usuario || null,
+                correo: correo || null,
+                motivo: motivo || null,
+                frontendTimestamp: timestamp,
+                ipAddress: req.ip || req.connection?.remoteAddress || '0.0.0.0',
+                userAgent: req.headers['user-agent'] || 'Desconocido'
+            }
+        };
+
+        // Guardar en auditoría
+        const AuditLog = (await import('../models/AuditLog.js')).default;
+        const auditLog = new AuditLog(auditData);
+        await auditLog.save();
+        
+        console.log(`✅ Log guardado ID: ${auditLog._id}`);
+        console.log(`📝 Descripción: ${description}`);
+        console.log('📱 ============================\n');
+        
+        res.json({ success: true, id: auditLog._id });
+        
+    } catch (error) {
+        console.error('❌ Error en frontendLog:', error);
+        console.error('📌 Stack:', error.stack);
+        
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+}
+
 }
 
 export default AuditController;
