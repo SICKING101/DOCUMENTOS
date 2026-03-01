@@ -36,7 +36,10 @@ export function initializeTableFilters() {
     // Botón para limpiar todos los filtros
     const clearAllBtn = document.getElementById('clearAllFilters');
     if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', clearAllFilters);
+        if (!clearAllBtn.dataset.listenerBound) {
+            clearAllBtn.dataset.listenerBound = 'true';
+            clearAllBtn.addEventListener('click', clearAllFilters);
+        }
     }
     
     // Cargar estado guardado
@@ -45,30 +48,23 @@ export function initializeTableFilters() {
     console.log('✅ Filtros de tabla inicializados');
 }
 
-/**
- * Inicializa el filtro por categoría.
- * ¡CORREGIDO! - Ahora maneja correctamente mayúsculas/minúsculas
- */
-function initializeCategoryFilter() {
-    console.log('📊 Inicializando filtro por categoría...');
-    
-    if (!DOM.filterCategory) {
-        console.warn('❌ Elemento filterCategory no encontrado en el DOM');
-        return;
-    }
-    
+function populateCategoryFilterOptions() {
+    if (!DOM.filterCategory) return;
+
+    const selected = String(window.appState?.filters?.category ?? DOM.filterCategory.value ?? '');
+
     // Limpiar opciones existentes
     DOM.filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
-    
+
     // Verificar que hay documentos
     if (!window.appState || !window.appState.documents || window.appState.documents.length === 0) {
         console.warn('⚠️  No hay documentos para inicializar filtro por categoría');
-        
+
         // Agregar algunas categorías por defecto
         const defaultCategories = ['General', 'Legal', 'Finanzas', 'Recursos Humanos', 'Marketing', 'Técnico'];
         defaultCategories.forEach(category => {
             const option = document.createElement('option');
-            option.value = category; // Guardar el valor original (con mayúsculas)
+            option.value = category;
             option.textContent = category;
             DOM.filterCategory.appendChild(option);
         });
@@ -84,35 +80,58 @@ function initializeCategoryFilter() {
                 .filter(categoria => categoria && categoria.trim() !== '')
                 .map(cat => cat.trim())
                 .filter((categoria, index, array) => {
-                    // Comparación case-sensitive para mantener formato original
+                    // Comparación case-insensitive para evitar duplicados con distinto casing
                     return array.findIndex(item => item.toLowerCase() === categoria.toLowerCase()) === index;
                 })
                 .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-            
+
             console.log('📊 Categorías encontradas en documentos:', categories);
-            
+
             // Agregar opciones
             categories.forEach(category => {
                 const option = document.createElement('option');
-                option.value = category; // Guardar el valor original
+                option.value = category;
                 option.textContent = category;
                 DOM.filterCategory.appendChild(option);
             });
-            
+
             console.log(`✅ Agregadas ${categories.length} categorías al filtro`);
         } catch (error) {
             console.error('❌ Error procesando categorías:', error);
         }
     }
+
+    // Restaurar selección si existe
+    if (selected) {
+        DOM.filterCategory.value = selected;
+    }
+}
+
+/**
+ * Inicializa el filtro por categoría.
+ * ¡CORREGIDO! - Ahora maneja correctamente mayúsculas/minúsculas
+ */
+function initializeCategoryFilter() {
+    console.log('📊 Inicializando filtro por categoría...');
     
-    // Event listener para cambios
-    DOM.filterCategory.addEventListener('change', function() {
-        console.log(`🎯 Filtro categoría cambiado a: "${this.value}"`);
-        if (window.appState && window.appState.filters) {
-            window.appState.filters.category = this.value;
-            applyFilters();
-        }
-    });
+    if (!DOM.filterCategory) {
+        console.warn('❌ Elemento filterCategory no encontrado en el DOM');
+        return;
+    }
+    
+    populateCategoryFilterOptions();
+
+    // Event listener para cambios (evitar duplicados)
+    if (!DOM.filterCategory.dataset.listenerBound) {
+        DOM.filterCategory.dataset.listenerBound = 'true';
+        DOM.filterCategory.addEventListener('change', function () {
+            console.log(`🎯 Filtro categoría cambiado a: "${this.value}"`);
+            if (window.appState && window.appState.filters) {
+                window.appState.filters.category = this.value;
+                applyFilters();
+            }
+        });
+    }
 }
 
 /**
@@ -134,6 +153,8 @@ function initializeStatusFilter() {
         { value: 'expired', label: 'Vencidos' },
         { value: 'no_expiration', label: 'Sin vencimiento' }
     ];
+
+    const selected = String(window.appState?.filters?.status ?? DOM.filterStatus.value ?? '');
     
     // Limpiar y poblar opciones
     DOM.filterStatus.innerHTML = '';
@@ -143,15 +164,22 @@ function initializeStatusFilter() {
         optElement.textContent = option.label;
         DOM.filterStatus.appendChild(optElement);
     });
+
+    if (selected) {
+        DOM.filterStatus.value = selected;
+    }
     
     // Event listener para cambios
-    DOM.filterStatus.addEventListener('change', function() {
-        console.log(`🎯 Filtro estado cambiado a: "${this.value}"`);
-        if (window.appState && window.appState.filters) {
-            window.appState.filters.status = this.value;
-            applyFilters();
-        }
-    });
+    if (!DOM.filterStatus.dataset.listenerBound) {
+        DOM.filterStatus.dataset.listenerBound = 'true';
+        DOM.filterStatus.addEventListener('change', function () {
+            console.log(`🎯 Filtro estado cambiado a: "${this.value}"`);
+            if (window.appState && window.appState.filters) {
+                window.appState.filters.status = this.value;
+                applyFilters();
+            }
+        });
+    }
 }
 
 /**
@@ -165,48 +193,52 @@ function initializeSearchFilter() {
         return;
     }
     
-    // Configurar búsqueda con debounce
-    let searchTimeout;
-    DOM.searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        
-        searchTimeout = setTimeout(() => {
-            const searchTerm = this.value.trim();
-            console.log(`🔍 Buscando: "${searchTerm}"`);
-            
-            if (window.appState) {
-                window.appState.currentSearchQuery = searchTerm;
-                applyFilters();
+    // Configurar búsqueda con debounce (evitar listeners duplicados)
+    if (!DOM.searchInput.dataset.listenerBound) {
+        DOM.searchInput.dataset.listenerBound = 'true';
+
+        DOM.searchInput.addEventListener('input', function () {
+            clearTimeout(this._searchTimeoutId);
+
+            this._searchTimeoutId = setTimeout(() => {
+                const searchTerm = this.value.trim();
+                console.log(`🔍 Buscando: "${searchTerm}"`);
+
+                if (window.appState) {
+                    window.appState.currentSearchQuery = searchTerm;
+                    applyFilters();
+                }
+            }, 300);
+        });
+
+        // Permitir búsqueda con Enter
+        DOM.searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const searchTerm = this.value.trim();
+                console.log(`🔍 Buscando (Enter): "${searchTerm}"`);
+
+                if (window.appState) {
+                    window.appState.currentSearchQuery = searchTerm;
+                    applyFilters();
+                }
             }
-        }, 300); // 300ms de delay
-    });
-    
+        });
+    }
+
     // Botón de limpiar búsqueda
     const clearButton = document.getElementById('clearSearch');
-    if (clearButton) {
-        clearButton.addEventListener('click', function() {
+    if (clearButton && !clearButton.dataset.listenerBound) {
+        clearButton.dataset.listenerBound = 'true';
+        clearButton.addEventListener('click', function () {
             console.log('🧹 Limpiando búsqueda...');
             DOM.searchInput.value = '';
-            
+
             if (window.appState) {
                 window.appState.currentSearchQuery = '';
                 applyFilters();
             }
         });
     }
-    
-    // Permitir búsqueda con Enter
-    DOM.searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            const searchTerm = this.value.trim();
-            console.log(`🔍 Buscando (Enter): "${searchTerm}"`);
-            
-            if (window.appState) {
-                window.appState.currentSearchQuery = searchTerm;
-                applyFilters();
-            }
-        }
-    });
 }
 
 /**

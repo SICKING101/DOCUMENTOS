@@ -618,6 +618,15 @@ function renderRoleDescriptions() {
 // =============================================================================
 
 function renderRoleStats(users) {
+  const alwaysShowRoles = new Set([
+    ROLES.ADMIN,
+    ROLES.GERENTE,
+    ROLES.SUPERVISOR,
+    ROLES.EDITOR,
+    ROLES.REVISOR,
+    ROLES.LECTOR
+  ]);
+
   // Calcular estadísticas por rol
   const roleStats = {};
   
@@ -641,7 +650,7 @@ function renderRoleStats(users) {
       </div>
       <div class="role-stats-grid">
         ${Object.entries(roleStats)
-          .filter(([role, count]) => count > 0 || role === ROLES.LECTOR)
+          .filter(([role, count]) => count > 0 || alwaysShowRoles.has(role))
           .map(([role, count]) => {
             const percentage = totalActivos > 0 ? Math.round((count / totalActivos) * 100) : 0;
             const roleClass = ROLE_COLORS[role] || 'secondary';

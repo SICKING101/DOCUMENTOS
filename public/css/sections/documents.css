@@ -234,6 +234,15 @@
 .documents-table th:nth-child(5) { width: 15%; } /* Estado */
 .documents-table th:nth-child(6) { width: 18%; } /* Acciones */
 
+/* Distribución de columnas para 7 columnas (modo selección) */
+.documents-table.documents-table--selection th:nth-child(1) { width: 5%; }  /* Selección */
+.documents-table.documents-table--selection th:nth-child(2) { width: 26%; } /* Documento */
+.documents-table.documents-table--selection th:nth-child(3) { width: 11%; } /* Tipo */
+.documents-table.documents-table--selection th:nth-child(4) { width: 17%; } /* Persona */
+.documents-table.documents-table--selection th:nth-child(5) { width: 12%; } /* Categoría */
+.documents-table.documents-table--selection th:nth-child(6) { width: 11%; } /* Estado */
+.documents-table.documents-table--selection th:nth-child(7) { width: 18%; } /* Acciones */
+
 .documents-table tbody tr {
     border-bottom: 1px solid var(--border);
     transition: var(--transition);

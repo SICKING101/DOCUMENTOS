@@ -286,6 +286,111 @@ body.dark-theme .preloader-inline__spinner {
 body.dark-theme .preloader__text {
     color: var(--text-secondary) !important;
 }
+
+/* Corrección: Preloaders de Categorías en modo oscuro */
+body.dark-theme .category-preloader {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+body.dark-theme .category-preloader__spinner {
+    border-color: var(--border) !important;
+    border-top-color: var(--primary) !important;
+    border-right-color: var(--primary) !important;
+}
+
+body.dark-theme .category-preloader__text {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .category-preloader__text::after {
+    background: linear-gradient(90deg, transparent, var(--primary), transparent) !important;
+}
+
+body.dark-theme .category-preloader__tag,
+body.dark-theme .category-card-preloader__icon,
+body.dark-theme .category-card-preloader__name,
+body.dark-theme .category-card-preloader__count,
+body.dark-theme .category-table-preloader__cell {
+    background: linear-gradient(90deg, var(--bg-secondary), var(--bg-tertiary), var(--bg-secondary)) !important;
+}
+
+body.dark-theme .category-preloader-overlay {
+    background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+body.dark-theme .category-preloader-overlay__content {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .category-preloader-overlay__icon::after {
+    background: var(--bg-secondary) !important;
+}
+
+body.dark-theme .category-preloader-overlay__title {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .category-preloader-overlay__subtitle {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .category-preloader-overlay__status-dot {
+    background-color: var(--primary) !important;
+}
+
+body.dark-theme .category-card-preloader {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .category-card-preloader::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent) !important;
+}
+
+body.dark-theme .category-table-preloader__row {
+    border-bottom-color: var(--border) !important;
+}
+
+/* Corrección: Preloaders/overlays de Documentos que solo tenían prefers-color-scheme */
+body.dark-theme .document-upload-preloader,
+body.dark-theme .preloader-overlay__content {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .modal-edit-preloader,
+body.dark-theme .modal-loading-overlay,
+body.dark-theme .file-upload-preloader {
+    background: rgba(0, 0, 0, 0.75) !important;
+}
+
+body.dark-theme .modal-edit-preloader__content {
+    background: var(--bg-secondary) !important;
+}
+
+body.dark-theme .modal-edit-preloader__title,
+body.dark-theme .modal-loading-text,
+body.dark-theme .file-upload-text {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .modal-edit-preloader__subtitle,
+body.dark-theme .modal-loading-subtext {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .document-loading-spinner__disk {
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .file-upload-progress {
+    background: var(--bg-tertiary) !important;
+}
 /* Corrección: Modales de acción de tareas en modo oscuro */
 body.dark-theme .action-modal__content,
 body.dark-theme .action-modal__message {

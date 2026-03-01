@@ -308,13 +308,21 @@ class DocumentController {
         status: documento.status,
         reviewedAt: documento.reviewedAt,
         reviewedBy: documento.reviewedBy,
-        reviewComment: documento.reviewComment
+        reviewComment: documento.reviewComment,
+        isDeleted: documento.isDeleted,
+        deletedAt: documento.deletedAt,
+        deletedBy: documento.deletedBy
       };
 
       documento.status = 'rejected';
       documento.reviewedAt = new Date();
       documento.reviewedBy = req.user?.usuario || req.user?.correo || 'Revisor';
       documento.reviewComment = comment ? String(comment) : '';
+
+      // Enviar a papelera para que no aparezca en listado activo
+      documento.isDeleted = true;
+      documento.deletedAt = new Date();
+      documento.deletedBy = req.user?.usuario || req.user?.correo || 'Sistema';
       await documento.save();
 
       console.log('✅ Documento rechazado:', documento.nombre_original);
@@ -328,7 +336,10 @@ class DocumentController {
           status: documento.status,
           reviewedAt: documento.reviewedAt,
           reviewedBy: documento.reviewedBy,
-          reviewComment: documento.reviewComment
+          reviewComment: documento.reviewComment,
+          isDeleted: documento.isDeleted,
+          deletedAt: documento.deletedAt,
+          deletedBy: documento.deletedBy
         };
 
         await logAudit(req, {
