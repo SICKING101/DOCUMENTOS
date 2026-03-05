@@ -7,13 +7,12 @@
 //       - "desactivado"    → sin acceso, hardcoded
 //   • TODOS los demás roles son DINÁMICOS: se crean desde el panel de Admin
 //     y se almacenan en MongoDB (colección roles).
-//   • Este archivo NO define gerente/editor/lector/etc. — esos roles fijos
-//     fueron eliminados. El campo `rol` del usuario es simplemente un String
-//     libre que coincide con el nombre del rol dinámico creado por el admin.
+//   • Este archivo NO define gerente/editor/lector/etc.
 //
 // DEBUG: activar con localStorage.setItem('permisos_debug', '1')
+// En desarrollo siempre activo.
 
-const DEBUG = localStorage.getItem('permisos_debug') === '1' || true;
+const DEBUG = true; // Cambiar a: localStorage.getItem('permisos_debug') === '1' en producción
 function plog(...args)  { if (DEBUG) console.log('🔐 [Permisos]', ...args); }
 function pwarn(...args) { if (DEBUG) console.warn('⚠️ [Permisos]', ...args); }
 function perr(...args)  { console.error('❌ [Permisos]', ...args); }
@@ -29,42 +28,97 @@ export const ROLES = {
 
 // =============================================================================
 // PERMISOS DE ACCIONES DE LA APP (para hasPermission())
-// Estos son permisos de la UI, no de secciones.
-// El administrador tiene todos. Los roles dinámicos solo tienen MANAGE_USERS = false.
+// Estos son permisos de UI, no de secciones.
 // =============================================================================
 
 export const PERMISSIONS = {
-  // Gestión de usuarios y roles (solo admin)
   MANAGE_USERS:       'manage_users',
   MANAGE_ROLES:       'manage_roles',
-  // Acceso a auditoría (solo admin)
   VIEW_AUDIT:         'view_audit',
-  // Puede ver su propio perfil
   VIEW_PROFILE:       'view_profile',
+  // Compatibilidad con código legacy de app.js
+  UPLOAD_DOCUMENTS:   'upload_documents',
+  DELETE_DOCUMENTS:   'delete_documents',
 };
 
 // =============================================================================
 // CACHE DE PERMISOS DEL USUARIO ACTUAL
 // =============================================================================
 
-let _permissionsCache = null;   // { [section]: { canView, canAction } }
+let _permissionsCache = null;   // { [section]: { canView, canAction } } | { __admin: true } | {}
 let _currentUserRole  = null;   // string — nombre del rol actual
+let _loadingPromise   = null;   // Promise en vuelo para evitar race conditions
+
+/**
+ * Obtiene el usuario actual del localStorage de forma segura.
+ */
+function getCurrentUserSafe() {
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    perr('getCurrentUserSafe: JSON inválido en localStorage', e);
+    return null;
+  }
+}
+
+/**
+ * Obtiene el token JWT del localStorage.
+ */
+function getToken() {
+  return localStorage.getItem('token') || '';
+}
 
 /**
  * Carga desde la API los permisos del rol del usuario logueado y los cachea.
+ * Maneja race conditions: si ya hay una carga en vuelo, espera esa misma promesa.
  * Debe llamarse justo después del login y al cambiar de rol.
+ *
+ * @returns {Promise<Object>} mapa de permisos { section: { canView, canAction } }
  */
 export async function loadCurrentPermissions() {
+  // Si ya hay una carga en vuelo, esperar esa misma
+  if (_loadingPromise) {
+    plog('loadCurrentPermissions: esperando carga en vuelo...');
+    return _loadingPromise;
+  }
+
+  _loadingPromise = _doLoadPermissions();
   try {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) { pwarn('loadCurrentPermissions: no hay usuario en localStorage'); return null; }
+    const result = await _loadingPromise;
+    return result;
+  } finally {
+    _loadingPromise = null;
+  }
+}
 
-    const user = JSON.parse(userStr);
-    const rol  = user.rol || user.role;
+async function _doLoadPermissions() {
+  try {
+    const user = getCurrentUserSafe();
 
-    if (!rol) { pwarn('loadCurrentPermissions: usuario sin campo "rol"'); return null; }
+    if (!user) {
+      pwarn('loadCurrentPermissions: no hay usuario en localStorage');
+      _permissionsCache = {};
+      return {};
+    }
 
-    plog('loadCurrentPermissions: cargando permisos para rol=', rol);
+    const rol = user.rol || user.role;
+
+    if (!rol) {
+      pwarn('loadCurrentPermissions: usuario sin campo "rol"');
+      _permissionsCache = {};
+      return {};
+    }
+
+    plog(`loadCurrentPermissions: cargando permisos para rol="${rol}"`);
+
+    // Si el rol no cambió y ya tenemos cache válido, reutilizar
+    if (_currentUserRole === rol && _permissionsCache !== null) {
+      plog('loadCurrentPermissions: cache válido, reutilizando');
+      return _permissionsCache;
+    }
+
     _currentUserRole = rol;
 
     // El administrador tiene acceso total — no necesita consultar la API
@@ -78,11 +132,19 @@ export async function loadCurrentPermissions() {
     if (rol === ROLES.DISABLED) {
       _permissionsCache = {};
       pwarn('loadCurrentPermissions: usuario desactivado → sin permisos');
-      return _permissionsCache;
+      return {};
     }
 
     // Consultar el mapa de permisos del rol dinámico
-    const token = localStorage.getItem('token');
+    const token = getToken();
+    if (!token) {
+      pwarn('loadCurrentPermissions: no hay token JWT, sin permisos');
+      _permissionsCache = {};
+      return {};
+    }
+
+    plog(`loadCurrentPermissions: consultando API /api/roles/permissions/${rol}`);
+
     const response = await fetch(`/api/roles/permissions/${encodeURIComponent(rol)}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -91,55 +153,62 @@ export async function loadCurrentPermissions() {
     });
 
     if (!response.ok) {
-      pwarn(`loadCurrentPermissions: respuesta ${response.status} del servidor`);
+      pwarn(`loadCurrentPermissions: respuesta HTTP ${response.status}`);
       _permissionsCache = {};
-      return null;
+      return {};
     }
 
     const data = await response.json();
+
     if (data?.success && data?.data) {
       _permissionsCache = data.data;
       plog('loadCurrentPermissions: permisos cargados →', _permissionsCache);
       return _permissionsCache;
     }
 
-    pwarn('loadCurrentPermissions: respuesta inválida', data);
+    pwarn('loadCurrentPermissions: respuesta inválida del servidor', data);
     _permissionsCache = {};
-    return null;
+    return {};
 
   } catch (e) {
-    perr('loadCurrentPermissions error:', e);
+    perr('loadCurrentPermissions: error de red o parseo', e);
     _permissionsCache = {};
-    return null;
+    return {};
   }
 }
 
 /**
  * Invalida el cache de permisos.
- * Llamar cuando el admin cambia el rol de un usuario o modifica un rol.
+ * Llamar cuando el admin cambia el rol de un usuario o modifica un rol dinámico.
  */
 export function invalidatePermissionsCache() {
   plog('invalidatePermissionsCache: cache limpiado');
   _permissionsCache = null;
   _currentUserRole  = null;
+  _loadingPromise   = null;
 }
 
 // =============================================================================
-// VERIFICACIÓN DE PERMISOS
+// VERIFICACIÓN DE PERMISOS — SINCRÓNICO (usa cache)
 // =============================================================================
 
 /**
  * Verifica si el usuario actual tiene un permiso de ACCIÓN de la app.
  * Solo el administrador tiene MANAGE_USERS, MANAGE_ROLES y VIEW_AUDIT.
+ * IMPORTANTE: Esta función es SINCRÓNICA — asegúrate de llamar
+ * loadCurrentPermissions() antes de usarla.
+ *
+ * @param {string} permission — constante de PERMISSIONS
+ * @returns {boolean}
  */
 export function hasPermission(permission) {
   try {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return false;
-    const user = JSON.parse(userStr);
-    const rol  = user.rol || user.role;
+    const user = getCurrentUserSafe();
+    if (!user) return false;
+    const rol = user.rol || user.role;
 
-    if (rol === ROLES.ADMIN) return true; // admin tiene todo
+    if (!rol || rol === ROLES.DISABLED) return false;
+    if (rol === ROLES.ADMIN) return true;
 
     // Permisos que solo el admin tiene
     const adminOnly = [
@@ -152,8 +221,16 @@ export function hasPermission(permission) {
       return false;
     }
 
-    // Permisos que cualquier usuario activo tiene
+    // VIEW_PROFILE: cualquier usuario activo
     if (permission === PERMISSIONS.VIEW_PROFILE) return true;
+
+    // Para permisos de documentos, delegar a canAction con cache
+    if (permission === PERMISSIONS.UPLOAD_DOCUMENTS) {
+      return canAction('documentos');
+    }
+    if (permission === PERMISSIONS.DELETE_DOCUMENTS) {
+      return canAction('documentos');
+    }
 
     return false;
   } catch (e) {
@@ -164,36 +241,38 @@ export function hasPermission(permission) {
 
 /**
  * Verifica si el usuario puede VER una sección del sidebar.
- * Admin siempre puede. Roles dinámicos según su configuración de permisos.
+ * Admin siempre puede. Roles dinámicos según su configuración.
+ * SINCRÓNICO — requiere cache cargado.
+ *
+ * @param {string} section — clave de sección (ej: 'documentos')
+ * @returns {boolean}
  */
 export function canView(section) {
   try {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return false;
-    const user = JSON.parse(userStr);
-    const rol  = user.rol || user.role;
+    const user = getCurrentUserSafe();
+    if (!user) return false;
+    const rol = user.rol || user.role;
+
+    if (!rol) return false;
+    if (rol === ROLES.DISABLED) return false;
 
     // Admin ve todo
     if (rol === ROLES.ADMIN) return true;
 
-    // Desactivado no ve nada
-    if (rol === ROLES.DISABLED) return false;
-
     // Secciones exclusivas del admin
     if (section === 'admin' || section === 'auditoria') {
-      plog(`canView("${section}"): false — exclusiva del admin`);
       return false;
     }
 
-    // Sin cache → denegar y loggear
+    // Sin cache → denegar (no crashear)
     if (!_permissionsCache) {
-      pwarn(`canView("${section}"): sin cache de permisos, llamar loadCurrentPermissions() primero`);
+      pwarn(`canView("${section}"): sin cache — llamar loadCurrentPermissions() primero`);
       return false;
     }
 
-    const perm = _permissionsCache[section];
+    const perm   = _permissionsCache[section];
     const result = Boolean(perm?.canView);
-    plog(`canView("${section}"):`, result);
+    plog(`canView("${section}"): ${result}`);
     return result;
 
   } catch (e) {
@@ -204,25 +283,29 @@ export function canView(section) {
 
 /**
  * Verifica si el usuario puede ACTUAR (crear/editar/eliminar) en una sección.
+ * SINCRÓNICO — requiere cache cargado.
+ *
+ * @param {string} section — clave de sección
+ * @returns {boolean}
  */
 export function canAction(section) {
   try {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return false;
-    const user = JSON.parse(userStr);
-    const rol  = user.rol || user.role;
+    const user = getCurrentUserSafe();
+    if (!user) return false;
+    const rol = user.rol || user.role;
 
-    if (rol === ROLES.ADMIN)    return true;
+    if (!rol) return false;
     if (rol === ROLES.DISABLED) return false;
+    if (rol === ROLES.ADMIN) return true;
 
     if (!_permissionsCache) {
-      pwarn(`canAction("${section}"): sin cache de permisos`);
+      pwarn(`canAction("${section}"): sin cache`);
       return false;
     }
 
-    const perm = _permissionsCache[section];
+    const perm   = _permissionsCache[section];
     const result = Boolean(perm?.canAction);
-    plog(`canAction("${section}"):`, result);
+    plog(`canAction("${section}"): ${result}`);
     return result;
 
   } catch (e) {
@@ -231,162 +314,352 @@ export function canAction(section) {
   }
 }
 
+// =============================================================================
+// APLICAR PERMISOS AL DOM
+// =============================================================================
+
 /**
  * Aplica permisos de visibilidad al sidebar.
- * Oculta los nav-links cuyas secciones el usuario no puede ver.
- * Los elementos deben tener data-section="nombre_seccion".
+ *
+ * IMPORTANTE: El sidebar usa data-tab="seccion" en los <a> links.
+ * Esta función soporta AMBOS atributos: data-section y data-tab.
+ * Para que funcione con tu HTML actual, los nav-links deben tener
+ * data-tab="nombre_seccion" (que ya tienen) — los leemos de ese atributo.
  */
 export function applyNavigationPermissions() {
-  plog('applyNavigationPermissions: aplicando...');
+  plog('applyNavigationPermissions: aplicando visibilidad en sidebar...');
 
-  const navLinks = document.querySelectorAll('[data-section]');
-  let hidden = 0, visible = 0;
+  const user  = getCurrentUserSafe();
+  const rol   = user?.rol || user?.role;
+  const isAdm = rol === ROLES.ADMIN;
 
-  navLinks.forEach(link => {
-    const section = link.getAttribute('data-section');
+  // Soportar tanto data-tab como data-section
+  const navLinks = document.querySelectorAll(
+    '.sidebar__nav-link[data-tab], .sidebar__nav-link[data-section], [data-section]'
+  );
+
+  plog(`applyNavigationPermissions: ${navLinks.length} nav-links encontrados`);
+
+  let visible = 0, hidden = 0;
+
+  navLinks.forEach((link) => {
+    // Obtener la sección: preferir data-section, fallback a data-tab
+    const section = link.getAttribute('data-section') || link.getAttribute('data-tab');
     if (!section) return;
 
-    if (canView(section)) {
-      link.style.display = '';
+    let shouldShow;
+
+    // Secciones exclusivas del admin
+    if (section === 'admin' || section === 'auditoria') {
+      shouldShow = isAdm;
+    } else {
+      shouldShow = canView(section);
+    }
+
+    // Aplicar visibilidad al elemento contenedor (li o el propio link)
+    const container = link.closest('li') || link;
+    if (shouldShow) {
+      container.style.display = '';
+      link.style.display      = '';
       visible++;
     } else {
-      link.style.display = 'none';
+      container.style.display = 'none';
+      link.style.display      = 'none';
       hidden++;
     }
+
+    plog(`  [${section}] canView=${shouldShow} → ${shouldShow ? 'visible' : 'oculto'}`);
   });
+
+  // También manejar el nav-item de admin que tiene id="nav-admin"
+  const adminNavItem = document.getElementById('nav-admin');
+  if (adminNavItem) {
+    const container = adminNavItem.closest('li') || adminNavItem;
+    if (isAdm) {
+      container.style.display = '';
+      adminNavItem.style.display = '';
+    } else {
+      container.style.display = 'none';
+      adminNavItem.style.display = 'none';
+    }
+    plog(`  [admin-item] visible=${isAdm}`);
+  }
+
+  // Manejar dropdown de admin si existe
+  const adminDropdown = document.getElementById('admin-dropdown');
+  if (adminDropdown) {
+    adminDropdown.style.display = isAdm ? '' : 'none';
+  }
 
   plog(`applyNavigationPermissions: ${visible} visibles, ${hidden} ocultos`);
 }
 
 /**
  * Aplica permisos de acción en la página actual.
- * Oculta botones con data-action-section si canAction = false.
- * Para botones con data-requires-action, muestra alerta en lugar de ocultarlos.
+ *
+ * Soporta dos estrategias:
+ * 1. [data-action-section="seccion"]  → se OCULTA si no tiene canAction
+ * 2. [data-requires-action="seccion"] → muestra ALERTA si no tiene canAction (no se oculta)
  */
 export function applyActionPermissions() {
-  plog('applyActionPermissions: aplicando...');
+  plog('applyActionPermissions: aplicando permisos de acción...');
 
   // Botones que se OCULTAN si no hay permiso
   const actionBtns = document.querySelectorAll('[data-action-section]');
-  actionBtns.forEach(btn => {
+  let processed = 0;
+  actionBtns.forEach((btn) => {
     const section = btn.getAttribute('data-action-section');
-    btn.style.display = canAction(section) ? '' : 'none';
+    if (!section) return;
+    const allowed = canAction(section);
+    btn.style.display = allowed ? '' : 'none';
+    plog(`  [action-section="${section}"] canAction=${allowed}`);
+    processed++;
   });
-  plog(`applyActionPermissions: ${actionBtns.length} botones procesados`);
 
-  // Botones que muestran ALERTA si no hay permiso (en lugar de ocultarse)
+  plog(`applyActionPermissions: ${processed} botones de acción procesados`);
+
+  // Botones que muestran ALERTA (no se ocultan)
   const requiresBtns = document.querySelectorAll('[data-requires-action]');
-  requiresBtns.forEach(btn => {
+  requiresBtns.forEach((btn) => {
     const section = btn.getAttribute('data-requires-action');
+    if (!section) return;
+    // Clonar para remover listeners previos y evitar duplicados
     if (!canAction(section)) {
+      btn.dataset._permBlocked = 'true';
       btn.removeEventListener('click', _noPermissionHandler);
       btn.addEventListener('click', _noPermissionHandler);
+    } else {
+      delete btn.dataset._permBlocked;
+      btn.removeEventListener('click', _noPermissionHandler);
     }
   });
+
   plog(`applyActionPermissions: ${requiresBtns.length} botones con intercept`);
 }
 
 function _noPermissionHandler(e) {
   e.preventDefault();
-  e.stopPropagation();
-  showNoPermissionAlert();
+  e.stopImmediatePropagation();
+  const section = e.currentTarget.getAttribute('data-requires-action') || '';
+  showNoPermissionAlert(section);
 }
 
 /**
- * Muestra una alerta visual de "sin permisos".
+ * Muestra una alerta visual de "sin permisos" en la esquina superior derecha.
  */
-export function showNoPermissionAlert() {
+export function showNoPermissionAlert(section = '') {
+  // Remover alerta previa si existe
   const existing = document.getElementById('permisos-no-perm-alert');
   if (existing) existing.remove();
 
   const alert = document.createElement('div');
   alert.id = 'permisos-no-perm-alert';
+  alert.setAttribute('role', 'alert');
+  alert.setAttribute('aria-live', 'assertive');
   alert.style.cssText = `
-    position:fixed;top:20px;right:20px;z-index:9999999;
-    background:#1e293b;color:#fff;
-    padding:12px 20px;border-radius:10px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.3);
-    display:flex;align-items:center;gap:10px;
-    font-size:0.9rem;font-weight:500;
-    border-left:4px solid #dc2626;
-    animation:permisos-alert-in 0.25s ease;
-  `;
-  alert.innerHTML = `
-    <i class="fas fa-ban" style="color:#dc2626;font-size:1.1rem;"></i>
-    <span>No tienes permisos para realizar esta acción</span>
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999999;
+    background: #1e293b;
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-left: 4px solid #dc2626;
+    animation: _permisos_alert_in 0.25s cubic-bezier(.17,.67,.35,1.1) both;
+    max-width: 380px;
   `;
 
-  // Inyectar keyframe si no existe
-  if (!document.getElementById('permisos-alert-style')) {
+  const sectionLabel = section
+    ? ` en <strong>${_getSectionLabel(section)}</strong>`
+    : '';
+
+  alert.innerHTML = `
+    <i class="fas fa-ban" style="color:#dc2626;font-size:1.1rem;flex-shrink:0;"></i>
+    <span>No tienes permisos para realizar esta acción${sectionLabel}</span>
+    <button onclick="this.parentElement.remove()" style="
+      background:none;border:none;color:#94a3b8;cursor:pointer;
+      font-size:1rem;padding:0 0 0 8px;line-height:1;flex-shrink:0;
+    " aria-label="Cerrar">✕</button>
+  `;
+
+  // Inyectar keyframe solo una vez
+  if (!document.getElementById('_permisos_alert_style')) {
     const style = document.createElement('style');
-    style.id = 'permisos-alert-style';
+    style.id = '_permisos_alert_style';
     style.textContent = `
-      @keyframes permisos-alert-in {
-        from { opacity:0; transform:translateY(-10px) scale(0.95); }
-        to   { opacity:1; transform:translateY(0) scale(1); }
+      @keyframes _permisos_alert_in {
+        from { opacity: 0; transform: translateY(-14px) scale(0.95); }
+        to   { opacity: 1; transform: translateY(0)    scale(1);    }
       }
     `;
     document.head.appendChild(style);
   }
 
   document.body.appendChild(alert);
-  setTimeout(() => {
-    alert.style.opacity = '0';
-    alert.style.transition = 'opacity 0.3s';
-    setTimeout(() => alert.remove(), 300);
-  }, 3000);
 
-  plog('showNoPermissionAlert: mostrada');
+  setTimeout(() => {
+    if (alert.isConnected) {
+      alert.style.transition = 'opacity 0.3s, transform 0.3s';
+      alert.style.opacity    = '0';
+      alert.style.transform  = 'translateY(-8px)';
+      setTimeout(() => alert.remove(), 320);
+    }
+  }, 3500);
+
+  plog(`showNoPermissionAlert: mostrada para sección="${section}"`);
 }
 
-/**
- * Inicializa todo el sistema de permisos.
- * Llamar una vez después del login exitoso.
- */
-export async function initPermissionsSystem() {
-  plog('initPermissionsSystem: iniciando...');
-  await loadCurrentPermissions();
-  applyNavigationPermissions();
-  applyActionPermissions();
-  plog('initPermissionsSystem: completado ✅');
+function _getSectionLabel(key) {
+  const MAP = {
+    documentos:    'Documentos',
+    personas:      'Personas',
+    categorias:    'Categorías',
+    departamentos: 'Departamentos',
+    tareas:        'Tareas',
+    reportes:      'Reportes',
+    papelera:      'Papelera',
+    calendario:    'Calendario',
+    historial:     'Historial',
+    notificaciones:'Notificaciones',
+    soporte:       'Soporte',
+    admin:         'Administración',
+    auditoria:     'Auditoría',
+  };
+  return MAP[key] || key;
 }
 
 // =============================================================================
-// UTILIDADES DE DISPLAY
+// INICIALIZACIÓN DEL SISTEMA DE PERMISOS
+// =============================================================================
+
+/**
+ * Inicializa todo el sistema de permisos.
+ * Llamar UNA VEZ después del login exitoso, antes de renderizar la navegación.
+ *
+ * @returns {Promise<void>}
+ */
+export async function initPermissionsSystem() {
+  plog('initPermissionsSystem: iniciando...');
+
+  try {
+    // 1. Cargar permisos del rol actual desde API
+    await loadCurrentPermissions();
+
+    // 2. Aplicar visibilidad en la barra de navegación
+    applyNavigationPermissions();
+
+    // 3. Aplicar visibilidad de botones de acción
+    applyActionPermissions();
+
+    plog('initPermissionsSystem: completado ✅');
+  } catch (e) {
+    perr('initPermissionsSystem: error crítico', e);
+  }
+}
+
+// =============================================================================
+// UTILIDADES DE DISPLAY Y HELPERS
 // =============================================================================
 
 /**
  * Devuelve el nombre legible de un rol para mostrar en la UI.
- * Para roles dinámicos simplemente devuelve el nombre tal cual.
  */
 export function getRoleDisplayName(rolName) {
-  if (!rolName)                   return 'Sin rol';
-  if (rolName === ROLES.ADMIN)    return 'Administrador';
-  if (rolName === ROLES.DISABLED) return 'Desactivado';
-  // Rol dinámico: capitalizar primera letra
+  if (!rolName)                      return 'Sin rol';
+  if (rolName === ROLES.ADMIN)       return 'Administrador';
+  if (rolName === ROLES.DISABLED)    return 'Desactivado';
   return rolName.charAt(0).toUpperCase() + rolName.slice(1);
 }
 
-export function requirePermission(permission, {
-  onDenied,
-  message = 'No tienes permisos para realizar esta acción.'
-} = {}) {
-  if (hasPermission(permission)) return true;
-  if (typeof onDenied === 'function') onDenied(message);
-  return false;
-}
-
-// Helpers para UI: mostrar/ocultar por permiso
+/**
+ * Muestra/oculta un elemento del DOM según visibilidad.
+ */
 export function setElementVisible(el, visible) {
   if (!el) return;
   el.style.display = visible ? '' : 'none';
 }
 
+/**
+ * Aplica reglas de visibilidad a múltiples selectores según permisos.
+ * Compatible con el código legacy de app.js.
+ *
+ * @param {Array<{selector: string, permission: string, visibleWhenNoPermission?: boolean}>} rules
+ */
 export function applyVisibilityRules(rules = []) {
+  plog(`applyVisibilityRules: aplicando ${rules.length} reglas...`);
   rules.forEach((r) => {
     const elements = document.querySelectorAll(r.selector);
-    const allowed = hasPermission(r.permission);
-    const visible = r.visibleWhenNoPermission ? !allowed : allowed;
+    const allowed  = hasPermission(r.permission);
+    const visible  = r.visibleWhenNoPermission ? !allowed : allowed;
     elements.forEach((el) => setElementVisible(el, visible));
+    if (elements.length > 0) {
+      plog(`  [${r.selector}] permission="${r.permission}" → visible=${visible} (${elements.length} elementos)`);
+    }
   });
+}
+
+/**
+ * Verifica un permiso y ejecuta callback si se deniega.
+ */
+export function requirePermission(permission, {
+  onDenied,
+  message = 'No tienes permisos para realizar esta acción.',
+} = {}) {
+  if (hasPermission(permission)) return true;
+  if (typeof onDenied === 'function') onDenied(message);
+  else showNoPermissionAlert();
+  return false;
+}
+
+// =============================================================================
+// DEBUGGING
+// =============================================================================
+
+/**
+ * Imprime en consola el estado completo del sistema de permisos.
+ * Útil para debugging en desarrollo.
+ */
+export function debugPermissions() {
+  const user = getCurrentUserSafe();
+  console.group('🔐 [Permisos] Debug completo');
+  console.log('Usuario:', user);
+  console.log('Rol:', user?.rol || user?.role);
+  console.log('Cache actual:', _permissionsCache);
+  console.log('Admin:', (user?.rol || user?.role) === ROLES.ADMIN);
+
+  if (_permissionsCache && !_permissionsCache.__admin) {
+    console.group('Permisos por sección:');
+    Object.entries(_permissionsCache).forEach(([section, perm]) => {
+      console.log(`  ${section}:`, perm);
+    });
+    console.groupEnd();
+  }
+
+  // Verificar elementos del DOM
+  const navLinks = document.querySelectorAll('.sidebar__nav-link[data-tab]');
+  console.group(`Nav-links en sidebar (${navLinks.length}):`);
+  navLinks.forEach((link) => {
+    const tab     = link.getAttribute('data-tab');
+    const visible = link.style.display !== 'none';
+    console.log(`  [${tab}] visible=${visible} display="${link.style.display}"`);
+  });
+  console.groupEnd();
+
+  console.groupEnd();
+}
+
+// Exponer en window para debugging desde consola
+if (typeof window !== 'undefined') {
+  window._permissionsDebug = debugPermissions;
+  window._permissionsCache = () => _permissionsCache;
+  window._canView          = canView;
+  window._canAction        = canAction;
+  plog('Helpers de debug disponibles: window._permissionsDebug(), window._permissionsCache(), window._canView(sec), window._canAction(sec)');
 }

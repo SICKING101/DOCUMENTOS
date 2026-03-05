@@ -1,495 +1,633 @@
 // src/frontend/navigation.js
+// Sistema de navegación por pestañas con integración completa de permisos.
+//
+// RESPONSABILIDADES:
+//   1. Inicializar la navegación del sidebar con permisos
+//   2. Cambiar entre secciones (switchTab) — ÚNICA definición canónica
+//   3. Cargar datos específicos de cada sección
+//   4. Teclado: navegar con flechas
+//   5. Actualizar información del usuario en el sidebar
 
 import { DOM } from './dom.js';
-import { 
-    canView, 
-    canAction, 
-    initPermissionsSystem,
-    invalidatePermissionsCache,
-    applyNavigationPermissions,
-    applyActionPermissions,
-    ROLES
+import {
+  canView,
+  initPermissionsSystem,
+  invalidatePermissionsCache,
+  applyNavigationPermissions,
+  applyActionPermissions,
+  showNoPermissionAlert,
+  ROLES,
 } from './permissions.js';
 import { getCurrentUser } from './auth.js';
 
+// ─── Debug ────────────────────────────────────────────────────────────────────
+const DEBUG = true;
+function nlog(...args)  { if (DEBUG) console.log('🧭 [Nav]', ...args); }
+function nwarn(...args) { if (DEBUG) console.warn('⚠️ [Nav]', ...args); }
+function nerr(...args)  {           console.error('❌ [Nav]', ...args); }
+
+// ─── Estado de navegación ─────────────────────────────────────────────────────
+let _currentTab        = 'dashboard';
+let _navigationLocked  = false;  // Previene cambios durante una transición
+
+// Tabs válidas del sistema
+const VALID_TABS = [
+  'dashboard', 'personas', 'documentos', 'categorias', 'departamentos',
+  'tareas', 'historial', 'papelera', 'calendario', 'reportes',
+  'soporte', 'ajustes', 'admin', 'auditoria',
+];
+
 // =============================================================================
-// 1. INICIALIZACIÓN DE LA NAVEGACIÓN POR PESTAÑAS
+// 1. INICIALIZACIÓN
 // =============================================================================
 
 /**
- * 1.0 Obtener rol del usuario actual
+ * Inicializa el sistema de navegación completo.
+ * - Carga permisos del usuario
+ * - Aplica visibilidad en el sidebar
+ * - Configura event listeners
+ * - Establece la pestaña inicial
+ *
+ * @returns {Promise<void>}
  */
-function getUserRole() {
-    try {
-        const user = getCurrentUser();
-        return user?.rol || null;
-    } catch (e) {
-        console.error('❌ Error obteniendo rol del usuario:', e);
-        return null;
-    }
+export async function initializeNavigation() {
+  nlog('initializeNavigation: iniciando sistema de navegación...');
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _doInit);
+  } else {
+    await _doInit();
+  }
 }
 
-/**
- * 1.1 Inicializar navegación con permisos
- */
-async function initializeTabNavigation() {
-    console.log('🔧 Inicializando navegación por pestañas...');
-
-    // Inicializar sistema de permisos
+async function _doInit() {
+  try {
+    // 1. Cargar permisos y aplicar al sidebar
     await initPermissionsSystem();
 
-    // Obtener enlaces de navegación
-    const navLinks = document.querySelectorAll('.sidebar__nav-link[data-tab]');
-    const tabContents = document.querySelectorAll('.tab-content');
+    // 2. Inicializar navegación por pestañas
+    await _setupTabNavigation();
 
-    if (navLinks.length === 0) {
-        console.error('❌ No se encontraron enlaces de navegación');
-        return;
-    }
+    // 3. Enlace especial de admin
+    _setupAdminLink();
 
-    // Aplicar permisos de visibilidad a la sidebar
-    applyNavigationPermissions();
+    // 4. Navegación por teclado
+    _setupKeyboardNavigation();
 
-    // Establecer pestaña activa inicial
-    await setInitialActiveTab(navLinks);
+    // 5. Información del usuario en sidebar
+    _updateUserInfo();
 
-    // Agregar event listeners a cada enlace
-    navLinks.forEach(link => {
-        // Solo agregar listener si el enlace es visible
-        if (link.style.display !== 'none') {
-            link.addEventListener('click', async function (e) {
-                e.preventDefault();
-                const tabId = this.getAttribute('data-tab');
-                console.log('🖱️ Clic en enlace:', tabId);
-                await handleTabClick(this, navLinks, tabContents);
-            });
-        }
-    });
-
-    console.log('✅ Navegación por pestañas inicializada');
+    nlog('initializeNavigation: completado ✅');
+  } catch (e) {
+    nerr('initializeNavigation: error crítico', e);
+  }
 }
 
 // =============================================================================
-// 2. INICIALIZAR ADMIN (¡PARTE CRÍTICA QUE FALTABA!)
+// 2. CONFIGURACIÓN DE TABS
+// =============================================================================
+
+async function _setupTabNavigation() {
+  nlog('_setupTabNavigation: configurando...');
+
+  const navLinks = _getNavLinks();
+  nlog(`_setupTabNavigation: ${navLinks.length} nav-links encontrados`);
+
+  if (navLinks.length === 0) {
+    nwarn('_setupTabNavigation: no se encontraron nav-links');
+    return;
+  }
+
+  // Adjuntar listeners a los enlaces visibles
+  navLinks.forEach((link) => {
+    // Remover listener anterior si existe (evitar duplicados)
+    link.removeEventListener('click', _handleNavLinkClick);
+    link.addEventListener('click', _handleNavLinkClick);
+  });
+
+  // Determinar y establecer pestaña inicial
+  await _setInitialTab(navLinks);
+}
+
+function _handleNavLinkClick(e) {
+  e.preventDefault();
+  const tabId = this.getAttribute('data-tab');
+  nlog(`_handleNavLinkClick: clic en "${tabId}"`);
+
+  if (!tabId) {
+    nwarn('_handleNavLinkClick: link sin data-tab');
+    return;
+  }
+
+  switchTab(tabId).catch((err) => {
+    nerr(`_handleNavLinkClick: error al cambiar a "${tabId}"`, err);
+  });
+}
+
+async function _setInitialTab(navLinks) {
+  // Verificar si hay una pestaña marcada como activa en el HTML
+  const activeLink = document.querySelector('.sidebar__nav-link--active');
+  if (activeLink) {
+    const tabId = activeLink.getAttribute('data-tab');
+    if (tabId && canView(tabId)) {
+      nlog(`_setInitialTab: pestaña activa en HTML = "${tabId}"`);
+      await switchTab(tabId);
+      return;
+    }
+  }
+
+  // Buscar la primera pestaña visible que el usuario pueda ver
+  for (const link of navLinks) {
+    if (link.style.display === 'none') continue;
+    const tabId = link.getAttribute('data-tab');
+    if (tabId && canView(tabId)) {
+      nlog(`_setInitialTab: primera pestaña visible = "${tabId}"`);
+      await switchTab(tabId);
+      return;
+    }
+  }
+
+  // Fallback: dashboard siempre
+  nlog('_setInitialTab: fallback a dashboard');
+  await switchTab('dashboard');
+}
+
+function _setupAdminLink() {
+  const adminLink = document.getElementById('nav-admin');
+  if (!adminLink) return;
+
+  adminLink.removeEventListener('click', _handleAdminClick);
+  adminLink.addEventListener('click', _handleAdminClick);
+  nlog('_setupAdminLink: enlace de admin configurado');
+}
+
+async function _handleAdminClick(e) {
+  e.preventDefault();
+  nlog('_handleAdminClick: clic en admin');
+
+  if (!canView('admin')) {
+    showNoPermissionAlert('admin');
+    return;
+  }
+
+  await switchTab('admin');
+}
+
+// =============================================================================
+// 3. SWITCH TAB — FUNCIÓN CANÓNICA ÚNICA
 // =============================================================================
 
 /**
- * 2.0 Inicializar enlace de admin
+ * Cambia la sección activa de la aplicación.
+ * Esta es la ÚNICA función que debe usarse para cambiar de sección.
+ * Se exporta globalmente como window.switchTab.
+ *
+ * @param {string} tabId — ID de la sección destino
+ * @returns {Promise<void>}
  */
-function initializeAdminLink() {
-    const adminNavLink = document.getElementById('nav-admin');
-    if (adminNavLink) {
-        // Remover listeners anteriores para evitar duplicados
-        adminNavLink.removeEventListener('click', handleAdminClick);
-        adminNavLink.addEventListener('click', handleAdminClick);
-        console.log('✅ Enlace de admin inicializado');
-    }
-}
+export async function switchTab(tabId) {
+  // Validar el tabId
+  if (!tabId || !VALID_TABS.includes(tabId)) {
+    nerr(`switchTab: tabId inválido "${tabId}"`);
+    return;
+  }
 
-/**
- * 2.1 Manejador de clic en admin
- */
-function handleAdminClick(e) {
-    e.preventDefault();
-    console.log('🖱️ Clic en enlace de admin');
-    
-    // Verificar permisos
-    if (!canView('admin')) {
-        console.warn('⚠️ Intento de acceso a admin sin permisos');
-        return;
-    }
-    
-    // Cambiar a la pestaña admin
-    switchTab('admin').then(() => {
-        // Cargar el módulo de admin
-        import('./modules/admin/index.js').then(module => {
-            if (module.renderAgregarAdministrador) {
-                module.renderAgregarAdministrador();
-            }
-        }).catch(err => {
-            console.error('❌ Error cargando módulo admin:', err);
-        });
-    });
-}
+  // Verificar permiso de acceso
+  if (!canView(tabId)) {
+    nwarn(`switchTab: sin permiso para "${tabId}"`);
 
-// =============================================================================
-// 3. ESTABLECER PESTAÑA ACTIVA INICIAL
-// =============================================================================
-
-async function setInitialActiveTab(navLinks) {
-    const userRole = getUserRole();
-    
-    // Verificar si hay una pestaña activa en el HTML
-    const currentActiveLink = document.querySelector('.sidebar__nav-link--active');
-    if (currentActiveLink) {
-        const activeTab = currentActiveLink.getAttribute('data-tab');
-        
-        // Verificar que el usuario tenga permiso para esta pestaña
-        if (canView(activeTab)) {
-            await switchTab(activeTab, navLinks);
-            return;
-        }
-    }
-    
-    // Buscar la primera pestaña visible
-    for (const link of navLinks) {
-        const tabId = link.getAttribute('data-tab');
-        if (canView(tabId) && link.style.display !== 'none') {
-            await switchTab(tabId, navLinks);
-            return;
-        }
-    }
-    
-    // Si no hay ninguna visible, ir a dashboard
-    if (canView('dashboard')) {
-        await switchTab('dashboard', navLinks);
-    }
-}
-
-// =============================================================================
-// 4. MANEJO DE PESTAÑAS
-// =============================================================================
-
-async function handleTabClick(clickedLink, navLinks, tabContents) {
-    const targetTab = clickedLink.getAttribute('data-tab');
-    
-    // Verificar permisos antes de cambiar
-    if (!canView(targetTab)) {
-        console.warn(`⚠️ Intento de acceso a pestaña sin permisos: ${targetTab}`);
-        return;
-    }
-    
-    await switchTab(targetTab, navLinks, tabContents);
-}
-
-export async function switchTab(tabId, navLinksParam = null, tabContentsParam = null) {
-    console.log(`🔄 Cambiando a pestaña: "${tabId}"`);
-
-    // Verificar permisos
-    if (!canView(tabId)) {
-        console.error(`❌ No tienes permisos para acceder a "${tabId}"`);
-        return;
+    // Si es admin/auditoria sin ser administrador, mostrar alerta
+    if (tabId === 'admin' || tabId === 'auditoria') {
+      showNoPermissionAlert(tabId);
     }
 
-    // Obtener referencias
-    const navLinks = navLinksParam || document.querySelectorAll('.sidebar__nav-link[data-tab]');
-    const tabContents = tabContentsParam || document.querySelectorAll('.tab-content');
-
-    // Validar que la pestaña existe
-    if (!document.getElementById(tabId) && tabId !== 'admin') {
-        console.error(`❌ Pestaña "${tabId}" no encontrada`);
-        return;
+    // Redirigir a dashboard si la pestaña actual no está disponible
+    if (tabId !== 'dashboard') {
+      await switchTab('dashboard');
     }
+    return;
+  }
 
-    // Remover clase activa de todos los enlaces
-    navLinks.forEach(link => {
-        link.classList.remove('sidebar__nav-link--active');
-    });
+  // Prevenir cambios durante una transición
+  if (_navigationLocked) {
+    nwarn(`switchTab: navegación bloqueada, ignorando cambio a "${tabId}"`);
+    return;
+  }
 
-    // Agregar clase activa al enlace seleccionado
-    const activeLink = Array.from(navLinks).find(
-        link => link.getAttribute('data-tab') === tabId
-    );
+  _navigationLocked = true;
+  nlog(`switchTab: cambiando a "${tabId}" (desde "${_currentTab}")`);
 
-    if (activeLink) {
-        activeLink.classList.add('sidebar__nav-link--active');
-    }
+  try {
+    // 1. Actualizar indicadores visuales del sidebar
+    _updateSidebarActive(tabId);
 
-    // Ocultar todos los contenidos
-    tabContents.forEach(tab => {
-        tab.classList.remove('tab-content--active');
-        tab.style.display = 'none';
-    });
+    // 2. Mostrar el contenido de la sección
+    _showTabContent(tabId);
 
-    // Mostrar el contenido seleccionado
-    let activeTab = document.getElementById(tabId);
-    
-    // Si es admin y no existe, crearlo dinámicamente
-    if (!activeTab && tabId === 'admin') {
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) {
-            activeTab = document.createElement('section');
-            activeTab.id = 'admin';
-            activeTab.className = 'tab-content';
-            activeTab.style.display = 'block';
-            activeTab.innerHTML = `
-                <div class="section__header">
-                    <div>
-                        <h2 class="section__title">Admin</h2>
-                        <p class="section__subtitle">Administración del sistema</p>
-                    </div>
-                </div>
-                <div id="admin-content"></div>
-            `;
-            mainContent.appendChild(activeTab);
-            console.log('✅ Contenido Admin creado dinámicamente');
-        }
-    }
-
-    if (activeTab) {
-        activeTab.classList.add('tab-content--active');
-        activeTab.style.display = 'block';
-    }
-
-    // Actualizar estado global
+    // 3. Actualizar estado
+    _currentTab = tabId;
     if (window.appState) window.appState.currentTab = tabId;
 
-    // Cargar datos específicos de la pestaña
-    await loadTabSpecificData(tabId);
-    
-    // Aplicar permisos de acción en la nueva pestaña
+    // 4. Cargar datos específicos de la sección
+    await _loadTabData(tabId);
+
+    // 5. Re-aplicar permisos de acción en el nuevo contenido
+    // (dar tiempo para que el DOM se actualice)
     setTimeout(() => {
-        applyActionPermissions();
-    }, 100);
+      applyActionPermissions();
+    }, 150);
+
+    nlog(`switchTab: "${tabId}" cargado ✅`);
+  } catch (e) {
+    nerr(`switchTab: error al cargar "${tabId}"`, e);
+  } finally {
+    _navigationLocked = false;
+  }
+}
+
+/**
+ * Actualiza qué enlace del sidebar está marcado como activo.
+ */
+function _updateSidebarActive(tabId) {
+  const navLinks = _getNavLinks();
+
+  // Remover estado activo de todos los enlaces
+  navLinks.forEach((link) => {
+    link.classList.remove('sidebar__nav-link--active', 'header__nav-link--active');
+
+    // Ocultar indicador visual si existe
+    const indicator = link.querySelector('.sidebar__nav-active-indicator');
+    if (indicator) indicator.style.visibility = 'hidden';
+  });
+
+  // Marcar el enlace activo
+  const activeLink = Array.from(navLinks).find(
+    (link) => link.getAttribute('data-tab') === tabId
+  );
+
+  if (activeLink) {
+    activeLink.classList.add('sidebar__nav-link--active');
+    const indicator = activeLink.querySelector('.sidebar__nav-active-indicator');
+    if (indicator) indicator.style.visibility = 'visible';
+    nlog(`_updateSidebarActive: "${tabId}" marcado como activo`);
+  } else {
+    nwarn(`_updateSidebarActive: no se encontró enlace para "${tabId}"`);
+  }
+}
+
+/**
+ * Muestra el contenido de la sección y oculta el resto.
+ */
+function _showTabContent(tabId) {
+  // Ocultar todos los contenidos de tabs
+  const allTabs = document.querySelectorAll('.tab-content');
+  allTabs.forEach((tab) => {
+    tab.classList.remove('tab-content--active');
+    tab.style.display = 'none';
+  });
+
+  // Buscar el elemento del tab
+  let activeTab = document.getElementById(tabId);
+
+  // Si es admin y no existe, crearlo dinámicamente
+  if (!activeTab && tabId === 'admin') {
+    activeTab = _createAdminTab();
+  }
+
+  if (activeTab) {
+    activeTab.classList.add('tab-content--active');
+    activeTab.style.display = 'block';
+    nlog(`_showTabContent: mostrando contenido de "${tabId}"`);
+  } else {
+    nerr(`_showTabContent: no se encontró elemento con id="${tabId}"`);
+    nlog('Tabs disponibles:', Array.from(allTabs).map((t) => t.id));
+  }
+}
+
+/**
+ * Crea dinámicamente la sección de admin si no existe en el HTML.
+ */
+function _createAdminTab() {
+  const mainContent = document.querySelector('.main-content') || document.body;
+  const section = document.createElement('section');
+  section.id        = 'admin';
+  section.className = 'tab-content';
+  section.style.display = 'none';
+  section.innerHTML = `
+    <div class="section__header">
+      <div>
+        <h2 class="section__title">Administración</h2>
+        <p class="section__subtitle">Panel de administración del sistema</p>
+      </div>
+    </div>
+    <div id="admin-content"></div>
+  `;
+  mainContent.appendChild(section);
+  nlog('_createAdminTab: sección admin creada dinámicamente');
+  return section;
 }
 
 // =============================================================================
-// 5. CARGA DE DATOS ESPECÍFICOS POR PESTAÑA
+// 4. CARGA DE DATOS POR SECCIÓN
 // =============================================================================
 
-async function loadTabSpecificData(tabId) {
-    console.log(`📥 Cargando datos para pestaña: ${tabId}`);
+/**
+ * Carga los datos específicos de cada sección.
+ * Usa las funciones globales expuestas por app.js.
+ */
+async function _loadTabData(tabId) {
+  nlog(`_loadTabData: cargando datos para "${tabId}"`);
 
+  try {
     switch (tabId) {
-        case 'dashboard':
-            if (typeof window.loadDashboardData === 'function') {
-                window.loadDashboardData();
-            }
-            break;
-            
-        case 'personas':
-            if (typeof window.loadPersons === 'function') {
-                window.loadPersons();
-            }
-            break;
-            
-        case 'documentos':
-            if (typeof window.loadDocuments === 'function') {
-                window.loadDocuments();
-            }
-            break;
-            
-        case 'tareas':
-            if (window.taskManager) {
-                window.taskManager.renderTasks();
-                window.taskManager.updateSummary();
-            }
-            break;
-            
-        case 'historial':
-            if (typeof window.loadHistory === 'function') {
-                window.loadHistory();
-            }
-            break;
-            
-        case 'calendario':
-            setTimeout(() => {
-                if (typeof window.initializeBasicCalendar === 'function') {
-                    window.initializeBasicCalendar();
-                }
-            }, 50);
-            break;
-            
-        case 'papelera':
-            if (typeof window.loadTrash === 'function') {
-                window.loadTrash();
-            }
-            break;
-            
-        case 'ajustes':
-            console.log('⚙️ Sección de ajustes');
-            break;
-            
-        case 'reportes':
-            console.log('📊 Sección de reportes');
-            break;
-            
-        case 'soporte':
-            console.log('🛟 Sección de soporte');
-            break;
-            
-        case 'admin':
-            // Admin ya se carga en el manejador de clic
-            console.log('👑 Cargando módulo admin...');
-            try {
-                const module = await import('./modules/admin/index.js');
-                if (module.renderAgregarAdministrador) {
-                    module.renderAgregarAdministrador();
-                }
-            } catch (err) {
-                console.error('❌ Error cargando admin:', err);
-            }
-            break;
-            
-        case 'auditoria':
-            console.log('📋 Cargando módulo de auditoría...');
-            try {
-                const module = await import('./modules/auditoria.js');
-                if (module.renderAuditoria) {
-                    module.renderAuditoria();
-                }
-            } catch (err) {
-                console.error('❌ Error cargando auditoría:', err);
-            }
-            break;
-            
-        default:
-            console.log(`ℹ️ No hay datos específicos para: ${tabId}`);
+
+      case 'dashboard':
+        if (typeof window.loadDashboardData === 'function') {
+          window.loadDashboardData();
+        }
+        break;
+
+      case 'personas':
+        if (typeof window.loadPersons === 'function') {
+          await window.loadPersons();
+        }
+        if (typeof window.renderPersonsTable === 'function') {
+          window.renderPersonsTable();
+        }
+        break;
+
+      case 'documentos':
+        if (typeof window.loadDocuments === 'function') {
+          await window.loadDocuments();
+        }
+        if (typeof window.renderDocumentsTable === 'function') {
+          window.renderDocumentsTable();
+        }
+        break;
+
+      case 'categorias':
+        if (typeof window.loadCategories === 'function') {
+          await window.loadCategories();
+        }
+        if (typeof window.renderCategories === 'function') {
+          window.renderCategories();
+        }
+        break;
+
+      case 'tareas':
+        if (window.taskManager) {
+          await window.taskManager.loadTasks?.();
+          window.taskManager.renderTasks?.();
+          window.taskManager.updateSummary?.();
+        }
+        break;
+
+      case 'historial':
+        if (typeof window.loadTabSpecificHistorial === 'function') {
+          window.loadTabSpecificHistorial();
+        }
+        break;
+
+      case 'papelera':
+        if (typeof window.initPapelera === 'function') {
+          await window.initPapelera();
+        }
+        break;
+
+      case 'calendario':
+        setTimeout(() => {
+          if (typeof window.initializeCalendar === 'function') {
+            window.initializeCalendar();
+          } else if (typeof window.initializeBasicCalendar === 'function') {
+            window.initializeBasicCalendar();
+          }
+        }, 50);
+        break;
+
+      case 'reportes':
+        if (typeof window.initReportsModule === 'function') {
+          window.initReportsModule();
+        }
+        break;
+
+      case 'soporte':
+        if (!window.supportModule && typeof window.SupportModule === 'function') {
+          window.supportModule = new window.SupportModule();
+        } else if (window.supportModule?.init) {
+          window.supportModule.init();
+        }
+        break;
+
+      case 'ajustes':
+        try {
+          if (!window.settingsManager) {
+            const mod = await import('./modules/ajustes.js');
+            window.settingsManager = mod.default;
+            nlog('_loadTabData: módulo ajustes cargado');
+          }
+          window.settingsManager?.updateForm?.();
+        } catch (e) {
+          nerr('_loadTabData: error cargando ajustes', e);
+        }
+        break;
+
+      case 'admin':
+        try {
+          const mod = await import('./modules/admin/index.js');
+          mod.renderAgregarAdministrador?.();
+          nlog('_loadTabData: módulo admin cargado');
+        } catch (e) {
+          nerr('_loadTabData: error cargando admin', e);
+        }
+        break;
+
+      case 'auditoria':
+        try {
+          const mod = await import('./modules/auditoria.js');
+          mod.renderAuditoria?.();
+          nlog('_loadTabData: módulo auditoria cargado');
+        } catch (e) {
+          nerr('_loadTabData: error cargando auditoria', e);
+        }
+        break;
+
+      default:
+        nlog(`_loadTabData: sin carga específica para "${tabId}"`);
     }
+  } catch (e) {
+    nerr(`_loadTabData: error en "${tabId}"`, e);
+  }
 }
 
 // =============================================================================
-// 6. FUNCIONES DE UTILIDAD
+// 5. NAVEGACIÓN POR TECLADO
 // =============================================================================
 
+function _setupKeyboardNavigation() {
+  document.addEventListener('keydown', (e) => {
+    // No interferir con inputs
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    // Solo con Alt presionado para no interferir con el sistema
+    if (!e.altKey) return;
+
+    const visibleTabs = _getVisibleTabs();
+    const currentIndex = visibleTabs.indexOf(_currentTab);
+
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown': {
+        e.preventDefault();
+        const next = visibleTabs[(currentIndex + 1) % visibleTabs.length];
+        if (next) switchTab(next);
+        break;
+      }
+      case 'ArrowLeft':
+      case 'ArrowUp': {
+        e.preventDefault();
+        const prev = visibleTabs[(currentIndex - 1 + visibleTabs.length) % visibleTabs.length];
+        if (prev) switchTab(prev);
+        break;
+      }
+    }
+  });
+
+  nlog('_setupKeyboardNavigation: navegación con Alt+Flechas activada');
+}
+
+function _getVisibleTabs() {
+  return Array.from(_getNavLinks())
+    .filter((link) => link.style.display !== 'none')
+    .map((link) => link.getAttribute('data-tab'))
+    .filter(Boolean);
+}
+
+// =============================================================================
+// 6. INFORMACIÓN DEL USUARIO EN SIDEBAR
+// =============================================================================
+
+function _updateUserInfo() {
+  try {
+    const user = getCurrentUser?.() || null;
+    if (!user) return;
+
+    const nameEl  = document.querySelector('.sidebar__user-name');
+    const roleEl  = document.querySelector('.sidebar__user-role');
+    const emailEl = document.getElementById('userEmail');
+
+    if (nameEl)  nameEl.textContent  = user.usuario || user.name || 'Usuario';
+    if (emailEl) emailEl.textContent = user.correo  || user.email || '';
+
+    if (roleEl) {
+      const rol = user.rol || user.role || '';
+      roleEl.textContent = rol === ROLES.ADMIN
+        ? 'Administrador'
+        : (rol.charAt(0).toUpperCase() + rol.slice(1));
+    }
+
+    nlog('_updateUserInfo: info de usuario actualizada');
+  } catch (e) {
+    nwarn('_updateUserInfo: error', e.message);
+  }
+}
+
+// =============================================================================
+// 7. UTILIDADES
+// =============================================================================
+
+function _getNavLinks() {
+  return document.querySelectorAll('.sidebar__nav-link[data-tab]');
+}
+
+/**
+ * Devuelve el ID de la sección actualmente activa.
+ */
 export function getCurrentTab() {
-    const activeLink = document.querySelector('.sidebar__nav-link--active');
-    return activeLink ? activeLink.getAttribute('data-tab') : 'dashboard';
+  return _currentTab;
 }
 
+/**
+ * Cambia a una sección si el usuario tiene permiso para verla.
+ * Alias semántico de switchTab.
+ */
 export function showTab(tabId) {
-    if (canView(tabId)) {
-        switchTab(tabId);
-    }
+  if (canView(tabId)) {
+    switchTab(tabId);
+  } else {
+    showNoPermissionAlert(tabId);
+  }
 }
 
 // =============================================================================
-// 7. NAVEGACIÓN POR TECLADO
+// 8. ACTUALIZAR PERMISOS EN TIEMPO REAL
 // =============================================================================
 
-function initializeKeyboardNavigation() {
-    document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            return;
-        }
-
-        const currentTab = getCurrentTab();
-        
-        // Obtener tabs visibles
-        const visibleTabs = Array.from(document.querySelectorAll('.sidebar__nav-link[data-tab]'))
-            .filter(link => link.style.display !== 'none')
-            .map(link => link.getAttribute('data-tab'));
-
-        const currentIndex = visibleTabs.indexOf(currentTab);
-
-        switch (e.key) {
-            case 'ArrowRight':
-            case 'ArrowDown':
-                e.preventDefault();
-                const nextIndex = (currentIndex + 1) % visibleTabs.length;
-                if (visibleTabs[nextIndex]) {
-                    switchTab(visibleTabs[nextIndex]);
-                }
-                break;
-                
-            case 'ArrowLeft':
-            case 'ArrowUp':
-                e.preventDefault();
-                const prevIndex = (currentIndex - 1 + visibleTabs.length) % visibleTabs.length;
-                if (visibleTabs[prevIndex]) {
-                    switchTab(visibleTabs[prevIndex]);
-                }
-                break;
-        }
-    });
-}
-
-// =============================================================================
-// 8. ACTUALIZAR INFORMACIÓN DEL USUARIO EN SIDEBAR
-// =============================================================================
-
-function updateUserInfo() {
-    try {
-        const user = getCurrentUser();
-        if (!user) return;
-
-        const userNameElement = document.querySelector('.sidebar__user-name');
-        const userRoleElement = document.querySelector('.sidebar__user-role');
-        const userEmailElement = document.getElementById('userEmail');
-
-        if (userNameElement) {
-            userNameElement.textContent = user.usuario || 'Usuario';
-        }
-
-        if (userRoleElement) {
-            const roleName = user.rol === ROLES.ADMIN ? 'Administrador' : user.rol;
-            userRoleElement.textContent = roleName;
-        }
-
-        if (userEmailElement) {
-            userEmailElement.textContent = user.correo || '';
-        }
-    } catch (e) {
-        console.error('Error actualizando info de usuario:', e);
-    }
-}
-
-// =============================================================================
-// 9. ACTUALIZAR PERMISOS EN TIEMPO REAL
-// =============================================================================
-
+/**
+ * Actualiza todos los permisos y reaplica la UI.
+ * Llamar cuando el admin modifica un rol o cambia el rol de un usuario.
+ *
+ * @returns {Promise<void>}
+ */
 export async function refreshPermissions() {
-    console.log('🔄 Actualizando permisos...');
-    
+  nlog('refreshPermissions: actualizando...');
+
+  try {
+    // Invalidar cache y recargar
     invalidatePermissionsCache();
     await initPermissionsSystem();
-    applyNavigationPermissions();
-    applyActionPermissions();
-    
-    const currentTab = getCurrentTab();
-    if (!canView(currentTab) && currentTab !== 'dashboard') {
-        const navLinks = document.querySelectorAll('.sidebar__nav-link[data-tab]');
-        for (const link of navLinks) {
-            const tabId = link.getAttribute('data-tab');
-            if (canView(tabId) && link.style.display !== 'none') {
-                await switchTab(tabId);
-                break;
-            }
-        }
-    }
-    
-    console.log('✅ Permisos actualizados');
-}
 
-// =============================================================================
-// 10. INICIALIZACIÓN COMPLETA
-// =============================================================================
-
-export async function initializeNavigation() {
-    console.log('🚀 Iniciando sistema de navegación...');
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', async () => {
-            await initializeTabNavigation();
-            initializeAdminLink(); // ← INICIALIZAR ADMIN AQUÍ
-            initializeKeyboardNavigation();
-            updateUserInfo();
-        });
+    // Si la pestaña actual ya no es accesible, ir al dashboard
+    if (_currentTab !== 'dashboard' && !canView(_currentTab)) {
+      nwarn(`refreshPermissions: pestaña actual "${_currentTab}" ya no accesible → dashboard`);
+      await switchTab('dashboard');
     } else {
-        await initializeTabNavigation();
-        initializeAdminLink(); // ← Y TAMBIÉN AQUÍ
-        initializeKeyboardNavigation();
-        updateUserInfo();
+      // Reaplicar permisos de acción en la sección actual
+      applyActionPermissions();
     }
 
-    console.log('✅ Sistema de navegación inicializado');
+    nlog('refreshPermissions: completado ✅');
+  } catch (e) {
+    nerr('refreshPermissions: error', e);
+  }
 }
 
 // =============================================================================
-// 11. EXPORTACIONES
+// 9. EXPORTACIONES GLOBALES
+// =============================================================================
+
+// Hacer funciones disponibles globalmente para compatibilidad con app.js
+// y código legacy que accede a window.switchTab
+window.switchTab        = switchTab;
+window.getCurrentTab    = getCurrentTab;
+window.showTab          = showTab;
+window.initializeNavigation = initializeNavigation;
+window.refreshPermissions   = refreshPermissions;
+
+// Función de debug
+window._navDebug = () => {
+  console.group('🧭 [Nav] Debug');
+  console.log('Tab actual:', _currentTab);
+  console.log('Nav bloqueada:', _navigationLocked);
+  console.log('Tabs válidas:', VALID_TABS);
+  console.log('Tabs visibles:', _getVisibleTabs());
+  const links = _getNavLinks();
+  console.group(`Nav-links (${links.length}):`);
+  links.forEach((l) => {
+    console.log(`  [${l.getAttribute('data-tab')}] display="${l.style.display}" active=${l.classList.contains('sidebar__nav-link--active')}`);
+  });
+  console.groupEnd();
+  console.groupEnd();
+};
+
+nlog('📦 Módulo navigation.js cargado — debug: window._navDebug()');
+
+// =============================================================================
+// 10. EXPORTACIONES DE MÓDULO
 // =============================================================================
 
 export {
-    initializeTabNavigation,
-    loadTabSpecificData,
-    initializeKeyboardNavigation
+  _loadTabData as loadTabSpecificData,
+  _setupTabNavigation as initializeTabNavigation,
+  _setupKeyboardNavigation as initializeKeyboardNavigation,
 };
-
-// Hacer funciones disponibles globalmente
-window.showTab = showTab;
-window.getCurrentTab = getCurrentTab;
-window.switchTab = switchTab;
-window.initializeNavigation = initializeNavigation;
-window.refreshPermissions = refreshPermissions;
-
-console.log('📦 Módulo navigation.js cargado');
