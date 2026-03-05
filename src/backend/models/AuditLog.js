@@ -23,10 +23,6 @@ const auditLogSchema = new mongoose.Schema({
     userRole: {
         type: String,
         required: true,
-        enum: [
-            'administrador', 'gerente', 'supervisor', 'editor', 
-            'revisor', 'lector', 'moderador', 'desactivado', 'usuario', 'visitante'
-        ],
         index: true
     },
     userEmail: {

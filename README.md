@@ -151,6 +151,7 @@ DOCUMENTOS/
 │   │   │   ├── notificaciones.js
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
+|   │   │   ├── roles.js
 |   │   │   ├── soporte.js
 │   │   │   ├── search.js
 │   │   │   ├── systemStatus.js
@@ -234,6 +235,7 @@ DOCUMENTOS/
 │       │   ├── departmentController.js
 │       │   ├── documentController.js
 │       │   ├── notificationController.js
+|       │   ├── roleController.js
 │       │   ├── personController.js
 │       │   ├── reportController.js
 │       │   ├── trashController.js
@@ -250,6 +252,7 @@ DOCUMENTOS/
 │       │   ├── Task.js
 │       │   ├── Department.js
 │       │   ├── Category.js
+|       │   ├── Role.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
 │       │   ├── Ticket.js
@@ -262,6 +265,7 @@ DOCUMENTOS/
 │       ├── routes/
 │       │    ├── apiRoutes.js
 │       │    ├── adminRoutes.js
+│       │    ├── roleRoutes.js
 │       │    └── authRoutes.js
 │       │
 │       └── debugRoutes.js           # Debug tareas

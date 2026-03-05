@@ -25,195 +25,194 @@
     <div class="app-layout">
 
         <!-- SECCIÓN 3: BARRA LATERAL (SIDEBAR) -->
-        <aside class="sidebar">
-            <!-- Cabecera con logo y título -->
-            <div class="sidebar__header">
-                <div class="sidebar__logo-container">
-                    <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
-                    <div class="sidebar__logo-badge">
-                        <i class="fas fa-certificate"></i>
-                    </div>
+<aside class="sidebar">
+    <!-- Cabecera con logo y título -->
+    <div class="sidebar__header">
+        <div class="sidebar__logo-container">
+            <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
+            <div class="sidebar__logo-badge">
+                <i class="fas fa-certificate"></i>
+            </div>
+        </div>
+        <div class="sidebar__title-container">
+            <h1 class="sidebar__title">CBTIS051</h1>
+        </div>
+    </div>
+
+    <!-- Separador decorativo -->
+    <div class="sidebar__divider"></div>
+
+    <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
+    <nav class="sidebar__nav">
+        <!-- Grupo 1: Navegación Principal -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Navegación Principal</p>
+            <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard" data-section="dashboard">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-home"></i>
                 </div>
-                <div class="sidebar__title-container">
-                    <h1 class="sidebar__title">CBTIS051</h1>
+                <span class="sidebar__nav-text">Dashboard</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="personas" data-section="personas">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-users"></i>
+                </div>
+                <span class="sidebar__nav-text">Personas</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="documentos" data-section="documentos">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <span class="sidebar__nav-text">Documentos</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="tareas" data-section="tareas">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fa-solid fa-thumbtack"></i>
+                </div>
+                <span class="sidebar__nav-text">Tareas</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="historial" data-section="historial">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-history"></i>
+                </div>
+                <span class="sidebar__nav-text">Historial</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+        </div>
+
+        <!-- Grupo 2: Herramientas -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Herramientas</p>
+            <a href="#" class="sidebar__nav-link" data-tab="calendario" data-section="calendario">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <span class="sidebar__nav-text">Calendario</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="papelera" data-section="papelera">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <span class="sidebar__nav-text">Papelera</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+        </div>
+
+        <!-- Grupo 3: Configuración -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Configuración</p>
+            <a href="#" class="sidebar__nav-link" data-tab="ajustes" data-section="ajustes">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <span class="sidebar__nav-text">Ajustes</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="reportes" id="sidebarReportesLink" data-section="reportes">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <span class="sidebar__nav-text">Reportes</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="soporte" data-section="soporte">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <span class="sidebar__nav-text">Soporte</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+        </div>
+
+        <!-- Grupo 4: Administración -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Administración</p>
+            <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin" data-section="admin">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <span class="sidebar__nav-text">Admin</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <!-- NUEVO: Enlace a Auditoría -->
+            <a href="#" class="sidebar__nav-link" data-tab="auditoria" data-section="auditoria">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-history"></i>
+                </div>
+                <span class="sidebar__nav-text">Auditoría</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <div class="dropdown" id="admin-dropdown">
+                <p class="sidebar__nav-group-title">Admin Opciones</p>
+                <a href="#" class="sidebar__nav-link" id="agregar-admin-link" data-section="admin">
+                    <div class="sidebar__nav-icon-wrapper">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <span class="sidebar__nav-text">Agregar Administrador</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Pie de la barra lateral -->
+    <div class="sidebar__footer">
+
+        <!-- Perfil de usuario -->
+        <div class="sidebar__user" id="userMenuTrigger">
+            <div class="sidebar__user-status"></div>
+            <div class="sidebar__user-avatar">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="sidebar__user-info">
+                <p class="sidebar__user-name">Administrador</p>
+                <p class="sidebar__user-role">Sistema Principal</p>
+            </div>
+            <div class="sidebar__user-actions">
+                <i class="fas fa-chevron-up sidebar__user-chevron"></i>
+            </div>
+        </div>
+
+        <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
+        <div class="user-menu" id="userMenu">
+            <div class="user-menu__header">
+                <div class="user-menu__status-indicator"></div>
+                <div class="user-menu__avatar">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="user-menu__info">
+                    <p class="user-menu__name">Administrador del Sistema</p>
+                    <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
+                    <p class="user-menu__status">En línea</p>
                 </div>
             </div>
 
-            <!-- Separador decorativo -->
-            <div class="sidebar__divider"></div>
+            <div class="user-menu__divider"></div>
 
-            <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
-            <nav class="sidebar__nav">
-                <!-- Grupo 1: Navegación Principal -->
-                <div class="sidebar__nav-group">
-                    <p class="sidebar__nav-group-title">Navegación Principal</p>
-                    <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-home"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Dashboard</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="personas">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Personas</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="documentos">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Documentos</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="tareas">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fa-solid fa-thumbtack"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Tareas</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="historial">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-history"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Historial</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
+            <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
+                <i class="fas fa-user-shield"></i>
+                <span>Cambiar Administrador</span>
+            </button>
+
+            <div class="user-menu__divider"></div>
+
+            <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
+                <div class="user-menu__option-icon">
+                    <i class="fas fa-sign-out-alt"></i>
                 </div>
+                <span>Cerrar Sesión</span>
+            </button>
 
-                <!-- Grupo 2: Herramientas -->
-                <div class="sidebar__nav-group">
-                    <p class="sidebar__nav-group-title">Herramientas</p>
-                    <a href="#" class="sidebar__nav-link" data-tab="calendario">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Calendario</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="papelera">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-trash-alt"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Papelera</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                </div>
-
-                <!-- Grupo 3: Configuración -->
-                <div class="sidebar__nav-group">
-
-                    <p class="sidebar__nav-group-title">Configuración</p>
-                    <a href="#" class="sidebar__nav-link" data-tab="ajustes">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Ajustes</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="reportes" id="sidebarReportesLink">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Reportes</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="soporte">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-headset"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Soporte</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                </div>
-
-                <!-- Grupo 4: Administración -->
-                <div class="sidebar__nav-group">
-                    <p class="sidebar__nav-group-title">Administración</p>
-                    <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Admin</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <!-- NUEVO: Enlace a Auditoría -->
-                    <a href="#" class="sidebar__nav-link" data-tab="auditoria">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-history"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Auditoría</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <div class="dropdown" id="admin-dropdown">
-                        <p class="sidebar__nav-group-title">Admin Opciones</p>
-                        <a href="#" class="sidebar__nav-link" id="agregar-admin-link">
-                            <div class="sidebar__nav-icon-wrapper">
-                                <i class="fas fa-user-plus"></i>
-                            </div>
-                            <span class="sidebar__nav-text">Agregar Administrador</span>
-                        </a>
-                    </div>
-                </div>
-            </nav>
-
-            <!-- Pie de la barra lateral -->
-            <div class="sidebar__footer">
-
-                <!-- Perfil de usuario -->
-                <div class="sidebar__user" id="userMenuTrigger">
-                    <div class="sidebar__user-status"></div>
-                    <div class="sidebar__user-avatar">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div class="sidebar__user-info">
-                        <p class="sidebar__user-name">Administrador</p>
-                        <p class="sidebar__user-role">Sistema Principal</p>
-                    </div>
-                    <div class="sidebar__user-actions">
-                        <i class="fas fa-chevron-up sidebar__user-chevron"></i>
-                    </div>
-                </div>
-
-                <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
-                <div class="user-menu" id="userMenu">
-                    <div class="user-menu__header">
-                        <div class="user-menu__status-indicator"></div>
-                        <div class="user-menu__avatar">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <div class="user-menu__info">
-                            <p class="user-menu__name">Administrador del Sistema</p>
-                            <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
-                            <p class="user-menu__status">En línea</p>
-                        </div>
-                    </div>
-
-                    <div class="user-menu__divider"></div>
-
-                    <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Cambiar Administrador</span>
-                    </button>
-
-                    <div class="user-menu__divider"></div>
-
-                    <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
-                        <div class="user-menu__option-icon">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </div>
-                        <span>Cerrar Sesión</span>
-                    </button>
-
-                    <div class="user-menu__footer">
-                        <p class="user-menu__version">v1.0.0</p>
-                    </div>
-                </div>
+            <div class="user-menu__footer">
+                <p class="user-menu__version">v1.0.0</p>
             </div>
-        </aside>
+        </div>
+    </div>
+</aside>
 
         <!-- SECCIÓN 4: CONTENIDO PRINCIPAL -->
         <div class="content-wrapper">

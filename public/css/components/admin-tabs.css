@@ -1,0 +1,102 @@
+/* =============================================================================
+   public/css/sections/admin-tabs.css
+   Estilos para los tabs internos de la sección de administración.
+   Clases: .admin-tab, .admin-tab-content
+   Se añade al admin.css existente o se incluye como archivo separado.
+   ============================================================================= */
+
+/* ─── Barra de tabs ─────────────────────────────────────────────────────────── */
+
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 5px;
+  margin-bottom: var(--spacing-xl);
+  width: fit-content;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0.55rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  position: relative;
+}
+
+.admin-tab:hover:not(.admin-tab--active) {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.admin-tab--active {
+  background: var(--bg-primary);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-tab--active i {
+  color: var(--primary);
+}
+
+/* ─── Contenido de tabs ─────────────────────────────────────────────────────── */
+
+.admin-tab-content {
+  display: none;
+  animation: adminTabFadeIn 0.2s ease-out;
+}
+
+.admin-tab-content--active {
+  display: block;
+}
+
+@keyframes adminTabFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Franja de color superior en tarjeta de rol ────────────────────────────── */
+
+.permisos-role-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.permisos-role-card__stripe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+/* ─── Responsive tabs ───────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .admin-tabs {
+    width: 100%;
+  }
+
+  .admin-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .admin-tab i {
+    display: none;
+  }
+}

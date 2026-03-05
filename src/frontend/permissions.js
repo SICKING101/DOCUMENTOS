@@ -1,426 +1,370 @@
 // src/frontend/permissions.js
-// Mapa central de permisos por rol - VERSIÓN MEJORADA CON TODAS LAS SECCIONES
+// Sistema de permisos del frontend.
+//
+// ARQUITECTURA:
+//   • Solo existen DOS roles fijos en el sistema:
+//       - "administrador"  → acceso total, hardcoded en backend y frontend
+//       - "desactivado"    → sin acceso, hardcoded
+//   • TODOS los demás roles son DINÁMICOS: se crean desde el panel de Admin
+//     y se almacenan en MongoDB (colección roles).
+//   • Este archivo NO define gerente/editor/lector/etc. — esos roles fijos
+//     fueron eliminados. El campo `rol` del usuario es simplemente un String
+//     libre que coincide con el nombre del rol dinámico creado por el admin.
+//
+// DEBUG: activar con localStorage.setItem('permisos_debug', '1')
 
-export const PERMISSIONS = Object.freeze({
-  // Documentos
-  VIEW_DOCUMENTS: 'viewDocuments',
-  DOWNLOAD_DOCUMENTS: 'downloadDocuments',
-  UPLOAD_DOCUMENTS: 'uploadDocuments',
-  EDIT_DOCUMENTS: 'editDocuments',
-  DELETE_DOCUMENTS: 'deleteDocuments',
-  APPROVE_DOCUMENTS: 'approveDocuments',
-  
-  // Personas
-  VIEW_PERSONS: 'viewPersons',
-  CREATE_PERSON: 'createPerson',
-  EDIT_PERSON: 'editPerson',
-  DELETE_PERSON: 'deletePerson',
-  
-  // Categorías
-  VIEW_CATEGORIES: 'viewCategories',
-  CREATE_CATEGORY: 'createCategory',
-  EDIT_CATEGORY: 'editCategory',
-  DELETE_CATEGORY: 'deleteCategory',
-  
-  // Departamentos
-  VIEW_DEPARTMENTS: 'viewDepartments',
-  CREATE_DEPARTMENT: 'createDepartment',
-  EDIT_DEPARTMENT: 'editDepartment',
-  DELETE_DEPARTMENT: 'deleteDepartment',
-  
-  // Tareas
-  VIEW_TASKS: 'viewTasks',
-  CREATE_TASK: 'createTask',
-  EDIT_TASK: 'editTask',
-  DELETE_TASK: 'deleteTask',
-  COMPLETE_TASK: 'completeTask',
-  
-  // Reportes
-  VIEW_REPORTS: 'viewReports',
-  GENERATE_REPORTS: 'generateReports',
-  EXPORT_REPORTS: 'exportReports',
-  
-  // Administración
-  MANAGE_USERS: 'manageUsers',
-  VIEW_AUDIT_LOGS: 'viewAuditLogs',
-  VIEW_SYSTEM_SETTINGS: 'viewSystemSettings',
-  EDIT_SYSTEM_SETTINGS: 'editSystemSettings',
-  
-  // Papelera
-  VIEW_TRASH: 'viewTrash',
-  RESTORE_FROM_TRASH: 'restoreFromTrash',
-  EMPTY_TRASH: 'emptyTrash',
-  
-  // Calendario
-  VIEW_CALENDAR: 'viewCalendar',
-  CREATE_EVENT: 'createEvent',
-  EDIT_EVENT: 'editEvent',
-  DELETE_EVENT: 'deleteEvent',
-  
-  // Historial
-  VIEW_HISTORY: 'viewHistory',
-  EXPORT_HISTORY: 'exportHistory',
-  CLEAR_HISTORY: 'clearHistory',
-  
-  // Soporte
-  VIEW_SUPPORT: 'viewSupport',
-  CREATE_TICKET: 'createTicket',
-  VIEW_ALL_TICKETS: 'viewAllTickets',
-  RESPOND_TICKET: 'respondTicket',
-  CLOSE_TICKET: 'closeTicket'
-});
+const DEBUG = localStorage.getItem('permisos_debug') === '1' || true;
+function plog(...args)  { if (DEBUG) console.log('🔐 [Permisos]', ...args); }
+function pwarn(...args) { if (DEBUG) console.warn('⚠️ [Permisos]', ...args); }
+function perr(...args)  { console.error('❌ [Permisos]', ...args); }
 
-export const ROLES = Object.freeze({
-  ADMIN: 'administrador',      // 1 solo - Control total
-  GERENTE: 'gerente',           // Gestión completa excepto admin
-  SUPERVISOR: 'supervisor',     // Supervisa todo, no crea/elimina
-  EDITOR: 'editor',             // Crea y edita contenido
-  REVISOR: 'revisor',           // Solo revisa y aprueba
-  LECTOR: 'lector',             // Solo lectura
-  MODERADOR: 'moderador',       // Mantenido por compatibilidad
-  USUARIO: 'usuario',           // Mantenido por compatibilidad
-  DISABLED: 'desactivado'       // Usuario desactivado
-});
+// =============================================================================
+// ROLES FIJOS (solo estos dos son especiales)
+// =============================================================================
 
-// Mapa de permisos por rol
-export const ROLE_PERMISSIONS = Object.freeze({
-  // ADMIN - Control total del sistema (SOLO 1)
-  [ROLES.ADMIN]: [
-    // Documentos
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    PERMISSIONS.UPLOAD_DOCUMENTS,
-    PERMISSIONS.EDIT_DOCUMENTS,
-    PERMISSIONS.DELETE_DOCUMENTS,
-    PERMISSIONS.APPROVE_DOCUMENTS,
-    
-    // Personas
-    PERMISSIONS.VIEW_PERSONS,
-    PERMISSIONS.CREATE_PERSON,
-    PERMISSIONS.EDIT_PERSON,
-    PERMISSIONS.DELETE_PERSON,
-    
-    // Categorías
-    PERMISSIONS.VIEW_CATEGORIES,
-    PERMISSIONS.CREATE_CATEGORY,
-    PERMISSIONS.EDIT_CATEGORY,
-    PERMISSIONS.DELETE_CATEGORY,
-    
-    // Departamentos
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    PERMISSIONS.CREATE_DEPARTMENT,
-    PERMISSIONS.EDIT_DEPARTMENT,
-    PERMISSIONS.DELETE_DEPARTMENT,
-    
-    // Tareas
-    PERMISSIONS.VIEW_TASKS,
-    PERMISSIONS.CREATE_TASK,
-    PERMISSIONS.EDIT_TASK,
-    PERMISSIONS.DELETE_TASK,
-    PERMISSIONS.COMPLETE_TASK,
-    
-    // Reportes
-    PERMISSIONS.VIEW_REPORTS,
-    PERMISSIONS.GENERATE_REPORTS,
-    PERMISSIONS.EXPORT_REPORTS,
-    
-    // Administración
-    PERMISSIONS.MANAGE_USERS,
-    PERMISSIONS.VIEW_AUDIT_LOGS,
-    PERMISSIONS.VIEW_SYSTEM_SETTINGS,
-    PERMISSIONS.EDIT_SYSTEM_SETTINGS,
-    
-    // Papelera
-    PERMISSIONS.VIEW_TRASH,
-    PERMISSIONS.RESTORE_FROM_TRASH,
-    PERMISSIONS.EMPTY_TRASH,
-    
-    // Calendario
-    PERMISSIONS.VIEW_CALENDAR,
-    PERMISSIONS.CREATE_EVENT,
-    PERMISSIONS.EDIT_EVENT,
-    PERMISSIONS.DELETE_EVENT,
-    
-    // Historial
-    PERMISSIONS.VIEW_HISTORY,
-    PERMISSIONS.EXPORT_HISTORY,
-    PERMISSIONS.CLEAR_HISTORY,
-    
-    // Soporte
-    PERMISSIONS.VIEW_SUPPORT,
-    PERMISSIONS.CREATE_TICKET,
-    PERMISSIONS.VIEW_ALL_TICKETS,
-    PERMISSIONS.RESPOND_TICKET,
-    PERMISSIONS.CLOSE_TICKET
-  ],
+export const ROLES = {
+  ADMIN:    'administrador',
+  DISABLED: 'desactivado',
+};
 
-  // GERENTE - Gestión completa excepto administración de usuarios
-  [ROLES.GERENTE]: [
-    // Documentos
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    PERMISSIONS.UPLOAD_DOCUMENTS,
-    PERMISSIONS.EDIT_DOCUMENTS,
-    PERMISSIONS.DELETE_DOCUMENTS,
-    PERMISSIONS.APPROVE_DOCUMENTS,
-    
-    // Personas
-    PERMISSIONS.VIEW_PERSONS,
-    PERMISSIONS.CREATE_PERSON,
-    PERMISSIONS.EDIT_PERSON,
-    PERMISSIONS.DELETE_PERSON,
-    
-    // Categorías
-    PERMISSIONS.VIEW_CATEGORIES,
-    PERMISSIONS.CREATE_CATEGORY,
-    PERMISSIONS.EDIT_CATEGORY,
-    PERMISSIONS.DELETE_CATEGORY,
-    
-    // Departamentos
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    PERMISSIONS.CREATE_DEPARTMENT,
-    PERMISSIONS.EDIT_DEPARTMENT,
-    PERMISSIONS.DELETE_DEPARTMENT,
-    
-    // Tareas
-    PERMISSIONS.VIEW_TASKS,
-    PERMISSIONS.CREATE_TASK,
-    PERMISSIONS.EDIT_TASK,
-    PERMISSIONS.DELETE_TASK,
-    PERMISSIONS.COMPLETE_TASK,
-    
-    // Reportes
-    PERMISSIONS.VIEW_REPORTS,
-    PERMISSIONS.GENERATE_REPORTS,
-    PERMISSIONS.EXPORT_REPORTS,
-    
-    // Papelera
-    PERMISSIONS.VIEW_TRASH,
-    PERMISSIONS.RESTORE_FROM_TRASH,
-    
-    // Calendario
-    PERMISSIONS.VIEW_CALENDAR,
-    PERMISSIONS.CREATE_EVENT,
-    PERMISSIONS.EDIT_EVENT,
-    PERMISSIONS.DELETE_EVENT,
-    
-    // Historial
-    PERMISSIONS.VIEW_HISTORY,
-    
-    // Soporte
-    PERMISSIONS.VIEW_SUPPORT,
-    PERMISSIONS.CREATE_TICKET,
-    PERMISSIONS.VIEW_ALL_TICKETS
-  ],
+// =============================================================================
+// PERMISOS DE ACCIONES DE LA APP (para hasPermission())
+// Estos son permisos de la UI, no de secciones.
+// El administrador tiene todos. Los roles dinámicos solo tienen MANAGE_USERS = false.
+// =============================================================================
 
-  // SUPERVISOR - Supervisa pero no modifica contenido crítico
-  [ROLES.SUPERVISOR]: [
-    // Documentos
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    PERMISSIONS.APPROVE_DOCUMENTS,
-    
-    // Personas
-    PERMISSIONS.VIEW_PERSONS,
-    
-    // Categorías
-    PERMISSIONS.VIEW_CATEGORIES,
-    
-    // Departamentos
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    
-    // Tareas
-    PERMISSIONS.VIEW_TASKS,
-    PERMISSIONS.COMPLETE_TASK,
-    
-    // Reportes
-    PERMISSIONS.VIEW_REPORTS,
-    PERMISSIONS.GENERATE_REPORTS,
-    PERMISSIONS.EXPORT_REPORTS,
-    
-    // Papelera
-    PERMISSIONS.VIEW_TRASH,
-    
-    // Calendario
-    PERMISSIONS.VIEW_CALENDAR,
-    
-    // Historial
-    PERMISSIONS.VIEW_HISTORY,
-    
-    // Soporte
-    PERMISSIONS.VIEW_SUPPORT,
-    PERMISSIONS.CREATE_TICKET
-  ],
+export const PERMISSIONS = {
+  // Gestión de usuarios y roles (solo admin)
+  MANAGE_USERS:       'manage_users',
+  MANAGE_ROLES:       'manage_roles',
+  // Acceso a auditoría (solo admin)
+  VIEW_AUDIT:         'view_audit',
+  // Puede ver su propio perfil
+  VIEW_PROFILE:       'view_profile',
+};
 
-  // EDITOR - Crea y edita contenido
-  [ROLES.EDITOR]: [
-    // Documentos
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    PERMISSIONS.UPLOAD_DOCUMENTS,
-    PERMISSIONS.EDIT_DOCUMENTS,
-    
-    // Personas
-    PERMISSIONS.VIEW_PERSONS,
-    PERMISSIONS.CREATE_PERSON,
-    PERMISSIONS.EDIT_PERSON,
-    
-    // Categorías
-    PERMISSIONS.VIEW_CATEGORIES,
-    PERMISSIONS.CREATE_CATEGORY,
-    PERMISSIONS.EDIT_CATEGORY,
-    
-    // Departamentos
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    
-    // Tareas
-    PERMISSIONS.VIEW_TASKS,
-    PERMISSIONS.CREATE_TASK,
-    PERMISSIONS.EDIT_TASK,
-    PERMISSIONS.COMPLETE_TASK,
-    
-    // Reportes
-    PERMISSIONS.VIEW_REPORTS,
-    
-    // Calendario
-    PERMISSIONS.VIEW_CALENDAR,
-    PERMISSIONS.CREATE_EVENT,
-    PERMISSIONS.EDIT_EVENT,
-    
-    // Soporte
-    PERMISSIONS.VIEW_SUPPORT,
-    PERMISSIONS.CREATE_TICKET
-  ],
+// =============================================================================
+// CACHE DE PERMISOS DEL USUARIO ACTUAL
+// =============================================================================
 
-  // REVISOR - Revisa y aprueba
-  [ROLES.REVISOR]: [
-    // Documentos
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    PERMISSIONS.APPROVE_DOCUMENTS,
-    
-    // Personas
-    PERMISSIONS.VIEW_PERSONS,
-    
-    // Categorías
-    PERMISSIONS.VIEW_CATEGORIES,
-    
-    // Departamentos
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    
-    // Tareas
-    PERMISSIONS.VIEW_TASKS,
-    PERMISSIONS.COMPLETE_TASK,
-    
-    // Reportes
-    PERMISSIONS.VIEW_REPORTS,
-    
-    // Calendario
-    PERMISSIONS.VIEW_CALENDAR,
-    
-    // Soporte
-    PERMISSIONS.VIEW_SUPPORT
-  ],
+let _permissionsCache = null;   // { [section]: { canView, canAction } }
+let _currentUserRole  = null;   // string — nombre del rol actual
 
-  // LECTOR - Solo lectura
-  [ROLES.LECTOR]: [
-    // Documentos
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    
-    // Personas
-    PERMISSIONS.VIEW_PERSONS,
-    
-    // Categorías
-    PERMISSIONS.VIEW_CATEGORIES,
-    
-    // Departamentos
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    
-    // Tareas
-    PERMISSIONS.VIEW_TASKS,
-    
-    // Reportes
-    PERMISSIONS.VIEW_REPORTS,
-    
-    // Calendario
-    PERMISSIONS.VIEW_CALENDAR,
-    
-    // Soporte
-    PERMISSIONS.VIEW_SUPPORT
-  ],
-
-  // Compatibilidad: moderador (intermedio)
-  [ROLES.MODERADOR]: [
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    PERMISSIONS.UPLOAD_DOCUMENTS,
-    PERMISSIONS.EDIT_DOCUMENTS,
-    PERMISSIONS.DELETE_DOCUMENTS,
-    PERMISSIONS.APPROVE_DOCUMENTS,
-    PERMISSIONS.VIEW_PERSONS,
-    PERMISSIONS.CREATE_PERSON,
-    PERMISSIONS.EDIT_PERSON,
-    PERMISSIONS.VIEW_CATEGORIES,
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    PERMISSIONS.VIEW_TASKS,
-    PERMISSIONS.CREATE_TASK,
-    PERMISSIONS.COMPLETE_TASK,
-    PERMISSIONS.VIEW_REPORTS,
-    PERMISSIONS.VIEW_TRASH,
-    PERMISSIONS.VIEW_CALENDAR,
-    PERMISSIONS.VIEW_SUPPORT,
-    PERMISSIONS.CREATE_TICKET
-  ],
-
-  // Compatibilidad: usuario (lector básico)
-  [ROLES.USUARIO]: [
-    PERMISSIONS.VIEW_DOCUMENTS,
-    PERMISSIONS.DOWNLOAD_DOCUMENTS,
-    PERMISSIONS.VIEW_PERSONS,
-    PERMISSIONS.VIEW_CATEGORIES,
-    PERMISSIONS.VIEW_DEPARTMENTS,
-    PERMISSIONS.VIEW_TASKS,
-    PERMISSIONS.VIEW_CALENDAR,
-    PERMISSIONS.VIEW_SUPPORT
-  ],
-
-  [ROLES.DISABLED]: []
-});
-
-export function getCurrentUser() {
+/**
+ * Carga desde la API los permisos del rol del usuario logueado y los cachea.
+ * Debe llamarse justo después del login y al cambiar de rol.
+ */
+export async function loadCurrentPermissions() {
   try {
-    const raw = localStorage.getItem('user');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) { pwarn('loadCurrentPermissions: no hay usuario en localStorage'); return null; }
+
+    const user = JSON.parse(userStr);
+    const rol  = user.rol || user.role;
+
+    if (!rol) { pwarn('loadCurrentPermissions: usuario sin campo "rol"'); return null; }
+
+    plog('loadCurrentPermissions: cargando permisos para rol=', rol);
+    _currentUserRole = rol;
+
+    // El administrador tiene acceso total — no necesita consultar la API
+    if (rol === ROLES.ADMIN) {
+      _permissionsCache = { __admin: true };
+      plog('loadCurrentPermissions: usuario administrador → acceso total');
+      return _permissionsCache;
+    }
+
+    // Desactivado: sin acceso
+    if (rol === ROLES.DISABLED) {
+      _permissionsCache = {};
+      pwarn('loadCurrentPermissions: usuario desactivado → sin permisos');
+      return _permissionsCache;
+    }
+
+    // Consultar el mapa de permisos del rol dinámico
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/roles/permissions/${encodeURIComponent(rol)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':  'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      pwarn(`loadCurrentPermissions: respuesta ${response.status} del servidor`);
+      _permissionsCache = {};
+      return null;
+    }
+
+    const data = await response.json();
+    if (data?.success && data?.data) {
+      _permissionsCache = data.data;
+      plog('loadCurrentPermissions: permisos cargados →', _permissionsCache);
+      return _permissionsCache;
+    }
+
+    pwarn('loadCurrentPermissions: respuesta inválida', data);
+    _permissionsCache = {};
+    return null;
+
+  } catch (e) {
+    perr('loadCurrentPermissions error:', e);
+    _permissionsCache = {};
     return null;
   }
 }
 
-export function getCurrentRole() {
-  const user = getCurrentUser();
-  return user?.rol || localStorage.getItem('userRole') || null;
+/**
+ * Invalida el cache de permisos.
+ * Llamar cuando el admin cambia el rol de un usuario o modifica un rol.
+ */
+export function invalidatePermissionsCache() {
+  plog('invalidatePermissionsCache: cache limpiado');
+  _permissionsCache = null;
+  _currentUserRole  = null;
 }
 
-export function getRolePermissions(role) {
-  return ROLE_PERMISSIONS[role] || [];
+// =============================================================================
+// VERIFICACIÓN DE PERMISOS
+// =============================================================================
+
+/**
+ * Verifica si el usuario actual tiene un permiso de ACCIÓN de la app.
+ * Solo el administrador tiene MANAGE_USERS, MANAGE_ROLES y VIEW_AUDIT.
+ */
+export function hasPermission(permission) {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return false;
+    const user = JSON.parse(userStr);
+    const rol  = user.rol || user.role;
+
+    if (rol === ROLES.ADMIN) return true; // admin tiene todo
+
+    // Permisos que solo el admin tiene
+    const adminOnly = [
+      PERMISSIONS.MANAGE_USERS,
+      PERMISSIONS.MANAGE_ROLES,
+      PERMISSIONS.VIEW_AUDIT,
+    ];
+    if (adminOnly.includes(permission)) {
+      plog(`hasPermission("${permission}"): false — solo admin`);
+      return false;
+    }
+
+    // Permisos que cualquier usuario activo tiene
+    if (permission === PERMISSIONS.VIEW_PROFILE) return true;
+
+    return false;
+  } catch (e) {
+    perr('hasPermission error:', e);
+    return false;
+  }
 }
 
-export function hasPermission(permission, role = getCurrentRole()) {
-  if (!role) return false;
-  const permissions = getRolePermissions(role);
-  return permissions.includes(permission);
+/**
+ * Verifica si el usuario puede VER una sección del sidebar.
+ * Admin siempre puede. Roles dinámicos según su configuración de permisos.
+ */
+export function canView(section) {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return false;
+    const user = JSON.parse(userStr);
+    const rol  = user.rol || user.role;
+
+    // Admin ve todo
+    if (rol === ROLES.ADMIN) return true;
+
+    // Desactivado no ve nada
+    if (rol === ROLES.DISABLED) return false;
+
+    // Secciones exclusivas del admin
+    if (section === 'admin' || section === 'auditoria') {
+      plog(`canView("${section}"): false — exclusiva del admin`);
+      return false;
+    }
+
+    // Sin cache → denegar y loggear
+    if (!_permissionsCache) {
+      pwarn(`canView("${section}"): sin cache de permisos, llamar loadCurrentPermissions() primero`);
+      return false;
+    }
+
+    const perm = _permissionsCache[section];
+    const result = Boolean(perm?.canView);
+    plog(`canView("${section}"):`, result);
+    return result;
+
+  } catch (e) {
+    perr('canView error:', e);
+    return false;
+  }
 }
 
-// Verificar si el usuario actual es administrador (único)
-export function isAdmin() {
-  const role = getCurrentRole();
-  return role === ROLES.ADMIN;
+/**
+ * Verifica si el usuario puede ACTUAR (crear/editar/eliminar) en una sección.
+ */
+export function canAction(section) {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return false;
+    const user = JSON.parse(userStr);
+    const rol  = user.rol || user.role;
+
+    if (rol === ROLES.ADMIN)    return true;
+    if (rol === ROLES.DISABLED) return false;
+
+    if (!_permissionsCache) {
+      pwarn(`canAction("${section}"): sin cache de permisos`);
+      return false;
+    }
+
+    const perm = _permissionsCache[section];
+    const result = Boolean(perm?.canAction);
+    plog(`canAction("${section}"):`, result);
+    return result;
+
+  } catch (e) {
+    perr('canAction error:', e);
+    return false;
+  }
 }
 
-// Alias en español para uso reutilizable
-export function tienePermiso(rol, accion) {
-  return hasPermission(accion, rol);
+/**
+ * Aplica permisos de visibilidad al sidebar.
+ * Oculta los nav-links cuyas secciones el usuario no puede ver.
+ * Los elementos deben tener data-section="nombre_seccion".
+ */
+export function applyNavigationPermissions() {
+  plog('applyNavigationPermissions: aplicando...');
+
+  const navLinks = document.querySelectorAll('[data-section]');
+  let hidden = 0, visible = 0;
+
+  navLinks.forEach(link => {
+    const section = link.getAttribute('data-section');
+    if (!section) return;
+
+    if (canView(section)) {
+      link.style.display = '';
+      visible++;
+    } else {
+      link.style.display = 'none';
+      hidden++;
+    }
+  });
+
+  plog(`applyNavigationPermissions: ${visible} visibles, ${hidden} ocultos`);
+}
+
+/**
+ * Aplica permisos de acción en la página actual.
+ * Oculta botones con data-action-section si canAction = false.
+ * Para botones con data-requires-action, muestra alerta en lugar de ocultarlos.
+ */
+export function applyActionPermissions() {
+  plog('applyActionPermissions: aplicando...');
+
+  // Botones que se OCULTAN si no hay permiso
+  const actionBtns = document.querySelectorAll('[data-action-section]');
+  actionBtns.forEach(btn => {
+    const section = btn.getAttribute('data-action-section');
+    btn.style.display = canAction(section) ? '' : 'none';
+  });
+  plog(`applyActionPermissions: ${actionBtns.length} botones procesados`);
+
+  // Botones que muestran ALERTA si no hay permiso (en lugar de ocultarse)
+  const requiresBtns = document.querySelectorAll('[data-requires-action]');
+  requiresBtns.forEach(btn => {
+    const section = btn.getAttribute('data-requires-action');
+    if (!canAction(section)) {
+      btn.removeEventListener('click', _noPermissionHandler);
+      btn.addEventListener('click', _noPermissionHandler);
+    }
+  });
+  plog(`applyActionPermissions: ${requiresBtns.length} botones con intercept`);
+}
+
+function _noPermissionHandler(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  showNoPermissionAlert();
+}
+
+/**
+ * Muestra una alerta visual de "sin permisos".
+ */
+export function showNoPermissionAlert() {
+  const existing = document.getElementById('permisos-no-perm-alert');
+  if (existing) existing.remove();
+
+  const alert = document.createElement('div');
+  alert.id = 'permisos-no-perm-alert';
+  alert.style.cssText = `
+    position:fixed;top:20px;right:20px;z-index:9999999;
+    background:#1e293b;color:#fff;
+    padding:12px 20px;border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.3);
+    display:flex;align-items:center;gap:10px;
+    font-size:0.9rem;font-weight:500;
+    border-left:4px solid #dc2626;
+    animation:permisos-alert-in 0.25s ease;
+  `;
+  alert.innerHTML = `
+    <i class="fas fa-ban" style="color:#dc2626;font-size:1.1rem;"></i>
+    <span>No tienes permisos para realizar esta acción</span>
+  `;
+
+  // Inyectar keyframe si no existe
+  if (!document.getElementById('permisos-alert-style')) {
+    const style = document.createElement('style');
+    style.id = 'permisos-alert-style';
+    style.textContent = `
+      @keyframes permisos-alert-in {
+        from { opacity:0; transform:translateY(-10px) scale(0.95); }
+        to   { opacity:1; transform:translateY(0) scale(1); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(alert);
+  setTimeout(() => {
+    alert.style.opacity = '0';
+    alert.style.transition = 'opacity 0.3s';
+    setTimeout(() => alert.remove(), 300);
+  }, 3000);
+
+  plog('showNoPermissionAlert: mostrada');
+}
+
+/**
+ * Inicializa todo el sistema de permisos.
+ * Llamar una vez después del login exitoso.
+ */
+export async function initPermissionsSystem() {
+  plog('initPermissionsSystem: iniciando...');
+  await loadCurrentPermissions();
+  applyNavigationPermissions();
+  applyActionPermissions();
+  plog('initPermissionsSystem: completado ✅');
+}
+
+// =============================================================================
+// UTILIDADES DE DISPLAY
+// =============================================================================
+
+/**
+ * Devuelve el nombre legible de un rol para mostrar en la UI.
+ * Para roles dinámicos simplemente devuelve el nombre tal cual.
+ */
+export function getRoleDisplayName(rolName) {
+  if (!rolName)                   return 'Sin rol';
+  if (rolName === ROLES.ADMIN)    return 'Administrador';
+  if (rolName === ROLES.DISABLED) return 'Desactivado';
+  // Rol dinámico: capitalizar primera letra
+  return rolName.charAt(0).toUpperCase() + rolName.slice(1);
 }
 
 export function requirePermission(permission, {
@@ -430,22 +374,6 @@ export function requirePermission(permission, {
   if (hasPermission(permission)) return true;
   if (typeof onDenied === 'function') onDenied(message);
   return false;
-}
-
-// Obtener nombre legible del rol
-export function getRoleDisplayName(role) {
-  const map = {
-    [ROLES.ADMIN]: 'Administrador',
-    [ROLES.GERENTE]: 'Gerente',
-    [ROLES.SUPERVISOR]: 'Supervisor',
-    [ROLES.EDITOR]: 'Editor',
-    [ROLES.REVISOR]: 'Revisor',
-    [ROLES.LECTOR]: 'Lector',
-    [ROLES.MODERADOR]: 'Moderador',
-    [ROLES.USUARIO]: 'Usuario',
-    [ROLES.DISABLED]: 'Desactivado'
-  };
-  return map[role] || role;
 }
 
 // Helpers para UI: mostrar/ocultar por permiso
@@ -461,11 +389,4 @@ export function applyVisibilityRules(rules = []) {
     const visible = r.visibleWhenNoPermission ? !allowed : allowed;
     elements.forEach((el) => setElementVisible(el, visible));
   });
-}
-
-// Verificar si se puede crear otro administrador
-export function canCreateAdmin(users) {
-  if (!users || !Array.isArray(users)) return false;
-  const adminCount = users.filter(u => u.rol === ROLES.ADMIN && u.activo !== false).length;
-  return adminCount === 0; // Solo se puede crear si no hay ningún admin
 }

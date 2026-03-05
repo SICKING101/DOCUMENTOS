@@ -108,39 +108,63 @@ export async function checkAdminExists() {
         const response = await fetch(`${API_URL}/api/auth/check-admin`);
         const data = await response.json();
         
-        if (data.adminExists) {
-            showLoginForm();
-        } else {
-            showRegisterForm();
+        // Verificar en qué página estamos
+        const isLoginPage = window.location.pathname.includes('login.html');
+        const isIndexPage = window.location.pathname === '/' || window.location.pathname.includes('index.html');
+        
+        console.log('📍 Página actual:', window.location.pathname);
+        console.log('📊 Admin existe:', data.adminExists);
+        
+        // Solo mostrar formularios si estamos en la página de login
+        if (isLoginPage) {
+            if (data.adminExists) {
+                showLoginForm();
+            } else {
+                showRegisterForm();
+            }
+        } else if (isIndexPage && !data.adminExists) {
+            // Si estamos en index y no hay admin, redirigir a login
+            console.log('⚠️ No hay administrador, redirigiendo a login');
+            window.location.href = '/login.html';
         }
         
     } catch (error) {
         console.error('Error al verificar admin:', error);
-        showAlert('Error al conectar con el servidor', 'error');
+        // No mostrar alerta aquí para no interrumpir la experiencia
     }
 }
 
 // =============================================================================
-// MOSTRAR FORMULARIOS
+// MOSTRAR FORMULARIOS (CON VERIFICACIÓN DE EXISTENCIA)
 // =============================================================================
 
 export function showLoginForm() {
-    document.getElementById('authTitle').textContent = 'Iniciar Sesión';
-    document.getElementById('authSubtitle').textContent = 'Accede al sistema de gestión';
-    document.getElementById('loginForm').classList.remove('hidden');
-    document.getElementById('registerForm').classList.add('hidden');
-    
+    // Verificar que los elementos existen antes de usarlos
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
     const registerLink = document.getElementById('registerLinkContainer');
+    
+    if (authTitle) authTitle.textContent = 'Iniciar Sesión';
+    if (authSubtitle) authSubtitle.textContent = 'Accede al sistema de gestión';
+    if (loginForm) loginForm.classList.remove('hidden');
+    if (registerForm) registerForm.classList.add('hidden');
     if (registerLink) registerLink.style.display = 'none';
 }
 
 export function showRegisterForm() {
-    document.getElementById('authTitle').textContent = 'Registrar Administrador';
-    document.getElementById('authSubtitle').textContent = 'Crea la cuenta del primer administrador';
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.remove('hidden');
-    
+    // Verificar que los elementos existen antes de usarlos
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
     const registerLink = document.getElementById('registerLinkContainer');
+    
+    if (authTitle) authTitle.textContent = 'Registrar Administrador';
+    if (authSubtitle) authSubtitle.textContent = 'Crea la cuenta del primer administrador';
+    if (loginForm) loginForm.classList.add('hidden');
+    if (registerForm) registerForm.classList.remove('hidden');
     if (registerLink) registerLink.style.display = 'block';
 }
 
@@ -173,14 +197,20 @@ export function setupPasswordToggles() {
 export async function handleLogin(e) {
     e.preventDefault();
     
-    const usuarioOCorreo = document.getElementById('loginUsuario').value;
+    const usuarioOCorreo = document.getElementById('loginUsuario')?.value;
+    if (!usuarioOCorreo) {
+        showAlert('Por favor ingresa tu usuario o correo', 'error');
+        return;
+    }
     
     // Registrar INTENTO de login
     logAuthEvent('login_attempt', { usuario: usuarioOCorreo });
     
     const btn = document.getElementById('loginBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
+    }
     
     try {
         const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -188,7 +218,7 @@ export async function handleLogin(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 usuarioOCorreo,
-                password: document.getElementById('loginPassword').value
+                password: document.getElementById('loginPassword')?.value || ''
             })
         });
         
@@ -213,8 +243,10 @@ export async function handleLogin(e) {
             });
             
             showAlert(data.message || 'Error al iniciar sesión', 'error');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
+            }
         }
     } catch (error) {
         console.error('Error en login:', error);
@@ -226,8 +258,10 @@ export async function handleLogin(e) {
         });
         
         showAlert('Error al conectar con el servidor', 'error');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
+        }
     }
 }
 
@@ -238,10 +272,15 @@ export async function handleLogin(e) {
 export async function handleRegister(e) {
     e.preventDefault();
     
-    const usuario = document.getElementById('registerUsuario').value;
-    const correo = document.getElementById('registerCorreo').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('registerPasswordConfirm').value;
+    const usuario = document.getElementById('registerUsuario')?.value;
+    const correo = document.getElementById('registerCorreo')?.value;
+    const password = document.getElementById('registerPassword')?.value;
+    const confirmPassword = document.getElementById('registerPasswordConfirm')?.value;
+    
+    if (!usuario || !correo || !password) {
+        showAlert('Todos los campos son requeridos', 'error');
+        return;
+    }
     
     // Registrar INTENTO de registro
     logAuthEvent('register_attempt', { usuario, correo });
@@ -260,8 +299,10 @@ export async function handleRegister(e) {
     }
     
     const btn = document.getElementById('registerBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
+    }
     
     try {
         const response = await fetch(`${API_URL}/api/auth/register`, {
@@ -292,8 +333,10 @@ export async function handleRegister(e) {
             });
             
             showAlert(data.message || 'Error al registrar', 'error');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
+            }
         }
     } catch (error) {
         console.error('Error en registro:', error);
@@ -306,8 +349,10 @@ export async function handleRegister(e) {
         });
         
         showAlert('Error al conectar con el servidor', 'error');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> Registrar Administrador';
+        }
     }
 }
 
@@ -351,39 +396,49 @@ export function getCurrentUser() {
 export function initializeAuth() {
     console.log('🔐 Inicializando módulo de autenticación...');
     
-    // Configurar eventos
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const showRegisterLink = document.getElementById('showRegisterFromLogin');
+    // Verificar en qué página estamos
+    const isLoginPage = window.location.pathname.includes('login.html');
     
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
+    // Solo configurar eventos si estamos en la página de login
+    if (isLoginPage) {
+        console.log('📍 Página de login detectada, configurando formularios...');
+        
+        // Configurar eventos
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegisterLink = document.getElementById('showRegisterFromLogin');
+        
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLogin);
+        }
+        
+        if (registerForm) {
+            registerForm.addEventListener('submit', handleRegister);
+        }
+        
+        if (showRegisterLink) {
+            showRegisterLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                showRegisterForm();
+            });
+        }
+        
+        // Configurar toggles de contraseña
+        setupPasswordToggles();
+        
+        // Verificar si existe administrador
+        checkAdminExists();
+    } else {
+        console.log('📍 No es página de login, omitiendo configuración de formularios');
     }
     
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
-    }
-    
-    if (showRegisterLink) {
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            showRegisterForm();
-        });
-    }
-    
-    // Configurar botones de logout
+    // Configurar botones de logout (pueden estar en cualquier página)
     document.querySelectorAll('.logout-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             logout();
         });
     });
-    
-    // Configurar toggles de contraseña
-    setupPasswordToggles();
-    
-    // Verificar si existe administrador
-    checkAdminExists();
     
     console.log('✅ Módulo de autenticación inicializado');
 }
@@ -392,7 +447,12 @@ export function initializeAuth() {
 // INICIALIZAR CUANDO EL DOM ESTÉ LISTO
 // =============================================================================
 
-document.addEventListener('DOMContentLoaded', initializeAuth);
+// Solo inicializar si estamos en una página que necesita auth
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAuth);
+} else {
+    initializeAuth();
+}
 
 // =============================================================================
 // EXPORTAR POR DEFECTO
