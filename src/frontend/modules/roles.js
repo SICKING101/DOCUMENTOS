@@ -1,20 +1,42 @@
 // src/frontend/modules/roles.js
 // Módulo completo para gestión de roles y permisos dinámicos
 
-import { API } from '../services/api.js';
+import { api } from '../services/api.js';
+import {
+  loadCurrentPermissions,
+  applyNavigationPermissions,
+  applyActionPermissions,
+  invalidatePermissionsCache,
+  canView,
+  canAction,
+  showNoPermissionAlert,
+  initPermissionsSystem,
+} from '../permissions.js';
 
 // ─── Debug helper ─────────────────────────────────────────────────────────────
 const DEBUG = true;
-function log(...args) { if (DEBUG) console.log('🎭 [Roles]', ...args); }
-function warn(...args) { console.warn('⚠️ [Roles]', ...args); }
-function err(...args)  { console.error('❌ [Roles]', ...args); }
+function log(...args)  { if (DEBUG) console.log('🎭 [Roles]', ...args); }
+function warn(...args) { if (DEBUG) console.warn('⚠️ [Roles]', ...args); }
+function err(...args)  {           console.error('❌ [Roles]', ...args); }
+
+// ─── Re-exportar para que otros módulos puedan importar de aquí ───────────────
+export {
+  loadCurrentPermissions,
+  applyNavigationPermissions,
+  applyActionPermissions,
+  invalidatePermissionsCache,
+  canView,
+  canAction,
+  showNoPermissionAlert,
+  initPermissionsSystem,
+};
 
 // ─── Estado del módulo ────────────────────────────────────────────────────────
 let state = {
-  roles:    [],       // array de roles cargados desde la API
-  sections: [],       // secciones disponibles
-  editing:  null,     // rol que se está editando (null = crear nuevo)
-  loading:  false,
+  roles:       [],
+  sections:    [],
+  editing:     null,
+  loading:     false,
   initialized: false,
 };
 
@@ -44,285 +66,52 @@ const PRESET_COLORS = [
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PERMISOS DINÁMICOS — Motor central que aplica restricciones en la UI
+// HELPERS DE API — Wrapper sobre la instancia `api` del proyecto
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * Cache de permisos del usuario actual.
- * { section: { canView: bool, canAction: bool } }
+ * Realiza una petición a la API del proyecto.
+ * Usa la instancia `api` importada de services/api.js.
+ * Si la instancia tiene métodos como api.get/post/put/delete, los usa.
+ * Si no, usa fetch directamente con el token del localStorage.
  */
-let _permissionsCache = null;
-let _currentRole = null;
+async function apiCall(method, path, body = null) {
+  const token = localStorage.getItem('token') || '';
+  const url   = `/api${path}`;
 
-/**
- * Carga y cachea los permisos del rol actual desde la API.
- */
-export async function loadCurrentPermissions() {
-  try {
-    const userRaw = localStorage.getItem('user');
-    const user = userRaw ? JSON.parse(userRaw) : null;
-    const role = user?.rol || localStorage.getItem('userRole');
+  log(`apiCall: ${method.toUpperCase()} ${url}`);
 
-    if (!role) {
-      warn('loadCurrentPermissions: no hay rol en localStorage');
-      _permissionsCache = {};
-      return {};
+  // Intentar usar la instancia api si tiene el método
+  if (api && typeof api[method.toLowerCase()] === 'function') {
+    try {
+      const result = await api[method.toLowerCase()](path, body);
+      return result;
+    } catch (e) {
+      warn(`apiCall: api.${method} falló, usando fetch directo:`, e.message);
     }
-
-    // Administrador siempre tiene todo
-    if (role === 'administrador') {
-      log('loadCurrentPermissions: rol administrador → permisos totales');
-      _permissionsCache = { __admin: true };
-      _currentRole = role;
-      return _permissionsCache;
-    }
-
-    // Si el rol no cambió y ya tenemos cache, reutilizar
-    if (_currentRole === role && _permissionsCache) {
-      log('loadCurrentPermissions: usando cache para rol', role);
-      return _permissionsCache;
-    }
-
-    log('loadCurrentPermissions: cargando permisos para rol', role);
-    const res = await API.get(`/roles/permissions/${encodeURIComponent(role)}`);
-
-    if (res.success) {
-      _permissionsCache = res.data;
-      _currentRole = role;
-      log('loadCurrentPermissions: permisos cargados →', _permissionsCache);
-    } else {
-      warn('loadCurrentPermissions: respuesta no exitosa, usando vacío');
-      _permissionsCache = {};
-    }
-
-    return _permissionsCache;
-  } catch (e) {
-    err('loadCurrentPermissions error:', e);
-    _permissionsCache = {};
-    return {};
   }
-}
 
-/**
- * Devuelve si el usuario actual puede VER una sección.
- * El administrador siempre puede.
- */
-export function canView(section) {
-  if (!_permissionsCache) return false;
-  if (_permissionsCache.__admin) return true;
-  return _permissionsCache[section]?.canView === true;
-}
-
-/**
- * Devuelve si el usuario actual puede ACTUAR en una sección.
- */
-export function canAction(section) {
-  if (!_permissionsCache) return false;
-  if (_permissionsCache.__admin) return true;
-  return _permissionsCache[section]?.canAction === true;
-}
-
-/**
- * Invalida el cache (llamar cuando el admin cambia el rol del usuario logueado).
- */
-export function invalidatePermissionsCache() {
-  _permissionsCache = null;
-  _currentRole = null;
-  log('Cache de permisos invalidado');
-}
-
-// ─── Aplicar visibilidad de secciones en el sidebar ───────────────────────────
-
-/**
- * Oculta/muestra los elementos del sidebar según los permisos.
- * Mapeo: data-section="documentos" → sección 'documentos'
- *
- * EXCEPCIÓN: admin y auditoria solo visibles para rol administrador.
- */
-export async function applyNavigationPermissions() {
-  try {
-    log('applyNavigationPermissions: aplicando...');
-    await loadCurrentPermissions();
-
-    const userRaw = localStorage.getItem('user');
-    const user = userRaw ? JSON.parse(userRaw) : null;
-    const isAdmin = user?.rol === 'administrador';
-
-    // Secciones exclusivas del admin
-    const ADMIN_ONLY_SECTIONS = ['admin', 'auditoria'];
-
-    // Iterar todos los nav-links que tienen data-section
-    const navLinks = document.querySelectorAll('.sidebar__nav-link[data-section], [data-section]');
-    log(`applyNavigationPermissions: ${navLinks.length} elementos con data-section encontrados`);
-
-    navLinks.forEach((el) => {
-      const section = el.getAttribute('data-section');
-      if (!section) return;
-
-      // Secciones exclusivas del admin
-      if (ADMIN_ONLY_SECTIONS.includes(section)) {
-        el.style.display = isAdmin ? '' : 'none';
-        log(`  [${section}] admin-only → ${isAdmin ? 'visible' : 'oculto'}`);
-        return;
-      }
-
-      // Verificar permiso de vista
-      const visible = canView(section);
-      el.style.display = visible ? '' : 'none';
-      log(`  [${section}] canView=${visible} → ${visible ? 'visible' : 'oculto'}`);
-    });
-
-    // También aplicar a los tab-content si están en el DOM
-    applyTabContentPermissions(isAdmin);
-
-    log('applyNavigationPermissions: completado');
-  } catch (e) {
-    err('applyNavigationPermissions error:', e);
-  }
-}
-
-/**
- * Oculta contenidos de secciones (tab-content) según permisos.
- * Si el usuario navega directamente a una sección sin permiso, la oculta.
- */
-function applyTabContentPermissions(isAdmin) {
-  const ADMIN_ONLY = ['admin', 'auditoria'];
-
-  // Mapeo de id del tab-content → sección
-  // Ajusta este mapeo a los IDs reales de tu HTML
-  const TAB_MAP = {
-    'documentos':    'documentos',
-    'personas':      'personas',
-    'categorias':    'categorias',
-    'departamentos': 'departamentos',
-    'tareas':        'tareas',
-    'reportes':      'reportes',
-    'papelera':      'papelera',
-    'calendario':    'calendario',
-    'historial':     'historial',
-    'notificaciones':'notificaciones',
-    'soporte':       'soporte',
-    'admin':         'admin',
-    'auditoria':     'auditoria',
+  // Fallback: fetch directo
+  const options = {
+    method: method.toUpperCase(),
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type':  'application/json',
+    },
   };
 
-  Object.entries(TAB_MAP).forEach(([tabId, section]) => {
-    const el = document.getElementById(tabId);
-    if (!el) return;
-
-    let allowed;
-    if (ADMIN_ONLY.includes(section)) {
-      allowed = isAdmin;
-    } else {
-      allowed = canView(section);
-    }
-
-    if (!allowed && el.classList.contains('tab-content--active')) {
-      // Si la pestaña activa no tiene permiso, redirigir al dashboard
-      log(`applyTabContentPermissions: pestaña activa "${tabId}" sin permiso → redirigiendo a dashboard`);
-      if (typeof window.switchTab === 'function') {
-        window.switchTab('dashboard');
-      }
-    }
-  });
-}
-
-/**
- * Oculta botones de acción en una sección según permisos.
- * Los botones deben tener data-action-section="documentos" (o la sección correspondiente).
- */
-export function applyActionPermissions() {
-  try {
-    log('applyActionPermissions: aplicando...');
-
-    const actionButtons = document.querySelectorAll('[data-action-section]');
-    log(`applyActionPermissions: ${actionButtons.length} botones de acción encontrados`);
-
-    actionButtons.forEach((btn) => {
-      const section = btn.getAttribute('data-action-section');
-      if (!section) return;
-
-      const allowed = canAction(section);
-
-      if (!allowed) {
-        // Ocultar el botón
-        btn.style.display = 'none';
-        log(`  [${section}] canAction=false → botón ocultado`);
-      } else {
-        // Asegurar que esté visible
-        if (btn.style.display === 'none') {
-          btn.style.display = '';
-        }
-        log(`  [${section}] canAction=true → botón visible`);
-      }
-    });
-
-    log('applyActionPermissions: completado');
-  } catch (e) {
-    err('applyActionPermissions error:', e);
+  if (body && method.toUpperCase() !== 'GET') {
+    options.body = JSON.stringify(body);
   }
-}
 
-/**
- * Intercepta clics en botones de acción que NO tienen data-action-section
- * pero que requieren permiso. Muestra alerta si no tiene permiso.
- *
- * Para usarlo, agrega el atributo data-requires-action="seccion" al botón.
- */
-export function setupActionInterceptors() {
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-requires-action]');
-    if (!btn) return;
+  const response = await fetch(url, options);
+  const data     = await response.json();
 
-    const section = btn.getAttribute('data-requires-action');
-    if (!section) return;
+  if (!response.ok) {
+    throw new Error(data.message || `HTTP ${response.status}`);
+  }
 
-    if (!canAction(section)) {
-      e.preventDefault();
-      e.stopPropagation();
-      showNoPermissionAlert(section);
-    }
-  }, true); // useCapture para interceptar antes que otros handlers
-
-  log('setupActionInterceptors: interceptor de clics instalado');
-}
-
-/**
- * Muestra una alerta visual de "no tienes permisos"
- */
-export function showNoPermissionAlert(section = '') {
-  // Remover alerta previa si existe
-  const existing = document.querySelector('.permisos-alert-noperm');
-  if (existing) existing.remove();
-
-  const sectionLabel = FALLBACK_SECTIONS.find((s) => s.key === section)?.label || section;
-
-  const alert = document.createElement('div');
-  alert.className = 'permisos-alert-noperm';
-  alert.innerHTML = `
-    <div class="permisos-alert-noperm__icon">🚫</div>
-    <div class="permisos-alert-noperm__text">
-      <strong>Sin permiso</strong>
-      <span>No tienes permisos para realizar esta acción${sectionLabel ? ` en ${sectionLabel}` : ''}.</span>
-    </div>
-    <button class="permisos-alert-noperm__close" aria-label="Cerrar">✕</button>
-  `;
-
-  document.body.appendChild(alert);
-
-  // Auto-remover después de 4s
-  const timer = setTimeout(() => alert.remove(), 4000);
-
-  // Botón cerrar
-  alert.querySelector('.permisos-alert-noperm__close').addEventListener('click', () => {
-    clearTimeout(timer);
-    alert.remove();
-  });
-
-  // Animar entrada
-  requestAnimationFrame(() => alert.classList.add('permisos-alert-noperm--visible'));
-
-  log(`showNoPermissionAlert: mostrada para sección "${section}"`);
+  return data;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -346,7 +135,7 @@ export async function initRolesManager() {
   await refreshRoles();
   renderRolesManager(container);
 
-  log('initRolesManager: completado');
+  log('initRolesManager: completado ✅');
 }
 
 /**
@@ -357,17 +146,18 @@ async function refreshRoles() {
     state.loading = true;
     log('refreshRoles: cargando...');
 
-    const res = await API.get('/roles');
+    const res = await apiCall('GET', '/roles');
+
     if (res.success) {
-      state.roles    = res.data || [];
+      state.roles    = res.data     || [];
       state.sections = res.sections || FALLBACK_SECTIONS;
-      log(`refreshRoles: ${state.roles.length} roles cargados`);
+      log(`refreshRoles: ${state.roles.length} roles cargados, ${state.sections.length} secciones`);
     } else {
       warn('refreshRoles: respuesta no exitosa:', res.message);
       state.sections = FALLBACK_SECTIONS;
     }
   } catch (e) {
-    err('refreshRoles error:', e);
+    err('refreshRoles:', e);
     state.sections = FALLBACK_SECTIONS;
   } finally {
     state.loading = false;
@@ -404,7 +194,7 @@ function renderRolesManager(container) {
     </div>
 
     <!-- Modal crear/editar rol -->
-    <div class="permisos-modal" id="permisos-modal-rol" role="dialog" aria-modal="true" aria-labelledby="permisos-modal-title">
+    <div class="permisos-modal" id="permisos-modal-rol" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="permisos-modal-title">
       <div class="permisos-modal__backdrop" id="permisos-modal-backdrop"></div>
       <div class="permisos-modal__content">
         <div class="permisos-modal__header">
@@ -418,7 +208,7 @@ function renderRolesManager(container) {
     </div>
 
     <!-- Modal confirmar eliminación -->
-    <div class="permisos-modal permisos-modal--danger" id="permisos-modal-delete" role="dialog" aria-modal="true">
+    <div class="permisos-modal permisos-modal--danger" id="permisos-modal-delete" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="permisos-modal__backdrop" id="permisos-delete-backdrop"></div>
       <div class="permisos-modal__content permisos-modal__content--sm">
         <div class="permisos-modal__header">
@@ -472,20 +262,27 @@ function renderRolesGrid() {
 }
 
 function renderRoleCard(role) {
-  const permCount = (role.permissions || []).filter((p) => p.canView || p.canAction).length;
+  const permCount    = (role.permissions || []).filter((p) => p.canView || p.canAction).length;
   const totalSections = state.sections.length;
-  const pct = totalSections > 0 ? Math.round((permCount / totalSections) * 100) : 0;
+  const pct          = totalSections > 0 ? Math.round((permCount / totalSections) * 100) : 0;
 
   const systemBadge = role.isSystem
     ? `<span class="permisos-badge permisos-badge--system">Sistema</span>`
     : '';
 
   const editBtn = !role.isSystem
-    ? `<button class="permisos-card__action permisos-card__action--edit" data-role-id="${role._id}" title="Editar rol">✏️</button>`
+    ? `<button class="permisos-card__action permisos-card__action--edit"
+         data-role-id="${role._id}"
+         title="Editar rol"
+         aria-label="Editar rol ${escapeHtml(role.name)}">✏️</button>`
     : '';
 
   const deleteBtn = !role.isSystem
-    ? `<button class="permisos-card__action permisos-card__action--delete" data-role-id="${role._id}" data-role-name="${escapeHtml(role.name)}" title="Eliminar rol">🗑️</button>`
+    ? `<button class="permisos-card__action permisos-card__action--delete"
+         data-role-id="${role._id}"
+         data-role-name="${escapeHtml(role.name)}"
+         title="Eliminar rol"
+         aria-label="Eliminar rol ${escapeHtml(role.name)}">🗑️</button>`
     : '';
 
   // Mini lista de secciones con permiso de vista
@@ -493,36 +290,54 @@ function renderRoleCard(role) {
     .filter((p) => p.canView)
     .map((p) => {
       const sec = state.sections.find((s) => s.key === p.section);
-      return sec ? `<span class="permisos-tag" title="${sec.label}">${sec.icon}</span>` : '';
+      return sec
+        ? `<span class="permisos-tag" title="${escapeHtml(sec.label)}">${sec.icon}</span>`
+        : '';
     })
     .join('');
+
+  const userCount  = role.userCount || 0;
+  const colorSafe  = escapeHtml(role.color || '#6b7280');
 
   return `
     <div class="permisos-role-card" data-role-id="${role._id}">
       <div class="permisos-role-card__header">
-        <div class="permisos-role-card__color-dot" style="background:${escapeHtml(role.color || '#6b7280')}"></div>
+        <div class="permisos-role-card__color-dot" style="background:${colorSafe}"></div>
         <div class="permisos-role-card__info">
-          <h4 class="permisos-role-card__name">${escapeHtml(role.name)} ${systemBadge}</h4>
-          ${role.description ? `<p class="permisos-role-card__desc">${escapeHtml(role.description)}</p>` : ''}
+          <h4 class="permisos-role-card__name">
+            ${escapeHtml(role.name)} ${systemBadge}
+          </h4>
+          ${role.description
+            ? `<p class="permisos-role-card__desc">${escapeHtml(role.description)}</p>`
+            : ''}
         </div>
         <div class="permisos-role-card__actions">
           ${editBtn}
           ${deleteBtn}
         </div>
       </div>
+
       <div class="permisos-role-card__stats">
         <div class="permisos-role-card__stat">
           <span class="permisos-role-card__stat-label">Usuarios</span>
-          <span class="permisos-role-card__stat-value">${role.userCount || 0}</span>
+          <span class="permisos-role-card__stat-value">${userCount}</span>
         </div>
         <div class="permisos-role-card__stat">
           <span class="permisos-role-card__stat-label">Secciones</span>
           <span class="permisos-role-card__stat-value">${permCount}/${totalSections}</span>
         </div>
+        <div class="permisos-role-card__stat">
+          <span class="permisos-role-card__stat-label">Cobertura</span>
+          <span class="permisos-role-card__stat-value">${pct}%</span>
+        </div>
       </div>
-      <div class="permisos-role-card__progress-bar">
-        <div class="permisos-role-card__progress-fill" style="width:${pct}%; background:${escapeHtml(role.color || '#6b7280')}"></div>
+
+      <div class="permisos-role-card__progress-bar" title="${pct}% de secciones con acceso">
+        <div class="permisos-role-card__progress-fill"
+          style="width:${pct}%; background:${colorSafe}">
+        </div>
       </div>
+
       <div class="permisos-role-card__sections">
         ${viewableSections || '<span class="permisos-role-card__no-sections">Sin secciones visibles</span>'}
       </div>
@@ -533,12 +348,12 @@ function renderRoleCard(role) {
 // ─── Render del formulario de rol ─────────────────────────────────────────────
 
 function renderRoleForm(role) {
-  const isEdit = Boolean(role);
+  const isEdit      = Boolean(role);
   const name        = isEdit ? escapeHtml(role.name)        : '';
   const description = isEdit ? escapeHtml(role.description) : '';
-  const color       = isEdit ? role.color : '#6b7280';
+  const color       = isEdit ? (role.color || '#6b7280')    : '#6b7280';
 
-  // Build permissions map
+  // Construir mapa de permisos existentes
   const permMap = {};
   if (isEdit && role.permissions) {
     role.permissions.forEach((p) => { permMap[p.section] = p; });
@@ -550,6 +365,7 @@ function renderRoleForm(role) {
       data-color="${c}"
       style="background:${c}"
       title="${c}"
+      aria-label="Color ${c}"
     ></button>
   `).join('');
 
@@ -558,11 +374,11 @@ function renderRoleForm(role) {
     return `
       <tr class="permisos-perm-row" data-section="${sec.key}">
         <td class="permisos-perm-row__section">
-          <span class="permisos-perm-row__icon">${sec.icon}</span>
+          <span class="permisos-perm-row__icon" aria-hidden="true">${sec.icon}</span>
           <span class="permisos-perm-row__label">${escapeHtml(sec.label)}</span>
         </td>
         <td class="permisos-perm-row__toggle">
-          <label class="permisos-toggle" title="Puede ver la sección">
+          <label class="permisos-toggle" title="Puede ver la sección en el sidebar">
             <input type="checkbox"
               class="permisos-toggle__input"
               data-perm="canView"
@@ -573,7 +389,7 @@ function renderRoleForm(role) {
           </label>
         </td>
         <td class="permisos-perm-row__toggle">
-          <label class="permisos-toggle" title="Puede realizar acciones">
+          <label class="permisos-toggle" title="Puede crear, editar y eliminar en esta sección">
             <input type="checkbox"
               class="permisos-toggle__input"
               data-perm="canAction"
@@ -589,42 +405,47 @@ function renderRoleForm(role) {
 
   return `
     <form class="permisos-form" id="permisos-role-form" novalidate>
-      <!-- Nombre -->
+
+      <!-- Nombre del rol -->
       <div class="permisos-form__group">
         <label class="permisos-form__label" for="permisos-role-name">
-          Nombre del Rol <span class="permisos-form__required">*</span>
+          Nombre del Rol <span class="permisos-form__required" aria-hidden="true">*</span>
         </label>
         <input
           type="text"
           id="permisos-role-name"
           class="permisos-form__input"
-          placeholder="Ej. Contador, Diseñador..."
+          placeholder="Ej. Contador, Diseñador, Auditor..."
           value="${name}"
           maxlength="50"
           required
           autocomplete="off"
+          aria-required="true"
+          aria-describedby="permisos-name-error"
         >
-        <span class="permisos-form__error" id="permisos-name-error"></span>
+        <span class="permisos-form__error" id="permisos-name-error" role="alert"></span>
       </div>
 
       <!-- Descripción -->
       <div class="permisos-form__group">
-        <label class="permisos-form__label" for="permisos-role-desc">Descripción</label>
+        <label class="permisos-form__label" for="permisos-role-desc">
+          Descripción <span class="permisos-form__optional">(opcional)</span>
+        </label>
         <input
           type="text"
           id="permisos-role-desc"
           class="permisos-form__input"
-          placeholder="Descripción breve del rol (opcional)"
+          placeholder="Descripción breve del rol"
           value="${description}"
           maxlength="200"
         >
       </div>
 
-      <!-- Color -->
+      <!-- Color del rol -->
       <div class="permisos-form__group">
         <label class="permisos-form__label">Color del Rol</label>
         <div class="permisos-color-picker">
-          <div class="permisos-color-swatches">
+          <div class="permisos-color-swatches" role="group" aria-label="Colores predefinidos">
             ${colorSwatches}
           </div>
           <div class="permisos-color-custom">
@@ -634,17 +455,18 @@ function renderRoleForm(role) {
               class="permisos-color-input"
               value="${color}"
               title="Color personalizado"
+              aria-label="Color personalizado"
             >
             <span class="permisos-color-label" id="permisos-color-label">${color}</span>
           </div>
         </div>
       </div>
 
-      <!-- Tabla de permisos -->
+      <!-- Tabla de permisos por sección -->
       <div class="permisos-form__group">
         <div class="permisos-form__label-row">
           <label class="permisos-form__label">Permisos por Sección</label>
-          <div class="permisos-form__quick-actions">
+          <div class="permisos-form__quick-actions" role="group" aria-label="Acciones rápidas">
             <button type="button" class="permisos-btn permisos-btn--xs permisos-btn--ghost" id="permisos-select-all-view">
               👁 Ver todo
             </button>
@@ -652,21 +474,21 @@ function renderRoleForm(role) {
               ⚡ Acciones todo
             </button>
             <button type="button" class="permisos-btn permisos-btn--xs permisos-btn--ghost" id="permisos-clear-all">
-              ✕ Limpiar
+              ✕ Limpiar todo
             </button>
           </div>
         </div>
 
-        <div class="permisos-table-wrapper">
+        <div class="permisos-table-wrapper" role="region" aria-label="Tabla de permisos">
           <table class="permisos-table">
             <thead>
               <tr>
-                <th class="permisos-table__th permisos-table__th--section">Sección</th>
-                <th class="permisos-table__th">
-                  <span title="Puede acceder y ver esta sección en el sidebar">👁 Ver</span>
+                <th class="permisos-table__th permisos-table__th--section" scope="col">Sección</th>
+                <th class="permisos-table__th" scope="col">
+                  <span title="Puede acceder y ver esta sección en el menú lateral">👁 Ver</span>
                 </th>
-                <th class="permisos-table__th">
-                  <span title="Puede ejecutar acciones (crear, editar, eliminar)">⚡ Acciones</span>
+                <th class="permisos-table__th" scope="col">
+                  <span title="Puede ejecutar acciones: crear, editar, eliminar">⚡ Acciones</span>
                 </th>
               </tr>
             </thead>
@@ -679,12 +501,15 @@ function renderRoleForm(role) {
         <p class="permisos-form__hint">
           💡 <strong>Ver</strong>: muestra la sección en el menú lateral.
           <strong>Acciones</strong>: permite crear, editar y eliminar en esa sección.
+          Activar Acciones activa Ver automáticamente.
         </p>
       </div>
 
-      <!-- Footer del formulario -->
+      <!-- Footer -->
       <div class="permisos-form__footer">
-        <button type="button" class="permisos-btn permisos-btn--ghost" id="permisos-form-cancel">Cancelar</button>
+        <button type="button" class="permisos-btn permisos-btn--ghost" id="permisos-form-cancel">
+          Cancelar
+        </button>
         <button type="submit" class="permisos-btn permisos-btn--primary" id="permisos-form-submit">
           ${isEdit ? '💾 Guardar Cambios' : '＋ Crear Rol'}
         </button>
@@ -693,31 +518,32 @@ function renderRoleForm(role) {
   `;
 }
 
-// ─── Eventos ──────────────────────────────────────────────────────────────────
+// ─── Eventos del manager ──────────────────────────────────────────────────────
 
 function attachManagerEvents(container) {
   log('attachManagerEvents: adjuntando eventos...');
 
-  // Abrir modal nuevo rol
+  // Botón "Nuevo Rol"
   safeOn(container, '#permisos-btn-nuevo-rol', 'click', () => openRoleModal(null));
 
-  // Cerrar modales
-  safeOn(container, '#permisos-modal-close', 'click', closeRoleModal);
+  // Cerrar modal de edición/creación
+  safeOn(container, '#permisos-modal-close',    'click', closeRoleModal);
   safeOn(container, '#permisos-modal-backdrop', 'click', closeRoleModal);
-  safeOn(container, '#permisos-form-cancel', 'click', closeRoleModal);
+  safeOn(container, '#permisos-form-cancel',    'click', closeRoleModal);
 
-  safeOn(container, '#permisos-delete-close', 'click', closeDeleteModal);
-  safeOn(container, '#permisos-delete-backdrop', 'click', closeDeleteModal);
-  safeOn(container, '#permisos-delete-cancel', 'click', closeDeleteModal);
+  // Cerrar modal de confirmación de eliminación
+  safeOn(container, '#permisos-delete-close',   'click', closeDeleteModal);
+  safeOn(container, '#permisos-delete-backdrop','click', closeDeleteModal);
+  safeOn(container, '#permisos-delete-cancel',  'click', closeDeleteModal);
 
-  // Delegación de eventos en el grid
+  // Delegación en el grid de roles (editar / eliminar)
   const grid = container.querySelector('#permisos-roles-grid');
   if (grid) {
     grid.addEventListener('click', (e) => {
       const editBtn = e.target.closest('.permisos-card__action--edit');
       if (editBtn) {
         const roleId = editBtn.getAttribute('data-role-id');
-        const role = state.roles.find((r) => r._id === roleId);
+        const role   = state.roles.find((r) => r._id === roleId);
         if (role) openRoleModal(role);
         return;
       }
@@ -729,29 +555,63 @@ function attachManagerEvents(container) {
         openDeleteModal(roleId, roleName);
       }
     });
+  } else {
+    warn('attachManagerEvents: #permisos-roles-grid no encontrado');
   }
 
-  // Eventos del formulario (modal)
+  // Eventos dentro del modal de creación/edición
   attachFormEvents(container);
 
   log('attachManagerEvents: completado');
 }
 
 function attachFormEvents(container) {
-  // Submit del formulario (delegado porque el modal se re-renderiza)
   const modal = container.querySelector('#permisos-modal-rol');
-  if (!modal) return;
+  if (!modal) {
+    warn('attachFormEvents: #permisos-modal-rol no encontrado');
+    return;
+  }
 
-  modal.addEventListener('click', (e) => {
-    // Color swatch
+  // Delegación para eventos dentro del modal
+  modal.addEventListener('click', async (e) => {
+    // Click en swatch de color
     const swatch = e.target.closest('.permisos-color-swatch');
     if (swatch) {
       const color = swatch.getAttribute('data-color');
       selectColor(modal, color);
       return;
     }
+
+    // Botones de selección rápida
+    if (e.target.id === 'permisos-select-all-view') {
+      modal.querySelectorAll('input[data-perm="canView"]').forEach((cb) => { cb.checked = true; });
+      log('attachFormEvents: seleccionado "Ver" para todas las secciones');
+      return;
+    }
+
+    if (e.target.id === 'permisos-select-all-action') {
+      modal.querySelectorAll('input[data-perm="canView"], input[data-perm="canAction"]')
+        .forEach((cb) => { cb.checked = true; });
+      log('attachFormEvents: seleccionado "Ver + Acciones" para todas las secciones');
+      return;
+    }
+
+    if (e.target.id === 'permisos-clear-all') {
+      modal.querySelectorAll('input[data-perm]').forEach((cb) => { cb.checked = false; });
+      log('attachFormEvents: limpiados todos los permisos');
+      return;
+    }
+
+    // Submit del formulario
+    const submitBtn = e.target.closest('#permisos-form-submit');
+    if (submitBtn) {
+      e.preventDefault();
+      await submitRoleForm(modal);
+      return;
+    }
   });
 
+  // Cambios en inputs (color y checkboxes)
   modal.addEventListener('input', (e) => {
     // Color picker nativo
     if (e.target.id === 'permisos-role-color') {
@@ -759,63 +619,46 @@ function attachFormEvents(container) {
       return;
     }
 
-    // Sync canAction con canView (si activa acción, activa vista automáticamente)
+    // Lógica de dependencia: Acción → Vista automática
     if (e.target.classList.contains('permisos-toggle__input')) {
       const perm    = e.target.getAttribute('data-perm');
       const section = e.target.getAttribute('data-section');
+
       if (perm === 'canAction' && e.target.checked) {
-        // Auto-activar vista si activa acciones
+        // Activar canView automáticamente al activar canAction
         const viewInput = modal.querySelector(
           `input[data-perm="canView"][data-section="${section}"]`
         );
         if (viewInput && !viewInput.checked) {
           viewInput.checked = true;
-          log(`attachFormEvents: auto-activado canView para "${section}" al activar canAction`);
+          log(`  Auto-activado canView para "${section}" al activar canAction`);
         }
       }
+
       if (perm === 'canView' && !e.target.checked) {
-        // Auto-desactivar acciones si desactiva vista
+        // Desactivar canAction automáticamente al desactivar canView
         const actionInput = modal.querySelector(
           `input[data-perm="canAction"][data-section="${section}"]`
         );
         if (actionInput && actionInput.checked) {
           actionInput.checked = false;
-          log(`attachFormEvents: auto-desactivado canAction para "${section}" al desactivar canView`);
+          log(`  Auto-desactivado canAction para "${section}" al desactivar canView`);
         }
       }
     }
   });
 
-  modal.addEventListener('click', async (e) => {
-    // Quick actions
-    if (e.target.id === 'permisos-select-all-view') {
-      modal.querySelectorAll('input[data-perm="canView"]').forEach((cb) => { cb.checked = true; });
-      return;
-    }
-    if (e.target.id === 'permisos-select-all-action') {
-      modal.querySelectorAll('input[data-perm="canView"], input[data-perm="canAction"]').forEach((cb) => { cb.checked = true; });
-      return;
-    }
-    if (e.target.id === 'permisos-clear-all') {
-      modal.querySelectorAll('input[data-perm]').forEach((cb) => { cb.checked = false; });
-      return;
-    }
-
-    // Submit
-    if (e.target.id === 'permisos-form-submit' || e.target.closest('#permisos-form-submit')) {
-      e.preventDefault();
-      await submitRoleForm(modal);
-    }
-  });
+  log('attachFormEvents: eventos del formulario adjuntados');
 }
 
 // ─── Acciones de modal ────────────────────────────────────────────────────────
 
 function openRoleModal(role) {
   state.editing = role;
-  const modal     = document.getElementById('permisos-modal-rol');
-  const titleEl   = document.getElementById('permisos-modal-title');
-  const bodyEl    = document.getElementById('permisos-modal-body');
+
+  const modal   = document.getElementById('permisos-modal-rol');
+  const titleEl = document.getElementById('permisos-modal-title');
+  const bodyEl  = document.getElementById('permisos-modal-body');
 
   if (!modal || !titleEl || !bodyEl) {
     err('openRoleModal: elementos del modal no encontrados');
@@ -823,18 +666,18 @@ function openRoleModal(role) {
   }
 
   titleEl.textContent = role ? `Editar Rol: ${role.name}` : 'Nuevo Rol';
-  bodyEl.innerHTML = renderRoleForm(role);
+  bodyEl.innerHTML    = renderRoleForm(role);
 
   modal.classList.add('permisos-modal--open');
   modal.setAttribute('aria-hidden', 'false');
 
-  // Focus en el primer input
+  // Focus trap — enfocar el primer campo
   setTimeout(() => {
     const firstInput = modal.querySelector('#permisos-role-name');
     if (firstInput) firstInput.focus();
   }, 100);
 
-  log(`openRoleModal: modal abierto ${role ? 'para edición' : 'para creación'}`);
+  log(`openRoleModal: modal abierto para ${role ? `edición de "${role.name}"` : 'creación'}`);
 }
 
 function closeRoleModal() {
@@ -848,60 +691,100 @@ function closeRoleModal() {
 }
 
 function openDeleteModal(roleId, roleName) {
-  const modal   = document.getElementById('permisos-modal-delete');
-  const textEl  = document.getElementById('permisos-delete-text');
+  const modal      = document.getElementById('permisos-modal-delete');
+  const textEl     = document.getElementById('permisos-delete-text');
   const confirmBtn = document.getElementById('permisos-delete-confirm-btn');
 
-  if (!modal) return;
+  if (!modal || !textEl || !confirmBtn) {
+    err('openDeleteModal: elementos no encontrados');
+    return;
+  }
 
   textEl.textContent = `¿Estás seguro de que quieres eliminar el rol "${roleName}"?`;
   modal.classList.add('permisos-modal--open');
+  modal.setAttribute('aria-hidden', 'false');
 
-  // Reemplazar listener del botón confirmar
+  // Clonar botón para remover listeners anteriores
   const newBtn = confirmBtn.cloneNode(true);
   confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
   newBtn.addEventListener('click', () => deleteRole(roleId, roleName));
 
-  log(`openDeleteModal: modal abierto para rol "${roleName}"`);
+  log(`openDeleteModal: confirmación de eliminación para "${roleName}"`);
 }
 
 function closeDeleteModal() {
   const modal = document.getElementById('permisos-modal-delete');
-  if (modal) modal.classList.remove('permisos-modal--open');
+  if (modal) {
+    modal.classList.remove('permisos-modal--open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
   log('closeDeleteModal: cerrado');
 }
 
-// ─── Lógica de formulario ─────────────────────────────────────────────────────
+// ─── Lógica del formulario ────────────────────────────────────────────────────
 
 function collectFormData(modal) {
-  const name        = modal.querySelector('#permisos-role-name')?.value.trim() || '';
-  const description = modal.querySelector('#permisos-role-desc')?.value.trim() || '';
-  const color       = modal.querySelector('#permisos-role-color')?.value || '#6b7280';
+  const name        = modal.querySelector('#permisos-role-name')?.value.trim()  || '';
+  const description = modal.querySelector('#permisos-role-desc')?.value.trim()  || '';
+  const color       = modal.querySelector('#permisos-role-color')?.value        || '#6b7280';
 
-  // Recolectar permisos desde los checkboxes
-  const permissions = [];
-  const sectionKeys = [...new Set(
-    [...modal.querySelectorAll('input[data-section]')].map((el) => el.getAttribute('data-section'))
-  )];
+  // Recolectar secciones únicas
+  const sectionKeys = [
+    ...new Set(
+      [...modal.querySelectorAll('input[data-section]')].map((el) => el.getAttribute('data-section'))
+    ),
+  ];
 
-  sectionKeys.forEach((section) => {
-    const canView   = modal.querySelector(`input[data-perm="canView"][data-section="${section}"]`)?.checked || false;
-    const canAction = modal.querySelector(`input[data-perm="canAction"][data-section="${section}"]`)?.checked || false;
-    permissions.push({ section, canView, canAction });
+  const permissions = sectionKeys.map((section) => {
+    const canViewEl   = modal.querySelector(`input[data-perm="canView"][data-section="${section}"]`);
+    const canActionEl = modal.querySelector(`input[data-perm="canAction"][data-section="${section}"]`);
+    return {
+      section,
+      canView:   canViewEl   ? canViewEl.checked   : false,
+      canAction: canActionEl ? canActionEl.checked : false,
+    };
   });
 
+  log('collectFormData:', { name, description, color, permissions });
   return { name, description, color, permissions };
 }
 
 function validateForm(data) {
   const errors = [];
+
   if (!data.name || data.name.length < 2) {
-    errors.push({ field: 'name', message: 'El nombre debe tener al menos 2 caracteres' });
+    errors.push({ field: 'name', message: 'El nombre debe tener al menos 2 caracteres.' });
   }
   if (data.name.length > 50) {
-    errors.push({ field: 'name', message: 'El nombre no puede superar 50 caracteres' });
+    errors.push({ field: 'name', message: 'El nombre no puede superar 50 caracteres.' });
   }
+
+  const reserved = ['administrador', 'desactivado'];
+  if (reserved.includes(data.name.toLowerCase())) {
+    errors.push({ field: 'name', message: `El nombre "${data.name}" está reservado por el sistema.` });
+  }
+
   return errors;
+}
+
+function showFormErrors(modal, errors) {
+  // Limpiar errores previos
+  modal.querySelectorAll('.permisos-form__error').forEach((el) => { el.textContent = ''; });
+  modal.querySelectorAll('.permisos-form__input--error').forEach((el) => {
+    el.classList.remove('permisos-form__input--error');
+  });
+
+  errors.forEach((e) => {
+    if (e.field === 'name') {
+      const errorEl = modal.querySelector('#permisos-name-error');
+      const inputEl = modal.querySelector('#permisos-role-name');
+      if (errorEl) errorEl.textContent = e.message;
+      if (inputEl) {
+        inputEl.classList.add('permisos-form__input--error');
+        inputEl.focus();
+      }
+    }
+  });
 }
 
 async function submitRoleForm(modal) {
@@ -910,62 +793,52 @@ async function submitRoleForm(modal) {
   const data   = collectFormData(modal);
   const errors = validateForm(data);
 
-  // Limpiar errores previos
-  modal.querySelectorAll('.permisos-form__error').forEach((el) => { el.textContent = ''; });
-  modal.querySelectorAll('.permisos-form__input--error').forEach((el) => { el.classList.remove('permisos-form__input--error'); });
-
   if (errors.length > 0) {
-    errors.forEach((e) => {
-      if (e.field === 'name') {
-        const errorEl = modal.querySelector('#permisos-name-error');
-        const inputEl = modal.querySelector('#permisos-role-name');
-        if (errorEl) errorEl.textContent = e.message;
-        if (inputEl) inputEl.classList.add('permisos-form__input--error');
-      }
-    });
+    showFormErrors(modal, errors);
+    warn('submitRoleForm: errores de validación', errors);
     return;
   }
 
   const submitBtn = modal.querySelector('#permisos-form-submit');
+  const originalText = submitBtn?.textContent;
   if (submitBtn) {
-    submitBtn.disabled = true;
+    submitBtn.disabled    = true;
     submitBtn.textContent = '⏳ Guardando...';
   }
 
   try {
     let res;
     if (state.editing) {
-      log('submitRoleForm: actualizando rol', state.editing._id);
-      res = await API.put(`/roles/${state.editing._id}`, data);
+      log(`submitRoleForm: actualizando rol "${state.editing.name}" (${state.editing._id})`);
+      res = await apiCall('PUT', `/roles/${state.editing._id}`, data);
     } else {
       log('submitRoleForm: creando rol nuevo');
-      res = await API.post('/roles', data);
+      res = await apiCall('POST', '/roles', data);
     }
 
     if (res.success) {
       closeRoleModal();
       await refreshRoles();
 
-      // Re-renderizar el grid
       const grid = document.getElementById('permisos-roles-grid');
       if (grid) grid.innerHTML = renderRolesGrid();
 
       showToast(res.message || 'Rol guardado exitosamente', 'success');
-      log('submitRoleForm: éxito');
+      log('submitRoleForm: éxito ✅');
     } else {
       warn('submitRoleForm: error de API:', res.message);
       showToast(res.message || 'Error al guardar el rol', 'error');
       if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = state.editing ? '💾 Guardar Cambios' : '＋ Crear Rol';
+        submitBtn.disabled    = false;
+        submitBtn.textContent = originalText;
       }
     }
   } catch (e) {
-    err('submitRoleForm error:', e);
-    showToast('Error de conexión al guardar el rol', 'error');
+    err('submitRoleForm:', e);
+    showToast(`Error de conexión: ${e.message}`, 'error');
     if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = state.editing ? '💾 Guardar Cambios' : '＋ Crear Rol';
+      submitBtn.disabled    = false;
+      submitBtn.textContent = originalText;
     }
   }
 }
@@ -974,13 +847,14 @@ async function deleteRole(roleId, roleName) {
   log(`deleteRole: eliminando "${roleName}" (${roleId})`);
 
   const confirmBtn = document.getElementById('permisos-delete-confirm-btn');
+  const originalText = confirmBtn?.textContent;
   if (confirmBtn) {
-    confirmBtn.disabled = true;
+    confirmBtn.disabled    = true;
     confirmBtn.textContent = '⏳ Eliminando...';
   }
 
   try {
-    const res = await API.delete(`/roles/${roleId}`);
+    const res = await apiCall('DELETE', `/roles/${roleId}`);
 
     closeDeleteModal();
 
@@ -988,19 +862,21 @@ async function deleteRole(roleId, roleName) {
       await refreshRoles();
       const grid = document.getElementById('permisos-roles-grid');
       if (grid) grid.innerHTML = renderRolesGrid();
+
       showToast(res.message || 'Rol eliminado', 'success');
-      log('deleteRole: éxito');
+      log(`deleteRole: "${roleName}" eliminado ✅`);
     } else {
+      warn('deleteRole: error de API:', res.message);
       showToast(res.message || 'Error al eliminar el rol', 'error');
     }
   } catch (e) {
-    err('deleteRole error:', e);
-    showToast('Error de conexión al eliminar el rol', 'error');
+    err('deleteRole:', e);
+    showToast(`Error de conexión: ${e.message}`, 'error');
     closeDeleteModal();
   }
 }
 
-// ─── Helpers UI ───────────────────────────────────────────────────────────────
+// ─── Helpers de UI ─────────────────────────────────────────────────────────────
 
 function selectColor(modal, color) {
   const colorInput = modal.querySelector('#permisos-role-color');
@@ -1009,9 +885,11 @@ function selectColor(modal, color) {
   if (colorInput) colorInput.value = color;
   if (colorLabel) colorLabel.textContent = color;
 
-  // Marcar swatch activo
   modal.querySelectorAll('.permisos-color-swatch').forEach((sw) => {
-    sw.classList.toggle('permisos-color-swatch--active', sw.getAttribute('data-color') === color);
+    sw.classList.toggle(
+      'permisos-color-swatch--active',
+      sw.getAttribute('data-color') === color
+    );
   });
 
   log('selectColor:', color);
@@ -1025,8 +903,10 @@ function showToast(message, type = 'info') {
 
   const toast = document.createElement('div');
   toast.className = `permisos-toast permisos-toast--${type}`;
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
   toast.innerHTML = `
-    <span class="permisos-toast__icon">${icons[type] || 'ℹ️'}</span>
+    <span class="permisos-toast__icon" aria-hidden="true">${icons[type] || 'ℹ️'}</span>
     <span class="permisos-toast__message">${escapeHtml(message)}</span>
   `;
   document.body.appendChild(toast);
@@ -1035,7 +915,7 @@ function showToast(message, type = 'info') {
 
   setTimeout(() => {
     toast.classList.remove('permisos-toast--visible');
-    setTimeout(() => toast.remove(), 300);
+    setTimeout(() => toast.remove(), 320);
   }, 3500);
 }
 
@@ -1049,48 +929,41 @@ function safeOn(container, selector, event, handler) {
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
+  if (str === null || str === undefined) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;')
+    .replace(/'/g,  '&#039;');
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// INICIALIZACIÓN GLOBAL
+// DEBUGGING
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Punto de entrada principal del módulo.
- * Llama esto desde app.js después del login.
- */
-export async function initPermissionsSystem() {
-  log('initPermissionsSystem: iniciando sistema de permisos...');
-
-  try {
-    // 1. Cargar permisos del rol actual
-    await loadCurrentPermissions();
-
-    // 2. Aplicar visibilidad de navegación
-    await applyNavigationPermissions();
-
-    // 3. Aplicar visibilidad de botones de acción
-    applyActionPermissions();
-
-    // 4. Instalar interceptor de acciones no permitidas
-    setupActionInterceptors();
-
-    log('initPermissionsSystem: sistema inicializado correctamente');
-  } catch (e) {
-    err('initPermissionsSystem error:', e);
-  }
+export function debugRoles() {
+  console.group('🎭 [Roles] Debug completo');
+  console.log('Estado del módulo:', { ...state });
+  console.log('Roles cargados:', state.roles.length);
+  console.log('Secciones:', state.sections.map((s) => s.key));
+  state.roles.forEach((role) => {
+    const viewable = (role.permissions || []).filter((p) => p.canView).map((p) => p.section);
+    const actionable = (role.permissions || []).filter((p) => p.canAction).map((p) => p.section);
+    console.log(`  [${role.name}] ver=[${viewable.join(',')}] acción=[${actionable.join(',')}]`);
+  });
+  console.groupEnd();
 }
 
+if (typeof window !== 'undefined') {
+  window._debugRoles = debugRoles;
+  log('Helper de debug disponible: window._debugRoles()');
+}
+
+// ─── Exportación por defecto ──────────────────────────────────────────────────
 export default {
-  initPermissionsSystem,
   initRolesManager,
+  initPermissionsSystem,
   loadCurrentPermissions,
   applyNavigationPermissions,
   applyActionPermissions,
@@ -1098,4 +971,5 @@ export default {
   canAction,
   showNoPermissionAlert,
   invalidatePermissionsCache,
+  debugRoles,
 };
