@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import AdminChangeRequest from '../models/AdminChangeRequest.js';
 import { transporter } from './authController.js';
@@ -2050,88 +2051,293 @@ export const createUserWithRole = async (req, res) => {
         const { usuario, correo, password, rol } = req.body;
 
         console.log('\n📝 ===== CREANDO NUEVO USUARIO =====');
-        console.log('Datos recibidos:', { usuario, correo, rol, password: password ? '***' : 'NO' });
+        console.log('Datos recibidos:', { 
+            usuario, 
+            correo, 
+            rol, 
+            password: password ? '***' : 'NO',
+            timestamp: new Date().toISOString()
+        });
 
+        // =========================================================================
+        // VALIDACIONES BÁSICAS
+        // =========================================================================
         if (!usuario || !correo || !password || !rol) {
-            console.log('❌ Campos faltantes');
+            const missing = [];
+            if (!usuario) missing.push('usuario');
+            if (!correo) missing.push('correo');
+            if (!password) missing.push('password');
+            if (!rol) missing.push('rol');
+            
+            console.log('❌ Campos faltantes:', missing.join(', '));
+            
+            // =======================================================================
+            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'USER_CREATE',
+                actionType: 'CREATE',
+                actionCategory: 'USERS',
+                targetId: null,
+                targetModel: 'User',
+                targetName: usuario || 'Nuevo usuario',
+                description: `Intento fallido - Campos faltantes: ${missing.join(', ')}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    missingFields: missing,
+                    usuario,
+                    correo,
+                    rol
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             return res.status(400).json({
                 success: false,
-                message: 'usuario, correo, password y rol son requeridos'
+                message: 'Todos los campos son requeridos',
+                missingFields: missing
             });
         }
 
-        // LISTA COMPLETA DE ROLES PERMITIDOS - INCLUYENDO LOS NUEVOS
-        const allowedRoles = [
-            'administrador', 
-            'gerente',        // NUEVO
-            'supervisor',     // NUEVO
-            'moderador', 
-            'editor', 
-            'revisor', 
-            'lector', 
-            'usuario', 
-            'desactivado'
-        ];
+        // Validar formato de correo
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(correo)) {
+            console.log(`❌ Correo inválido: ${correo}`);
+            
+            await AuditService.log(req, {
+                action: 'USER_CREATE',
+                actionType: 'CREATE',
+                actionCategory: 'USERS',
+                targetId: null,
+                targetModel: 'User',
+                targetName: usuario,
+                description: `Intento fallido - Correo inválido: ${correo}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    usuario,
+                    correo,
+                    reason: 'invalid_email'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
+            return res.status(400).json({
+                success: false,
+                message: 'Formato de correo electrónico inválido'
+            });
+        }
+
+        // Validar longitud de contraseña
+        if (password.length < 6) {
+            console.log('❌ Contraseña demasiado corta');
+            
+            await AuditService.log(req, {
+                action: 'USER_CREATE',
+                actionType: 'CREATE',
+                actionCategory: 'USERS',
+                targetId: null,
+                targetModel: 'User',
+                targetName: usuario,
+                description: `Intento fallido - Contraseña demasiado corta`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    usuario,
+                    correo,
+                    passwordLength: password.length
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
+            return res.status(400).json({
+                success: false,
+                message: 'La contraseña debe tener al menos 6 caracteres'
+            });
+        }
+
+        // =========================================================================
+        // VALIDACIÓN DINÁMICA DE ROLES
+        // =========================================================================
+        console.log('🔍 Validando rol:', rol);
         
-        if (!allowedRoles.includes(rol)) {
-            console.log(`❌ Rol inválido: ${rol}`);
-            return res.status(400).json({
-                success: false,
-                message: `Rol inválido. Solo se permite: ${allowedRoles.join(', ')}`
-            });
-        }
-
-        // Verificar que no se intente crear otro administrador si ya existe uno
-        if (rol === 'administrador') {
-            const existingAdmin = await User.findOne({ rol: 'administrador', activo: true });
-            if (existingAdmin) {
-                console.log('❌ Ya existe un administrador activo');
+        // Casos especiales: administrador y desactivado (siempre válidos)
+        if (rol === 'administrador' || rol === 'desactivado') {
+            console.log(`✅ Rol especial válido: ${rol}`);
+        } else {
+            // Verificar que el rol exista en la colección de roles dinámicos
+            const Role = mongoose.model('Role');
+            const roleExists = await Role.exists({ name: rol });
+            
+            if (!roleExists) {
+                console.log(`❌ Rol inválido (no existe en BD): ${rol}`);
+                
+                // Obtener lista de roles válidos para el mensaje de error
+                const allRoles = await Role.find().select('name -_id').lean();
+                const validRoles = allRoles.map(r => r.name);
+                validRoles.push('administrador', 'desactivado');
+                
+                // =======================================================================
+                // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+                // =======================================================================
+                await AuditService.log(req, {
+                    action: 'USER_CREATE',
+                    actionType: 'CREATE',
+                    actionCategory: 'USERS',
+                    targetId: null,
+                    targetModel: 'User',
+                    targetName: usuario,
+                    description: `Intento fallido - Rol inválido: ${rol}`,
+                    severity: 'WARNING',
+                    status: 'FAILED',
+                    metadata: {
+                        usuario,
+                        correo,
+                        rolInvalido: rol,
+                        rolesValidos: validRoles
+                    }
+                }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+                
                 return res.status(400).json({
                     success: false,
-                    message: 'Ya existe un administrador en el sistema. No se puede crear otro.'
+                    message: `Rol inválido. Los roles disponibles son: ${validRoles.join(', ')}`
+                });
+            }
+            console.log(`✅ Rol dinámico válido: ${rol}`);
+        }
+
+        // =========================================================================
+        // VALIDACIONES DE UNICIDAD
+        // =========================================================================
+        
+        // Verificar que no se intente crear otro administrador si ya existe uno activo
+        if (rol === 'administrador') {
+            const existingAdmin = await User.findOne({ 
+                rol: 'administrador', 
+                activo: true 
+            });
+            
+            if (existingAdmin) {
+                console.log('❌ Ya existe un administrador activo:', existingAdmin.usuario);
+                
+                await AuditService.log(req, {
+                    action: 'USER_CREATE',
+                    actionType: 'CREATE',
+                    actionCategory: 'USERS',
+                    targetId: null,
+                    targetModel: 'User',
+                    targetName: usuario,
+                    description: `Intento fallido - Ya existe un administrador activo`,
+                    severity: 'WARNING',
+                    status: 'FAILED',
+                    metadata: {
+                        usuario,
+                        correo,
+                        existingAdmin: existingAdmin.usuario
+                    }
+                }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+                
+                return res.status(400).json({
+                    success: false,
+                    message: 'Ya existe un administrador activo en el sistema. No se puede crear otro.',
+                    existingAdmin: existingAdmin.usuario
                 });
             }
         }
 
         // Verificar email duplicado
-        const existingByEmail = await User.findOne({ correo: correo.toLowerCase().trim() });
+        const trimmedCorreo = correo.toLowerCase().trim();
+        const existingByEmail = await User.findOne({ correo: trimmedCorreo });
+        
         if (existingByEmail) {
-            console.log('❌ Email ya existe');
+            console.log(`❌ Email ya existe: ${trimmedCorreo} (usuario: ${existingByEmail.usuario})`);
+            
+            await AuditService.log(req, {
+                action: 'USER_CREATE',
+                actionType: 'CREATE',
+                actionCategory: 'USERS',
+                targetId: null,
+                targetModel: 'User',
+                targetName: usuario,
+                description: `Intento fallido - Correo ya registrado: ${trimmedCorreo}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    usuario,
+                    correo: trimmedCorreo,
+                    existingUser: existingByEmail.usuario,
+                    reason: 'email_exists'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             return res.status(400).json({
                 success: false,
-                message: 'Ya existe un usuario con ese correo'
+                message: 'Ya existe un usuario con ese correo electrónico',
+                existingUser: existingByEmail.usuario
             });
         }
 
         // Verificar usuario duplicado
-        const existingByUser = await User.findOne({ usuario: usuario.trim() });
+        const trimmedUsuario = usuario.trim();
+        const existingByUser = await User.findOne({ usuario: trimmedUsuario });
+        
         if (existingByUser) {
-            console.log('❌ Usuario ya existe');
+            console.log(`❌ Usuario ya existe: ${trimmedUsuario}`);
+            
+            await AuditService.log(req, {
+                action: 'USER_CREATE',
+                actionType: 'CREATE',
+                actionCategory: 'USERS',
+                targetId: null,
+                targetModel: 'User',
+                targetName: usuario,
+                description: `Intento fallido - Usuario ya existe: ${trimmedUsuario}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    usuario: trimmedUsuario,
+                    correo: trimmedCorreo,
+                    reason: 'username_exists'
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
             return res.status(400).json({
                 success: false,
                 message: 'Ya existe un usuario con ese nombre de usuario'
             });
         }
 
-        // Crear usuario
+        console.log('✅ Validaciones pasadas - creando usuario...');
+
+        // =========================================================================
+        // CREAR USUARIO
+        // =========================================================================
         const newUser = await User.create({
-            usuario: usuario.trim(),
-            correo: correo.toLowerCase().trim(),
+            usuario: trimmedUsuario,
+            correo: trimmedCorreo,
             password,
             rol,
             activo: true,
-            ultimoAcceso: new Date()
+            ultimoAcceso: new Date(),
+            createdBy: req.user?._id || null,
+            metadata: {
+                createdFrom: 'admin_panel',
+                createdAt: new Date().toISOString(),
+                createdBy: req.user?.usuario || 'system'
+            }
         });
 
-        console.log('✅ Usuario creado exitosamente:', {
+        console.log('✅✅✅ USUARIO CREADO EXITOSAMENTE ✅✅✅');
+        console.log('Detalles:', {
             id: newUser._id,
             usuario: newUser.usuario,
-            rol: newUser.rol
+            correo: newUser.correo,
+            rol: newUser.rol,
+            activo: newUser.activo,
+            timestamp: new Date().toISOString()
         });
 
-        // =======================================================================
+        // =========================================================================
         // REGISTRAR CREACIÓN DE USUARIO EN AUDITORÍA
-        // =======================================================================
+        // =========================================================================
         await AuditService.log(req, {
             action: 'USER_CREATE',
             actionType: 'CREATE',
@@ -2143,28 +2349,98 @@ export const createUserWithRole = async (req, res) => {
             severity: 'INFO',
             status: 'SUCCESS',
             metadata: {
+                userId: newUser._id,
                 usuario: newUser.usuario,
                 correo: newUser.correo,
                 rol: newUser.rol,
-                creadoPor: req.user?.usuario
+                activo: newUser.activo,
+                creadoPor: req.user?.usuario || 'system',
+                creadoPorId: req.user?._id
             }
         }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
 
+        // =========================================================================
+        // OPCIONAL: NOTIFICACIÓN AL NUEVO USUARIO
+        // =========================================================================
+        try {
+            // Si tienes un servicio de notificaciones, puedes enviar un email
+            // await sendWelcomeEmail(newUser.correo, newUser.usuario, password);
+            console.log('📧 Notificación al nuevo usuario:', newUser.correo);
+        } catch (notifyError) {
+            console.warn('⚠️ No se pudo enviar notificación:', notifyError.message);
+        }
+
+        // =========================================================================
+        // RESPUESTA EXITOSA
+        // =========================================================================
         return res.status(201).json({
             success: true,
-            message: `Usuario creado con rol ${rol}`,
+            message: `✅ Usuario creado exitosamente con rol "${rol}"`,
             user: {
                 id: newUser._id,
                 usuario: newUser.usuario,
                 correo: newUser.correo,
-                rol: newUser.rol
-            }
+                rol: newUser.rol,
+                activo: newUser.activo,
+                ultimoAcceso: newUser.ultimoAcceso,
+                createdAt: newUser.createdAt
+            },
+            debug: process.env.NODE_ENV === 'development' ? {
+                passwordLength: password.length,
+                userId: newUser._id
+            } : undefined
         });
+
     } catch (error) {
-        console.error('❌ Error creando usuario:', error);
-        
+        console.error('\n🔥 ERROR CRÍTICO CREANDO USUARIO:');
+        console.error('📌 Mensaje:', error.message);
+        console.error('📌 Stack:', error.stack);
+        console.error('📌 Nombre del error:', error.name);
+        console.error('📌 Timestamp:', new Date().toISOString());
+
+        // Manejar error de índice duplicado (MongoDB error 11000)
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            const value = error.keyValue[field];
+            
+            console.log(`❌ Error de duplicado: ${field} = ${value}`);
+            
+            let message = '';
+            if (field === 'usuario') message = 'Ya existe un usuario con ese nombre';
+            else if (field === 'correo') message = 'Ya existe un usuario con ese correo';
+            else message = `El campo ${field} ya está en uso`;
+            
+            // =======================================================================
+            // REGISTRAR ERROR DE DUPLICADO EN AUDITORÍA
+            // =======================================================================
+            await AuditService.log(req, {
+                action: 'USER_CREATE',
+                actionType: 'CREATE',
+                actionCategory: 'USERS',
+                targetId: null,
+                targetModel: 'User',
+                targetName: req.body?.usuario || 'Nuevo usuario',
+                description: `Error de duplicado: ${field} = ${value}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: {
+                    error: 'duplicate_key',
+                    field,
+                    value,
+                    requestBody: req.body
+                }
+            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            
+            return res.status(400).json({
+                success: false,
+                message,
+                field,
+                value
+            });
+        }
+
         // =======================================================================
-        // REGISTRAR ERROR EN AUDITORÍA
+        // REGISTRAR ERROR GENÉRICO EN AUDITORÍA
         // =======================================================================
         await AuditService.log(req, {
             action: 'USER_CREATE',
@@ -2178,15 +2454,23 @@ export const createUserWithRole = async (req, res) => {
             status: 'FAILED',
             metadata: {
                 error: error.message,
-                usuario: req.body?.usuario,
-                correo: req.body?.correo,
-                rol: req.body?.rol
+                stack: error.stack,
+                requestBody: {
+                    usuario: req.body?.usuario,
+                    correo: req.body?.correo,
+                    rol: req.body?.rol
+                }
             }
         }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
         
         return res.status(500).json({
             success: false,
-            message: 'Error del servidor al crear usuario'
+            message: 'Error del servidor al crear usuario',
+            error: process.env.NODE_ENV === 'development' ? {
+                message: error.message,
+                stack: error.stack
+            } : undefined,
+            timestamp: new Date().toISOString()
         });
     }
 };
@@ -2228,27 +2512,34 @@ export const updateUser = async (req, res) => {
             }
         }
 
-        // LISTA COMPLETA DE ROLES PERMITIDOS
-        const allowedRoles = [
-            'administrador', 
-            'gerente',
-            'supervisor',
-            'moderador', 
-            'editor', 
-            'revisor', 
-            'lector', 
-            'usuario', 
-            'desactivado'
-        ];
-        
-        // SOLO validar el rol si se está enviando en la petición
+        // =====================================================================
+        // VALIDACIÓN DINÁMICA DE ROLES - CONSULTA A LA BASE DE DATOS
+        // =====================================================================
         if (rol !== undefined && rol !== null) {
-            if (!allowedRoles.includes(rol)) {
-                console.log(`❌ Rol inválido: ${rol}`);
-                return res.status(400).json({ 
-                    success: false, 
-                    message: `Rol inválido. Los roles permitidos son: ${allowedRoles.join(', ')}` 
-                });
+            
+            // Casos especiales: administrador y desactivado (siempre válidos)
+            if (rol === 'administrador' || rol === 'desactivado') {
+                // Son válidos por defecto
+                console.log(`✅ Rol especial válido: ${rol}`);
+            } else {
+                // Verificar que el rol exista en la colección de roles dinámicos
+                const Role = mongoose.model('Role');
+                const roleExists = await Role.exists({ name: rol });
+                
+                if (!roleExists) {
+                    console.log(`❌ Rol inválido (no existe en BD): ${rol}`);
+                    
+                    // Obtener lista de roles válidos para el mensaje de error
+                    const allRoles = await Role.find().select('name -_id').lean();
+                    const validRoles = allRoles.map(r => r.name);
+                    validRoles.push('administrador', 'desactivado');
+                    
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Rol inválido. Los roles disponibles son: ${validRoles.join(', ')}` 
+                    });
+                }
+                console.log(`✅ Rol dinámico válido: ${rol}`);
             }
             
             // Si se está asignando rol de administrador, verificar que no haya otro

@@ -1,509 +1,495 @@
-import { DOM } from '../dom.js';
+// src/frontend/navigation.js
+
+import { DOM } from './dom.js';
+import { 
+    canView, 
+    canAction, 
+    initPermissionsSystem,
+    invalidatePermissionsCache,
+    applyNavigationPermissions,
+    applyActionPermissions,
+    ROLES
+} from './permissions.js';
+import { getCurrentUser } from './auth.js';
 
 // =============================================================================
-// 1. INICIALIZACIÓN DE LA NAVEGACIÓN POR PESTAÑAS - VERSIÓN DEBUG
+// 1. INICIALIZACIÓN DE LA NAVEGACIÓN POR PESTAÑAS
 // =============================================================================
 
 /**
- * 1.1 Inicializar navegación por pestañas - VERSIÓN DEBUG
+ * 1.0 Obtener rol del usuario actual
  */
-function initializeTabNavigation() {
-    console.log('🔧 DEBUG: Inicializando navegación por pestañas...');
-
-    // Obtener TODOS los enlaces de navegación del sidebar (incluyendo posibles duplicados)
-    const allNavLinks = document.querySelectorAll('.sidebar__nav-link');
-    const navLinksWithDataTab = document.querySelectorAll('.sidebar__nav-link[data-tab]');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    console.log('📌 DEBUG: Todos los enlaces sidebar__nav-link:', allNavLinks.length);
-    console.log('📌 DEBUG: Enlaces con data-tab:', navLinksWithDataTab.length);
-    console.log('📌 DEBUG: Contenidos tab-content:', tabContents.length);
-
-    // Mostrar cada enlace con data-tab
-    console.log('🔗 DEBUG: Enlaces encontrados:');
-    navLinksWithDataTab.forEach((link, index) => {
-        const tab = link.getAttribute('data-tab');
-        const text = link.querySelector('.sidebar__nav-text')?.textContent || 'Sin texto';
-        console.log(`  ${index + 1}. data-tab="${tab}" - Texto: "${text}"`);
-    });
-
-    // Mostrar cada tab-content
-    console.log('📄 DEBUG: Secciones encontradas:');
-    tabContents.forEach((tab, index) => {
-        console.log(`  ${index + 1}. id="${tab.id}"`);
-    });
-
-    if (navLinksWithDataTab.length === 0) {
-        console.error('❌ ERROR: No se encontraron enlaces de navegación con data-tab');
-        console.log('📝 INFO: Revisando si hay enlaces sin data-tab...');
-        allNavLinks.forEach((link, index) => {
-            console.log(`  ${index + 1}. Clases: "${link.className}" - data-tab: "${link.getAttribute('data-tab')}"`);
-        });
-        return;
+function getUserRole() {
+    try {
+        const user = getCurrentUser();
+        return user?.rol || null;
+    } catch (e) {
+        console.error('❌ Error obteniendo rol del usuario:', e);
+        return null;
     }
-
-    if (tabContents.length === 0) {
-        console.error('❌ ERROR: No se encontraron contenidos de pestañas');
-        return;
-    }
-
-    // Establecer pestaña activa inicial
-    setInitialActiveTab(navLinksWithDataTab);
-
-    // Agregar event listeners a cada enlace
-    navLinksWithDataTab.forEach(link => {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-            const tabId = this.getAttribute('data-tab');
-            console.log('🖱️ DEBUG: Clic en enlace:', tabId);
-            console.log('ℹ️ DEBUG: Elemento clickeado:', this);
-            handleTabClick(this, navLinksWithDataTab, tabContents);
-        });
-    });
-
-    console.log('✅ DEBUG: Navegación por pestañas inicializada');
 }
 
 /**
- * 1.2 Establecer pestaña activa inicial
+ * 1.1 Inicializar navegación con permisos
  */
-function setInitialActiveTab(navLinks) {
-    console.log('🎯 DEBUG: Configurando pestaña activa inicial...');
+async function initializeTabNavigation() {
+    console.log('🔧 Inicializando navegación por pestañas...');
 
+    // Inicializar sistema de permisos
+    await initPermissionsSystem();
+
+    // Obtener enlaces de navegación
+    const navLinks = document.querySelectorAll('.sidebar__nav-link[data-tab]');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    if (navLinks.length === 0) {
+        console.error('❌ No se encontraron enlaces de navegación');
+        return;
+    }
+
+    // Aplicar permisos de visibilidad a la sidebar
+    applyNavigationPermissions();
+
+    // Establecer pestaña activa inicial
+    await setInitialActiveTab(navLinks);
+
+    // Agregar event listeners a cada enlace
+    navLinks.forEach(link => {
+        // Solo agregar listener si el enlace es visible
+        if (link.style.display !== 'none') {
+            link.addEventListener('click', async function (e) {
+                e.preventDefault();
+                const tabId = this.getAttribute('data-tab');
+                console.log('🖱️ Clic en enlace:', tabId);
+                await handleTabClick(this, navLinks, tabContents);
+            });
+        }
+    });
+
+    console.log('✅ Navegación por pestañas inicializada');
+}
+
+// =============================================================================
+// 2. INICIALIZAR ADMIN (¡PARTE CRÍTICA QUE FALTABA!)
+// =============================================================================
+
+/**
+ * 2.0 Inicializar enlace de admin
+ */
+function initializeAdminLink() {
+    const adminNavLink = document.getElementById('nav-admin');
+    if (adminNavLink) {
+        // Remover listeners anteriores para evitar duplicados
+        adminNavLink.removeEventListener('click', handleAdminClick);
+        adminNavLink.addEventListener('click', handleAdminClick);
+        console.log('✅ Enlace de admin inicializado');
+    }
+}
+
+/**
+ * 2.1 Manejador de clic en admin
+ */
+function handleAdminClick(e) {
+    e.preventDefault();
+    console.log('🖱️ Clic en enlace de admin');
+    
+    // Verificar permisos
+    if (!canView('admin')) {
+        console.warn('⚠️ Intento de acceso a admin sin permisos');
+        return;
+    }
+    
+    // Cambiar a la pestaña admin
+    switchTab('admin').then(() => {
+        // Cargar el módulo de admin
+        import('./modules/admin/index.js').then(module => {
+            if (module.renderAgregarAdministrador) {
+                module.renderAgregarAdministrador();
+            }
+        }).catch(err => {
+            console.error('❌ Error cargando módulo admin:', err);
+        });
+    });
+}
+
+// =============================================================================
+// 3. ESTABLECER PESTAÑA ACTIVA INICIAL
+// =============================================================================
+
+async function setInitialActiveTab(navLinks) {
+    const userRole = getUserRole();
+    
     // Verificar si hay una pestaña activa en el HTML
     const currentActiveLink = document.querySelector('.sidebar__nav-link--active');
     if (currentActiveLink) {
         const activeTab = currentActiveLink.getAttribute('data-tab');
-        console.log('📌 DEBUG: Pestaña activa encontrada en HTML:', activeTab);
-        switchTab(activeTab, navLinks);
-    } else {
-        // Si no hay activa, usar dashboard por defecto
-        console.log('📌 DEBUG: No hay pestaña activa, usando dashboard por defecto');
-        switchTab('dashboard', navLinks);
-    }
-}
-
-// =============================================================================
-// 2. VALIDACIÓN Y MANEJO DE PESTAÑAS - VERSIÓN DEBUG
-// =============================================================================
-
-/**
- * 2.1 Validar identificador de pestaña - VERSIÓN DEBUG
- */
-function isValidTab(tabId) {
-    console.log(`🔍 DEBUG: Validando tabId: "${tabId}"`);
-
-    if (!tabId || tabId.trim() === '') {
-        console.error('❌ ERROR: tabId está vacío o es undefined');
-        return false;
-    }
-
-    // Obtener todas las pestañas existentes en el HTML
-    const allTabs = Array.from(document.querySelectorAll('.tab-content')).map(tab => tab.id);
-    console.log('📋 DEBUG: IDs de tab-content encontrados:', allTabs);
-
-    const isValid = allTabs.includes(tabId);
-
-    if (isValid) {
-        console.log(`✅ DEBUG: "${tabId}" es una pestaña válida`);
-    } else {
-        console.error(`❌ ERROR: "${tabId}" NO es una pestaña válida`);
-        console.log('💡 SUGERENCIA: Verifica que:');
-        console.log('   1. Exista un elemento con id="' + tabId + '"');
-        console.log('   2. El elemento tenga la clase "tab-content"');
-        console.log('   3. No haya errores de ortografía (calendario vs calendario)');
-
-        // Verificar si hay algún elemento con ese ID (aunque no tenga la clase correcta)
-        const elementWithId = document.getElementById(tabId);
-        if (elementWithId) {
-            console.log(`ℹ️ INFO: Existe elemento con id="${tabId}" pero no tiene clase "tab-content"`);
-            console.log('   Clases del elemento:', elementWithId.className);
-        } else {
-            console.log(`ℹ️ INFO: NO existe ningún elemento con id="${tabId}"`);
+        
+        // Verificar que el usuario tenga permiso para esta pestaña
+        if (canView(activeTab)) {
+            await switchTab(activeTab, navLinks);
+            return;
         }
     }
-
-    return isValid;
+    
+    // Buscar la primera pestaña visible
+    for (const link of navLinks) {
+        const tabId = link.getAttribute('data-tab');
+        if (canView(tabId) && link.style.display !== 'none') {
+            await switchTab(tabId, navLinks);
+            return;
+        }
+    }
+    
+    // Si no hay ninguna visible, ir a dashboard
+    if (canView('dashboard')) {
+        await switchTab('dashboard', navLinks);
+    }
 }
 
-/**
- * 2.2 Manejar clic en enlace de pestaña
- */
-function handleTabClick(clickedLink, navLinks, tabContents) {
+// =============================================================================
+// 4. MANEJO DE PESTAÑAS
+// =============================================================================
+
+async function handleTabClick(clickedLink, navLinks, tabContents) {
     const targetTab = clickedLink.getAttribute('data-tab');
-    console.log(`📂 DEBUG: Cambiando a pestaña: "${targetTab}"`);
-
-    switchTab(targetTab, navLinks, tabContents);
+    
+    // Verificar permisos antes de cambiar
+    if (!canView(targetTab)) {
+        console.warn(`⚠️ Intento de acceso a pestaña sin permisos: ${targetTab}`);
+        return;
+    }
+    
+    await switchTab(targetTab, navLinks, tabContents);
 }
 
-/**
- * 2.3 Cambiar a pestaña específica - VERSIÓN DEBUG
- */
-function switchTab(tabId, navLinksParam = null, tabContentsParam = null) {
-    console.log(`🔄 DEBUG: Iniciando switchTab para: "${tabId}"`);
+export async function switchTab(tabId, navLinksParam = null, tabContentsParam = null) {
+    console.log(`🔄 Cambiando a pestaña: "${tabId}"`);
 
-    // Obtener referencias si no se proporcionaron
-    const navLinks = navLinksParam || document.querySelectorAll('.sidebar__nav-link[data-tab]');
-    const tabContents = tabContentsParam || document.querySelectorAll('.tab-content');
-
-    // Validar tabId
-    if (!isValidTab(tabId)) {
-        console.error(`❌ ERROR CRÍTICO: No se puede cambiar a pestaña "${tabId}" porque no es válida`);
-
-        // Mostrar qué pestañas SÍ son válidas
-        const validTabs = Array.from(tabContents).map(tab => tab.id);
-        console.log('📋 Pestañas válidas disponibles:', validTabs);
-
-        // Mostrar qué enlaces hay en el sidebar
-        console.log('🔗 Enlaces en el sidebar:');
-        navLinks.forEach(link => {
-            console.log(`   - data-tab="${link.getAttribute('data-tab')}"`);
-        });
-
+    // Verificar permisos
+    if (!canView(tabId)) {
+        console.error(`❌ No tienes permisos para acceder a "${tabId}"`);
         return;
     }
 
-    console.log(`🔄 DEBUG: Procediendo con cambio a "${tabId}"...`);
+    // Obtener referencias
+    const navLinks = navLinksParam || document.querySelectorAll('.sidebar__nav-link[data-tab]');
+    const tabContents = tabContentsParam || document.querySelectorAll('.tab-content');
 
-    // 1. Remover clase activa de TODOS los enlaces de navegación
-    console.log('➖ DEBUG: Removiendo clase activa de todos los enlaces...');
+    // Validar que la pestaña existe
+    if (!document.getElementById(tabId) && tabId !== 'admin') {
+        console.error(`❌ Pestaña "${tabId}" no encontrada`);
+        return;
+    }
+
+    // Remover clase activa de todos los enlaces
     navLinks.forEach(link => {
-        const currentTab = link.getAttribute('data-tab');
         link.classList.remove('sidebar__nav-link--active');
-        console.log(`   - Removido de: ${currentTab}`);
     });
 
-    // 2. Agregar clase activa SOLO al enlace seleccionado
-    console.log(`➕ DEBUG: Buscando enlace con data-tab="${tabId}"...`);
+    // Agregar clase activa al enlace seleccionado
     const activeLink = Array.from(navLinks).find(
         link => link.getAttribute('data-tab') === tabId
     );
 
     if (activeLink) {
         activeLink.classList.add('sidebar__nav-link--active');
-        console.log(`✅ DEBUG: Agregado activo a enlace: ${tabId}`);
-    } else {
-        console.error(`❌ ERROR: No se encontró enlace con data-tab="${tabId}"`);
-        console.log('📋 Enlaces disponibles:');
-        navLinks.forEach(link => {
-            console.log(`   - "${link.getAttribute('data-tab')}"`);
-        });
-        return;
     }
 
-    // 3. Ocultar TODOS los contenidos de pestañas
-    console.log('👁️ DEBUG: Ocultando todas las pestañas...');
+    // Ocultar todos los contenidos
     tabContents.forEach(tab => {
         tab.classList.remove('tab-content--active');
         tab.style.display = 'none';
-        console.log(`   - Ocultado: ${tab.id}`);
     });
 
-    // 4. Mostrar SOLO el contenido de la pestaña seleccionada
-    console.log(`👁️ DEBUG: Mostrando pestaña con id="${tabId}"...`);
-    const activeTab = document.getElementById(tabId);
+    // Mostrar el contenido seleccionado
+    let activeTab = document.getElementById(tabId);
+    
+    // Si es admin y no existe, crearlo dinámicamente
+    if (!activeTab && tabId === 'admin') {
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            activeTab = document.createElement('section');
+            activeTab.id = 'admin';
+            activeTab.className = 'tab-content';
+            activeTab.style.display = 'block';
+            activeTab.innerHTML = `
+                <div class="section__header">
+                    <div>
+                        <h2 class="section__title">Admin</h2>
+                        <p class="section__subtitle">Administración del sistema</p>
+                    </div>
+                </div>
+                <div id="admin-content"></div>
+            `;
+            mainContent.appendChild(activeTab);
+            console.log('✅ Contenido Admin creado dinámicamente');
+        }
+    }
+
     if (activeTab) {
         activeTab.classList.add('tab-content--active');
         activeTab.style.display = 'block';
-        console.log(`✅ DEBUG: Mostrada pestaña: ${tabId}`);
-
-        // Verificar que realmente se esté mostrando
-        console.log(`📏 DEBUG: Estilo display de ${tabId}:`, activeTab.style.display);
-        console.log(`🎨 DEBUG: Clases de ${tabId}:`, activeTab.className);
-    } else {
-        console.error(`❌ ERROR: No se encontró elemento con id="${tabId}"`);
-        // Esto no debería pasar porque isValidTab ya validó que existe
-        return;
     }
 
-    // 5. Actualizar estado global si existe
-    if (window.appState) {
-        window.appState.currentTab = tabId;
-        console.log(`📝 DEBUG: Estado actualizado: ${tabId}`);
-    }
+    // Actualizar estado global
+    if (window.appState) window.appState.currentTab = tabId;
 
-    console.log(`🎯 DEBUG: Pestaña cambiada exitosamente a: ${tabId}`);
-
-    // 6. Cargar datos específicos de la pestaña
-    loadTabSpecificData(tabId);
+    // Cargar datos específicos de la pestaña
+    await loadTabSpecificData(tabId);
+    
+    // Aplicar permisos de acción en la nueva pestaña
+    setTimeout(() => {
+        applyActionPermissions();
+    }, 100);
 }
 
 // =============================================================================
-// 3. CARGA DE DATOS ESPECÍFICOS POR PESTAÑA
+// 5. CARGA DE DATOS ESPECÍFICOS POR PESTAÑA
 // =============================================================================
 
-/**
- * 3.1 Cargar datos específicos de pestaña
- */
-function loadTabSpecificData(tabId) {
-    console.log(`📥 DEBUG: Cargando datos para pestaña: ${tabId}`);
+async function loadTabSpecificData(tabId) {
+    console.log(`📥 Cargando datos para pestaña: ${tabId}`);
 
     switch (tabId) {
-        case 'personas':
-            console.log('👥 DEBUG: Cargando datos de personas...');
-            if (typeof window.loadPersons === 'function') {
-                window.loadPersons();
-            } else {
-                console.warn('⚠️ WARN: loadPersons no está disponible');
-            }
-            break;
-        case 'documentos':
-            console.log('📄 DEBUG: Cargando documentos...');
-            if (typeof window.loadDocuments === 'function') {
-                window.loadDocuments();
-            } else {
-                console.warn('⚠️ WARN: loadDocuments no está disponible');
-            }
-            break;
-        case 'tareas':
-            console.log('✅ DEBUG: Cargando tareas...');
-            if (typeof window.taskManager !== 'undefined' && window.taskManager) {
-                console.log('🔄 Actualizando vista de tareas...');
-                window.taskManager.renderTasks();
-                window.taskManager.updateSummary();
-            } else {
-                console.warn('⚠️ WARN: taskManager no está disponible');
-            }
-            break;
         case 'dashboard':
-            console.log('📊 DEBUG: Cargando dashboard...');
             if (typeof window.loadDashboardData === 'function') {
                 window.loadDashboardData();
-            } else {
-                console.warn('⚠️ WARN: loadDashboardData no está disponible');
             }
             break;
+            
+        case 'personas':
+            if (typeof window.loadPersons === 'function') {
+                window.loadPersons();
+            }
+            break;
+            
+        case 'documentos':
+            if (typeof window.loadDocuments === 'function') {
+                window.loadDocuments();
+            }
+            break;
+            
+        case 'tareas':
+            if (window.taskManager) {
+                window.taskManager.renderTasks();
+                window.taskManager.updateSummary();
+            }
+            break;
+            
+        case 'historial':
+            if (typeof window.loadHistory === 'function') {
+                window.loadHistory();
+            }
+            break;
+            
         case 'calendario':
-            console.log('📅 DEBUG: Inicializando sección de calendario...');
-            // Dar un pequeño retraso para asegurar que el DOM esté listo
             setTimeout(() => {
-                console.log('⏰ DEBUG: Inicializando calendario básico...');
-                if (typeof initializeBasicCalendar === 'function') {
-                    initializeBasicCalendar();
-                } else {
-                    console.error('❌ ERROR: initializeBasicCalendar no está definida');
-                    console.log('💡 SUGERENCIA: Asegúrate de que la función está definida y exportada');
+                if (typeof window.initializeBasicCalendar === 'function') {
+                    window.initializeBasicCalendar();
                 }
             }, 50);
             break;
-        case 'historial':
-            console.log('📜 DEBUG: Cargando historial...');
-            if (typeof window.loadHistory === 'function') {
-                window.loadHistory();
-            } else {
-                console.warn('⚠️ WARN: loadHistory no está disponible');
+            
+        case 'papelera':
+            if (typeof window.loadTrash === 'function') {
+                window.loadTrash();
             }
             break;
+            
         case 'ajustes':
-            console.log('⚙️ DEBUG: Sección de ajustes - Sin carga específica');
+            console.log('⚙️ Sección de ajustes');
             break;
+            
         case 'reportes':
-            console.log('📈 DEBUG: Sección de reportes - Sin carga específica');
+            console.log('📊 Sección de reportes');
             break;
+            
         case 'soporte':
-            console.log('🛟 DEBUG: Sección de soporte - Sin carga específica');
+            console.log('🛟 Sección de soporte');
             break;
+            
+        case 'admin':
+            // Admin ya se carga en el manejador de clic
+            console.log('👑 Cargando módulo admin...');
+            try {
+                const module = await import('./modules/admin/index.js');
+                if (module.renderAgregarAdministrador) {
+                    module.renderAgregarAdministrador();
+                }
+            } catch (err) {
+                console.error('❌ Error cargando admin:', err);
+            }
+            break;
+            
         case 'auditoria':
-            console.log('📋 DEBUG: Sección de auditoría - Sin carga específica');
+            console.log('📋 Cargando módulo de auditoría...');
+            try {
+                const module = await import('./modules/auditoria.js');
+                if (module.renderAuditoria) {
+                    module.renderAuditoria();
+                }
+            } catch (err) {
+                console.error('❌ Error cargando auditoría:', err);
+            }
             break;
+            
         default:
-            console.log(`ℹ️ INFO: No hay datos específicos para la pestaña: ${tabId}`);
+            console.log(`ℹ️ No hay datos específicos para: ${tabId}`);
     }
 }
 
 // =============================================================================
-// 4. FUNCIONES GLOBALES DE NAVEGACIÓN
+// 6. FUNCIONES DE UTILIDAD
 // =============================================================================
 
-/**
- * 4.1 Mostrar pestaña (función global)
- */
-function showTab(tabId) {
-    console.log(`🔍 DEBUG: showTab() llamado con: ${tabId}`);
-    switchTab(tabId);
-}
-
-/**
- * 4.2 Obtener pestaña actual activa
- */
-function getCurrentTab() {
+export function getCurrentTab() {
     const activeLink = document.querySelector('.sidebar__nav-link--active');
-    const currentTab = activeLink ? activeLink.getAttribute('data-tab') : 'dashboard';
-    console.log(`🔍 DEBUG: getCurrentTab() retorna: ${currentTab}`);
-    return currentTab;
+    return activeLink ? activeLink.getAttribute('data-tab') : 'dashboard';
+}
+
+export function showTab(tabId) {
+    if (canView(tabId)) {
+        switchTab(tabId);
+    }
 }
 
 // =============================================================================
-// 5. NAVEGACIÓN POR TECLADO
+// 7. NAVEGACIÓN POR TECLADO
 // =============================================================================
 
-/**
- * 5.1 Inicializar navegación por teclado
- */
 function initializeKeyboardNavigation() {
     document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
             return;
         }
 
         const currentTab = getCurrentTab();
-        const tabs = Array.from(document.querySelectorAll('.sidebar__nav-link[data-tab]'))
+        
+        // Obtener tabs visibles
+        const visibleTabs = Array.from(document.querySelectorAll('.sidebar__nav-link[data-tab]'))
+            .filter(link => link.style.display !== 'none')
             .map(link => link.getAttribute('data-tab'));
 
-        console.log(`⌨️ DEBUG: Tecla presionada: ${e.key}, Pestaña actual: ${currentTab}`);
-
-        const currentIndex = tabs.indexOf(currentTab);
+        const currentIndex = visibleTabs.indexOf(currentTab);
 
         switch (e.key) {
             case 'ArrowRight':
             case 'ArrowDown':
                 e.preventDefault();
-                const nextIndex = (currentIndex + 1) % tabs.length;
-                if (tabs[nextIndex]) {
-                    console.log(`➡️ DEBUG: Navegando a pestaña: ${tabs[nextIndex]}`);
-                    switchTab(tabs[nextIndex]);
+                const nextIndex = (currentIndex + 1) % visibleTabs.length;
+                if (visibleTabs[nextIndex]) {
+                    switchTab(visibleTabs[nextIndex]);
                 }
                 break;
+                
             case 'ArrowLeft':
             case 'ArrowUp':
                 e.preventDefault();
-                const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-                if (tabs[prevIndex]) {
-                    console.log(`⬅️ DEBUG: Navegando a pestaña: ${tabs[prevIndex]}`);
-                    switchTab(tabs[prevIndex]);
+                const prevIndex = (currentIndex - 1 + visibleTabs.length) % visibleTabs.length;
+                if (visibleTabs[prevIndex]) {
+                    switchTab(visibleTabs[prevIndex]);
                 }
                 break;
-            case '1':
-                e.preventDefault();
-                switchTab('dashboard');
-                break;
-            case '2':
-                e.preventDefault();
-                switchTab('personas');
-                break;
-            case '3':
-                e.preventDefault();
-                switchTab('documentos');
-                break;
-            case '4':
-                e.preventDefault();
-                switchTab('tareas');
-                break;
-            case '5':
-                e.preventDefault();
-                switchTab('historial');
-                break;
-            case '6':
-                e.preventDefault();
-                switchTab('calendario');
-                break;
         }
     });
 }
 
 // =============================================================================
-// 6. ACTUALIZACIÓN DE CONTADORES Y ESTADOS
+// 8. ACTUALIZAR INFORMACIÓN DEL USUARIO EN SIDEBAR
 // =============================================================================
 
-/**
- * 6.1 Actualizar contadores de navegación
- */
-function updateNavigationCounters() {
-    console.log('🔢 DEBUG: Actualizando contadores de navegación...');
-    // Implementar según necesites
+function updateUserInfo() {
+    try {
+        const user = getCurrentUser();
+        if (!user) return;
+
+        const userNameElement = document.querySelector('.sidebar__user-name');
+        const userRoleElement = document.querySelector('.sidebar__user-role');
+        const userEmailElement = document.getElementById('userEmail');
+
+        if (userNameElement) {
+            userNameElement.textContent = user.usuario || 'Usuario';
+        }
+
+        if (userRoleElement) {
+            const roleName = user.rol === ROLES.ADMIN ? 'Administrador' : user.rol;
+            userRoleElement.textContent = roleName;
+        }
+
+        if (userEmailElement) {
+            userEmailElement.textContent = user.correo || '';
+        }
+    } catch (e) {
+        console.error('Error actualizando info de usuario:', e);
+    }
 }
 
 // =============================================================================
-// 8. INICIALIZACIÓN COMPLETA DEL SISTEMA DE NAVEGACIÓN
+// 9. ACTUALIZAR PERMISOS EN TIEMPO REAL
 // =============================================================================
 
-/**
- * 8.1 Inicializar toda la navegación
- */
-function initializeNavigation() {
-    console.log('🚀 DEBUG: Iniciando sistema de navegación completo...');
+export async function refreshPermissions() {
+    console.log('🔄 Actualizando permisos...');
+    
+    invalidatePermissionsCache();
+    await initPermissionsSystem();
+    applyNavigationPermissions();
+    applyActionPermissions();
+    
+    const currentTab = getCurrentTab();
+    if (!canView(currentTab) && currentTab !== 'dashboard') {
+        const navLinks = document.querySelectorAll('.sidebar__nav-link[data-tab]');
+        for (const link of navLinks) {
+            const tabId = link.getAttribute('data-tab');
+            if (canView(tabId) && link.style.display !== 'none') {
+                await switchTab(tabId);
+                break;
+            }
+        }
+    }
+    
+    console.log('✅ Permisos actualizados');
+}
 
-    // Esperar un momento para asegurar que el DOM esté listo
+// =============================================================================
+// 10. INICIALIZACIÓN COMPLETA
+// =============================================================================
+
+export async function initializeNavigation() {
+    console.log('🚀 Iniciando sistema de navegación...');
+
     if (document.readyState === 'loading') {
-        console.log('⏳ DEBUG: DOM todavía cargando, esperando...');
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('✅ DEBUG: DOM completamente cargado');
-            initializeTabNavigation();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeTabNavigation();
+            initializeAdminLink(); // ← INICIALIZAR ADMIN AQUÍ
             initializeKeyboardNavigation();
+            updateUserInfo();
         });
     } else {
-        console.log('✅ DEBUG: DOM ya está cargado');
-        initializeTabNavigation();
+        await initializeTabNavigation();
+        initializeAdminLink(); // ← Y TAMBIÉN AQUÍ
         initializeKeyboardNavigation();
+        updateUserInfo();
     }
 
-    // Actualizar contadores
-    setInterval(updateNavigationCounters, 30000);
-
-    console.log('✅ DEBUG: Sistema de navegación inicializado');
+    console.log('✅ Sistema de navegación inicializado');
 }
 
-// Controlar visibilidad de enlaces según rol
-const userRole = window.localStorage.getItem('userRole'); // Obtener rol del usuario
-if (userRole !== 'administrador' && userRole !== 'editor') {
-    const navDocumentos = document.getElementById('nav-documentos');
-    if (navDocumentos) {
-        navDocumentos.style.display = 'none';
-    }
-}
+// =============================================================================
+// 11. EXPORTACIONES
+// =============================================================================
 
-// Agregar esta ruta
-routes['/calendario'] = {
-    title: 'Calendario',
-    handler: () => {
-        // Mostrar sección de calendario
-        document.querySelectorAll('.main-section').forEach(section => {
-            section.style.display = 'none';
-        });
-        document.getElementById('calendarioSection').style.display = 'block';
-
-        // Actualizar título
-        document.title = 'Calendario - Sistema de Documentos';
-
-        // Inicializar calendario si no está inicializado
-        if (!window.calendarManager) {
-            window.calendarManager = new CalendarManager();
-        } else {
-            window.calendarManager.renderCalendar();
-            window.calendarManager.renderUpcomingEvents();
-        }
-    }
-};
-
-// Initialize Admin section rendering
-const adminNavLink = document.getElementById('nav-admin');
-if (adminNavLink) {
-    adminNavLink.addEventListener('click', () => {
-        import('./modules/admin/index.js').then(module => {
-            module.renderAgregarAdministrador();
-        });
-    });
-}
-
-
-
-// Exportar todas las funciones
 export {
     initializeTabNavigation,
-    switchTab,
-    showTab,
     loadTabSpecificData,
-    getCurrentTab,
-    initializeKeyboardNavigation,
-    updateNavigationCounters,
-    initializeNavigation
+    initializeKeyboardNavigation
 };
 
-// Hacer funciones disponibles globalmente para debugging
+// Hacer funciones disponibles globalmente
 window.showTab = showTab;
 window.getCurrentTab = getCurrentTab;
 window.switchTab = switchTab;
-window.initializeBasicCalendar = initializeBasicCalendar;
 window.initializeNavigation = initializeNavigation;
+window.refreshPermissions = refreshPermissions;
 
-console.log('📦 DEBUG: Módulo navigation.js cargado correctamente');
+console.log('📦 Módulo navigation.js cargado');

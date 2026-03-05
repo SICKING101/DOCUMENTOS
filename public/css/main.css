@@ -21,6 +21,7 @@
 @import url('components/tabs.css');
 @import url('components/empty-states.css');
 @import url('components/sidebar.css');
+@import url('components/admin-tabs.css');
 
 @import url('components/preloader/bulk-delete.css');
 @import url('components/preloader/buttons.css');
@@ -67,6 +68,7 @@
 @import url('sections/admin.css');
 @import url('sections/reportes.css');
 @import url('sections/auditoria.css');
+@import url('sections/roles.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');

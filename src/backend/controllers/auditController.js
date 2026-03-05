@@ -306,7 +306,7 @@ static async frontendLog(req, res) {
                 action = 'FRONTEND_LOGIN_SUCCESS';
                 severity = 'INFO';
                 status = 'SUCCESS';
-                friendlyDescription = 'Acceso al sistema';  // ← Cambiado
+                friendlyDescription = 'Acceso al sistema';
                 break;
             case 'login_failed':
                 action = 'FRONTEND_LOGIN_FAILED';
@@ -347,7 +347,7 @@ static async frontendLog(req, res) {
         let userId = null;
         let username = usuario || correo || 'visitante';
         let userRole = 'visitante';
-        let userEmail = correo || '';
+        let userEmail = correo || 'desconocido@localhost'; // ← VALOR POR DEFECTO
 
         // Solo buscar usuario si tenemos identificador
         if (usuario || correo) {
@@ -364,17 +364,21 @@ static async frontendLog(req, res) {
                     userId = user._id;
                     username = user.usuario;
                     userRole = user.rol;
-                    userEmail = user.correo;
+                    userEmail = user.correo; // ← Email real si existe
+                } else {
+                    // Si no se encuentra el usuario pero tenemos correo, usarlo
+                    userEmail = correo || 'desconocido@localhost';
                 }
             } catch (userError) {
                 console.warn('⚠️ No se pudo buscar usuario:', userError.message);
+                // Mantener el email por defecto
             }
         }
 
         // Crear descripción AMIGABLE
         let description = '';
         if (eventType === 'login_success') {
-            description = `El usuario ${username} accedió al sistema`;  // ← Formato específico
+            description = `El usuario ${username} accedió al sistema`;
         } else if (eventType === 'login_attempt') {
             description = `Intento de acceso - Usuario: ${username}`;
         } else if (eventType === 'login_failed') {
@@ -386,19 +390,19 @@ static async frontendLog(req, res) {
             if (motivo) description += ` - Motivo: ${motivo}`;
         }
 
-        // Crear objeto de auditoría
+        // Crear objeto de auditoría - AHORA userEmail SIEMPRE TIENE VALOR
         const auditData = {
             userId: userId || new mongoose.Types.ObjectId(),
             username: username,
             userRole: userRole,
-            userEmail: userEmail,
+            userEmail: userEmail, // ← NUNCA VACÍO
             action: action,
             actionType: 'EVENT',
             actionCategory: 'AUTH',
             targetId: userId,
             targetModel: userId ? 'User' : null,
             targetName: username,
-            description: description,  // ← Usamos la descripción amigable
+            description: description,
             severity: severity,
             status: status,
             metadata: {
@@ -419,6 +423,7 @@ static async frontendLog(req, res) {
         
         console.log(`✅ Log guardado ID: ${auditLog._id}`);
         console.log(`📝 Descripción: ${description}`);
+        console.log(`📧 Email: ${userEmail}`);
         console.log('📱 ============================\n');
         
         res.json({ success: true, id: auditLog._id });
@@ -427,7 +432,8 @@ static async frontendLog(req, res) {
         console.error('❌ Error en frontendLog:', error);
         console.error('📌 Stack:', error.stack);
         
-        res.status(500).json({ 
+        // Incluso en error, devolver 200 para no afectar al frontend
+        res.status(200).json({ 
             success: false, 
             error: error.message 
         });

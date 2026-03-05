@@ -1,3 +1,5 @@
+// src/backend/middleware/auth.js
+
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { hasPermission } from '../config/permissions.js';
