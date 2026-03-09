@@ -1,3 +1,5 @@
+// src/frontend/modules/personas.js
+
 import { DOM } from '../dom.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, isValidEmail } from '../utils.js';
