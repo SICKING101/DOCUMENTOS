@@ -358,8 +358,10 @@ export const verificarRol = (rolesPermitidos) => (req, res, next) => {
 /**
  * Middleware reusable para verificar permisos por rol.
  * Uso: requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS)
+ * 
+ * VERSIÓN MEJORADA: Registra intentos fallidos en auditoría
  */
-export const requirePermission = (permission) => (req, res, next) => {
+export const requirePermission = (permission) => async (req, res, next) => {
     const role = req.user?.rol;
 
     if (!role) {
@@ -369,10 +371,53 @@ export const requirePermission = (permission) => (req, res, next) => {
         });
     }
 
+    // CASO ESPECIAL: ADMINISTRADOR SIEMPRE TIENE ACCESO
+    if (role === 'administrador') {
+        return next();
+    }
+
+    // Verificar permiso usando el mapa central
     if (!hasPermission(role, permission)) {
+        // =======================================================================
+        // REGISTRAR INTENTO NO AUTORIZADO EN AUDITORÍA
+        // =======================================================================
+        try {
+            const actionMap = {
+                [PERMISSIONS.VIEW_PERSONS]: 'PERSON_VIEW_UNAUTHORIZED',
+                [PERMISSIONS.CREATE_PERSON]: 'PERSON_CREATE_UNAUTHORIZED',
+                [PERMISSIONS.EDIT_PERSON]: 'PERSON_EDIT_UNAUTHORIZED',
+                [PERMISSIONS.DELETE_PERSON]: 'PERSON_DELETE_UNAUTHORIZED'
+            };
+
+            const action = actionMap[permission] || 'UNAUTHORIZED_ACCESS';
+
+            await AuditService.log(req, {
+                action,
+                actionType: 'UNAUTHORIZED',
+                actionCategory: 'SECURITY',
+                targetId: null,
+                targetModel: 'Person',
+                targetName: 'N/A',
+                description: `Intento de acceso no autorizado: ${permission} por usuario ${req.user?.usuario || 'desconocido'} (rol: ${role})`,
+                severity: 'WARNING',
+                status: 'DENIED',
+                metadata: {
+                    usuario: req.user?.usuario,
+                    rol: role,
+                    permisoRequerido: permission,
+                    endpoint: req.originalUrl,
+                    method: req.method
+                }
+            });
+            console.log(`⚠️ Intento no autorizado registrado: ${permission}`);
+        } catch (auditError) {
+            console.error('❌ Error registrando intento no autorizado:', auditError.message);
+        }
+
         return res.status(403).json({
             success: false,
-            message: 'No tienes permisos para realizar esta acción.'
+            message: 'No tienes permisos para realizar esta acción.',
+            requiredPermission: permission
         });
     }
 

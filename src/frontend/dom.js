@@ -123,7 +123,7 @@ const DOM = {
     quickActions: document.querySelectorAll('.action-card'),
     
     // =============================================================================
-    // 8. ELEMENTOS DE PERSONAS
+    // 8. ELEMENTOS DE PERSONAS (MEJORADO CON SELECTORES DE PERMISOS)
     // =============================================================================
     
     /**
@@ -137,6 +137,13 @@ const DOM = {
      * Abre el formulario para registrar nueva persona.
      */
     addPersonBtn: document.getElementById('addPersonBtn'),
+    
+    /**
+     * 8.3 Botones de acción en la tabla de personas (nuevos selectores)
+     * Referencias para aplicar permisos de edición/eliminación.
+     */
+    personEditButtons: document.querySelectorAll('[data-person-edit]'),
+    personDeleteButtons: document.querySelectorAll('[data-person-delete]'),
     
     // =============================================================================
     // 9. ELEMENTOS DE DOCUMENTOS
@@ -777,19 +784,67 @@ const DOM = {
     closeDetailBtn: document.getElementById('closeDetailBtn'),
     reopenTicketBtn: document.getElementById('reopenTicketBtn'),
     closeTicketBtn: document.getElementById('closeTicketBtn'),
+    
+    // =============================================================================
+    // 24. ELEMENTOS DE PERSONAS - FILTROS Y CONTROLES (NUEVOS)
+    // =============================================================================
+    
+    /**
+     * 24.1 Contenedor de acciones de personas
+     * Área que contiene los botones de acción (agregar, filtros)
+     */
+    personasActionsContainer: document.querySelector('.personas-actions'),
+    
+    /**
+     * 24.2 Botones de filtros de personas
+     * Referencias para aplicar permisos en los controles de filtrado
+     */
+    personasSearch: document.getElementById('personasSearch'),
+    personasPuestoFilter: document.getElementById('personasPuestoFilter'),
+    personasSortFilter: document.getElementById('personasSortFilter'),
+    
+    /**
+     * 24.3 Botones de acción en el modal de persona
+     * Referencias para aplicar permisos en el modal
+     */
+    personModalSaveBtn: document.getElementById('savePersonBtn'),
+    personModalCancelBtn: document.getElementById('cancelPersonBtn'),
+    
+    /**
+     * 24.4 Elemento de alerta de permisos
+     * Contenedor para mostrar mensajes de permisos insuficientes
+     */
+    permissionsAlertContainer: document.createElement('div'),
 };
 
 // =============================================================================
-// 24. CONFIGURACIÓN INICIAL DEL CONTENEDOR DE PROGRESO
+// 25. CONFIGURACIÓN INICIAL DEL CONTENEDOR DE PROGRESO
 // =============================================================================
 
 /**
- * 24.1 Inicializar contenedor de progreso
+ * 25.1 Inicializar contenedor de progreso
  * Configura propiedades del elemento de progreso que se crea dinámicamente
  * para mostrar estado de subidas múltiples.
  */
 DOM.uploadProgressContainer.id = 'uploadProgressContainer';
 DOM.uploadProgressContainer.className = 'upload-progress';
 DOM.uploadProgressContainer.style.display = 'none';
+
+// =============================================================================
+// 26. CONFIGURACIÓN INICIAL DEL CONTENEDOR DE ALERTAS DE PERMISOS
+// =============================================================================
+
+/**
+ * 26.1 Inicializar contenedor de alertas de permisos
+ * Configura propiedades del elemento de alertas que se crea dinámicamente
+ * para mostrar mensajes de permisos insuficientes.
+ */
+DOM.permissionsAlertContainer.id = 'permissionsAlertContainer';
+DOM.permissionsAlertContainer.className = 'permissions-alert-container';
+DOM.permissionsAlertContainer.style.position = 'fixed';
+DOM.permissionsAlertContainer.style.top = '20px';
+DOM.permissionsAlertContainer.style.right = '20px';
+DOM.permissionsAlertContainer.style.zIndex = '999999';
+document.body.appendChild(DOM.permissionsAlertContainer);
 
 export { DOM };

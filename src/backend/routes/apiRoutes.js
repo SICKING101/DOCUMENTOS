@@ -51,25 +51,38 @@ router.use('/roles', roleRoutes);   // ← NUEVO
 router.get('/dashboard', protegerRuta, DashboardController.getDashboardStats);
 
 // ─── PERSONAS ─────────────────────────────────────────────────────────────────
-router.get('/persons', protegerRuta, PersonController.getAll);
-router.post('/persons', protegerRuta, PersonController.create);
-router.put('/persons/:id', protegerRuta, PersonController.update);
-router.delete('/persons/:id', protegerRuta, PersonController.delete);
-router.patch('/persons/:id/deactivate', protegerRuta, PersonController.deactivate);
-router.patch('/persons/:id/reactivate', protegerRuta, PersonController.reactivate);
-router.get('/persons/inactive', protegerRuta, PersonController.getInactive);
+// GET /persons - Requiere permiso VIEW_PERSONS
+router.get('/persons', protegerRuta, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getAll);
+
+// GET /persons/inactive - También requiere VIEW_PERSONS (es una variante de vista)
+router.get('/persons/inactive', protegerRuta, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getInactive);
+
+// POST /persons - Requiere permiso CREATE_PERSON
+router.post('/persons', protegerRuta, requirePermission(PERMISSIONS.CREATE_PERSON), PersonController.create);
+
+// PUT /persons/:id - Requiere permiso EDIT_PERSON
+router.put('/persons/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.update);
+
+// DELETE /persons/:id - Requiere permiso DELETE_PERSON
+router.delete('/persons/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_PERSON), PersonController.delete);
+
+// PATCH /persons/:id/deactivate - Requiere permiso EDIT_PERSON (es una forma de edición)
+router.patch('/persons/:id/deactivate', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.deactivate);
+
+// PATCH /persons/:id/reactivate - Requiere permiso EDIT_PERSON (es una forma de edición)
+router.patch('/persons/:id/reactivate', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.reactivate);
 
 // ─── CATEGORÍAS ───────────────────────────────────────────────────────────────
-router.get('/categories', protegerRuta, CategoryController.getAll);
-router.post('/categories', protegerRuta, CategoryController.create);
-router.put('/categories/:id', protegerRuta, CategoryController.update);
-router.delete('/categories/:id', protegerRuta, CategoryController.delete);
+router.get('/categories', protegerRuta, requirePermission(PERMISSIONS.VIEW_CATEGORIES), CategoryController.getAll);
+router.post('/categories', protegerRuta, requirePermission(PERMISSIONS.CREATE_CATEGORY), CategoryController.create);
+router.put('/categories/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_CATEGORY), CategoryController.update);
+router.delete('/categories/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_CATEGORY), CategoryController.delete);
 
 // ─── DEPARTAMENTOS ────────────────────────────────────────────────────────────
-router.get('/departments', protegerRuta, DepartmentController.getAll);
-router.post('/departments', protegerRuta, DepartmentController.create);
-router.put('/departments/:id', protegerRuta, DepartmentController.update);
-router.delete('/departments/:id', protegerRuta, DepartmentController.delete);
+router.get('/departments', protegerRuta, requirePermission(PERMISSIONS.VIEW_DEPARTMENTS), DepartmentController.getAll);
+router.post('/departments', protegerRuta, requirePermission(PERMISSIONS.CREATE_DEPARTMENT), DepartmentController.create);
+router.put('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_DEPARTMENT), DepartmentController.update);
+router.delete('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DEPARTMENT), DepartmentController.delete);
 
 // ─── DOCUMENTOS ───────────────────────────────────────────────────────────────
 router.get('/documents', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getAll);
@@ -84,49 +97,49 @@ router.patch('/documents/:id/approve', protegerRuta, requirePermission(PERMISSIO
 router.patch('/documents/:id/reject', protegerRuta, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.reject);
 
 // ─── TAREAS ───────────────────────────────────────────────────────────────────
-router.get('/tasks', protegerRuta, TaskController.getAll);
-router.post('/tasks', protegerRuta, TaskController.create);
-router.put('/tasks/:id', protegerRuta, TaskController.update);
-router.delete('/tasks/:id', protegerRuta, TaskController.delete);
-router.patch('/tasks/:id/status', protegerRuta, TaskController.updateStatus);
-router.get('/tasks/stats', protegerRuta, TaskController.getStats);
-router.get('/tasks/high-priority', protegerRuta, TaskController.getHighPriority);
-router.get('/tasks/today', protegerRuta, TaskController.getTodayTasks);
+router.get('/tasks', protegerRuta, requirePermission(PERMISSIONS.VIEW_TASKS), TaskController.getAll);
+router.post('/tasks', protegerRuta, requirePermission(PERMISSIONS.CREATE_TASK), TaskController.create);
+router.put('/tasks/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_TASK), TaskController.update);
+router.delete('/tasks/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_TASK), TaskController.delete);
+router.patch('/tasks/:id/status', protegerRuta, requirePermission(PERMISSIONS.COMPLETE_TASK), TaskController.updateStatus);
+router.get('/tasks/stats', protegerRuta, requirePermission(PERMISSIONS.VIEW_TASKS), TaskController.getStats);
+router.get('/tasks/high-priority', protegerRuta, requirePermission(PERMISSIONS.VIEW_TASKS), TaskController.getHighPriority);
+router.get('/tasks/today', protegerRuta, requirePermission(PERMISSIONS.VIEW_TASKS), TaskController.getTodayTasks);
 
 // ─── REPORTES ─────────────────────────────────────────────────────────────────
-router.post('/reports/excel', protegerRuta, ReportController.generateExcel);
-router.post('/reports/pdf', protegerRuta, ReportController.generatePDF);
-router.post('/reports/csv', protegerRuta, ReportController.generateCSV);
+router.post('/reports/excel', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateExcel);
+router.post('/reports/pdf', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generatePDF);
+router.post('/reports/csv', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateCSV);
 
 // ─── NOTIFICACIONES ───────────────────────────────────────────────────────────
-router.get('/notifications', protegerRuta, NotificationController.getAll);
-router.get('/notifications/unread', protegerRuta, NotificationController.getUnread);
-router.get('/notifications/stats', protegerRuta, NotificationController.getStats);
-router.patch('/notifications/:id/read', protegerRuta, NotificationController.markAsRead);
-router.patch('/notifications/read-all', protegerRuta, NotificationController.markAllAsRead);
-router.delete('/notifications/:id', protegerRuta, NotificationController.delete);
-router.post('/notifications/cleanup', protegerRuta, NotificationController.cleanup);
+router.get('/notifications', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.getAll);
+router.get('/notifications/unread', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.getUnread);
+router.get('/notifications/stats', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.getStats);
+router.patch('/notifications/:id/read', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.markAsRead);
+router.patch('/notifications/read-all', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.markAllAsRead);
+router.delete('/notifications/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_SYSTEM_SETTINGS), NotificationController.delete);
+router.post('/notifications/cleanup', protegerRuta, requirePermission(PERMISSIONS.EDIT_SYSTEM_SETTINGS), NotificationController.cleanup);
 
 // ─── PAPELERA ─────────────────────────────────────────────────────────────────
-router.get('/trash', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.getTrashDocuments);
-router.post('/trash/empty-all', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.emptyTrash);
-router.post('/trash/auto-cleanup', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.autoCleanup);
-router.post('/trash/:id/restore', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.restoreDocument);
-router.delete('/trash/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), TrashController.deletePermanently);
+router.get('/trash', protegerRuta, requirePermission(PERMISSIONS.VIEW_TRASH), TrashController.getTrashDocuments);
+router.post('/trash/empty-all', protegerRuta, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.emptyTrash);
+router.post('/trash/auto-cleanup', protegerRuta, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.autoCleanup);
+router.post('/trash/:id/restore', protegerRuta, requirePermission(PERMISSIONS.RESTORE_FROM_TRASH), TrashController.restoreDocument);
+router.delete('/trash/:id', protegerRuta, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.deletePermanently);
 
 // ─── SOPORTE Y TICKETS ────────────────────────────────────────────────────────
-router.post('/tickets', protegerRuta, upload.array('files', 10), SupportController.createTicket);
-router.get('/support/status', protegerRuta, SupportController.getSystemStatus);
-router.get('/support/faq', protegerRuta, SupportController.getFAQ);
-router.post('/support/test-email', protegerRuta, SupportController.testSupportEmail);
+router.post('/tickets', protegerRuta, requirePermission(PERMISSIONS.CREATE_TICKET), upload.array('files', 10), SupportController.createTicket);
+router.get('/support/status', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.getSystemStatus);
+router.get('/support/faq', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.getFAQ);
+router.post('/support/test-email', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.testSupportEmail);
 
 if (process.env.NODE_ENV === 'development') {
   console.log('🧪 Modo desarrollo activado: Habilitando rutas de prueba');
-  router.post('/support/activate-errors', protegerRuta, SupportController.activateRealErrors);
-  router.post('/support/reset-errors', protegerRuta, SupportController.resetRealErrors);
-  router.get('/support/validate-errors', protegerRuta, SupportController.validateSystemErrors);
-  router.post('/support/simulate-error/:service', protegerRuta, SupportController.simulateRealError);
-  router.post('/support/reset-all-errors', protegerRuta, SupportController.resetAllRealErrors);
+  router.post('/support/activate-errors', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.activateRealErrors);
+  router.post('/support/reset-errors', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.resetRealErrors);
+  router.get('/support/validate-errors', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.validateSystemErrors);
+  router.post('/support/simulate-error/:service', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.simulateRealError);
+  router.post('/support/reset-all-errors', protegerRuta, requirePermission(PERMISSIONS.VIEW_SUPPORT), SupportController.resetAllRealErrors);
 } else {
   console.log('🚀 Modo producción: Rutas de prueba deshabilitadas');
 }
