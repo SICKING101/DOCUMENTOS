@@ -2,6 +2,7 @@ import { DOM } from '../dom.js';
 import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
 import { setLoadingState, showAlert, getFileIcon, formatDate } from '../utils.js';
 import { showFloatingNotification } from './personas.js';  // CAMBIADO: importar showFloatingNotification
+import { canAction } from '../permissions.js';
 
 // =============================================================================
 // 1. CARGA DE DATOS DEL DASHBOARD
@@ -72,6 +73,8 @@ function updateDashboardStats(appState) {
  */
 function loadRecentDocuments(recentDocuments = [], appState) {
     if (!DOM.recentDocuments) return;
+
+    const canDocumentActions = canAction('documentos');
     
     const docsToShow = recentDocuments.length > 0 ? recentDocuments : (appState && appState.documents ? appState.documents.slice(0, 5) : []);
     
@@ -83,17 +86,21 @@ function loadRecentDocuments(recentDocuments = [], appState) {
                 <i class="fas fa-file-alt empty-state__icon"></i>
                 <h3 class="empty-state__title">No hay documentos recientes</h3>
                 <p class="empty-state__description">Sube tu primer documento para comenzar</p>
-                <button class="btn btn--primary" id="addFirstDocument">
-                    <i class="fas fa-plus"></i> Subir Documento
-                </button>
+                ${canDocumentActions ? `
+                  <button class="btn btn--primary" id="addFirstDocument">
+                      <i class="fas fa-plus"></i> Subir Documento
+                  </button>
+                ` : ''}
             </article>
         `;
         // Re-attach event listener
-        document.getElementById('addFirstDocument')?.addEventListener('click', () => {
-            if (typeof window.openDocumentModal === 'function') {
-                window.openDocumentModal();
-            }
-        });
+        if (canDocumentActions) {
+            document.getElementById('addFirstDocument')?.addEventListener('click', () => {
+                if (typeof window.openDocumentModal === 'function') {
+                    window.openDocumentModal();
+                }
+            });
+        }
         return;
     }
     
@@ -114,14 +121,16 @@ function loadRecentDocuments(recentDocuments = [], appState) {
                     ${doc.descripcion ? `<p class="documents__details-description">${doc.descripcion}</p>` : ''}
                 </div>
             </div>
-            <div class="documents__actions">
-                <button class="btn btn--sm btn--outline" onclick="previewDocument('${doc._id}')" title="Vista previa">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
-                    <i class="fas fa-download"></i>
-                </button>
-            </div>
+            ${canDocumentActions ? `
+              <div class="documents__actions">
+                  <button class="btn btn--sm btn--outline" onclick="previewDocument('${doc._id}')" title="Vista previa">
+                      <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
+                      <i class="fas fa-download"></i>
+                  </button>
+              </div>
+            ` : ''}
         `;
         
         DOM.recentDocuments.appendChild(documentItem);

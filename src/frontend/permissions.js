@@ -80,7 +80,10 @@ export const ROLES = {
 // - Ajustes: vista pública
 // =============================================================================
 
-const PUBLIC_VIEW_SECTIONS = new Set(['historial', 'notificaciones', 'ajustes']);
+// Dashboard debe ser visible para cualquier usuario activo.
+// Nota: Historial/Notificaciones/Ajustes son visibles, pero sus acciones siguen
+// dependiendo de canAction('...').
+const PUBLIC_VIEW_SECTIONS = new Set(['dashboard', 'historial', 'notificaciones', 'ajustes']);
 
 // =============================================================================
 // PERMISOS DE ACCIONES DE LA APP (para hasPermission())
@@ -395,9 +398,13 @@ export function applyNavigationPermissions() {
   const rol   = user?.rol || user?.role;
   const isAdm = rol === ROLES.ADMIN;
 
-  // Soportar tanto data-tab como data-section
+  // IMPORTANTE:
+  // Solo aplicar a links del sidebar (y dropdown admin si aplica).
+  // No usar un selector genérico como [data-section] porque el proyecto usa
+  // data-section en múltiples partes (ej: cards de guías en Soporte) y eso
+  // provocaba que se ocultaran por error.
   const navLinks = document.querySelectorAll(
-    '.sidebar__nav-link[data-tab], .sidebar__nav-link[data-section], [data-section]'
+    '.sidebar__nav-link[data-tab], .sidebar__nav-link[data-section]'
   );
 
   plog(`applyNavigationPermissions: ${navLinks.length} nav-links encontrados`);

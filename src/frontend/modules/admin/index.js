@@ -28,6 +28,10 @@ function err(...args)  { console.error('❌ [Admin]', ...args); }
 const ADMIN_ROLE    = 'administrador';
 const DISABLED_ROLE = 'desactivado';
 
+// Secciones que NO se deben mostrar/editar en el formulario de roles
+// (por ejemplo, módulos que son visibles para todos y no requieren configuración por rol).
+const EXCLUDED_ROLE_SECTIONS = new Set(['notificaciones']);
+
 // Fallback de secciones si la API de roles falla
 const SYSTEM_SECTIONS = [
   { key: 'documentos',     label: 'Documentos',    icon: '📄' },
@@ -39,7 +43,6 @@ const SYSTEM_SECTIONS = [
   { key: 'papelera',       label: 'Papelera',       icon: '🗑️' },
   { key: 'calendario',     label: 'Calendario',     icon: '📅' },
   { key: 'historial',      label: 'Historial',      icon: '📜' },
-  { key: 'notificaciones', label: 'Notificaciones', icon: '🔔' },
   { key: 'soporte',        label: 'Soporte',        icon: '🛟' },
 ];
 
@@ -83,6 +86,10 @@ function truncate(text, max) {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function filterExcludedSections(sections) {
+  return (sections || []).filter(s => s?.key && !EXCLUDED_ROLE_SECTIONS.has(s.key));
+}
 
 // ─── Helpers de rol ────────────────────────────────────────────────────────────
 
@@ -534,16 +541,16 @@ async function fetchRoles() {
     const res = await api.call('/roles');
     if (res?.success) {
       rolesState.roles    = res.data     || [];
-      rolesState.sections = res.sections || SYSTEM_SECTIONS;
+      rolesState.sections = filterExcludedSections(res.sections || SYSTEM_SECTIONS);
       log('fetchRoles OK →', rolesState.roles.map(r => r.name));
       return true;
     }
     warn('fetchRoles: sin success:', res?.message);
-    rolesState.sections = SYSTEM_SECTIONS;
+    rolesState.sections = filterExcludedSections(SYSTEM_SECTIONS);
     return false;
   } catch (e) {
     err('fetchRoles error:', e);
-    rolesState.sections = SYSTEM_SECTIONS;
+    rolesState.sections = filterExcludedSections(SYSTEM_SECTIONS);
     return false;
   }
 }
@@ -710,6 +717,7 @@ function renderRoleForm(role) {
 
   const rows = rolesState.sections.map(sec => {
     const p = pm[sec.key] || { canView: false, canAction: false };
+    const hideViewToggle = sec.key === 'historial';
     return `
       <tr class="permisos-perm-row">
         <td class="permisos-perm-row__section">
@@ -717,11 +725,13 @@ function renderRoleForm(role) {
           <span class="permisos-perm-row__label">${escapeHtml(sec.label)}</span>
         </td>
         <td class="permisos-perm-row__toggle">
-          <label class="permisos-toggle" title="Puede ver esta sección en el menú">
-            <input type="checkbox" class="permisos-toggle__input"
-              data-perm="canView" data-section="${sec.key}" ${p.canView?'checked':''}>
-            <span class="permisos-toggle__slider"></span>
-          </label>
+          ${hideViewToggle ? '' : `
+            <label class="permisos-toggle" title="Puede ver esta sección en el menú">
+              <input type="checkbox" class="permisos-toggle__input"
+                data-perm="canView" data-section="${sec.key}" ${p.canView?'checked':''}>
+              <span class="permisos-toggle__slider"></span>
+            </label>
+          `}
         </td>
         <td class="permisos-perm-row__toggle">
           <label class="permisos-toggle" title="Puede crear, editar y eliminar">
