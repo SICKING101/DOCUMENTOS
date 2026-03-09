@@ -48,7 +48,7 @@ class ApiService {
     }
 
     // =========================================================================
-    // FUNCIÓN PRINCIPAL DE LLAMADAS A LA API
+    // FUNCIÓN PRINCIPAL DE LLAMADAS A LA API (MEJORADA CON MANEJO DE 403)
     // =========================================================================
     async call(endpoint, options = {}) {
         try {
@@ -71,6 +71,28 @@ class ApiService {
             const response = await fetch(`${this.baseURL}${endpoint}`, finalOptions);
 
             console.log(`📥 API Response: ${response.status} ${response.statusText}`);
+
+            // =================================================================
+            // MANEJO ESPECIAL PARA ERROR 403 (PERMISOS DENEGADOS)
+            // =================================================================
+            if (response.status === 403) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Acceso denegado (403):', errorData);
+                
+                // Disparar evento global para que el sistema de permisos reaccione
+                if (typeof window !== 'undefined') {
+                    const event = new CustomEvent('auth:permission-denied', { 
+                        detail: { 
+                            endpoint, 
+                            requiredPermission: errorData.requiredPermission,
+                            message: errorData.message || 'No tienes permisos para realizar esta acción'
+                        } 
+                    });
+                    window.dispatchEvent(event);
+                }
+                
+                throw new Error(errorData.message || 'No tienes permisos para realizar esta acción');
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -723,7 +745,7 @@ async patchDocument(id, partialData) {
     }
 
     // =========================================================================
-    // FUNCIONES PARA PERSONAS
+    // FUNCIONES PARA PERSONAS (ACTUALIZADAS CON MANEJO DE PERMISOS)
     // =========================================================================
 
     async getPersons() {
@@ -747,6 +769,18 @@ async patchDocument(id, partialData) {
     async deletePerson(id) {
         return this.call(`/persons/${id}`, {
             method: 'DELETE'
+        });
+    }
+
+    async deactivatePerson(id) {
+        return this.call(`/persons/${id}/deactivate`, {
+            method: 'PATCH'
+        });
+    }
+
+    async reactivatePerson(id) {
+        return this.call(`/persons/${id}/reactivate`, {
+            method: 'PATCH'
         });
     }
 

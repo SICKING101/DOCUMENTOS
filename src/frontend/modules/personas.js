@@ -3,6 +3,13 @@
 import { DOM } from '../dom.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, isValidEmail } from '../utils.js';
+import { 
+    canView, 
+    canAction, 
+    showNoPermissionAlert,
+    hasPermission,
+    PERMISSIONS
+} from '../permissions.js';
 
 // Variables globales para filtros
 let currentFilters = {
@@ -12,7 +19,7 @@ let currentFilters = {
 };
 
 // =============================================================================
-// 1. SISTEMA DE ALERTAS MEJORADO
+// 1. SISTEMA DE ALERTAS MEJORADO CON PERMISOS
 // =============================================================================
 
 /**
@@ -218,14 +225,54 @@ function highlightField(fieldName) {
 }
 
 // =============================================================================
-// 2. MANEJO DEL MODAL DE PERSONAS CON ALERTAS
+// 2. MANEJO DEL MODAL DE PERSONAS CON PERMISOS
 // =============================================================================
 
 /**
- * 2.1 Abrir modal para crear/editar persona
+ * 2.1 Verificar permisos antes de abrir modal
+ */
+function checkPersonPermissions(action) {
+    console.log(`🔐 Verificando permisos para ${action} persona...`);
+    
+    switch(action) {
+        case 'create':
+            if (!canAction('personas')) {
+                showNoPermissionAlert('personas');
+                showFormAlert('No tienes permiso para crear personas', 'error');
+                return false;
+            }
+            break;
+        case 'edit':
+            if (!canAction('personas')) {
+                showNoPermissionAlert('personas');
+                showFormAlert('No tienes permiso para editar personas', 'error');
+                return false;
+            }
+            break;
+        case 'view':
+            if (!canView('personas')) {
+                showNoPermissionAlert('personas');
+                return false;
+            }
+            break;
+        default:
+            return true;
+    }
+    
+    return true;
+}
+
+/**
+ * 2.2 Abrir modal para crear/editar persona (con verificación de permisos)
  */
 async function openPersonModal(personId = null) {
     console.log(`👤 Abriendo modal de persona: ${personId || 'Nueva'}`);
+    
+    // Verificar permisos
+    const action = personId ? 'edit' : 'create';
+    if (!checkPersonPermissions(action)) {
+        return;
+    }
     
     try {
         // Remover alertas existentes al abrir modal
@@ -294,6 +341,9 @@ async function openPersonModal(personId = null) {
         
         DOM.personModal.style.display = 'flex';
         
+        // Aplicar permisos a los botones del modal
+        applyModalPermissions();
+        
         // Agregar validación en tiempo real
         addRealTimeValidation();
         
@@ -305,7 +355,39 @@ async function openPersonModal(personId = null) {
 }
 
 /**
- * 2.2 Cargar departamentos para el modal
+ * 2.3 Aplicar permisos a los botones del modal
+ */
+function applyModalPermissions() {
+    // El botón de guardar solo si tiene permiso de acción
+    if (DOM.savePersonBtn) {
+        DOM.savePersonBtn.disabled = !canAction('personas');
+        if (!canAction('personas')) {
+            DOM.savePersonBtn.title = 'No tienes permiso para modificar personas';
+        }
+    }
+    
+    // Los campos de entrada deshabilitados si no tiene permiso de acción
+    const formFields = [
+        DOM.personName,
+        DOM.personEmail,
+        DOM.personPhone,
+        DOM.personPosition,
+        document.getElementById('personDepartment')
+    ];
+    
+    formFields.forEach(field => {
+        if (field) {
+            field.readOnly = !canAction('personas');
+            if (!canAction('personas')) {
+                field.style.backgroundColor = '#f5f5f5';
+                field.style.cursor = 'not-allowed';
+            }
+        }
+    });
+}
+
+/**
+ * 2.4 Cargar departamentos para el modal
  */
 async function loadDepartmentsForModal() {
     try {
@@ -372,7 +454,7 @@ async function loadDepartmentsForModal() {
 }
 
 /**
- * 2.3 Poblar el select de departamentos
+ * 2.5 Poblar el select de departamentos
  */
 function populateDepartmentSelect(departments) {
     const departmentSelect = document.getElementById('personDepartment');
@@ -415,7 +497,7 @@ function populateDepartmentSelect(departments) {
 }
 
 /**
- * 2.4 Manejar selección de departamento
+ * 2.6 Manejar selección de departamento
  */
 function handleDepartmentSelection(e) {
     if (e.target.value === "Nuevo Departamento") {
@@ -441,7 +523,7 @@ function handleDepartmentSelection(e) {
 }
 
 /**
- * 2.5 Cerrar modal de personas
+ * 2.7 Cerrar modal de personas
  */
 function closePersonModal() {
     console.log('❌ Cerrando modal de persona');
@@ -963,9 +1045,19 @@ function validateForm() {
 // =============================================================================
 
 /**
- * 4.1 Inicializar filtros
+ * 4.1 Inicializar filtros (solo si tiene permiso de ver)
  */
 function initializeFilters() {
+    // Verificar permiso de vista
+    if (!canView('personas')) {
+        console.log('🔒 Sin permiso para ver personas, ocultando filtros');
+        const filtersContainer = document.querySelector('.personas-filters');
+        if (filtersContainer) {
+            filtersContainer.style.display = 'none';
+        }
+        return;
+    }
+    
     // Inicializar búsqueda
     const searchInput = document.getElementById('personasSearch');
     if (searchInput) {
@@ -1087,12 +1179,18 @@ function renderFilteredPersonsTable(persons) {
                     <h3 class="empty-state__title">No se encontraron resultados</h3>
                     <p class="empty-state__description">No hay personas que coincidan con los filtros aplicados</p>
                     <div class="empty-state__actions" style="margin-top: 1rem;">
-                        <button class="btn btn--outline" onclick="clearFilters()">
-                            <i class="fas fa-times"></i> Limpiar filtros
-                        </button>
-                        <button class="btn btn--primary" onclick="openPersonModal()">
-                            <i class="fas fa-user-plus"></i> Agregar persona
-                        </button>
+                        ${canAction('personas') ? `
+                            <button class="btn btn--outline" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Limpiar filtros
+                            </button>
+                            <button class="btn btn--primary" onclick="openPersonModal()">
+                                <i class="fas fa-user-plus"></i> Agregar persona
+                            </button>
+                        ` : `
+                            <button class="btn btn--outline" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Limpiar filtros
+                            </button>
+                        `}
                     </div>
                 </td>
             </tr>
@@ -1104,6 +1202,9 @@ function renderFilteredPersonsTable(persons) {
         const row = document.createElement('tr');
         row.className = 'table__row';
         row.dataset.personId = person._id;
+        
+        // Determinar si el usuario puede editar/eliminar
+        const canEdit = canAction('personas');
         
         row.innerHTML = `
             <td class="table__cell">
@@ -1133,12 +1234,18 @@ function renderFilteredPersonsTable(persons) {
             </td>
             <td class="table__cell">
                 <div class="table-actions">
-                    <button class="btn btn--sm btn--outline btn--icon" onclick="editPerson('${person._id}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn--sm btn--danger btn--icon" onclick="deletePerson('${person._id}')" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${canEdit ? `
+                        <button class="btn btn--sm btn--outline btn--icon" onclick="editPerson('${person._id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn--sm btn--danger btn--icon" onclick="deletePerson('${person._id}')" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : `
+                        <span class="text-muted" title="Sin permisos de edición">
+                            <i class="fas fa-eye"></i> Solo lectura
+                        </span>
+                    `}
                 </div>
             </td>
         `;
@@ -1218,11 +1325,18 @@ function clearFilters() {
 }
 
 // =============================================================================
-// 5. OPERACIONES CRUD DE PERSONAS CON ALERTAS MEJORADAS
+// 5. OPERACIONES CRUD DE PERSONAS CON PERMISOS
 // =============================================================================
 
 async function savePerson() {
     console.log('💾 Intentando guardar persona...');
+    
+    // Verificar permiso de acción
+    if (!canAction('personas')) {
+        showNoPermissionAlert('personas');
+        showFormAlert('No tienes permiso para modificar personas', 'error');
+        return;
+    }
     
     // Validar formulario antes de enviar
     const formValidation = validateForm();
@@ -1342,21 +1456,27 @@ async function savePerson() {
     } catch (error) {
         console.error('❌ Error guardando persona:', error);
         
-        // Mostrar alerta de error
-        let errorMessage = 'Error al guardar persona: ' + error.message;
-        
-        // Mensajes más amigables para errores comunes
-        if (error.message.includes('duplicate') || error.message.includes('ya existe')) {
-            errorMessage = '❌ Ya existe una persona con ese email. Usa un email diferente.';
-            showFormAlert(errorMessage, 'error', 'email');
-        } else if (error.message.includes('departamento')) {
-            errorMessage = '❌ Error con el departamento. Verifica que exista o crea uno nuevo.';
-            showFormAlert(errorMessage, 'error', 'departamento');
-        } else if (error.message.includes('required')) {
-            errorMessage = '❌ Faltan campos obligatorios. Revisa el formulario.';
-            showFormAlert(errorMessage, 'error');
+        // Manejar errores de permisos específicamente
+        if (error.message.includes('403') || error.message.includes('permisos')) {
+            showFormAlert('❌ No tienes permisos para realizar esta acción', 'error');
+            showNoPermissionAlert('personas');
         } else {
-            showFormAlert(`❌ ${errorMessage}`, 'error');
+            // Mostrar alerta de error
+            let errorMessage = 'Error al guardar persona: ' + error.message;
+            
+            // Mensajes más amigables para errores comunes
+            if (error.message.includes('duplicate') || error.message.includes('ya existe')) {
+                errorMessage = '❌ Ya existe una persona con ese email. Usa un email diferente.';
+                showFormAlert(errorMessage, 'error', 'email');
+            } else if (error.message.includes('departamento')) {
+                errorMessage = '❌ Error con el departamento. Verifica que exista o crea uno nuevo.';
+                showFormAlert(errorMessage, 'error', 'departamento');
+            } else if (error.message.includes('required')) {
+                errorMessage = '❌ Faltan campos obligatorios. Revisa el formulario.';
+                showFormAlert(errorMessage, 'error');
+            } else {
+                showFormAlert(`❌ ${errorMessage}`, 'error');
+            }
         }
         
         // Mostrar error en el preloader
@@ -1395,7 +1515,7 @@ async function savePerson() {
         }
         
         // Mostrar alerta general
-        showAlert(errorMessage, 'error');
+        showAlert(error.message, 'error');
     } finally {
         // Limpieza final
         setTimeout(() => {
@@ -1422,6 +1542,25 @@ async function savePerson() {
 async function loadPersons() {
     try {
         console.log('👥 Cargando personas...');
+        
+        // Verificar permiso de vista
+        if (!canView('personas')) {
+            console.log('🔒 Sin permiso para ver personas');
+            if (DOM.personasTableBody) {
+                DOM.personasTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state error-state">
+                            <div class="error-state__icon">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <h3 class="empty-state__title">Acceso Restringido</h3>
+                            <p class="empty-state__description">No tienes permisos para ver la lista de personas.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+            return;
+        }
         
         // Mostrar alerta de carga
         showAlert('Cargando lista de personas...', 'info');
@@ -1544,44 +1683,77 @@ async function loadPersons() {
         const preloader = document.querySelector('.table-preloader-overlay');
         if (preloader) preloader.remove();
         
-        // Mostrar alerta de error
-        showAlert(`Error al cargar personas: ${error.message}`, 'error');
-        
-        // Mostrar estado de error mejorado
-        if (DOM.personasTableBody) {
-            DOM.personasTableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="empty-state error-state">
-                        <div class="error-state__icon">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <h3 class="empty-state__title">Error al cargar personas</h3>
-                        <p class="empty-state__description">${error.message || 'No se pudieron cargar las personas'}</p>
-                        <div class="empty-state__actions" style="margin-top: 1rem;">
-                            <button class="btn btn--primary" onclick="loadPersons()">
-                                <i class="fas fa-redo"></i> Reintentar
-                            </button>
-                            <button class="btn btn--outline" onclick="openPersonModal()">
-                                <i class="fas fa-user-plus"></i> Agregar persona manualmente
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+        // Manejar errores de permisos
+        if (error.message.includes('403') || error.message.includes('permisos')) {
+            showAlert('No tienes permisos para ver las personas', 'error');
+            if (DOM.personasTableBody) {
+                DOM.personasTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state error-state">
+                            <div class="error-state__icon">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <h3 class="empty-state__title">Acceso Restringido</h3>
+                            <p class="empty-state__description">No tienes permisos para ver la lista de personas.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        } else {
+            // Mostrar alerta de error
+            showAlert(`Error al cargar personas: ${error.message}`, 'error');
+            
+            // Mostrar estado de error mejorado
+            if (DOM.personasTableBody) {
+                DOM.personasTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state error-state">
+                            <div class="error-state__icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h3 class="empty-state__title">Error al cargar personas</h3>
+                            <p class="empty-state__description">${error.message || 'No se pudieron cargar las personas'}</p>
+                            <div class="empty-state__actions" style="margin-top: 1rem;">
+                                <button class="btn btn--primary" onclick="loadPersons()">
+                                    <i class="fas fa-redo"></i> Reintentar
+                                </button>
+                                ${canAction('personas') ? `
+                                    <button class="btn btn--outline" onclick="openPersonModal()">
+                                        <i class="fas fa-user-plus"></i> Agregar persona manualmente
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
 }
 
 function editPerson(id) {
     console.log('✏️ Editando persona:', id);
+    
+    // Verificar permiso de acción
+    if (!canAction('personas')) {
+        showNoPermissionAlert('personas');
+        return;
+    }
+    
     openPersonModal(id);
 }
 
 // =============================================================================
-// 5. OPERACIONES CRUD DE PERSONAS CON ALERTAS MEJORADAS
+// 5. OPERACIONES CRUD DE PERSONAS CON PERMISOS (CONTINUACIÓN)
 // =============================================================================
 
 async function deletePerson(id) {
+  // Verificar permiso de acción
+  if (!canAction('personas')) {
+      showNoPermissionAlert('personas');
+      return;
+  }
+  
   const person = window.appState.persons.find(p => p._id === id);
   if (!person) {
     showAlert('No se encontró la persona a eliminar', 'error');
@@ -1715,33 +1887,37 @@ async function deletePerson(id) {
   } catch (error) {
     console.error('❌ Error eliminando persona:', error);
     
-    // Extraer mensaje específico del error
-    let errorMessage = error.message || 'Error desconocido';
-    let detailedMessage = '';
-    
-    // Analizar el mensaje de error para dar más detalles
-    if (errorMessage.includes('dependencia') || errorMessage.includes('asociado') || 
-        errorMessage.includes('documentos asociados') || errorMessage.includes('tiene documentos')) {
-      detailedMessage = 'La persona tiene documentos vinculados. Primero elimina o reasigna los documentos asociados.';
-    } else if (errorMessage.includes('no encontrado') || errorMessage.includes('no existe')) {
-      detailedMessage = 'La persona ya no existe en el sistema.';
-    } else if (errorMessage.includes('email') || errorMessage.includes('duplicate')) {
-      detailedMessage = 'Ya existe una persona con ese email.';
-    } else if (errorMessage.includes('permiso') || errorMessage.includes('autorización')) {
-      detailedMessage = 'No tienes permisos para eliminar esta persona.';
-    } else if (errorMessage.includes('conexión') || errorMessage.includes('red')) {
-      detailedMessage = 'Error de conexión con el servidor. Verifica tu conexión a internet.';
-    } else if (errorMessage.includes('base de datos') || errorMessage.includes('database')) {
-      detailedMessage = 'Error en la base de datos. Intenta nuevamente o contacta al administrador.';
+    // Manejar errores de permisos
+    if (error.message.includes('403') || error.message.includes('permisos')) {
+      showFormAlert('❌ No tienes permisos para eliminar personas', 'error');
+      showNoPermissionAlert('personas');
     } else {
-      detailedMessage = errorMessage;
+      // Extraer mensaje específico del error
+      let errorMessage = error.message || 'Error desconocido';
+      let detailedMessage = '';
+      
+      // Analizar el mensaje de error para dar más detalles
+      if (errorMessage.includes('dependencia') || errorMessage.includes('asociado') || 
+          errorMessage.includes('documentos asociados') || errorMessage.includes('tiene documentos')) {
+        detailedMessage = 'La persona tiene documentos vinculados. Primero elimina o reasigna los documentos asociados.';
+      } else if (errorMessage.includes('no encontrado') || errorMessage.includes('no existe')) {
+        detailedMessage = 'La persona ya no existe en el sistema.';
+      } else if (errorMessage.includes('email') || errorMessage.includes('duplicate')) {
+        detailedMessage = 'Ya existe una persona con ese email.';
+      } else if (errorMessage.includes('conexión') || errorMessage.includes('red')) {
+        detailedMessage = 'Error de conexión con el servidor. Verifica tu conexión a internet.';
+      } else if (errorMessage.includes('base de datos') || errorMessage.includes('database')) {
+        detailedMessage = 'Error en la base de datos. Intenta nuevamente o contacta al administrador.';
+      } else {
+        detailedMessage = errorMessage;
+      }
+      
+      // Mostrar alerta de error con detalles usando showFormAlert (visible en todo el modal)
+      showFormAlert(`Error al eliminar: ${detailedMessage}`, 'error');
+      
+      // También mostrar alerta global
+      showAlert(`Error al eliminar a ${person.nombre}: ${detailedMessage}`, 'error');
     }
-    
-    // Mostrar alerta de error con detalles usando showFormAlert (visible en todo el modal)
-    showFormAlert(`Error al eliminar: ${detailedMessage}`, 'error');
-    
-    // También mostrar alerta global
-    showAlert(`Error al eliminar a ${person.nombre}: ${detailedMessage}`, 'error');
     
     // Revertir cambios en la fila
     const tableRow = document.querySelector(`button[onclick*="deletePerson('${id}')"]`)?.closest('tr');
@@ -1926,11 +2102,27 @@ function showFloatingNotification(message, type = 'success') {
 }
 
 // =============================================================================
-// 7. RENDERIZADO DE INTERFAZ CON ALERTAS VISUALES
+// 7. RENDERIZADO DE INTERFAZ CON PERMISOS
 // =============================================================================
 
 function renderPersonsTable() {
     if (!DOM.personasTableBody) return;
+    
+    // Verificar permiso de vista
+    if (!canView('personas')) {
+        DOM.personasTableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-state error-state">
+                    <div class="error-state__icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h3 class="empty-state__title">Acceso Restringido</h3>
+                    <p class="empty-state__description">No tienes permisos para ver la lista de personas.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
     
     DOM.personasTableBody.innerHTML = '';
     
@@ -1944,9 +2136,13 @@ function renderPersonsTable() {
                     <h3 class="empty-state__title">No hay personas registradas</h3>
                     <p class="empty-state__description">Agrega la primera persona para comenzar</p>
                     <div class="empty-state__actions" style="margin-top: 1rem;">
-                        <button class="btn btn--primary" onclick="openPersonModal()">
-                            <i class="fas fa-user-plus"></i> Agregar primera persona
-                        </button>
+                        ${canAction('personas') ? `
+                            <button class="btn btn--primary" onclick="openPersonModal()">
+                                <i class="fas fa-user-plus"></i> Agregar primera persona
+                            </button>
+                        ` : `
+                            <span class="text-muted">Contacta al administrador para agregar personas</span>
+                        `}
                     </div>
                 </td>
             </tr>
@@ -1966,6 +2162,9 @@ function renderPersonsTable() {
             'warning'
         );
     }
+    
+    // Determinar si el usuario puede editar/eliminar
+    const canEdit = canAction('personas');
     
     window.appState.persons.forEach(person => {
         const row = document.createElement('tr');
@@ -2022,12 +2221,18 @@ function renderPersonsTable() {
             </td>
             <td class="table__cell">
                 <div class="table-actions">
-                    <button class="btn btn--sm btn--outline btn--icon" onclick="editPerson('${person._id}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn--sm btn--danger btn--icon" onclick="deletePerson('${person._id}')" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${canEdit ? `
+                        <button class="btn btn--sm btn--outline btn--icon" onclick="editPerson('${person._id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn--sm btn--danger btn--icon" onclick="deletePerson('${person._id}')" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : `
+                        <span class="text-muted" title="Solo lectura">
+                            <i class="fas fa-eye"></i> Solo lectura
+                        </span>
+                    `}
                 </div>
             </td>
         `;
@@ -2090,6 +2295,10 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeFilters();
     }, 100);
 });
+
+// =============================================================================
+// 10. EXPORTACIONES
+// =============================================================================
 
 export { 
     openPersonModal, 
