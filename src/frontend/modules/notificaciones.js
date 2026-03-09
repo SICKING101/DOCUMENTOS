@@ -122,9 +122,10 @@ async function fetchNotificaciones() {
  */
 async function marcarComoLeida(notificacionId) {
     try {
-        if (!canAction('notificaciones')) {
+        // Marcar como leída es una acción personal y debe permitirse con solo vista.
+        if (!canView('notificaciones')) {
             showNoPermissionAlert('notificaciones');
-            showAlert('No tienes permiso para modificar notificaciones', 'error');
+            showAlert('No tienes permiso para ver notificaciones', 'error');
             return;
         }
 
@@ -160,9 +161,10 @@ async function marcarComoLeida(notificacionId) {
  */
 async function marcarTodasLeidas() {
     try {
-        if (!canAction('notificaciones')) {
+        // Marcar todas como leídas es una acción personal y debe permitirse con solo vista.
+        if (!canView('notificaciones')) {
             showNoPermissionAlert('notificaciones');
-            showAlert('No tienes permiso para modificar notificaciones', 'error');
+            showAlert('No tienes permiso para ver notificaciones', 'error');
             return;
         }
 

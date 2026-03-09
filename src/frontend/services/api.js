@@ -53,23 +53,44 @@ class ApiService {
     async call(endpoint, options = {}) {
         try {
             console.log(`📡 API Call: ${this.baseURL}${endpoint}`, options.method || 'GET');
-            
-            const defaultOptions = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                },
-                credentials: 'include'
+
+            const headers = {
+                ...(options.headers || {})
             };
 
-            const finalOptions = { ...defaultOptions, ...options };
-            
-        if (finalOptions.body && typeof finalOptions.body === 'object' && !(finalOptions.body instanceof FormData)) {
+            // Adjuntar JWT si existe (localStorage) y no viene en headers.
+            // Mantiene compatibilidad con cookie httpOnly (credentials: include).
+            try {
+                if (typeof window !== 'undefined') {
+                    const token = window.localStorage?.getItem('token');
+                    if (token && !headers.Authorization && !headers.authorization) {
+                        headers.Authorization = `Bearer ${token}`;
+                    }
+                }
+            } catch (e) {
+                // no-op
+            }
+
+            const isFormData = options.body instanceof FormData;
+            if (!isFormData && !headers['Content-Type'] && !headers['content-type']) {
+                headers['Content-Type'] = 'application/json';
+            }
+
+            const finalOptions = {
+                ...options,
+                headers,
+                credentials: options.credentials || 'include'
+            };
+
+            if (
+                finalOptions.body &&
+                typeof finalOptions.body === 'object' &&
+                !isFormData
+            ) {
                 finalOptions.body = JSON.stringify(finalOptions.body);
             }
 
             const response = await fetch(`${this.baseURL}${endpoint}`, finalOptions);
-
             console.log(`📥 API Response: ${response.status} ${response.statusText}`);
 
             // =================================================================
@@ -78,42 +99,39 @@ class ApiService {
             if (response.status === 403) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('❌ Acceso denegado (403):', errorData);
-                
+
                 // Disparar evento global para que el sistema de permisos reaccione
                 if (typeof window !== 'undefined') {
-                    const event = new CustomEvent('auth:permission-denied', { 
-                        detail: { 
-                            endpoint, 
+                    const event = new CustomEvent('auth:permission-denied', {
+                        detail: {
+                            endpoint,
                             requiredPermission: errorData.requiredPermission,
                             message: errorData.message || 'No tienes permisos para realizar esta acción'
-                        } 
+                        }
                     });
                     window.dispatchEvent(event);
                 }
-                
+
                 throw new Error(errorData.message || 'No tienes permisos para realizar esta acción');
             }
 
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ API Error:', errorText);
-                
+
                 // Si es un error 404 y estamos en desarrollo, mostrar mensaje más claro
                 if (response.status === 404 && this.isDevelopment) {
                     console.warn(`⚠️ Endpoint no encontrado: ${endpoint}. Verifica las rutas en apiRoutes.js`);
                 }
-                
+
                 throw new Error(`Error HTTP ${response.status}: ${errorText}`);
             }
 
             const contentType = response.headers.get('content-type');
-            
             if (contentType && contentType.includes('application/json')) {
                 return await response.json();
-            } else {
-                return response;
             }
-            
+            return response;
         } catch (error) {
             console.error('💥 Error en API call:', error);
             throw error;

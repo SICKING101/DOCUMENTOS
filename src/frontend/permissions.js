@@ -71,6 +71,18 @@ export const ROLES = {
 };
 
 // =============================================================================
+// SECCIONES PÚBLICAS (VISIBILIDAD)
+//
+// Estas secciones deben mostrarse para cualquier usuario ACTIVO,
+// independientemente del rol dinámico/permisos configurados.
+// - Historial: vista pública; acciones siguen usando canAction('historial')
+// - Notificaciones: vista pública; acciones destructivas pueden seguir usando canAction('notificaciones')
+// - Ajustes: vista pública
+// =============================================================================
+
+const PUBLIC_VIEW_SECTIONS = new Set(['historial', 'notificaciones', 'ajustes']);
+
+// =============================================================================
 // PERMISOS DE ACCIONES DE LA APP (para hasPermission())
 // Estos son permisos de UI, no de secciones.
 // =============================================================================
@@ -306,6 +318,12 @@ export function canView(section) {
     // Secciones exclusivas del admin
     if (section === 'admin' || section === 'auditoria') {
       return false;
+    }
+
+    // Secciones públicas para cualquier usuario activo
+    if (PUBLIC_VIEW_SECTIONS.has(section)) {
+      plog(`canView("${section}"): true (sección pública)`);
+      return true;
     }
 
     // Sin cache → denegar (no crashear)
@@ -581,6 +599,7 @@ function _getSectionLabel(key) {
     calendario:    'Calendario',
     historial:     'Historial',
     notificaciones:'Notificaciones',
+    ajustes:       'Ajustes',
     soporte:       'Soporte',
     admin:         'Administración',
     auditoria:     'Auditoría',
