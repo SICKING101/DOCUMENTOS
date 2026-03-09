@@ -877,6 +877,17 @@ export async function renderAuditoria() {
 
     // Configurar event listeners
     setupEventListeners();
+
+    // Forzar recalculo de layout en el primer render (evita contenido cortado en la primera entrada)
+    requestAnimationFrame(() => {
+        // Asegura que el contenedor de scroll esté en un estado consistente
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.scrollTop = 0;
+
+        // Algunos layouts/tab-content requieren un resize para recalcular dimensiones
+        window.dispatchEvent(new Event('resize'));
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    });
 }
 
 function setupEventListeners() {

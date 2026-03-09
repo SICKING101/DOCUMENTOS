@@ -980,6 +980,17 @@ export function confirmAction({
   });
 }
 
+(function () {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    document.body.classList.add('dark-theme');
+                }
+            } catch (_) {
+                // no-op
+            }
+        })();
+
 // =============================================================================
 // 8. EXPORTACIÓN DE FUNCIONES
 // =============================================================================

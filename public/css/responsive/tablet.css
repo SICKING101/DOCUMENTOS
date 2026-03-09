@@ -8,6 +8,8 @@
     
     .content-wrapper {
         margin-left: 0;
+        width: 100%;
+        max-width: 100%;
     }
     
     .stats-grid {

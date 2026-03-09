@@ -4,15 +4,20 @@
 .app-layout {
     display: flex;
     min-height: 100vh;
+    height: 100vh;
 }
 
 /* Wrapper del contenido principal que ocupa el espacio restante */
 .content-wrapper {
     flex: 1;
-    margin-left: 280px;
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100% - var(--sidebar-width));
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    height: 100%;
+    min-height: 0;
 }
 
 /* Área de contenido principal con padding y scroll */
@@ -21,6 +26,7 @@
     padding: var(--spacing-xl);
     overflow-y: auto;
     overflow-x: hidden; /* Prevent horizontal scrolling caused by overflowing children */
+    min-height: 0;
 }
 
 /* Cabeceras de sección con título y subtítulo */
