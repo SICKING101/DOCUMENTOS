@@ -21,6 +21,22 @@
 </head>
 
 <body>
+
+    <!-- PRELOADER PRINCIPAL DEL SISTEMA (se oculta al terminar la carga inicial) -->
+    <div id="systemPreloader" class="preloader-overlay" aria-live="polite" aria-busy="true">
+        <div class="tasks-preloader__content">
+            <div class="elegant-spinner" aria-hidden="true">
+                <div class="elegant-spinner__ring"></div>
+                <div class="elegant-spinner__ring"></div>
+                <div class="elegant-spinner__ring"></div>
+            </div>
+            <div class="tasks-preloader__text">
+                <h4 class="tasks-preloader__title">Cargando sistema</h4>
+                <p class="tasks-preloader__subtitle">Preparando datos iniciales</p>
+            </div>
+        </div>
+    </div>
+
     <!-- SECCIÓN 2: ESTRUCTURA PRINCIPAL DE LA APLICACIÓN -->
     <div class="app-layout">
 
@@ -2128,7 +2144,7 @@
                             </button>
                             <input type="file" id="multipleFileInput" class="upload__input" multiple
                                 accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                            <p class="upload__hint">Tamaño total permitido por archivo: 10 MB</p>
+                            <p class="upload__hint">Tamaño total permitido por archivo: 1 GB</p>
                         </div>
 
                         <!-- Configuración común para múltiples archivos -->

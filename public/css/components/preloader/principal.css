@@ -54,6 +54,10 @@
     backdrop-filter: blur(2px);
 }
 
+body.dark-theme #systemPreloader.preloader-overlay {
+    background-color: rgba(15, 23, 42, 0.92);
+}
+
 .preloader-overlay--light {
     background-color: rgba(255, 255, 255, 0.8);
 }
@@ -61,6 +65,10 @@
 .preloader-overlay--dark {
     background-color: rgba(0, 0, 0, 0.8);
     color: white;
+}
+
+body.dark-theme #singleUploadPreloader.preloader-overlay--dark {
+    background-color: rgba(0, 0, 0, 0.7);
 }
 
 .preloader-overlay__content {
