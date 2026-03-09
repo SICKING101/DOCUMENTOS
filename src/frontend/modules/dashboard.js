@@ -2,7 +2,7 @@ import { DOM } from '../dom.js';
 import { api } from '../services/api.js';  // CAMBIADO: importar 'api' en lugar de 'apiCall'
 import { setLoadingState, showAlert, getFileIcon, formatDate } from '../utils.js';
 import { showFloatingNotification } from './personas.js';  // CAMBIADO: importar showFloatingNotification
-import { canAction } from '../permissions.js';
+import { canAction, loadCurrentPermissions } from '../permissions.js';
 
 // =============================================================================
 // 1. CARGA DE DATOS DEL DASHBOARD
@@ -19,6 +19,13 @@ async function loadDashboardData(appState) {
     try {
         setLoadingState(true);
         console.log('📊 Cargando datos del dashboard...');
+
+        // Asegurar cache de permisos antes de renderizar controles
+        try {
+            await loadCurrentPermissions();
+        } catch (e) {
+            console.warn('⚠️ No se pudieron cargar permisos antes del dashboard:', e?.message || e);
+        }
         
         const data = await api.getDashboardData();  // CAMBIADO: usar api.getDashboardData()
         

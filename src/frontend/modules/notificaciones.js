@@ -277,11 +277,9 @@ function createDropdownElement() {
     dropdown.innerHTML = `
         <div class="notifications-header">
             <h3 class="notifications-title">Notificaciones</h3>
-            ${canAction('notificaciones') ? `
-                <button class="btn btn--text btn--small" id="markAllReadBtn">
-                    Marcar todas leídas
-                </button>
-            ` : '<span class="text-muted">Solo lectura</span>'}
+            <button class="btn btn--text btn--small" id="markAllReadBtn">
+                Marcar todas leídas
+            </button>
         </div>
         <div class="notifications-list" id="notificationsList">
             <!-- Notificaciones dinámicas -->
