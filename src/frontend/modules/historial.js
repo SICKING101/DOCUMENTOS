@@ -6,6 +6,7 @@
 
 import { CONFIG } from '../config.js';
 import { showAlert, showConfirmation } from '../utils.js';
+import { canAction, showNoPermissionAlert } from '../permissions.js';
 
 class HistorialManager {
     constructor() {
@@ -572,6 +573,11 @@ restoreButtonByType(button) {
     // =============================================================================
 
     async markAsRead(id) {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes modificar el historial', 'warning');
+            return;
+        }
         let preloaderId = null;
         let button = null;
         
@@ -624,6 +630,11 @@ restoreButtonByType(button) {
     }
 
     async markAllAsRead() {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes modificar el historial', 'warning');
+            return;
+        }
         try {
             const confirmed = await showConfirmation(
                 '¿Marcar todos los registros como leídos?',
@@ -665,6 +676,11 @@ restoreButtonByType(button) {
     }
 
     async deleteItem(id) {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes eliminar registros del historial', 'warning');
+            return;
+        }
         let preloaderId = null;
         let button = null;
         
@@ -732,6 +748,11 @@ restoreButtonByType(button) {
     }
 
     async clearHistorial() {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes limpiar el historial', 'warning');
+            return;
+        }
         let preloaderId = null;
         let button = null;
         

@@ -172,8 +172,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     await _loadInitialData();
 
     // ── Fase 5: Módulos adicionales ──
-    initHistorial();
-    initNotificaciones();
+    if (canView('historial')) {
+      initHistorial();
+    }
+    if (canView('notificaciones')) {
+      initNotificaciones();
+    }
     inicializarMenuUsuario();
 
     // ── Fase 6: Reglas extra de UI ──
@@ -181,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     applyActionPermissions();
 
     // ── Fase 7: Inicializar módulo de documentos ──
-    if (typeof documentos.initializeDocumentosModule === 'function') {
+    if (canView('documentos') && typeof documentos.initializeDocumentosModule === 'function') {
       documentos.initializeDocumentosModule();
     }
 
@@ -239,6 +243,17 @@ function _initializeAppComponents() {
 function _initTaskManager() {
   console.log('📝 Inicializando TaskManager...');
   try {
+    if (!canView('tareas')) {
+      console.log('⛔ TaskManager omitido: sin permiso de ver tareas');
+      return;
+    }
+
+    if (window.taskManager) {
+      taskManager = window.taskManager;
+      console.log('✅ TaskManager ya existe, reutilizando instancia');
+      return;
+    }
+
     if (window.api || api) {
       taskManager = new TaskManager();
       window.taskManager = taskManager;
@@ -246,6 +261,11 @@ function _initTaskManager() {
     } else {
       // Reintentar después de 1s si la API no está lista
       setTimeout(() => {
+        if (!canView('tareas')) return;
+        if (window.taskManager) {
+          taskManager = window.taskManager;
+          return;
+        }
         taskManager = new TaskManager();
         window.taskManager = taskManager;
         console.log('✅ TaskManager inicializado (retry)');
@@ -365,14 +385,19 @@ async function _loadInitialData() {
   console.log('📥 Cargando datos iniciales...');
 
   try {
-    await Promise.allSettled([
-      loadDashboardData(appState),
-      loadPersons(),
-      updateDashboardTasks(),
-      documentos.loadDocuments(),
-      loadCategories(),
-      loadDepartments(),
-    ]);
+    const jobs = [];
+
+    // Dashboard (por ahora siempre para usuarios autenticados)
+    jobs.push(loadDashboardData(appState));
+
+    // Secciones condicionadas por permisos
+    if (canView('personas')) jobs.push(loadPersons());
+    if (canView('tareas')) jobs.push(updateDashboardTasks());
+    if (canView('documentos')) jobs.push(documentos.loadDocuments());
+    if (canView('categorias')) jobs.push(loadCategories());
+    if (canView('departamentos')) jobs.push(loadDepartments());
+
+    await Promise.allSettled(jobs);
 
     console.log('✅ Datos iniciales cargados');
     showAlert('Sistema cargado correctamente', 'success');

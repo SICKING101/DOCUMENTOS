@@ -1,6 +1,7 @@
 import { DOM } from '../dom.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, showConfirmModal, showActionModal, getIconName } from '../utils.js';
+import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
 
 // =============================================================================
 // 0. FUNCIONES DE PRELOADER MEJORADAS
@@ -124,6 +125,13 @@ function showCategorySkeletonTable() {
  */
 function openCategoryModal(categoryId = null) {
     console.log(`🏷️ Abriendo modal de categoría: ${categoryId || 'Nueva'}`);
+
+    // Verificar permiso de acción
+    if (!canAction('categorias')) {
+        showNoPermissionAlert('categorias');
+        showAlert('No tienes permiso para modificar categorías', 'error');
+        return;
+    }
     
     // Limpiar errores previos
     clearCategoryFormErrors();
@@ -232,6 +240,12 @@ function validateCategoryForm() {
  * 2.2 Guardar categoría (crear o actualizar) - CORREGIDO
  */
 async function saveCategory() {
+    if (!canAction('categorias')) {
+        showNoPermissionAlert('categorias');
+        showAlert('No tienes permiso para guardar categorías', 'error');
+        return;
+    }
+
     if (!validateCategoryForm()) {
         return;
     }
@@ -291,6 +305,35 @@ async function saveCategory() {
  * 2.3 Cargar lista de categorías desde la API - CORREGIDO
  */
 async function loadCategories() {
+    // Verificar permiso de vista
+    if (!canView('categorias')) {
+        console.log('🔒 Sin permiso para ver categorías');
+
+        if (DOM.categoriesStats) {
+            DOM.categoriesStats.innerHTML = `
+                <div class="empty-state error-state">
+                    <div class="error-state__icon"><i class="fas fa-lock"></i></div>
+                    <h3 class="empty-state__title">Acceso Restringido</h3>
+                    <p class="empty-state__description">No tienes permisos para ver las categorías.</p>
+                </div>
+            `;
+        }
+
+        if (DOM.categoriasTableBody) {
+            DOM.categoriasTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state error-state">
+                        <div class="error-state__icon"><i class="fas fa-lock"></i></div>
+                        <h3 class="empty-state__title">Acceso Restringido</h3>
+                        <p class="empty-state__description">No tienes permisos para ver la lista de categorías.</p>
+                    </td>
+                </tr>
+            `;
+        }
+
+        return;
+    }
+
     try {
         console.log('🏷️ Cargando categorías...');
         
@@ -337,6 +380,13 @@ async function loadCategories() {
  */
 function editCategory(id) {
     console.log('✏️ Editando categoría:', id);
+
+    if (!canAction('categorias')) {
+        showNoPermissionAlert('categorias');
+        showAlert('No tienes permiso para editar categorías', 'error');
+        return;
+    }
+
     openCategoryModal(id);
 }
 
@@ -344,6 +394,12 @@ function editCategory(id) {
  * 2.5 Eliminar categoría con modal de confirmación - CORREGIDO
  */
 async function deleteCategory(id) {
+    if (!canAction('categorias')) {
+        showNoPermissionAlert('categorias');
+        showAlert('No tienes permiso para eliminar categorías', 'error');
+        return;
+    }
+
     const category = window.appState.categories.find(c => c._id === id);
     if (!category) return;
     
@@ -421,6 +477,8 @@ async function deleteCategory(id) {
  * 3.1 Renderizar categorías en la interfaz
  */
 function renderCategories() {
+    const canEdit = canAction('categorias');
+
     if (DOM.categoriesStats) {
         DOM.categoriesStats.innerHTML = '';
         
@@ -430,9 +488,13 @@ function renderCategories() {
                     <i class="fas fa-tags empty-state__icon"></i>
                     <h3 class="empty-state__title">No hay categorías creadas</h3>
                     <p class="empty-state__description">Crea tu primera categoría para organizar los documentos</p>
-                    <button class="btn btn--primary" onclick="openCategoryModal()">
-                        <i class="fas fa-plus"></i> Crear Categoría
-                    </button>
+                    ${canEdit ? `
+                        <button class="btn btn--primary" onclick="openCategoryModal()">
+                            <i class="fas fa-plus"></i> Crear Categoría
+                        </button>
+                    ` : `
+                        <p class="empty-state__description">No tienes permisos para crear categorías.</p>
+                    `}
                 </div>
             `;
             return;
@@ -449,14 +511,16 @@ function renderCategories() {
                 </div>
                 <h4 class="compact-category-card__name">${category.nombre}</h4>
                 <span class="compact-category-card__count">${category.documentCount || 0} documentos</span>
-                <div class="category-card-actions" style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s;">
-                    <button class="btn-icon btn-icon--sm" onclick="editCategory('${category._id}')" title="Editar" style="width: 28px; height: 28px; padding: 4px;">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon btn-icon--sm btn-icon--danger" onclick="deleteCategory('${category._id}')" title="Eliminar" style="width: 28px; height: 28px; padding: 4px;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+                ${canEdit ? `
+                    <div class="category-card-actions" style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s;">
+                        <button class="btn-icon btn-icon--sm" onclick="editCategory('${category._id}')" title="Editar" style="width: 28px; height: 28px; padding: 4px;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon btn-icon--sm btn-icon--danger" onclick="deleteCategory('${category._id}')" title="Eliminar" style="width: 28px; height: 28px; padding: 4px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                ` : ''}
             `;
             
             // Mostrar acciones al hover
@@ -506,12 +570,14 @@ function renderCategories() {
                 </td>
                 <td class="table__cell">${category.documentCount || 0}</td>
                 <td class="table__cell">
-                    <button class="btn btn--sm btn--outline" onclick="editCategory('${category._id}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn--sm btn--danger" onclick="deleteCategory('${category._id}')" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${canEdit ? `
+                        <button class="btn btn--sm btn--outline" onclick="editCategory('${category._id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn--sm btn--danger" onclick="deleteCategory('${category._id}')" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : '<span class="text-muted">-</span>'}
                 </td>
             `;
             

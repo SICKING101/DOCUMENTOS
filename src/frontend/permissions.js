@@ -10,12 +10,56 @@
 //   • Este archivo NO define gerente/editor/lector/etc.
 //
 // DEBUG: activar con localStorage.setItem('permisos_debug', '1')
-// En desarrollo siempre activo.
+// Desactivar con localStorage.removeItem('permisos_debug')
 
-const DEBUG = true; // Cambiar a: localStorage.getItem('permisos_debug') === '1' en producción
-function plog(...args)  { if (DEBUG) console.log('🔐 [Permisos]', ...args); }
-function pwarn(...args) { if (DEBUG) console.warn('⚠️ [Permisos]', ...args); }
+let _debugCache = { value: false, ts: 0 };
+function isPermissionsDebugEnabled() {
+  const now = Date.now();
+  if (now - _debugCache.ts < 1000) return _debugCache.value;
+
+  let enabled = false;
+  try {
+    enabled = localStorage.getItem('permisos_debug') === '1';
+  } catch {
+    enabled = false;
+  }
+
+  // Ayuda en desarrollo: si estás en localhost y no lo desactivaste explícitamente
+  if (!enabled) {
+    try {
+      const host = window.location?.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') enabled = true;
+    } catch {
+      // ignore
+    }
+  }
+
+  _debugCache = { value: enabled, ts: now };
+  return enabled;
+}
+
+export function setPermissionsDebug(enabled) {
+  try {
+    if (enabled) localStorage.setItem('permisos_debug', '1');
+    else localStorage.removeItem('permisos_debug');
+  } catch {
+    // ignore
+  }
+  _debugCache = { value: Boolean(enabled), ts: 0 };
+  return _debugCache.value;
+}
+
+function plog(...args)  { if (isPermissionsDebugEnabled()) console.log('🔐 [Permisos]', ...args); }
+function pwarn(...args) { if (isPermissionsDebugEnabled()) console.warn('⚠️ [Permisos]', ...args); }
 function perr(...args)  { console.error('❌ [Permisos]', ...args); }
+
+function _emitPermissionEvent(type, detail = {}) {
+  try {
+    document.dispatchEvent(new CustomEvent(`permissions:${type}`, { detail }));
+  } catch {
+    // ignore
+  }
+}
 
 // =============================================================================
 // ROLES FIJOS (solo estos dos son especiales)
@@ -461,17 +505,17 @@ export function showNoPermissionAlert(section = '') {
     top: 20px;
     right: 20px;
     z-index: 999999;
-    background: #1e293b;
-    color: #fff;
+    background: var(--dark-light);
+    color: var(--light);
     padding: 14px 20px;
     border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    box-shadow: var(--shadow-xl);
     display: flex;
     align-items: center;
     gap: 12px;
     font-size: 0.9rem;
     font-weight: 500;
-    border-left: 4px solid #dc2626;
+    border-left: 4px solid var(--primary);
     animation: _permisos_alert_in 0.25s cubic-bezier(.17,.67,.35,1.1) both;
     max-width: 380px;
   `;
@@ -481,10 +525,10 @@ export function showNoPermissionAlert(section = '') {
     : '';
 
   alert.innerHTML = `
-    <i class="fas fa-ban" style="color:#dc2626;font-size:1.1rem;flex-shrink:0;"></i>
+    <i class="fas fa-ban" style="color:var(--primary);font-size:1.1rem;flex-shrink:0;"></i>
     <span>No tienes permisos para realizar esta acción${sectionLabel}</span>
     <button onclick="this.parentElement.remove()" style="
-      background:none;border:none;color:#94a3b8;cursor:pointer;
+      background:none;border:none;color:var(--light-dark);cursor:pointer;
       font-size:1rem;padding:0 0 0 8px;line-height:1;flex-shrink:0;
     " aria-label="Cerrar">✕</button>
   `;
@@ -514,6 +558,15 @@ export function showNoPermissionAlert(section = '') {
   }, 3500);
 
   plog(`showNoPermissionAlert: mostrada para sección="${section}"`);
+  if (isPermissionsDebugEnabled()) {
+    console.warn('⚠️ [Permisos] Denegado:', { section });
+    console.trace('Stack (denegado)');
+  }
+  _emitPermissionEvent('denied', {
+    section,
+    role: getCurrentUserSafe()?.rol || getCurrentUserSafe()?.role || null,
+    ts: Date.now(),
+  });
 }
 
 function _getSectionLabel(key) {
@@ -661,5 +714,7 @@ if (typeof window !== 'undefined') {
   window._permissionsCache = () => _permissionsCache;
   window._canView          = canView;
   window._canAction        = canAction;
+  window._permissionsDebugOn  = () => setPermissionsDebug(true);
+  window._permissionsDebugOff = () => setPermissionsDebug(false);
   plog('Helpers de debug disponibles: window._permissionsDebug(), window._permissionsCache(), window._canView(sec), window._canAction(sec)');
 }

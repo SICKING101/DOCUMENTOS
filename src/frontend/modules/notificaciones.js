@@ -8,6 +8,7 @@
  */
 import { CONFIG } from '../config.js';
 import { showAlert } from '../utils.js';
+import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
 
 // =============================================================================
 // 2. ESTADO GLOBAL DEL MÓDULO
@@ -32,6 +33,11 @@ let isDropdownOpen = false;
  */
 export function initNotificaciones() {
     console.log('🔔 Inicializando módulo de notificaciones...');
+
+    if (!canView('notificaciones')) {
+        console.log('⛔ Sin permiso de vista para notificaciones: omitiendo initNotificaciones');
+        return;
+    }
     
     const notificationsBtn = document.getElementById('notificationsBtn');
     if (!notificationsBtn) {
@@ -75,6 +81,10 @@ export function initNotificaciones() {
  */
 async function fetchNotificaciones() {
     try {
+        if (!canView('notificaciones')) {
+            return;
+        }
+
         console.log('🔄 Fetching notificaciones desde:', `${CONFIG.API_BASE_URL}/notifications`);
         
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications?limite=20`);
@@ -112,6 +122,12 @@ async function fetchNotificaciones() {
  */
 async function marcarComoLeida(notificacionId) {
     try {
+        if (!canAction('notificaciones')) {
+            showNoPermissionAlert('notificaciones');
+            showAlert('No tienes permiso para modificar notificaciones', 'error');
+            return;
+        }
+
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notificacionId}/read`, {
             method: 'PATCH'
         });
@@ -144,6 +160,12 @@ async function marcarComoLeida(notificacionId) {
  */
 async function marcarTodasLeidas() {
     try {
+        if (!canAction('notificaciones')) {
+            showNoPermissionAlert('notificaciones');
+            showAlert('No tienes permiso para modificar notificaciones', 'error');
+            return;
+        }
+
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/read-all`, {
             method: 'PATCH'
         });
@@ -253,9 +275,11 @@ function createDropdownElement() {
     dropdown.innerHTML = `
         <div class="notifications-header">
             <h3 class="notifications-title">Notificaciones</h3>
-            <button class="btn btn--text btn--small" id="markAllReadBtn">
-                Marcar todas leídas
-            </button>
+            ${canAction('notificaciones') ? `
+                <button class="btn btn--text btn--small" id="markAllReadBtn">
+                    Marcar todas leídas
+                </button>
+            ` : '<span class="text-muted">Solo lectura</span>'}
         </div>
         <div class="notifications-list" id="notificationsList">
             <!-- Notificaciones dinámicas -->
@@ -263,10 +287,13 @@ function createDropdownElement() {
     `;
 
     // Event listener para marcar todas como leídas
-    dropdown.querySelector('#markAllReadBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        marcarTodasLeidas();
-    });
+    const markAllReadBtn = dropdown.querySelector('#markAllReadBtn');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            marcarTodasLeidas();
+        });
+    }
 
     return dropdown;
 }

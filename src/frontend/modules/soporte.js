@@ -2,6 +2,7 @@ import { api } from '../services/api.js';
 import { showAlert, formatDate, showConfirmModal } from '../utils.js';
 import { DOM } from '../dom.js';
 import SystemStatusModule from './systemStatus.js';
+import { canView, canAction, loadCurrentPermissions, showNoPermissionAlert } from '../permissions.js';
 
 class SupportModule {
     constructor() {
@@ -494,6 +495,15 @@ initSystemStatus() {
 
     async init() {
         console.log('🔧 SupportModule: Inicializando módulo');
+
+        // Asegurar que el cache de permisos esté cargado antes de evaluar canView/canAction
+        await loadCurrentPermissions();
+
+        if (!canView('soporte')) {
+            console.log('⛔ Sin permiso de vista para soporte: omitiendo init');
+            return;
+        }
+
         this.setupEventListeners();
         await this.loadFAQ();
         this.setupGuideListeners();
@@ -1172,8 +1182,17 @@ initSystemStatus() {
     }
 }
 
-    openTicketModal() {
+    async openTicketModal() {
         console.log('🔧 SupportModule: Abriendo modal de ticket');
+
+        // Failsafe: asegurar permisos cargados (evita clicks “sin efecto” por cache vacío)
+        await loadCurrentPermissions();
+
+        if (!canAction('soporte')) {
+            showNoPermissionAlert('soporte');
+            showAlert('No tienes permiso para crear tickets de soporte', 'error');
+            return;
+        }
         
         DOM.ticketModal.style.display = 'flex';
         setTimeout(() => {
@@ -1341,6 +1360,12 @@ initSystemStatus() {
 
     async submitTicket() {
         try {
+            if (!canAction('soporte')) {
+                showNoPermissionAlert('soporte');
+                showAlert('No tienes permiso para crear tickets de soporte', 'error');
+                return;
+            }
+
             const subject = DOM.ticketSubject.value.trim();
             const description = DOM.ticketDescription.value.trim();
             const category = DOM.ticketCategory.value;
@@ -1535,6 +1560,10 @@ initSystemStatus() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    if (!canView('soporte')) {
+        return;
+    }
+
     // Funcionalidad de copiar datos de contacto
     const copyButtons = document.querySelectorAll('.contact-copy');
     
@@ -1590,6 +1619,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM cargado, inicializando SupportModule');
+
+    if (!canView('soporte')) {
+        console.log('⛔ Sin permiso de vista para soporte: no se inicializa SupportModule');
+        return;
+    }
     
     const requiredElements = ['guideModal', 'ticketModal'];
     const missingElements = requiredElements.filter(id => !document.getElementById(id));
