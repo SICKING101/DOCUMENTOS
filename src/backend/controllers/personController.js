@@ -1,3 +1,5 @@
+// src/backend/controllers/personController.js
+
 import mongoose from 'mongoose';
 import Person from '../models/Person.js';
 import Document from '../models/Document.js';
