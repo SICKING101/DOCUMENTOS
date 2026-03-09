@@ -606,6 +606,7 @@ window.debugDownload              = documentos.debugDocumentDownload;
 window.testAllDownloads           = documentos.testAllDownloads;
 window.loadDocuments              = documentos.loadDocuments;
 window.renderDocumentsTable       = documentos.renderDocumentsTable;
+window.changeDocumentsPage        = documentos.changeDocumentsPage;
 window.populateDocumentCategorySelect = documentos.populateDocumentCategorySelect;
 
 // ── Personas ──

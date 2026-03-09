@@ -43,7 +43,8 @@ const CONFIG = {
      * 2.3 Máximo de archivos múltiples
      * Número máximo de archivos que se pueden subir simultáneamente.
      */
-    MAX_MULTIPLE_FILES: 20,
+    // null = sin límite por cantidad (solo aplica límites por tamaño)
+    MAX_MULTIPLE_FILES: null,
 
     /**
      * 2.4 Tamaño total máximo para subidas múltiples
