@@ -1,6 +1,8 @@
 // src/frontend/userMenu.js
 // Gestión del menú de usuario y cambio de administrador
 
+import { canAction, loadCurrentPermissions, showNoPermissionAlert } from './permissions.js';
+
 // Elementos del DOM
 let userMenuTrigger;
 let userMenu;
@@ -171,7 +173,7 @@ async function handleLogout(e) {
 }
 
 // Abrir modal de cambio de administrador
-function openChangeAdminModal(e) {
+async function openChangeAdminModal(e) {
     e.preventDefault();
     closeUserMenu();
     
@@ -179,6 +181,14 @@ function openChangeAdminModal(e) {
     if (!esUsuarioAdministrador()) {
         console.warn('🚫 Usuario no administrador intentó abrir modal de cambio');
         mostrarAlerta('No tienes permisos para realizar esta acción', 'error');
+        return;
+    }
+
+    // Verificar permiso de ACCIÓN (roles “solo ver”)
+    await loadCurrentPermissions();
+    if (!canAction('admin')) {
+        showNoPermissionAlert('admin');
+        mostrarAlerta('Solo lectura: no puedes enviar solicitudes de cambio de administrador', 'warning');
         return;
     }
     
@@ -244,6 +254,14 @@ async function handleChangeAdmin(e) {
     // Verificar nuevamente antes de procesar
     if (!esUsuarioAdministrador()) {
         mostrarAlerta('No tienes permisos para realizar esta acción', 'error');
+        return;
+    }
+
+    // Verificar permiso de ACCIÓN (failsafe)
+    await loadCurrentPermissions();
+    if (!canAction('admin')) {
+        showNoPermissionAlert('admin');
+        mostrarAlerta('Solo lectura: no puedes enviar solicitudes de cambio de administrador', 'warning');
         return;
     }
 

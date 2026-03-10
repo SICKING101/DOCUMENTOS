@@ -65,6 +65,7 @@ export {
 
 // Table
 export { renderDocumentsTable } from './table/tableRenderer.js';
+export { changeDocumentsPage } from './table/tableRenderer.js';
 export { 
     initializeTableFilters,
     applyFilters,

@@ -529,12 +529,15 @@ export function handleMultipleFiles(files) {
     }
     
     const state = getMultipleUploadState();
-    
-    // 2. Validar cantidad máxima
-    if (files.length > CONFIG.MAX_MULTIPLE_FILES) {
-        showPageAlert(`❌ Máximo ${CONFIG.MAX_MULTIPLE_FILES} archivos permitidos. Seleccionados: ${files.length}`, 'error');
-        console.groupEnd();
-        return 0;
+
+    // 2. Validar cantidad máxima (opcional)
+    // Si CONFIG.MAX_MULTIPLE_FILES es null/undefined/no-finito, no se limita por cantidad.
+    if (Number.isFinite(CONFIG.MAX_MULTIPLE_FILES) && CONFIG.MAX_MULTIPLE_FILES > 0) {
+        if (files.length > CONFIG.MAX_MULTIPLE_FILES) {
+            showPageAlert(`❌ Máximo ${CONFIG.MAX_MULTIPLE_FILES} archivos permitidos. Seleccionados: ${files.length}`, 'error');
+            console.groupEnd();
+            return 0;
+        }
     }
     
     // 3. Agregar archivos al estado

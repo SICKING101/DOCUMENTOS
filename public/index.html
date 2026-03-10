@@ -550,10 +550,10 @@
                             <p class="section__subtitle">Registro completo de todas las actividades</p>
                         </div>
                         <div class="historial__actions">
-                            <button class="btn btn--outline" id="clearHistoryBtn">
+                            <button class="btn btn--outline" id="clearHistoryBtn" data-action-section="historial">
                                 <i class="fas fa-trash"></i> Limpiar Historial
                             </button>
-                            <button class="btn btn--outline" id="exportHistoryBtn">
+                            <button class="btn btn--outline" id="exportHistoryBtn" data-action-section="historial">
                                 <i class="fas fa-download"></i> Exportar
                             </button>
                             <button class="btn btn--primary" id="refreshHistoryBtn">
@@ -905,6 +905,9 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Paginación de documentos (15 por página) -->
+                    <div id="documentsPagination" class="pagination-container"></div>
                 </section>
 
                 <!-- SECCIÓN 4.2.6: PESTAÑA TAREAS -->
@@ -1480,7 +1483,7 @@
                                 <p class="support__subtitle">Ayuda, guías y tickets de soporte para el sistema</p>
                             </div>
                             <div class="support__header-right">
-                                <button class="btn btn--primary" id="newTicketBtn">
+                                <button class="btn btn--primary" id="newTicketBtn" data-requires-action="soporte">
                                     <i class="fas fa-plus-circle"></i> Nuevo Ticket
                                 </button>
                             </div>

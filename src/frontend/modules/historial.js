@@ -6,6 +6,7 @@
 
 import { CONFIG } from '../config.js';
 import { showAlert, showConfirmation } from '../utils.js';
+import { canAction, showNoPermissionAlert, applyActionPermissions } from '../permissions.js';
 
 class HistorialManager {
     constructor() {
@@ -468,6 +469,9 @@ restoreButtonByType(button) {
         
         // Vincular eventos de acciones
         this.bindItemEvents();
+
+        // Ocultar acciones según permisos (las filas se renderizan dinámicamente)
+        applyActionPermissions();
     }
 
     renderHistoryItem(item) {
@@ -527,7 +531,7 @@ restoreButtonByType(button) {
                         <button class="btn btn--icon btn--sm" title="Ver detalles" data-action="view">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn--icon btn--sm btn--danger" title="Eliminar registro" data-action="delete">
+                        <button class="btn btn--icon btn--sm btn--danger" title="Eliminar registro" data-action="delete" data-action-section="historial">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -572,6 +576,11 @@ restoreButtonByType(button) {
     // =============================================================================
 
     async markAsRead(id) {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes modificar el historial', 'warning');
+            return;
+        }
         let preloaderId = null;
         let button = null;
         
@@ -624,6 +633,11 @@ restoreButtonByType(button) {
     }
 
     async markAllAsRead() {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes modificar el historial', 'warning');
+            return;
+        }
         try {
             const confirmed = await showConfirmation(
                 '¿Marcar todos los registros como leídos?',
@@ -665,6 +679,11 @@ restoreButtonByType(button) {
     }
 
     async deleteItem(id) {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes eliminar registros del historial', 'warning');
+            return;
+        }
         let preloaderId = null;
         let button = null;
         
@@ -732,6 +751,11 @@ restoreButtonByType(button) {
     }
 
     async clearHistorial() {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes limpiar el historial', 'warning');
+            return;
+        }
         let preloaderId = null;
         let button = null;
         
@@ -902,6 +926,11 @@ restoreButtonByType(button) {
     }
 
     async exportHistorial() {
+        if (!canAction('historial')) {
+            showNoPermissionAlert('historial');
+            showAlert('Solo lectura: no puedes exportar el historial', 'warning');
+            return;
+        }
         let preloaderId = null;
         let button = null;
         

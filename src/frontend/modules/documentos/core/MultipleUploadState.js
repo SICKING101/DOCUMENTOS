@@ -580,9 +580,11 @@ export class MultipleUploadState {
         }
 
         // 2. Verificar límite de archivos
-        if (this.files.length > CONFIG.MAX_MULTIPLE_FILES) {
-            errors.push(`Máximo ${CONFIG.MAX_MULTIPLE_FILES} archivos permitidos. Tienes: ${this.files.length}`);
-            console.error(`❌ ERROR: Límite de archivos excedido: ${this.files.length} > ${CONFIG.MAX_MULTIPLE_FILES}`);
+        if (Number.isFinite(CONFIG.MAX_MULTIPLE_FILES) && CONFIG.MAX_MULTIPLE_FILES > 0) {
+            if (this.files.length > CONFIG.MAX_MULTIPLE_FILES) {
+                errors.push(`Máximo ${CONFIG.MAX_MULTIPLE_FILES} archivos permitidos. Tienes: ${this.files.length}`);
+                console.error(`❌ ERROR: Límite de archivos excedido: ${this.files.length} > ${CONFIG.MAX_MULTIPLE_FILES}`);
+            }
         }
 
         // 3. Verificar tamaño total

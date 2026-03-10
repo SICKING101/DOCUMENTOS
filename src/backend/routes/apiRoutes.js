@@ -112,13 +112,16 @@ router.post('/reports/pdf', protegerRuta, requirePermission(PERMISSIONS.GENERATE
 router.post('/reports/csv', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateCSV);
 
 // ─── NOTIFICACIONES ───────────────────────────────────────────────────────────
-router.get('/notifications', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.getAll);
-router.get('/notifications/unread', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.getUnread);
-router.get('/notifications/stats', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.getStats);
-router.patch('/notifications/:id/read', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.markAsRead);
-router.patch('/notifications/read-all', protegerRuta, requirePermission(PERMISSIONS.VIEW_SYSTEM_SETTINGS), NotificationController.markAllAsRead);
-router.delete('/notifications/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_SYSTEM_SETTINGS), NotificationController.delete);
-router.post('/notifications/cleanup', protegerRuta, requirePermission(PERMISSIONS.EDIT_SYSTEM_SETTINGS), NotificationController.cleanup);
+// Vista pública para cualquier usuario autenticado (Historial/Notificaciones)
+router.get('/notifications', protegerRuta, NotificationController.getAll);
+router.get('/notifications/unread', protegerRuta, NotificationController.getUnread);
+router.get('/notifications/stats', protegerRuta, NotificationController.getStats);
+router.patch('/notifications/:id/read', protegerRuta, NotificationController.markAsRead);
+router.patch('/notifications/read-all', protegerRuta, NotificationController.markAllAsRead);
+
+// Acciones destructivas: restringidas (relacionadas a Historial)
+router.delete('/notifications/:id', protegerRuta, requirePermission(PERMISSIONS.CLEAR_HISTORY), NotificationController.delete);
+router.post('/notifications/cleanup', protegerRuta, requirePermission(PERMISSIONS.CLEAR_HISTORY), NotificationController.cleanup);
 
 // ─── PAPELERA ─────────────────────────────────────────────────────────────────
 router.get('/trash', protegerRuta, requirePermission(PERMISSIONS.VIEW_TRASH), TrashController.getTrashDocuments);

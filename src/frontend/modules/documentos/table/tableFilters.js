@@ -270,6 +270,12 @@ export function applyFilters() {
         // Actualizar appState con documentos filtrados
         window.appState.filteredDocuments = filteredDocuments;
         
+        // Reiniciar paginación al aplicar filtros/búsqueda
+        if (window.appState) {
+            window.appState.documentsPagination = window.appState.documentsPagination || {};
+            window.appState.documentsPagination.currentPage = 1;
+        }
+
         // Renderizar tabla con filtros aplicados
         if (typeof renderDocumentsTable === 'function') {
             renderDocumentsTable(filteredDocuments);

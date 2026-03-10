@@ -1,6 +1,7 @@
 import { DOM } from '../dom.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, showConfirmModal, showActionModal } from '../utils.js';
+import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
 
 // =============================================================================
 // 0. FUNCIONES DE PRELOADER MEJORADAS
@@ -97,6 +98,11 @@ function showDepartmentSkeletonCards(count = 3) {
  * 1.1 Abrir modal para crear/editar departamento
  */
 function openDepartmentModal(departmentId = null) {
+    if (!canAction('departamentos')) {
+        showNoPermissionAlert('departamentos');
+        showAlert('Solo lectura: no puedes crear o editar departamentos', 'warning');
+        return;
+    }
     console.log(`🏢 Abriendo modal de departamento: ${departmentId || 'Nuevo'}`);
     
     // Limpiar errores previos
@@ -203,6 +209,12 @@ function validateDepartmentForm() {
  * 2.2 Guardar departamento (crear o actualizar) - CORREGIDO
  */
 async function saveDepartment() {
+    if (!canAction('departamentos')) {
+        showNoPermissionAlert('departamentos');
+        showAlert('No tienes permiso para modificar departamentos', 'error');
+        return;
+    }
+
     if (!validateDepartmentForm()) {
         return;
     }
@@ -250,6 +262,7 @@ async function saveDepartment() {
         } else {
             throw new Error(data.message || 'Error desconocido al guardar');
         }
+
         
     } catch (error) {
         console.error('❌ Error guardando departamento:', error);
@@ -267,6 +280,35 @@ async function saveDepartment() {
  * 2.3 Cargar lista de departamentos - CORREGIDO
  */
 async function loadDepartments() {
+    // Verificar permiso de vista
+    if (!canView('departamentos')) {
+        console.log('🔒 Sin permiso para ver departamentos');
+
+        if (DOM.departmentsStats) {
+            DOM.departmentsStats.innerHTML = `
+                <div class="empty-state error-state">
+                    <div class="error-state__icon"><i class="fas fa-lock"></i></div>
+                    <h3 class="empty-state__title">Acceso Restringido</h3>
+                    <p class="empty-state__description">No tienes permisos para ver los departamentos.</p>
+                </div>
+            `;
+        }
+
+        if (DOM.departamentosTableBody) {
+            DOM.departamentosTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state error-state">
+                        <div class="error-state__icon"><i class="fas fa-lock"></i></div>
+                        <h3 class="empty-state__title">Acceso Restringido</h3>
+                        <p class="empty-state__description">No tienes permisos para ver la lista de departamentos.</p>
+                    </td>
+                </tr>
+            `;
+        }
+
+        return;
+    }
+
     try {
         console.log('🏢 Cargando departamentos...');
         
@@ -319,6 +361,12 @@ function editDepartment(id) {
  * 2.5 Eliminar departamento con modal de confirmación - CORREGIDO EL ERROR
  */
 async function deleteDepartment(id) {
+    if (!canAction('departamentos')) {
+        showNoPermissionAlert('departamentos');
+        showAlert('No tienes permiso para eliminar departamentos', 'error');
+        return;
+    }
+
     const department = window.appState.departments.find(d => d._id === id);
     if (!department) return;
     
@@ -398,49 +446,57 @@ async function deleteDepartment(id) {
  * 3.1 Renderizar departamentos en la interfaz
  */
 function renderDepartments() {
-    if (DOM.departmentsStats) {
-        DOM.departmentsStats.innerHTML = '';
-        
-        if (window.appState.departments.length === 0) {
-            DOM.departmentsStats.innerHTML = `
-                <article class="empty-state">
-                    <i class="fas fa-building empty-state__icon"></i>
-                    <h3 class="empty-state__title">No hay departamentos creados</h3>
-                    <p class="empty-state__description">Crea el primer departamento para organizar las personas</p>
+    if (!DOM.departmentsStats) return;
+
+    const canEdit = canAction('departamentos');
+
+    DOM.departmentsStats.innerHTML = '';
+
+    if (window.appState.departments.length === 0) {
+        DOM.departmentsStats.innerHTML = `
+            <article class="empty-state">
+                <i class="fas fa-building empty-state__icon"></i>
+                <h3 class="empty-state__title">No hay departamentos creados</h3>
+                <p class="empty-state__description">Crea el primer departamento para organizar las personas</p>
+                ${canEdit ? `
                     <button class="btn btn--primary" onclick="openDepartmentModal()">
                         <i class="fas fa-plus"></i> Crear Departamento
                     </button>
-                </article>
-            `;
-            return;
-        }
-        
-        window.appState.departments.forEach(department => {
-            const departmentCard = document.createElement('article');
-            departmentCard.className = 'stats__card stats__card--department';
-            departmentCard.setAttribute('data-department-id', department._id);
-            
-            departmentCard.innerHTML = `
-                <div class="stats__icon" style="background: linear-gradient(135deg, ${department.color || '#3b82f6'}, #2563eb);">
-                    <i class="fas fa-${department.icon || 'building'}"></i>
-                </div>
-                <div class="stats__info">
-                    <h3 class="stats__info-value">${department.personCount || 0}</h3>
-                    <p class="stats__info-label">${department.nombre}</p>
-                </div>
-                <div class="stats__actions">
+                ` : `
+                    <p class="empty-state__description">No tienes permisos para crear departamentos.</p>
+                `}
+            </article>
+        `;
+        return;
+    }
+
+    window.appState.departments.forEach(department => {
+        const departmentCard = document.createElement('article');
+        departmentCard.className = 'stats__card stats__card--department';
+        departmentCard.setAttribute('data-department-id', department._id);
+
+        departmentCard.innerHTML = `
+            <div class="stats__icon" style="background: linear-gradient(135deg, ${department.color || '#3b82f6'}, #2563eb);">
+                <i class="fas fa-${department.icon || 'building'}"></i>
+            </div>
+            <div class="stats__info">
+                <h3 class="stats__info-value">${department.personCount || 0}</h3>
+                <p class="stats__info-label">${department.nombre}</p>
+            </div>
+            <div class="stats__actions">
+                ${canEdit ? `
                     <button class="btn-icon btn-icon--sm" onclick="editDepartment('${department._id}')" title="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn-icon btn-icon--sm btn-icon--danger" onclick="deleteDepartment('${department._id}')" title="Eliminar">
                         <i class="fas fa-trash"></i>
                     </button>
-                </div>
-            `;
-            
-            DOM.departmentsStats.appendChild(departmentCard);
-        });
-    }
+                ` : '<span class="text-muted">-</span>'}
+            </div>
+        `;
+
+        DOM.departmentsStats.appendChild(departmentCard);
+    });
 }
 
 // =============================================================================
@@ -456,7 +512,7 @@ function populateDepartmentSelects() {
     if (personDepartmentSelect) {
         populateDepartmentSelect(personDepartmentSelect);
     }
-    
+
     // Select en formulario de editar persona
     const editPersonDepartmentSelect = document.getElementById('editPersonDepartment');
     if (editPersonDepartmentSelect) {
@@ -469,14 +525,21 @@ function populateDepartmentSelects() {
  */
 function populateDepartmentSelect(selectElement) {
     if (!selectElement) return;
-    
+
+    const currentValue = selectElement.value;
     selectElement.innerHTML = '<option value="">Seleccionar departamento</option>';
+
     window.appState.departments.forEach(department => {
         const option = document.createElement('option');
         option.value = department.nombre;
         option.textContent = department.nombre;
         option.setAttribute('data-color', department.color || '#3b82f6');
         option.setAttribute('data-icon', department.icon || 'building');
+
+        if (currentValue && currentValue === option.value) {
+            option.selected = true;
+        }
+
         selectElement.appendChild(option);
     });
 }

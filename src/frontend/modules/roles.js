@@ -19,6 +19,13 @@ function log(...args)  { if (DEBUG) console.log('🎭 [Roles]', ...args); }
 function warn(...args) { if (DEBUG) console.warn('⚠️ [Roles]', ...args); }
 function err(...args)  {           console.error('❌ [Roles]', ...args); }
 
+// Secciones que no se deben mostrar/editar al crear/editar roles
+const EXCLUDED_ROLE_SECTIONS = new Set(['notificaciones']);
+
+function filterExcludedSections(sections) {
+  return (sections || []).filter(s => s?.key && !EXCLUDED_ROLE_SECTIONS.has(s.key));
+}
+
 // ─── Re-exportar para que otros módulos puedan importar de aquí ───────────────
 export {
   loadCurrentPermissions,
@@ -51,7 +58,6 @@ const FALLBACK_SECTIONS = [
   { key: 'papelera',       label: 'Papelera',        icon: '🗑️' },
   { key: 'calendario',     label: 'Calendario',      icon: '📅' },
   { key: 'historial',      label: 'Historial',       icon: '📜' },
-  { key: 'notificaciones', label: 'Notificaciones',  icon: '🔔' },
   { key: 'soporte',        label: 'Soporte',         icon: '🛟' },
 ];
 
@@ -150,15 +156,15 @@ async function refreshRoles() {
 
     if (res.success) {
       state.roles    = res.data     || [];
-      state.sections = res.sections || FALLBACK_SECTIONS;
+      state.sections = filterExcludedSections(res.sections || FALLBACK_SECTIONS);
       log(`refreshRoles: ${state.roles.length} roles cargados, ${state.sections.length} secciones`);
     } else {
       warn('refreshRoles: respuesta no exitosa:', res.message);
-      state.sections = FALLBACK_SECTIONS;
+      state.sections = filterExcludedSections(FALLBACK_SECTIONS);
     }
   } catch (e) {
     err('refreshRoles:', e);
-    state.sections = FALLBACK_SECTIONS;
+    state.sections = filterExcludedSections(FALLBACK_SECTIONS);
   } finally {
     state.loading = false;
   }

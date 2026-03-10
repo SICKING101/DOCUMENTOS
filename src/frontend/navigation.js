@@ -413,8 +413,11 @@ async function _loadTabData(tabId) {
       case 'soporte':
         if (!window.supportModule && typeof window.SupportModule === 'function') {
           window.supportModule = new window.SupportModule();
+          if (window.supportModule?.init) {
+            await window.supportModule.init();
+          }
         } else if (window.supportModule?.init) {
-          window.supportModule.init();
+          await window.supportModule.init();
         }
         break;
 
