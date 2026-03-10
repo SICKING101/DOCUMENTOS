@@ -12,6 +12,15 @@ const documentSchema = new mongoose.Schema({
   cloudinary_url: { type: String, required: true },
   public_id: { type: String, required: true },
   resource_type: { type: String, required: true },
+  // Flujo de revisión/aprobación (compatibilidad: si falta, asumir "approved")
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'approved'
+  },
+  reviewedAt: { type: Date, default: null },
+  reviewedBy: { type: String, default: null },
+  reviewComment: { type: String, default: '' },
   activo: { type: Boolean, default: true },
   // Campos para papelera
   isDeleted: { type: Boolean, default: false },

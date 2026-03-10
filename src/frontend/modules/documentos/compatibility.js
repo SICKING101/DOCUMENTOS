@@ -5,6 +5,7 @@
 import { api } from '../../services/api.js';           
 import { showAlert, formatFileSize } from '../../utils.js'; 
 import { updateTrashBadge } from '../papelera.js';
+import { hasPermission, PERMISSIONS } from '../../permissions.js';
 
 // Importar TODO desde progressManager.js en una sola línea
 import { 
@@ -130,6 +131,11 @@ function getFileIcon(fileType) {
  */
 export async function deleteDocument(id) {
     console.log('🔧 deleteDocument llamada con ID:', id);
+
+    if (!hasPermission(PERMISSIONS.DELETE_DOCUMENTS)) {
+        showAlert('No tienes permisos para eliminar documentos', 'error');
+        return;
+    }
     
     // Crear y mostrar el modal
     const modal = createDeleteConfirmationModal();
@@ -268,7 +274,9 @@ export async function deleteDocument(id) {
                     closeModal();
                     
                     // Cargar documentos actualizados
-                    if (window.loadDocuments) {
+                    if (window.refreshDocumentsView) {
+                        await window.refreshDocumentsView();
+                    } else if (window.loadDocuments) {
                         await window.loadDocuments();
                     }
                     
@@ -374,6 +382,33 @@ export async function loadDocuments() {
     } catch (error) {
         console.error('❌ Error cargando documentos:', error);
         showAlert('Error al cargar documentos: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Refresca la vista de Documentos (lista + filtros + categorías).
+ * Útil después de subir/aprobar/rechazar/eliminar.
+ */
+export async function refreshDocumentsView({ reloadCategories = true, refreshFilters = true } = {}) {
+    await loadDocuments();
+
+    if (refreshFilters) {
+        try {
+            const filtersModule = await import('./table/tableFilters.js');
+            if (typeof filtersModule.initializeTableFilters === 'function') {
+                filtersModule.initializeTableFilters();
+            }
+        } catch (e) {
+            console.warn('⚠️ No se pudieron refrescar los filtros de Documentos:', e);
+        }
+    }
+
+    if (reloadCategories && typeof window !== 'undefined' && typeof window.loadCategories === 'function') {
+        try {
+            await window.loadCategories();
+        } catch (e) {
+            console.warn('⚠️ No se pudieron refrescar las categorías:', e);
+        }
     }
 }
 
@@ -516,6 +551,7 @@ export function setupCompatibilityGlobals() {
     // Asignar funciones esenciales
     window.deleteDocument = deleteDocument;
     window.loadDocuments = loadDocuments;
+    window.refreshDocumentsView = refreshDocumentsView;
     window.debugMultipleUpload = debugMultipleUpload;
     window.testMultipleUploadWithMockFiles = testMultipleUploadWithMockFiles;
     window.cancelMultipleUpload = cancelMultipleUpload;
@@ -525,9 +561,77 @@ export function setupCompatibilityGlobals() {
     
     // Agregar función de editar documento
     window.editDocument = async (documentId) => {
+        if (!hasPermission(PERMISSIONS.EDIT_DOCUMENTS)) {
+            showAlert('No tienes permisos para editar documentos', 'error');
+            return;
+        }
         const { openEditDocumentModal } = await import('./modals/editDocumentModal.js');
         return openEditDocumentModal(documentId);
     };
+
+    // Aprobación/Rechazo (Revisor/Moderador/Admin)
+    window.approveDocument = approveDocument;
+    window.rejectDocument = rejectDocument;
     
     console.log('✅ Funciones globales de compatibilidad configuradas');
+}
+
+// =============================================================================
+// Revisión/Aprobación
+// =============================================================================
+
+export async function approveDocument(documentId, comment = '') {
+    if (!hasPermission(PERMISSIONS.APPROVE_DOCUMENTS)) {
+        showAlert('No tienes permisos para aprobar documentos', 'error');
+        return;
+    }
+
+    try {
+        const response = await api.call(`/documents/${documentId}/approve`, {
+            method: 'PATCH',
+            body: { comment }
+        });
+
+        if (response?.success) {
+            showAlert(response.message || 'Documento aprobado', 'success');
+            if (typeof refreshDocumentsView === 'function') {
+                await refreshDocumentsView();
+            } else if (typeof loadDocuments === 'function') {
+                await loadDocuments();
+            }
+        } else {
+            showAlert(response?.message || 'No se pudo aprobar', 'error');
+        }
+    } catch (error) {
+        console.error('Error aprobando documento:', error);
+        showAlert('Error al aprobar documento', 'error');
+    }
+}
+
+export async function rejectDocument(documentId, comment = '') {
+    if (!hasPermission(PERMISSIONS.APPROVE_DOCUMENTS)) {
+        showAlert('No tienes permisos para rechazar documentos', 'error');
+        return;
+    }
+
+    try {
+        const response = await api.call(`/documents/${documentId}/reject`, {
+            method: 'PATCH',
+            body: { comment }
+        });
+
+        if (response?.success) {
+            showAlert(response.message || 'Documento rechazado', 'success');
+            if (typeof refreshDocumentsView === 'function') {
+                await refreshDocumentsView();
+            } else if (typeof loadDocuments === 'function') {
+                await loadDocuments();
+            }
+        } else {
+            showAlert(response?.message || 'No se pudo rechazar', 'error');
+        }
+    } catch (error) {
+        console.error('Error rechazando documento:', error);
+        showAlert('Error al rechazar documento', 'error');
+    }
 }

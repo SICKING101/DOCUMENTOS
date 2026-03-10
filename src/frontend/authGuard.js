@@ -103,7 +103,28 @@ function actualizarUIUsuario(user) {
     }
 
     if (userRoleElement) {
-        userRoleElement.textContent = 'Administrador';
+        const roleLabels = {
+            administrador: 'Administrador',
+            editor: 'Editor',
+            revisor: 'Revisor',
+            lector: 'Lector',
+            moderador: 'Moderador',
+            usuario: 'Usuario',
+            desactivado: 'Desactivado'
+        };
+        userRoleElement.textContent = roleLabels[user.rol] || user.rol || 'Usuario';
+    }
+
+    // Guardar rol para control de UI en otros módulos
+    if (user?.rol) {
+        localStorage.setItem('userRole', user.rol);
+    }
+
+    // Notificar a la app (mismo tab) que el usuario/rol fue actualizado
+    try {
+        window.dispatchEvent(new CustomEvent('auth:user-updated', { detail: { user } }));
+    } catch (e) {
+        // no-op
     }
 }
 

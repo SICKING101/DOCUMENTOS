@@ -6,6 +6,7 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
+      'usuario_creado',
       'documento_subido',
       'documento_eliminado',
       'documento_restaurado',

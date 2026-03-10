@@ -52,6 +52,7 @@ DOCUMENTOS/
 │   │   ├── components/            
 |   │   │   ├── preloader/
 |   │   │   │   ├── bulk-delete.css
+|   │   │   │   ├── admin-preloader.css
 |   │   │   │   ├── buttons.css
 |   │   │   │   ├── categorias-preloader.css
 |   │   │   │   ├── confirmation.css
@@ -94,6 +95,7 @@ DOCUMENTOS/
 │   │   │
 │   │   ├── sections/              # Estilos por pagina/modulo
 │   │   │   ├── dashboard.css
+│   │   │   ├── admin.css
 │   │   │   ├── tasks.css
 │   │   │   ├── documents.css
 │   │   │   ├── categories.css
@@ -137,6 +139,7 @@ DOCUMENTOS/
 │   │   │
 │   │   ├── modules/               # Modulos por funcionalidad
 │   │   │   ├── ajustes.js
+│   │   │   ├── auditoria.js
 |   │   │   ├── calendario.js
 │   │   │   ├── categorias.js
 │   │   │   ├── dashboard.js
@@ -144,9 +147,11 @@ DOCUMENTOS/
 │   │   │   ├── documentos.js
 │   │   │   ├── historial.js
 |   │   │   ├── i18n.js                  # Traducciones (proximamente)
+│   │   │   ├── permissions.js
 │   │   │   ├── notificaciones.js
 │   │   │   ├── personas.js
 │   │   │   ├── reports.js
+|   │   │   ├── roles.js
 |   │   │   ├── soporte.js
 │   │   │   ├── search.js
 │   │   │   ├── systemStatus.js
@@ -157,6 +162,7 @@ DOCUMENTOS/
 │   │   │   │   └── verification.js
 │   │   │   │
 |   │   │   ├── admin/             # Módulo de administración
+│   │   │   │   ├── index.js
 │   │   │   │   ├── adminChange.js
 │   │   │   │
 │   │   │   ├── documentos/        # Modulo documentos
@@ -217,16 +223,19 @@ DOCUMENTOS/
 │       │
 │       ├── config/
 │       │   ├── cloudinaryConfig.js
+│       │   ├── permissions.js
 │       │   └── multerConfig.js
 │       │
 │       ├── controllers/            # Controladores REST
 │       │   ├── authController.js
-|   │   │   ├── adminController.js
+│       │   ├── auditController.js.js
+|       │   ├── adminController.js
 │       │   ├── categoryController.js
 │       │   ├── dashboardController.js
 │       │   ├── departmentController.js
 │       │   ├── documentController.js
 │       │   ├── notificationController.js
+|       │   ├── roleController.js
 │       │   ├── personController.js
 │       │   ├── reportController.js
 │       │   ├── trashController.js
@@ -234,6 +243,7 @@ DOCUMENTOS/
 │       │   └── taskController.js
 │       │
 │       ├── middleware/
+│       │   ├── auditMiddleware.js
 │       │   └── auth.js
 │       │
 │       ├── models/                 # Modelos MongoDB
@@ -242,6 +252,7 @@ DOCUMENTOS/
 │       │   ├── Task.js
 │       │   ├── Department.js
 │       │   ├── Category.js
+|       │   ├── Role.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
 │       │   ├── Ticket.js
@@ -254,6 +265,7 @@ DOCUMENTOS/
 │       ├── routes/
 │       │    ├── apiRoutes.js
 │       │    ├── adminRoutes.js
+│       │    ├── roleRoutes.js
 │       │    └── authRoutes.js
 │       │
 │       └── debugRoutes.js           # Debug tareas

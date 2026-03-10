@@ -31,7 +31,7 @@ const CONFIG = {
      * 2.1 Tamaño máximo de archivo individual
      * Establece el límite máximo en bytes para archivos individuales.
      */
-    MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+    MAX_FILE_SIZE: 1024 * 1024 * 1024, // 1GB
 
     /**
      * 2.2 Tipos de archivo permitidos
@@ -43,13 +43,14 @@ const CONFIG = {
      * 2.3 Máximo de archivos múltiples
      * Número máximo de archivos que se pueden subir simultáneamente.
      */
-    MAX_MULTIPLE_FILES: 20,
+    // null = sin límite por cantidad (solo aplica límites por tamaño)
+    MAX_MULTIPLE_FILES: null,
 
     /**
      * 2.4 Tamaño total máximo para subidas múltiples
      * Límite acumulativo para el tamaño total de múltiples archivos en una sola operación.
      */
-    MAX_TOTAL_UPLOAD_SIZE: 50 * 1024 * 1024, // 50MB
+    MAX_TOTAL_UPLOAD_SIZE: 1024 * 1024 * 1024, // 1GB
 
     // =============================================================================
     // 3. CONFIGURACIÓN DE DESCARGAS

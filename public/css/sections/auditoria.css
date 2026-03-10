@@ -1,0 +1,922 @@
+/* =============================================================================
+   AUDITORÍA - ESTILOS COMPLETOS
+   Sistema de Gestión Documental CBTIS051
+   ============================================================================= */
+
+/* Contenedor principal */
+.audit-container {
+    padding: var(--spacing-lg);
+    max-width: 100%;
+}
+
+/* =============================================================================
+   HEADER
+   ============================================================================= */
+
+.audit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.audit-title {
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.audit-title i {
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    padding: 0.5rem;
+    border-radius: var(--radius-lg);
+    font-size: 1.25rem;
+}
+
+.audit-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.audit-header__right {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.audit-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+/* Dropdown personalizado */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 140px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    display: none;
+    margin-top: 0.25rem;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: none;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.dropdown-item i {
+    color: var(--text-secondary);
+    width: 16px;
+    font-size: 0.875rem;
+}
+
+/* =============================================================================
+   FILTROS
+   ============================================================================= */
+
+.audit-filters {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+    overflow: hidden;
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.filters-title {
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.filter-label {
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-input,
+.filter-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    height: 36px;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    height: 36px;
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.search-clear:hover {
+    color: var(--danger);
+}
+
+.filters-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-tertiary);
+}
+
+.results-count {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* =============================================================================
+   ESTADÍSTICAS
+   ============================================================================= */
+
+.audit-stats {
+    margin-bottom: var(--spacing-lg);
+    padding: 1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card__content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-card__down {
+    margin-bottom: 20px;
+}
+
+.stat-card__label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* =============================================================================
+   TABLA DE AUDITORÍA
+   ============================================================================= */
+
+.audit-table-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.audit-table thead {
+    background: var(--bg-tertiary);
+    border-bottom: 2px solid var(--border);
+}
+
+.audit-table th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.audit-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s ease;
+    cursor: pointer;
+}
+
+.audit-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.audit-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.audit-table td {
+    padding: 0.875rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+/* Celdas específicas */
+.audit-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.audit-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.audit-user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.audit-username {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.audit-role {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.audit-description {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.audit-target {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.audit-target i {
+    color: var(--primary);
+    font-size: 0.75rem;
+}
+
+.audit-ip {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.audit-ip i {
+    font-size: 0.75rem;
+}
+
+.audit-date {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+}
+
+.badge--with-icon {
+    padding-left: 0.375rem;
+}
+
+.badge--success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.badge--warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.badge--danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.badge--info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+}
+
+.badge--primary {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+}
+
+.badge--secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+/* Filas por severidad */
+.audit-row--error {
+    border-left: 3px solid var(--danger);
+}
+
+.audit-row--warning {
+    border-left: 3px solid var(--warning);
+}
+
+.audit-row--critical {
+    border-left: 3px solid var(--danger);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.audit-row--info {
+    border-left: 3px solid var(--info);
+}
+
+/* =============================================================================
+   CAMBIOS EN MODAL DE DETALLES - CORREGIDO (VERTICAL)
+   ============================================================================= */
+
+/* Contenedor vertical para los cambios */
+.audit-detail__changes-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+/* Cada bloque individual (antes/después) */
+.change-block {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Título del bloque (Antes/Después) */
+.change-title {
+    font-size: 0.85rem;
+    font-weight: var(--font-weight-semibold);
+    padding: 0.6rem 1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Estilo específico para título ANTES */
+.change-title--before {
+    background: rgba(245, 158, 11, 0.08);
+    color: var(--warning);
+}
+
+.change-title--before i {
+    color: var(--warning);
+}
+
+/* Estilo específico para título DESPUÉS */
+.change-title--after {
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--success);
+}
+
+.change-title--after i {
+    color: var(--success);
+}
+
+/* Contenido del cambio (JSON) */
+.change-content {
+    padding: 1rem;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    max-height: 250px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: var(--bg-primary);
+    line-height: 1.5;
+    border-radius: 0;
+}
+
+/* Scroll personalizado para el contenido */
+.change-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.change-content::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.change-content::-webkit-scrollbar-thumb {
+    background: var(--text-secondary);
+    border-radius: 4px;
+}
+
+.change-content::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* =============================================================================
+   ELIMINAR ESTILOS ANTERIORES (si existen)
+   ============================================================================= */
+/* Si tienes estas clases definidas, elimínalas o coméntalas:
+   .audit-detail__changes { ... }
+   .change-column { ... }
+*/
+
+/* =============================================================================
+   MODAL DE DETALLES - ESTILOS GENERALES (asegurar que existe)
+   ============================================================================= */
+
+/* Para pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .modal__content--md {
+        width: 95%;
+        margin: 1rem auto;
+    }
+    
+    .change-content {
+        max-height: 200px;
+        font-size: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .change-title {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* =============================================================================
+   MODAL DE DETALLES (CORREGIDO)
+   ============================================================================= */
+
+.audit-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.audit-detail__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.audit-detail__action {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.audit-detail__section {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    padding: 0.875rem;
+}
+
+.audit-detail__section-title {
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.audit-detail__section-title i {
+    font-size: 0.75rem;
+}
+
+.audit-detail__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
+
+.audit-detail__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.audit-detail__label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.audit-detail__value {
+    font-weight: var(--font-weight-medium);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    word-break: break-word;
+}
+
+.audit-detail__description {
+    color: var(--text-primary);
+    line-height: 1.5;
+    font-size: 0.875rem;
+}
+
+.audit-detail__changes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.change-title {
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-semibold);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.change-title--before {
+    color: var(--warning);
+}
+
+.change-title--after {
+    color: var(--success);
+}
+
+.change-content {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-primary);
+    max-height: 200px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* =============================================================================
+   PAGINACIÓN
+   ============================================================================= */
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.pagination {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pagination__btn {
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination__btn:hover:not(:disabled) {
+    background: var(--bg-tertiary);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pagination__btn--active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.pagination__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination__btn--prev,
+.pagination__btn--next {
+    gap: 0.25rem;
+}
+
+.pagination__btn--prev span,
+.pagination__btn--next span {
+    display: inline-block;
+}
+
+/* =============================================================================
+   ESTADOS DE CARGA Y VACÍO
+   ============================================================================= */
+
+.loading-state {
+    text-align: center;
+    padding: 2rem;
+}
+
+.loading-spinner p {
+    margin-top: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+}
+
+.empty-state__icon {
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.empty-state__title {
+    font-size: 1rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state__description {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .audit-container {
+        padding: 1rem;
+    }
+
+    .audit-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .audit-header__right {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .audit-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .audit-actions .btn {
+        flex: 1;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .audit-detail__changes {
+        grid-template-columns: 1fr;
+    }
+
+    .pagination__btn--prev span,
+    .pagination__btn--next span {
+        display: none;
+    }
+
+    .pagination__btn--prev,
+    .pagination__btn--next {
+        padding: 0 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .filters-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .filters-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+
+    .results-count {
+        text-align: center;
+    }
+
+    .pagination__btn {
+        min-width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+    }
+}
+
+/* Contenedor principal de metadata */
+.metadata-content {
+    background-color: var(--gray-50, #f8f9fa);
+    border: 1px solid var(--gray-200, #e9ecef);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 8px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--gray-800, #212529);
+    
+    /* IMPORTANTE: Control de desbordamiento */
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: break-all;
+    max-width: 100%;
+    
+    /* Scroll personalizado */
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-400, #ced4da) var(--gray-200, #e9ecef);
+}
+
+.metadata-content::-webkit-scrollbar {
+    height: 8px;
+}
+
+.metadata-content::-webkit-scrollbar-track {
+    background: var(--gray-200, #e9ecef);
+    border-radius: 4px;
+}
+
+.metadata-content::-webkit-scrollbar-thumb {
+    background: var(--gray-400, #ced4da);
+    border-radius: 4px;
+}
+
+.metadata-content::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500, #adb5bd);
+}
+
+/* Para JSON específicamente */
+.metadata-content.json-content {
+    white-space: pre;
+    word-wrap: normal;
+    overflow-x: auto;
+}

@@ -1,136 +1,203 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+// src/backend/models/User.js
+// Modelo de usuario.
+//
+// CAMBIO CLAVE vs versión anterior:
+//   • El campo `rol` ya NO tiene `enum`. Acepta cualquier String.
+//   • Solo se valida en el controller/middleware que sea un rol existente
+//     (administrador, desactivado, o cualquier nombre de rol dinámico).
+//   • Esto permite asignar roles creados dinámicamente desde el panel de Admin.
 
-const userSchema = new mongoose.Schema({
+import mongoose from 'mongoose';
+import bcrypt   from 'bcryptjs';
+
+const DEBUG = true;
+function ulog(...args) { if (DEBUG) console.log('👤 [User]', ...args); }
+
+const userSchema = new mongoose.Schema(
+  {
+    // ─── Identidad ─────────────────────────────────────────────────────────
     usuario: {
-        type: String,
-        required: [true, 'El usuario es requerido'],
-        unique: true,
-        trim: true,
-        minlength: [3, 'El usuario debe tener al menos 3 caracteres']
+      type:      String,
+      required:  [true, 'El usuario es requerido'],
+      unique:    true,
+      trim:      true,
+      minlength: [3,  'El usuario debe tener al menos 3 caracteres'],
+      maxlength: [30, 'El usuario no puede superar 30 caracteres'],
     },
     correo: {
-        type: String,
-        required: [true, 'El correo es requerido'],
-        unique: true,
-        trim: true,
-        lowercase: true,
-        match: [/^\S+@\S+\.\S+$/, 'Por favor ingrese un correo válido']
+      type:     String,
+      required: [true, 'El correo es requerido'],
+      unique:   true,
+      trim:     true,
+      lowercase: true,
+      match: [/^\S+@\S+\.\S+$/, 'Formato de correo inválido'],
     },
     password: {
-        type: String,
-        required: [true, 'La contraseña es requerida'],
-        minlength: [6, 'La contraseña debe tener al menos 6 caracteres']
+      type:     String,
+      required: [true, 'La contraseña es requerida'],
+      minlength: [6, 'La contraseña debe tener al menos 6 caracteres'],
+      select:   false, // No se devuelve en queries por defecto
     },
+
+    // ─── Rol ───────────────────────────────────────────────────────────────
+    //
+    // SIN enum — permite roles dinámicos creados desde el panel de Admin.
+    // Valores especiales:
+    //   "administrador" → acceso total, protegido en controller
+    //   "desactivado"   → sin acceso, usuario bloqueado
+    //   cualquier otro  → rol dinámico, permisos en colección roles
+    //
     rol: {
-        type: String,
-        enum: ['administrador', 'desactivado', 'usuario'], 
-        default: 'administrador'
+      type:    String,
+      default: 'desactivado',
+      trim:    true,
     },
+
+    // ─── Estado ────────────────────────────────────────────────────────────
     activo: {
-        type: Boolean,
-        default: true
+      type:    Boolean,
+      default: true,
     },
-    // Para código de 6 dígitos
-    resetPasswordToken: String,
-    resetPasswordExpires: Date,
-    
-    // Para token de cambio de contraseña (después de verificar código)
-    changePasswordToken: String,
-    changePasswordExpires: Date,
-    
-    changeAdminToken: String,
-    changeAdminExpires: Date,
+
+    // ─── Metadatos ─────────────────────────────────────────────────────────
     ultimoAcceso: {
-        type: Date,
-        default: Date.now
+      type:    Date,
+      default: null,
     },
-    // Campos para respaldo de desactivación
-    deactivationBackup: {
-        originalEmail: String,
-        originalUsername: String,
-        deactivatedAt: Date
+    createdBy: {
+      type:    mongoose.Schema.Types.ObjectId,
+      ref:     'User',
+      default: null,
     },
-    deactivatedAt: Date
-}, {
-    timestamps: true
+  },
+  {
+    timestamps: true, // createdAt, updatedAt automáticos
+  }
+);
+
+// =============================================================================
+// ÍNDICES
+// =============================================================================
+
+userSchema.index({ usuario: 1 });
+userSchema.index({ correo:  1 });
+userSchema.index({ rol:     1 }); // útil para aggregate de conteo por rol
+
+// =============================================================================
+// MIDDLEWARE — Hash de contraseña antes de guardar
+// =============================================================================
+
+userSchema.pre('save', async function (next) {
+  // Solo hashear si la contraseña fue modificada
+  if (!this.isModified('password')) return next();
+
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    ulog(`pre-save: contraseña hasheada para usuario "${this.usuario}"`);
+    next();
+  } catch (e) {
+    next(e);
+  }
 });
 
-// ¡¡¡SOLUCIÓN RADICAL: DESACTIVAR ENCRIPTACIÓN AUTOMÁTICA PARA ADMIN CHANGE!!!
-userSchema.pre('save', async function(next) {
-    // NO hacer nada si es una contraseña ya encriptada (viene de admin change)
-    // Las contraseñas bcrypt tienen este patrón: $2a$10$... o $2b$10$...
-    const bcryptPattern = /^\$2[abxy]\$\d{1,2}\$[A-Za-z0-9./]{53}$/;
-    
-    if (this.password && bcryptPattern.test(this.password)) {
-        console.log('🔐 Contraseña ya encriptada (de admin change), omitiendo encriptación automática');
-        return next();
-    }
-    
-    // Solo hashear si la contraseña ha sido modificada y NO es de admin change
-    if (!this.isModified('password') || this.password.startsWith('$2')) {
-        return next();
-    }
+// =============================================================================
+// MÉTODOS DE INSTANCIA
+// =============================================================================
 
-    try {
-        console.log('🔐 Encriptando contraseña nueva...');
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Método para comparar contraseñas
-userSchema.methods.compararPassword = async function(passwordIngresada) {
-    return await bcrypt.compare(passwordIngresada, this.password);
+/**
+ * Compara una contraseña en texto plano con el hash almacenado.
+ */
+userSchema.methods.comparePassword = async function (plainPassword) {
+  try {
+    return await bcrypt.compare(plainPassword, this.password);
+  } catch (e) {
+    console.error('❌ [User] comparePassword error:', e);
+    return false;
+  }
 };
 
-// Método para generar token de recuperación de 6 dígitos
-userSchema.methods.generarCodigoRecuperacion = function() {
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    this.resetPasswordToken = crypto
-        .createHash('sha256')
-        .update(codigo)
-        .digest('hex');
-    
-    // Código expira en 15 minutos
-    this.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-    
-    return codigo;
+/**
+ * Verifica si el usuario está activo y no está desactivado.
+ */
+userSchema.methods.isActiveUser = function () {
+  return this.activo === true && this.rol !== 'desactivado';
 };
 
-// Método para generar token de cambio de contraseña (después de verificar código)
-userSchema.methods.generarTokenCambioPassword = function() {
-    const token = crypto.randomBytes(32).toString('hex');
-    
-    this.changePasswordToken = crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex');
-    
-    // Token expira en 30 minutos
-    this.changePasswordExpires = Date.now() + 30 * 60 * 1000;
-    
-    return token;
+/**
+ * Registra el último acceso del usuario.
+ */
+userSchema.methods.registrarAcceso = async function () {
+  this.ultimoAcceso = new Date();
+  await this.save({ validateBeforeSave: false });
 };
 
-// Método para generar token de cambio de administrador
-userSchema.methods.generarTokenCambioAdmin = function() {
-    const token = crypto.randomBytes(32).toString('hex');
-    
-    this.changeAdminToken = crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex');
-    
-    // Token expira en 24 horas
-    this.changeAdminExpires = Date.now() + 86400000;
-    
-    return token;
+/**
+ * Serializa el usuario para devolver en respuestas JSON (sin password).
+ */
+userSchema.methods.toPublicJSON = function () {
+  return {
+    id:           this._id,
+    usuario:      this.usuario,
+    correo:       this.correo,
+    rol:          this.rol,
+    activo:       this.activo,
+    ultimoAcceso: this.ultimoAcceso,
+    createdAt:    this.createdAt,
+    updatedAt:    this.updatedAt,
+  };
+};
+
+// =============================================================================
+// MÉTODOS ESTÁTICOS
+// =============================================================================
+
+/**
+ * Busca un usuario por credenciales para login.
+ * Devuelve null si no existe o las credenciales son incorrectas.
+ */
+userSchema.statics.findByCredentials = async function (usuarioOCorreo, password) {
+  try {
+    // Buscar por usuario o correo
+    const user = await this.findOne({
+      $or: [
+        { usuario: usuarioOCorreo.trim() },
+        { correo:  usuarioOCorreo.trim().toLowerCase() },
+      ],
+    }).select('+password'); // Incluir password para la comparación
+
+    if (!user) {
+      ulog('findByCredentials: usuario no encontrado');
+      return null;
+    }
+
+    const match = await user.comparePassword(password);
+    if (!match) {
+      ulog('findByCredentials: contraseña incorrecta');
+      return null;
+    }
+
+    ulog(`findByCredentials: login exitoso para "${user.usuario}" (rol: ${user.rol})`);
+    return user;
+
+  } catch (e) {
+    console.error('❌ [User] findByCredentials error:', e);
+    return null;
+  }
+};
+
+/**
+ * Cuenta usuarios agrupados por rol.
+ * Útil para estadísticas en el panel de Admin.
+ */
+userSchema.statics.countByRole = async function () {
+  const result = await this.aggregate([
+    { $group: { _id: '$rol', count: { $sum: 1 } } },
+    { $sort:  { count: -1 } },
+  ]);
+  const map = {};
+  result.forEach(r => { map[r._id] = r.count; });
+  return map;
 };
 
 const User = mongoose.model('User', userSchema);

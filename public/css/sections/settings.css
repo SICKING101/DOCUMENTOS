@@ -118,6 +118,15 @@
   background: var(--bg-primary);
 }
 
+/* Asegurar contraste correcto de los textos de opciones de tema */
+.theme-label span {
+  color: var(--text-primary);
+}
+
+.theme-input:checked + .theme-label span {
+  color: #ffffff;
+}
+
 .theme-label:hover {
   border-color: var(--primary-light);
   transform: translateY(-2px);
@@ -533,19 +542,19 @@ body.high-contrast .switch-label {
 }
 
 body.large-font {
-  font-size: 1.2em;
+  /* Eliminado uso de 'large-font' en favor de tamaños predefinidos */
 }
 
 body.large-font .settings-title {
-  font-size: 3rem;
+  /* Eliminado */
 }
 
 body.large-font .settings-label {
-  font-size: 1.2rem;
+  /* Eliminado */
 }
 
 body.large-font .switch-title {
-  font-size: 1.2rem;
+  /* Eliminado */
 }
 
 body.reduced-motion * {

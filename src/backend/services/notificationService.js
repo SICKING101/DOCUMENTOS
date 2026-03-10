@@ -30,6 +30,29 @@ class NotificationService {
       throw error;
     }
   }
+
+  // =============================================================================
+  // 2.x NOTIFICACIONES DE USUARIOS
+  // =============================================================================
+
+  /**
+   * Notificar creación de usuario
+   */
+  static async usuarioCreado(nuevoUsuario, creadoPor = 'Administrador') {
+    return await this.crear({
+      tipo: 'usuario_creado',
+      titulo: '👤 Nuevo usuario creado',
+      mensaje: `${creadoPor} creó el usuario "${nuevoUsuario.usuario}" (${nuevoUsuario.correo}) con rol ${nuevoUsuario.rol}`,
+      icono: 'user-plus',
+      prioridad: 'media',
+      metadata: {
+        usuario: nuevoUsuario.usuario,
+        correo: nuevoUsuario.correo,
+        rol: nuevoUsuario.rol,
+        creado_por: creadoPor
+      }
+    });
+  }
   
   // =============================================================================
   // 3. NOTIFICACIONES ESPECÍFICAS DE DOCUMENTOS

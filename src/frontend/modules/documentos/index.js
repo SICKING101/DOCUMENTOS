@@ -65,6 +65,7 @@ export {
 
 // Table
 export { renderDocumentsTable } from './table/tableRenderer.js';
+export { changeDocumentsPage } from './table/tableRenderer.js';
 export { 
     initializeTableFilters,
     applyFilters,
@@ -449,6 +450,27 @@ export function initializeDocumentosModule() {
         
         // 7. Configurar funciones globales
         setupGlobalFunctions();
+
+        // 7.1 Botón "Actualizar" (recargar lista + filtros + categorías)
+        const refreshBtn = document.getElementById('refreshDocumentsBtn');
+        if (refreshBtn && !refreshBtn.dataset.listenerBound) {
+            refreshBtn.dataset.listenerBound = 'true';
+            refreshBtn.addEventListener('click', async () => {
+                refreshBtn.disabled = true;
+                try {
+                    if (window.refreshDocumentsView) {
+                        await window.refreshDocumentsView();
+                    } else if (window.loadDocuments) {
+                        await window.loadDocuments();
+                    }
+                } catch (e) {
+                    console.error('Error al actualizar documentos:', e);
+                    showAlert('Error al actualizar documentos', 'error');
+                } finally {
+                    refreshBtn.disabled = false;
+                }
+            });
+        }
 
         // 8. Inicializar panel de documentos vencidos
         const viewAllBtn = document.getElementById('viewAllExpiredBtn');

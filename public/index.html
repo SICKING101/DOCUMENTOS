@@ -21,169 +21,214 @@
 </head>
 
 <body>
+
+    <!-- PRELOADER PRINCIPAL DEL SISTEMA (se oculta al terminar la carga inicial) -->
+    <div id="systemPreloader" class="preloader-overlay" aria-live="polite" aria-busy="true">
+        <div class="tasks-preloader__content">
+            <div class="elegant-spinner" aria-hidden="true">
+                <div class="elegant-spinner__ring"></div>
+                <div class="elegant-spinner__ring"></div>
+                <div class="elegant-spinner__ring"></div>
+            </div>
+            <div class="tasks-preloader__text">
+                <h4 class="tasks-preloader__title">Cargando sistema</h4>
+                <p class="tasks-preloader__subtitle">Preparando datos iniciales</p>
+            </div>
+        </div>
+    </div>
+
     <!-- SECCIÓN 2: ESTRUCTURA PRINCIPAL DE LA APLICACIÓN -->
     <div class="app-layout">
 
         <!-- SECCIÓN 3: BARRA LATERAL (SIDEBAR) -->
-        <aside class="sidebar">
-            <!-- Cabecera con logo y título -->
-            <div class="sidebar__header">
-                <div class="sidebar__logo-container">
-                    <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
-                    <div class="sidebar__logo-badge">
-                        <i class="fas fa-certificate"></i>
-                    </div>
+<aside class="sidebar">
+    <!-- Cabecera con logo y título -->
+    <div class="sidebar__header">
+        <div class="sidebar__logo-container">
+            <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
+            <div class="sidebar__logo-badge">
+                <i class="fas fa-certificate"></i>
+            </div>
+        </div>
+        <div class="sidebar__title-container">
+            <h1 class="sidebar__title">CBTIS051</h1>
+        </div>
+    </div>
+
+    <!-- Separador decorativo -->
+    <div class="sidebar__divider"></div>
+
+    <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
+    <nav class="sidebar__nav">
+        <!-- Grupo 1: Navegación Principal -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Navegación Principal</p>
+            <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard" data-section="dashboard">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-home"></i>
                 </div>
-                <div class="sidebar__title-container">
-                    <h1 class="sidebar__title">CBTIS051</h1>
+                <span class="sidebar__nav-text">Dashboard</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="personas" data-section="personas">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-users"></i>
+                </div>
+                <span class="sidebar__nav-text">Personas</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="documentos" data-section="documentos">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <span class="sidebar__nav-text">Documentos</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="tareas" data-section="tareas">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fa-solid fa-thumbtack"></i>
+                </div>
+                <span class="sidebar__nav-text">Tareas</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="historial" data-section="historial">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-history"></i>
+                </div>
+                <span class="sidebar__nav-text">Historial</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+        </div>
+
+        <!-- Grupo 2: Herramientas -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Herramientas</p>
+            <a href="#" class="sidebar__nav-link" data-tab="calendario" data-section="calendario">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <span class="sidebar__nav-text">Calendario</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="papelera" data-section="papelera">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <span class="sidebar__nav-text">Papelera</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+        </div>
+
+        <!-- Grupo 3: Configuración -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Configuración</p>
+            <a href="#" class="sidebar__nav-link" data-tab="ajustes" data-section="ajustes">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <span class="sidebar__nav-text">Ajustes</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="reportes" id="sidebarReportesLink" data-section="reportes">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <span class="sidebar__nav-text">Reportes</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <a href="#" class="sidebar__nav-link" data-tab="soporte" data-section="soporte">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <span class="sidebar__nav-text">Soporte</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+        </div>
+
+        <!-- Grupo 4: Administración -->
+        <div class="sidebar__nav-group">
+            <p class="sidebar__nav-group-title">Administración</p>
+            <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin" data-section="admin">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <span class="sidebar__nav-text">Admin</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <!-- NUEVO: Enlace a Auditoría -->
+            <a href="#" class="sidebar__nav-link" data-tab="auditoria" data-section="auditoria">
+                <div class="sidebar__nav-icon-wrapper">
+                    <i class="fas fa-history"></i>
+                </div>
+                <span class="sidebar__nav-text">Auditoría</span>
+                <div class="sidebar__nav-active-indicator"></div>
+            </a>
+            <div class="dropdown" id="admin-dropdown">
+                <p class="sidebar__nav-group-title">Admin Opciones</p>
+                <a href="#" class="sidebar__nav-link" id="agregar-admin-link" data-section="admin">
+                    <div class="sidebar__nav-icon-wrapper">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <span class="sidebar__nav-text">Agregar Administrador</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Pie de la barra lateral -->
+    <div class="sidebar__footer">
+
+        <!-- Perfil de usuario -->
+        <div class="sidebar__user" id="userMenuTrigger">
+            <div class="sidebar__user-status"></div>
+            <div class="sidebar__user-avatar">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="sidebar__user-info">
+                <p class="sidebar__user-name">Administrador</p>
+                <p class="sidebar__user-role">Sistema Principal</p>
+            </div>
+            <div class="sidebar__user-actions">
+                <i class="fas fa-chevron-up sidebar__user-chevron"></i>
+            </div>
+        </div>
+
+        <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
+        <div class="user-menu" id="userMenu">
+            <div class="user-menu__header">
+                <div class="user-menu__status-indicator"></div>
+                <div class="user-menu__avatar">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="user-menu__info">
+                    <p class="user-menu__name">Usuario del Sistema</p>
+                    <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
+                    <p class="user-menu__status">En línea</p>
                 </div>
             </div>
 
-            <!-- Separador decorativo -->
-            <div class="sidebar__divider"></div>
+            <div class="user-menu__divider"></div>
 
-            <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
-            <nav class="sidebar__nav">
-                <!-- Grupo 1: Navegación Principal -->
-                <div class="sidebar__nav-group">
-                    <p class="sidebar__nav-group-title">Navegación Principal</p>
-                    <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-home"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Dashboard</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="personas">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Personas</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="documentos">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Documentos</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="tareas">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fa-solid fa-thumbtack"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Tareas</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="historial">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-history"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Historial</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
+            <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
+                <i class="fas fa-user-shield"></i>
+                <span>Cambiar Administrador</span>
+            </button>
+
+            <div class="user-menu__divider"></div>
+
+            <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
+                <div class="user-menu__option-icon">
+                    <i class="fas fa-sign-out-alt"></i>
                 </div>
+                <span>Cerrar Sesión</span>
+            </button>
 
-                <!-- Grupo 2: Herramientas -->
-                <div class="sidebar__nav-group">
-                    <p class="sidebar__nav-group-title">Herramientas</p>
-                    <a href="#" class="sidebar__nav-link" data-tab="calendario">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Calendario</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="papelera">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-trash-alt"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Papelera</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                </div>
-
-                <!-- Grupo 3: Configuración -->
-                <div class="sidebar__nav-group">
-                    <p class="sidebar__nav-group-title">Configuración</p>
-                    <a href="#" class="sidebar__nav-link" data-tab="ajustes">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Ajustes</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="reportes" id="sidebarReportesLink">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Reportes</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                    <a href="#" class="sidebar__nav-link" data-tab="soporte">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-headset"></i>
-                        </div>
-                        <span class="sidebar__nav-text">Soporte</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
-                </div>
-            </nav>
-
-            <!-- Pie de la barra lateral -->
-            <div class="sidebar__footer">
-
-                <!-- Perfil de usuario -->
-                <div class="sidebar__user" id="userMenuTrigger">
-                    <div class="sidebar__user-status"></div>
-                    <div class="sidebar__user-avatar">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div class="sidebar__user-info">
-                        <p class="sidebar__user-name">Administrador</p>
-                        <p class="sidebar__user-role">Sistema Principal</p>
-                    </div>
-                    <div class="sidebar__user-actions">
-                        <i class="fas fa-chevron-up sidebar__user-chevron"></i>
-                    </div>
-                </div>
-
-                <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
-                <div class="user-menu" id="userMenu">
-                    <div class="user-menu__header">
-                        <div class="user-menu__status-indicator"></div>
-                        <div class="user-menu__avatar">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <div class="user-menu__info">
-                            <p class="user-menu__name">Administrador del Sistema</p>
-                            <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
-                            <p class="user-menu__status">En línea</p>
-                        </div>
-                    </div>
-
-                    <div class="user-menu__divider"></div>
-
-                    <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Cambiar Administrador</span>
-                    </button>
-
-                    <div class="user-menu__divider"></div>
-
-                    <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
-                        <div class="user-menu__option-icon">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </div>
-                        <span>Cerrar Sesión</span>
-                    </button>
-
-                    <div class="user-menu__footer">
-                        <p class="user-menu__version">v1.0.0</p>
-                    </div>
-                </div>
+            <div class="user-menu__footer">
+                <p class="user-menu__version">v1.0.0</p>
             </div>
-        </aside>
+        </div>
+    </div>
+</aside>
 
         <!-- SECCIÓN 4: CONTENIDO PRINCIPAL -->
         <div class="content-wrapper">
@@ -505,10 +550,10 @@
                             <p class="section__subtitle">Registro completo de todas las actividades</p>
                         </div>
                         <div class="historial__actions">
-                            <button class="btn btn--outline" id="clearHistoryBtn">
+                            <button class="btn btn--outline" id="clearHistoryBtn" data-action-section="historial">
                                 <i class="fas fa-trash"></i> Limpiar Historial
                             </button>
-                            <button class="btn btn--outline" id="exportHistoryBtn">
+                            <button class="btn btn--outline" id="exportHistoryBtn" data-action-section="historial">
                                 <i class="fas fa-download"></i> Exportar
                             </button>
                             <button class="btn btn--primary" id="refreshHistoryBtn">
@@ -753,6 +798,10 @@
                                 <i class="fas fa-search"></i>
                                 <span>Búsqueda Avanzada</span>
                             </button>
+                            <button class="btn btn--secondary" id="refreshDocumentsBtn" type="button">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Actualizar</span>
+                            </button>
                             <button class="btn btn--danger" id="bulkDeleteTriggerBtn">
                                 <i class="fas fa-trash-alt"></i>
                                 <span>Eliminar Múltiple</span>
@@ -856,6 +905,9 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Paginación de documentos (15 por página) -->
+                    <div id="documentsPagination" class="pagination-container"></div>
                 </section>
 
                 <!-- SECCIÓN 4.2.6: PESTAÑA TAREAS -->
@@ -957,7 +1009,7 @@
                     </div>
                 </section>
 
-                <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (NUEVA) -->
+                <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (RENOVADA) -->
                 <section id="reportes" class="tab-content">
                     <div class="section__header">
                         <div>
@@ -965,46 +1017,86 @@
                             <p class="section__subtitle">Genera y descarga reportes personalizados del sistema</p>
                         </div>
                     </div>
+
                     <div class="reportes-content">
-                        <form id="reportForm">
-                            <div class="form__group">
-                                <label for="reportType" class="form__label">Tipo de Reporte</label>
-                                <div class="select-wrapper">
-                                    <select id="reportType" class="form__select">
-                                        <option value="general">Reporte General</option>
-                                        <option value="byCategory">Por Categoría</option>
-                                        <option value="byPerson">Por Persona</option>
-                                        <option value="expiring">Documentos por Vencer</option>
-                                        <option value="expired">Documentos Vencidos</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down select-arrow"></i>
+                        <!-- Formulario de configuración de reportes -->
+                        <div class="reportes-form reportes-fade-in">
+                            <h3 class="reportes-form__title">
+                                <i class="fas fa-cogs"></i> Configuración del Reporte
+                            </h3>
+
+                            <form id="reportForm">
+                                <div class="reportes-form__grid">
+                                    <!-- Tipo de Reporte -->
+                                    <div class="reportes-form__group">
+                                        <label for="reportType" class="reportes-form__label">
+                                            <i class="fas fa-chart-pie"></i> Tipo de Reporte
+                                        </label>
+                                        <div class="reportes-select__wrapper">
+                                            <select id="reportType" class="reportes-select">
+                                                <option value="general">Reporte General</option>
+                                                <option value="byCategory">Por Categoría</option>
+                                                <option value="byPerson">Por Persona</option>
+                                                <option value="expiring">Documentos por Vencer</option>
+                                                <option value="expired">Documentos Vencidos</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
+                                        </div>
+                                        <small class="reportes-form__help">
+                                            Seleccione el tipo de reporte que desea generar
+                                        </small>
+                                    </div>
+
+                                    <!-- Formato del Reporte -->
+                                    <div class="reportes-form__group">
+                                        <label for="reportFormat" class="reportes-form__label">
+                                            <i class="fas fa-file-export"></i> Formato de Salida
+                                        </label>
+                                        <div class="reportes-select__wrapper">
+                                            <select id="reportFormat" class="reportes-select">
+                                                <option value="excel">Excel (.xlsx)</option>
+                                                <option value="csv">CSV (.csv)</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down reportes-select__arrow"></i>
+                                        </div>
+                                        <small class="reportes-form__help">
+                                            Elija el formato de archivo para el reporte
+                                        </small>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form__row" id="reportSpecificFilters">
-                                <!-- Filtros específicos se cargarán dinámicamente -->
-                            </div>
-                            <div class="form__group">
-                                <label for="reportFormat" class="form__label">Formato</label>
-                                <div class="select-wrapper">
-                                    <select id="reportFormat" class="form__select">
-                                        <option value="excel">Excel</option>
-                                        <option value="csv">CSV</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down select-arrow"></i>
+
+                                <!-- Filtros Específicos -->
+                                <div class="reportes-form__group">
+                                    <label class="reportes-form__label">
+                                        <i class="fas fa-filter"></i> Filtros Específicos
+                                    </label>
+                                    <div id="reportSpecificFilters" class="reportes-filters">
+                                        <!-- Los filtros se cargarán dinámicamente aquí -->
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
-                        <div class="report-preview" id="reportPreview">
-                            <h4 class="report-preview__title">Vista Previa del Reporte</h4>
-                            <div class="report-preview__content" id="reportPreviewContent">
-                                <!-- La vista previa se mostrará aquí -->
+                            </form>
+                        </div>
+
+                        <!-- Vista Previa del Reporte -->
+                        <div class="reportes-preview reportes-fade-in">
+                            <h3 class="reportes-preview__title">
+                                <i class="fas fa-eye"></i> Vista Previa del Reporte
+                            </h3>
+                            <div class="reportes-preview__content" id="reportPreviewContent">
+                                <div class="reportes-preview-placeholder">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <p>Seleccione un tipo de reporte para ver la vista previa</p>
+                                </div>
                             </div>
                         </div>
-                        <footer class="modal__footer" style="margin-top:2rem;">
-                            <button class="btn btn--primary" id="generateReportBtn">
-                                <i class="fas fa-download"></i> Generar Reporte
+
+                        <!-- Pie de página con botón de acción -->
+                        <div class="reportes-footer">
+                            <button class="reportes-btn reportes-btn--primary" id="generateReportBtn">
+                                <i class="fas fa-download"></i>
+                                <span>Generar Reporte</span>
                             </button>
-                        </footer>
+                        </div>
                     </div>
                 </section>
 
@@ -1114,25 +1206,6 @@
                                     </div>
                                     <div class="calendar__upcoming-list" id="upcomingEvents">
                                         <!-- Los eventos próximos se cargan dinámicamente -->
-                                    </div>
-                                </div>
-
-                                <!-- Mini calendario -->
-                                <div class="calendar__mini">
-                                    <div class="calendar__mini-header">
-                                        <button class="calendar__mini-nav" id="miniPrev">
-                                            <i class="fas fa-chevron-left"></i>
-                                        </button>
-                                        <span class="calendar__mini-month" id="miniMonth">Feb 2024</span>
-                                        <button class="calendar__mini-nav" id="miniNext">
-                                            <i class="fas fa-chevron-right"></i>
-                                        </button>
-                                    </div>
-                                    <div class="calendar__mini-weekdays">
-                                        <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-                                    </div>
-                                    <div class="calendar__mini-days" id="miniCalendar">
-                                        <!-- Mini calendario se genera dinámicamente -->
                                     </div>
                                 </div>
                             </div>
@@ -1410,7 +1483,7 @@
                                 <p class="support__subtitle">Ayuda, guías y tickets de soporte para el sistema</p>
                             </div>
                             <div class="support__header-right">
-                                <button class="btn btn--primary" id="newTicketBtn">
+                                <button class="btn btn--primary" id="newTicketBtn" data-requires-action="soporte">
                                     <i class="fas fa-plus-circle"></i> Nuevo Ticket
                                 </button>
                             </div>
@@ -1839,19 +1912,19 @@
                             </div>
 
                             <!-- Preguntas Frecuentes -->
-<div class="support-faq">
-    <div class="faq__header">
-        <h3 class="faq__title">
-            <i class="fas fa-question-circle"></i>
-            Preguntas Frecuentes (FAQ)
-        </h3>
-    </div>
-    <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
-        <div class="faq__list" id="faqList">
-            <!-- Las preguntas frecuentes se cargarán dinámicamente -->
-        </div>
-    </div>
-</div>
+                            <div class="support-faq">
+                                <div class="faq__header">
+                                    <h3 class="faq__title">
+                                        <i class="fas fa-question-circle"></i>
+                                        Preguntas Frecuentes (FAQ)
+                                    </h3>
+                                </div>
+                                <div class="faq__content"> <!-- NUEVO CONTENEDOR CON SCROLL -->
+                                    <div class="faq__list" id="faqList">
+                                        <!-- Las preguntas frecuentes se cargarán dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Datos de Contacto de Soporte -->
                             <div class="support-panel support-panel--contact">
@@ -1927,6 +2000,19 @@
                                 </div>
                             </div>
                         </div>
+                </section>
+
+                <!-- SECCIÓN 4.2.X: PESTAÑA AUDITORÍA -->
+                <section id="auditoria" class="tab-content">
+                    <div id="auditoria-content" class="auditoria-container">
+                        <!-- El contenido se cargará dinámicamente desde el módulo -->
+                        <div class="loading-state">
+                            <div class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                            </div>
+                            <p>Cargando módulo de auditoría...</p>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>
@@ -2061,7 +2147,7 @@
                             </button>
                             <input type="file" id="multipleFileInput" class="upload__input" multiple
                                 accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                            <p class="upload__hint">Tamaño total permitido por archivo: 10 MB</p>
+                            <p class="upload__hint">Tamaño total permitido por archivo: 1 GB</p>
                         </div>
 
                         <!-- Configuración común para múltiples archivos -->

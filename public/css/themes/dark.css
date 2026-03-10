@@ -1,3 +1,43 @@
+/* Variables para el tema oscuro */
+body.dark-theme {
+    /* Colores invertidos para modo oscuro */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #64748b;
+    --border: #334155;
+    
+    /* Ajustes específicos para sidebar en modo oscuro */
+    --sidebar-bg: #020617;
+    --sidebar-hover: #1e293b;
+
+    --success-light: #064e3b;
+    --success-lighter: #059d19;
+    --danger-light: #7f1d1d;
+    --warning-light: #78350f;
+    --info-light: #0c4a6e;
+    --border-dark: #4b5563;
+    
+    /* Variables adicionales para componentes específicos */
+    --card-bg: #1e293b;
+    --dark-card-bg: #0f172a;
+    --border-color: #334155;
+    --dark-border-color: #475569;
+    --border-color-light: #475569;
+    --dark-border-color-light: #64748b;
+    --input-bg: #1e293b;
+    --dark-input-bg: #0f172a;
+    --table-header-bg: #1e293b;
+    --dark-table-header-bg: #0f172a;
+    --hover-bg: rgba(255, 255, 255, 0.05);
+    --hover-dark: rgba(255, 255, 255, 0.08);
+    --disabled-bg: rgba(255, 255, 255, 0.1);
+    --scrollbar-track: #1e293b;
+    --scrollbar-thumb: #475569;
+}
+
 /* Prohibido blanco en calendario modo oscuro: todo fondo claro reemplazado */
 body.dark-theme .calendar-section,
 body.dark-theme .calendar__main-view,
@@ -246,6 +286,111 @@ body.dark-theme .preloader-inline__spinner {
 body.dark-theme .preloader__text {
     color: var(--text-secondary) !important;
 }
+
+/* Corrección: Preloaders de Categorías en modo oscuro */
+body.dark-theme .category-preloader {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+body.dark-theme .category-preloader__spinner {
+    border-color: var(--border) !important;
+    border-top-color: var(--primary) !important;
+    border-right-color: var(--primary) !important;
+}
+
+body.dark-theme .category-preloader__text {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .category-preloader__text::after {
+    background: linear-gradient(90deg, transparent, var(--primary), transparent) !important;
+}
+
+body.dark-theme .category-preloader__tag,
+body.dark-theme .category-card-preloader__icon,
+body.dark-theme .category-card-preloader__name,
+body.dark-theme .category-card-preloader__count,
+body.dark-theme .category-table-preloader__cell {
+    background: linear-gradient(90deg, var(--bg-secondary), var(--bg-tertiary), var(--bg-secondary)) !important;
+}
+
+body.dark-theme .category-preloader-overlay {
+    background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+body.dark-theme .category-preloader-overlay__content {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .category-preloader-overlay__icon::after {
+    background: var(--bg-secondary) !important;
+}
+
+body.dark-theme .category-preloader-overlay__title {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .category-preloader-overlay__subtitle {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .category-preloader-overlay__status-dot {
+    background-color: var(--primary) !important;
+}
+
+body.dark-theme .category-card-preloader {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .category-card-preloader::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent) !important;
+}
+
+body.dark-theme .category-table-preloader__row {
+    border-bottom-color: var(--border) !important;
+}
+
+/* Corrección: Preloaders/overlays de Documentos que solo tenían prefers-color-scheme */
+body.dark-theme .document-upload-preloader,
+body.dark-theme .preloader-overlay__content {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .modal-edit-preloader,
+body.dark-theme .modal-loading-overlay,
+body.dark-theme .file-upload-preloader {
+    background: rgba(0, 0, 0, 0.75) !important;
+}
+
+body.dark-theme .modal-edit-preloader__content {
+    background: var(--bg-secondary) !important;
+}
+
+body.dark-theme .modal-edit-preloader__title,
+body.dark-theme .modal-loading-text,
+body.dark-theme .file-upload-text {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .modal-edit-preloader__subtitle,
+body.dark-theme .modal-loading-subtext {
+    color: var(--text-secondary) !important;
+}
+
+body.dark-theme .document-loading-spinner__disk {
+    border-color: var(--border) !important;
+}
+
+body.dark-theme .file-upload-progress {
+    background: var(--bg-tertiary) !important;
+}
 /* Corrección: Modales de acción de tareas en modo oscuro */
 body.dark-theme .action-modal__content,
 body.dark-theme .action-modal__message {
@@ -303,44 +448,6 @@ body.dark-theme .modal__footer button {
     background: var(--bg-tertiary) !important;
     border-color: var(--border) !important;
 }
-/* Variables para el tema oscuro */
-body.dark-theme {
-    /* Colores invertidos para modo oscuro */
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-tertiary: #64748b;
-    --border: #334155;
-    
-    /* Ajustes específicos para sidebar en modo oscuro */
-    --sidebar-bg: #020617;
-    --sidebar-hover: #1e293b;
-
-        --success-light: #064e3b;
-    --danger-light: #7f1d1d;
-    --warning-light: #78350f;
-    --info-light: #0c4a6e;
-    --border-dark: #4b5563;
-    
-    /* Variables adicionales para componentes específicos */
-    --card-bg: #1e293b;
-    --dark-card-bg: #0f172a;
-    --border-color: #334155;
-    --dark-border-color: #475569;
-    --border-color-light: #475569;
-    --dark-border-color-light: #64748b;
-    --input-bg: #1e293b;
-    --dark-input-bg: #0f172a;
-    --table-header-bg: #1e293b;
-    --dark-table-header-bg: #0f172a;
-    --hover-bg: rgba(255, 255, 255, 0.05);
-    --hover-dark: rgba(255, 255, 255, 0.08);
-    --disabled-bg: rgba(255, 255, 255, 0.1);
-    --scrollbar-track: #1e293b;
-    --scrollbar-thumb: #475569;
-}
 
 /* Ajustes específicos para modo oscuro */
 body.dark-theme .task-card {
@@ -374,6 +481,12 @@ body.dark-theme .form__textarea:focus {
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
 }
 
+.dark-theme .metadata-content {
+    background-color: var(--gray-900, #1a202c);
+    border-color: var(--gray-700, #374151);
+    color: var(--gray-300, #e2e8f0);
+}
+
 /* Ajustes para modo oscuro en subida múltiple */
 .dark-theme .file-item {
     background: rgba(255, 255, 255, 0.05);
@@ -386,6 +499,16 @@ body.dark-theme .form__textarea:focus {
 .dark-theme .upload-progress {
     background: var(--dark-card-bg);
     border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme .global-preloader,
+.dark-theme .preloader-overlay__content {
+    background: var(--bg-primary);
+}
+
+.dark-theme .status-item--operational,
+.dark-theme .status-value {
+    color: var(--success-lighter);
 }
 
 /* =============================================================================

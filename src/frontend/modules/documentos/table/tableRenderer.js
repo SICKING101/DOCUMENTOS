@@ -7,6 +7,104 @@ import { formatFileSize, formatDate, getFileIcon } from '../../../utils.js';
 import { canPreviewDocument } from '../preview/previewManager.js';
 import { downloadDocument } from '../download/downloadManager.js';
 import { bulkDeleteState } from '../core/BulkDeleteState.js';
+import { hasPermission, PERMISSIONS } from '../../../permissions.js';
+
+const DOCUMENTS_PER_PAGE = 15;
+
+function ensureDocumentsPaginationState() {
+    if (!window.appState) window.appState = {};
+    if (!window.appState.documentsPagination) {
+        window.appState.documentsPagination = {
+            currentPage: 1,
+            itemsPerPage: DOCUMENTS_PER_PAGE
+        };
+    }
+    if (!Number.isFinite(window.appState.documentsPagination.currentPage) || window.appState.documentsPagination.currentPage < 1) {
+        window.appState.documentsPagination.currentPage = 1;
+    }
+    if (!Number.isFinite(window.appState.documentsPagination.itemsPerPage) || window.appState.documentsPagination.itemsPerPage < 1) {
+        window.appState.documentsPagination.itemsPerPage = DOCUMENTS_PER_PAGE;
+    }
+    return window.appState.documentsPagination;
+}
+
+function renderDocumentsPagination(totalPages, currentPage) {
+    const container = document.getElementById('documentsPagination');
+    if (!container) return;
+
+    if (!totalPages || totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '<div class="pagination">';
+
+    html += `
+        <button class="pagination__btn pagination__btn--prev" 
+                ${currentPage === 1 ? 'disabled' : ''}
+                onclick="window.changeDocumentsPage(${currentPage - 1})">
+            <i class="fas fa-chevron-left"></i>
+            <span>Anterior</span>
+        </button>
+    `;
+
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+
+    for (let i = start; i <= end; i++) {
+        html += `
+            <button class="pagination__btn ${i === currentPage ? 'pagination__btn--active' : ''}"
+                    onclick="window.changeDocumentsPage(${i})">
+                ${i}
+            </button>
+        `;
+    }
+
+    html += `
+        <button class="pagination__btn pagination__btn--next"
+                ${currentPage === totalPages ? 'disabled' : ''}
+                onclick="window.changeDocumentsPage(${currentPage + 1})">
+            <span>Siguiente</span>
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+export function changeDocumentsPage(page) {
+    const pagination = ensureDocumentsPaginationState();
+    const nextPage = Number(page);
+    if (!Number.isFinite(nextPage)) return;
+    pagination.currentPage = Math.max(1, Math.floor(nextPage));
+    renderDocumentsTable();
+}
+
+function syncDocumentsTableHeader() {
+    if (!DOM.documentosTableBody) return;
+
+    const table = DOM.documentosTableBody.closest('table');
+    if (!table) return;
+
+    table.classList.toggle('documents-table--selection', !!bulkDeleteState.isSelectionMode);
+
+    const headerRow = table.querySelector('thead tr');
+    if (!headerRow) return;
+
+    const existing = headerRow.querySelector('th[data-selection-column="true"]');
+
+    if (bulkDeleteState.isSelectionMode) {
+        if (!existing) {
+            const th = document.createElement('th');
+            th.setAttribute('data-selection-column', 'true');
+            th.setAttribute('aria-label', 'Selección');
+            headerRow.insertBefore(th, headerRow.firstChild);
+        }
+    } else if (existing) {
+        existing.remove();
+    }
+}
 
 /**
  * Renderiza la tabla de documentos con filtros y búsqueda aplicados.
@@ -20,10 +118,19 @@ export function renderDocumentsTable() {
         console.error('❌ DOM.documentosTableBody no encontrado');
         return;
     }
+
+    syncDocumentsTableHeader();
     
     DOM.documentosTableBody.innerHTML = '';
     
-    let documentsToShow = window.appState.documents || [];
+    const pagination = ensureDocumentsPaginationState();
+
+    // Fuente de datos (prioridad): override -> filteredDocuments -> documents
+    // Mantiene compatibilidad con tableFilters.applyFilters() que llama renderDocumentsTable(filteredDocuments)
+    const documentsOverride = arguments.length > 0 ? arguments[0] : undefined;
+    let documentsToShow = Array.isArray(documentsOverride)
+        ? documentsOverride
+        : (window.appState.filteredDocuments || window.appState.documents || []);
     console.log(`📊 Documentos totales: ${documentsToShow.length}`);
     
     // Actualizar estado con total de documentos
@@ -31,62 +138,75 @@ export function renderDocumentsTable() {
         bulkDeleteState.setTotalDocuments(documentsToShow.length);
     }
     
-    // Aplicar búsqueda si existe
-    if (window.appState.currentSearchQuery) {
-        const query = window.appState.currentSearchQuery.toLowerCase();
-        const initialCount = documentsToShow.length;
-        
-        documentsToShow = documentsToShow.filter(doc => 
-            doc.nombre_original.toLowerCase().includes(query) ||
-            (doc.descripcion && doc.descripcion.toLowerCase().includes(query)) ||
-            doc.categoria.toLowerCase().includes(query)
-        );
-        
-        console.log(`🔍 Búsqueda "${query}": ${initialCount} → ${documentsToShow.length} documentos`);
+    // Nota: si llega documentsOverride o appState.filteredDocuments, asumimos que ya vienen filtrados.
+    // Solo aplicamos búsqueda/filtros aquí si NO hay override y NO hay filteredDocuments.
+    const shouldApplyLocalFilters = !Array.isArray(documentsOverride) && !window.appState.filteredDocuments;
+    if (shouldApplyLocalFilters) {
+        // Aplicar búsqueda si existe
+        if (window.appState.currentSearchQuery) {
+            const query = window.appState.currentSearchQuery.toLowerCase();
+            const initialCount = documentsToShow.length;
+
+            documentsToShow = documentsToShow.filter(doc =>
+                doc.nombre_original.toLowerCase().includes(query) ||
+                (doc.descripcion && doc.descripcion.toLowerCase().includes(query)) ||
+                doc.categoria.toLowerCase().includes(query)
+            );
+
+            console.log(`🔍 Búsqueda "${query}": ${initialCount} → ${documentsToShow.length} documentos`);
+        }
+
+        // Aplicar filtros
+        if (window.appState.filters?.category) {
+            const initialCount = documentsToShow.length;
+            documentsToShow = documentsToShow.filter(doc => doc.categoria === window.appState.filters.category);
+            console.log(`🎯 Filtro categoría "${window.appState.filters.category}": ${initialCount} → ${documentsToShow.length}`);
+        }
+
+        if (window.appState.filters?.type) {
+            const initialCount = documentsToShow.length;
+            documentsToShow = documentsToShow.filter(doc => doc.tipo_archivo.toLowerCase() === window.appState.filters.type.toLowerCase());
+            console.log(`🎯 Filtro tipo "${window.appState.filters.type}": ${initialCount} → ${documentsToShow.length}`);
+        }
+
+        if (window.appState.filters?.status) {
+            const initialCount = documentsToShow.length;
+            const now = new Date();
+
+            documentsToShow = documentsToShow.filter(doc => {
+                if (!doc.fecha_vencimiento) return window.appState.filters.status === 'active';
+
+                const fechaVencimiento = new Date(doc.fecha_vencimiento);
+                const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
+
+                switch (window.appState.filters.status) {
+                    case 'active':
+                        return diferenciaDias > 7;
+                    case 'expiring':
+                        return diferenciaDias <= 7 && diferenciaDias > 0;
+                    case 'expired':
+                        return diferenciaDias <= 0;
+                    default:
+                        return true;
+                }
+            });
+
+            console.log(`🎯 Filtro estado "${window.appState.filters.status}": ${initialCount} → ${documentsToShow.length}`);
+        }
     }
     
-    // Aplicar filtros
-    if (window.appState.filters?.category) {
-        const initialCount = documentsToShow.length;
-        documentsToShow = documentsToShow.filter(doc => doc.categoria === window.appState.filters.category);
-        console.log(`🎯 Filtro categoría "${window.appState.filters.category}": ${initialCount} → ${documentsToShow.length}`);
-    }
-    
-    if (window.appState.filters?.type) {
-        const initialCount = documentsToShow.length;
-        documentsToShow = documentsToShow.filter(doc => doc.tipo_archivo.toLowerCase() === window.appState.filters.type.toLowerCase());
-        console.log(`🎯 Filtro tipo "${window.appState.filters.type}": ${initialCount} → ${documentsToShow.length}`);
-    }
-    
-    if (window.appState.filters?.status) {
-        const initialCount = documentsToShow.length;
-        const now = new Date();
-        
-        documentsToShow = documentsToShow.filter(doc => {
-            if (!doc.fecha_vencimiento) return window.appState.filters.status === 'active';
-            
-            const fechaVencimiento = new Date(doc.fecha_vencimiento);
-            const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
-            
-            switch(window.appState.filters.status) {
-                case 'active':
-                    return diferenciaDias > 7;
-                case 'expiring':
-                    return diferenciaDias <= 7 && diferenciaDias > 0;
-                case 'expired':
-                    return diferenciaDias <= 0;
-                default:
-                    return true;
-            }
-        });
-        
-        console.log(`🎯 Filtro estado "${window.appState.filters.status}": ${initialCount} → ${documentsToShow.length}`);
-    }
-    
-    // Guardar IDs filtrados para selección múltiple
-    const filteredIds = documentsToShow.map(doc => doc._id || doc.id).filter(id => id);
+    // Paginación (15 por página)
+    const totalFiltered = documentsToShow.length;
+    const itemsPerPage = pagination.itemsPerPage;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / itemsPerPage));
+    if (pagination.currentPage > totalPages) pagination.currentPage = totalPages;
+    const startIndex = (pagination.currentPage - 1) * itemsPerPage;
+    const pageDocuments = documentsToShow.slice(startIndex, startIndex + itemsPerPage);
+
+    // Guardar IDs visibles para selección múltiple ("esta página")
+    const visibleIds = pageDocuments.map(doc => doc._id || doc.id).filter(id => id);
     if (bulkDeleteState.setFilteredIds) {
-        bulkDeleteState.setFilteredIds(filteredIds);
+        bulkDeleteState.setFilteredIds(visibleIds);
     }
     
     // Manejar estado vacío
@@ -120,19 +240,24 @@ export function renderDocumentsTable() {
             bulkDeleteState.clearSelection();
         }
         updateBulkSelectionUI();
+
+        renderDocumentsPagination(0, 1);
         
         return;
     }
     
-    console.log(`✅ Mostrando ${documentsToShow.length} documentos`);
+    console.log(`✅ Mostrando página ${pagination.currentPage}/${totalPages} (${pageDocuments.length} de ${documentsToShow.length})`);
     
-    // Renderizar cada documento
-    documentsToShow.forEach(doc => {
+    // Renderizar cada documento (solo los de la página)
+    pageDocuments.forEach(doc => {
         const row = createDocumentRow(doc);
         if (row) {
             DOM.documentosTableBody.appendChild(row);
         }
     });
+
+    // Renderizar controles de paginación
+    renderDocumentsPagination(totalPages, pagination.currentPage);
     
     // Actualizar UI de selección múltiple
     updateBulkSelectionUI();
@@ -296,15 +421,27 @@ function getDocumentStatus(doc) {
 function createActionButtons(doc, canPreview) {
     const docId = doc._id || doc.id;
     if (!docId) return '';
+
+    const canDownload = hasPermission(PERMISSIONS.DOWNLOAD_DOCUMENTS);
+    const canView = hasPermission(PERMISSIONS.VIEW_DOCUMENTS);
+    const canEdit = hasPermission(PERMISSIONS.EDIT_DOCUMENTS);
+    const canDelete = hasPermission(PERMISSIONS.DELETE_DOCUMENTS);
+    const canApprove = hasPermission(PERMISSIONS.APPROVE_DOCUMENTS);
+
     // Si el documento está vencido, solo mostrar Renovar y Eliminar
-    let buttons = `
-        <button class=\"btn btn--sm btn--outline btn--download\" 
-                onclick=\"if (window.downloadDocument) window.downloadDocument('${docId}')\" 
-                title=\"Descargar\">
-            <i class=\"fas fa-download\"></i>
-        </button>
-    `;
-    if (canPreview) {
+    let buttons = '';
+
+    if (canDownload) {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline btn--download\" 
+                    onclick=\"if (window.downloadDocument) window.downloadDocument('${docId}')\" 
+                    title=\"Descargar\">
+                <i class=\"fas fa-download\"></i>
+            </button>
+        `;
+    }
+
+    if (canPreview && canView) {
         buttons += `
             <button class=\"btn btn--sm btn--outline btn--view\" 
                     onclick=\"if (window.previewDocument) window.previewDocument('${docId}')\" 
@@ -313,20 +450,43 @@ function createActionButtons(doc, canPreview) {
             </button>
         `;
     }
-    buttons += `
-        <button class=\"btn btn--sm btn--outline btn--edit\" 
-                onclick=\"if (window.editDocument) window.editDocument('${docId}')\" 
-                title=\"Editar documento\">
-            <i class=\"fas fa-edit\"></i>
-        </button>
-    `;
-    buttons += `
-        <button class=\"btn btn--sm btn--outline btn--delete\" 
-                onclick=\"if (window.deleteDocument) window.deleteDocument('${docId}')\" 
-                title=\"Eliminar\">
-            <i class=\"fas fa-trash\"></i>
-        </button>
-    `;
+
+    // Revisión: solo si está pendiente
+    if (canApprove && doc.status === 'pending') {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline\" 
+                    onclick=\"if (window.approveDocument) window.approveDocument('${docId}')\" 
+                    title=\"Aprobar\">
+                <i class=\"fas fa-check\"></i>
+            </button>
+            <button class=\"btn btn--sm btn--outline\" 
+                    onclick=\"if (window.rejectDocument) window.rejectDocument('${docId}')\" 
+                    title=\"Rechazar\">
+                <i class=\"fas fa-times\"></i>
+            </button>
+        `;
+    }
+
+    if (canEdit) {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline btn--edit\" 
+                    onclick=\"if (window.editDocument) window.editDocument('${docId}')\" 
+                    title=\"Editar documento\">
+                <i class=\"fas fa-edit\"></i>
+            </button>
+        `;
+    }
+
+    if (canDelete) {
+        buttons += `
+            <button class=\"btn btn--sm btn--outline btn--delete\" 
+                    onclick=\"if (window.deleteDocument) window.deleteDocument('${docId}')\" 
+                    title=\"Eliminar\">
+                <i class=\"fas fa-trash\"></i>
+            </button>
+        `;
+    }
+
     return buttons;
 }
 

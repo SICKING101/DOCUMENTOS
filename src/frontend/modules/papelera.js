@@ -2,6 +2,7 @@ import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
+import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
 
 // =============================================================================
 // ESTADO DE LA PAPELERA
@@ -68,18 +69,50 @@ const trashState = new TrashState();
 
 export async function initPapelera() {
     console.log('🗑️ Inicializando módulo de papelera...');
+
+    if (!canView('papelera')) {
+        showNoPermissionAlert('papelera');
+        showAlert('No tienes permiso para ver la papelera', 'error');
+
+        const listContainer = document.querySelector('#trashDocumentsList');
+        if (listContainer) {
+            listContainer.innerHTML = `
+                <div class="empty-state empty-state--center">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-trash-alt"></i>
+                    </div>
+                    <h3>Acceso restringido</h3>
+                    <p>No tienes permisos para acceder a la papelera.</p>
+                </div>
+            `;
+        }
+
+        const bulkActionsContainer = document.getElementById('bulkActionsContainer');
+        if (bulkActionsContainer) bulkActionsContainer.style.display = 'none';
+
+        return;
+    }
+
     setupEventListeners();
     await loadTrashDocuments();
 
     // Ejecutar limpieza automática después de cargar los documentos
-    setTimeout(() => {
-        runAutoCleanup();
-    }, 2000);
+    if (canAction('papelera')) {
+        setTimeout(() => {
+            runAutoCleanup();
+        }, 2000);
+    }
 }
 
 // Exportar función para actualizar badge desde otros módulos
 export async function updateTrashBadge() {
     try {
+        if (!canView('papelera')) {
+            const badge = document.getElementById('trashBadge');
+            if (badge) badge.style.display = 'none';
+            return;
+        }
+
         const response = await api.call('/trash', { method: 'GET' });
         if (response.success) {
             const badge = document.getElementById('trashBadge');
@@ -201,6 +234,10 @@ function setupEventListeners() {
 
 async function loadTrashDocuments() {
     try {
+        if (!canView('papelera')) {
+            return;
+        }
+
         const container = document.getElementById('trashContent');
         setLoadingState(true, container);
 
@@ -340,9 +377,11 @@ function updateTrashUI() {
     container.className = `trash-documents-list ${trashState.viewMode}-view`;
 
     if (trashState.viewMode === 'grid') {
-        container.innerHTML = filteredDocs.map(doc => renderGridDocument(doc)).join('');
+        const canEdit = canAction('papelera');
+        container.innerHTML = filteredDocs.map(doc => renderGridDocument(doc, canEdit)).join('');
     } else {
-        container.innerHTML = filteredDocs.map(doc => renderListDocument(doc)).join('');
+        const canEdit = canAction('papelera');
+        container.innerHTML = filteredDocs.map(doc => renderListDocument(doc, canEdit)).join('');
     }
 
     // Agregar event listeners a los documentos
@@ -354,7 +393,7 @@ function updateTrashUI() {
     updateSelectionControls();
 }
 
-function renderGridDocument(doc) {
+function renderGridDocument(doc, canEdit) {
     const isSelected = trashState.selectedDocuments.has(doc._id);
     const icon = getFileIcon(doc.tipo_archivo);
     const deletedDate = formatDate(doc.deletedAt);
@@ -425,24 +464,26 @@ function renderGridDocument(doc) {
             </div>
             
             <div class="card-actions">
-                <button class="btn-icon btn-restore" 
-                        data-doc-id="${doc._id}"
-                        title="Restaurar documento">
-                    <i class="fas fa-undo"></i>
-                    <span>Restaurar</span>
-                </button>
-                <button class="btn-icon btn-delete" 
-                        data-doc-id="${doc._id}"
-                        title="Eliminar permanentemente">
-                    <i class="fas fa-trash"></i>
-                    <span>Eliminar</span>
-                </button>
+                ${canEdit ? `
+                    <button class="btn-icon btn-restore" 
+                            data-doc-id="${doc._id}"
+                            title="Restaurar documento">
+                        <i class="fas fa-undo"></i>
+                        <span>Restaurar</span>
+                    </button>
+                    <button class="btn-icon btn-delete" 
+                            data-doc-id="${doc._id}"
+                            title="Eliminar permanentemente">
+                        <i class="fas fa-trash"></i>
+                        <span>Eliminar</span>
+                    </button>
+                ` : '<span class="text-muted">Solo lectura</span>'}
             </div>
         </div>
     `;
 }
 
-function renderListDocument(doc) {
+function renderListDocument(doc, canEdit) {
     const isSelected = trashState.selectedDocuments.has(doc._id);
     const icon = getFileIcon(doc.tipo_archivo);
     const deletedDate = formatDate(doc.deletedAt);
@@ -509,16 +550,18 @@ function renderListDocument(doc) {
             </div>
             
             <div class="list-actions">
-                <button class="btn-icon-small btn-restore" 
-                        data-doc-id="${doc._id}"
-                        title="Restaurar documento">
-                    <i class="fas fa-undo"></i>
-                </button>
-                <button class="btn-icon-small btn-delete" 
-                        data-doc-id="${doc._id}"
-                        title="Eliminar permanentemente">
-                    <i class="fas fa-trash"></i>
-                </button>
+                ${canEdit ? `
+                    <button class="btn-icon-small btn-restore" 
+                            data-doc-id="${doc._id}"
+                            title="Restaurar documento">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="btn-icon-small btn-delete" 
+                            data-doc-id="${doc._id}"
+                            title="Eliminar permanentemente">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : '<span class="text-muted">-</span>'}
             </div>
         </div>
     `;
@@ -596,6 +639,7 @@ function attachDocumentEventListeners(docId) {
 // =============================================================================
 
 function updateSelectionControls() {
+    const canEdit = canAction('papelera');
     const selectedCount = trashState.getSelectedCount();
     const bulkActionsContainer = document.getElementById('bulkActionsContainer');
     const selectionCounter = document.getElementById('trashSelectionCounter');
@@ -650,14 +694,14 @@ function updateSelectionControls() {
     }
     
     if (restoreSelectedBtn) {
-        restoreSelectedBtn.disabled = selectedCount === 0;
+        restoreSelectedBtn.disabled = !canEdit || selectedCount === 0;
         restoreSelectedBtn.innerHTML = selectedCount > 0 
             ? `<i class="fas fa-undo"></i> Restaurar (${selectedCount})`
             : '<i class="fas fa-undo"></i> Restaurar Seleccionados';
     }
     
     if (deleteSelectedBtn) {
-        deleteSelectedBtn.disabled = selectedCount === 0;
+        deleteSelectedBtn.disabled = !canEdit || selectedCount === 0;
         deleteSelectedBtn.innerHTML = selectedCount > 0 
             ? `<i class="fas fa-trash-alt"></i> Eliminar (${selectedCount})`
             : '<i class="fas fa-trash-alt"></i> Eliminar Seleccionados';
@@ -669,11 +713,17 @@ function updateSelectionControls() {
 // =============================================================================
 
 async function handleRestoreDocument(docId) {
+    if (!canAction('papelera')) {
+        showNoPermissionAlert('papelera');
+        showAlert('No tienes permiso para restaurar documentos', 'error');
+        return;
+    }
+
     const doc = trashState.documents.find(d => d._id === docId);
     if (!doc) return;
 
     const confirmed = await showConfirmationModal(
-        'Restaurar documento',
+        'Restaurar documento ahora',
         `¿Restaurar "${doc.nombre_original}"?`,
         'El documento volverá a estar disponible en su ubicación original.',
         'success',
@@ -717,6 +767,12 @@ async function handleRestoreDocument(docId) {
 }
 
 async function handleDeleteDocument(docId) {
+    if (!canAction('papelera')) {
+        showNoPermissionAlert('papelera');
+        showAlert('No tienes permiso para eliminar documentos permanentemente', 'error');
+        return;
+    }
+
     const doc = trashState.documents.find(d => d._id === docId);
     if (!doc) return;
 
@@ -769,6 +825,12 @@ async function handleDeleteDocument(docId) {
 // =============================================================================
 
 async function handleRestoreSelected() {
+    if (!canAction('papelera')) {
+        showNoPermissionAlert('papelera');
+        showAlert('No tienes permiso para restaurar documentos', 'error');
+        return;
+    }
+
     const selectedCount = trashState.getSelectedCount();
     if (selectedCount === 0) {
         showAlert('No hay documentos seleccionados', 'warning');
@@ -841,6 +903,12 @@ async function handleRestoreSelected() {
 }
 
 async function handleDeleteSelected() {
+    if (!canAction('papelera')) {
+        showNoPermissionAlert('papelera');
+        showAlert('No tienes permiso para eliminar documentos', 'error');
+        return;
+    }
+
     const selectedCount = trashState.getSelectedCount();
     if (selectedCount === 0) {
         showAlert('No hay documentos seleccionados', 'warning');
@@ -1227,6 +1295,11 @@ function animateDocumentRemoval(docId) {
 export async function runAutoCleanup() {
     try {
         console.log('🔄 Ejecutando limpieza automática...');
+
+        if (!canAction('papelera')) {
+            return;
+        }
+
         const response = await api.call('/trash/auto-cleanup', { method: 'POST' });
 
         if (response.success && response.deletedCount > 0) {

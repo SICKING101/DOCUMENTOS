@@ -22,19 +22,29 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png'];
-    const fileExtension = file.originalname.split('.').pop().toLowerCase();
-    
-    if (allowedTypes.includes(fileExtension)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Tipo de archivo no permitido'), false);
-    }
-  }
-});
+const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png'];
 
-export default upload;
+function createUpload({ fileSizeBytes }) {
+  return multer({
+    storage,
+    limits: { fileSize: fileSizeBytes },
+    fileFilter: (req, file, cb) => {
+      const fileExtension = file.originalname.split('.').pop().toLowerCase();
+
+      if (allowedTypes.includes(fileExtension)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Tipo de archivo no permitido'), false);
+      }
+    }
+  });
+}
+
+// Documentos: 1GB
+export const uploadDocuments = createUpload({ fileSizeBytes: 1024 * 1024 * 1024 });
+
+// Otros (ej: tickets/soporte): mantener límite anterior (10MB)
+export const uploadSmallFiles = createUpload({ fileSizeBytes: 10 * 1024 * 1024 });
+
+// Compat: mantener default export como el upload de documentos
+export default uploadDocuments;

@@ -228,8 +228,10 @@ export async function handleUploadDocument() {
                             hideSingleUploadPreloader();
                             showAlert(data.message, 'success');
                             
-                            // Cargar documentos actualizados
-                            if (window.loadDocuments) {
+                            // Cargar documentos/categorías actualizados
+                            if (window.refreshDocumentsView) {
+                                await window.refreshDocumentsView();
+                            } else if (window.loadDocuments) {
                                 await window.loadDocuments();
                             }
                             

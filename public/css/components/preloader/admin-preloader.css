@@ -1,0 +1,155 @@
+/* ============================================================================
+   PRELOADER PARA ADMIN - MEJORADO
+   ============================================================================ */
+
+.admin-preloader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.admin-preloader-content {
+    text-align: center;
+    max-width: 400px;
+    padding: 2rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border);
+    animation: preloaderFadeIn 0.3s ease;
+}
+
+.admin-preloader-spinner {
+    color: var(--primary);
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+.admin-preloader-spinner i {
+    animation: spin 1s linear infinite;
+}
+
+.admin-preloader-message {
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.admin-preloader-progress {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.admin-preloader-progress-bar {
+    height: 100%;
+    background: var(--primary);
+    border-radius: var(--radius-full);
+    animation: progressPulse 1.5s ease infinite;
+}
+
+body.preloader-active {
+    overflow: hidden;
+}
+
+@keyframes preloaderFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes progressPulse {
+    0% {
+        width: 30%;
+        opacity: 1;
+    }
+    50% {
+        width: 70%;
+        opacity: 0.7;
+    }
+    100% {
+        width: 30%;
+        opacity: 1;
+    }
+}
+
+/* ============================================================================
+   MODAL ESPECÍFICO PARA ADMIN - CORREGIDO
+   ============================================================================ */
+
+.admin-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    z-index: 100000 !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    border: none !important;
+}
+
+.admin-modal[open],
+.admin-modal.show {
+    display: flex !important;
+}
+
+.admin-modal .modal__content {
+    max-width: 450px;
+    width: 100%;
+    background: var(--bg-primary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border);
+    position: relative;
+    z-index: 100001;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

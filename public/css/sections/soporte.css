@@ -151,8 +151,9 @@
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
     padding: 1rem;
-    max-height: 500px;
-    overflow-y: auto;
+    /* Mostrar la guía completa (sin recorte); el scroll lo maneja la página */
+    max-height: none;
+    overflow-y: visible;
 }
 
 .guide-section-card {
@@ -1765,6 +1766,75 @@ body.dark-theme .guide-nav-btn {
 }
 
 /* ----------------------------------------------------------------------------
+   CALLOUT DESTACADO PARA NUEVO TICKET
+   ---------------------------------------------------------------------------- */
+
+.ticket-callout {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    margin: 1rem 0 2rem 0;
+}
+
+.ticket-callout__icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+}
+
+.ticket-callout__icon i {
+    font-size: 1.25rem;
+}
+
+.ticket-callout__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.ticket-callout__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.ticket-callout__desc {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.ticket-callout__action .btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .ticket-callout {
+        grid-template-columns: 1fr;
+        text-align: left;
+        gap: 0.75rem;
+    }
+    .ticket-callout__action .btn {
+        width: 100%;
+    }
+}
+
+/* ----------------------------------------------------------------------------
    PANELES PRINCIPALES
    ---------------------------------------------------------------------------- */
 
@@ -2315,7 +2385,8 @@ body.dark-theme .guide-nav-btn {
 }
 
 .faq-answer.open {
-    max-height: 500px;
+    /* Evitar recorte cuando la respuesta es larga */
+    max-height: 2000px;
     opacity: 1;
     margin-top: 0.75rem;
     padding: 1rem 1rem 1rem 1.5rem;
@@ -4044,7 +4115,8 @@ body.dark-theme .message-agent {
 }
 
 .faq-answer.open {
-    max-height: 500px;
+    /* Evitar recorte cuando la respuesta es larga */
+    max-height: 2000px;
     opacity: 1;
     margin-top: 0.75rem;
     padding: 1rem 1rem 1rem 1.5rem;

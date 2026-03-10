@@ -1,4 +1,7 @@
+// src/frontend/userMenu.js
 // Gestión del menú de usuario y cambio de administrador
+
+import { canAction, loadCurrentPermissions, showNoPermissionAlert } from './permissions.js';
 
 // Elementos del DOM
 let userMenuTrigger;
@@ -7,6 +10,56 @@ let changeAdminModal;
 let changeAdminForm;
 let logoutBtn;
 let changeAdminBtn;
+
+// =============================================================================
+// FUNCIÓN PARA VERIFICAR SI EL USUARIO ACTUAL ES ADMINISTRADOR
+// =============================================================================
+
+function esUsuarioAdministrador() {
+    try {
+        // Obtener usuario del localStorage
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            console.log('❌ No hay usuario en localStorage');
+            return false;
+        }
+        
+        const user = JSON.parse(userStr);
+        console.log('👤 Verificando rol de usuario:', user);
+        
+        // Verificar si el rol es 'administrador'
+        const isAdmin = user.rol === 'administrador';
+        console.log(`🔑 ¿Es administrador? ${isAdmin ? 'SÍ' : 'NO'}`);
+        
+        return isAdmin;
+    } catch (error) {
+        console.error('❌ Error verificando rol de usuario:', error);
+        return false;
+    }
+}
+
+// =============================================================================
+// FUNCIÓN PARA ACTUALIZAR LA VISIBILIDAD DEL MENÚ SEGÚN EL ROL
+// =============================================================================
+
+function actualizarVisibilidadMenu() {
+    const esAdmin = esUsuarioAdministrador();
+    const changeAdminBtn = document.getElementById('changeAdminBtn');
+    
+    if (changeAdminBtn) {
+        if (esAdmin) {
+            // Mostrar el botón solo para administradores
+            changeAdminBtn.style.display = 'flex';
+            console.log('✅ Botón de cambio de admin VISIBLE');
+        } else {
+            // Ocultar el botón para no administradores
+            changeAdminBtn.style.display = 'none';
+            console.log('🔒 Botón de cambio de admin OCULTO');
+        }
+    } else {
+        console.warn('⚠️ Botón de cambio de admin no encontrado');
+    }
+}
 
 // Inicializar el menú de usuario
 export function inicializarMenuUsuario() {
@@ -24,7 +77,8 @@ export function inicializarMenuUsuario() {
         userMenuTrigger: !!userMenuTrigger,
         userMenu: !!userMenu,
         logoutBtn: !!logoutBtn,
-        changeAdminBtn: !!changeAdminBtn
+        changeAdminBtn: !!changeAdminBtn,
+        changeAdminModal: !!changeAdminModal
     });
 
     // Verificar que los elementos existen
@@ -32,6 +86,9 @@ export function inicializarMenuUsuario() {
         console.warn('❌ Elementos del menú de usuario no encontrados');
         return;
     }
+
+    // ACTUALIZAR VISIBILIDAD SEGÚN EL ROL
+    actualizarVisibilidadMenu();
 
     // Event listeners
     userMenuTrigger.addEventListener('click', (e) => {
@@ -61,6 +118,27 @@ export function inicializarMenuUsuario() {
     
     console.log('✅ Menú de usuario inicializado');
 }
+
+// =============================================================================
+// RE-EVALUAR PERMISOS CUANDO CAMBIA EL USUARIO
+// =============================================================================
+
+// Función para forzar la reevaluación de permisos (útil después de login)
+export function reevaluarPermisosUsuario() {
+    console.log('🔄 Re-evaluando permisos de usuario...');
+    actualizarVisibilidadMenu();
+}
+
+// Escuchar cambios en localStorage (para cuando otro componente modifica el usuario)
+window.addEventListener('storage', (e) => {
+    if (e.key === 'user') {
+        console.log('🔄 Usuario actualizado en localStorage, reevaluando permisos...');
+        actualizarVisibilidadMenu();
+    }
+});
+
+// También podemos exponer la función globalmente
+window.reevaluarPermisosUsuario = reevaluarPermisosUsuario;
 
 // Toggle del menú de usuario
 function toggleUserMenu(e) {
@@ -95,9 +173,24 @@ async function handleLogout(e) {
 }
 
 // Abrir modal de cambio de administrador
-function openChangeAdminModal(e) {
+async function openChangeAdminModal(e) {
     e.preventDefault();
     closeUserMenu();
+    
+    // Verificar nuevamente antes de abrir el modal
+    if (!esUsuarioAdministrador()) {
+        console.warn('🚫 Usuario no administrador intentó abrir modal de cambio');
+        mostrarAlerta('No tienes permisos para realizar esta acción', 'error');
+        return;
+    }
+
+    // Verificar permiso de ACCIÓN (roles “solo ver”)
+    await loadCurrentPermissions();
+    if (!canAction('admin')) {
+        showNoPermissionAlert('admin');
+        mostrarAlerta('Solo lectura: no puedes enviar solicitudes de cambio de administrador', 'warning');
+        return;
+    }
     
     if (changeAdminModal) {
         changeAdminForm.reset();
@@ -157,6 +250,20 @@ window.cerrarModalCambioAdmin = function() {
 // Manejar cambio de administrador
 async function handleChangeAdmin(e) {
     e.preventDefault();
+
+    // Verificar nuevamente antes de procesar
+    if (!esUsuarioAdministrador()) {
+        mostrarAlerta('No tienes permisos para realizar esta acción', 'error');
+        return;
+    }
+
+    // Verificar permiso de ACCIÓN (failsafe)
+    await loadCurrentPermissions();
+    if (!canAction('admin')) {
+        showNoPermissionAlert('admin');
+        mostrarAlerta('Solo lectura: no puedes enviar solicitudes de cambio de administrador', 'warning');
+        return;
+    }
 
     console.log('🔐 DEBUG: Iniciando handleChangeAdmin...');
     
@@ -340,3 +447,6 @@ window.togglePasswordVisibility = function(inputId) {
         }
     }
 };
+
+// Exportar funciones adicionales
+export { esUsuarioAdministrador };

@@ -1,6 +1,10 @@
+// src/frontend/task.js
+
 // =============================================================================
 // 1. DEFINICIÓN DE LA CLASE TASKMANAGER - VERSIÓN CON ENDPOINTS CORREGIDOS
 // =============================================================================
+
+import { canView, canAction, showNoPermissionAlert } from './permissions.js';
 
 class TaskManager {
     constructor() {
@@ -22,6 +26,21 @@ class TaskManager {
      * 1.1 Inicialización optimizada
      */
     init() {
+        if (!canView('tareas')) {
+            showNoPermissionAlert('tareas');
+            const container = document.getElementById('tasksContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state empty-state--center">
+                        <i class="fas fa-clipboard-list"></i>
+                        <h3>Acceso restringido</h3>
+                        <p class="empty-state__description">No tienes permisos para acceder a tareas.</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+
         this.bindEvents();
         this.loadTasks();
     }
@@ -258,6 +277,10 @@ class TaskManager {
             
             if (target.closest('#addTaskBtn') || target.closest('#addFirstTask')) {
                 e.preventDefault();
+                if (!canAction('tareas')) {
+                    showNoPermissionAlert('tareas');
+                    return;
+                }
                 if (!this.isLoading) {
                     this.openTaskModal();
                 }
@@ -266,6 +289,10 @@ class TaskManager {
             
             const actionBtn = target.closest('.task-card__action');
             if (actionBtn && !this.isSaving) {
+                if (!canAction('tareas')) {
+                    showNoPermissionAlert('tareas');
+                    return;
+                }
                 const taskId = actionBtn.dataset.taskId;
                 const action = actionBtn.dataset.action;
                 
@@ -296,6 +323,10 @@ class TaskManager {
         
         if (saveTaskBtn) {
             saveTaskBtn.addEventListener('click', () => {
+                if (!canAction('tareas')) {
+                    showNoPermissionAlert('tareas');
+                    return;
+                }
                 if (!this.isSaving) this.saveTask();
             });
         }
@@ -316,6 +347,10 @@ class TaskManager {
         
         if (confirmActionBtn) {
             confirmActionBtn.addEventListener('click', () => {
+                if (!canAction('tareas')) {
+                    showNoPermissionAlert('tareas');
+                    return;
+                }
                 if (!this.isSaving) this.executePendingAction();
             });
         }
@@ -343,6 +378,10 @@ class TaskManager {
         const clearCompletedBtn = document.getElementById('clearCompletedBtn');
         if (clearCompletedBtn) {
             clearCompletedBtn.addEventListener('click', () => {
+                if (!canAction('tareas')) {
+                    showNoPermissionAlert('tareas');
+                    return;
+                }
                 if (!this.isSaving) this.showClearCompletedModal();
             });
         }
@@ -371,6 +410,10 @@ class TaskManager {
      * 4.1 Cargar tareas desde la API
      */
     async loadTasks() {
+        if (!canView('tareas')) {
+            showNoPermissionAlert('tareas');
+            return;
+        }
         if (this.isLoading) return;
         
         this.isLoading = true;
@@ -437,6 +480,10 @@ class TaskManager {
      * 4.2 Abrir modal de tarea
      */
     openTaskModal(task = null) {
+        if (!canAction('tareas')) {
+            showNoPermissionAlert('tareas');
+            return;
+        }
         const modal = document.getElementById('taskModal');
         if (!modal) return;
 
@@ -660,6 +707,10 @@ class TaskManager {
      * 5.5 Guardar tarea - ENDPOINT CORREGIDO
      */
     async saveTask() {
+        if (!canAction('tareas')) {
+            showNoPermissionAlert('tareas');
+            return;
+        }
         if (this.isSaving) return;
         
         if (!this.validateForm()) {
@@ -766,6 +817,10 @@ class TaskManager {
     // =============================================================================
 
     showActionModal(actionType, taskId) {
+        if (!canAction('tareas')) {
+            showNoPermissionAlert('tareas');
+            return;
+        }
         const modal = document.getElementById('actionModal');
         if (!modal) return;
 
@@ -820,6 +875,10 @@ class TaskManager {
     }
 
     showClearCompletedModal() {
+        if (!canAction('tareas')) {
+            showNoPermissionAlert('tareas');
+            return;
+        }
         const completedTasks = this.tasks.filter(t => t.estado === 'completada');
         if (completedTasks.length === 0) {
             this.showNotification('No hay tareas completadas', 'info');
@@ -845,6 +904,10 @@ class TaskManager {
      * Ahora se usa PUT al endpoint principal de tareas con el estado actualizado
      */
     async executePendingAction() {
+        if (!canAction('tareas')) {
+            showNoPermissionAlert('tareas');
+            return;
+        }
         if (!this.pendingAction || this.isSaving) return;
         
         this.isSaving = true;
@@ -1058,6 +1121,7 @@ class TaskManager {
     }
 
     createTaskCard(task) {
+        const canEdit = canAction('tareas');
         const dueDate = task.fecha_limite ? new Date(task.fecha_limite) : null;
         const isOverdue = dueDate && dueDate < new Date() && task.estado !== 'completada';
         const formattedDate = dueDate ? dueDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha';
@@ -1103,21 +1167,23 @@ class TaskManager {
                         Creada: ${new Date(task.createdAt || task.fecha_creacion).toLocaleDateString('es-ES')}
                     </div>
                     <div class="task-card__actions">
-                        ${task.estado !== 'completada' ? `
-                            <button class="task-card__action task-card__action--complete" data-task-id="${task._id}" data-action="complete" title="Completar">
-                                <i class="fas fa-check"></i>
+                        ${canEdit ? `
+                            ${task.estado !== 'completada' ? `
+                                <button class="task-card__action task-card__action--complete" data-task-id="${task._id}" data-action="complete" title="Completar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            ` : `
+                                <button class="task-card__action task-card__action--restart" data-task-id="${task._id}" data-action="restart" title="Reiniciar">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            `}
+                            <button class="task-card__action task-card__action--edit" data-task-id="${task._id}" data-action="edit" title="Editar">
+                                <i class="fas fa-edit"></i>
                             </button>
-                        ` : `
-                            <button class="task-card__action task-card__action--restart" data-task-id="${task._id}" data-action="restart" title="Reiniciar">
-                                <i class="fas fa-redo"></i>
+                            <button class="task-card__action task-card__action--delete" data-task-id="${task._id}" data-action="delete" title="Eliminar">
+                                <i class="fas fa-trash"></i>
                             </button>
-                        `}
-                        <button class="task-card__action task-card__action--edit" data-task-id="${task._id}" data-action="edit" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="task-card__action task-card__action--delete" data-task-id="${task._id}" data-action="delete" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ` : '<span class="text-muted">-</span>'}
                     </div>
                 </div>
             </div>
@@ -1126,15 +1192,18 @@ class TaskManager {
 
     getEmptyState() {
         const hasFilters = this.currentSearch || this.currentFilter.priority !== 'all' || this.currentFilter.status !== 'all';
+        const canEdit = canAction('tareas');
         
         return `
             <div class="empty-state empty-state--center">
                 <i class="fas fa-clipboard-list"></i>
                 <h3>${hasFilters ? 'No hay tareas que coincidan' : 'No hay tareas registradas'}</h3>
-                <p class="empty-state__description">${hasFilters ? 'Intenta cambiar los filtros' : 'Crea tu primera tarea'}</p>
-                <button class="btn btn--primary" id="addFirstTask">
-                    <i class="fas fa-plus"></i> Crear Tarea
-                </button>
+                <p class="empty-state__description">${hasFilters ? 'Intenta cambiar los filtros' : (canEdit ? 'Crea tu primera tarea' : 'Solo lectura: no puedes crear tareas.')}</p>
+                ${canEdit ? `
+                    <button class="btn btn--primary" id="addFirstTask">
+                        <i class="fas fa-plus"></i> Crear Tarea
+                    </button>
+                ` : ''}
             </div>
         `;
     }
@@ -1199,6 +1268,8 @@ class TaskManager {
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
+    if (!canView('tareas')) return;
+    if (window.taskManager) return;
     window.taskManager = new TaskManager();
 });
 

@@ -25,6 +25,15 @@
     border-left-color: var(--danger);
 }
 
+.alert-details {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 /* Alertas de advertencia (precauciones) */
 .alert--warning {
     background-color: rgba(245, 158, 11, 0.1);
