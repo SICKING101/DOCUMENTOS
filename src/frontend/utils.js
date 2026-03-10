@@ -248,8 +248,9 @@ function isValidEmail(email) {
  */
 function validateFilesForUpload(files, maxFiles, maxIndividualSize, maxTotalSize) {
     const errors = [];
-    
-    if (files.length > maxFiles) {
+
+    const shouldEnforceMaxFiles = Number.isFinite(maxFiles) && maxFiles > 0;
+    if (shouldEnforceMaxFiles && files.length > maxFiles) {
         errors.push(`Máximo ${maxFiles} archivos permitidos. Seleccionados: ${files.length}`);
     }
     

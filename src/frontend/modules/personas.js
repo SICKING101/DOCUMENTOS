@@ -2290,6 +2290,7 @@ function refreshDepartmentSelect() {
 
 // Inicializar filtros cuando se cargue el módulo
 document.addEventListener('DOMContentLoaded', function() {
+    if (!canView('personas')) return;
     // Esperar un momento para asegurar que el DOM esté completamente cargado
     setTimeout(() => {
         initializeFilters();

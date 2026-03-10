@@ -151,8 +151,9 @@
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
     padding: 1rem;
-    max-height: 500px;
-    overflow-y: auto;
+    /* Mostrar la guía completa (sin recorte); el scroll lo maneja la página */
+    max-height: none;
+    overflow-y: visible;
 }
 
 .guide-section-card {
@@ -2384,7 +2385,8 @@ body.dark-theme .guide-nav-btn {
 }
 
 .faq-answer.open {
-    max-height: 500px;
+    /* Evitar recorte cuando la respuesta es larga */
+    max-height: 2000px;
     opacity: 1;
     margin-top: 0.75rem;
     padding: 1rem 1rem 1rem 1.5rem;
@@ -4113,7 +4115,8 @@ body.dark-theme .message-agent {
 }
 
 .faq-answer.open {
-    max-height: 500px;
+    /* Evitar recorte cuando la respuesta es larga */
+    max-height: 2000px;
     opacity: 1;
     margin-top: 0.75rem;
     padding: 1rem 1rem 1rem 1.5rem;

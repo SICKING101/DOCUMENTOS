@@ -1,5 +1,7 @@
 // ===== CALENDARIO ACADÉMICO - FUNCIONALIDAD COMPLETA =====
 
+import { canView, canAction, showNoPermissionAlert, loadCurrentPermissions } from '../permissions.js';
+
 class CalendarManager {
     constructor() {
         console.debug('🔧 Constructor de CalendarManager llamado');
@@ -598,6 +600,15 @@ class CalendarManager {
     // Abrir modal de evento
     openEventModal(date = this.selectedDate) {
         console.debug(`📋 Abriendo modal de evento para fecha: ${date.toISOString().split('T')[0]}`);
+
+        const canEdit = canAction('calendario');
+
+        // Si se intenta crear un evento nuevo sin permisos de acción, bloquear.
+        if (!canEdit && !this.editingEvent) {
+            showNoPermissionAlert('calendario');
+            this.showNotification('No tienes permisos para crear eventos');
+            return;
+        }
         
         const modal = document.getElementById('calendarEventModal');
         const form = document.getElementById('calendarEventForm');
@@ -647,12 +658,41 @@ class CalendarManager {
         
         // Usar atributo [open] para mostrar el modal
         modal.setAttribute('open', '');
+
+        // Modo solo lectura cuando el usuario no puede actuar
+        if (!canEdit) {
+            const saveBtn = document.getElementById('saveCalendarEvent');
+            if (saveBtn) saveBtn.style.display = 'none';
+
+            const deleteBtn = document.getElementById('deleteCalendarEvent');
+            if (deleteBtn) deleteBtn.style.display = 'none';
+
+            if (form) {
+                form.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.disabled = true;
+                });
+            }
+        } else if (form) {
+            // Rehabilitar campos por si el modal se abrió antes en solo lectura
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                el.disabled = false;
+            });
+
+            const saveBtn = document.getElementById('saveCalendarEvent');
+            if (saveBtn) saveBtn.style.display = '';
+        }
         console.debug('✅ Modal de evento abierto correctamente');
     }
 
     // Guardar evento con validación mejorada
     saveEvent() {
         console.debug('💾 Guardando evento...');
+
+        if (!canAction('calendario')) {
+            showNoPermissionAlert('calendario');
+            this.showNotification('No tienes permisos para guardar eventos');
+            return;
+        }
         
         try {
             // Limpiar alertas anteriores
@@ -993,6 +1033,12 @@ class CalendarManager {
 
     // Eliminar evento
     deleteEvent() {
+        if (!canAction('calendario')) {
+            showNoPermissionAlert('calendario');
+            this.showNotification('No tienes permisos para eliminar eventos');
+            return;
+        }
+
         if (!this.editingEvent) {
             console.error('❌ No hay evento para eliminar');
             return;
@@ -1848,6 +1894,12 @@ class CalendarManager {
 
     // Mostrar modal de reinicio del calendario
     showResetCalendarModal() {
+        if (!canAction('calendario')) {
+            showNoPermissionAlert('calendario');
+            this.showNotification('No tienes permisos para reiniciar el calendario');
+            return;
+        }
+
         console.debug('🔄 Mostrando modal de reinicio del calendario');
         
         const modal = document.createElement('div');
@@ -1992,10 +2044,20 @@ class CalendarManager {
 // ===== INICIALIZACIÓN =====
 
 // Esperar a que el DOM esté completamente cargado
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.debug('📅 Inicializando Módulo de Calendario...');
     
     try {
+        await loadCurrentPermissions();
+
+        if (!canView('calendario')) {
+            const calendarSection = document.getElementById('calendario');
+            if (calendarSection) {
+                showNoPermissionAlert('calendario');
+            }
+            return;
+        }
+
         // Verificar si estamos en la página de calendario
         const calendarSection = document.getElementById('calendario');
         if (calendarSection) {

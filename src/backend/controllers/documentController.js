@@ -11,9 +11,9 @@ function canBypassApprovalGate(role) {
 }
 
 function canAccessDocumentByStatus(role, status) {
-  const effectiveStatus = status || 'approved';
-  if (effectiveStatus === 'approved') return true;
-  return canBypassApprovalGate(role);
+  // La visibilidad del documento se controla por permisos de ruta (VIEW/DOWNLOAD).
+  // No bloquear por status aquí; el flujo de aprobación sigue existiendo para acciones.
+  return true;
 }
 
 class DocumentController {
@@ -23,13 +23,9 @@ class DocumentController {
   static async getAll(req, res) {
     try {
       console.log('📋 DocumentController.getAll - Iniciando');
-      
-      const role = req.user?.rol;
-      const statusFilter = canBypassApprovalGate(role) ? {} : { status: 'approved' };
 
       const documents = await Document.find({ 
         activo: true,
-        ...statusFilter,
         $or: [
           { isDeleted: false },
           { isDeleted: { $exists: false } }

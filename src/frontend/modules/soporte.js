@@ -2,10 +2,12 @@ import { api } from '../services/api.js';
 import { showAlert, formatDate, showConfirmModal } from '../utils.js';
 import { DOM } from '../dom.js';
 import SystemStatusModule from './systemStatus.js';
+import { canView, canAction, loadCurrentPermissions, showNoPermissionAlert } from '../permissions.js';
 
 class SupportModule {
     constructor() {
         console.log('🔧 SupportModule: Constructor inicializado');
+        this._listenersAttached = false;
         this.currentTickets = [];
         this.currentTicket = null;
         this.selectedFiles = [];
@@ -449,7 +451,7 @@ class SupportModule {
             }
         };
         
-        this.init();
+        // Nota: init() se llama desde navigation.js cuando el usuario entra a la pestaña.
     }
 
 initSystemStatus() {
@@ -494,105 +496,156 @@ initSystemStatus() {
 
     async init() {
         console.log('🔧 SupportModule: Inicializando módulo');
-        this.setupEventListeners();
+
+        // Asegurar que el cache de permisos esté cargado antes de evaluar canView/canAction
+        await loadCurrentPermissions();
+
+        if (!canView('soporte')) {
+            console.log('⛔ Sin permiso de vista para soporte: omitiendo init');
+            return;
+        }
+
+        if (!this._listenersAttached) {
+            this.setupEventListeners();
+            this.setupGuideListeners();
+            this._listenersAttached = true;
+        }
+
         await this.loadFAQ();
-        this.setupGuideListeners();
         this.initSystemStatus();
         console.log('✅ SupportModule: Módulo inicializado correctamente');
     }
 
     setupEventListeners() {
-    console.log('🔧 SupportModule: Configurando event listeners');
-    
-    if (DOM.newTicketBtn) {
-        DOM.newTicketBtn.addEventListener('click', () => this.openTicketModal());
-    }
-    
-    if (DOM.newTicketBtnAlt) {
-        DOM.newTicketBtnAlt.addEventListener('click', () => this.openTicketModal());
-    }
-    
-    if (DOM.createFirstTicket) {
-        DOM.createFirstTicket.addEventListener('click', () => this.openTicketModal());
-    }
-    
-    // Cerrar modal con el botón de la X (×)
-    if (DOM.closeTicketModal) {
-        DOM.closeTicketModal.addEventListener('click', () => this.closeTicketModal());
-    }
-    
-    // Cerrar modal con el botón "Cancelar"
-    if (DOM.cancelTicketBtn) {
-        DOM.cancelTicketBtn.addEventListener('click', () => this.closeTicketModal());
-    }
-    
-    if (DOM.submitTicketBtn) {
-        DOM.submitTicketBtn.addEventListener('click', () => this.submitTicket());
-    }
-    
-    // Configuración de arrastrar y soltar archivos - CORREGIDO
-    if (DOM.ticketFileUpload && DOM.ticketFileInput) {
-        // Prevenir el comportamiento por defecto para evitar múltiples activaciones
-        DOM.ticketFileUpload.addEventListener('click', (e) => {
-            // Solo abrir el selector de archivos si el clic fue en el área principal,
-            // no en el input de archivo directamente
-            if (e.target !== DOM.ticketFileInput) {
-                DOM.ticketFileInput.click();
-            }
+        console.log('🔧 SupportModule: Configurando event listeners');
+
+        if (DOM.newTicketBtn) {
+            DOM.newTicketBtn.addEventListener('click', () => this.openTicketModal());
+        }
+
+        if (DOM.newTicketBtnAlt) {
+            DOM.newTicketBtnAlt.addEventListener('click', () => this.openTicketModal());
+        }
+
+        if (DOM.createFirstTicket) {
+            DOM.createFirstTicket.addEventListener('click', () => this.openTicketModal());
+        }
+
+        if (DOM.closeTicketModal) {
+            DOM.closeTicketModal.addEventListener('click', () => this.closeTicketModal());
+        }
+
+        if (DOM.cancelTicketBtn) {
+            DOM.cancelTicketBtn.addEventListener('click', () => this.closeTicketModal());
+        }
+
+        if (DOM.submitTicketBtn) {
+            DOM.submitTicketBtn.addEventListener('click', () => this.submitTicket());
+        }
+
+        // Copiar datos de contacto (Soporte)
+        document.querySelectorAll('.contact-copy').forEach((button) => {
+            button.addEventListener('click', async function () {
+                const textToCopy = this.getAttribute('data-text');
+                if (!textToCopy) return;
+
+                const setFeedback = () => {
+                    const originalHTML = this.innerHTML;
+                    this.classList.add('copied');
+                    this.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => {
+                        this.classList.remove('copied');
+                        this.innerHTML = originalHTML;
+                    }, 2000);
+                };
+
+                try {
+                    if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(textToCopy);
+                        setFeedback();
+                        return;
+                    }
+                } catch {
+                    // fallback abajo
+                }
+
+                // Fallback para navegadores más antiguos
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = textToCopy;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    setFeedback();
+                } catch (err) {
+                    console.error('Error al copiar: ', err);
+                }
+            });
         });
-        
-        // Evitar que el clic en el input propague al contenedor
-        DOM.ticketFileInput.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        
-        // Manejar arrastrar y soltar
-        DOM.ticketFileUpload.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            DOM.ticketFileUpload.classList.add('dragover');
-        });
-        
-        DOM.ticketFileUpload.addEventListener('dragleave', () => {
-            DOM.ticketFileUpload.classList.remove('dragover');
-        });
-        
-        DOM.ticketFileUpload.addEventListener('drop', (e) => {
-            e.preventDefault();
-            DOM.ticketFileUpload.classList.remove('dragover');
-            this.handleFileDrop(e.dataTransfer.files);
-        });
-        
-        // Manejar selección de archivos - CORREGIDO
-        DOM.ticketFileInput.addEventListener('change', (e) => {
-            // Verificar que haya archivos seleccionados
-            if (e.target.files && e.target.files.length > 0) {
-                this.handleFileSelect(e.target.files);
-            }
-        });
+
+        // Botón de chat (si existe)
+        const startChatBtn = document.getElementById('startChatBtn');
+        if (startChatBtn) {
+            startChatBtn.addEventListener('click', function () {
+                alert('Funcionalidad de chat en vivo - Próximamente!');
+            });
+        }
+
+        // Configuración de arrastrar y soltar archivos
+        if (DOM.ticketFileUpload && DOM.ticketFileInput) {
+            DOM.ticketFileUpload.addEventListener('click', (e) => {
+                if (e.target !== DOM.ticketFileInput) {
+                    DOM.ticketFileInput.click();
+                }
+            });
+
+            DOM.ticketFileInput.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            DOM.ticketFileUpload.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                DOM.ticketFileUpload.classList.add('dragover');
+            });
+
+            DOM.ticketFileUpload.addEventListener('dragleave', () => {
+                DOM.ticketFileUpload.classList.remove('dragover');
+            });
+
+            DOM.ticketFileUpload.addEventListener('drop', (e) => {
+                e.preventDefault();
+                DOM.ticketFileUpload.classList.remove('dragover');
+                this.handleFileDrop(e.dataTransfer.files);
+            });
+
+            DOM.ticketFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    this.handleFileSelect(e.target.files);
+                }
+            });
+        }
+
+        if (DOM.ticketModal) {
+            DOM.ticketModal.addEventListener('click', (e) => {
+                if (e.target === DOM.ticketModal) {
+                    this.closeTicketModal();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && DOM.ticketModal.style.display === 'flex') {
+                    this.closeTicketModal();
+                }
+            });
+        }
+
+        console.log('✅ Event listeners configurados correctamente');
     }
-    
-    // También agregar para cerrar haciendo clic fuera del modal
-    if (DOM.ticketModal) {
-        DOM.ticketModal.addEventListener('click', (e) => {
-            if (e.target === DOM.ticketModal) {
-                this.closeTicketModal();
-            }
-        });
-        
-        // Cerrar con tecla Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && DOM.ticketModal.style.display === 'flex') {
-                this.closeTicketModal();
-            }
-        });
-    }
-    
-    console.log('✅ Event listeners configurados correctamente');
-}
 
     setupGuideListeners() {
         console.log('🔧 SupportModule: Configurando listeners de guía');
-        
+
         document.querySelectorAll('.guide-view-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const section = e.currentTarget.dataset.section;
@@ -600,7 +653,7 @@ initSystemStatus() {
                 this.openGuideModal(section);
             });
         });
-        
+
         const closeGuideModal = document.getElementById('closeGuideModal');
         if (closeGuideModal) {
             closeGuideModal.addEventListener('click', () => {
@@ -608,35 +661,35 @@ initSystemStatus() {
                 this.closeGuideModal();
             });
         }
-        
+
         document.querySelectorAll('.guide-nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 const section = e.currentTarget.dataset.section;
                 console.log(`📍 Navegación sidebar: ${section}`);
                 this.loadGuideSection(section);
-                
+
                 document.querySelectorAll('.guide-nav-item').forEach(navItem => {
                     navItem.classList.remove('active');
                 });
                 e.currentTarget.classList.add('active');
             });
         });
-        
+
         document.getElementById('guideModal')?.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 console.log('📍 Clic fuera del modal de guía');
                 this.closeGuideModal();
             }
         });
-        
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isGuideModalOpen) {
                 console.log('📍 Tecla Escape presionada, cerrando guía');
                 this.closeGuideModal();
             }
         });
-        
+
         console.log('✅ Listeners de guía configurados');
     }
 
@@ -1172,8 +1225,17 @@ initSystemStatus() {
     }
 }
 
-    openTicketModal() {
+    async openTicketModal() {
         console.log('🔧 SupportModule: Abriendo modal de ticket');
+
+        // Failsafe: asegurar permisos cargados (evita clicks “sin efecto” por cache vacío)
+        await loadCurrentPermissions();
+
+        if (!canAction('soporte')) {
+            showNoPermissionAlert('soporte');
+            showAlert('No tienes permiso para crear tickets de soporte', 'error');
+            return;
+        }
         
         DOM.ticketModal.style.display = 'flex';
         setTimeout(() => {
@@ -1341,6 +1403,12 @@ initSystemStatus() {
 
     async submitTicket() {
         try {
+            if (!canAction('soporte')) {
+                showNoPermissionAlert('soporte');
+                showAlert('No tienes permiso para crear tickets de soporte', 'error');
+                return;
+            }
+
             const subject = DOM.ticketSubject.value.trim();
             const description = DOM.ticketDescription.value.trim();
             const category = DOM.ticketCategory.value;
@@ -1534,79 +1602,9 @@ initSystemStatus() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Funcionalidad de copiar datos de contacto
-    const copyButtons = document.querySelectorAll('.contact-copy');
-    
-    copyButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const textToCopy = this.getAttribute('data-text');
-            
-            // Usar la Clipboard API
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                // Feedback visual
-                const originalHTML = this.innerHTML;
-                this.classList.add('copied');
-                this.innerHTML = '<i class="fas fa-check"></i>';
-                
-                // Restaurar después de 2 segundos
-                setTimeout(() => {
-                    this.classList.remove('copied');
-                    this.innerHTML = originalHTML;
-                }, 2000);
-            }).catch(err => {
-                console.error('Error al copiar: ', err);
-                // Fallback para navegadores más antiguos
-                const textArea = document.createElement('textarea');
-                textArea.value = textToCopy;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                // Feedback visual incluso con fallback
-                const originalHTML = this.innerHTML;
-                this.classList.add('copied');
-                this.innerHTML = '<i class="fas fa-check"></i>';
-                
-                setTimeout(() => {
-                    this.classList.remove('copied');
-                    this.innerHTML = originalHTML;
-                }, 2000);
-            });
-        });
-    });
-    
-    // Funcionalidad del botón de chat
-    const startChatBtn = document.getElementById('startChatBtn');
-    if (startChatBtn) {
-        startChatBtn.addEventListener('click', function() {
-            // Puedes implementar un modal de chat aquí
-            // Por ahora solo un alert
-            alert('Funcionalidad de chat en vivo - Próximamente!');
-        });
-    }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOM cargado, inicializando SupportModule');
-    
-    const requiredElements = ['guideModal', 'ticketModal'];
-    const missingElements = requiredElements.filter(id => !document.getElementById(id));
-    
-    if (missingElements.length > 0) {
-        console.warn('⚠️ Elementos faltantes en el DOM:', missingElements);
-    }
-    
-    window.supportModule = new SupportModule();
-    console.log('✅ SupportModule listo');
-    
-    console.log('🔍 Verificando elementos del DOM:');
-    console.log('- #guideModal:', document.getElementById('guideModal') ? '✅' : '❌');
-    console.log('- #ticketModal:', document.getElementById('ticketModal') ? '✅' : '❌');
-    console.log('- #guideContent:', document.getElementById('guideContent') ? '✅' : '❌');
-    console.log('- .guide-nav-item:', document.querySelectorAll('.guide-nav-item').length);
-    console.log('- .guide-view-btn:', document.querySelectorAll('.guide-view-btn').length);
-});
+// Exponer el constructor para que navigation.js lo instancie al entrar a la pestaña Soporte.
+if (typeof window !== 'undefined') {
+    window.SupportModule = SupportModule;
+}
 
 export default SupportModule;

@@ -8,6 +8,7 @@
  */
 import { CONFIG } from '../config.js';
 import { showAlert } from '../utils.js';
+import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
 
 // =============================================================================
 // 2. ESTADO GLOBAL DEL MÓDULO
@@ -32,6 +33,11 @@ let isDropdownOpen = false;
  */
 export function initNotificaciones() {
     console.log('🔔 Inicializando módulo de notificaciones...');
+
+    if (!canView('notificaciones')) {
+        console.log('⛔ Sin permiso de vista para notificaciones: omitiendo initNotificaciones');
+        return;
+    }
     
     const notificationsBtn = document.getElementById('notificationsBtn');
     if (!notificationsBtn) {
@@ -75,6 +81,10 @@ export function initNotificaciones() {
  */
 async function fetchNotificaciones() {
     try {
+        if (!canView('notificaciones')) {
+            return;
+        }
+
         console.log('🔄 Fetching notificaciones desde:', `${CONFIG.API_BASE_URL}/notifications`);
         
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications?limite=20`);
@@ -112,6 +122,13 @@ async function fetchNotificaciones() {
  */
 async function marcarComoLeida(notificacionId) {
     try {
+        // Marcar como leída es una acción personal y debe permitirse con solo vista.
+        if (!canView('notificaciones')) {
+            showNoPermissionAlert('notificaciones');
+            showAlert('No tienes permiso para ver notificaciones', 'error');
+            return;
+        }
+
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notificacionId}/read`, {
             method: 'PATCH'
         });
@@ -144,6 +161,13 @@ async function marcarComoLeida(notificacionId) {
  */
 async function marcarTodasLeidas() {
     try {
+        // Marcar todas como leídas es una acción personal y debe permitirse con solo vista.
+        if (!canView('notificaciones')) {
+            showNoPermissionAlert('notificaciones');
+            showAlert('No tienes permiso para ver notificaciones', 'error');
+            return;
+        }
+
         const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/read-all`, {
             method: 'PATCH'
         });
@@ -263,10 +287,13 @@ function createDropdownElement() {
     `;
 
     // Event listener para marcar todas como leídas
-    dropdown.querySelector('#markAllReadBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        marcarTodasLeidas();
-    });
+    const markAllReadBtn = dropdown.querySelector('#markAllReadBtn');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            marcarTodasLeidas();
+        });
+    }
 
     return dropdown;
 }

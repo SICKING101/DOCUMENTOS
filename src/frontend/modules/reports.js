@@ -5,6 +5,7 @@
 import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
 import { setLoadingState, showAlert } from '../utils.js';
+import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
 
 // Variables para seguimiento de estado
 let reportGenerationInProgress = false;
@@ -21,6 +22,12 @@ function generateReport() {
     console.group('📊 generateReport - Abriendo generador de reportes');
     
     try {
+        if (!canView('reportes')) {
+            showNoPermissionAlert('reportes');
+            showAlert('No tienes permiso para ver reportes', 'error');
+            return;
+        }
+
         if (!window.appState || !window.appState.documents) {
             console.error('❌ appState no disponible o documentos no cargados');
             showAlert('Los datos del sistema no están disponibles. Intente recargar la página.', 'warning');
@@ -634,6 +641,12 @@ async function handleGenerateReport() {
     console.group('📄 handleGenerateReport - Iniciando generación de reporte');
     
     try {
+        if (!canAction('reportes')) {
+            showNoPermissionAlert('reportes');
+            showAlert('No tienes permiso para generar reportes', 'error');
+            return;
+        }
+
         if (reportGenerationInProgress) {
             showAlert('Ya hay una generación en curso. Espere por favor.', 'warning');
             return;
@@ -749,6 +762,12 @@ async function generateReportDownload() {
     let progressInterval;
     
     try {
+        if (!canAction('reportes')) {
+            showNoPermissionAlert('reportes');
+            showAlert('No tienes permiso para generar reportes', 'error');
+            return;
+        }
+
         // OBTENER VALORES DESDE LOS ELEMENTOS DOM
         const reportType = DOM.reportType ? DOM.reportType.value : 'general';
         const format = DOM.reportFormat ? DOM.reportFormat.value : 'excel';
@@ -1291,6 +1310,11 @@ export function initReportsModule() {
     console.group('🚀 initReportsModule - Inicializando módulo de reportes');
     
     try {
+        if (!canView('reportes')) {
+            console.log('⛔ Sin permiso de vista para reportes: omitiendo initReportsModule');
+            return;
+        }
+
         // Configurar event listeners
         if (DOM.reportType) {
             DOM.reportType.addEventListener('change', handleReportTypeChange);
