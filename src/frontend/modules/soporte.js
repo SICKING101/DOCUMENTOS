@@ -1402,71 +1402,316 @@ initSystemStatus() {
     }
 
     async submitTicket() {
-        try {
-            if (!canAction('soporte')) {
-                showNoPermissionAlert('soporte');
-                showAlert('No tienes permiso para crear tickets de soporte', 'error');
-                return;
-            }
+    try {
+        if (!canAction('soporte')) {
+            showNoPermissionAlert('soporte');
+            showAlert('No tienes permiso para crear tickets de soporte', 'error');
+            return;
+        }
 
-            const subject = DOM.ticketSubject.value.trim();
-            const description = DOM.ticketDescription.value.trim();
-            const category = DOM.ticketCategory.value;
-            const priority = DOM.ticketPriority.value;
-            const dueDate = DOM.ticketDueDate?.value || '';
-            
-            if (!subject || !description || !category || !priority) {
-                showAlert('Por favor, completa todos los campos obligatorios', 'error');
-                return;
-            }
-            
-            if (subject.length < 5) {
-                showAlert('El asunto debe tener al menos 5 caracteres', 'error');
-                return;
-            }
-            
-            if (description.length < 20) {
-                showAlert('La descripción debe tener al menos 20 caracteres', 'error');
-                return;
-            }
-            
-            const ticketData = {
-                subject,
-                description,
-                category,
-                priority,
-                dueDate: dueDate || null,
-                emailNotifications: true
-            };
-            
-            console.log('📤 Enviando ticket con datos:', ticketData);
-            console.log(`📎 Archivos adjuntos: ${this.selectedFiles?.length || 0}`);
-            
-            const submitBtn = DOM.submitTicketBtn;
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-            submitBtn.disabled = true;
+        // ===== LIMPIAR VALIDACIONES ANTERIORES =====
+        this.clearFormAlerts();
+        this.clearFieldHighlights();
 
-            const response = await api.createTicket(ticketData, this.selectedFiles);
+        // ===== OBTENER VALORES DEL FORMULARIO =====
+        const subject = DOM.ticketSubject?.value.trim() || '';
+        const description = DOM.ticketDescription?.value.trim() || '';
+        const category = DOM.ticketCategory?.value || '';
+        const priority = DOM.ticketPriority?.value || '';
+        const dueDate = DOM.ticketDueDate?.value || '';
+        
+        console.log('📝 Validando ticket:', { subject, description, category, priority, dueDate });
+
+        // ===== VALIDAR CAMPOS OBLIGATORIOS =====
+        const errors = [];
+
+        // Validar asunto
+        if (!subject) {
+            errors.push({
+                field: 'ticketSubject',
+                message: 'El asunto es obligatorio'
+            });
+        } else if (subject.length < 5) {
+            errors.push({
+                field: 'ticketSubject',
+                message: 'El asunto debe tener al menos 5 caracteres'
+            });
+        }
+
+        // Validar descripción
+        if (!description) {
+            errors.push({
+                field: 'ticketDescription',
+                message: 'La descripción es obligatoria'
+            });
+        } else if (description.length < 20) {
+            errors.push({
+                field: 'ticketDescription',
+                message: 'La descripción debe tener al menos 20 caracteres'
+            });
+        }
+
+        // Validar categoría
+        if (!category) {
+            errors.push({
+                field: 'ticketCategory',
+                message: 'Selecciona una categoría'
+            });
+        }
+
+        // Validar prioridad
+        if (!priority) {
+            errors.push({
+                field: 'ticketPriority',
+                message: 'Selecciona una prioridad'
+            });
+        }
+
+        // Validar fecha de vencimiento (si se proporciona)
+        if (dueDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selectedDate = new Date(dueDate);
             
-            if (response.success) {
-                showAlert('✅ Ticket creado exitosamente. Recibirás una confirmación por email.', 'success');
+            if (selectedDate < today) {
+                errors.push({
+                    field: 'ticketDueDate',
+                    message: 'La fecha de vencimiento no puede ser anterior a hoy'
+                });
+            }
+        }
+
+        // ===== SI HAY ERRORES, MOSTRARLOS Y DETENER =====
+        if (errors.length > 0) {
+            console.log('❌ Errores de validación:', errors);
+            
+            // Mostrar alerta general
+            this.showFormAlert(
+                'error',
+                `Por favor, corrige los siguientes errores:\n• ${errors.map(e => e.message).join('\n• ')}`
+            );
+            
+            // Resaltar campos con error
+            errors.forEach(error => {
+                this.highlightField(error.field, error.message);
+            });
+            
+            // Hacer scroll al inicio del formulario
+            DOM.ticketModal?.querySelector('.modal__body')?.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+            
+            return;
+        }
+
+        // ===== PREPARAR DATOS DEL TICKET =====
+        const ticketData = {
+            subject,
+            description,
+            category,
+            priority,
+            dueDate: dueDate || null,
+            emailNotifications: true
+        };
+        
+        console.log('📤 Enviando ticket con datos:', ticketData);
+        console.log(`📎 Archivos adjuntos: ${this.selectedFiles?.length || 0}`);
+
+        // ===== MOSTRAR ESTADO DE CARGA =====
+        const submitBtn = DOM.submitTicketBtn;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+        submitBtn.disabled = true;
+
+        // ===== ENVIAR TICKET =====
+        const response = await api.createTicket(ticketData, this.selectedFiles);
+        
+        if (response.success) {
+            // ===== MOSTRAR ALERTA DE ÉXITO =====
+            this.showFormAlert(
+                'success',
+                '✅ Ticket creado exitosamente. Recibirás una confirmación por email.',
+                5000
+            );
+            
+            // Cerrar modal después de un breve delay
+            setTimeout(() => {
                 this.closeTicketModal();
                 
+                // Mostrar notificación adicional si está permitido
                 this.sendTicketNotification(ticketData);
-            } else {
-                showAlert(response.message || 'Error al crear el ticket', 'error');
-            }
+            }, 1500);
             
-        } catch (error) {
-            console.error('❌ Error creando ticket:', error);
-            showAlert('Error al crear el ticket: ' + error.message, 'error');
-        } finally {
-            const submitBtn = DOM.submitTicketBtn;
+        } else {
+            // ===== MOSTRAR ALERTA DE ERROR =====
+            this.showFormAlert(
+                'error',
+                response.message || 'Error al crear el ticket. Por favor, intenta de nuevo.'
+            );
+            
+            // Restaurar botón
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+        
+    } catch (error) {
+        console.error('❌ Error creando ticket:', error);
+        
+        // ===== MOSTRAR ALERTA DE ERROR INESPERADO =====
+        this.showFormAlert(
+            'error',
+            `Error al crear el ticket: ${error.message}`
+        );
+        
+        // Restaurar botón
+        const submitBtn = DOM.submitTicketBtn;
+        if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Ticket';
             submitBtn.disabled = false;
         }
     }
+}
+
+// =============================================================================
+// MÉTODOS AUXILIARES PARA VALIDACIÓN VISUAL
+// =============================================================================
+
+/**
+ * Limpiar todas las alertas del formulario
+ */
+clearFormAlerts() {
+    // Eliminar alertas existentes
+    const existingAlerts = document.querySelectorAll('.form-alerts-container');
+    existingAlerts.forEach(alert => alert.remove());
+}
+
+/**
+ * Limpiar todos los resaltados de campos
+ */
+clearFieldHighlights() {
+    // Eliminar mensajes de validación
+    document.querySelectorAll('.validation-message').forEach(msg => msg.remove());
+    
+    // Eliminar clases de error
+    document.querySelectorAll('.field--error-highlight').forEach(field => {
+        field.classList.remove('field--error-highlight');
+    });
+}
+
+/**
+ * Mostrar alerta en el formulario
+ * @param {string} type - Tipo de alerta (success, error, warning, info)
+ * @param {string} message - Mensaje a mostrar
+ * @param {number} timeout - Tiempo en ms antes de desaparecer (opcional)
+ */
+showFormAlert(type, message, timeout = null) {
+    // Crear contenedor de alertas si no existe
+    let alertContainer = document.querySelector('.form-alerts-container');
+    if (!alertContainer) {
+        alertContainer = document.createElement('div');
+        alertContainer.className = 'form-alerts-container';
+        
+        // Insertar al inicio del modal body
+        const modalBody = DOM.ticketModal?.querySelector('.modal__body');
+        if (modalBody) {
+            modalBody.insertBefore(alertContainer, modalBody.firstChild);
+        }
+    }
+    
+    // Crear alerta
+    const alert = document.createElement('div');
+    alert.className = `alert alert--form alert--${type} slide-up`;
+    
+    // Ícono según tipo
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
+    alert.innerHTML = `
+        <div class="alert__icon">
+            <i class="fas ${icons[type] || icons.info}"></i>
+        </div>
+        <div class="alert__content">
+            <p class="alert__message">${message}</p>
+        </div>
+        <button class="alert__close" onclick="this.closest('.alert').remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Agregar al contenedor
+    alertContainer.appendChild(alert);
+    
+    // Auto-cerrar después de timeout si se especifica
+    if (timeout) {
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.classList.add('fade-out');
+                setTimeout(() => alert.remove(), 300);
+            }
+        }, timeout);
+    }
+    
+    // Scroll hasta la alerta
+    alert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/**
+ * Resaltar campo con error
+ * @param {string} fieldId - ID del campo
+ * @param {string} message - Mensaje de error
+ */
+highlightField(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Remover resaltado anterior
+    field.classList.remove('field--error-highlight');
+    
+    // Eliminar mensaje anterior
+    const oldMessage = field.parentNode?.querySelector('.validation-message');
+    if (oldMessage) oldMessage.remove();
+    
+    // Agregar resaltado
+    field.classList.add('field--error-highlight');
+    
+    // Crear mensaje de validación
+    const validationMsg = document.createElement('div');
+    validationMsg.className = 'validation-message validation-message--error';
+    validationMsg.innerHTML = `
+        <i class="fas fa-exclamation-circle"></i>
+        <span>${message}</span>
+    `;
+    
+    // Insertar después del campo
+    field.parentNode?.insertBefore(validationMsg, field.nextSibling);
+    
+    // Evento para quitar resaltado cuando el usuario empiece a escribir
+    const removeHighlight = () => {
+        field.classList.remove('field--error-highlight');
+        if (validationMsg.parentNode) {
+            validationMsg.remove();
+        }
+        field.removeEventListener('input', removeHighlight);
+        field.removeEventListener('change', removeHighlight);
+    };
+    
+    field.addEventListener('input', removeHighlight, { once: true });
+    field.addEventListener('change', removeHighlight, { once: true });
+}
+
+/**
+ * Mostrar alerta de éxito (wrapper para compatibilidad)
+ * @param {string} message 
+ * @param {string} type 
+ */
+showAlert(message, type = 'info') {
+    this.showFormAlert(type, message, 5000);
+}
 
     getCategoryName(category) {
         const categories = {
@@ -1600,6 +1845,21 @@ initSystemStatus() {
         console.log(`🔍 No hay resultados para: "${query}"`);
         showAlert(`No se encontraron resultados para "${query}"`, 'info');
     }
+
+    testValidations() {
+    console.log('🧪 Probando validaciones del formulario...');
+    
+    // Limpiar campos
+    if (DOM.ticketSubject) DOM.ticketSubject.value = '';
+    if (DOM.ticketDescription) DOM.ticketDescription.value = '';
+    if (DOM.ticketCategory) DOM.ticketCategory.value = '';
+    if (DOM.ticketPriority) DOM.ticketPriority.value = '';
+    
+    // Ejecutar validaciones
+    this.submitTicket();
+    
+    console.log('✅ Validaciones ejecutadas');
+}
 }
 
 // Exponer el constructor para que navigation.js lo instancie al entrar a la pestaña Soporte.
