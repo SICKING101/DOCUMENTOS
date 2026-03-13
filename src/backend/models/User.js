@@ -69,6 +69,32 @@ const userSchema = new mongoose.Schema(
       ref:     'User',
       default: null,
     },
+     // ===== CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA =====
+    // Token para recuperación (código de 6 dígitos hasheado)
+    resetPasswordToken: {
+      type: String,
+      select: false,  // No se devuelve en consultas normales por seguridad
+      index: true
+    },
+    
+    // Fecha de expiración del token de recuperación
+    resetPasswordExpires: {
+      type: Date,
+      select: false
+    },
+    
+    // Token para cambio de contraseña (después de verificar código)
+    changePasswordToken: {
+      type: String,
+      select: false,
+      index: true
+    },
+    
+    // Fecha de expiración del token de cambio
+    changePasswordExpires: {
+      type: Date,
+      select: false
+    },
   },
   {
     timestamps: true, // createdAt, updatedAt automáticos

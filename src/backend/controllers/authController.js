@@ -64,77 +64,77 @@ try {
   console.log(`   Port: ${transporter.options.port}`);
   console.log(`   Secure: ${transporter.options.secure}`);
   console.log(`   TLS: ${transporter.options.tls ? 'Activado' : 'Desactivado'}`);
-  
-transporter.verify(async (error, success) => {
-  if (error) {
-    console.error('❌ ERROR DE CONEXIÓN GMAIL:', error.message);
-    console.error(`🔧 Código: ${error.code}`);
-    console.error(`🔧 Comando: ${error.command}`);
-    
-    if (error.response) {
-      console.error(`🔧 Respuesta SMTP: ${error.response}`);
-    }
-    
-    // DIAGNÓSTICO ESPECÍFICO GMAIL
-    console.error('\n🔍 DIAGNÓSTICO GMAIL:');
-    if (error.code === 'EAUTH') {
-      console.error('⚠️  ERROR DE AUTENTICACIÓN');
-      console.error('   Razones comunes:');
-      console.error('   1. Contraseña incorrecta');
-      console.error('   2. No es una "Contraseña de aplicación"');
-      console.error('   3. Verificación en 2 pasos no activada');
-      console.error('   4. "Acceso de apps menos seguras" desactivado');
-      console.error('\n   🛠️  SOLUCIÓN:');
-      console.error('   1. Ve a: https://myaccount.google.com/security');
-      console.error('   2. Activa "Verificación en 2 pasos" (si no está)');
-      console.error('   3. Ve a: https://myaccount.google.com/apppasswords');
-      console.error('   4. Genera una App Password de 16 caracteres');
-      console.error('   5. Úsala en emailPass (línea 12 de este archivo)');
-    } else if (error.code === 'ECONNECTION') {
-      console.error('⚠️  ERROR DE CONEXIÓN');
-      console.error('   Verifica:');
-      console.error('   1. Conexión a internet');
-      console.error('   2. Puerto 587 no bloqueado por firewall');
-      console.error('   3. DNS funcionando correctamente');
-    }
-    
-    console.error('\n📧 El sistema NO enviará emails reales');
-    console.error('📧 Los códigos aparecerán solo en consola');
-  } else {
-    console.log('✅ CONEXIÓN GMAIL VERIFICADA CORRECTAMENTE');
-    console.log('✅ Los emails llegarán a Gmail real');
-    console.log('✅ Usuario:', emailUser);
-    
-    // ENVIAR EMAIL DE PRUEBA AUTOMÁTICO AL ADMINISTRADOR ACTUAL
-    console.log('\n🧪 Buscando administrador actual para enviar email de prueba...');
-    
-    try {
-      // BUSCAR AL ADMINISTRADOR ACTUAL EN LA BASE DE DATOS
-      const adminActual = await User.findOne({ 
-        rol: 'administrador', 
-        activo: true 
-      }).sort({ createdAt: 1 }); // Obtener el más reciente
-      
-      let emailDestino;
-      let nombreAdmin;
-      
-      if (adminActual) {
-        emailDestino = adminActual.correo;
-        nombreAdmin = adminActual.usuario;
-        console.log(`✅ Administrador actual encontrado: ${nombreAdmin} (${emailDestino})`);
-      } else {
-        // Si no hay admin en la BD, usar el email configurado
-        emailDestino = emailUser;
-        nombreAdmin = 'Administrador';
-        console.log(`⚠️  No se encontró admin en BD, usando email configurado: ${emailDestino}`);
+
+  transporter.verify(async (error, success) => {
+    if (error) {
+      console.error('❌ ERROR DE CONEXIÓN GMAIL:', error.message);
+      console.error(`🔧 Código: ${error.code}`);
+      console.error(`🔧 Comando: ${error.command}`);
+
+      if (error.response) {
+        console.error(`🔧 Respuesta SMTP: ${error.response}`);
       }
-      
-      // PREPARAR EMAIL DE PRUEBA MEJORADO
-      const testMailOptions = {
-        from: `"Sistema CBTIS051" <${emailFrom}>`,
-        to: emailDestino, // ✅ AHORA USA EL CORREO DEL ADMIN ACTUAL
-        subject: '✅ Sistema CBTIS051 - Configuración Gmail Correcta',
-        html: `
+
+      // DIAGNÓSTICO ESPECÍFICO GMAIL
+      console.error('\n🔍 DIAGNÓSTICO GMAIL:');
+      if (error.code === 'EAUTH') {
+        console.error('⚠️  ERROR DE AUTENTICACIÓN');
+        console.error('   Razones comunes:');
+        console.error('   1. Contraseña incorrecta');
+        console.error('   2. No es una "Contraseña de aplicación"');
+        console.error('   3. Verificación en 2 pasos no activada');
+        console.error('   4. "Acceso de apps menos seguras" desactivado');
+        console.error('\n   🛠️  SOLUCIÓN:');
+        console.error('   1. Ve a: https://myaccount.google.com/security');
+        console.error('   2. Activa "Verificación en 2 pasos" (si no está)');
+        console.error('   3. Ve a: https://myaccount.google.com/apppasswords');
+        console.error('   4. Genera una App Password de 16 caracteres');
+        console.error('   5. Úsala en emailPass (línea 12 de este archivo)');
+      } else if (error.code === 'ECONNECTION') {
+        console.error('⚠️  ERROR DE CONEXIÓN');
+        console.error('   Verifica:');
+        console.error('   1. Conexión a internet');
+        console.error('   2. Puerto 587 no bloqueado por firewall');
+        console.error('   3. DNS funcionando correctamente');
+      }
+
+      console.error('\n📧 El sistema NO enviará emails reales');
+      console.error('📧 Los códigos aparecerán solo en consola');
+    } else {
+      console.log('✅ CONEXIÓN GMAIL VERIFICADA CORRECTAMENTE');
+      console.log('✅ Los emails llegarán a Gmail real');
+      console.log('✅ Usuario:', emailUser);
+
+      // ENVIAR EMAIL DE PRUEBA AUTOMÁTICO AL ADMINISTRADOR ACTUAL
+      console.log('\n🧪 Buscando administrador actual para enviar email de prueba...');
+
+      try {
+        // BUSCAR AL ADMINISTRADOR ACTUAL EN LA BASE DE DATOS
+        const adminActual = await User.findOne({
+          rol: 'administrador',
+          activo: true
+        }).sort({ createdAt: 1 }); // Obtener el más reciente
+
+        let emailDestino;
+        let nombreAdmin;
+
+        if (adminActual) {
+          emailDestino = adminActual.correo;
+          nombreAdmin = adminActual.usuario;
+          console.log(`✅ Administrador actual encontrado: ${nombreAdmin} (${emailDestino})`);
+        } else {
+          // Si no hay admin en la BD, usar el email configurado
+          emailDestino = emailUser;
+          nombreAdmin = 'Administrador';
+          console.log(`⚠️  No se encontró admin en BD, usando email configurado: ${emailDestino}`);
+        }
+
+        // PREPARAR EMAIL DE PRUEBA MEJORADO
+        const testMailOptions = {
+          from: `"Sistema CBTIS051" <${emailFrom}>`,
+          to: emailDestino, // ✅ AHORA USA EL CORREO DEL ADMIN ACTUAL
+          subject: '✅ Sistema CBTIS051 - Configuración Gmail Correcta',
+          html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px;">
             <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
               <h2 style="color: #2d3748; text-align: center; margin-bottom: 20px;">✅ CONFIGURACIÓN EXITOSA</h2>
@@ -167,35 +167,35 @@ transporter.verify(async (error, success) => {
             </div>
           </div>
         `,
-        text: `CONFIGURACIÓN EXITOSA CBTIS051\n\n${nombreAdmin ? `Hola ${nombreAdmin},\n\n` : ''}El sistema ha sido configurado correctamente con Gmail.\n\n📅 Fecha: ${new Date().toLocaleString('es-MX')}\n📧 Cuenta Gmail: ${emailUser}\n👤 Administrador actual: ${nombreAdmin}\n📨 Correo admin: ${emailDestino}\n\nIMPORTANTE:\n- Todos los correos del sistema se enviarán usando la cuenta Gmail configurada\n- Los correos llegarán al destinatario correspondiente\n- El cambio de administrador actualiza el destino de los emails\n\nEl sistema está listo para enviar correos reales.`
-      };
-      
-      console.log('\n📤 ENVIANDO EMAIL DE PRUEBA...');
-      console.log(`   📨 Para: ${emailDestino}`);
-      console.log(`   👤 Administrador: ${nombreAdmin}`);
-      
-      const info = await transporter.sendMail(testMailOptions);
-      
-      console.log('\n✅✅✅ EMAIL DE PRUEBA ENVIADO EXITOSAMENTE ✅✅✅');
-      console.log(`   📨 Destinatario: ${emailDestino}`);
-      console.log(`   👤 Nombre: ${nombreAdmin}`);
-      console.log(`   📧 Message ID: ${info.messageId}`);
-      console.log(`   📤 Respuesta SMTP: ${info.response}`);
-      
-      console.log('\n📌 INSTRUCCIONES PARA EL ADMINISTRADOR ACTUAL:');
-      console.log('   1. Revisa tu bandeja de entrada de Gmail');
-      console.log('   2. Busca el asunto: "✅ Sistema CBTIS051 - Configuración Gmail Correcta"');
-      console.log('   3. Si no está en principal, revisa SPAM/Promociones');
-      console.log('   4. Todos los correos del sistema llegarán al destinatario correcto');
-      
-    } catch (adminError) {
-      console.error('\n⚠️  ERROR al buscar administrador o enviar email:', adminError.message);
-      console.log('📧 El sistema está configurado, pero no se pudo enviar email de prueba');
-      console.log('📧 La funcionalidad de correos seguirá funcionando normalmente');
+          text: `CONFIGURACIÓN EXITOSA CBTIS051\n\n${nombreAdmin ? `Hola ${nombreAdmin},\n\n` : ''}El sistema ha sido configurado correctamente con Gmail.\n\n📅 Fecha: ${new Date().toLocaleString('es-MX')}\n📧 Cuenta Gmail: ${emailUser}\n👤 Administrador actual: ${nombreAdmin}\n📨 Correo admin: ${emailDestino}\n\nIMPORTANTE:\n- Todos los correos del sistema se enviarán usando la cuenta Gmail configurada\n- Los correos llegarán al destinatario correspondiente\n- El cambio de administrador actualiza el destino de los emails\n\nEl sistema está listo para enviar correos reales.`
+        };
+
+        console.log('\n📤 ENVIANDO EMAIL DE PRUEBA...');
+        console.log(`   📨 Para: ${emailDestino}`);
+        console.log(`   👤 Administrador: ${nombreAdmin}`);
+
+        const info = await transporter.sendMail(testMailOptions);
+
+        console.log('\n✅✅✅ EMAIL DE PRUEBA ENVIADO EXITOSAMENTE ✅✅✅');
+        console.log(`   📨 Destinatario: ${emailDestino}`);
+        console.log(`   👤 Nombre: ${nombreAdmin}`);
+        console.log(`   📧 Message ID: ${info.messageId}`);
+        console.log(`   📤 Respuesta SMTP: ${info.response}`);
+
+        console.log('\n📌 INSTRUCCIONES PARA EL ADMINISTRADOR ACTUAL:');
+        console.log('   1. Revisa tu bandeja de entrada de Gmail');
+        console.log('   2. Busca el asunto: "✅ Sistema CBTIS051 - Configuración Gmail Correcta"');
+        console.log('   3. Si no está en principal, revisa SPAM/Promociones');
+        console.log('   4. Todos los correos del sistema llegarán al destinatario correcto');
+
+      } catch (adminError) {
+        console.error('\n⚠️  ERROR al buscar administrador o enviar email:', adminError.message);
+        console.log('📧 El sistema está configurado, pero no se pudo enviar email de prueba');
+        console.log('📧 La funcionalidad de correos seguirá funcionando normalmente');
+      }
     }
-  }
-});
-  
+  });
+
 } catch (error) {
   console.error('❌ ERROR CRÍTICO al configurar Gmail:', error.message);
   console.error('🔧 Stack:', error.stack);
@@ -240,13 +240,13 @@ const enviarEmailGmail = async (mailOptions, intentos = 3) => {
       return info;
     } catch (error) {
       console.error(`❌ Intento ${i + 1} falló:`, error.message);
-      
+
       // Si es el último intento, lanza el error
       if (i === intentos - 1) {
         console.error('🔥 TODOS los intentos fallaron');
         throw error;
       }
-      
+
       // Esperar 2 segundos antes de reintentar
       console.log(`⏳ Esperando 2 segundos antes de reintentar...`);
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -255,7 +255,7 @@ const enviarEmailGmail = async (mailOptions, intentos = 3) => {
 };
 
 // =============================================================================
-// SOLICITAR CÓDIGO DE RECUPERACIÓN - VERSIÓN GMAIL REAL CON AUDITORÍA
+// SOLICITAR CÓDIGO DE RECUPERACIÓN - VERSIÓN CORREGIDA CON DEBUG
 // =============================================================================
 export const solicitarCodigoRecuperacion = async (req, res) => {
   try {
@@ -283,9 +283,6 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       console.log('⚠️  Correo no registrado en el sistema');
       console.log('📧 Se devuelve éxito por seguridad (sin enviar email)');
       
-      // =======================================================================
-      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA (CORREO NO EXISTE)
-      // =======================================================================
       await AuditService.log(req, {
         action: 'PASSWORD_RESET_REQUEST',
         actionType: 'CREATE',
@@ -310,23 +307,49 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
 
     console.log(`✅ Usuario encontrado: ${user.usuario}`);
     console.log(`🆔 ID: ${user._id}`);
+    console.log(`📧 Correo en BD: ${user.correo}`);
 
     // Generar código de 6 dígitos
     const codigo = generarCodigoVerificacion();
-    
     console.log(`🔑 Código generado: ${codigo}`);
 
-    // Guardar código hasheado y fecha de expiración
-    user.resetPasswordToken = crypto
+    // ===== IMPORTANTE: Generar el hash EXACTAMENTE igual que en verificación =====
+    const hash = crypto
       .createHash('sha256')
       .update(codigo)
       .digest('hex');
-    
+
+    console.log(`🔐 Hash generado: ${hash}`);
+    console.log(`🔐 Hash (primeros 20): ${hash.substring(0, 20)}...`);
+
+    // Guardar código hasheado y fecha de expiración
+    user.resetPasswordToken = hash;  // USAR LA VARIABLE hash, no calcular de nuevo
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutos
+    
     await user.save({ validateBeforeSave: false });
 
     console.log(`💾 Código guardado en base de datos`);
     console.log(`⏰ Expira a las: ${new Date(user.resetPasswordExpires).toLocaleTimeString()}`);
+    console.log(`⏰ Timestamp expira: ${user.resetPasswordExpires}`);
+    console.log(`⏰ Timestamp ahora: ${Date.now()}`);
+    console.log(`⏰ Diferencia: ${(user.resetPasswordExpires - Date.now()) / 1000 / 60} minutos`);
+
+    // ===== VERIFICACIÓN INMEDIATA POST-GUARDADO =====
+    const userVerification = await User.findOne({ _id: user._id }).select('resetPasswordToken resetPasswordExpires correo');
+    console.log('\n🔍 VERIFICACIÓN POST-GUARDADO:');
+    console.log('- ID:', userVerification._id);
+    console.log('- Correo:', userVerification.correo);
+    console.log('- Token guardado en DB:', userVerification.resetPasswordToken ? 'SÍ' : 'NO');
+    if (userVerification.resetPasswordToken) {
+        console.log('- Token DB completo:', userVerification.resetPasswordToken);
+        console.log('- Token DB (primeros 20):', userVerification.resetPasswordToken.substring(0, 20));
+        console.log('- Token que generamos:', hash.substring(0, 20));
+        console.log('- ¿Coinciden?', userVerification.resetPasswordToken === hash ? 'SÍ' : 'NO');
+    }
+    console.log('- Expira en DB:', userVerification.resetPasswordExpires);
+    console.log('- Expira formato fecha:', new Date(userVerification.resetPasswordExpires).toLocaleString());
+    console.log('- ¿Válido ahora?', userVerification.resetPasswordExpires > Date.now() ? 'SÍ' : 'NO');
+    console.log('');
 
     // PREPARAR EMAIL PARA GMAIL
     const mailOptions = {
@@ -388,19 +411,7 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       console.log(`   📨 Destinatario: ${user.correo}`);
       console.log(`   📧 Message ID: ${info.messageId}`);
       console.log(`   📤 Respuesta SMTP: ${info.response}`);
-      console.log(`   ✅ Aceptado por: ${info.accepted}`);
-      console.log(`   📍 Rechazado: ${info.rejected.length > 0 ? info.rejected : 'Ninguno'}`);
       
-      console.log('\n📌 INSTRUCCIONES PARA EL USUARIO:');
-      console.log('   1. Revisa tu bandeja de entrada de Gmail');
-      console.log('   2. Busca el asunto: "Código de recuperación - Sistema CBTIS051"');
-      console.log('   3. Si no está en principal, revisa SPAM/Promociones');
-      console.log('   4. El código es de 6 dígitos numéricos');
-      console.log('   5. Expira en 15 minutos');
-      
-      // =======================================================================
-      // REGISTRAR SOLICITUD EXITOSA EN AUDITORÍA
-      // =======================================================================
       await AuditService.log(req, {
         action: 'PASSWORD_RESET_REQUEST',
         actionType: 'CREATE',
@@ -415,7 +426,8 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
           usuario: user.usuario,
           correo: user.correo,
           emailEnviado: true,
-          expira: user.resetPasswordExpires
+          expira: user.resetPasswordExpires,
+          hash: hash.substring(0, 10) + '...' // Solo para debug
         }
       }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
       
@@ -431,22 +443,9 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       console.error('\n❌❌❌ ERROR AL ENVIAR A GMAIL ❌❌❌');
       console.error(`   📨 Para: ${user.correo}`);
       console.error(`   📧 Error: ${emailError.message}`);
-      console.error(`   🔧 Código: ${emailError.code}`);
       
-      if (emailError.response) {
-        console.error(`   🔧 Respuesta: ${emailError.response}`);
-      }
-      
-      // MOSTRAR CÓDIGO EN CONSOLA COMO BACKUP
       mostrarCodigoEnConsola(user.correo, codigo);
       
-      console.log('\n📌 USANDO MODO DE EMERGENCIA:');
-      console.log('   El código se muestra arriba ↑↑↑');
-      console.log('   El usuario debe usar ese código');
-      
-      // =======================================================================
-      // REGISTRAR SOLICITUD CON ERROR EN AUDITORÍA
-      // =======================================================================
       await AuditService.log(req, {
         action: 'PASSWORD_RESET_REQUEST',
         actionType: 'CREATE',
@@ -471,7 +470,7 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
       res.json({
         success: true,
         message: '⚠️ Error temporal al enviar email. Usa el código de la consola del servidor.',
-        codigo: codigo, // Enviamos el código directamente (solo para desarrollo)
+        codigo: codigo,
         correo: user.correo,
         userId: user._id,
         debug: process.env.NODE_ENV === 'development' ? emailError.message : undefined,
@@ -486,9 +485,6 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
     console.error('🔥 ERROR en solicitarCodigoRecuperacion:', error.message);
     console.error('🔧 Stack:', error.stack);
     
-    // =======================================================================
-    // REGISTRAR ERROR CRÍTICO EN AUDITORÍA
-    // =======================================================================
     await AuditService.log(req, {
       action: 'PASSWORD_RESET_REQUEST',
       actionType: 'CREATE',
@@ -515,7 +511,7 @@ export const solicitarCodigoRecuperacion = async (req, res) => {
 };
 
 // =============================================================================
-// VERIFICAR CÓDIGO DE RECUPERACIÓN - CON AUDITORÍA
+// VERIFICAR CÓDIGO DE RECUPERACIÓN - VERSIÓN CORREGIDA CON DEBUG
 // =============================================================================
 export const verificarCodigoRecuperacion = async (req, res) => {
   try {
@@ -535,54 +531,34 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     console.log(`📨 Verificando para: ${correo}`);
     console.log(`🔑 Código recibido: ${codigo}`);
 
-    // Hash del código ingresado
+    // ===== GENERAR HASH EXACTAMENTE IGUAL QUE EN SOLICITUD =====
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(codigo)
       .digest('hex');
 
-    console.log(`🔐 Hash calculado: ${resetPasswordToken.substring(0, 20)}...`);
+    console.log(`🔐 Hash calculado: ${resetPasswordToken}`);
+    console.log(`🔐 Hash (primeros 20): ${resetPasswordToken.substring(0, 20)}...`);
 
-    // Buscar usuario con código válido y no expirado
-    const user = await User.findOne({
-      correo,
-      resetPasswordToken,
-      resetPasswordExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      console.log('❌ Código inválido o expirado');
+    // ===== PRIMERO: Buscar usuario SOLO por correo para debug =====
+    const userExists = await User.findOne({ correo }).select('+resetPasswordToken +resetPasswordExpires');
+    
+    if (!userExists) {
+      console.log('❌ El correo no existe en la base de datos');
       
-      // Debug adicional
-      const userExiste = await User.findOne({ correo });
-      if (!userExiste) {
-        console.log('🔍 El correo no existe en la base de datos');
-      } else {
-        console.log(`🔍 Usuario existe: ${userExiste.usuario}`);
-        console.log(`🔍 Token en DB: ${userExiste.resetPasswordToken ? 'Sí' : 'No'}`);
-        if (userExiste.resetPasswordExpires) {
-          console.log(`🔍 Expira: ${new Date(userExiste.resetPasswordExpires).toLocaleString()}`);
-          console.log(`🔍 Ahora: ${new Date().toLocaleString()}`);
-          console.log(`🔍 Válido: ${userExiste.resetPasswordExpires > Date.now() ? 'Sí' : 'No (expirado)'}`);
-        }
-      }
-      
-      // =======================================================================
-      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-      // =======================================================================
       await AuditService.log(req, {
         action: 'PASSWORD_RESET_VERIFY',
         actionType: 'READ',
         actionCategory: 'AUTH',
-        targetId: userExiste?._id || null,
+        targetId: null,
         targetModel: 'User',
-        targetName: userExiste?.usuario || 'Desconocido',
-        description: `Intento fallido de verificación de código para: ${correo}`,
+        targetName: 'Desconocido',
+        description: `Intento fallido de verificación - correo no existe: ${correo}`,
         severity: 'WARNING',
         status: 'FAILED',
         metadata: {
           correo,
-          reason: userExiste ? 'invalid_or_expired_code' : 'user_not_found',
+          reason: 'user_not_found',
           codigoIngresado: codigo
         }
       }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
@@ -593,16 +569,100 @@ export const verificarCodigoRecuperacion = async (req, res) => {
       });
     }
 
-    console.log('✅ Código verificado correctamente');
-    console.log(`👤 Usuario: ${user.usuario}`);
+    console.log('\n🔍 DEBUG - Usuario encontrado por correo:');
+    console.log(`   ID: ${userExists._id}`);
+    console.log(`   Usuario: ${userExists.usuario}`);
+    console.log(`   Correo: ${userExists.correo}`);
+    console.log(`   Token en DB: ${userExists.resetPasswordToken ? 'SÍ' : 'NO'}`);
+    
+    if (userExists.resetPasswordToken) {
+      console.log(`   Token DB completo: ${userExists.resetPasswordToken}`);
+      console.log(`   Token DB (primeros 20): ${userExists.resetPasswordToken.substring(0, 20)}`);
+      console.log(`   Token buscado (primeros 20): ${resetPasswordToken.substring(0, 20)}`);
+      console.log(`   ¿Coinciden exactamente? ${userExists.resetPasswordToken === resetPasswordToken ? 'SÍ' : 'NO'}`);
+      
+      // Comparación carácter por carácter para debug
+      if (userExists.resetPasswordToken !== resetPasswordToken) {
+        console.log('\n🔍 COMPARACIÓN DETALLADA:');
+        for (let i = 0; i < Math.min(userExists.resetPasswordToken.length, resetPasswordToken.length); i++) {
+          if (userExists.resetPasswordToken[i] !== resetPasswordToken[i]) {
+            console.log(`   Diferencia en posición ${i}: DB='${userExists.resetPasswordToken[i]}' vs Calculado='${resetPasswordToken[i]}'`);
+            break;
+          }
+        }
+      }
+    }
+    
+    console.log(`   Expira en DB: ${userExists.resetPasswordExpires}`);
+    console.log(`   Expira formato: ${new Date(userExists.resetPasswordExpires).toLocaleString()}`);
+    console.log(`   Ahora: ${new Date().toLocaleString()}`);
+    console.log(`   Timestamp ahora: ${Date.now()}`);
+    console.log(`   ¿No expirado? ${userExists.resetPasswordExpires > Date.now() ? 'SÍ' : 'NO'}`);
+    console.log(`   Diferencia: ${userExists.resetPasswordExpires ? (userExists.resetPasswordExpires - Date.now()) / 1000 / 60 : 'N/A'} minutos`);
+
+    // ===== SEGUNDO: Buscar usuario con TODOS los criterios =====
+    const user = await User.findOne({
+      _id: userExists._id,  // Usar ID explícitamente
+      resetPasswordToken: resetPasswordToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      console.log('\n❌ Código inválido o expirado (búsqueda por ID+token falló)');
+      
+      // Determinar razón específica
+      let reason = 'unknown';
+      if (!userExists.resetPasswordToken) {
+        reason = 'no_token_in_db';
+      } else if (userExists.resetPasswordToken !== resetPasswordToken) {
+        reason = 'token_mismatch';
+      } else if (userExists.resetPasswordExpires <= Date.now()) {
+        reason = 'expired';
+      }
+      
+      console.log(`   Razón: ${reason}`);
+      
+      await AuditService.log(req, {
+        action: 'PASSWORD_RESET_VERIFY',
+        actionType: 'READ',
+        actionCategory: 'AUTH',
+        targetId: userExists._id,
+        targetModel: 'User',
+        targetName: userExists.usuario,
+        description: `Intento fallido de verificación de código para: ${correo}`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          correo,
+          usuario: userExists.usuario,
+          reason: reason,
+          codigoIngresado: codigo,
+          debug: {
+            tokenInDB: !!userExists.resetPasswordToken,
+            tokenMatch: userExists.resetPasswordToken === resetPasswordToken,
+            expired: userExists.resetPasswordExpires ? userExists.resetPasswordExpires <= Date.now() : null
+          }
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Código inválido o expirado'
+      });
+    }
+
+    console.log('\n✅ CÓDIGO VERIFICADO CORRECTAMENTE');
+    console.log(`   Usuario: ${user.usuario}`);
+    console.log(`   ID: ${user._id}`);
 
     // Generar token temporal para cambiar contraseña
     const tokenTemporal = crypto.randomBytes(32).toString('hex');
-    user.changePasswordToken = crypto
+    const changePasswordToken = crypto
       .createHash('sha256')
       .update(tokenTemporal)
       .digest('hex');
     
+    user.changePasswordToken = changePasswordToken;
     user.changePasswordExpires = Date.now() + 30 * 60 * 1000; // 30 minutos
     
     // Limpiar el código de recuperación
@@ -611,13 +671,11 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     
     await user.save({ validateBeforeSave: false });
 
-    console.log(`✅ Token temporal generado`);
-    console.log(`🔐 Token (inicio): ${tokenTemporal.substring(0, 10)}...`);
-    console.log(`⏰ Expira a las: ${new Date(user.changePasswordExpires).toLocaleTimeString()}`);
+    console.log(`\n✅ Token temporal generado`);
+    console.log(`   Token (inicio): ${tokenTemporal.substring(0, 10)}...`);
+    console.log(`   Hash guardado: ${changePasswordToken.substring(0, 20)}...`);
+    console.log(`   Expira: ${new Date(user.changePasswordExpires).toLocaleTimeString()}`);
 
-    // =======================================================================
-    // REGISTRAR VERIFICACIÓN EXITOSA EN AUDITORÍA
-    // =======================================================================
     await AuditService.log(req, {
       action: 'PASSWORD_RESET_VERIFY',
       actionType: 'READ',
@@ -649,10 +707,8 @@ export const verificarCodigoRecuperacion = async (req, res) => {
     
   } catch (error) {
     console.error('🔥 ERROR en verificarCodigoRecuperacion:', error.message);
+    console.error('🔧 Stack:', error.stack);
     
-    // =======================================================================
-    // REGISTRAR ERROR EN AUDITORÍA
-    // =======================================================================
     await AuditService.log(req, {
       action: 'PASSWORD_RESET_VERIFY',
       actionType: 'READ',
@@ -685,7 +741,7 @@ export const cambiarContraseña = async (req, res) => {
     console.log('');
     console.log('🔑 ========== CAMBIO DE CONTRASEÑA ==========');
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
-    
+
     const { token, password } = req.body;
 
     if (!token || !password) {
@@ -721,7 +777,7 @@ export const cambiarContraseña = async (req, res) => {
 
     if (!user) {
       console.log('❌ Token inválido o expirado');
-      
+
       // =======================================================================
       // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
       // =======================================================================
@@ -740,7 +796,7 @@ export const cambiarContraseña = async (req, res) => {
           reason: 'invalid_token'
         }
       }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-      
+
       return res.status(400).json({
         success: false,
         message: 'Token inválido o expirado'
@@ -760,8 +816,16 @@ export const cambiarContraseña = async (req, res) => {
     user.changePasswordToken = undefined;
     user.changePasswordExpires = undefined;
     user.ultimoAcceso = Date.now();
-    
+
     await user.save();
+
+    console.log('🔍 VERIFICACIÓN POST-GUARDADO:');
+    const userVerification = await User.findOne({ correo: user.correo }).select('resetPasswordToken resetPasswordExpires');
+    console.log('- Token guardado:', userVerification.resetPasswordToken ? 'SÍ' : 'NO');
+    console.log('- Hash completo:', userVerification.resetPasswordToken);
+    console.log('- Expira:', userVerification.resetPasswordExpires);
+    console.log('- Ahora:', Date.now());
+    console.log('- Válido por:', (userVerification.resetPasswordExpires - Date.now()) / 1000 / 60, 'minutos');
 
     console.log(`✅ Contraseña cambiada exitosamente`);
 
@@ -858,14 +922,14 @@ export const cambiarContraseña = async (req, res) => {
       usuario: user.usuario,
       timestamp: new Date().toISOString()
     });
-    
+
     console.log('\n🔑 ========== FIN CAMBIO ==========');
     console.log('');
-    
+
   } catch (error) {
     console.error('🔥 ERROR en cambiarContraseña:', error.message);
     console.error('🔧 Stack:', error.stack);
-    
+
     // =======================================================================
     // REGISTRAR ERROR EN AUDITORÍA
     // =======================================================================
@@ -883,7 +947,7 @@ export const cambiarContraseña = async (req, res) => {
         error: error.message
       }
     }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-    
+
     res.status(500).json({
       success: false,
       message: 'Error del servidor al cambiar contraseña',
@@ -897,125 +961,125 @@ export const cambiarContraseña = async (req, res) => {
 // =============================================================================
 
 export const verifyPassword = async (req, res) => {
-    try {
-        console.log('🔐 ========== VERIFICACIÓN DE CONTRASEÑA ==========');
-        console.log('📅 Hora:', new Date().toLocaleString('es-MX'));
-        
-        const { password } = req.body;
-        const userId = req.user.id;
-        
-        console.log('👤 Usuario ID:', userId);
-        console.log('🔑 Contraseña recibida:', password ? '***' + password.slice(-2) : 'No proporcionada');
+  try {
+    console.log('🔐 ========== VERIFICACIÓN DE CONTRASEÑA ==========');
+    console.log('📅 Hora:', new Date().toLocaleString('es-MX'));
 
-        if (!password) {
-            console.log('❌ No se proporcionó contraseña');
-            return res.status(400).json({
-                success: false,
-                message: 'La contraseña es requerida'
-            });
-        }
+    const { password } = req.body;
+    const userId = req.user.id;
 
-        // Buscar usuario
-        const user = await User.findById(userId);
-        
-        if (!user) {
-            console.log('❌ Usuario no encontrado');
-            return res.status(404).json({
-                success: false,
-                message: 'Usuario no encontrado'
-            });
-        }
-        
-        console.log('✅ Usuario encontrado:', user.usuario);
-        
-        // Verificar contraseña
-        const isValid = await user.compararPassword(password);
-        
-        if (!isValid) {
-            console.log('❌ Contraseña incorrecta');
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'PASSWORD_VERIFY',
-                actionType: 'READ',
-                actionCategory: 'AUTH',
-                targetId: user._id,
-                targetModel: 'User',
-                targetName: user.usuario,
-                description: `Intento fallido de verificación de contraseña actual`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    usuario: user.usuario,
-                    reason: 'incorrect_password'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            return res.status(400).json({
-                success: false,
-                message: 'Contraseña actual incorrecta'
-            });
-        }
-        
-        console.log('✅ Contraseña verificada correctamente');
-        
-        // =======================================================================
-        // REGISTRAR VERIFICACIÓN EXITOSA EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
-            action: 'PASSWORD_VERIFY',
-            actionType: 'READ',
-            actionCategory: 'AUTH',
-            targetId: user._id,
-            targetModel: 'User',
-            targetName: user.usuario,
-            description: `Verificación de contraseña actual exitosa`,
-            severity: 'INFO',
-            status: 'SUCCESS',
-            metadata: {
-                usuario: user.usuario
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-        
-        console.log('🔐 ========== FIN VERIFICACIÓN ==========\n');
-        
-        res.json({
-            success: true,
-            message: 'Contraseña verificada correctamente',
-            usuario: user.usuario,
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('🔥 ERROR en verifyPassword:', error.message);
-        console.error('🔧 Stack:', error.stack);
-        
-        // =======================================================================
-        // REGISTRAR ERROR EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
-            action: 'PASSWORD_VERIFY',
-            actionType: 'READ',
-            actionCategory: 'AUTH',
-            targetId: req.user?.id || null,
-            targetModel: 'User',
-            targetName: 'Error',
-            description: `Error al verificar contraseña: ${error.message}`,
-            severity: 'ERROR',
-            status: 'FAILED',
-            metadata: {
-                error: error.message
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-        
-        res.status(500).json({
-            success: false,
-            message: 'Error del servidor al verificar contraseña',
-            timestamp: new Date().toISOString()
-        });
+    console.log('👤 Usuario ID:', userId);
+    console.log('🔑 Contraseña recibida:', password ? '***' + password.slice(-2) : 'No proporcionada');
+
+    if (!password) {
+      console.log('❌ No se proporcionó contraseña');
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña es requerida'
+      });
     }
+
+    // Buscar usuario
+    const user = await User.findById(userId);
+
+    if (!user) {
+      console.log('❌ Usuario no encontrado');
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+
+    console.log('✅ Usuario encontrado:', user.usuario);
+
+    // Verificar contraseña
+    const isValid = await user.compararPassword(password);
+
+    if (!isValid) {
+      console.log('❌ Contraseña incorrecta');
+
+      // =======================================================================
+      // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
+      // =======================================================================
+      await AuditService.log(req, {
+        action: 'PASSWORD_VERIFY',
+        actionType: 'READ',
+        actionCategory: 'AUTH',
+        targetId: user._id,
+        targetModel: 'User',
+        targetName: user.usuario,
+        description: `Intento fallido de verificación de contraseña actual`,
+        severity: 'WARNING',
+        status: 'FAILED',
+        metadata: {
+          usuario: user.usuario,
+          reason: 'incorrect_password'
+        }
+      }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
+      return res.status(400).json({
+        success: false,
+        message: 'Contraseña actual incorrecta'
+      });
+    }
+
+    console.log('✅ Contraseña verificada correctamente');
+
+    // =======================================================================
+    // REGISTRAR VERIFICACIÓN EXITOSA EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_VERIFY',
+      actionType: 'READ',
+      actionCategory: 'AUTH',
+      targetId: user._id,
+      targetModel: 'User',
+      targetName: user.usuario,
+      description: `Verificación de contraseña actual exitosa`,
+      severity: 'INFO',
+      status: 'SUCCESS',
+      metadata: {
+        usuario: user.usuario
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
+    console.log('🔐 ========== FIN VERIFICACIÓN ==========\n');
+
+    res.json({
+      success: true,
+      message: 'Contraseña verificada correctamente',
+      usuario: user.usuario,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('🔥 ERROR en verifyPassword:', error.message);
+    console.error('🔧 Stack:', error.stack);
+
+    // =======================================================================
+    // REGISTRAR ERROR EN AUDITORÍA
+    // =======================================================================
+    await AuditService.log(req, {
+      action: 'PASSWORD_VERIFY',
+      actionType: 'READ',
+      actionCategory: 'AUTH',
+      targetId: req.user?.id || null,
+      targetModel: 'User',
+      targetName: 'Error',
+      description: `Error al verificar contraseña: ${error.message}`,
+      severity: 'ERROR',
+      status: 'FAILED',
+      metadata: {
+        error: error.message
+      }
+    }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+
+    res.status(500).json({
+      success: false,
+      message: 'Error del servidor al verificar contraseña',
+      timestamp: new Date().toISOString()
+    });
+  }
 };
 
 // =============================================================================
@@ -1026,7 +1090,7 @@ export const verificarTokenCambio = async (req, res) => {
     console.log('');
     console.log('🔐 ========== VERIFICACIÓN DE TOKEN ==========');
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
-    
+
     const { token } = req.params;
 
     if (!token) {
@@ -1054,7 +1118,7 @@ export const verificarTokenCambio = async (req, res) => {
 
     if (!user) {
       console.log('❌ Token inválido o expirado');
-      
+
       // =======================================================================
       // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
       // =======================================================================
@@ -1072,7 +1136,7 @@ export const verificarTokenCambio = async (req, res) => {
           tokenPreview: token.substring(0, 10) + '...'
         }
       }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-      
+
       return res.status(400).json({
         success: false,
         message: 'Token inválido o expirado'
@@ -1113,13 +1177,13 @@ export const verificarTokenCambio = async (req, res) => {
       expira: user.changePasswordExpires,
       timestamp: new Date().toISOString()
     });
-    
+
     console.log('\n🔐 ========== FIN VERIFICACIÓN ==========');
     console.log('');
-    
+
   } catch (error) {
     console.error('🔥 ERROR en verificarTokenCambio:', error.message);
-    
+
     // =======================================================================
     // REGISTRAR ERROR EN AUDITORÍA
     // =======================================================================
@@ -1138,7 +1202,7 @@ export const verificarTokenCambio = async (req, res) => {
         tokenPreview: req.params?.token?.substring(0, 10)
       }
     }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-    
+
     res.status(500).json({
       success: false,
       message: 'Error del servidor al verificar token',
@@ -1155,7 +1219,7 @@ export const pruebaEmail = async (req, res) => {
     console.log('');
     console.log('🧪 ========== PRUEBA GMAIL REAL ==========');
     console.log(`📅 Hora: ${new Date().toLocaleString('es-MX')}`);
-    
+
     if (!transporter) {
       console.log('❌ Transporter Gmail no configurado');
       return res.status(400).json({
@@ -1174,13 +1238,13 @@ export const pruebaEmail = async (req, res) => {
     let adminActual = null;
     let emailDestino = req.body.email || emailUser;
     let nombreAdmin = 'Administrador';
-    
+
     try {
-      adminActual = await User.findOne({ 
-        rol: 'administrador', 
-        activo: true 
+      adminActual = await User.findOne({
+        rol: 'administrador',
+        activo: true
       }).sort({ createdAt: 1 });
-      
+
       if (adminActual) {
         // Si no se especificó email en la solicitud, usar el del admin actual
         if (!req.body.email) {
@@ -1194,12 +1258,12 @@ export const pruebaEmail = async (req, res) => {
     } catch (dbError) {
       console.warn('⚠️  Error buscando admin:', dbError.message);
     }
-    
+
     console.log(`📧 Enviando prueba a: ${emailDestino}`);
     console.log(`🔧 Desde: ${emailFrom}`);
     console.log(`🔧 Usando cuenta Gmail: ${emailUser}`);
     console.log(`👤 Administrador: ${nombreAdmin}`);
-    
+
     const mailOptions = {
       from: `"Sistema CBTIS051" <${emailFrom}>`,
       to: emailDestino,
@@ -1253,7 +1317,7 @@ export const pruebaEmail = async (req, res) => {
 
     console.log('\n📤 Enviando email de prueba por Gmail...');
     const info = await transporter.sendMail(mailOptions);
-    
+
     console.log('\n✅✅✅ PRUEBA GMAIL EXITOSA ✅✅✅');
     console.log(`   📨 Para: ${emailDestino}`);
     console.log(`   👤 Administrador: ${nombreAdmin}`);
@@ -1261,13 +1325,13 @@ export const pruebaEmail = async (req, res) => {
     console.log(`   📤 Respuesta: ${info.response}`);
     console.log(`   ✅ Aceptado: ${info.accepted}`);
     console.log(`   📍 Rechazado: ${info.rejected.length > 0 ? info.rejected : 'Ninguno'}`);
-    
+
     console.log('\n📌 INFORMACIÓN DEL SISTEMA:');
     console.log('   1. Cuenta Gmail emisora:', emailUser);
     console.log('   2. Administrador actual:', nombreAdmin);
     console.log('   3. Correo del admin:', emailDestino);
     console.log('   4. Todos los emails funcionan correctamente');
-    
+
     // =======================================================================
     // REGISTRAR PRUEBA DE EMAIL EN AUDITORÍA
     // =======================================================================
@@ -1288,7 +1352,7 @@ export const pruebaEmail = async (req, res) => {
         messageId: info.messageId
       }
     }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-    
+
     console.log('\n🧪 ========== FIN PRUEBA ==========');
     console.log('');
 
@@ -1318,7 +1382,7 @@ export const pruebaEmail = async (req, res) => {
     console.error(`   🔧 Error: ${error.message}`);
     console.error(`   🔧 Código: ${error.code}`);
     console.error(`   🔧 Respuesta: ${error.response}`);
-    
+
     // =======================================================================
     // REGISTRAR ERROR EN AUDITORÍA
     // =======================================================================
@@ -1337,7 +1401,7 @@ export const pruebaEmail = async (req, res) => {
         destino: req.body?.email || emailUser
       }
     }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-    
+
     res.status(500).json({
       success: false,
       message: '❌ Error al enviar email de prueba por Gmail',
@@ -1358,7 +1422,7 @@ export const pruebaEmail = async (req, res) => {
 // =============================================================================
 export const reiniciarConfiguracionGmail = async () => {
   console.log('\n🔄 ========== REINICIANDO CONFIGURACIÓN GMAIL ==========');
-  
+
   try {
     // Crear nuevo transporter
     transporter = nodemailer.createTransport({
@@ -1376,7 +1440,7 @@ export const reiniciarConfiguracionGmail = async () => {
       debug: true,
       logger: true
     });
-    
+
     // Verificar
     await transporter.verify();
     console.log('✅ Configuración Gmail reiniciada correctamente');
@@ -1394,7 +1458,7 @@ export const estadoEmail = async (req, res) => {
   try {
     console.log('');
     console.log('📊 ========== ESTADO GMAIL ==========');
-    
+
     const estado = {
       configuracion: {
         emailUser: emailUser,
@@ -1416,13 +1480,13 @@ export const estadoEmail = async (req, res) => {
         timestamp: Date.now()
       }
     };
-    
+
     console.log('📊 Estado actual:');
     console.log(`   ✅ Configurado: ${estado.transporter.configurado ? 'Sí' : 'No'}`);
     console.log(`   📧 Usuario: ${estado.configuracion.emailUser}`);
     console.log(`   🔑 Contraseña: ${estado.configuracion.passLength} caracteres`);
     console.log(`   🖥️  Host: ${estado.configuracion.emailHost}:${estado.configuracion.emailPort}`);
-    
+
     // Intentar verificar conexión si hay transporter
     if (transporter) {
       try {
@@ -1437,14 +1501,14 @@ export const estadoEmail = async (req, res) => {
       estado.conexion = '❌ TRANSPORTER NO CONFIGURADO';
       console.log('   🔗 Conexión: ❌ NO CONFIGURADO');
     }
-    
+
     // Buscar administrador actual
     try {
-      const adminActual = await User.findOne({ 
-        rol: 'administrador', 
-        activo: true 
+      const adminActual = await User.findOne({
+        rol: 'administrador',
+        activo: true
       }).select('usuario correo createdAt').lean();
-      
+
       estado.administradorActual = adminActual ? {
         usuario: adminActual.usuario,
         correo: adminActual.correo,
@@ -1453,10 +1517,10 @@ export const estadoEmail = async (req, res) => {
         mensaje: 'No se encontró administrador en la base de datos',
         usandoEmailConfigurado: emailUser
       };
-      
+
       console.log('   👤 Admin actual:', estado.administradorActual.usuario || 'No encontrado');
       console.log('   📧 Email admin:', estado.administradorActual.correo || emailUser);
-      
+
     } catch (adminError) {
       estado.administradorActual = {
         error: adminError.message,
@@ -1464,10 +1528,10 @@ export const estadoEmail = async (req, res) => {
       };
       console.log('   👤 Admin: ❌ Error obteniendo datos');
     }
-    
+
     console.log('\n📊 ====================================');
     console.log('');
-    
+
     // =======================================================================
     // REGISTRAR CONSULTA DE ESTADO EN AUDITORÍA
     // =======================================================================
@@ -1486,7 +1550,7 @@ export const estadoEmail = async (req, res) => {
         usuario: emailUser
       }
     }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-    
+
     res.json({
       success: true,
       estado,
@@ -1495,7 +1559,7 @@ export const estadoEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ ERROR en estadoEmail:', error);
-    
+
     // =======================================================================
     // REGISTRAR ERROR EN AUDITORÍA
     // =======================================================================
@@ -1513,7 +1577,7 @@ export const estadoEmail = async (req, res) => {
         error: error.message
       }
     }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-    
+
     res.status(500).json({
       success: false,
       message: 'Error al obtener estado',
