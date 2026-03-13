@@ -1729,146 +1729,153 @@ class CalendarManager {
     }
 
     // Cargar eventos desde localStorage
-    loadEvents() {
-        try {
-            const saved = localStorage.getItem('calendar_events');
-            if (saved) {
-                const events = JSON.parse(saved);
-                console.debug(`📂 Eventos cargados desde localStorage: ${events.length} eventos`);
-                
-                // Asegurarnos de que todos los eventos tengan seriesId
-                events.forEach(event => {
-                    if (!event.seriesId) {
-                        event.seriesId = event.recurrence && event.recurrence !== 'none' 
-                            ? this.generateSeriesId() 
-                            : 'single';
-                    }
-                });
-                
-                return events;
-            }
-        } catch (error) {
-            console.error('❌ Error al cargar eventos desde localStorage:', error);
+loadEvents() {
+    try {
+        const saved = localStorage.getItem('calendar_events');
+        if (saved) {
+            const events = JSON.parse(saved);
+            console.debug(`📂 Eventos cargados desde localStorage: ${events.length} eventos`);
+            
+            // Asegurarnos de que todos los eventos tengan seriesId
+            events.forEach(event => {
+                if (!event.seriesId) {
+                    event.seriesId = event.recurrence && event.recurrence !== 'none' 
+                        ? this.generateSeriesId() 
+                        : 'single';
+                }
+            });
+            
+            return events;
         }
-        
-        console.debug('📂 No hay eventos guardados, creando eventos de ejemplo');
-        return this.getSampleEvents();
+    } catch (error) {
+        console.error('❌ Error al cargar eventos desde localStorage:', error);
     }
+    
+    console.debug('📂 No hay eventos guardados, inicializando calendario vacío');
+    return [];  // 👈 Esto llama a getSampleEvents() que ahora retorna []
+}
 
-    // Crear eventos de ejemplo con todos los tipos
-    getSampleEvents() {
-        const today = new Date();
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 7);
-        
-        const sampleEvents = [
-            {
-                id: this.generateEventId(),
-                title: 'Examen Final Matemáticas',
-                type: 'academic',
-                color: '#3b82f6',
-                startDate: this.formatDate(today),
-                startTime: '09:00',
-                endDate: this.formatDate(today),
-                endTime: '11:00',
-                location: 'Aula 101',
-                description: 'Examen final del curso de Matemáticas Avanzadas',
-                reminder: '1_day',
-                recurrence: 'none',
-                seriesId: 'single',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            },
-            {
-                id: this.generateEventId(),
-                title: 'Reunión de Departamento',
-                type: 'meetings',
-                color: '#10b981',
-                startDate: this.formatDate(this.addDays(today, 1)),
-                startTime: '14:00',
-                endDate: this.formatDate(this.addDays(today, 1)),
-                endTime: '16:00',
-                location: 'Sala de Conferencias',
-                description: 'Reunión mensual del departamento académico',
-                reminder: '30_minutes',
-                recurrence: 'monthly',
-                seriesId: this.generateSeriesId(),
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            },
-            {
-                id: this.generateEventId(),
-                title: 'Entrega Proyecto Final',
-                type: 'deadlines',
-                color: '#f59e0b',
-                startDate: this.formatDate(this.addDays(today, 3)),
-                startTime: '23:59',
-                endDate: this.formatDate(this.addDays(today, 3)),
-                endTime: '23:59',
-                location: 'Plataforma Virtual',
-                description: 'Fecha límite para entrega del proyecto final',
-                reminder: '2_days',
-                recurrence: 'none',
-                seriesId: 'single',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            },
-            {
-                id: this.generateEventId(),
-                title: 'Día Festivo Nacional',
-                type: 'holidays',
-                color: '#ef4444',
-                startDate: this.formatDate(this.addDays(today, 5)),
-                startTime: '00:00',
-                endDate: this.formatDate(this.addDays(today, 5)),
-                endTime: '23:59',
-                location: '',
-                description: 'Día festivo nacional - No hay clases',
-                reminder: '',
-                recurrence: 'yearly',
-                seriesId: this.generateSeriesId(),
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            },
-            {
-                id: this.generateEventId(),
-                title: 'Conferencia Invitado Especial',
-                type: 'academic',
-                color: '#8b5cf6',
-                startDate: this.formatDate(this.addDays(today, 2)),
-                startTime: '10:00',
-                endDate: this.formatDate(this.addDays(today, 2)),
-                endTime: '12:00',
-                location: 'Auditorio Principal',
-                description: 'Conferencia sobre Inteligencia Artificial',
-                reminder: '1_hour',
-                recurrence: 'none',
-                seriesId: 'single',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            },
-            {
-                id: this.generateEventId(),
-                title: 'Reunión de Estudiantes',
-                type: 'meetings',
-                color: '#06b6d4',
-                startDate: this.formatDate(this.addDays(today, 4)),
-                startTime: '16:00',
-                endDate: this.formatDate(this.addDays(today, 4)),
-                endTime: '18:00',
-                location: 'Cafetería',
-                description: 'Reunión del consejo estudiantil',
-                reminder: '15_minutes',
-                recurrence: 'weekly',
-                seriesId: this.generateSeriesId(),
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            }
-        ];
-        
-        console.debug('📋 Eventos de ejemplo creados');
-        return sampleEvents;
-    }
+    // Crear eventos de ejemplo - AHORA RETORNA ARRAY VACÍO
+getSampleEvents() {
+    // ===== CAMBIO IMPORTANTE: Retornar array vacío =====
+    // Ya no queremos eventos de ejemplo, el calendario debe iniciar vacío
+    console.debug('📂 Inicializando calendario vacío (sin eventos de ejemplo)');
+    return [];
+    
+    /* Código anterior comentado para referencia
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    
+    const sampleEvents = [
+        {
+            id: this.generateEventId(),
+            title: 'Examen Final Matemáticas',
+            type: 'academic',
+            color: '#3b82f6',
+            startDate: this.formatDate(today),
+            startTime: '09:00',
+            endDate: this.formatDate(today),
+            endTime: '11:00',
+            location: 'Aula 101',
+            description: 'Examen final del curso de Matemáticas Avanzadas',
+            reminder: '1_day',
+            recurrence: 'none',
+            seriesId: 'single',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        },
+        {
+            id: this.generateEventId(),
+            title: 'Reunión de Departamento',
+            type: 'meetings',
+            color: '#10b981',
+            startDate: this.formatDate(this.addDays(today, 1)),
+            startTime: '14:00',
+            endDate: this.formatDate(this.addDays(today, 1)),
+            endTime: '16:00',
+            location: 'Sala de Conferencias',
+            description: 'Reunión mensual del departamento académico',
+            reminder: '30_minutes',
+            recurrence: 'monthly',
+            seriesId: this.generateSeriesId(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        },
+        {
+            id: this.generateEventId(),
+            title: 'Entrega Proyecto Final',
+            type: 'deadlines',
+            color: '#f59e0b',
+            startDate: this.formatDate(this.addDays(today, 3)),
+            startTime: '23:59',
+            endDate: this.formatDate(this.addDays(today, 3)),
+            endTime: '23:59',
+            location: 'Plataforma Virtual',
+            description: 'Fecha límite para entrega del proyecto final',
+            reminder: '2_days',
+            recurrence: 'none',
+            seriesId: 'single',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        },
+        {
+            id: this.generateEventId(),
+            title: 'Día Festivo Nacional',
+            type: 'holidays',
+            color: '#ef4444',
+            startDate: this.formatDate(this.addDays(today, 5)),
+            startTime: '00:00',
+            endDate: this.formatDate(this.addDays(today, 5)),
+            endTime: '23:59',
+            location: '',
+            description: 'Día festivo nacional - No hay clases',
+            reminder: '',
+            recurrence: 'yearly',
+            seriesId: this.generateSeriesId(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        },
+        {
+            id: this.generateEventId(),
+            title: 'Conferencia Invitado Especial',
+            type: 'academic',
+            color: '#8b5cf6',
+            startDate: this.formatDate(this.addDays(today, 2)),
+            startTime: '10:00',
+            endDate: this.formatDate(this.addDays(today, 2)),
+            endTime: '12:00',
+            location: 'Auditorio Principal',
+            description: 'Conferencia sobre Inteligencia Artificial',
+            reminder: '1_hour',
+            recurrence: 'none',
+            seriesId: 'single',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        },
+        {
+            id: this.generateEventId(),
+            title: 'Reunión de Estudiantes',
+            type: 'meetings',
+            color: '#06b6d4',
+            startDate: this.formatDate(this.addDays(today, 4)),
+            startTime: '16:00',
+            endDate: this.formatDate(this.addDays(today, 4)),
+            endTime: '18:00',
+            location: 'Cafetería',
+            description: 'Reunión del consejo estudiantil',
+            reminder: '15_minutes',
+            recurrence: 'weekly',
+            seriesId: this.generateSeriesId(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        }
+    ];
+    
+    console.debug('📋 Eventos de ejemplo creados');
+    return sampleEvents;
+    */
+}
 
     // Función auxiliar para formatear fechas
     formatDate(date) {
@@ -1921,8 +1928,7 @@ class CalendarManager {
                         </div>
                         <p class="action-modal__message">
                             <strong>¿Estás seguro de reiniciar el calendario?</strong><br><br>
-                            Esta acción eliminará <strong>todos los eventos</strong> y restaurará 
-                            los eventos de ejemplo.<br><br>
+                            Esta acción eliminará <strong>todos los eventos</strong> y quedara en blanco el calendario.<br><br>
                             <small>Esta acción no se puede deshacer.</small>
                         </p>
                     </div>
@@ -1978,33 +1984,39 @@ class CalendarManager {
     }
 
     // Reiniciar calendario
-    resetCalendar() {
-        try {
-            console.debug('🔄 Reiniciando calendario...');
-            
-            // 1. Eliminar del localStorage
-            localStorage.removeItem('calendar_events');
-            
-            // 2. Cargar eventos de ejemplo
-            this.events = this.getSampleEvents();
-            
-            // 3. Guardar los eventos de ejemplo
-            this.saveEvents();
-            
-            // 4. Actualizar la UI
-            this.renderCalendar();
-            this.updateUpcomingEvents();
-            this.renderMiniCalendar();
-            
-            // 5. Mostrar notificación de éxito
-            this.showNotification('Calendario reiniciado con eventos de ejemplo');
-            
-            console.debug('✅ Calendario reiniciado correctamente');
-        } catch (error) {
-            console.error('❌ Error reiniciando calendario:', error);
-            this.showNotification('Error al reiniciar el calendario');
-        }
+resetCalendar() {
+    if (!canAction('calendario')) {
+        showNoPermissionAlert('calendario');
+        this.showNotification('No tienes permisos para reiniciar el calendario');
+        return;
     }
+
+    try {
+        console.debug('🔄 Reiniciando calendario...');
+        
+        // 1. Eliminar del localStorage
+        localStorage.removeItem('calendar_events');
+        
+        // 2. Inicializar con array vacío en lugar de eventos de ejemplo
+        this.events = [];  // 👈 CAMBIO IMPORTANTE: array vacío
+        
+        // 3. Guardar el array vacío
+        this.saveEvents();
+        
+        // 4. Actualizar la UI
+        this.renderCalendar();
+        this.updateUpcomingEvents();
+        this.renderMiniCalendar();
+        
+        // 5. Mostrar notificación de éxito
+        this.showNotification('Calendario reiniciado correctamente');
+        
+        console.debug('✅ Calendario reiniciado correctamente');
+    } catch (error) {
+        console.error('❌ Error reiniciando calendario:', error);
+        this.showNotification('Error al reiniciar el calendario');
+    }
+}
 
     // Debug: Mostrar información del estado actual
     debugInfo() {
