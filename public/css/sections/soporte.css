@@ -3598,10 +3598,44 @@ body.dark-theme .lightbox-content {
     color: var(--text-primary);
     text-decoration: none;
     transition: color 0.2s ease;
+    
+    /* ===== SOLUCIÓN PARA TEXTO LARGO ===== */
+    width: 100%;                    /* Ocupar todo el ancho disponible */
+    overflow: hidden;               /* Ocultar el desbordamiento */
+    text-overflow: ellipsis;        /* Mostrar ... cuando se corte */
+    white-space: nowrap;            /* Evitar que el texto haga wrap */
+    
+    /* Opcional: Mejorar legibilidad en diferentes navegadores */
+    word-wrap: normal;              /* No romper palabras */
+    word-break: keep-all;           /* Mantener palabras enteras */
+    max-width: 100%;                /* No exceder el contenedor */
 }
 
+/* Tooltip al hacer hover para ver el correo completo */
 .contact-value:hover {
-    color: var(--primary);
+    color: var(--primary, #4f46e5);
+    text-decoration: underline;
+    
+    /* Mostrar tooltip con el correo completo */
+    position: relative;
+}
+
+.contact-value:hover::after {
+    content: attr(href);            /* Mostrar el correo del atributo href */
+    content: attr(title);           /* O usar title si prefieres */
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background: var(--bg-dark, #1f2937);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    pointer-events: none;           /* No interferir con clics */
+    margin-top: 4px;
 }
 
 .contact-status {
