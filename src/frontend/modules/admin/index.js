@@ -14,6 +14,7 @@
 import { api } from '../../services/api.js';
 import { showAlert, formatDate } from '../../utils.js';
 import { hasPermission, PERMISSIONS, ROLES } from '../../permissions.js';
+import { initSecurityValidation, validateUsername, validatePassword } from '../../securityValidation.js';
 
 // ─── Debug ─────────────────────────────────────────────────────────────────────
 const DEBUG = true;
@@ -1153,7 +1154,7 @@ export async function renderAgregarAdministrador() {
                   <div class="form-grid">
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-user"></i> Usuario</label>
-                      <input type="text" id="admin_usuario" class="form-input-admin" required minlength="3" maxlength="30" placeholder="ej: juan.perez">
+                      <input type="text" id="admin_usuario" class="form-input-admin" required maxlength="30" placeholder="ej: juan.perez" data-validate="username">
                     </div>
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-envelope"></i> Correo</label>
@@ -1162,7 +1163,7 @@ export async function renderAgregarAdministrador() {
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-lock"></i> Contraseña</label>
                       <div class="password-wrapper">
-                        <input type="password" id="admin_password" class="form-input-admin" required minlength="6" placeholder="••••••">
+                        <input type="password" id="admin_password" class="form-input-admin" required placeholder="••••••" data-validate="password">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('admin_password')"><i class="fas fa-eye"></i></button>
                       </div>
                     </div>
@@ -1329,11 +1330,39 @@ export async function renderAgregarAdministrador() {
       const password = document.getElementById('admin_password')?.value;
       const rol      = document.getElementById('admin_rol')?.value;
       log('createUser: rol=', rol);
-      if (!usuario || !correo || !password || !rol) { showAlert('Todos los campos son requeridos', 'error'); return; }
+      
+      // Validar usuario con seguridad
+      const usernameValidation = validateUsername(usuario);
+      if (!usernameValidation.isValid) {
+        showAlert(`Validación de usuario: ${usernameValidation.errors[0]}`, 'error');
+        return;
+      }
+      
+      // Validar contraseña con seguridad
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        showAlert(`Validación de contraseña: ${passwordValidation.errors[0]}`, 'error');
+        return;
+      }
+      
+      if (!correo || !rol) { showAlert('Todos los campos son requeridos', 'error'); return; }
       if (rol === ADMIN_ROLE && stats.admins > 0) { showAlert('Ya existe un administrador en el sistema', 'error'); return; }
+      
       const ok = await createUser({ usuario, correo, password, rol });
       if (ok) { form.reset(); rolesEventsAttached = false; await renderAgregarAdministrador(); }
     });
+
+    // Inicializar validación en tiempo real
+    if (form) {
+      initSecurityValidation('#adminCreateUserForm', {
+        onValidationSuccess: function() {
+          log('Validación de seguridad: formulario válido ✅');
+        },
+        onValidationFail: function() {
+          log('Validación de seguridad: hay errores');
+        }
+      });
+    }
 
     window.togglePasswordVisibility = inputId => {
       const input  = document.getElementById(inputId);

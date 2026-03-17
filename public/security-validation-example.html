@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validación de Seguridad - Registro e Inicio de Sesión</title>
+    <link rel="stylesheet" href="css/securityValidation.css">
+    <link rel="stylesheet" href="css/security-validation-example-page.css">
+</head>
+<body>
+    <!-- FORMULARIO DE REGISTRO -->
+    <div class="security-form">
+        <h1>📋 Crear Cuenta</h1>
+        <p class="form-subtitle">Registrarse con validaciones de seguridad</p>
+
+        <form id="registerForm">
+            <div class="form-fields">
+                <!-- Campo Usuario -->
+                <div class="form-group">
+                    <label for="regUsername">Usuario</label>
+                    <input
+                        type="text"
+                        id="regUsername"
+                        name="username"
+                        placeholder="Ingresa tu usuario"
+                        data-validate="username"
+                        autocomplete="username"
+                    >
+                </div>
+
+                <!-- Campo Contraseña -->
+                <div class="form-group">
+                    <label for="regPassword">Contraseña</label>
+                    <input
+                        type="password"
+                        id="regPassword"
+                        name="password"
+                        placeholder="Ingresa una contraseña segura"
+                        data-validate="password"
+                        autocomplete="new-password"
+                    >
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="form-actions">
+                <button type="submit" disabled>Registrarse</button>
+                <button type="reset">Limpiar</button>
+            </div>
+        </form>
+
+        <!-- Información de validación -->
+        <div class="validation-info">
+            <h3>🔒 Requisitos de Seguridad</h3>
+            <ul>
+                <li><strong>Usuario:</strong> Mín. 4 caracteres, letras y números</li>
+                <li><strong>Contraseña:</strong> Mín. 8 caracteres</li>
+                <li><strong>Incluir:</strong> Mayúscula, minúscula, número y carácter especial</li>
+                <li><strong>No permitidas:</strong> Contraseñas comunes</li>
+            </ul>
+        </div>
+
+        <!-- Enlace a login -->
+        <div class="form-footer">
+            ¿Ya tienes cuenta? <a href="#loginForm">Inicia sesión aquí</a>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE INICIO DE SESIÓN -->
+    <div class="security-form" id="loginForm">
+        <h1>🔐 Iniciar Sesión</h1>
+        <p class="form-subtitle">Accede a tu cuenta de forma segura</p>
+
+        <form id="loginFormElement">
+            <div class="form-fields">
+                <!-- Campo Usuario -->
+                <div class="form-group">
+                    <label for="loginUsername">Usuario</label>
+                    <input
+                        type="text"
+                        id="loginUsername"
+                        name="username"
+                        placeholder="Tu usuario"
+                        data-validate="username"
+                        autocomplete="username"
+                    >
+                </div>
+
+                <!-- Campo Contraseña -->
+                <div class="form-group">
+                    <label for="loginPassword">Contraseña</label>
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        name="password"
+                        placeholder="Tu contraseña"
+                        data-validate="password"
+                        autocomplete="current-password"
+                    >
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="form-actions">
+                <button type="submit" disabled>Iniciar Sesión</button>
+                <button type="reset">Limpiar</button>
+            </div>
+        </form>
+
+        <!-- Enlace a recuperación de contraseña -->
+        <div class="form-footer">
+            ¿Olvidaste tu contraseña? <a href="#forgot">Recuperar aquí</a> | 
+            ¿No tienes cuenta? <a href="#registerForm">Regístrate aquí</a>
+        </div>
+    </div>
+
+    <!-- Script de validación de seguridad -->
+    <script src="../src/frontend/securityValidation.js"></script>
+
+    <!-- Script de inicialización de la página -->
+    <script src="js/security-validation-example.js"></script>
+</body>
+</html>
