@@ -2799,34 +2799,28 @@
                     </div>
                 </div>
                 <form id="changeAdminForm">
-                    <div class="form__group">
+                    <div class="form-group">
                         <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
-                        <input type="text" id="newAdminUser" class="form__input"
-                            placeholder="Ingresa el nuevo nombre de usuario" required>
+                        <input type="text" id="newAdminUser" class="form-input-admin" data-validate="username" minlength="5" maxlength="32" autocomplete="username" placeholder="Ingresa el nuevo nombre de usuario" required>
                     </div>
-                    <div class="form__group">
+                    <div class="form-group">
                         <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
-                        <input type="email" id="newAdminEmail" class="form__input" placeholder="correo@ejemplo.com"
-                            required>
+                        <input type="email" id="newAdminEmail" class="form-input-admin" data-validate="email" maxlength="64" autocomplete="email" placeholder="correo@ejemplo.com" required>
                     </div>
-                    <div class="form__group">
+                    <div class="form-group">
                         <label for="newAdminPassword" class="form__label">Contraseña</label>
-                        <div class="form__password-wrapper">
-                            <input type="password" id="newAdminPassword" class="form__input"
-                                placeholder="Contraseña segura" required>
-                            <button type="button" class="form__password-toggle"
-                                onclick="togglePasswordVisibility('newAdminPassword')">
+                        <div class="password-wrapper">
+                            <input type="password" id="newAdminPassword" class="form-input-admin" data-validate="password" minlength="8" maxlength="32" autocomplete="new-password" placeholder="Contraseña segura" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('newAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="form__group">
+                    <div class="form-group">
                         <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
-                        <div class="form__password-wrapper">
-                            <input type="password" id="confirmAdminPassword" class="form__input"
-                                placeholder="Repite la contraseña" required>
-                            <button type="button" class="form__password-toggle"
-                                onclick="togglePasswordVisibility('confirmAdminPassword')">
+                        <div class="password-wrapper">
+                            <input type="password" id="confirmAdminPassword" class="form-input-admin" data-validate="confirm-password" minlength="8" maxlength="32" autocomplete="new-password" placeholder="Repite la contraseña" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
