@@ -1492,14 +1492,6 @@ export function updateFileStatus(fileId, status, error = null, state) {
 }
 
 /**
- * Muestra resultados detallados - FUNCIÓN ELIMINADA (ya no se usa)
- */
-function showUploadResults(state) {
-    // Esta función ha sido eliminada porque tienes otra funcionalidad para mostrar resultados
-    console.log('📊 Función showUploadResults eliminada - Usar tu propia implementación de resultados');
-}
-
-/**
  * FIX CRÍTICO #5: Manejo principal de subida múltiple - VERSIÓN CORREGIDA
  */
 export async function handleUploadMultipleDocuments() {

@@ -305,7 +305,7 @@ function _showTabContent(tabId) {
 }
 
 /**
- * Crea dinámicamente la sección de admin si no existe en el HTML.
+ * Crea dinámicamente la sección de admin 
  */
 function _createAdminTab() {
   const mainContent = document.querySelector('.main-content') || document.body;
@@ -315,10 +315,6 @@ function _createAdminTab() {
   section.style.display = 'none';
   section.innerHTML = `
     <div class="section__header">
-      <div>
-        <h2 class="section__title">Administración</h2>
-        <p class="section__subtitle">Panel de administración del sistema</p>
-      </div>
     </div>
     <div id="admin-content"></div>
   `;
