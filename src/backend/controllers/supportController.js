@@ -1079,7 +1079,7 @@ Sistema de Gestión Documental CBTIS051\nEmail automático de recepción.`
                 },
                 {
                     question: "¿Puedo adjuntar archivos a mi ticket?",
-                    answer: "Sí, puedes adjuntar imágenes, documentos PDF, Word, Excel, etc. El tamaño máximo por archivo es 10MB y.",
+                    answer: "Sí, puedes adjuntar imágenes, documentos PDF, Word, Excel, etc. El tamaño máximo por archivo es 10MB",
                     category: "Archivos",
                     priority: "media"
                 },

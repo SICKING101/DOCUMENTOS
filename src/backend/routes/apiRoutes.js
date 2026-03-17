@@ -28,7 +28,7 @@ import upload from '../config/multerConfig.js';
 
 // Importar rutas de auditoría y roles
 import auditRoutes from './auditRoutes.js';
-import roleRoutes from './roleRoutes.js';   // ← NUEVO: rutas de roles dinámicos
+import roleRoutes from './roleRoutes.js';
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 router.get('/health', (req, res) => {
@@ -40,36 +40,22 @@ router.get('/health', (req, res) => {
 });
 
 // ─── AUDITORÍA ────────────────────────────────────────────────────────────────
-// Ruta pública para logs del frontend (NO requiere autenticación)
 router.post('/frontend-log', AuditController.frontendLog);
 router.use('/audit', auditRoutes);
 
 // ─── ROLES DINÁMICOS ──────────────────────────────────────────────────────────
-router.use('/roles', roleRoutes);   // ← NUEVO
+router.use('/roles', roleRoutes);
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 router.get('/dashboard', protegerRuta, DashboardController.getDashboardStats);
 
 // ─── PERSONAS ─────────────────────────────────────────────────────────────────
-// GET /persons - Requiere permiso VIEW_PERSONS
 router.get('/persons', protegerRuta, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getAll);
-
-// GET /persons/inactive - También requiere VIEW_PERSONS (es una variante de vista)
 router.get('/persons/inactive', protegerRuta, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getInactive);
-
-// POST /persons - Requiere permiso CREATE_PERSON
 router.post('/persons', protegerRuta, requirePermission(PERMISSIONS.CREATE_PERSON), PersonController.create);
-
-// PUT /persons/:id - Requiere permiso EDIT_PERSON
 router.put('/persons/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.update);
-
-// DELETE /persons/:id - Requiere permiso DELETE_PERSON
 router.delete('/persons/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_PERSON), PersonController.delete);
-
-// PATCH /persons/:id/deactivate - Requiere permiso EDIT_PERSON (es una forma de edición)
 router.patch('/persons/:id/deactivate', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.deactivate);
-
-// PATCH /persons/:id/reactivate - Requiere permiso EDIT_PERSON (es una forma de edición)
 router.patch('/persons/:id/reactivate', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.reactivate);
 
 // ─── CATEGORÍAS ───────────────────────────────────────────────────────────────
@@ -85,8 +71,12 @@ router.put('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_
 router.delete('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DEPARTMENT), DepartmentController.delete);
 
 // ─── DOCUMENTOS ───────────────────────────────────────────────────────────────
+// PRIMERO: Rutas específicas (sin parámetros)
 router.get('/documents', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getAll);
 router.post('/documents', protegerRuta, requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS), upload.single('file'), DocumentController.create);
+router.delete('/documents/bulk-delete', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.bulkDelete);
+
+// LUEGO: Rutas con parámetros dinámicos
 router.put('/documents/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_DOCUMENTS), upload.single('file'), DocumentController.update);
 router.get('/documents/:id/preview', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.preview);
 router.get('/documents/:id/download', protegerRuta, requirePermission(PERMISSIONS.DOWNLOAD_DOCUMENTS), DocumentController.download);
@@ -112,14 +102,11 @@ router.post('/reports/pdf', protegerRuta, requirePermission(PERMISSIONS.GENERATE
 router.post('/reports/csv', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateCSV);
 
 // ─── NOTIFICACIONES ───────────────────────────────────────────────────────────
-// Vista pública para cualquier usuario autenticado (Historial/Notificaciones)
 router.get('/notifications', protegerRuta, NotificationController.getAll);
 router.get('/notifications/unread', protegerRuta, NotificationController.getUnread);
 router.get('/notifications/stats', protegerRuta, NotificationController.getStats);
 router.patch('/notifications/:id/read', protegerRuta, NotificationController.markAsRead);
 router.patch('/notifications/read-all', protegerRuta, NotificationController.markAllAsRead);
-
-// Acciones destructivas: restringidas (relacionadas a Historial)
 router.delete('/notifications/:id', protegerRuta, requirePermission(PERMISSIONS.CLEAR_HISTORY), NotificationController.delete);
 router.post('/notifications/cleanup', protegerRuta, requirePermission(PERMISSIONS.CLEAR_HISTORY), NotificationController.cleanup);
 

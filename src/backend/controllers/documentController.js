@@ -973,6 +973,183 @@ class DocumentController {
       });
     }
   }
+
+  // ===========================================================================
+// ELIMINACIÓN MÚLTIPLE DE DOCUMENTOS
+// ===========================================================================
+static async bulkDelete(req, res) {
+  console.log('\n🔍 ========== ELIMINACIÓN MÚLTIPLE DE DOCUMENTOS ==========');
+  console.log('📝 IDs a eliminar:', req.body.document_ids);
+  console.log('👤 Usuario:', req.user?.usuario);
+
+  try {
+    const { document_ids } = req.body;
+
+    // 🔥 LOGS DE DEBUG - VERIFICACIÓN DE IDs 🔥
+    console.log('🔍 VERIFICANDO IDs RECIBIDOS:');
+    if (!document_ids || !Array.isArray(document_ids)) {
+      console.log('❌ document_ids no es un array o es null/undefined');
+    } else {
+      document_ids.forEach((id, index) => {
+        const isValid = mongoose.Types.ObjectId.isValid(id);
+        console.log(`   ID ${index + 1}: ${id} - Válido: ${isValid}`);
+      });
+    }
+
+    // 🔥 VERIFICAR SI LOS IDs EXISTEN EN LA BD 🔥
+    if (document_ids && Array.isArray(document_ids) && document_ids.length > 0) {
+      const existingDocs = await Document.find({ 
+        _id: { $in: document_ids } 
+      }).select('_id nombre_original isDeleted activo');
+      
+      console.log('📊 Documentos encontrados en BD:', existingDocs.length);
+      if (existingDocs.length > 0) {
+        existingDocs.forEach(doc => {
+          console.log(`   ✅ ${doc._id}: ${doc.nombre_original} (activo: ${doc.activo}, isDeleted: ${doc.isDeleted})`);
+        });
+      } else {
+        console.log('   ❌ Ningún documento encontrado con esos IDs');
+      }
+    }
+
+    if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
+      console.log('❌ No se proporcionaron IDs válidos');
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere un array de IDs de documentos'
+      });
+    }
+
+    console.log(`📋 Procesando ${document_ids.length} documentos para eliminar...`);
+
+    // Validar que todos los IDs sean ObjectId válidos
+    const validIds = document_ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+    
+    if (validIds.length === 0) {
+      console.log('❌ Ningún ID válido proporcionado');
+      return res.status(400).json({
+        success: false,
+        message: 'No se proporcionaron IDs válidos'
+      });
+    }
+
+    if (validIds.length !== document_ids.length) {
+      console.log(`⚠️ ${document_ids.length - validIds.length} IDs inválidos fueron filtrados`);
+    }
+
+    // Buscar todos los documentos que existen y están activos
+    const documentos = await Document.find({
+      _id: { $in: validIds },
+      activo: true,
+      isDeleted: { $ne: true }
+    });
+
+    console.log(`✅ ${documentos.length} documentos encontrados para eliminar`);
+
+    if (documentos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontraron documentos para eliminar'
+      });
+    }
+
+    // Preparar array de IDs encontrados
+    const foundIds = documentos.map(doc => doc._id.toString());
+    const notFoundIds = validIds.filter(id => !foundIds.includes(id));
+
+    if (notFoundIds.length > 0) {
+      console.log(`⚠️ ${notFoundIds.length} documentos no encontrados:`, notFoundIds);
+    }
+
+    // Realizar soft delete de todos los documentos encontrados
+    const now = new Date();
+    const deletedBy = req.user?.usuario || req.user?.correo || 'Usuario';
+
+    // Actualizar todos los documentos en una sola operación
+    const updateResult = await Document.updateMany(
+      { _id: { $in: foundIds } },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: now,
+          deletedBy: deletedBy
+        }
+      }
+    );
+
+    console.log(`📊 Resultado de la actualización:`, {
+      matched: updateResult.matchedCount,
+      modified: updateResult.modifiedCount
+    });
+
+    // =======================================================================
+    // REGISTRAR EN AUDITORÍA (para cada documento)
+    // =======================================================================
+    
+    try {
+      // Registrar cada eliminación individualmente en auditoría
+      for (const doc of documentos) {
+        await AuditService.logDocumentDelete(req, doc, true);
+      }
+      console.log(`✅✅✅ ${documentos.length} ELIMINACIONES REGISTRADAS EN AUDITORÍA`);
+    } catch (auditError) {
+      console.error('❌ Error registrando eliminaciones en auditoría:', auditError.message);
+    }
+
+    // Crear una sola notificación para la eliminación múltiple
+    try {
+      if (documentos.length === 1) {
+        await NotificationService.documentoEliminado(
+          documentos[0].nombre_original, 
+          documentos[0].categoria
+        );
+      } else {
+        // Crear notificación consolidada
+        await NotificationService.create({
+          titulo: 'Eliminación múltiple completada',
+          mensaje: `${documentos.length} documentos han sido movidos a la papelera`,
+          tipo: 'info',
+          categoria: 'documento',
+          metadata: {
+            count: documentos.length,
+            documents: documentos.map(d => ({
+              id: d._id,
+              nombre: d.nombre_original,
+              categoria: d.categoria
+            }))
+          }
+        });
+      }
+      console.log('✅ Notificación creada');
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
+    console.log('✅✅✅ ELIMINACIÓN MÚLTIPLE COMPLETADA');
+    console.log('🔍 ========== FIN ==========\n');
+
+    return res.json({
+      success: true,
+      message: `${documentos.length} de ${document_ids.length} documentos eliminados correctamente`,
+      deleted: documentos.length,
+      total: document_ids.length,
+      notFound: notFoundIds,
+      results: {
+        successful: documentos.map(d => d._id),
+        failed: notFoundIds
+      }
+    });
+
+  } catch (error) {
+    console.error('🔥 Error en eliminación múltiple:', error);
+    console.error('📌 Stack:', error.stack);
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Error al eliminar documentos: ' + error.message
+    });
+  }
+}
 }
 
 export default DocumentController;

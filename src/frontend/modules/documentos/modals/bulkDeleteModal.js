@@ -214,7 +214,7 @@ export class BulkDeleteModal {
     }
 
     /**
-     * CARGAR DOCUMENTOS
+     * CARGAR DOCUMENTOS - CORREGIDO: CON BARRA AL INICIO
      */
     async loadDocuments() {
         console.log('📄 Cargando documentos para el modal...');
@@ -224,7 +224,8 @@ export class BulkDeleteModal {
                 this.documents = window.appState.documents;
                 console.log(`✅ ${this.documents.length} documentos cargados del appState`);
             } else {
-                const response = await api.call('/api/documents');
+                // CORREGIDO: SIEMPRE con barra al inicio
+                const response = await api.call('/documents');
                 if (response.success) {
                     this.documents = response.documents || [];
                     console.log(`✅ ${this.documents.length} documentos cargados desde API`);
@@ -739,7 +740,7 @@ export class BulkDeleteModal {
             // Mostrar estado de carga
             this.showDeletingState(true);
             
-            // Intentar eliminación masiva
+            // Intentar eliminación masiva - CORREGIDO: SIEMPRE con barra al inicio
             const response = await this.performBulkDelete(documentIds);
             
             if (response.success) {
@@ -889,12 +890,14 @@ export class BulkDeleteModal {
     }
 
     /**
-     * REALIZAR ELIMINACIÓN MASIVA
+     * REALIZAR ELIMINACIÓN MASIVA - CORREGIDO: SOLO RUTAS CON BARRA AL INICIO
      */
     async performBulkDelete(documentIds) {
+        // CORREGIDO: SOLO rutas que comienzan con / (barra)
+        // api.js combinará: baseURL (http://localhost:4000/api) + endpoint
         const endpoints = [
-            '/api/documents/bulk-delete',
-            '/documents/bulk-delete'
+            '/documents/bulk-delete',  // Este es el correcto: /api/documents/bulk-delete
+            '/api/documents/bulk-delete' // Este es fallback: /api/api/documents/bulk-delete (dará 404 pero lo intentamos)
         ];
         
         let lastError;
@@ -962,7 +965,7 @@ export class BulkDeleteModal {
     }
 
     /**
-     * ELIMINACIÓN INDIVIDUAL (FALLBACK)
+     * ELIMINACIÓN INDIVIDUAL (FALLBACK) - CORREGIDO: CON BARRA AL INICIO
      */
     async deleteIndividually(documentIds) {
         console.log('🔄 Intentando eliminación individual como fallback...');
@@ -984,9 +987,10 @@ export class BulkDeleteModal {
                     `Eliminando documento ${i + 1} de ${total}...`
                 );
                 
+                // CORREGIDO: SOLO rutas con barra al inicio
                 const endpoints = [
-                    `/api/documents/${docId}`,
-                    `/documents/${docId}`
+                    `/documents/${docId}`,  // Este es el correcto: /api/documents/ID
+                    `/api/documents/${docId}` // Este es fallback: /api/api/documents/ID (dará 404)
                 ];
                 
                 let deleted = false;

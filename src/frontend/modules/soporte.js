@@ -18,7 +18,7 @@ class SupportModule {
             'calendario', 'ajustes', 'reportes', 'admin', 'modo-oscuro',
             'papelera', 'notificaciones'
         ];
-        
+
         this.guideData = {
             dashboard: {
                 title: 'Dashboard',
@@ -37,20 +37,30 @@ class SupportModule {
                     {
                         title: 'Archivos recientes',
                         description: 'Revisa los archivos más recientes subidos al sistema.'
+                    },
+                    {
+                        title: 'Tareas de alta prioridad y tareas para hoy',
+                        description: 'Revisa las tareas de alta prioridad y las tareas programadas para el día de hoy.'
                     }
                 ],
                 tips: [
                     'Puedes picarle al boton de actualizar para refrescar los datos del dashboard.',
                     'Haz clic en cualquier opcion de archivos recientes para realizar la accion.',
-                    'Observa las 4 estadisticas clave, te serviran para monitorear el sistema.'
+                    'Observa las 4 estadisticas clave, te serviran para monitorear el sistema.',
+                    'Observa las tareas de alta prioridad y las tareas programadas para el día de hoy.'
                 ],
                 features: [
                     { title: 'Resumen General', desc: 'Vista completa del estado del sistema' },
                     { title: 'Actividad Reciente', desc: 'Últimas acciones realizadas' },
                     { title: 'Acciones rapidas', desc: 'Apartado de documentos y personas al primer vistazo' },
-                    { title: 'Notificaciones', desc: 'Notificaciones importantes' }
+                    { title: 'Notificaciones', desc: 'Notificaciones importantes' },
+                    { title: 'Tareas', desc: 'Tareas de alta prioridad y tareas programadas para hoy' }
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/dashboard-guide.png',
+                    '/assets/images/guides/dashboard2-guide.png',
+                ],
                 imageUrl: '/assets/images/guides/dashboard-guide.png'
             },
             personas: {
@@ -87,6 +97,10 @@ class SupportModule {
                     { title: 'Gestion de departamentos', desc: 'Organiza a las personas en departamentos' },
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/person-guide.png',
+                    '/assets/images/guides/person2-guide.png'
+                ],
                 imageUrl: '/assets/images/guides/person-guide.png'
             },
             documentos: {
@@ -109,7 +123,7 @@ class SupportModule {
                     },
                     {
                         title: 'Control de acciones',
-                        description: 'Si te equivocaste de algun documento, puedes eliminarlo o editarlo, ademas de descargarlo o visualizarlo.'
+                        description: 'Si te equivocaste de algun documento, puedes eliminarlo o editarlo, ademas de descargarlo o visualizarlo. Ademas el documento debe ser aceptado o rechazado'
                     }
                 ],
                 tips: [
@@ -118,11 +132,18 @@ class SupportModule {
                     'Usa las acciones de documentos para realizar acciones sobre los documentos o comprobar.'
                 ],
                 features: [
-                    { title: 'Subida Múltiple', desc: 'Sube varios archivos a la vez' },
-                    { title: 'Búsqueda Avanzada', desc: 'Encuentra documentos por nombre, contenido o etiquetas y mas' },
-                    { title: 'Categorias', desc: 'Organiza los documentos en categorias' }
+                    { title: 'Subida Múltiple', desc: 'Sube varios archivos a la vez, teniendo un maximo de 1 GB en todo el lote' },
+                    { title: 'Búsqueda Avanzada', desc: 'Encuentra documentos por nombre, contenido, etiquetas y mas. Util si precisas buscar un documento específico.' },
+                    { title: 'Categorias', desc: 'Organiza los documentos de una mejor manera, con categorías predefinidas y etiquetas facilitando su busqueda.' },
+                    { title: 'Eliminacion multiple', desc: 'Elimina varios documentos a la vez, sin tener que ir en uno en uno para eliminarlos.' },
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/documents-guide.png',
+                    '/assets/images/guides/documents2-guide.png',
+                    '/assets/images/guides/documents3-guide.png',
+                    '/assets/images/guides/documents4-guide.png',
+                ],
                 imageUrl: '/assets/images/guides/documents-guide.png'
             },
             tareas: {
@@ -192,6 +213,10 @@ class SupportModule {
                     { title: 'Estadísticas', desc: 'Métricas y análisis de actividades' }
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/history-guide.png',
+                    '/assets/images/guides/history2-guide.png',
+                ],
                 imageUrl: '/assets/images/guides/history-guide.png'
             },
             calendario: {
@@ -245,27 +270,22 @@ class SupportModule {
                         title: 'Preferencias de usuario',
                         description: 'Personaliza tu experiencia de usuario.'
                     },
-                    {
-                        title: 'Configuración de notificaciones',
-                        description: 'Controla cómo y cuándo recibir notificaciones.'
-                    },
-                    {
-                        title: 'Configuración de seguridad',
-                        description: 'Gestiona permisos y políticas de seguridad.'
-                    }
                 ],
                 tips: [
                     'Revisa regularmente la configuración de seguridad.',
-                    'Personaliza las notificaciones para evitar distracciones.',
-                    'Guarda copias de seguridad de la configuración.'
+                    'Personaliza el sistema a tu gusto.'
                 ],
                 features: [
                     { title: 'Personalización', desc: 'Ajusta la apariencia y comportamiento' },
-                    { title: 'Seguridad', desc: 'Configura permisos y políticas de acceso' },
-                    { title: 'Notificaciones', desc: 'Control total sobre alertas y recordatorios' },
-                    { title: 'Copias de Seguridad', desc: 'Gestión de respaldos de configuración' }
+                    { title: 'Modo oscuro', desc: 'Configura el tema oscuro para una experiencia visual más cómoda' },
+                    { title: 'Accesibilidad', desc: 'Mejora la legibilidad del texto' },
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/settings-guide.png',
+                    '/assets/images/guides/settings2-guide.png',
+                    '/assets/images/guides/settings3-guide.png'
+                ],
                 imageUrl: '/assets/images/guides/settings-guide.png'
             },
             reportes: {
@@ -303,6 +323,10 @@ class SupportModule {
                     { title: 'Programación', desc: 'Configura reportes automáticos recurrentes' }
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/reports-guide.png',
+                    '/assets/images/guides/reports2-guide.png'
+                ],
                 imageUrl: '/assets/images/guides/reports-guide.png'
             },
             admin: {
@@ -340,6 +364,12 @@ class SupportModule {
                     { title: 'Seguridad', desc: 'Herramientas de seguridad avanzadas' }
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/admin-guide.png',
+                    '/assets/images/guides/admin2-guide.png',
+                    '/assets/images/guides/admin3-guide.png'
+                ],
+                // Mantener imageUrl para compatibilidad 
                 imageUrl: '/assets/images/guides/admin-guide.png'
             },
             'modo-oscuro': {
@@ -373,6 +403,11 @@ class SupportModule {
                     { title: 'Personalización', desc: 'Ajusta colores y contrastes' }
                 ],
                 videoUrl: null,
+                images: [
+                    '/assets/images/guides/dark-mode-guide.png',
+                    '/assets/images/guides/dark2-mode-guide.png',
+                    '/assets/images/guides/dark3-mode-guide.png'
+                ],
                 imageUrl: '/assets/images/guides/dark-mode-guide.png'
             },
             papelera: {
@@ -423,26 +458,17 @@ class SupportModule {
                         description: 'Accede al panel de notificaciones desde la barra superior.'
                     },
                     {
-                        title: 'Configurar preferencias',
-                        description: 'Define qué notificaciones quieres recibir y cómo.'
-                    },
-                    {
                         title: 'Marcar como leídas',
                         description: 'Gestiona el estado de tus notificaciones.'
                     },
-                    {
-                        title: 'Configurar alertas',
-                        description: 'Establece alertas para eventos importantes.'
-                    }
                 ],
                 tips: [
                     'Revisa regularmente tus notificaciones.',
-                    'Configura alertas para documentos próximos a vencer.',
-                    'Desactiva notificaciones no esenciales para reducir distracciones.'
+                    'Marca como leídas las notificaciones que ya has revisado para mantener el panel organizado.',
                 ],
                 features: [
                     { title: 'Notificaciones en Tiempo Real', desc: 'Alertas inmediatas de actividades importantes' },
-                    { title: 'Personalización', desc: 'Control total sobre tipos de notificaciones' },
+                    { title: 'Personalización', desc: 'Control total sobre tipos de notificaciones en historial' },
                     { title: 'Historial', desc: 'Registro completo de notificaciones' },
                     { title: 'Alertas Múltiples', desc: 'Notificaciones en sistema, email y push' }
                 ],
@@ -450,36 +476,36 @@ class SupportModule {
                 imageUrl: '/assets/images/guides/notifications-guide.png'
             }
         };
-        
+
         // Nota: init() se llama desde navigation.js cuando el usuario entra a la pestaña.
     }
 
-initSystemStatus() {
-    if (document.querySelector('.system-status')) {
-        console.log('🔧 Inicializando módulo de estado del sistema REAL');
-        
-        // Esperar un momento para asegurar que el DOM esté completamente listo
-        setTimeout(() => {
-            try {
-                this.systemStatusModule = new SystemStatusModule();
-                
-                // Configurar validación automática cada 2 minutos
-                setInterval(() => {
-                    if (this.systemStatusModule && this.systemStatusModule.systemStatus) {
-                        this.systemStatusModule.validateStatusConsistency(
-                            this.systemStatusModule.systemStatus
-                        );
-                    }
-                }, 120000); // 2 minutos
-                
-                console.log('✅ Módulo de estado REAL inicializado correctamente');
-            } catch (error) {
-                console.error('❌ Error inicializando módulo de estado REAL:', error);
-                
-                // Mostrar error en la interfaz
-                const statusContainer = document.querySelector('.system-status');
-                if (statusContainer) {
-                    statusContainer.innerHTML = `
+    initSystemStatus() {
+        if (document.querySelector('.system-status')) {
+            console.log('🔧 Inicializando módulo de estado del sistema REAL');
+
+            // Esperar un momento para asegurar que el DOM esté completamente listo
+            setTimeout(() => {
+                try {
+                    this.systemStatusModule = new SystemStatusModule();
+
+                    // Configurar validación automática cada 2 minutos
+                    setInterval(() => {
+                        if (this.systemStatusModule && this.systemStatusModule.systemStatus) {
+                            this.systemStatusModule.validateStatusConsistency(
+                                this.systemStatusModule.systemStatus
+                            );
+                        }
+                    }, 120000); // 2 minutos
+
+                    console.log('✅ Módulo de estado REAL inicializado correctamente');
+                } catch (error) {
+                    console.error('❌ Error inicializando módulo de estado REAL:', error);
+
+                    // Mostrar error en la interfaz
+                    const statusContainer = document.querySelector('.system-status');
+                    if (statusContainer) {
+                        statusContainer.innerHTML = `
                         <div class="status-error">
                             <i class="fas fa-exclamation-triangle"></i>
                             <div class="error-message">
@@ -488,11 +514,11 @@ initSystemStatus() {
                             </div>
                         </div>
                     `;
+                    }
                 }
-            }
-        }, 100);
+            }, 100);
+        }
     }
-}
 
     async init() {
         console.log('🔧 SupportModule: Inicializando módulo');
@@ -695,51 +721,51 @@ initSystemStatus() {
 
     openGuideModal(section = 'dashboard') {
         console.log(`🔧 SupportModule: Abriendo modal de guía (sección: ${section})`);
-        
+
         const modal = document.getElementById('guideModal');
         if (!modal) {
             console.error('❌ Modal de guía no encontrado en el DOM');
             return;
         }
-        
+
         this.isGuideModalOpen = true;
         modal.style.display = 'flex';
-        
+
         modal.offsetHeight;
-        
+
         setTimeout(() => {
             modal.style.opacity = '1';
             modal.style.visibility = 'visible';
             console.log(`✅ Modal de guía visible (opacidad: 1)`);
         }, 10);
-        
+
         document.querySelectorAll('.guide-nav-item').forEach(item => {
             item.classList.remove('active');
             if (item.dataset.section === section) {
                 item.classList.add('active');
             }
         });
-        
+
         this.loadGuideSection(section);
-        
+
         document.body.classList.add('modal-open');
     }
 
     closeGuideModal() {
         console.log('🔧 SupportModule: Cerrando modal de guía');
-        
+
         const modal = document.getElementById('guideModal');
         if (!modal) return;
-        
+
         this.isGuideModalOpen = false;
         modal.style.opacity = '0';
         modal.style.visibility = 'hidden';
-        
+
         setTimeout(() => {
             modal.style.display = 'none';
             console.log('✅ Modal de guía oculto');
         }, 300);
-        
+
         document.body.classList.remove('modal-open');
     }
 
@@ -761,237 +787,476 @@ initSystemStatus() {
         return captions[section] || 'Captura de pantalla ilustrativa';
     }
 
-    async loadGuideSection(section) {
-        console.log(`🔧 SupportModule: Cargando sección de guía: ${section}`);
+async loadGuideSection(section) {
+    console.log(`🔧 SupportModule: Cargando sección de guía: ${section}`);
+    
+    const content = document.getElementById('guideContent');
+    if (!content) {
+        console.error('🚨 ERROR: #guideContent no existe en el DOM');
         
-        const content = document.getElementById('guideContent');
-        if (!content) {
-            console.error('🚨 ERROR: #guideContent no existe en el DOM');
-            
-            const guideMain = document.querySelector('.guide-main');
-            if (guideMain) {
-                console.log('⚠️ Creando #guideContent dinámicamente');
-                const newContent = document.createElement('div');
-                newContent.id = 'guideContent';
-                guideMain.appendChild(newContent);
-                return this.loadGuideSection(section);
-            }
-            return;
+        const guideMain = document.querySelector('.guide-main');
+        if (guideMain) {
+            console.log('⚠️ Creando #guideContent dinámicamente');
+            const newContent = document.createElement('div');
+            newContent.id = 'guideContent';
+            guideMain.appendChild(newContent);
+            return this.loadGuideSection(section);
         }
-        
-        const guide = this.guideData[section];
-        if (!guide) {
-            console.error(`🚨 ERROR: No hay datos para la sección: ${section}`);
-            return;
-        }
-        
-        this.currentGuideSection = section;
-        const sectionIndex = this.guideSections.indexOf(section);
-        const progress = ((sectionIndex + 1) / this.guideSections.length) * 100;
-        const imageCaption = this.getImageCaption(section);
-        
-        console.log(`📊 Datos de la guía para ${section}:`, {
-            title: guide.title,
-            hasImageUrl: !!guide.imageUrl,
-            imageUrl: guide.imageUrl,
-            stepsCount: guide.steps?.length || 0,
-            featuresCount: guide.features?.length || 0
-        });
-        
-        let sectionHTML = `
-            <div class="guide-section-content" data-section="${section}">
-                <div class="guide-header">
-                    <h2 class="guide-section-title-large">
-                        <i class="fas fa-${guide.icon}"></i>
-                        ${guide.title}
-                    </h2>
-                    <div class="guide-description">${guide.description}</div>
+        return;
+    }
+    
+    const guide = this.guideData[section];
+    if (!guide) {
+        console.error(`🚨 ERROR: No hay datos para la sección: ${section}`);
+        return;
+    }
+    
+    this.currentGuideSection = section;
+    const sectionIndex = this.guideSections.indexOf(section);
+    const progress = ((sectionIndex + 1) / this.guideSections.length) * 100;
+    const imageCaption = this.getImageCaption(section);
+    
+    console.log(`📊 Datos de la guía para ${section}:`, {
+        title: guide.title,
+        hasImages: guide.images && guide.images.length > 0,
+        imagesCount: guide.images?.length || 0,
+        stepsCount: guide.steps?.length || 0,
+        featuresCount: guide.features?.length || 0
+    });
+    
+    // =========================================================================
+    // GENERAR HTML PARA IMÁGENES (SOPORTA MÚLTIPLES)
+    // =========================================================================
+    let imagesHTML = '';
+    
+    if (guide.images && guide.images.length > 0) {
+        if (guide.images.length === 1) {
+            // Una sola imagen
+            imagesHTML = `
+                <div class="guide-image-container">
+                    <img 
+                        src="${guide.images[0]}" 
+                        alt="${guide.title}" 
+                        class="guide-image"
+                        id="guideImage-${section}"
+                        onerror="this.onerror=null; this.src='/assets/images/guides/placeholder.png'; console.log('❌ Imagen falló:', '${guide.images[0]}')"
+                    >
+                    <div class="guide-image-overlay">
+                        <div class="overlay-content">
+                            <i class="fas fa-search-plus"></i>
+                            <span>Ver en detalle</span>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="guide-progress">
-                    <div class="guide-progress-text">
-                        Sección ${sectionIndex + 1} de ${this.guideSections.length}
-                    </div>
-                    <div class="guide-progress-bar">
-                        <div class="guide-progress-fill" style="width: ${progress}%"></div>
-                    </div>
-                </div>
-                
-                <div class="guide-body">
-        `;
-        
-        sectionHTML += `
-                    <div class="guide-image-section">
-                        <div class="guide-image-container">
-                            <img 
-                                src="${guide.imageUrl || '/assets/images/guides/placeholder.png'}" 
-                                alt="${guide.title}" 
-                                class="guide-image"
-                                id="guideImage-${section}"
-                                onerror="this.onerror=null; this.src='/assets/images/guides/placeholder.png'; console.log('❌ Imagen falló:', '${guide.imageUrl}')"
-                            >
-                            <div class="guide-image-overlay">
-                                <div class="overlay-content">
-                                    <i class="fas fa-search-plus"></i>
-                                    <span>Ver en detalle</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="guide-image-caption">
-                            <i class="fas fa-info-circle"></i>
-                            ${imageCaption}
-                        </div>
-                    </div>
-        `;
-        
-        sectionHTML += `
-                    <div class="guide-overview-section">
-                        <h3 class="guide-subtitle">
-                            <i class="fas fa-eye"></i>
-                            Vista General
-                        </h3>
-                        <div class="guide-overview-content">
-                            ${guide.overview}
-                        </div>
-                    </div>
-        `;
-        
-        sectionHTML += `
-                    <div class="guide-features-section">
-                        <h3 class="guide-subtitle">
-                            <i class="fas fa-star"></i>
-                            Características Principales
-                        </h3>
-                        <div class="guide-features-grid">
-        `;
-        
-        guide.features.forEach((feature, index) => {
-            sectionHTML += `
-                            <div class="guide-feature-card" data-feature="${index}">
-                                <div class="feature-icon">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <div class="feature-content">
-                                    <h4 class="feature-title">${feature.title}</h4>
-                                    <p class="feature-description">${feature.desc}</p>
-                                </div>
-                            </div>
             `;
-        });
-        
-        sectionHTML += `
-                        </div>
-                    </div>
-        `;
-        
-        sectionHTML += `
-                    <div class="guide-steps-section">
-                        <h3 class="guide-subtitle">
-                            <i class="fas fa-list-ol"></i>
-                            Cómo Usarlo Paso a Paso
-                        </h3>
-                        <div class="guide-steps-list">
-        `;
-        
-        guide.steps.forEach((step, index) => {
-            sectionHTML += `
-                            <div class="guide-step-card">
-                                <div class="step-number">${index + 1}</div>
-                                <div class="step-content">
-                                    <h4 class="step-title">${step.title}</h4>
-                                    <p class="step-description">${step.description}</p>
-                                </div>
-                            </div>
-            `;
-        });
-        
-        sectionHTML += `
-                        </div>
-                    </div>
-        `;
-        
-        if (guide.tips && guide.tips.length > 0) {
-            sectionHTML += `
-                    <div class="guide-tips-section">
-                        <h3 class="guide-subtitle">
-                            <i class="fas fa-lightbulb"></i>
-                            Consejos Prácticos
-                        </h3>
-                        <div class="guide-tips-list">
-            `;
-            
-            guide.tips.forEach((tip, index) => {
-                sectionHTML += `
-                            <div class="guide-tip-item">
-                                <div class="tip-icon">
-                                    <i class="fas fa-chevron-right"></i>
-                                </div>
-                                <div class="tip-content">${tip}</div>
-                            </div>
-                `;
-            });
-            
-            sectionHTML += `
-                        </div>
-                    </div>
-            `;
-        }
-        
-        sectionHTML += `
-                </div>
-                
-                <div class="guide-navigation">
-                    ${sectionIndex > 0 ? `
-                        <button class="guide-nav-btn guide-nav-btn--prev" 
-                                data-section="${this.guideSections[sectionIndex - 1]}"
-                                aria-label="Sección anterior: ${this.guideData[this.guideSections[sectionIndex - 1]].title}">
+        } else {
+            // Múltiples imágenes - crear galería
+            imagesHTML = `
+                <div class="guide-image-gallery" data-gallery="${section}">
+                    <div class="gallery-main">
+                        <img 
+                            src="${guide.images[0]}" 
+                            alt="${guide.title}" 
+                            class="gallery-main-image"
+                            id="guideMainImage-${section}"
+                        >
+                        <button class="gallery-nav gallery-prev" data-section="${section}">
                             <i class="fas fa-chevron-left"></i>
-                            <span class="nav-text">Anterior</span>
-                            <span class="nav-section">${this.guideData[this.guideSections[sectionIndex - 1]].title}</span>
                         </button>
-                    ` : '<div></div>'}
-                    
-                    ${sectionIndex < this.guideSections.length - 1 ? `
-                        <button class="guide-nav-btn guide-nav-btn--next" 
-                                data-section="${this.guideSections[sectionIndex + 1]}"
-                                aria-label="Siguiente sección: ${this.guideData[this.guideSections[sectionIndex + 1]].title}">
-                            <span class="nav-text">Siguiente</span>
-                            <span class="nav-section">${this.guideData[this.guideSections[sectionIndex + 1]].title}</span>
+                        <button class="gallery-nav gallery-next" data-section="${section}">
                             <i class="fas fa-chevron-right"></i>
                         </button>
-                    ` : ''}
+                        <div class="gallery-counter">
+                            <span class="current">1</span> / <span class="total">${guide.images.length}</span>
+                        </div>
+                    </div>
+                    <div class="gallery-thumbnails">
+                        ${guide.images.map((img, idx) => `
+                            <div class="thumbnail ${idx === 0 ? 'active' : ''}" 
+                                 data-index="${idx}"
+                                 data-src="${img}"
+                                 data-section="${section}">
+                                <img src="${img}" alt="Miniatura ${idx + 1}" loading="lazy">
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        // Fallback a imageUrl
+        imagesHTML = `
+            <div class="guide-image-container">
+                <img 
+                    src="${guide.imageUrl || '/assets/images/guides/placeholder.png'}" 
+                    alt="${guide.title}" 
+                    class="guide-image"
+                    id="guideImage-${section}"
+                    onerror="this.onerror=null; this.src='/assets/images/guides/placeholder.png'; console.log('❌ Imagen falló:', '${guide.imageUrl}')"
+                >
+                <div class="guide-image-overlay">
+                    <div class="overlay-content">
+                        <i class="fas fa-search-plus"></i>
+                        <span>Ver en detalle</span>
+                    </div>
                 </div>
             </div>
         `;
-        
-        console.log(`📋 HTML generado para ${section} (primeros 500 chars):`, sectionHTML.substring(0, 500));
-        
-        content.innerHTML = sectionHTML;
-        
-        console.log(`✅ HTML insertado en #guideContent`);
-        console.log(`🔍 Buscando elementos después de inserción:`);
-        console.log('- .guide-image encontrado?', content.querySelector('.guide-image') ? '✅ SÍ' : '❌ NO');
-        console.log('- .guide-features-grid encontrado?', content.querySelector('.guide-features-grid') ? '✅ SÍ' : '❌ NO');
-        console.log('- .guide-steps-list encontrado?', content.querySelector('.guide-steps-list') ? '✅ SÍ' : '❌ NO');
-        
-        this.setupGuideSectionEvents();
-        
-        this.preloadGuideImages();
     }
+    
+    // =========================================================================
+    // CONSTRUIR HTML COMPLETO DE LA SECCIÓN
+    // =========================================================================
+    let sectionHTML = `
+        <div class="guide-section-content" data-section="${section}">
+            <div class="guide-header">
+                <h2 class="guide-section-title-large">
+                    <i class="fas fa-${guide.icon}"></i>
+                    ${guide.title}
+                </h2>
+                <div class="guide-description">${guide.description}</div>
+            </div>
+            
+            <div class="guide-progress">
+                <div class="guide-progress-text">
+                    Sección ${sectionIndex + 1} de ${this.guideSections.length}
+                </div>
+                <div class="guide-progress-bar">
+                    <div class="guide-progress-fill" style="width: ${progress}%"></div>
+                </div>
+            </div>
+            
+            <div class="guide-body">
+                <!-- SECCIÓN DE IMAGEN/IMÁGENES -->
+                <div class="guide-image-section">
+                    ${imagesHTML}
+                    <div class="guide-image-caption">
+                        <i class="fas fa-info-circle"></i>
+                        ${imageCaption}
+                    </div>
+                </div>
+                
+                <!-- SECCIÓN DE VISTA GENERAL -->
+                <div class="guide-overview-section">
+                    <h3 class="guide-subtitle">
+                        <i class="fas fa-eye"></i>
+                        Vista General
+                    </h3>
+                    <div class="guide-overview-content">
+                        ${guide.overview}
+                    </div>
+                </div>
+                
+                <!-- SECCIÓN DE CARACTERÍSTICAS -->
+                <div class="guide-features-section">
+                    <h3 class="guide-subtitle">
+                        <i class="fas fa-star"></i>
+                        Características Principales
+                    </h3>
+                    <div class="guide-features-grid">
+    `;
+    
+    // Agregar características
+    guide.features.forEach((feature, index) => {
+        sectionHTML += `
+                        <div class="guide-feature-card" data-feature="${index}">
+                            <div class="feature-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4 class="feature-title">${feature.title}</h4>
+                                <p class="feature-description">${feature.desc}</p>
+                            </div>
+                        </div>
+        `;
+    });
+    
+    sectionHTML += `
+                    </div>
+                </div>
+                
+                <!-- SECCIÓN DE PASOS -->
+                <div class="guide-steps-section">
+                    <h3 class="guide-subtitle">
+                        <i class="fas fa-list-ol"></i>
+                        Cómo Usarlo Paso a Paso
+                    </h3>
+                    <div class="guide-steps-list">
+    `;
+    
+    // Agregar pasos
+    guide.steps.forEach((step, index) => {
+        sectionHTML += `
+                        <div class="guide-step-card">
+                            <div class="step-number">${index + 1}</div>
+                            <div class="step-content">
+                                <h4 class="step-title">${step.title}</h4>
+                                <p class="step-description">${step.description}</p>
+                            </div>
+                        </div>
+        `;
+    });
+    
+    sectionHTML += `
+                    </div>
+                </div>
+    `;
+    
+    // SECCIÓN DE CONSEJOS (si existen)
+    if (guide.tips && guide.tips.length > 0) {
+        sectionHTML += `
+                <div class="guide-tips-section">
+                    <h3 class="guide-subtitle">
+                        <i class="fas fa-lightbulb"></i>
+                        Consejos Prácticos
+                    </h3>
+                    <div class="guide-tips-list">
+        `;
+        
+        guide.tips.forEach((tip, index) => {
+            sectionHTML += `
+                        <div class="guide-tip-item">
+                            <div class="tip-icon">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                            <div class="tip-content">${tip}</div>
+                        </div>
+            `;
+        });
+        
+        sectionHTML += `
+                    </div>
+                </div>
+        `;
+    }
+    
+    // CERRAR BODY Y AGREGAR NAVEGACIÓN
+    sectionHTML += `
+            </div>
+            
+            <div class="guide-navigation">
+                ${sectionIndex > 0 ? `
+                    <button class="guide-nav-btn guide-nav-btn--prev" 
+                            data-section="${this.guideSections[sectionIndex - 1]}"
+                            aria-label="Sección anterior: ${this.guideData[this.guideSections[sectionIndex - 1]].title}">
+                        <i class="fas fa-chevron-left"></i>
+                        <span class="nav-text">Anterior</span>
+                        <span class="nav-section">${this.guideData[this.guideSections[sectionIndex - 1]].title}</span>
+                    </button>
+                ` : '<div></div>'}
+                
+                ${sectionIndex < this.guideSections.length - 1 ? `
+                    <button class="guide-nav-btn guide-nav-btn--next" 
+                            data-section="${this.guideSections[sectionIndex + 1]}"
+                            aria-label="Siguiente sección: ${this.guideData[this.guideSections[sectionIndex + 1]].title}">
+                        <span class="nav-text">Siguiente</span>
+                        <span class="nav-section">${this.guideData[this.guideSections[sectionIndex + 1]].title}</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    console.log(`📋 HTML generado para ${section} (primeros 500 chars):`, sectionHTML.substring(0, 500));
+    
+    // Insertar HTML en el DOM
+    content.innerHTML = sectionHTML;
+    
+    console.log(`✅ HTML insertado en #guideContent`);
+    console.log(`🔍 Buscando elementos después de inserción:`);
+    console.log('- .guide-image encontrado?', content.querySelector('.guide-image') ? '✅ SÍ' : '❌ NO');
+    console.log('- .guide-image-gallery encontrado?', content.querySelector('.guide-image-gallery') ? '✅ SÍ' : '❌ NO');
+    console.log('- .guide-features-grid encontrado?', content.querySelector('.guide-features-grid') ? '✅ SÍ' : '❌ NO');
+    console.log('- .guide-steps-list encontrado?', content.querySelector('.guide-steps-list') ? '✅ SÍ' : '❌ NO');
+    
+    // Configurar eventos de la sección
+    this.setupGuideSectionEvents();
+    
+    // Configurar galería si hay múltiples imágenes
+    if (guide.images && guide.images.length > 1) {
+        this.setupImageGallery(section);
+    }
+    
+    // Precargar imágenes
+    this.preloadGuideImages();
+}
+
+// =============================================================================
+// MÉTODO PARA CONFIGURAR LA GALERÍA DE IMÁGENES
+// =============================================================================
+setupImageGallery(section) {
+    console.log(`🔧 Configurando galería para sección: ${section}`);
+    
+    const gallery = document.querySelector(`[data-gallery="${section}"]`);
+    if (!gallery) {
+        console.warn(`⚠️ No se encontró galería para la sección: ${section}`);
+        return;
+    }
+
+    const mainImage = gallery.querySelector('.gallery-main-image');
+    const thumbnails = gallery.querySelectorAll('.thumbnail');
+    const prevBtn = gallery.querySelector('.gallery-prev');
+    const nextBtn = gallery.querySelector('.gallery-next');
+    const counter = gallery.querySelector('.gallery-counter .current');
+    
+    const guide = this.guideData[section];
+    if (!guide || !guide.images) {
+        console.warn(`⚠️ No hay imágenes en guideData para: ${section}`);
+        return;
+    }
+    
+    const images = guide.images;
+    let currentIndex = 0;
+    
+    const updateImage = (index) => {
+        // Manejar wrap around
+        if (index < 0) index = images.length - 1;
+        if (index >= images.length) index = 0;
+        
+        currentIndex = index;
+        
+        // Actualizar imagen principal
+        if (mainImage) {
+            mainImage.src = images[currentIndex];
+            // Animación suave
+            mainImage.style.opacity = '0.5';
+            setTimeout(() => {
+                mainImage.style.opacity = '1';
+            }, 50);
+        }
+        
+        // Actualizar contador
+        if (counter) counter.textContent = currentIndex + 1;
+        
+        // Actualizar miniaturas
+        thumbnails.forEach((thumb, idx) => {
+            if (idx === currentIndex) {
+                thumb.classList.add('active');
+                // Scroll la miniatura activa a la vista
+                thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            } else {
+                thumb.classList.remove('active');
+            }
+        });
+        
+        console.log(`🖼️ Imagen actualizada: ${currentIndex + 1} de ${images.length}`);
+    };
+    
+    // Event listeners para navegación
+    if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            updateImage(currentIndex - 1);
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            updateImage(currentIndex + 1);
+        });
+    }
+    
+    // Event listeners para miniaturas
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const index = parseInt(thumb.dataset.index);
+            if (!isNaN(index)) {
+                updateImage(index);
+            }
+        });
+    });
+    
+    // Event listeners para teclas de flecha cuando la galería está enfocada
+    const handleKeyDown = (e) => {
+        if (!this.isGuideModalOpen) return;
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            updateImage(currentIndex - 1);
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            updateImage(currentIndex + 1);
+        }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Inicializar primera imagen
+    updateImage(0);
+    
+    console.log(`✅ Galería configurada para ${section} con ${images.length} imágenes`);
+}
+
+// =============================================================================
+// MÉTODO PARA PRECARGAR IMÁGENES (ACTUALIZADO)
+// =============================================================================
+async preloadGuideImages() {
+    console.log('🔧 SupportModule: Pre-cargando imágenes de guía');
+    
+    const currentGuide = this.guideData[this.currentGuideSection];
+    if (!currentGuide) return;
+    
+    // Si tiene array de imágenes, precargar todas
+    if (currentGuide.images && currentGuide.images.length > 0) {
+        console.log(`🖼️ Precargando ${currentGuide.images.length} imágenes...`);
+        
+        const promises = currentGuide.images.map((src, index) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => {
+                    console.log(`✅ Imagen ${index + 1}/${currentGuide.images.length} cargada: ${src}`);
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.error(`❌ Error cargando imagen ${index + 1}: ${src}`);
+                    reject();
+                };
+            });
+        });
+        
+        try {
+            await Promise.all(promises);
+            console.log(`✅ Todas las imágenes cargadas exitosamente`);
+        } catch (error) {
+            console.error('❌ Error precargando algunas imágenes:', error);
+        }
+    } 
+    // Fallback a imageUrl única
+    else if (currentGuide.imageUrl) {
+        const img = new Image();
+        img.src = currentGuide.imageUrl;
+        img.onload = () => {
+            console.log(`✅ Imagen cargada: ${currentGuide.imageUrl}`);
+            const guideImg = document.querySelector(`#guideImage-${this.currentGuideSection}`);
+            if (guideImg) {
+                guideImg.classList.add('loaded');
+            }
+        };
+        img.onerror = () => {
+            console.error(`❌ Error cargando imagen: ${currentGuide.imageUrl}`);
+        };
+    }
+}
 
     setupGuideSectionEvents() {
         const content = document.getElementById('guideContent');
         if (!content) return;
-        
+
         content.querySelectorAll('.guide-nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const nextSection = e.currentTarget.dataset.section;
                 console.log(`📍 Botón navegación clickeado: ${nextSection}`);
-                
+
                 content.scrollTop = 0;
-                
+
                 this.loadGuideSection(nextSection);
-                
+
                 document.querySelectorAll('.guide-nav-item').forEach(navItem => {
                     navItem.classList.remove('active');
                     if (navItem.dataset.section === nextSection) {
@@ -1000,7 +1265,7 @@ initSystemStatus() {
                 });
             });
         });
-        
+
         content.querySelectorAll('.guide-image-container').forEach(container => {
             container.addEventListener('click', (e) => {
                 const img = container.querySelector('.guide-image');
@@ -1009,12 +1274,12 @@ initSystemStatus() {
                 }
             });
         });
-        
+
         document.addEventListener('keydown', (e) => {
             if (!this.isGuideModalOpen) return;
-            
+
             const currentIndex = this.guideSections.indexOf(this.currentGuideSection);
-            
+
             switch (e.key) {
                 case 'ArrowLeft':
                     if (currentIndex > 0) {
@@ -1022,7 +1287,7 @@ initSystemStatus() {
                         this.loadGuideSection(this.guideSections[currentIndex - 1]);
                     }
                     break;
-                    
+
                 case 'ArrowRight':
                     if (currentIndex < this.guideSections.length - 1) {
                         e.preventDefault();
@@ -1035,10 +1300,10 @@ initSystemStatus() {
 
     async preloadGuideImages() {
         console.log('🔧 SupportModule: Pre-cargando imágenes de guía');
-        
+
         const currentGuide = this.guideData[this.currentGuideSection];
         if (!currentGuide || !currentGuide.imageUrl) return;
-        
+
         const img = new Image();
         img.src = currentGuide.imageUrl;
         img.onload = () => {
@@ -1055,10 +1320,10 @@ initSystemStatus() {
 
     openImageLightbox(src, alt) {
         console.log(`🔧 SupportModule: Abriendo lightbox para imagen: ${src}`);
-        
+
         // Buscar el lightbox existente O crear uno nuevo
         let lightbox = document.getElementById('guideLightbox');
-        
+
         if (!lightbox) {
             console.log('🆕 Lightbox no existe, creando uno nuevo');
             lightbox = document.createElement('div');
@@ -1077,18 +1342,18 @@ initSystemStatus() {
                 </div>
             `;
             document.body.appendChild(lightbox);
-            
+
             console.log('✅ Lightbox creado e insertado en el DOM');
-            
+
             // Eventos del lightbox
             lightbox.querySelector('.lightbox-overlay').addEventListener('click', () => {
                 this.closeImageLightbox();
             });
-            
+
             lightbox.querySelector('.lightbox-close').addEventListener('click', () => {
                 this.closeImageLightbox();
             });
-            
+
             // Cerrar con tecla Escape
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && lightbox.style.display === 'flex') {
@@ -1098,20 +1363,20 @@ initSystemStatus() {
         } else {
             console.log('✅ Lightbox ya existe en el DOM');
         }
-        
+
         // DEBUG: Verificar que los elementos existen antes de actualizar
         console.log('🔍 Verificando elementos del lightbox:');
         const lightboxImage = lightbox.querySelector('.lightbox-image');
         const lightboxCaption = lightbox.querySelector('.lightbox-caption');
-        
+
         console.log('- .lightbox-image encontrado?', lightboxImage ? '✅ SÍ' : '❌ NO');
         console.log('- .lightbox-caption encontrado?', lightboxCaption ? '✅ SÍ' : '❌ NO');
         console.log('- Lightbox div encontrado?', lightbox ? '✅ SÍ' : '❌ NO');
-        
+
         if (!lightboxImage) {
             console.error('🚨 ERROR: .lightbox-image no encontrado en el lightbox');
             console.log('📋 Contenido del lightbox:', lightbox.innerHTML);
-            
+
             // Intentar recuperar la imagen
             const imageContainer = lightbox.querySelector('.lightbox-image-container');
             if (imageContainer) {
@@ -1131,37 +1396,37 @@ initSystemStatus() {
                 lightboxCaption.textContent = alt;
             }
         }
-        
+
         // Mostrar el lightbox
         lightbox.style.display = 'flex';
-        
+
         // Forzar reflow para la animación
         lightbox.offsetHeight;
-        
+
         setTimeout(() => {
             lightbox.style.opacity = '1';
             console.log('✅ Lightbox visible (opacidad: 1)');
         }, 10);
-        
+
         // Agregar clase al body
         document.body.classList.add('lightbox-open');
-        
+
         // DEBUG final
         console.log('✅ Lightbox abierto exitosamente');
     }
 
     closeImageLightbox() {
         console.log('🔧 SupportModule: Cerrando lightbox');
-        
+
         const lightbox = document.getElementById('guideLightbox');
         if (!lightbox) {
             console.warn('⚠️ Lightbox no encontrado al intentar cerrar');
             return;
         }
-        
+
         console.log('✅ Lightbox encontrado, cerrando...');
         lightbox.style.opacity = '0';
-        
+
         setTimeout(() => {
             lightbox.style.display = 'none';
             document.body.classList.remove('lightbox-open');
@@ -1170,12 +1435,12 @@ initSystemStatus() {
     }
 
     async loadFAQ() {
-    try {
-        console.log('🔧 SupportModule: Cargando FAQ');
-        const response = await api.getFAQ();
-        
-        if (response.success && DOM.faqList) {
-            const faqHTML = response.faq.map(item => `
+        try {
+            console.log('🔧 SupportModule: Cargando FAQ');
+            const response = await api.getFAQ();
+
+            if (response.success && DOM.faqList) {
+                const faqHTML = response.faq.map(item => `
                 <div class="faq-item" data-category="${item.category}">
                     <div class="faq-question">
                         <h4>${item.question}</h4>
@@ -1188,42 +1453,42 @@ initSystemStatus() {
                     </div>
                 </div>
             `).join('');
-            
-            DOM.faqList.innerHTML = faqHTML;
-            
-            // Configurar toggle para cada pregunta
-            document.querySelectorAll('.faq-question').forEach(question => {
-                question.addEventListener('click', (e) => {
-                    // Evitar que se active al hacer clic en los enlaces
-                    if (e.target.tagName === 'A' || e.target.closest('a')) {
-                        return;
-                    }
-                    
-                    const answer = question.nextElementSibling;
-                    const toggleIcon = question.querySelector('.faq-toggle');
-                    
-                    // Alternar solo esta pregunta
-                    answer.classList.toggle('open');
-                    question.classList.toggle('active');
-                    
-                    // Scroll suave para mantener la pregunta visible
-                    if (answer.classList.contains('open')) {
-                        setTimeout(() => {
-                            question.scrollIntoView({ 
-                                behavior: 'smooth', 
-                                block: 'nearest' 
-                            });
-                        }, 50);
-                    }
+
+                DOM.faqList.innerHTML = faqHTML;
+
+                // Configurar toggle para cada pregunta
+                document.querySelectorAll('.faq-question').forEach(question => {
+                    question.addEventListener('click', (e) => {
+                        // Evitar que se active al hacer clic en los enlaces
+                        if (e.target.tagName === 'A' || e.target.closest('a')) {
+                            return;
+                        }
+
+                        const answer = question.nextElementSibling;
+                        const toggleIcon = question.querySelector('.faq-toggle');
+
+                        // Alternar solo esta pregunta
+                        answer.classList.toggle('open');
+                        question.classList.toggle('active');
+
+                        // Scroll suave para mantener la pregunta visible
+                        if (answer.classList.contains('open')) {
+                            setTimeout(() => {
+                                question.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'nearest'
+                                });
+                            }, 50);
+                        }
+                    });
                 });
-            });
-            
-            console.log(`✅ FAQ cargadas: ${response.faq.length} preguntas`);
+
+                console.log(`✅ FAQ cargadas: ${response.faq.length} preguntas`);
+            }
+        } catch (error) {
+            console.error('❌ Error cargando FAQ:', error);
         }
-    } catch (error) {
-        console.error('❌ Error cargando FAQ:', error);
     }
-}
 
     async openTicketModal() {
         console.log('🔧 SupportModule: Abriendo modal de ticket');
@@ -1236,23 +1501,23 @@ initSystemStatus() {
             showAlert('No tienes permiso para crear tickets de soporte', 'error');
             return;
         }
-        
+
         DOM.ticketModal.style.display = 'flex';
         setTimeout(() => {
             DOM.ticketModal.style.opacity = '1';
             DOM.ticketModal.style.visibility = 'visible';
         }, 10);
-        
+
         DOM.ticketForm.reset();
         DOM.ticketFileList.innerHTML = '';
         this.selectedFiles = [];
-        
+
         const today = new Date().toISOString().split('T')[0];
         const dateInput = document.getElementById('ticketDueDate');
         if (dateInput) {
             dateInput.min = today;
         }
-        
+
         document.body.classList.add('modal-open');
     }
 
@@ -1262,7 +1527,7 @@ initSystemStatus() {
         setTimeout(() => {
             DOM.ticketModal.style.display = 'none';
         }, 300);
-        
+
         document.body.classList.remove('modal-open');
     }
 
@@ -1271,86 +1536,86 @@ initSystemStatus() {
     }
 
     handleFileSelect(files) {
-    if (!files || files.length === 0) {
-        console.log('No se seleccionaron archivos');
-        return;
-    }
-    
-    console.log(`Archivos seleccionados: ${files.length}`);
-    
-    if (!this.selectedFiles) {
-        this.selectedFiles = [];
-    }
-    
-    let filesAdded = 0;
-    let filesSkipped = 0;
-    
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        // Verificar si el archivo ya está en la lista
-        const isDuplicate = this.selectedFiles.some(existingFile => 
-            existingFile.name === file.name && 
-            existingFile.size === file.size &&
-            existingFile.lastModified === file.lastModified
-        );
-        
-        if (isDuplicate) {
-            console.log(`Archivo duplicado omitido: ${file.name}`);
-            showAlert(`El archivo "${file.name}" ya está en la lista`, 'warning');
-            filesSkipped++;
-            continue;
+        if (!files || files.length === 0) {
+            console.log('No se seleccionaron archivos');
+            return;
         }
-        
-        if (file.size > 10 * 1024 * 1024) {
-            showAlert(`El archivo "${file.name}" es demasiado grande (máximo 10MB)`, 'error');
-            filesSkipped++;
-            continue;
+
+        console.log(`Archivos seleccionados: ${files.length}`);
+
+        if (!this.selectedFiles) {
+            this.selectedFiles = [];
         }
-        
-        const allowedTypes = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-            'application/pdf', 
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/plain',
-            'application/zip',
-            'application/x-rar-compressed'
-        ];
-        
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'rar'];
-        
-        if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-            showAlert(`Tipo de archivo no permitido: "${file.name}"`, 'error');
-            filesSkipped++;
-            continue;
+
+        let filesAdded = 0;
+        let filesSkipped = 0;
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            // Verificar si el archivo ya está en la lista
+            const isDuplicate = this.selectedFiles.some(existingFile =>
+                existingFile.name === file.name &&
+                existingFile.size === file.size &&
+                existingFile.lastModified === file.lastModified
+            );
+
+            if (isDuplicate) {
+                console.log(`Archivo duplicado omitido: ${file.name}`);
+                showAlert(`El archivo "${file.name}" ya está en la lista`, 'warning');
+                filesSkipped++;
+                continue;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showAlert(`El archivo "${file.name}" es demasiado grande (máximo 10MB)`, 'error');
+                filesSkipped++;
+                continue;
+            }
+
+            const allowedTypes = [
+                'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'text/plain',
+                'application/zip',
+                'application/x-rar-compressed'
+            ];
+
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'rar'];
+
+            if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+                showAlert(`Tipo de archivo no permitido: "${file.name}"`, 'error');
+                filesSkipped++;
+                continue;
+            }
+
+            this.selectedFiles.push(file);
+            this.renderFileItem(file);
+            filesAdded++;
         }
-        
-        this.selectedFiles.push(file);
-        this.renderFileItem(file);
-        filesAdded++;
+
+        // Mostrar resumen
+        if (filesAdded > 0) {
+            console.log(`${filesAdded} archivo(s) agregado(s) exitosamente`);
+        }
+
+        if (filesSkipped > 0) {
+            console.log(`${filesSkipped} archivo(s) omitido(s)`);
+        }
+
+        this.updateFileCounter();
+
+        // IMPORTANTE: Limpiar el input para permitir seleccionar el mismo archivo nuevamente
+        // Pero solo si estamos en un navegador que lo soporte
+        if (DOM.ticketFileInput) {
+            DOM.ticketFileInput.value = '';
+        }
     }
-    
-    // Mostrar resumen
-    if (filesAdded > 0) {
-        console.log(`${filesAdded} archivo(s) agregado(s) exitosamente`);
-    }
-    
-    if (filesSkipped > 0) {
-        console.log(`${filesSkipped} archivo(s) omitido(s)`);
-    }
-    
-    this.updateFileCounter();
-    
-    // IMPORTANTE: Limpiar el input para permitir seleccionar el mismo archivo nuevamente
-    // Pero solo si estamos en un navegador que lo soporte
-    if (DOM.ticketFileInput) {
-        DOM.ticketFileInput.value = '';
-    }
-}
 
     renderFileItem(file) {
         const fileItem = document.createElement('div');
@@ -1370,13 +1635,13 @@ initSystemStatus() {
                 <i class="fas fa-times"></i>
             </button>
         `;
-        
+
         fileItem.querySelector('.remove-file').addEventListener('click', () => {
             this.removeFile(file.name);
             fileItem.remove();
             this.updateFileCounter();
         });
-        
+
         DOM.ticketFileList.appendChild(fileItem);
     }
 
@@ -1402,236 +1667,236 @@ initSystemStatus() {
     }
 
     async submitTicket() {
-    try {
-        if (!canAction('soporte')) {
-            showNoPermissionAlert('soporte');
-            showAlert('No tienes permiso para crear tickets de soporte', 'error');
-            return;
-        }
+        try {
+            if (!canAction('soporte')) {
+                showNoPermissionAlert('soporte');
+                showAlert('No tienes permiso para crear tickets de soporte', 'error');
+                return;
+            }
 
-        // ===== LIMPIAR VALIDACIONES ANTERIORES =====
-        this.clearFormAlerts();
-        this.clearFieldHighlights();
+            // ===== LIMPIAR VALIDACIONES ANTERIORES =====
+            this.clearFormAlerts();
+            this.clearFieldHighlights();
 
-        // ===== OBTENER VALORES DEL FORMULARIO =====
-        const subject = DOM.ticketSubject?.value.trim() || '';
-        const description = DOM.ticketDescription?.value.trim() || '';
-        const category = DOM.ticketCategory?.value || '';
-        const priority = DOM.ticketPriority?.value || '';
-        const dueDate = DOM.ticketDueDate?.value || '';
-        
-        console.log('📝 Validando ticket:', { subject, description, category, priority, dueDate });
+            // ===== OBTENER VALORES DEL FORMULARIO =====
+            const subject = DOM.ticketSubject?.value.trim() || '';
+            const description = DOM.ticketDescription?.value.trim() || '';
+            const category = DOM.ticketCategory?.value || '';
+            const priority = DOM.ticketPriority?.value || '';
+            const dueDate = DOM.ticketDueDate?.value || '';
 
-        // ===== VALIDAR CAMPOS OBLIGATORIOS =====
-        const errors = [];
+            console.log('📝 Validando ticket:', { subject, description, category, priority, dueDate });
 
-        // Validar asunto
-        if (!subject) {
-            errors.push({
-                field: 'ticketSubject',
-                message: 'El asunto es obligatorio'
-            });
-        } else if (subject.length < 5) {
-            errors.push({
-                field: 'ticketSubject',
-                message: 'El asunto debe tener al menos 5 caracteres'
-            });
-        }
+            // ===== VALIDAR CAMPOS OBLIGATORIOS =====
+            const errors = [];
 
-        // Validar descripción
-        if (!description) {
-            errors.push({
-                field: 'ticketDescription',
-                message: 'La descripción es obligatoria'
-            });
-        } else if (description.length < 20) {
-            errors.push({
-                field: 'ticketDescription',
-                message: 'La descripción debe tener al menos 20 caracteres'
-            });
-        }
-
-        // Validar categoría
-        if (!category) {
-            errors.push({
-                field: 'ticketCategory',
-                message: 'Selecciona una categoría'
-            });
-        }
-
-        // Validar prioridad
-        if (!priority) {
-            errors.push({
-                field: 'ticketPriority',
-                message: 'Selecciona una prioridad'
-            });
-        }
-
-        // Validar fecha de vencimiento (si se proporciona)
-        if (dueDate) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const selectedDate = new Date(dueDate);
-            
-            if (selectedDate < today) {
+            // Validar asunto
+            if (!subject) {
                 errors.push({
-                    field: 'ticketDueDate',
-                    message: 'La fecha de vencimiento no puede ser anterior a hoy'
+                    field: 'ticketSubject',
+                    message: 'El asunto es obligatorio'
                 });
+            } else if (subject.length < 5) {
+                errors.push({
+                    field: 'ticketSubject',
+                    message: 'El asunto debe tener al menos 5 caracteres'
+                });
+            }
+
+            // Validar descripción
+            if (!description) {
+                errors.push({
+                    field: 'ticketDescription',
+                    message: 'La descripción es obligatoria'
+                });
+            } else if (description.length < 20) {
+                errors.push({
+                    field: 'ticketDescription',
+                    message: 'La descripción debe tener al menos 20 caracteres'
+                });
+            }
+
+            // Validar categoría
+            if (!category) {
+                errors.push({
+                    field: 'ticketCategory',
+                    message: 'Selecciona una categoría'
+                });
+            }
+
+            // Validar prioridad
+            if (!priority) {
+                errors.push({
+                    field: 'ticketPriority',
+                    message: 'Selecciona una prioridad'
+                });
+            }
+
+            // Validar fecha de vencimiento (si se proporciona)
+            if (dueDate) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const selectedDate = new Date(dueDate);
+
+                if (selectedDate < today) {
+                    errors.push({
+                        field: 'ticketDueDate',
+                        message: 'La fecha de vencimiento no puede ser anterior a hoy'
+                    });
+                }
+            }
+
+            // ===== SI HAY ERRORES, MOSTRARLOS Y DETENER =====
+            if (errors.length > 0) {
+                console.log('❌ Errores de validación:', errors);
+
+                // Mostrar alerta general
+                this.showFormAlert(
+                    'error',
+                    `Por favor, corrige los siguientes errores:\n• ${errors.map(e => e.message).join('\n• ')}`
+                );
+
+                // Resaltar campos con error
+                errors.forEach(error => {
+                    this.highlightField(error.field, error.message);
+                });
+
+                // Hacer scroll al inicio del formulario
+                DOM.ticketModal?.querySelector('.modal__body')?.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+
+                return;
+            }
+
+            // ===== PREPARAR DATOS DEL TICKET =====
+            const ticketData = {
+                subject,
+                description,
+                category,
+                priority,
+                dueDate: dueDate || null,
+                emailNotifications: true
+            };
+
+            console.log('📤 Enviando ticket con datos:', ticketData);
+            console.log(`📎 Archivos adjuntos: ${this.selectedFiles?.length || 0}`);
+
+            // ===== MOSTRAR ESTADO DE CARGA =====
+            const submitBtn = DOM.submitTicketBtn;
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            submitBtn.disabled = true;
+
+            // ===== ENVIAR TICKET =====
+            const response = await api.createTicket(ticketData, this.selectedFiles);
+
+            if (response.success) {
+                // ===== MOSTRAR ALERTA DE ÉXITO =====
+                this.showFormAlert(
+                    'success',
+                    '✅ Ticket creado exitosamente. Recibirás una confirmación por email.',
+                    5000
+                );
+
+                // Cerrar modal después de un breve delay
+                setTimeout(() => {
+                    this.closeTicketModal();
+
+                    // Mostrar notificación adicional si está permitido
+                    this.sendTicketNotification(ticketData);
+                }, 1500);
+
+            } else {
+                // ===== MOSTRAR ALERTA DE ERROR =====
+                this.showFormAlert(
+                    'error',
+                    response.message || 'Error al crear el ticket. Por favor, intenta de nuevo.'
+                );
+
+                // Restaurar botón
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+
+        } catch (error) {
+            console.error('❌ Error creando ticket:', error);
+
+            // ===== MOSTRAR ALERTA DE ERROR INESPERADO =====
+            this.showFormAlert(
+                'error',
+                `Error al crear el ticket: ${error.message}`
+            );
+
+            // Restaurar botón
+            const submitBtn = DOM.submitTicketBtn;
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Ticket';
+                submitBtn.disabled = false;
+            }
+        }
+    }
+
+    // =============================================================================
+    // MÉTODOS AUXILIARES PARA VALIDACIÓN VISUAL
+    // =============================================================================
+
+    /**
+     * Limpiar todas las alertas del formulario
+     */
+    clearFormAlerts() {
+        // Eliminar alertas existentes
+        const existingAlerts = document.querySelectorAll('.form-alerts-container');
+        existingAlerts.forEach(alert => alert.remove());
+    }
+
+    /**
+     * Limpiar todos los resaltados de campos
+     */
+    clearFieldHighlights() {
+        // Eliminar mensajes de validación
+        document.querySelectorAll('.validation-message').forEach(msg => msg.remove());
+
+        // Eliminar clases de error
+        document.querySelectorAll('.field--error-highlight').forEach(field => {
+            field.classList.remove('field--error-highlight');
+        });
+    }
+
+    /**
+     * Mostrar alerta en el formulario
+     * @param {string} type - Tipo de alerta (success, error, warning, info)
+     * @param {string} message - Mensaje a mostrar
+     * @param {number} timeout - Tiempo en ms antes de desaparecer (opcional)
+     */
+    showFormAlert(type, message, timeout = null) {
+        // Crear contenedor de alertas si no existe
+        let alertContainer = document.querySelector('.form-alerts-container');
+        if (!alertContainer) {
+            alertContainer = document.createElement('div');
+            alertContainer.className = 'form-alerts-container';
+
+            // Insertar al inicio del modal body
+            const modalBody = DOM.ticketModal?.querySelector('.modal__body');
+            if (modalBody) {
+                modalBody.insertBefore(alertContainer, modalBody.firstChild);
             }
         }
 
-        // ===== SI HAY ERRORES, MOSTRARLOS Y DETENER =====
-        if (errors.length > 0) {
-            console.log('❌ Errores de validación:', errors);
-            
-            // Mostrar alerta general
-            this.showFormAlert(
-                'error',
-                `Por favor, corrige los siguientes errores:\n• ${errors.map(e => e.message).join('\n• ')}`
-            );
-            
-            // Resaltar campos con error
-            errors.forEach(error => {
-                this.highlightField(error.field, error.message);
-            });
-            
-            // Hacer scroll al inicio del formulario
-            DOM.ticketModal?.querySelector('.modal__body')?.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-            
-            return;
-        }
+        // Crear alerta
+        const alert = document.createElement('div');
+        alert.className = `alert alert--form alert--${type} slide-up`;
 
-        // ===== PREPARAR DATOS DEL TICKET =====
-        const ticketData = {
-            subject,
-            description,
-            category,
-            priority,
-            dueDate: dueDate || null,
-            emailNotifications: true
+        // Ícono según tipo
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
         };
-        
-        console.log('📤 Enviando ticket con datos:', ticketData);
-        console.log(`📎 Archivos adjuntos: ${this.selectedFiles?.length || 0}`);
 
-        // ===== MOSTRAR ESTADO DE CARGA =====
-        const submitBtn = DOM.submitTicketBtn;
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-        submitBtn.disabled = true;
-
-        // ===== ENVIAR TICKET =====
-        const response = await api.createTicket(ticketData, this.selectedFiles);
-        
-        if (response.success) {
-            // ===== MOSTRAR ALERTA DE ÉXITO =====
-            this.showFormAlert(
-                'success',
-                '✅ Ticket creado exitosamente. Recibirás una confirmación por email.',
-                5000
-            );
-            
-            // Cerrar modal después de un breve delay
-            setTimeout(() => {
-                this.closeTicketModal();
-                
-                // Mostrar notificación adicional si está permitido
-                this.sendTicketNotification(ticketData);
-            }, 1500);
-            
-        } else {
-            // ===== MOSTRAR ALERTA DE ERROR =====
-            this.showFormAlert(
-                'error',
-                response.message || 'Error al crear el ticket. Por favor, intenta de nuevo.'
-            );
-            
-            // Restaurar botón
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }
-        
-    } catch (error) {
-        console.error('❌ Error creando ticket:', error);
-        
-        // ===== MOSTRAR ALERTA DE ERROR INESPERADO =====
-        this.showFormAlert(
-            'error',
-            `Error al crear el ticket: ${error.message}`
-        );
-        
-        // Restaurar botón
-        const submitBtn = DOM.submitTicketBtn;
-        if (submitBtn) {
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Ticket';
-            submitBtn.disabled = false;
-        }
-    }
-}
-
-// =============================================================================
-// MÉTODOS AUXILIARES PARA VALIDACIÓN VISUAL
-// =============================================================================
-
-/**
- * Limpiar todas las alertas del formulario
- */
-clearFormAlerts() {
-    // Eliminar alertas existentes
-    const existingAlerts = document.querySelectorAll('.form-alerts-container');
-    existingAlerts.forEach(alert => alert.remove());
-}
-
-/**
- * Limpiar todos los resaltados de campos
- */
-clearFieldHighlights() {
-    // Eliminar mensajes de validación
-    document.querySelectorAll('.validation-message').forEach(msg => msg.remove());
-    
-    // Eliminar clases de error
-    document.querySelectorAll('.field--error-highlight').forEach(field => {
-        field.classList.remove('field--error-highlight');
-    });
-}
-
-/**
- * Mostrar alerta en el formulario
- * @param {string} type - Tipo de alerta (success, error, warning, info)
- * @param {string} message - Mensaje a mostrar
- * @param {number} timeout - Tiempo en ms antes de desaparecer (opcional)
- */
-showFormAlert(type, message, timeout = null) {
-    // Crear contenedor de alertas si no existe
-    let alertContainer = document.querySelector('.form-alerts-container');
-    if (!alertContainer) {
-        alertContainer = document.createElement('div');
-        alertContainer.className = 'form-alerts-container';
-        
-        // Insertar al inicio del modal body
-        const modalBody = DOM.ticketModal?.querySelector('.modal__body');
-        if (modalBody) {
-            modalBody.insertBefore(alertContainer, modalBody.firstChild);
-        }
-    }
-    
-    // Crear alerta
-    const alert = document.createElement('div');
-    alert.className = `alert alert--form alert--${type} slide-up`;
-    
-    // Ícono según tipo
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-exclamation-circle',
-        warning: 'fa-exclamation-triangle',
-        info: 'fa-info-circle'
-    };
-    
-    alert.innerHTML = `
+        alert.innerHTML = `
         <div class="alert__icon">
             <i class="fas ${icons[type] || icons.info}"></i>
         </div>
@@ -1642,76 +1907,76 @@ showFormAlert(type, message, timeout = null) {
             <i class="fas fa-times"></i>
         </button>
     `;
-    
-    // Agregar al contenedor
-    alertContainer.appendChild(alert);
-    
-    // Auto-cerrar después de timeout si se especifica
-    if (timeout) {
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.classList.add('fade-out');
-                setTimeout(() => alert.remove(), 300);
-            }
-        }, timeout);
-    }
-    
-    // Scroll hasta la alerta
-    alert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
 
-/**
- * Resaltar campo con error
- * @param {string} fieldId - ID del campo
- * @param {string} message - Mensaje de error
- */
-highlightField(fieldId, message) {
-    const field = document.getElementById(fieldId);
-    if (!field) return;
-    
-    // Remover resaltado anterior
-    field.classList.remove('field--error-highlight');
-    
-    // Eliminar mensaje anterior
-    const oldMessage = field.parentNode?.querySelector('.validation-message');
-    if (oldMessage) oldMessage.remove();
-    
-    // Agregar resaltado
-    field.classList.add('field--error-highlight');
-    
-    // Crear mensaje de validación
-    const validationMsg = document.createElement('div');
-    validationMsg.className = 'validation-message validation-message--error';
-    validationMsg.innerHTML = `
+        // Agregar al contenedor
+        alertContainer.appendChild(alert);
+
+        // Auto-cerrar después de timeout si se especifica
+        if (timeout) {
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.classList.add('fade-out');
+                    setTimeout(() => alert.remove(), 300);
+                }
+            }, timeout);
+        }
+
+        // Scroll hasta la alerta
+        alert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    /**
+     * Resaltar campo con error
+     * @param {string} fieldId - ID del campo
+     * @param {string} message - Mensaje de error
+     */
+    highlightField(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+
+        // Remover resaltado anterior
+        field.classList.remove('field--error-highlight');
+
+        // Eliminar mensaje anterior
+        const oldMessage = field.parentNode?.querySelector('.validation-message');
+        if (oldMessage) oldMessage.remove();
+
+        // Agregar resaltado
+        field.classList.add('field--error-highlight');
+
+        // Crear mensaje de validación
+        const validationMsg = document.createElement('div');
+        validationMsg.className = 'validation-message validation-message--error';
+        validationMsg.innerHTML = `
         <i class="fas fa-exclamation-circle"></i>
         <span>${message}</span>
     `;
-    
-    // Insertar después del campo
-    field.parentNode?.insertBefore(validationMsg, field.nextSibling);
-    
-    // Evento para quitar resaltado cuando el usuario empiece a escribir
-    const removeHighlight = () => {
-        field.classList.remove('field--error-highlight');
-        if (validationMsg.parentNode) {
-            validationMsg.remove();
-        }
-        field.removeEventListener('input', removeHighlight);
-        field.removeEventListener('change', removeHighlight);
-    };
-    
-    field.addEventListener('input', removeHighlight, { once: true });
-    field.addEventListener('change', removeHighlight, { once: true });
-}
 
-/**
- * Mostrar alerta de éxito (wrapper para compatibilidad)
- * @param {string} message 
- * @param {string} type 
- */
-showAlert(message, type = 'info') {
-    this.showFormAlert(type, message, 5000);
-}
+        // Insertar después del campo
+        field.parentNode?.insertBefore(validationMsg, field.nextSibling);
+
+        // Evento para quitar resaltado cuando el usuario empiece a escribir
+        const removeHighlight = () => {
+            field.classList.remove('field--error-highlight');
+            if (validationMsg.parentNode) {
+                validationMsg.remove();
+            }
+            field.removeEventListener('input', removeHighlight);
+            field.removeEventListener('change', removeHighlight);
+        };
+
+        field.addEventListener('input', removeHighlight, { once: true });
+        field.addEventListener('change', removeHighlight, { once: true });
+    }
+
+    /**
+     * Mostrar alerta de éxito (wrapper para compatibilidad)
+     * @param {string} message 
+     * @param {string} type 
+     */
+    showAlert(message, type = 'info') {
+        this.showFormAlert(type, message, 5000);
+    }
 
     getCategoryName(category) {
         const categories = {
@@ -1739,7 +2004,7 @@ showAlert(message, type = 'info') {
 
     sendTicketNotification(ticketData) {
         console.log('📢 Notificación de ticket creado:', ticketData);
-        
+
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Ticket Creado', {
                 body: `Ticket "${ticketData.subject}" creado exitosamente`,
@@ -1750,15 +2015,15 @@ showAlert(message, type = 'info') {
 
     searchGuide(query) {
         if (!query.trim()) return;
-        
+
         console.log(`🔍 Buscando en guía: "${query}"`);
-        
+
         const results = [];
-        
+
         Object.entries(this.guideData).forEach(([section, data]) => {
             const searchText = JSON.stringify(data).toLowerCase();
             const queryLower = query.toLowerCase();
-            
+
             if (searchText.includes(queryLower)) {
                 results.push({
                     section,
@@ -1768,46 +2033,46 @@ showAlert(message, type = 'info') {
                 });
             }
         });
-        
+
         results.sort((a, b) => b.relevance - a.relevance);
-        
+
         this.displaySearchResults(results, query);
     }
 
     calculateRelevance(guideData, query) {
         let relevance = 0;
         const text = JSON.stringify(guideData).toLowerCase();
-        
+
         if (guideData.title.toLowerCase().includes(query)) relevance += 10;
-        
+
         if (guideData.description.toLowerCase().includes(query)) relevance += 5;
-        
+
         guideData.steps.forEach(step => {
             if (step.title.toLowerCase().includes(query)) relevance += 3;
             if (step.description.toLowerCase().includes(query)) relevance += 2;
         });
-        
+
         guideData.features.forEach(feature => {
             if (feature.title.toLowerCase().includes(query)) relevance += 2;
             if (feature.desc.toLowerCase().includes(query)) relevance += 1;
         });
-        
+
         guideData.tips?.forEach(tip => {
             if (tip.toLowerCase().includes(query)) relevance += 1;
         });
-        
+
         return relevance;
     }
 
     displaySearchResults(results, query) {
         const modal = document.getElementById('guideSearchModal');
         if (!modal) return;
-        
+
         if (results.length === 0) {
             this.showNoResultsModal(query);
             return;
         }
-        
+
         const resultsHTML = results.map(result => `
             <div class="search-result-item" data-section="${result.section}">
                 <div class="result-icon">
@@ -1827,10 +2092,10 @@ showAlert(message, type = 'info') {
                 </button>
             </div>
         `).join('');
-        
+
         modal.querySelector('.search-results-list').innerHTML = resultsHTML;
         modal.style.display = 'flex';
-        
+
         modal.querySelectorAll('.goto-section').forEach(btn => {
             btn.addEventListener('click', () => {
                 const section = btn.dataset.section;
@@ -1847,19 +2112,19 @@ showAlert(message, type = 'info') {
     }
 
     testValidations() {
-    console.log('🧪 Probando validaciones del formulario...');
-    
-    // Limpiar campos
-    if (DOM.ticketSubject) DOM.ticketSubject.value = '';
-    if (DOM.ticketDescription) DOM.ticketDescription.value = '';
-    if (DOM.ticketCategory) DOM.ticketCategory.value = '';
-    if (DOM.ticketPriority) DOM.ticketPriority.value = '';
-    
-    // Ejecutar validaciones
-    this.submitTicket();
-    
-    console.log('✅ Validaciones ejecutadas');
-}
+        console.log('🧪 Probando validaciones del formulario...');
+
+        // Limpiar campos
+        if (DOM.ticketSubject) DOM.ticketSubject.value = '';
+        if (DOM.ticketDescription) DOM.ticketDescription.value = '';
+        if (DOM.ticketCategory) DOM.ticketCategory.value = '';
+        if (DOM.ticketPriority) DOM.ticketPriority.value = '';
+
+        // Ejecutar validaciones
+        this.submitTicket();
+
+        console.log('✅ Validaciones ejecutadas');
+    }
 }
 
 // Exponer el constructor para que navigation.js lo instancie al entrar a la pestaña Soporte.
