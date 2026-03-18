@@ -3,6 +3,7 @@
 
 import { api } from '../../services/api.js';
 import { showAlert } from '../../utils.js';
+import { validateUsername, validatePassword, initSecurityValidation } from '../../securityValidation.js';
 
 // =============================================================================
 // CLASE PARA GESTIONAR CAMBIO DE ADMINISTRADOR - CORREGIDA
@@ -44,6 +45,10 @@ class AdminChangeManager {
         this.newAdminEmailInput = document.getElementById('newAdminEmail');
         this.newAdminPasswordInput = document.getElementById('newAdminPassword');
         this.confirmAdminPasswordInput = document.getElementById('confirmAdminPassword');
+
+        // Agregar data-validate para usar validadores globales
+        if (this.newAdminUserInput) this.newAdminUserInput.setAttribute('data-validate', 'username');
+        if (this.newAdminPasswordInput) this.newAdminPasswordInput.setAttribute('data-validate', 'password');
         
         // Obtener botones
         this.submitBtn = document.getElementById('confirmChangeAdmin');
@@ -54,6 +59,9 @@ class AdminChangeManager {
         
         // Agregar campo de contraseña actual si no existe
         this.addCurrentPasswordField();
+
+        // Inicializar validación de seguridad visual y lógica
+        initSecurityValidation('#changeAdminForm');
         
         console.log('✅ AdminChangeManager inicializado');
     }
@@ -154,65 +162,40 @@ class AdminChangeManager {
         const value = input.value.trim();
         let isValid = true;
         let errorMessage = '';
-        
-        switch(input.id) {
-            case 'currentPassword':
-                if (!value) {
-                    isValid = false;
-                    errorMessage = 'La contraseña actual es requerida';
-                } else if (value.length < 6) {
-                    isValid = false;
-                    errorMessage = 'Mínimo 6 caracteres';
-                }
-                break;
-                
-            case 'newAdminUser':
-                if (!value) {
-                    isValid = false;
-                    errorMessage = 'El nombre de usuario es requerido';
-                } else if (value.length < 3) {
-                    isValid = false;
-                    errorMessage = 'Mínimo 3 caracteres';
-                } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
-                    isValid = false;
-                    errorMessage = 'Solo letras, números y guiones bajos';
-                }
-                break;
-                
-            case 'newAdminEmail':
-                if (!value) {
-                    isValid = false;
-                    errorMessage = 'El correo electrónico es requerido';
-                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                    isValid = false;
-                    errorMessage = 'Correo electrónico inválido';
-                }
-                break;
-                
-            case 'newAdminPassword':
-                if (!value) {
-                    isValid = false;
-                    errorMessage = 'La contraseña es requerida';
-                } else if (value.length < 8) {
-                    isValid = false;
-                    errorMessage = 'Mínimo 8 caracteres';
-                } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-                    isValid = false;
-                    errorMessage = 'Debe tener mayúsculas, minúsculas y números';
-                }
-                break;
-                
-            case 'confirmAdminPassword':
-                if (!value) {
-                    isValid = false;
-                    errorMessage = 'Confirma tu contraseña';
-                } else if (this.newAdminPasswordInput && value !== this.newAdminPasswordInput.value) {
-                    isValid = false;
-                    errorMessage = 'Las contraseñas no coinciden';
-                }
-                break;
+        // Validación especial para contraseña actual
+        if (input.id === 'currentPassword') {
+            if (!value) {
+                isValid = false;
+                errorMessage = 'La contraseña actual es requerida';
+            } else if (value.length < 6) {
+                isValid = false;
+                errorMessage = 'Mínimo 6 caracteres';
+            }
+        } else if (input.getAttribute('data-validate') === 'username') {
+            const result = validateUsername(value);
+            isValid = result.isValid;
+            errorMessage = result.errors[0] || '';
+        } else if (input.getAttribute('data-validate') === 'password') {
+            const result = validatePassword(value);
+            isValid = result.isValid;
+            errorMessage = result.errors[0] || '';
+        } else if (input.id === 'confirmAdminPassword') {
+            if (!value) {
+                isValid = false;
+                errorMessage = 'Confirma tu contraseña';
+            } else if (this.newAdminPasswordInput && value !== this.newAdminPasswordInput.value) {
+                isValid = false;
+                errorMessage = 'Las contraseñas no coinciden';
+            }
+        } else if (input.id === 'newAdminEmail') {
+            if (!value) {
+                isValid = false;
+                errorMessage = 'El correo electrónico es requerido';
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                isValid = false;
+                errorMessage = 'Correo electrónico inválido';
+            }
         }
-        
         this.updateFieldStatus(input, isValid, errorMessage);
         return isValid;
     }
@@ -260,30 +243,35 @@ class AdminChangeManager {
     }
     
     updateFieldStatus(input, isValid, errorMessage = '') {
-        const group = input.closest('.form__group');
+        const group = input.closest('.form-group');
         if (!group) return;
-        
-        group.classList.remove('form__group--error', 'form__group--success');
-        
-        const existingError = group.querySelector('.form__error');
-        if (existingError) {
-            existingError.remove();
-        }
-        
+
+        group.classList.remove('form__group--error', 'form__group--success', 'form-group--error', 'form-group--success');
+        group.classList.remove('form-group--error', 'form-group--success');
+
+        // Eliminar errores previos
+        let existingError = group.querySelector('.error-container');
+        if (existingError) existingError.remove();
+        existingError = group.querySelector('.error-message');
+        if (existingError) existingError.remove();
+
+        // Eliminar clases de input
+        input.classList.remove('input-error', 'input-valid');
+
         if (!isValid && errorMessage) {
-            group.classList.add('form__group--error');
-            
-            const errorElement = document.createElement('div');
-            errorElement.className = 'form__error';
-            errorElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
-            group.appendChild(errorElement);
-            
-            input.style.borderColor = '#ef4444';
+            group.classList.add('form-group--error');
+            input.classList.add('input-error');
+            // Crear contenedor de error avanzado
+            const errorContainer = document.createElement('div');
+            errorContainer.className = 'error-container';
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            errorMsg.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
+            errorContainer.appendChild(errorMsg);
+            group.appendChild(errorContainer);
         } else if (isValid && input.value.trim()) {
-            group.classList.add('form__group--success');
-            input.style.borderColor = '#10b981';
-        } else {
-            input.style.borderColor = '';
+            group.classList.add('form-group--success');
+            input.classList.add('input-valid');
         }
     }
     

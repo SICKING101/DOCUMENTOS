@@ -4,13 +4,22 @@
 const API_URL = window.location.origin;
 
 // =============================================================================
+// IMPORTAR VALIDACIONES DE SEGURIDAD
+// =============================================================================
+
+import {
+    validateUsername,
+    validateEmail,
+    validatePassword,
+    validateConfirmPassword,
+    displayErrors,
+    displayPasswordStrength
+} from './securityValidation.js';
+
+// =============================================================================
 // FUNCIÓN SIMPLIFICADA DE AUDITORÍA
 // =============================================================================
 
-/**
- * Registrar eventos de autenticación en el frontend
- * Solo: login_attempt, login_success, login_failed, register_attempt, register_success, register_failed
- */
 async function logAuthEvent(eventType, data = {}) {
     try {
         const eventData = {
@@ -19,19 +28,16 @@ async function logAuthEvent(eventType, data = {}) {
             ...data
         };
 
-        // Mostrar en consola para debugging
         console.log(`📝 [AUDIT] ${eventType}:`, data);
 
-        // Determinar si debe incluir token (solo después de login exitoso)
-        const includeToken = eventType === 'login_success' || 
-                             eventType === 'register_success' || 
-                             (eventType.includes('success') && localStorage.getItem('token'));
+        const includeToken = eventType === 'login_success' ||
+            eventType === 'register_success' ||
+            (eventType.includes('success') && localStorage.getItem('token'));
 
         const headers = {
             'Content-Type': 'application/json'
         };
 
-        // Solo agregar token si es necesario y existe
         if (includeToken) {
             const token = localStorage.getItem('token');
             if (token) {
@@ -39,7 +45,6 @@ async function logAuthEvent(eventType, data = {}) {
             }
         }
 
-        // Enviar al backend
         fetch(`${API_URL}/api/frontend-log`, {
             method: 'POST',
             headers: headers,
@@ -58,16 +63,16 @@ async function logAuthEvent(eventType, data = {}) {
 export function showAlert(message, type = 'success') {
     const container = document.getElementById('alertContainer');
     if (!container) return;
-    
+
     const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
-    
+
     container.innerHTML = `
         <div class="alert alert-${type}">
             <i class="fas fa-${icon}"></i>
             ${message}
         </div>
     `;
-    
+
     setTimeout(() => {
         if (container.innerHTML.includes('alert')) {
             container.innerHTML = '';
@@ -79,7 +84,7 @@ export function togglePassword(inputId) {
     const input = document.getElementById(inputId);
     const buttonId = `toggle${inputId.charAt(0).toUpperCase() + inputId.slice(1)}`;
     const button = document.getElementById(buttonId);
-    
+
     if (input && button) {
         if (input.type === 'password') {
             input.type = 'text';
@@ -107,15 +112,13 @@ export async function checkAdminExists() {
     try {
         const response = await fetch(`${API_URL}/api/auth/check-admin`);
         const data = await response.json();
-        
-        // Verificar en qué página estamos
+
         const isLoginPage = window.location.pathname.includes('login.html');
         const isIndexPage = window.location.pathname === '/' || window.location.pathname.includes('index.html');
-        
+
         console.log('📍 Página actual:', window.location.pathname);
         console.log('📊 Admin existe:', data.adminExists);
-        
-        // Solo mostrar formularios si estamos en la página de login
+
         if (isLoginPage) {
             if (data.adminExists) {
                 showLoginForm();
@@ -123,47 +126,46 @@ export async function checkAdminExists() {
                 showRegisterForm();
             }
         } else if (isIndexPage && !data.adminExists) {
-            // Si estamos en index y no hay admin, redirigir a login
             console.log('⚠️ No hay administrador, redirigiendo a login');
             window.location.href = '/login.html';
         }
-        
+
     } catch (error) {
         console.error('Error al verificar admin:', error);
-        // No mostrar alerta aquí para no interrumpir la experiencia
     }
 }
 
 // =============================================================================
-// MOSTRAR FORMULARIOS (CON VERIFICACIÓN DE EXISTENCIA)
+// MOSTRAR FORMULARIOS
 // =============================================================================
 
 export function showLoginForm() {
-    // Verificar que los elementos existen antes de usarlos
-    const authTitle = document.getElementById('authTitle');
+    const authTitle    = document.getElementById('authTitle');
     const authSubtitle = document.getElementById('authSubtitle');
-    const loginForm = document.getElementById('loginForm');
+    const loginForm    = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const registerLink = document.getElementById('registerLinkContainer');
-    
-    if (authTitle) authTitle.textContent = 'Iniciar Sesión';
+
+    if (authTitle)    authTitle.textContent    = 'Iniciar Sesión';
     if (authSubtitle) authSubtitle.textContent = 'Accede al sistema de gestión';
-    if (loginForm) loginForm.classList.remove('hidden');
+    if (loginForm)    loginForm.classList.remove('hidden');
     if (registerForm) registerForm.classList.add('hidden');
     if (registerLink) registerLink.style.display = 'none';
+
+    // Limpiar errores del formulario de registro al volver
+    _clearRegisterErrors();
 }
 
 export function showRegisterForm() {
-    // Verificar que los elementos existen antes de usarlos
-    const authTitle = document.getElementById('authTitle');
+    const authTitle    = document.getElementById('authTitle');
     const authSubtitle = document.getElementById('authSubtitle');
-    const loginForm = document.getElementById('loginForm');
+    const loginForm    = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const registerLink = document.getElementById('registerLinkContainer');
-    
-    if (authTitle) authTitle.textContent = 'Registrar Administrador';
+
+    if (authTitle)    authTitle.textContent    = 'Registrar Administrador';
     if (authSubtitle) authSubtitle.textContent = 'Crea la cuenta del primer administrador';
-    if (loginForm) loginForm.classList.add('hidden');
+    if (loginForm)    loginForm.classList.add('hidden');
     if (registerForm) registerForm.classList.remove('hidden');
     if (registerLink) registerLink.style.display = 'block';
 }
@@ -174,13 +176,14 @@ export function showRegisterForm() {
 
 export function setupPasswordToggles() {
     document.querySelectorAll('.password-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function() {
+        toggle.addEventListener('click', function () {
+            // El input puede ser el hermano anterior directo, o estar dentro del .input-group
             const input = this.previousElementSibling;
-            if (!input) return;
-            
+            if (!input || input.tagName !== 'INPUT') return;
+
             const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
             input.setAttribute('type', type);
-            
+
             const icon = this.querySelector('i');
             if (icon) {
                 icon.classList.toggle('fa-eye');
@@ -191,27 +194,134 @@ export function setupPasswordToggles() {
 }
 
 // =============================================================================
-// LOGIN HANDLER CON AUDITORÍA SIMPLIFICADA
+// VALIDACIÓN EN TIEMPO REAL — REGISTRO
+// =============================================================================
+
+function _clearRegisterErrors() {
+    const form = document.getElementById('registerForm');
+    if (!form) return;
+    form.querySelectorAll('.error-container, .strength-indicator').forEach(el => el.remove());
+    form.querySelectorAll('.input-error, .input-valid').forEach(el => {
+        el.classList.remove('input-error', 'input-valid');
+    });
+}
+
+/**
+ * Adjunta los listeners de validación en tiempo real al formulario de registro.
+ * Se llama UNA sola vez cuando el DOM está listo.
+ */
+function setupRegisterValidation() {
+    const usuarioInput = document.getElementById('registerUsuario');
+    const correoInput  = document.getElementById('registerCorreo');
+    const passInput    = document.getElementById('registerPassword');
+    const confirmInput = document.getElementById('registerPasswordConfirm');
+    const submitBtn    = document.getElementById('registerBtn');
+
+    if (!usuarioInput && !correoInput && !passInput) return; // No es la página de registro
+
+    /** Recalcula si el botón debe habilitarse */
+    function refreshSubmitState() {
+        if (!submitBtn) return;
+        const uOk = usuarioInput  ? (usuarioInput.value  && validateUsername(usuarioInput.value).isValid)  : true;
+        const eOk = correoInput   ? (correoInput.value   && validateEmail(correoInput.value).isValid)       : true;
+        const pOk = passInput     ? (passInput.value     && validatePassword(passInput.value).isValid)       : true;
+        const cOk = (confirmInput && passInput)
+            ? (confirmInput.value && validateConfirmPassword(passInput.value, confirmInput.value).isValid)
+            : true;
+
+        const allOk = uOk && eOk && pOk && cOk;
+        submitBtn.disabled = !allOk;
+        if (allOk) {
+            submitBtn.classList.add('btn-enabled');
+        } else {
+            submitBtn.classList.remove('btn-enabled');
+        }
+    }
+
+    // ── Usuario ──────────────────────────────────────────────────
+    if (usuarioInput) {
+        usuarioInput.addEventListener('input', function () {
+            const v = validateUsername(this.value);
+            displayErrors(this, v.errors, 'username');
+            refreshSubmitState();
+        });
+        usuarioInput.addEventListener('blur', function () {
+            if (this.value) {
+                const v = validateUsername(this.value);
+                displayErrors(this, v.errors, 'username');
+            }
+        });
+    }
+
+    // ── Correo ───────────────────────────────────────────────────
+    if (correoInput) {
+        correoInput.addEventListener('input', function () {
+            if (this.value.length > 3) {
+                const v = validateEmail(this.value);
+                displayErrors(this, v.errors, 'email');
+                refreshSubmitState();
+            } else {
+                displayErrors(this, [], 'email');
+            }
+        });
+        correoInput.addEventListener('blur', function () {
+            if (this.value) {
+                const v = validateEmail(this.value);
+                displayErrors(this, v.errors, 'email');
+                refreshSubmitState();
+            }
+        });
+    }
+
+    // ── Contraseña ───────────────────────────────────────────────
+    if (passInput) {
+        passInput.addEventListener('input', function () {
+            const v = validatePassword(this.value);
+            displayErrors(this, v.errors, 'password');
+            displayPasswordStrength(this, v.strength);
+            refreshSubmitState();
+
+            // Re-validar confirmación en caliente
+            if (confirmInput && confirmInput.value) {
+                const cv = validateConfirmPassword(this.value, confirmInput.value);
+                displayErrors(confirmInput, cv.errors, 'confirm-password');
+            }
+        });
+    }
+
+    // ── Confirmar contraseña ─────────────────────────────────────
+    if (confirmInput && passInput) {
+        confirmInput.addEventListener('input', function () {
+            const cv = validateConfirmPassword(passInput.value, this.value);
+            displayErrors(this, cv.errors, 'confirm-password');
+            refreshSubmitState();
+        });
+    }
+
+    console.log('✅ Validación de registro adjuntada');
+}
+
+// =============================================================================
+// LOGIN HANDLER
 // =============================================================================
 
 export async function handleLogin(e) {
     e.preventDefault();
-    
+
     const usuarioOCorreo = document.getElementById('loginUsuario')?.value;
     if (!usuarioOCorreo) {
         showAlert('Por favor ingresa tu usuario o correo', 'error');
         return;
     }
-    
-    // Registrar INTENTO de login
+
     logAuthEvent('login_attempt', { usuario: usuarioOCorreo });
-    
+
     const btn = document.getElementById('loginBtn');
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
     }
-    
+
     try {
         const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
@@ -221,27 +331,23 @@ export async function handleLogin(e) {
                 password: document.getElementById('loginPassword')?.value || ''
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            
-            // Registrar LOGIN EXITOSO
-            logAuthEvent('login_success', { 
-                usuario: data.user.usuario
-            });
-            
+
+            logAuthEvent('login_success', { usuario: data.user.usuario });
+
             showAlert('Inicio de sesión exitoso', 'success');
             setTimeout(() => window.location.href = '/', 1500);
         } else {
-            // Registrar LOGIN FALLIDO
-            logAuthEvent('login_failed', { 
+            logAuthEvent('login_failed', {
                 usuario: usuarioOCorreo,
                 motivo: data.message || 'Credenciales incorrectas'
             });
-            
+
             showAlert(data.message || 'Error al iniciar sesión', 'error');
             if (btn) {
                 btn.disabled = false;
@@ -250,13 +356,12 @@ export async function handleLogin(e) {
         }
     } catch (error) {
         console.error('Error en login:', error);
-        
-        // Registrar ERROR DE CONEXIÓN como fallido
-        logAuthEvent('login_failed', { 
+
+        logAuthEvent('login_failed', {
             usuario: usuarioOCorreo,
             motivo: 'Error de conexión'
         });
-        
+
         showAlert('Error al conectar con el servidor', 'error');
         if (btn) {
             btn.disabled = false;
@@ -266,72 +371,90 @@ export async function handleLogin(e) {
 }
 
 // =============================================================================
-// REGISTRO HANDLER CON AUDITORÍA SIMPLIFICADA
+// REGISTRO HANDLER CON VALIDACIÓN COMPLETA
 // =============================================================================
 
 export async function handleRegister(e) {
     e.preventDefault();
-    
-    const usuario = document.getElementById('registerUsuario')?.value;
-    const correo = document.getElementById('registerCorreo')?.value;
-    const password = document.getElementById('registerPassword')?.value;
-    const confirmPassword = document.getElementById('registerPasswordConfirm')?.value;
-    
-    if (!usuario || !correo || !password) {
-        showAlert('Todos los campos son requeridos', 'error');
-        return;
-    }
-    
-    // Registrar INTENTO de registro
-    logAuthEvent('register_attempt', { usuario, correo });
-    
-    if (password !== confirmPassword) {
-        showAlert('Las contraseñas no coinciden', 'error');
-        
-        // Registrar REGISTRO FALLIDO por contraseñas
-        logAuthEvent('register_failed', { 
-            usuario, 
+
+    const usuarioInput = document.getElementById('registerUsuario');
+    const correoInput  = document.getElementById('registerCorreo');
+    const passInput    = document.getElementById('registerPassword');
+    const confirmInput = document.getElementById('registerPasswordConfirm');
+
+    const usuario = usuarioInput?.value?.trim() || '';
+    const correo  = correoInput?.value?.trim()  || '';
+    const password        = passInput?.value    || '';
+    const confirmPassword = confirmInput?.value || '';
+
+    // ── Validar todos los campos antes de enviar ──────────────────
+    let hasErrors  = false;
+    let firstError = null;
+
+    // 1. Usuario
+    const uvResult = validateUsername(usuario);
+    displayErrors(usuarioInput, uvResult.errors, 'username');
+    if (!uvResult.isValid) { hasErrors = true; firstError = firstError || usuarioInput; }
+
+    // 2. Correo
+    const evResult = validateEmail(correo);
+    displayErrors(correoInput, evResult.errors, 'email');
+    if (!evResult.isValid) { hasErrors = true; firstError = firstError || correoInput; }
+
+    // 3. Contraseña
+    const pvResult = validatePassword(password);
+    displayErrors(passInput, pvResult.errors, 'password');
+    displayPasswordStrength(passInput, pvResult.strength);
+    if (!pvResult.isValid) { hasErrors = true; firstError = firstError || passInput; }
+
+    // 4. Confirmar contraseña
+    const cvResult = validateConfirmPassword(password, confirmPassword);
+    displayErrors(confirmInput, cvResult.errors, 'confirm-password');
+    if (!cvResult.isValid) { hasErrors = true; firstError = firstError || confirmInput; }
+
+    if (hasErrors) {
+        firstError?.focus();
+        logAuthEvent('register_failed', {
+            usuario,
             correo,
-            motivo: 'Las contraseñas no coinciden'
+            motivo: 'Validación del formulario falló'
         });
-        
         return;
     }
-    
+
+    // ── Todo válido → enviar ──────────────────────────────────────
+    logAuthEvent('register_attempt', { usuario, correo });
+
     const btn = document.getElementById('registerBtn');
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
     }
-    
+
     try {
         const response = await fetch(`${API_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ usuario, correo, password })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            
-            // Registrar REGISTRO EXITOSO
-            logAuthEvent('register_success', { 
-                usuario: data.user.usuario
-            });
-            
+
+            logAuthEvent('register_success', { usuario: data.user.usuario });
+
             showAlert('Administrador registrado exitosamente', 'success');
             setTimeout(() => window.location.href = '/', 1500);
         } else {
-            // Registrar REGISTRO FALLIDO
-            logAuthEvent('register_failed', { 
-                usuario, 
+            logAuthEvent('register_failed', {
+                usuario,
                 correo,
                 motivo: data.message || 'Error en registro'
             });
-            
+
             showAlert(data.message || 'Error al registrar', 'error');
             if (btn) {
                 btn.disabled = false;
@@ -340,14 +463,13 @@ export async function handleRegister(e) {
         }
     } catch (error) {
         console.error('Error en registro:', error);
-        
-        // Registrar ERROR DE CONEXIÓN como fallido
-        logAuthEvent('register_failed', { 
-            usuario, 
+
+        logAuthEvent('register_failed', {
+            usuario,
             correo,
             motivo: 'Error de conexión'
         });
-        
+
         showAlert('Error al conectar con el servidor', 'error');
         if (btn) {
             btn.disabled = false;
@@ -372,7 +494,7 @@ export async function logout() {
 
 export function checkAuth() {
     const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
+    const user  = localStorage.getItem('user');
     return !!(token && user);
 }
 
@@ -395,51 +517,54 @@ export function getCurrentUser() {
 
 export function initializeAuth() {
     console.log('🔐 Inicializando módulo de autenticación...');
-    
-    // Verificar en qué página estamos
+
     const isLoginPage = window.location.pathname.includes('login.html');
-    
-    // Solo configurar eventos si estamos en la página de login
+
     if (isLoginPage) {
         console.log('📍 Página de login detectada, configurando formularios...');
-        
-        // Configurar eventos
-        const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
+
+        const loginForm       = document.getElementById('loginForm');
+        const registerForm    = document.getElementById('registerForm');
         const showRegisterLink = document.getElementById('showRegisterFromLogin');
-        
-        if (loginForm) {
-            loginForm.addEventListener('submit', handleLogin);
-        }
-        
-        if (registerForm) {
-            registerForm.addEventListener('submit', handleRegister);
-        }
-        
+        const showLoginLink   = document.getElementById('showLoginFromRegister');
+
+        if (loginForm)    loginForm.addEventListener('submit', handleLogin);
+        if (registerForm) registerForm.addEventListener('submit', handleRegister);
+
         if (showRegisterLink) {
-            showRegisterLink.addEventListener('click', (e) => {
+            showRegisterLink.addEventListener('click', e => {
                 e.preventDefault();
                 showRegisterForm();
             });
         }
-        
+
+        if (showLoginLink) {
+            showLoginLink.addEventListener('click', e => {
+                e.preventDefault();
+                showLoginForm();
+            });
+        }
+
         // Configurar toggles de contraseña
         setupPasswordToggles();
-        
+
+        // Adjuntar validación en tiempo real al formulario de registro
+        setupRegisterValidation();
+
         // Verificar si existe administrador
         checkAdminExists();
     } else {
         console.log('📍 No es página de login, omitiendo configuración de formularios');
     }
-    
-    // Configurar botones de logout (pueden estar en cualquier página)
+
+    // Botones de logout en cualquier página
     document.querySelectorAll('.logout-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', e => {
             e.preventDefault();
             logout();
         });
     });
-    
+
     console.log('✅ Módulo de autenticación inicializado');
 }
 
@@ -447,7 +572,6 @@ export function initializeAuth() {
 // INICIALIZAR CUANDO EL DOM ESTÉ LISTO
 // =============================================================================
 
-// Solo inicializar si estamos en una página que necesita auth
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeAuth);
 } else {

@@ -5,15 +5,11 @@
 //   "administrador" (fijo, hardcoded)
 //   "desactivado"   (fijo, hardcoded)
 //   [cualquier otro] → rol dinámico creado desde el tab "Roles y Permisos"
-//
-// PROBLEMAS RESUELTOS EN ESTA VERSIÓN:
-//   1. El select de "Rol" al editar/crear usuario muestra los roles dinámicos
-//   2. Panel "Roles del Sistema" muestra los roles creados dinámicamente
-//   3. Sin roles fijos (gerente/editor/lector/etc.)
 
 import { api } from '../../services/api.js';
 import { showAlert, formatDate } from '../../utils.js';
 import { hasPermission, PERMISSIONS, ROLES } from '../../permissions.js';
+import { initSecurityValidation, validateUsername, validatePassword, validateEmail, validateConfirmPassword, displayErrors, displayPasswordStrength } from '../../securityValidation.js';
 
 // ─── Debug ─────────────────────────────────────────────────────────────────────
 const DEBUG = true;
@@ -28,11 +24,8 @@ function err(...args)  { console.error('❌ [Admin]', ...args); }
 const ADMIN_ROLE    = 'administrador';
 const DISABLED_ROLE = 'desactivado';
 
-// Secciones que NO se deben mostrar/editar en el formulario de roles
-// (por ejemplo, módulos que son visibles para todos y no requieren configuración por rol).
 const EXCLUDED_ROLE_SECTIONS = new Set(['notificaciones']);
 
-// Fallback de secciones si la API de roles falla
 const SYSTEM_SECTIONS = [
   { key: 'documentos',     label: 'Documentos',    icon: '📄' },
   { key: 'personas',       label: 'Personas',       icon: '👥' },
@@ -55,12 +48,11 @@ const PRESET_COLORS = [
 
 // ─── Estado módulo roles ────────────────────────────────────────────────────────
 let rolesState = {
-  roles:    [],   // Roles dinámicos cargados desde /api/roles
-  sections: [],   // Secciones disponibles (desde API o fallback)
-  editing:  null, // Rol que se está editando actualmente
+  roles:    [],
+  sections: [],
+  editing:  null,
 };
 
-// Evita adjuntar los event listeners del tab de Roles más de una vez
 let rolesEventsAttached = false;
 
 // =============================================================================
@@ -93,17 +85,14 @@ function filterExcludedSections(sections) {
 
 // ─── Helpers de rol ────────────────────────────────────────────────────────────
 
-/** Nombre legible del rol */
 function getRolLabel(rolName) {
   if (!rolName)                    return 'Sin rol';
   if (rolName === ADMIN_ROLE)      return 'Administrador';
   if (rolName === DISABLED_ROLE)   return 'Desactivado';
-  // Buscar en dinámicos (devuelve el nombre exacto tal como se creó)
   const found = rolesState.roles.find(r => r.name === rolName);
   return found ? found.name : (rolName.charAt(0).toUpperCase() + rolName.slice(1));
 }
 
-/** Color hexadecimal del rol */
 function getRolColor(rolName) {
   if (rolName === ADMIN_ROLE)    return '#dc2626';
   if (rolName === DISABLED_ROLE) return '#374151';
@@ -111,33 +100,24 @@ function getRolColor(rolName) {
   return found?.color || '#6b7280';
 }
 
-/** Ícono FontAwesome del rol */
 function getRolIcon(rolName) {
   if (rolName === ADMIN_ROLE)    return 'fas fa-crown';
   if (rolName === DISABLED_ROLE) return 'fas fa-user-slash';
   return 'fas fa-user-tag';
 }
 
-// ─── Construcción dinámica del <select> de rol ─────────────────────────────────
-//
-// FIX #1: Este select ya NO tiene roles fijos. Solo muestra:
-//   - "Administrador" (si no existe ya uno o si el usuario actual ya lo tiene)
-//   - Los roles dinámicos cargados desde rolesState.roles
-//
 function buildRoleOptions(currentRol = '', adminsCount = 0) {
   log('buildRoleOptions → currentRol:', currentRol, '| admins:', adminsCount,
       '| roles dinámicos:', rolesState.roles.map(r => r.name));
 
   let html = `<option value="">Seleccionar rol</option>`;
 
-  // Administrador: solo disponible si no existe uno, o si este usuario ya lo tiene
   if (adminsCount === 0 || currentRol === ADMIN_ROLE) {
     html += `<option value="${ADMIN_ROLE}" ${currentRol === ADMIN_ROLE ? 'selected' : ''}>
                👑 Administrador
              </option>`;
   }
 
-  // Roles dinámicos
   if (rolesState.roles.length > 0) {
     rolesState.roles.forEach(role => {
       const sel = currentRol === role.name ? 'selected' : '';
@@ -248,7 +228,6 @@ async function reactivateUser(uid, uname) {
   showPreloader('Reactivando usuario...');
   await sleep(50);
   try {
-    // Asignar el primer rol dinámico disponible al reactivar
     const defaultRol = rolesState.roles[0]?.name || DISABLED_ROLE;
     const r = await api.call(`/admin/users/${uid}/reactivate`, { method: 'PATCH', body: { activo: true, rol: defaultRol } });
     await sleep(1000); hidePreloader();
@@ -359,11 +338,9 @@ function renderUserRow(user, editingId, currentUserId, adminsCount) {
     </tr>`;
 }
 
-// FIX #1: renderEditRow usa buildRoleOptions → muestra roles dinámicos
 function renderEditRow(user, adminsCount) {
   const active = user.activo !== false && user.rol !== DISABLED_ROLE;
-  log('renderEditRow: user.rol=', user.rol,
-      '| roles disponibles:', rolesState.roles.map(r => r.name));
+  log('renderEditRow: user.rol=', user.rol);
 
   return `
     <tr class="table-row--editing">
@@ -397,7 +374,7 @@ function renderEditRow(user, adminsCount) {
 }
 
 // =============================================================================
-// RENDER — ESTADÍSTICAS DE ROLES (FIX #2: 100% dinámico)
+// RENDER — ESTADÍSTICAS DE ROLES
 // =============================================================================
 
 function renderRoleStats(users) {
@@ -405,20 +382,17 @@ function renderRoleStats(users) {
   const totalInactive = users.filter(u => u.activo === false  || u.rol === DISABLED_ROLE).length;
   const adminsCount   = users.filter(u => u.rol === ADMIN_ROLE).length;
 
-  // Conteo de usuarios activos por rol
   const countMap = {};
   users.forEach(u => {
     if (u.activo === false || u.rol === DISABLED_ROLE) return;
     countMap[u.rol] = (countMap[u.rol] || 0) + 1;
   });
 
-  // Siempre mostrar Admin primero
   const rows = [];
   const ac  = countMap[ADMIN_ROLE] || 0;
   rows.push({ label: 'Administrador', icon: 'fas fa-crown', color: '#dc2626',
               count: ac, pct: totalActive > 0 ? Math.round((ac / totalActive) * 100) : 0 });
 
-  // Roles dinámicos
   rolesState.roles.forEach(role => {
     const c   = countMap[role.name] || 0;
     const pct = totalActive > 0 ? Math.round((c / totalActive) * 100) : 0;
@@ -468,12 +442,10 @@ function renderRoleStats(users) {
 }
 
 // =============================================================================
-// RENDER — PANEL "ROLES DEL SISTEMA" (FIX #3: dinámico)
-// Aparece en el tab Usuarios. Se actualiza sin recargar cuando se crea un rol.
+// RENDER — PANEL "ROLES DEL SISTEMA"
 // =============================================================================
 
 function renderRoleDescriptions() {
-  // Administrador siempre primero
   const adminCard = `
     <div class="role-description-item">
       <i class="fas fa-crown" style="color:#dc2626;"></i>
@@ -820,7 +792,6 @@ function attachRolesEvents() {
   document.getElementById('permisos-delete-backdrop')?.addEventListener('click', closeDeleteModal);
   document.getElementById('permisos-delete-cancel')?.addEventListener('click', closeDeleteModal);
 
-  // Grid: delegar
   document.getElementById('permisos-roles-grid')?.addEventListener('click', e => {
     const eb = e.target.closest('.permisos-card__action--edit');
     const db = e.target.closest('.permisos-card__action--delete');
@@ -831,7 +802,6 @@ function attachRolesEvents() {
     if (db) openDeleteModal(db.dataset.roleId, db.dataset.roleName);
   });
 
-  // Modal de rol: clicks delegados
   document.getElementById('permisos-modal-rol')?.addEventListener('click', async e => {
     const sw = e.target.closest('.permisos-color-swatch');
     if (sw) { selectColor(sw.dataset.color); return; }
@@ -842,7 +812,6 @@ function attachRolesEvents() {
     if (e.target.closest('#permisos-form-submit')) { e.preventDefault(); await submitRoleForm(); }
   });
 
-  // Modal de rol: inputs
   document.getElementById('permisos-modal-rol')?.addEventListener('input', e => {
     if (e.target.id === 'permisos-role-color') { selectColor(e.target.value); return; }
     if (e.target.classList.contains('permisos-toggle__input')) {
@@ -891,7 +860,6 @@ function openDeleteModal(roleId, roleName) {
   txt.textContent = `¿Eliminar el rol "${roleName}"?`;
   m.classList.add('permisos-modal--open');
   m.setAttribute('aria-hidden','false');
-  // Clonar para eliminar listeners anteriores
   const nb = btn.cloneNode(true);
   btn.parentNode.replaceChild(nb, btn);
   nb.addEventListener('click', () => deleteRole(roleId, roleName));
@@ -925,7 +893,6 @@ async function submitRoleForm() {
   const data = collectFormData();
   log('submitRoleForm: data=', data);
 
-  // Limpiar errores
   document.querySelectorAll('#permisos-modal-rol .permisos-form__error').forEach(el => el.textContent = '');
   document.querySelectorAll('#permisos-modal-rol .permisos-form__input--error').forEach(el => el.classList.remove('permisos-form__input--error'));
 
@@ -952,9 +919,9 @@ async function submitRoleForm() {
 
     if (res?.success) {
       closeRoleModal();
-      await fetchRoles();         // Recargar lista completa de roles
-      refreshRolesGrid();         // Actualizar tarjetas del tab Roles
-      refreshRoleDescriptions();  // FIX #3: Actualizar panel tab Usuarios
+      await fetchRoles();
+      refreshRolesGrid();
+      refreshRoleDescriptions();
       rolesToast(res.message || 'Rol guardado correctamente', 'success');
       log('submitRoleForm: éxito ✅');
     } else {
@@ -1018,11 +985,6 @@ function refreshRolesGrid() {
   log('refreshRolesGrid: actualizado,', rolesState.roles.length, 'roles');
 }
 
-/**
- * Actualiza en tiempo real el panel "Roles del Sistema" del tab Usuarios.
- * Se llama después de crear, editar o eliminar un rol —
- * sin necesidad de recargar toda la página.
- */
 function refreshRoleDescriptions() {
   log('refreshRoleDescriptions: actualizando panel Roles del Sistema...');
   const target = document.querySelector('.admin-card--stats .admin-card-body');
@@ -1044,6 +1006,140 @@ function rolesToast(msg, type = 'info') {
   requestAnimationFrame(() => t.classList.add('permisos-toast--visible'));
   setTimeout(() => { t.classList.remove('permisos-toast--visible'); setTimeout(() => t.remove(), 300); }, 3500);
 }
+
+// =============================================================================
+// VALIDACIÓN DEL MODAL CAMBIO DE ADMINISTRADOR
+// =============================================================================
+
+/**
+ * Inicializa la validación en tiempo real para el modal de cambio de administrador
+ */
+function initChangeAdminModalValidation() {
+  const modal = document.getElementById('changeAdminModal');
+  if (!modal) return;
+
+  const userInput    = modal.querySelector('#newAdminUser');
+  const emailInput   = modal.querySelector('#newAdminEmail');
+  const passInput    = modal.querySelector('#newAdminPassword');
+  const confirmInput = modal.querySelector('#confirmAdminPassword');
+  const submitBtn    = modal.querySelector('#confirmChangeAdmin');
+
+  function updateBtn() {
+    if (!submitBtn) return;
+    const uOk = userInput  ? (userInput.value  && validateUsername(userInput.value).isValid)  : true;
+    const eOk = emailInput ? (emailInput.value && validateEmail(emailInput.value).isValid)     : true;
+    const pOk = passInput  ? (passInput.value  && validatePassword(passInput.value).isValid)   : true;
+    const cOk = (confirmInput && passInput)
+      ? (confirmInput.value && validateConfirmPassword(passInput.value, confirmInput.value).isValid)
+      : true;
+    submitBtn.disabled = !(uOk && eOk && pOk && cOk);
+  }
+
+  if (userInput) {
+    userInput.addEventListener('input', function() {
+      const v = validateUsername(this.value);
+      displayErrors(this, v.errors, 'username');
+      updateBtn();
+    });
+    userInput.addEventListener('blur', function() {
+      if (this.value) {
+        const v = validateUsername(this.value);
+        displayErrors(this, v.errors, 'username');
+      }
+    });
+  }
+
+  if (emailInput) {
+    emailInput.addEventListener('input', function() {
+      if (this.value.length > 3) {
+        const v = validateEmail(this.value);
+        displayErrors(this, v.errors, 'email');
+        updateBtn();
+      } else {
+        displayErrors(this, [], 'email');
+      }
+    });
+    emailInput.addEventListener('blur', function() {
+      if (this.value) {
+        const v = validateEmail(this.value);
+        displayErrors(this, v.errors, 'email');
+        updateBtn();
+      }
+    });
+  }
+
+  if (passInput) {
+    passInput.addEventListener('input', function() {
+      const v = validatePassword(this.value);
+      displayErrors(this, v.errors, 'password');
+      displayPasswordStrength(this, v.strength);
+      updateBtn();
+      if (confirmInput && confirmInput.value) {
+        const cv = validateConfirmPassword(this.value, confirmInput.value);
+        displayErrors(confirmInput, cv.errors, 'confirm-password');
+      }
+    });
+  }
+
+  if (confirmInput && passInput) {
+    confirmInput.addEventListener('input', function() {
+      const cv = validateConfirmPassword(passInput.value, this.value);
+      displayErrors(this, cv.errors, 'confirm-password');
+      updateBtn();
+    });
+  }
+
+  log('initChangeAdminModalValidation: adjuntado ✅');
+}
+
+/**
+ * Valida manualmente el formulario del modal antes de enviarlo.
+ * Devuelve true si todo es válido, false si hay errores.
+ */
+function validateChangeAdminForm() {
+  const modal = document.getElementById('changeAdminModal');
+  if (!modal) return false;
+
+  const userInput    = modal.querySelector('#newAdminUser');
+  const emailInput   = modal.querySelector('#newAdminEmail');
+  const passInput    = modal.querySelector('#newAdminPassword');
+  const confirmInput = modal.querySelector('#confirmAdminPassword');
+
+  let hasErrors = false;
+  let firstErrorEl = null;
+
+  if (userInput) {
+    const v = validateUsername(userInput.value);
+    displayErrors(userInput, v.errors, 'username');
+    if (!v.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || userInput; }
+  }
+
+  if (emailInput) {
+    const v = validateEmail(emailInput.value);
+    displayErrors(emailInput, v.errors, 'email');
+    if (!v.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || emailInput; }
+  }
+
+  if (passInput) {
+    const v = validatePassword(passInput.value);
+    displayErrors(passInput, v.errors, 'password');
+    displayPasswordStrength(passInput, v.strength);
+    if (!v.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || passInput; }
+  }
+
+  if (confirmInput && passInput) {
+    const cv = validateConfirmPassword(passInput.value, confirmInput.value);
+    displayErrors(confirmInput, cv.errors, 'confirm-password');
+    if (!cv.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || confirmInput; }
+  }
+
+  if (firstErrorEl) firstErrorEl.focus();
+  return !hasErrors;
+}
+
+// Exponer para uso en archivos externos (adminChange.js, etc.)
+window.validateChangeAdminForm    = validateChangeAdminForm;
+window.initChangeAdminModalValidation = initChangeAdminModalValidation;
 
 // =============================================================================
 // RENDERIZADO PRINCIPAL
@@ -1073,10 +1169,9 @@ export async function renderAgregarAdministrador() {
     </div>`;
 
   try {
-    // Cargar usuarios Y roles en paralelo
     const [{ users, stats }] = await Promise.all([
       loadUsers(),
-      fetchRoles(),  // Carga rolesState.roles ANTES de cualquier render
+      fetchRoles(),
     ]);
 
     log('Carga completa → usuarios:', users.length,
@@ -1085,7 +1180,7 @@ export async function renderAgregarAdministrador() {
 
     const currentUserId = getCurrentUserId();
     let editingId = null;
-    rolesEventsAttached = false;  // Reset: se adjuntan al activar el tab
+    rolesEventsAttached = false;
 
     container.innerHTML = `
       <div class="admin-dashboard">
@@ -1149,20 +1244,20 @@ export async function renderAgregarAdministrador() {
               </div>
               <div class="admin-card-body">
                 <div id="adminCreateUserResult"></div>
-                <form id="adminCreateUserForm">
+                <form id="adminCreateUserForm" novalidate>
                   <div class="form-grid">
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-user"></i> Usuario</label>
-                      <input type="text" id="admin_usuario" class="form-input-admin" required minlength="3" maxlength="30" placeholder="ej: juan.perez">
+                      <input type="text" id="admin_usuario" class="form-input-admin" required maxlength="30" placeholder="ej: juan.perez" data-validate="username" autocomplete="username">
                     </div>
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-envelope"></i> Correo</label>
-                      <input type="email" id="admin_correo" class="form-input-admin" required maxlength="50" placeholder="correo@ejemplo.com">
+                      <input type="email" id="admin_correo" class="form-input-admin" required maxlength="50" placeholder="correo@ejemplo.com" data-validate="email" autocomplete="email">
                     </div>
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-lock"></i> Contraseña</label>
                       <div class="password-wrapper">
-                        <input type="password" id="admin_password" class="form-input-admin" required minlength="6" placeholder="••••••">
+                        <input type="password" id="admin_password" class="form-input-admin" required placeholder="••••••" data-validate="password" autocomplete="new-password">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('admin_password')"><i class="fas fa-eye"></i></button>
                       </div>
                     </div>
@@ -1177,7 +1272,7 @@ export async function renderAgregarAdministrador() {
                     </div>
                   </div>
                   <div class="form-actions">
-                    <button type="submit" class="btn btn--primary btn--sm"><i class="fas fa-user-plus"></i> Crear Usuario</button>
+                    <button type="submit" class="btn btn--primary btn--sm" id="adminCreateUserBtn"><i class="fas fa-user-plus"></i> Crear Usuario</button>
                     <button type="button" class="btn btn--outline btn--sm" id="adminResetFormBtn" title="Limpiar"><i class="fas fa-undo"></i></button>
                   </div>
                 </form>
@@ -1185,7 +1280,7 @@ export async function renderAgregarAdministrador() {
               </div>
             </div>
 
-            <!-- FIX #3: Panel dinámico de roles -->
+            <!-- Panel dinámico de roles -->
             <div class="admin-card admin-card--stats">
               <div class="admin-card-header">
                 <h2 class="admin-card-title"><i class="fas fa-info-circle"></i> Roles del Sistema</h2>
@@ -1252,7 +1347,7 @@ export async function renderAgregarAdministrador() {
     // ══════════════════════════════════════════════════════
     // EVENT LISTENERS — USUARIOS
     // ══════════════════════════════════════════════════════
-    const listEl  = document.getElementById('adminUsersList');
+    const listEl   = document.getElementById('adminUsersList');
     const searchEl = document.getElementById('adminSearchInput');
     const refBtn   = document.getElementById('refreshUsersBtn');
     const form     = document.getElementById('adminCreateUserForm');
@@ -1272,7 +1367,16 @@ export async function renderAgregarAdministrador() {
     });
 
     refBtn?.addEventListener('click', () => { rolesEventsAttached = false; renderAgregarAdministrador(); });
-    resetBtn?.addEventListener('click', () => form?.reset());
+    resetBtn?.addEventListener('click', () => {
+      if (form) {
+        form.reset();
+        // Limpiar errores visuales al resetear
+        form.querySelectorAll('.error-container, .strength-indicator').forEach(el => el.remove());
+        form.querySelectorAll('.input-error, .input-valid').forEach(el => {
+          el.classList.remove('input-error', 'input-valid');
+        });
+      }
+    });
 
     listEl?.addEventListener('click', async e => {
       const btn    = e.target.closest('button[data-action]');
@@ -1284,7 +1388,7 @@ export async function renderAgregarAdministrador() {
       switch (action) {
         case 'edit':
           editingId = String(id);
-          log('edit: id=', id, '| roles en rolesState:', rolesState.roles.map(r=>r.name));
+          log('edit: id=', id);
           listEl.innerHTML = users.map(u => renderUserRow(u, editingId, currentUserId, stats.admins)).join('');
           break;
         case 'cancel':
@@ -1298,6 +1402,16 @@ export async function renderAgregarAdministrador() {
           const correo  = row.querySelector('[data-field="correo"]')?.value?.trim();
           const rol     = row.querySelector('[data-field="rol"]')?.value;
           const activo  = row.querySelector('[data-field="activo"]')?.checked ?? true;
+
+          // Validar correo en la edición inline
+          if (correo) {
+            const emailV = validateEmail(correo);
+            if (!emailV.isValid) {
+              showAlert(`Correo inválido: ${emailV.errors[0]}`, 'error');
+              return;
+            }
+          }
+
           log('save: usuario=', usuario, '| rol=', rol);
           if (!usuario || !correo || !rol) { showAlert('Todos los campos son requeridos', 'error'); return; }
           const ok = await updateUser(id, { usuario, correo, rol, activo });
@@ -1328,12 +1442,67 @@ export async function renderAgregarAdministrador() {
       const correo   = document.getElementById('admin_correo')?.value?.trim();
       const password = document.getElementById('admin_password')?.value;
       const rol      = document.getElementById('admin_rol')?.value;
+
       log('createUser: rol=', rol);
-      if (!usuario || !correo || !password || !rol) { showAlert('Todos los campos son requeridos', 'error'); return; }
+
+      // Validar usuario
+      const usernameValidation = validateUsername(usuario);
+      if (!usernameValidation.isValid) {
+        const userEl = document.getElementById('admin_usuario');
+        displayErrors(userEl, usernameValidation.errors, 'username');
+        userEl?.focus();
+        return;
+      }
+
+      // Validar correo
+      const emailValidation = validateEmail(correo);
+      if (!emailValidation.isValid) {
+        const emailEl = document.getElementById('admin_correo');
+        displayErrors(emailEl, emailValidation.errors, 'email');
+        emailEl?.focus();
+        return;
+      }
+
+      // Validar contraseña
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        const passEl = document.getElementById('admin_password');
+        displayErrors(passEl, passwordValidation.errors, 'password');
+        displayPasswordStrength(passEl, passwordValidation.strength);
+        passEl?.focus();
+        return;
+      }
+
+      if (!rol) { showAlert('Selecciona un rol', 'error'); return; }
       if (rol === ADMIN_ROLE && stats.admins > 0) { showAlert('Ya existe un administrador en el sistema', 'error'); return; }
+
       const ok = await createUser({ usuario, correo, password, rol });
-      if (ok) { form.reset(); rolesEventsAttached = false; await renderAgregarAdministrador(); }
+      if (ok) {
+        form.reset();
+        // Limpiar errores y validaciones visuales tras éxito
+        form.querySelectorAll('.error-container, .strength-indicator').forEach(el => el.remove());
+        form.querySelectorAll('.input-error, .input-valid').forEach(el => {
+          el.classList.remove('input-error', 'input-valid');
+        });
+        rolesEventsAttached = false;
+        await renderAgregarAdministrador();
+      }
     });
+
+    // Inicializar validación en tiempo real para el formulario de crear usuario
+    if (form) {
+      initSecurityValidation('#adminCreateUserForm', {
+        onValidationSuccess: function() {
+          log('Validación de seguridad: formulario válido ✅');
+        },
+        onValidationFail: function() {
+          log('Validación de seguridad: hay errores');
+        }
+      });
+    }
+
+    // Inicializar validación del modal de cambio de admin (si existe en el DOM)
+    initChangeAdminModalValidation();
 
     window.togglePasswordVisibility = inputId => {
       const input  = document.getElementById(inputId);

@@ -1,4 +1,50 @@
 /* ============================================================================
+   ESTILOS PARA VALIDACIÓN DE FORMULARIOS (form__group, form__error)
+   ============================================================================ */
+.form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.form__group--error .form__input,
+.form__group--error .form-input-admin {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px #ef444433;
+}
+
+.form__group--success .form__input,
+.form__group--success .form-input-admin {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px #10b98133;
+}
+
+.form__error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fef2f2;
+  border-left: 3px solid #ef4444;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0 0.4rem 0.4rem 0;
+  animation: fadeIn 0.3s;
+}
+
+.form__error i {
+  color: #ef4444;
+  font-size: 1rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* ============================================================================
    ADMIN DASHBOARD - VERSIÓN MEJORADA Y OPTIMIZADA
    Estilos para la gestión de usuarios y roles - SIN SCROLLBARS
    ============================================================================ */
