@@ -7,6 +7,99 @@
     <title>Autenticación - CBTIS051</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/main.css">
+    <style>
+        /* ── Estilos de validación en tiempo real ── */
+
+        /* Estados del input */
+        .form-input.input-error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.15) !important;
+        }
+
+        .form-input.input-valid {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.12) !important;
+        }
+
+        /* Contenedor de mensajes de error */
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-top: 6px;
+            padding: 0 2px;
+            animation: authValidFadeIn 0.18s ease-out;
+        }
+
+        @keyframes authValidFadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .error-message {
+            font-size: 0.775rem;
+            color: #dc3545;
+            display: flex;
+            align-items: flex-start;
+            gap: 4px;
+            line-height: 1.35;
+            font-weight: 500;
+        }
+
+        /* Indicador de fortaleza */
+        .strength-indicator {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 0 2px;
+            animation: authValidFadeIn 0.18s ease-out;
+        }
+
+        .strength-bar-track {
+            width: 100%;
+            height: 4px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .strength-bar {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.35s ease, background-color 0.35s ease;
+            min-width: 8px;
+        }
+
+        .strength-text {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        /* El .input-group NO debe hacer overflow:hidden para que los errores
+           que se insertan después de él sean visibles */
+        #registerForm .input-group {
+            overflow: visible;
+        }
+
+        /* Separación entre grupos de inputs en el registro */
+        #registerForm .input-group + .error-container,
+        #registerForm .input-group + .strength-indicator {
+            margin-bottom: 4px;
+        }
+
+        /* Botón deshabilitado */
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary.btn-enabled {
+            opacity: 1;
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
