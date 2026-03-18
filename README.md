@@ -211,6 +211,7 @@ DOCUMENTOS/
 │   │   ├── config.js               # Config frontend
 │   │   ├── debugTasks.js           # Debug tareas
 │   │   ├── dom.js                  # Selectores DOM
+│   │   ├── securityValidation.js   # Validacion de formularios
 │   │   ├── navigation.js           # Router SPA
 │   │   ├── simpleTaskDebug.js      # Debug tareas simple
 │   │   ├── state.js                # Estado global

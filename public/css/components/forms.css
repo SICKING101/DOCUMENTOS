@@ -139,7 +139,6 @@
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    /* Prevent repeating caret icon and ensure correct sizing/alignment */
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 12px 12px;
@@ -477,26 +476,154 @@
     font-size: 1rem;
 }
 
-/* Responsive para forms */
+/* ===================================================
+   VALIDACIÓN EN TIEMPO REAL — ESTADOS DE INPUT
+   =================================================== */
+
+/* Input con error de validación */
+.input-error,
+.form-input-admin.input-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.15) !important;
+    background-color: rgba(220, 53, 69, 0.03) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Input válido */
+.input-valid,
+.form-input-admin.input-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.12) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ===================================================
+   CONTENEDOR DE ERRORES DE VALIDACIÓN
+   =================================================== */
+
+.error-container {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 5px;
+    animation: validationFadeIn 0.18s ease-out;
+}
+
+@keyframes validationFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error-message {
+    font-size: 0.775rem;
+    color: #dc3545;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    line-height: 1.35;
+    font-weight: 500;
+    padding: 2px 0;
+}
+
+/* ===================================================
+   INDICADOR DE FORTALEZA DE CONTRASEÑA
+   =================================================== */
+
+.strength-indicator {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: validationFadeIn 0.18s ease-out;
+}
+
+/* Pista de la barra de fortaleza */
+.strength-bar-track {
+    width: 100%;
+    height: 4px;
+    background-color: var(--border, #e2e8f0);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+/* Barra de progreso de fortaleza */
+.strength-bar {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.35s ease, background-color 0.35s ease;
+    min-width: 8px;
+}
+
+/* Texto de fortaleza */
+.strength-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: color 0.3s ease;
+}
+
+/* ===================================================
+   ESTILOS PARA EL MODAL DE CAMBIO DE ADMIN
+   — Los inputs del modal también reciben las clases
+     input-error / input-valid / error-container /
+     strength-indicator definidas arriba.
+   =================================================== */
+
+/* Asegurar que el password-wrapper no corte el error-container */
+#changeAdminModal .password-wrapper,
+.admin-card--create .password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#changeAdminModal .password-wrapper .form-input-admin,
+.admin-card--create .password-wrapper .form-input-admin {
+    flex: 1;
+    padding-right: 44px;
+}
+
+/* Error container dentro de .form-group (después del password-wrapper) */
+#changeAdminModal .form-group .error-container,
+.admin-card--create .form-group .error-container {
+    margin-top: 5px;
+}
+
+#changeAdminModal .password-toggle:hover,
+.admin-card--create .password-toggle:hover {
+    color: var(--primary);
+}
+
+/* ===================================================
+   RESPONSIVE PARA FORMS
+   =================================================== */
+
 @media (max-width: 768px) {
     .form__row {
         flex-direction: column;
         gap: 0;
     }
-    
+
     .form__row .form__group {
         width: 100%;
     }
-    
+
     .date-range-container {
         grid-template-columns: 1fr;
         gap: 0.75rem;
     }
-    
+
     .date-range-container span {
         display: none;
     }
-    
+
     .search-input,
     .sort-select {
         min-width: auto;
@@ -505,19 +632,23 @@
 }
 
 @media (max-width: 480px) {
+
     .form__input,
     .form__select,
     .form__textarea {
         padding: 10px 12px;
         font-size: 0.9375rem;
     }
-    
+
     .form__input-group input {
         padding: 10px;
     }
 }
 
-/* Ajustes para modo oscuro en forms */
+/* ===================================================
+   MODO OSCURO
+   =================================================== */
+
 body.dark-theme .form__input,
 body.dark-theme .form__select,
 body.dark-theme .form__textarea,
@@ -551,4 +682,116 @@ body.dark-theme .form__file-input-label {
 body.dark-theme .form__file-input-label:hover {
     background: var(--sidebar-hover);
     border-color: var(--primary);
+}
+
+/* Modo oscuro — inputs de validación */
+body.dark-theme .input-error {
+    background-color: rgba(220, 53, 69, 0.06) !important;
+}
+
+body.dark-theme .strength-bar-track {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-theme .error-message {
+    color: #f87171;
+}
+
+/* ── Estilos de validación en tiempo real ── */
+
+/* Estados del input */
+.form-input.input-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.15) !important;
+}
+
+.form-input.input-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.12) !important;
+}
+
+/* Contenedor de mensajes de error */
+.error-container {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 6px;
+    padding: 0 2px;
+    animation: authValidFadeIn 0.18s ease-out;
+}
+
+@keyframes authValidFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error-message {
+    font-size: 0.775rem;
+    color: #dc3545;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    line-height: 1.35;
+    font-weight: 500;
+}
+
+/* Indicador de fortaleza */
+.strength-indicator {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 2px;
+    animation: authValidFadeIn 0.18s ease-out;
+}
+
+.strength-bar-track {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.strength-bar {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.35s ease, background-color 0.35s ease;
+    min-width: 8px;
+}
+
+.strength-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+/* El .input-group NO debe hacer overflow:hidden para que los errores
+           que se insertan después de él sean visibles */
+#registerForm .input-group {
+    overflow: visible;
+}
+
+/* Separación entre grupos de inputs en el registro */
+#registerForm .input-group+.error-container,
+#registerForm .input-group+.strength-indicator {
+    margin-bottom: 4px;
+}
+
+/* Botón deshabilitado */
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary.btn-enabled {
+    opacity: 1;
+    cursor: pointer;
 }

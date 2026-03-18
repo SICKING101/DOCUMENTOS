@@ -20,7 +20,7 @@
                 </div>
                 <h1 class="info-title">Sistema de Gestión de Documentos</h1>
                 <p class="info-subtitle">Plataforma de administración institucional</p>
-                
+
                 <div class="features-list">
                     <div class="feature-item">
                         <i class="fas fa-shield-alt"></i>
@@ -55,22 +55,24 @@
 
                 <div id="alertContainer" class="alert-container"></div>
 
-                <!-- Formulario de Login -->
+                <!-- ══════════════════════════════════════
+                     Formulario de Login
+                     ══════════════════════════════════════ -->
                 <form id="loginForm" class="auth-form">
                     <div class="input-group">
                         <div class="input-icon">
                             <i class="fas fa-user"></i>
                         </div>
-                        <input type="text" id="loginUsuario" class="form-input" 
-                               placeholder="Usuario o Correo" required>
+                        <input type="text" id="loginUsuario" class="form-input"
+                               placeholder="Usuario o Correo" required autocomplete="username">
                     </div>
 
                     <div class="input-group">
                         <div class="input-icon">
                             <i class="fas fa-lock"></i>
                         </div>
-                        <input type="password" id="loginPassword" class="form-input" 
-                               placeholder="Contraseña" required>
+                        <input type="password" id="loginPassword" class="form-input"
+                               placeholder="Contraseña" required autocomplete="current-password">
                         <button type="button" class="password-toggle" id="toggleLoginPassword">
                             <i class="fas fa-eye"></i>
                         </button>
@@ -101,47 +103,78 @@
                     </div>
                 </form>
 
-                <!-- Formulario de Registro -->
-                <form id="registerForm" class="auth-form hidden">
+                <!-- ══════════════════════════════════════
+                     Formulario de Registro
+                     Los errores y el indicador de fortaleza
+                     se insertan DESPUÉS de cada .input-group,
+                     por eso este formulario no usa overflow:hidden.
+                     ══════════════════════════════════════ -->
+                <form id="registerForm" class="auth-form hidden" novalidate>
+
+                    <!-- Usuario -->
                     <div class="input-group">
                         <div class="input-icon">
                             <i class="fas fa-user"></i>
                         </div>
-                        <input type="text" id="registerUsuario" class="form-input" 
-                               placeholder="Nombre de usuario" minlength="3">
+                        <input type="text"
+                               id="registerUsuario"
+                               class="form-input"
+                               placeholder="Nombre de usuario (mín. 4 caracteres)"
+                               maxlength="30"
+                               autocomplete="username">
                     </div>
+                    <!-- Los errores de usuario se insertan aquí dinámicamente -->
 
-                    <div class="input-group">
+                    <!-- Correo -->
+                    <div class="input-group" style="margin-top: 4px;">
                         <div class="input-icon">
                             <i class="fas fa-envelope"></i>
                         </div>
-                        <input type="email" id="registerCorreo" class="form-input" 
-                               placeholder="Correo electrónico">
+                        <input type="email"
+                               id="registerCorreo"
+                               class="form-input"
+                               placeholder="Correo electrónico"
+                               maxlength="64"
+                               autocomplete="email">
                     </div>
+                    <!-- Los errores de correo se insertan aquí dinámicamente -->
 
-                    <div class="input-group">
+                    <!-- Contraseña -->
+                    <div class="input-group" style="margin-top: 4px;">
                         <div class="input-icon">
                             <i class="fas fa-lock"></i>
                         </div>
-                        <input type="password" id="registerPassword" class="form-input" 
-                               placeholder="Contraseña (mínimo 6 caracteres)" minlength="6">
+                        <input type="password"
+                               id="registerPassword"
+                               class="form-input"
+                               placeholder="Contraseña segura (mín. 8 caracteres)"
+                               maxlength="64"
+                               autocomplete="new-password">
                         <button type="button" class="password-toggle" id="toggleRegisterPassword">
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
+                    <!-- El indicador de fortaleza y los errores de contraseña
+                         se insertan aquí dinámicamente -->
 
-                    <div class="input-group">
+                    <!-- Confirmar contraseña -->
+                    <div class="input-group" style="margin-top: 4px;">
                         <div class="input-icon">
                             <i class="fas fa-lock"></i>
                         </div>
-                        <input type="password" id="registerPasswordConfirm" class="form-input" 
-                               placeholder="Confirmar contraseña" minlength="6">
+                        <input type="password"
+                               id="registerPasswordConfirm"
+                               class="form-input"
+                               placeholder="Repetir contraseña"
+                               maxlength="64"
+                               autocomplete="new-password">
                         <button type="button" class="password-toggle" id="toggleRegisterPasswordConfirm">
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
+                    <!-- Los errores de confirmación se insertan aquí dinámicamente -->
 
-                    <button type="submit" class="btn-primary" id="registerBtn">
+                    <button type="submit" class="btn-primary" id="registerBtn" style="margin-top: 8px;">
                         <i class="fas fa-user-plus"></i>
                         <span>Registrar Administrador</span>
                     </button>
@@ -161,6 +194,7 @@
             </div>
         </div>
     </div>
+
     <script type="module" src="/src/frontend/auth.js"></script>
 </body>
 </html>
