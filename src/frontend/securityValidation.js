@@ -1,7 +1,6 @@
 /**
  * Sistema de Validación de Seguridad
  * Validaciones para usuario, contraseña y correo con mensajes dinámicos
->>>>>>> 2915e86 (DETALLES: Se agregaron a los apartados de usuarios y administradores validaciones de correos y contraseñas, para contraseñas se agrego tambien la fortaleza, ahora no te deja crear una contraseña de 123456)
  */
 
 // Contraseñas comunes prohibidas
@@ -48,6 +47,7 @@ function validateUsername(username) {
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
         errors.push('Solo se permiten letras, números, guiones y guiones bajos');
     }
+
     if (/^[a-z]+$/i.test(username) && username.length === 1) {
         errors.push('El usuario es demasiado simple');
     }
@@ -129,7 +129,6 @@ function validateEmail(email) {
 }
 
 /**
->>>>>>> 2915e86 (DETALLES: Se agregaron a los apartados de usuarios y administradores validaciones de correos y contraseñas, para contraseñas se agrego tambien la fortaleza, ahora no te deja crear una contraseña de 123456)
  * Valida la contraseña
  * @param {string} password - La contraseña a validar
  * @returns {object} - { isValid: boolean, errors: array, strength: string }
@@ -287,9 +286,11 @@ function displayErrors(inputElement, errors, fieldType) {
         sibling.remove();
         sibling = next;
     }
+
     if (errors.length > 0) {
         const errorContainer = document.createElement('div');
         errorContainer.className = 'error-container';
+
         // Máximo 2 errores para no saturar la UI
         errors.slice(0, 2).forEach(error => {
             const errorMsg = document.createElement('div');
@@ -297,8 +298,10 @@ function displayErrors(inputElement, errors, fieldType) {
             errorMsg.textContent = '✗ ' + error;
             errorContainer.appendChild(errorMsg);
         });
+
         // Insertar como hermano siguiente de refEl
         refEl.parentNode.insertBefore(errorContainer, refEl.nextSibling);
+
         inputElement.classList.add('input-error');
         inputElement.classList.remove('input-valid');
     } else {
@@ -371,7 +374,6 @@ function displayPasswordStrength(passwordInput, strength) {
  * Inicializa la validación en tiempo real para un formulario
  * @param {string} formSelector - Selector CSS del formulario
  * @param {object} options      - Opciones de configuración
->>>>>>> 2915e86 (DETALLES: Se agregaron a los apartados de usuarios y administradores validaciones de correos y contraseñas, para contraseñas se agrego tambien la fortaleza, ahora no te deja crear una contraseña de 123456)
  */
 function initSecurityValidation(formSelector, options = {}) {
     const form = document.querySelector(formSelector);
@@ -379,6 +381,7 @@ function initSecurityValidation(formSelector, options = {}) {
         console.error('Formulario no encontrado:', formSelector);
         return;
     }
+
     const userInput            = form.querySelector('[data-validate="username"]');
     const emailInput           = form.querySelector('[data-validate="email"]');
     const passwordInput        = form.querySelector('[data-validate="password"]');
@@ -496,7 +499,6 @@ function initSecurityValidation(formSelector, options = {}) {
 function updateSubmitButton(form, submitBtn) {
     if (!submitBtn) return;
 
-
     const userInput            = form.querySelector('[data-validate="username"]');
     const emailInput           = form.querySelector('[data-validate="email"]');
     const passwordInput        = form.querySelector('[data-validate="password"]');
@@ -518,7 +520,6 @@ function updateSubmitButton(form, submitBtn) {
         submitBtn.classList.remove('btn-enabled');
     }
 }
-
 
 // ─── Exportar como módulo ES6 ──────────────────────────────────────────────────
 export {
@@ -548,4 +549,3 @@ if (typeof window !== 'undefined') {
     window.displayPasswordStrength = displayPasswordStrength;
     window.initSecurityValidation  = initSecurityValidation;
 }
-

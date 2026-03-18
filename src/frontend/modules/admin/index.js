@@ -9,6 +9,7 @@
 import { api } from '../../services/api.js';
 import { showAlert, formatDate } from '../../utils.js';
 import { hasPermission, PERMISSIONS, ROLES } from '../../permissions.js';
+import { initSecurityValidation, validateUsername, validatePassword, validateEmail, validateConfirmPassword, displayErrors, displayPasswordStrength } from '../../securityValidation.js';
 
 // ─── Debug ─────────────────────────────────────────────────────────────────────
 const DEBUG = true;
@@ -1247,7 +1248,7 @@ export async function renderAgregarAdministrador() {
                   <div class="form-grid">
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-user"></i> Usuario</label>
-                      <input type="text" id="admin_usuario" class="form-input-admin" required minlength="3" maxlength="30" placeholder="ej: juan.perez">
+                      <input type="text" id="admin_usuario" class="form-input-admin" required maxlength="30" placeholder="ej: juan.perez" data-validate="username" autocomplete="username">
                     </div>
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-envelope"></i> Correo</label>
@@ -1256,7 +1257,7 @@ export async function renderAgregarAdministrador() {
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-lock"></i> Contraseña</label>
                       <div class="password-wrapper">
-                        <input type="password" id="admin_password" class="form-input-admin" required minlength="6" placeholder="••••••">
+                        <input type="password" id="admin_password" class="form-input-admin" required placeholder="••••••" data-validate="password" autocomplete="new-password">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('admin_password')"><i class="fas fa-eye"></i></button>
                       </div>
                     </div>
@@ -1443,8 +1444,38 @@ export async function renderAgregarAdministrador() {
       const rol      = document.getElementById('admin_rol')?.value;
 
       log('createUser: rol=', rol);
-      if (!usuario || !correo || !password || !rol) { showAlert('Todos los campos son requeridos', 'error'); return; }
+
+      // Validar usuario
+      const usernameValidation = validateUsername(usuario);
+      if (!usernameValidation.isValid) {
+        const userEl = document.getElementById('admin_usuario');
+        displayErrors(userEl, usernameValidation.errors, 'username');
+        userEl?.focus();
+        return;
+      }
+
+      // Validar correo
+      const emailValidation = validateEmail(correo);
+      if (!emailValidation.isValid) {
+        const emailEl = document.getElementById('admin_correo');
+        displayErrors(emailEl, emailValidation.errors, 'email');
+        emailEl?.focus();
+        return;
+      }
+
+      // Validar contraseña
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        const passEl = document.getElementById('admin_password');
+        displayErrors(passEl, passwordValidation.errors, 'password');
+        displayPasswordStrength(passEl, passwordValidation.strength);
+        passEl?.focus();
+        return;
+      }
+
+      if (!rol) { showAlert('Selecciona un rol', 'error'); return; }
       if (rol === ADMIN_ROLE && stats.admins > 0) { showAlert('Ya existe un administrador en el sistema', 'error'); return; }
+
       const ok = await createUser({ usuario, correo, password, rol });
       if (ok) {
         form.reset();
@@ -1457,6 +1488,21 @@ export async function renderAgregarAdministrador() {
         await renderAgregarAdministrador();
       }
     });
+
+    // Inicializar validación en tiempo real para el formulario de crear usuario
+    if (form) {
+      initSecurityValidation('#adminCreateUserForm', {
+        onValidationSuccess: function() {
+          log('Validación de seguridad: formulario válido ✅');
+        },
+        onValidationFail: function() {
+          log('Validación de seguridad: hay errores');
+        }
+      });
+    }
+
+    // Inicializar validación del modal de cambio de admin (si existe en el DOM)
+    initChangeAdminModalValidation();
 
     window.togglePasswordVisibility = inputId => {
       const input  = document.getElementById(inputId);
