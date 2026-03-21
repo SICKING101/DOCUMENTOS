@@ -1,15 +1,25 @@
 // src/frontend/modules/admin/index.js
 // Panel de Administración — Usuarios + Roles y Permisos dinámicos
 //
-// ROLES FIJOS ELIMINADOS — solo existen:
-//   "administrador" (fijo, hardcoded)
-//   "desactivado"   (fijo, hardcoded)
-//   [cualquier otro] → rol dinámico creado desde el tab "Roles y Permisos"
+// MEJORAS v2:
+//   - Campo "Confirmar contraseña" en el formulario de crear usuario
+//   - Validaciones más rigurosas (rechaza ____, 1234, qwerty, etc.)
+//   - Botón "Crear Usuario" bloqueado hasta que todos los campos sean válidos
+//   - Colores correctos: vacío = rojo, válido = verde, error = rojo
 
 import { api } from '../../services/api.js';
 import { showAlert, formatDate } from '../../utils.js';
 import { hasPermission, PERMISSIONS, ROLES } from '../../permissions.js';
-import { initSecurityValidation, validateUsername, validatePassword, validateEmail, validateConfirmPassword, displayErrors, displayPasswordStrength } from '../../securityValidation.js';
+import {
+    initSecurityValidation,
+    validateUsername,
+    validatePassword,
+    validateEmail,
+    validateConfirmPassword,
+    displayErrors,
+    displayPasswordStrength,
+    updateSubmitButton,
+} from '../../securityValidation.js';
 
 // ─── Debug ─────────────────────────────────────────────────────────────────────
 const DEBUG = true;
@@ -1011,9 +1021,6 @@ function rolesToast(msg, type = 'info') {
 // VALIDACIÓN DEL MODAL CAMBIO DE ADMINISTRADOR
 // =============================================================================
 
-/**
- * Inicializa la validación en tiempo real para el modal de cambio de administrador
- */
 function initChangeAdminModalValidation() {
   const modal = document.getElementById('changeAdminModal');
   if (!modal) return;
@@ -1026,53 +1033,54 @@ function initChangeAdminModalValidation() {
 
   function updateBtn() {
     if (!submitBtn) return;
-    const uOk = userInput  ? (userInput.value  && validateUsername(userInput.value).isValid)  : true;
-    const eOk = emailInput ? (emailInput.value && validateEmail(emailInput.value).isValid)     : true;
-    const pOk = passInput  ? (passInput.value  && validatePassword(passInput.value).isValid)   : true;
+    const isEmpty = v => !v || v.trim() === '';
+    const uOk = userInput  ? (!isEmpty(userInput.value)  && validateUsername(userInput.value).isValid)  : true;
+    const eOk = emailInput ? (!isEmpty(emailInput.value) && validateEmail(emailInput.value).isValid)     : true;
+    const pOk = passInput  ? (!isEmpty(passInput.value)  && validatePassword(passInput.value).isValid)   : true;
     const cOk = (confirmInput && passInput)
-      ? (confirmInput.value && validateConfirmPassword(passInput.value, confirmInput.value).isValid)
+      ? (!isEmpty(confirmInput.value) && validateConfirmPassword(passInput.value, confirmInput.value).isValid)
       : true;
     submitBtn.disabled = !(uOk && eOk && pOk && cOk);
   }
 
   if (userInput) {
     userInput.addEventListener('input', function() {
-      const v = validateUsername(this.value);
-      displayErrors(this, v.errors, 'username');
+      const isEmpty = !this.value || this.value.trim() === '';
+      displayErrors(this, isEmpty ? ['El usuario es requerido'] : validateUsername(this.value).errors, 'username');
       updateBtn();
     });
     userInput.addEventListener('blur', function() {
-      if (this.value) {
-        const v = validateUsername(this.value);
-        displayErrors(this, v.errors, 'username');
-      }
+      const isEmpty = !this.value || this.value.trim() === '';
+      displayErrors(this, isEmpty ? ['El usuario es requerido'] : validateUsername(this.value).errors, 'username');
     });
   }
 
   if (emailInput) {
     emailInput.addEventListener('input', function() {
-      if (this.value.length > 3) {
-        const v = validateEmail(this.value);
-        displayErrors(this, v.errors, 'email');
-        updateBtn();
-      } else {
-        displayErrors(this, [], 'email');
+      const isEmpty = !this.value || this.value.trim() === '';
+      if (isEmpty) {
+        displayErrors(this, ['El correo es requerido'], 'email');
+      } else if (this.value.length > 3) {
+        displayErrors(this, validateEmail(this.value).errors, 'email');
       }
+      updateBtn();
     });
     emailInput.addEventListener('blur', function() {
-      if (this.value) {
-        const v = validateEmail(this.value);
-        displayErrors(this, v.errors, 'email');
-        updateBtn();
-      }
+      const isEmpty = !this.value || this.value.trim() === '';
+      displayErrors(this, isEmpty ? ['El correo es requerido'] : validateEmail(this.value).errors, 'email');
+      updateBtn();
     });
   }
 
   if (passInput) {
     passInput.addEventListener('input', function() {
-      const v = validatePassword(this.value);
-      displayErrors(this, v.errors, 'password');
-      displayPasswordStrength(this, v.strength);
+      if (!this.value) {
+        displayErrors(this, ['La contraseña es requerida'], 'password');
+      } else {
+        const v = validatePassword(this.value);
+        displayErrors(this, v.errors, 'password');
+        displayPasswordStrength(this, v.strength);
+      }
       updateBtn();
       if (confirmInput && confirmInput.value) {
         const cv = validateConfirmPassword(this.value, confirmInput.value);
@@ -1084,7 +1092,7 @@ function initChangeAdminModalValidation() {
   if (confirmInput && passInput) {
     confirmInput.addEventListener('input', function() {
       const cv = validateConfirmPassword(passInput.value, this.value);
-      displayErrors(this, cv.errors, 'confirm-password');
+      displayErrors(this, !this.value ? ['Confirma tu contraseña'] : cv.errors, 'confirm-password');
       updateBtn();
     });
   }
@@ -1092,10 +1100,6 @@ function initChangeAdminModalValidation() {
   log('initChangeAdminModalValidation: adjuntado ✅');
 }
 
-/**
- * Valida manualmente el formulario del modal antes de enviarlo.
- * Devuelve true si todo es válido, false si hay errores.
- */
 function validateChangeAdminForm() {
   const modal = document.getElementById('changeAdminModal');
   if (!modal) return false;
@@ -1109,26 +1113,32 @@ function validateChangeAdminForm() {
   let firstErrorEl = null;
 
   if (userInput) {
-    const v = validateUsername(userInput.value);
+    const isEmpty = !userInput.value || userInput.value.trim() === '';
+    const v = isEmpty ? { isValid: false, errors: ['El usuario es requerido'] } : validateUsername(userInput.value);
     displayErrors(userInput, v.errors, 'username');
     if (!v.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || userInput; }
   }
 
   if (emailInput) {
-    const v = validateEmail(emailInput.value);
+    const isEmpty = !emailInput.value || emailInput.value.trim() === '';
+    const v = isEmpty ? { isValid: false, errors: ['El correo es requerido'] } : validateEmail(emailInput.value);
     displayErrors(emailInput, v.errors, 'email');
     if (!v.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || emailInput; }
   }
 
   if (passInput) {
-    const v = validatePassword(passInput.value);
+    const isEmpty = !passInput.value;
+    const v = isEmpty ? { isValid: false, errors: ['La contraseña es requerida'], strength: 'debil' } : validatePassword(passInput.value);
     displayErrors(passInput, v.errors, 'password');
-    displayPasswordStrength(passInput, v.strength);
+    if (passInput.value) displayPasswordStrength(passInput, v.strength);
     if (!v.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || passInput; }
   }
 
   if (confirmInput && passInput) {
-    const cv = validateConfirmPassword(passInput.value, confirmInput.value);
+    const isEmpty = !confirmInput.value;
+    const cv = isEmpty
+      ? { isValid: false, errors: ['Confirma tu contraseña'] }
+      : validateConfirmPassword(passInput.value, confirmInput.value);
     displayErrors(confirmInput, cv.errors, 'confirm-password');
     if (!cv.isValid) { hasErrors = true; firstErrorEl = firstErrorEl || confirmInput; }
   }
@@ -1137,8 +1147,7 @@ function validateChangeAdminForm() {
   return !hasErrors;
 }
 
-// Exponer para uso en archivos externos (adminChange.js, etc.)
-window.validateChangeAdminForm    = validateChangeAdminForm;
+window.validateChangeAdminForm        = validateChangeAdminForm;
 window.initChangeAdminModalValidation = initChangeAdminModalValidation;
 
 // =============================================================================
@@ -1246,34 +1255,73 @@ export async function renderAgregarAdministrador() {
                 <div id="adminCreateUserResult"></div>
                 <form id="adminCreateUserForm" novalidate>
                   <div class="form-grid">
+
+                    <!-- Usuario -->
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-user"></i> Usuario</label>
-                      <input type="text" id="admin_usuario" class="form-input-admin" required maxlength="30" placeholder="ej: juan.perez" data-validate="username" autocomplete="username">
+                      <input type="text" id="admin_usuario" class="form-input-admin" required maxlength="30"
+                        placeholder="ej: juan.perez" data-validate="username" autocomplete="username">
                     </div>
+
+                    <!-- Correo -->
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-envelope"></i> Correo</label>
-                      <input type="email" id="admin_correo" class="form-input-admin" required maxlength="50" placeholder="correo@ejemplo.com" data-validate="email" autocomplete="email">
+                      <input type="email" id="admin_correo" class="form-input-admin" required maxlength="50"
+                        placeholder="correo@ejemplo.com" data-validate="email" autocomplete="email">
                     </div>
+
+                    <!-- Contraseña -->
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-lock"></i> Contraseña</label>
                       <div class="password-wrapper">
-                        <input type="password" id="admin_password" class="form-input-admin" required placeholder="••••••" data-validate="password" autocomplete="new-password">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('admin_password')"><i class="fas fa-eye"></i></button>
+                        <input type="password" id="admin_password" class="form-input-admin" required
+                          placeholder="••••••" data-validate="password" autocomplete="new-password">
+                        <button type="button" class="password-toggle"
+                          onclick="togglePasswordVisibility('admin_password')">
+                          <i class="fas fa-eye"></i>
+                        </button>
                       </div>
                     </div>
+
+                    <!-- Confirmar contraseña — NUEVO CAMPO -->
+                    <div class="form-group">
+                      <label class="form-label"><i class="fas fa-lock"></i> Confirmar Contraseña</label>
+                      <div class="password-wrapper">
+                        <input type="password" id="admin_password_confirm" class="form-input-admin" required
+                          placeholder="••••••" data-validate="confirm-password" autocomplete="new-password">
+                        <button type="button" class="password-toggle"
+                          onclick="togglePasswordVisibility('admin_password_confirm')">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Rol -->
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-tag"></i> Rol</label>
                       <div class="select-wrapper">
-                        <select id="admin_rol" class="form-select" required>
+                        <select id="admin_rol" class="form-select" required data-validate="rol">
                           ${buildRoleOptions('', stats.admins)}
                         </select>
                         <i class="fas fa-chevron-down select-arrow"></i>
                       </div>
                     </div>
+
                   </div>
+
+                  <!-- Indicador de campos requeridos -->
+                  <p class="form-hint-required">
+                    <i class="fas fa-info-circle"></i>
+                    Todos los campos son obligatorios para crear el usuario.
+                  </p>
+
                   <div class="form-actions">
-                    <button type="submit" class="btn btn--primary btn--sm" id="adminCreateUserBtn"><i class="fas fa-user-plus"></i> Crear Usuario</button>
-                    <button type="button" class="btn btn--outline btn--sm" id="adminResetFormBtn" title="Limpiar"><i class="fas fa-undo"></i></button>
+                    <button type="submit" class="btn btn--primary btn--sm" id="adminCreateUserBtn" disabled>
+                      <i class="fas fa-user-plus"></i> Crear Usuario
+                    </button>
+                    <button type="button" class="btn btn--outline btn--sm" id="adminResetFormBtn" title="Limpiar">
+                      <i class="fas fa-undo"></i>
+                    </button>
                   </div>
                 </form>
                 <div class="role-stats-container">${renderRoleStats(users)}</div>
@@ -1367,14 +1415,20 @@ export async function renderAgregarAdministrador() {
     });
 
     refBtn?.addEventListener('click', () => { rolesEventsAttached = false; renderAgregarAdministrador(); });
+
     resetBtn?.addEventListener('click', () => {
-      if (form) {
-        form.reset();
-        // Limpiar errores visuales al resetear
-        form.querySelectorAll('.error-container, .strength-indicator').forEach(el => el.remove());
-        form.querySelectorAll('.input-error, .input-valid').forEach(el => {
-          el.classList.remove('input-error', 'input-valid');
-        });
+      if (!form) return;
+      form.reset();
+      // Limpiar errores visuales
+      form.querySelectorAll('.error-container, .strength-indicator').forEach(el => el.remove());
+      form.querySelectorAll('.input-error, .input-valid').forEach(el => {
+        el.classList.remove('input-error', 'input-valid');
+      });
+      // Volver a deshabilitar el botón submit
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.remove('btn-enabled');
       }
     });
 
@@ -1403,7 +1457,6 @@ export async function renderAgregarAdministrador() {
           const rol     = row.querySelector('[data-field="rol"]')?.value;
           const activo  = row.querySelector('[data-field="activo"]')?.checked ?? true;
 
-          // Validar correo en la edición inline
           if (correo) {
             const emailV = validateEmail(correo);
             if (!emailV.isValid) {
@@ -1436,16 +1489,19 @@ export async function renderAgregarAdministrador() {
       }
     });
 
+    // ─── SUBMIT del formulario de crear usuario ────────────────────────────
     form?.addEventListener('submit', async e => {
       e.preventDefault();
-      const usuario  = document.getElementById('admin_usuario')?.value?.trim();
-      const correo   = document.getElementById('admin_correo')?.value?.trim();
-      const password = document.getElementById('admin_password')?.value;
-      const rol      = document.getElementById('admin_rol')?.value;
+
+      const usuario         = document.getElementById('admin_usuario')?.value?.trim();
+      const correo          = document.getElementById('admin_correo')?.value?.trim();
+      const password        = document.getElementById('admin_password')?.value;
+      const passwordConfirm = document.getElementById('admin_password_confirm')?.value;
+      const rol             = document.getElementById('admin_rol')?.value;
 
       log('createUser: rol=', rol);
 
-      // Validar usuario
+      // ── Validar usuario ──────────────────────────────────────────────────
       const usernameValidation = validateUsername(usuario);
       if (!usernameValidation.isValid) {
         const userEl = document.getElementById('admin_usuario');
@@ -1454,7 +1510,7 @@ export async function renderAgregarAdministrador() {
         return;
       }
 
-      // Validar correo
+      // ── Validar correo ───────────────────────────────────────────────────
       const emailValidation = validateEmail(correo);
       if (!emailValidation.isValid) {
         const emailEl = document.getElementById('admin_correo');
@@ -1463,7 +1519,7 @@ export async function renderAgregarAdministrador() {
         return;
       }
 
-      // Validar contraseña
+      // ── Validar contraseña ───────────────────────────────────────────────
       const passwordValidation = validatePassword(password);
       if (!passwordValidation.isValid) {
         const passEl = document.getElementById('admin_password');
@@ -1473,44 +1529,64 @@ export async function renderAgregarAdministrador() {
         return;
       }
 
-      if (!rol) { showAlert('Selecciona un rol', 'error'); return; }
-      if (rol === ADMIN_ROLE && stats.admins > 0) { showAlert('Ya existe un administrador en el sistema', 'error'); return; }
+      // ── Validar confirmar contraseña ─────────────────────────────────────
+      const confirmValidation = validateConfirmPassword(password, passwordConfirm);
+      if (!confirmValidation.isValid) {
+        const confirmEl = document.getElementById('admin_password_confirm');
+        displayErrors(confirmEl, confirmValidation.errors, 'confirm-password');
+        confirmEl?.focus();
+        return;
+      }
+
+      // ── Validar rol ──────────────────────────────────────────────────────
+      if (!rol) {
+        showAlert('Selecciona un rol para el usuario', 'error');
+        return;
+      }
+      if (rol === ADMIN_ROLE && stats.admins > 0) {
+        showAlert('Ya existe un administrador en el sistema', 'error');
+        return;
+      }
 
       const ok = await createUser({ usuario, correo, password, rol });
       if (ok) {
         form.reset();
-        // Limpiar errores y validaciones visuales tras éxito
         form.querySelectorAll('.error-container, .strength-indicator').forEach(el => el.remove());
         form.querySelectorAll('.input-error, .input-valid').forEach(el => {
           el.classList.remove('input-error', 'input-valid');
         });
+        // Volver a bloquear el botón submit tras crear exitosamente
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.classList.remove('btn-enabled');
+        }
         rolesEventsAttached = false;
         await renderAgregarAdministrador();
       }
     });
 
-    // Inicializar validación en tiempo real para el formulario de crear usuario
+    // ─── Inicializar validación en tiempo real ─────────────────────────────
     if (form) {
       initSecurityValidation('#adminCreateUserForm', {
-        onValidationSuccess: function() {
-          log('Validación de seguridad: formulario válido ✅');
-        },
-        onValidationFail: function() {
-          log('Validación de seguridad: hay errores');
-        }
+        onValidationSuccess: () => log('Validación: formulario válido ✅'),
+        onValidationFail:    () => log('Validación: hay errores'),
       });
     }
 
-    // Inicializar validación del modal de cambio de admin (si existe en el DOM)
+    // ─── Validación del modal de cambio de admin ───────────────────────────
     initChangeAdminModalValidation();
 
+    // ─── Toggle visibilidad de contraseña ─────────────────────────────────
     window.togglePasswordVisibility = inputId => {
       const input  = document.getElementById(inputId);
       const button = input?.nextElementSibling;
       if (input && button) {
         const type = input.type === 'password' ? 'text' : 'password';
         input.type = type;
-        button.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        button.innerHTML = type === 'password'
+          ? '<i class="fas fa-eye"></i>'
+          : '<i class="fas fa-eye-slash"></i>';
       }
     };
 
@@ -1529,7 +1605,7 @@ export async function renderAgregarAdministrador() {
 
 async function loadUsers() {
   try {
-    const res  = await api.call('/admin/users');
+    const res   = await api.call('/admin/users');
     const users = res?.users || [];
     const stats = {
       total:    users.length,

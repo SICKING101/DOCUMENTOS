@@ -263,6 +263,285 @@ function checkPersonPermissions(action) {
 }
 
 /**
+ * ASEGURAR QUE EL CAMPO TENGA UN WRAPPER PARA VALIDACIÓN
+ */
+function ensureValidationWrapper(field) {
+    // Si el padre no tiene la clase 'field-wrapper', crear wrapper
+    if (!field.parentNode.classList.contains('field-wrapper')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'field-wrapper';
+        field.parentNode.insertBefore(wrapper, field);
+        wrapper.appendChild(field);
+    }
+}
+
+/**
+ * LIMPIAR SOLO LOS MENSAJES DE UN CAMPO ESPECÍFICO
+ */
+function clearFieldMessages(field) {
+    if (!field) return;
+    
+    // Remover clases de validación
+    field.classList.remove('field--valid', 'field--invalid');
+    
+    // Buscar en el wrapper del campo
+    const wrapper = field.closest('.field-wrapper') || field.parentNode;
+    
+    // Remover mensajes de validación dentro del wrapper
+    const messages = wrapper.querySelectorAll('.validation-message');
+    messages.forEach(msg => msg.remove());
+    
+    // También remover mensajes que estén después del campo (estructura antigua)
+    let nextElement = field.nextElementSibling;
+    while (nextElement && nextElement.classList.contains('validation-message')) {
+        const toRemove = nextElement;
+        nextElement = nextElement.nextElementSibling;
+        toRemove.remove();
+    }
+}
+
+/**
+ * 3.8 Actualizar estado de validación del campo (VERSIÓN CORREGIDA)
+ * Esta versión NO duplica mensajes
+ */
+function updateFieldValidation(field, validation) {
+    if (!field) return;
+    
+    // Remover clases anteriores
+    field.classList.remove('field--valid', 'field--invalid', 'field--error-highlight');
+    
+    // Obtener o crear wrapper
+    let wrapper = field.closest('.field-wrapper');
+    if (!wrapper) {
+        wrapper = field.parentNode;
+    }
+    
+    // Verificar si ya existe un mensaje para este campo en el wrapper
+    const existingMessage = wrapper.querySelector('.validation-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Si el campo está vacío Y es requerido, mostrar error solo si perdió el foco
+    if (field.value.trim() === '') {
+        // Para campos requeridos, no mostrar mensaje durante input, solo al blur
+        const isRequired = (field === DOM.personName || field === DOM.personEmail || field.id === 'personDepartment');
+        if (isRequired && !validation.isValid && document.activeElement !== field) {
+            field.classList.add('field--invalid');
+            
+            // Crear y mostrar mensaje de error
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'validation-message validation-message--error';
+            errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${validation.message}`;
+            wrapper.appendChild(errorMessage);
+        }
+        return;
+    }
+    
+    // Si hay valor, mostrar validación
+    if (validation.isValid) {
+        field.classList.add('field--valid');
+        
+        // Solo mostrar mensaje de éxito si el campo no está vacío
+        if (field.value.trim() !== '') {
+            const successMessage = document.createElement('div');
+            successMessage.className = 'validation-message validation-message--success';
+            successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${validation.message}`;
+            wrapper.appendChild(successMessage);
+        }
+    } else {
+        field.classList.add('field--invalid');
+        
+        // Mostrar mensaje de error
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'validation-message validation-message--error';
+        errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${validation.message}`;
+        wrapper.appendChild(errorMessage);
+    }
+}
+
+/**
+ * 3.7 Remover validación en tiempo real (VERSIÓN MEJORADA)
+ */
+function removeRealTimeValidation() {
+    console.log('🧹 Limpiando listeners de validación...');
+    
+    // Crear nuevos listeners que no hagan nada para reemplazar los anteriores
+    // Esto es más efectivo que intentar remover listeners específicos
+    
+    if (DOM.personName) {
+        DOM.personName.removeEventListener('input', window._personNameHandler);
+        window._personNameHandler = function() {
+            clearFieldMessages(this);
+            const validation = validateName(this.value);
+            updateFieldValidation(this, validation);
+        };
+        DOM.personName.addEventListener('input', window._personNameHandler);
+    }
+    
+    if (DOM.personEmail) {
+        DOM.personEmail.removeEventListener('input', window._personEmailHandler);
+        window._personEmailHandler = function() {
+            clearFieldMessages(this);
+            const validation = validateEmail(this.value);
+            updateFieldValidation(this, validation);
+        };
+        DOM.personEmail.addEventListener('input', window._personEmailHandler);
+    }
+    
+    if (DOM.personPhone) {
+        DOM.personPhone.removeEventListener('input', window._personPhoneHandler);
+        window._personPhoneHandler = function() {
+            clearFieldMessages(this);
+            const validation = validatePhone(this.value);
+            updateFieldValidation(this, validation);
+        };
+        DOM.personPhone.addEventListener('input', window._personPhoneHandler);
+    }
+    
+    if (DOM.personPosition) {
+        DOM.personPosition.removeEventListener('input', window._personPositionHandler);
+        window._personPositionHandler = function() {
+            clearFieldMessages(this);
+            const validation = validatePosition(this.value);
+            updateFieldValidation(this, validation);
+        };
+        DOM.personPosition.addEventListener('input', window._personPositionHandler);
+    }
+    
+    const departmentSelect = document.getElementById('personDepartment');
+    if (departmentSelect) {
+        departmentSelect.removeEventListener('change', window._departmentChangeHandler);
+        window._departmentChangeHandler = function() {
+            clearFieldMessages(this);
+            const validation = validateDepartment(this.value);
+            updateFieldValidation(this, validation);
+        };
+        departmentSelect.addEventListener('change', window._departmentChangeHandler);
+    }
+}
+
+/**
+ * LIMPIAR TODAS LAS VALIDACIONES DE CAMPOS
+ * Elimina clases y mensajes de validación de todos los campos del formulario
+ */
+function clearAllFieldValidations() {
+    // Lista de campos a limpiar
+    const fields = [
+        DOM.personName,
+        DOM.personEmail,
+        DOM.personPhone,
+        DOM.personPosition,
+        document.getElementById('personDepartment')
+    ];
+    
+    fields.forEach(field => {
+        if (field) {
+            // Remover clases de validación
+            field.classList.remove('field--valid', 'field--invalid', 'field--error-highlight');
+            
+            // Remover todos los mensajes de validación asociados a este campo
+            const parent = field.parentNode;
+            if (parent) {
+                const messages = parent.querySelectorAll('.validation-message');
+                messages.forEach(msg => msg.remove());
+            }
+            
+            // También buscar mensajes que estén después del campo (estructura anterior)
+            let nextElement = field.nextElementSibling;
+            while (nextElement && nextElement.classList.contains('validation-message')) {
+                const toRemove = nextElement;
+                nextElement = nextElement.nextElementSibling;
+                toRemove.remove();
+            }
+        }
+    });
+    
+    // Limpiar también cualquier contenedor de errores global
+    const errorContainers = document.querySelectorAll('.error-container');
+    errorContainers.forEach(container => container.remove());
+}
+
+/**
+ * 3.6 CONFIGURAR VALIDACIÓN EN TIEMPO REAL (VERSIÓN CORREGIDA)
+ * Esta versión elimina listeners anteriores y previene duplicación de mensajes
+ */
+function setupRealTimeValidation() {
+    // Eliminar listeners anteriores si existen
+    removeRealTimeValidation();
+    
+    console.log('🔧 Configurando validación en tiempo real...');
+    
+    // Validación para nombre
+    if (DOM.personName) {
+        // Crear wrapper para el campo si no existe
+        ensureValidationWrapper(DOM.personName);
+        
+        DOM.personName.addEventListener('input', function() {
+            // Limpiar SOLO los mensajes de este campo antes de mostrar nuevo
+            clearFieldMessages(this);
+            const validation = validateName(this.value);
+            updateFieldValidation(this, validation);
+        });
+    }
+    
+    // Validación para email
+    if (DOM.personEmail) {
+        ensureValidationWrapper(DOM.personEmail);
+        
+        DOM.personEmail.addEventListener('input', function() {
+            clearFieldMessages(this);
+            const validation = validateEmail(this.value);
+            updateFieldValidation(this, validation);
+        });
+    }
+    
+    // Validación para teléfono
+    if (DOM.personPhone) {
+        ensureValidationWrapper(DOM.personPhone);
+        
+        DOM.personPhone.addEventListener('input', function() {
+            clearFieldMessages(this);
+            const validation = validatePhone(this.value);
+            updateFieldValidation(this, validation);
+        });
+    }
+    
+    // Validación para puesto
+    if (DOM.personPosition) {
+        ensureValidationWrapper(DOM.personPosition);
+        
+        DOM.personPosition.addEventListener('input', function() {
+            clearFieldMessages(this);
+            const validation = validatePosition(this.value);
+            updateFieldValidation(this, validation);
+        });
+    }
+    
+    // Validación para departamento (select)
+    const departmentSelect = document.getElementById('personDepartment');
+    if (departmentSelect) {
+        ensureValidationWrapper(departmentSelect);
+        
+        // Para select, usar 'change' en lugar de 'input'
+        departmentSelect.addEventListener('change', function() {
+            clearFieldMessages(this);
+            const validation = validateDepartment(this.value);
+            updateFieldValidation(this, validation);
+        });
+        
+        // También validar al hacer clic (por si acaso)
+        departmentSelect.addEventListener('click', function() {
+            if (this.value) {
+                clearFieldMessages(this);
+                const validation = validateDepartment(this.value);
+                updateFieldValidation(this, validation);
+            }
+        });
+    }
+}
+
+/**
  * 2.2 Abrir modal para crear/editar persona (con verificación de permisos)
  */
 async function openPersonModal(personId = null) {
@@ -277,6 +556,9 @@ async function openPersonModal(personId = null) {
     try {
         // Remover alertas existentes al abrir modal
         removeExistingAlerts();
+        
+        // LIMPIAR VALIDACIONES ANTERIORES
+        clearAllFieldValidations();
         
         // Cargar departamentos antes de abrir el modal
         await loadDepartmentsForModal();
@@ -344,8 +626,8 @@ async function openPersonModal(personId = null) {
         // Aplicar permisos a los botones del modal
         applyModalPermissions();
         
-        // Agregar validación en tiempo real
-        addRealTimeValidation();
+        // Agregar validación en tiempo real (NUEVA VERSIÓN SIN DUPLICIDAD)
+        setupRealTimeValidation();
         
     } catch (error) {
         console.error('❌ Error abriendo modal de persona:', error);
@@ -899,75 +1181,16 @@ function addRealTimeValidation() {
 }
 
 /**
- * 3.7 Remover validación en tiempo real
- */
-function removeRealTimeValidation() {
-    DOM.personName.removeEventListener('input', () => {});
-    DOM.personEmail.removeEventListener('input', () => {});
-    DOM.personPhone.removeEventListener('input', () => {});
-    DOM.personPosition.removeEventListener('input', () => {});
-    
-    const departmentSelect = document.getElementById('personDepartment');
-    if (departmentSelect) {
-        departmentSelect.removeEventListener('change', () => {});
-    }
-}
-
-/**
- * 3.8 Actualizar estado de validación del campo
- */
-function updateFieldValidation(field, validation) {
-    // Remover clases anteriores
-    field.classList.remove('field--valid', 'field--invalid', 'field--error-highlight');
-    
-    // Remover mensaje anterior si existe
-    const existingMessage = field.parentNode.querySelector('.validation-message');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
-    
-    if (field.value.trim() === '') {
-        // Para campos vacíos, solo mostrar mensaje si son requeridos
-        if ((field === DOM.personName || field === DOM.personEmail || 
-             (field.id === 'personDepartment' && field.value === '')) && 
-            !validation.isValid) {
-            field.classList.add('field--invalid');
-            
-            // Crear y mostrar mensaje de error
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'validation-message validation-message--error';
-            errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${validation.message}`;
-            field.parentNode.appendChild(errorMessage);
-        }
-        return;
-    }
-    
-    if (validation.isValid) {
-        field.classList.add('field--valid');
-        
-        // Crear y mostrar mensaje de éxito
-        const successMessage = document.createElement('div');
-        successMessage.className = 'validation-message validation-message--success';
-        successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${validation.message}`;
-        field.parentNode.appendChild(successMessage);
-    } else {
-        field.classList.add('field--invalid');
-        
-        // Crear y mostrar mensaje de error
-        const errorMessage = document.createElement('div');
-        errorMessage.className = 'validation-message validation-message--error';
-        errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${validation.message}`;
-        field.parentNode.appendChild(errorMessage);
-    }
-}
-
-/**
- * 3.9 Validar formulario completo con alertas detalladas
+ * 3.9 Validar formulario completo con alertas detalladas (VERSIÓN CORREGIDA)
+ * Esta versión NO duplica la validación del departamento
  */
 function validateForm() {
     let isValid = true;
     const errors = [];
     const errorDetails = [];
+    
+    // Primero, limpiar validaciones anteriores
+    clearAllFieldValidations();
     
     // Validar nombre
     const nameValidation = validateName(DOM.personName.value);
@@ -977,6 +1200,8 @@ function validateForm() {
         errorDetails.push(nameValidation.alertMessage);
         DOM.personName.classList.add('field--invalid');
         highlightField('nombre');
+    } else {
+        DOM.personName.classList.add('field--valid');
     }
     
     // Validar email
@@ -987,6 +1212,8 @@ function validateForm() {
         errorDetails.push(emailValidation.alertMessage);
         DOM.personEmail.classList.add('field--invalid');
         highlightField('email');
+    } else {
+        DOM.personEmail.classList.add('field--valid');
     }
     
     // Validar teléfono
@@ -997,11 +1224,15 @@ function validateForm() {
         errorDetails.push(phoneValidation.alertMessage);
         DOM.personPhone.classList.add('field--invalid');
         highlightField('telefono');
+    } else {
+        DOM.personPhone.classList.add('field--valid');
     }
     
-    // Validar departamento
+    // VALIDAR DEPARTAMENTO - UNA SOLA VEZ
     const departmentSelect = document.getElementById('personDepartment');
     const departmentValue = departmentSelect ? departmentSelect.value : '';
+    
+    // Validar departamento (solo una vez, sin duplicar)
     const departmentValidation = validateDepartment(departmentValue);
     if (!departmentValidation.isValid) {
         isValid = false;
@@ -1010,6 +1241,10 @@ function validateForm() {
         if (departmentSelect) {
             departmentSelect.classList.add('field--invalid');
             highlightField('departamento');
+        }
+    } else {
+        if (departmentSelect) {
+            departmentSelect.classList.add('field--valid');
         }
     }
     
@@ -1022,6 +1257,8 @@ function validateForm() {
             errorDetails.push(positionValidation.alertMessage);
             DOM.personPosition.classList.add('field--invalid');
             highlightField('puesto');
+        } else {
+            DOM.personPosition.classList.add('field--valid');
         }
     }
     
