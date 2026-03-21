@@ -1,0 +1,132 @@
+/**
+ * Estilos de Página - Validación de Seguridad Ejemplo
+ * Página de Registro e Inicio de Sesión
+ */
+
+/* ═════════════════════════════════════════════════════════════════════ */
+/* RESET Y ESTILOS BASE                                                  */
+/* ═════════════════════════════════════════════════════════════════════ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+    background-attachment: fixed;
+}
+
+/* ═════════════════════════════════════════════════════════════════════ */
+/* CONTENEDORES PRINCIPALES                                              */
+/* ═════════════════════════════════════════════════════════════════════ */
+
+/* Espaciado de formularios */
+body > .security-form {
+    margin: 2rem auto;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Primer formulario con más espacio superior */
+body > .security-form:first-of-type {
+    margin-top: 3rem;
+}
+
+/* ═════════════════════════════════════════════════════════════════════ */
+/* ANIMACIONES                                                           */
+/* ═════════════════════════════════════════════════════════════════════ */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ═════════════════════════════════════════════════════════════════════ */
+/* RESPONSIVE DESIGN                                                     */
+/* ═════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    body {
+        padding: 1rem 0;
+        background-attachment: scroll;
+    }
+
+    body > .security-form {
+        margin: 1.5rem auto;
+        animation: slideInDown 0.3s ease-out;
+    }
+
+    body > .security-form:first-of-type {
+        margin-top: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 0.5rem 0;
+    }
+
+    body > .security-form {
+        margin: 1rem auto;
+    }
+}
+
+/* ═════════════════════════════════════════════════════════════════════ */
+/* TEMA OSCURO (OPCIONAL)                                                */
+/* ═════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+}
+
+/* ═════════════════════════════════════════════════════════════════════ */
+/* ACCESIBILIDAD                                                         */
+/* ═════════════════════════════════════════════════════════════════════ */
+
+/* Reducir movimiento si el usuario lo prefiere */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Focus visible para navegación por teclado */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 3px solid #007bff;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
