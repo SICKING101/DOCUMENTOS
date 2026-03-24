@@ -24,6 +24,7 @@ import Person from './src/backend/models/Person.js';
 import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
 import adminRoutes from './src/backend/routes/adminRoutes.js';
+import suggestionRoutes from './src/backend/routes/suggestionRoutes.js';
 
 // Importar modelo y servicio de notificaciones
 import Notification from './src/backend/models/Notification.js';
@@ -167,6 +168,8 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+app.use('/api/suggestions', suggestionRoutes);
 
 // -----------------------------
 // DASHBOARD

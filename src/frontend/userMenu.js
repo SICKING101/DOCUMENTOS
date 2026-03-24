@@ -1,5 +1,5 @@
 // src/frontend/userMenu.js
-// Gestión del menú de usuario y cambio de administrador
+// Gestión del menú de usuario y cambio de administrador (VERSIÓN TOPBAR)
 
 import { canAction, loadCurrentPermissions, showNoPermissionAlert } from './permissions.js';
 
@@ -17,7 +17,6 @@ let changeAdminBtn;
 
 function esUsuarioAdministrador() {
     try {
-        // Obtener usuario del localStorage
         const userStr = localStorage.getItem('user');
         if (!userStr) {
             console.log('❌ No hay usuario en localStorage');
@@ -27,7 +26,6 @@ function esUsuarioAdministrador() {
         const user = JSON.parse(userStr);
         console.log('👤 Verificando rol de usuario:', user);
         
-        // Verificar si el rol es 'administrador'
         const isAdmin = user.rol === 'administrador';
         console.log(`🔑 ¿Es administrador? ${isAdmin ? 'SÍ' : 'NO'}`);
         
@@ -44,34 +42,74 @@ function esUsuarioAdministrador() {
 
 function actualizarVisibilidadMenu() {
     const esAdmin = esUsuarioAdministrador();
-    const changeAdminBtn = document.getElementById('changeAdminBtn');
+    const changeAdminBtnTopbar = document.getElementById('changeAdminBtnTopbar');
     
-    if (changeAdminBtn) {
+    if (changeAdminBtnTopbar) {
         if (esAdmin) {
-            // Mostrar el botón solo para administradores
-            changeAdminBtn.style.display = 'flex';
-            console.log('✅ Botón de cambio de admin VISIBLE');
+            changeAdminBtnTopbar.style.display = 'flex';
+            console.log('✅ Botón de cambio de admin VISIBLE en topbar');
         } else {
-            // Ocultar el botón para no administradores
-            changeAdminBtn.style.display = 'none';
-            console.log('🔒 Botón de cambio de admin OCULTO');
+            changeAdminBtnTopbar.style.display = 'none';
+            console.log('🔒 Botón de cambio de admin OCULTO en topbar');
         }
     } else {
-        console.warn('⚠️ Botón de cambio de admin no encontrado');
+        console.log('ℹ️ Botón de cambio de admin en topbar no encontrado aún');
     }
 }
 
-// Inicializar el menú de usuario
+// =============================================================================
+// ACTUALIZAR INFORMACIÓN DEL USUARIO EN LA TOPBAR
+// =============================================================================
+
+function actualizarInfoUsuarioTopbar() {
+    try {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) return;
+        
+        const user = JSON.parse(userStr);
+        
+        // Actualizar en la topbar
+        const userNameEl = document.querySelector('.topbar__user-name');
+        const userRoleEl = document.querySelector('.topbar__user-role');
+        const userEmailEl = document.getElementById('userEmailTopbar');
+        const menuNameEl = document.querySelector('.topbar-user-menu__name');
+        const menuEmailEl = document.querySelector('.topbar-user-menu__email');
+        
+        const roleNames = {
+            'administrador': 'Administrador',
+            'editor': 'Editor',
+            'revisor': 'Revisor',
+            'lector': 'Lector',
+            'usuario': 'Usuario',
+            'desactivado': 'Desactivado'
+        };
+        
+        if (userNameEl && user.usuario) userNameEl.textContent = user.usuario;
+        if (userRoleEl && user.rol) userRoleEl.textContent = roleNames[user.rol] || user.rol;
+        if (userEmailEl && user.correo) userEmailEl.textContent = user.correo;
+        if (menuNameEl && user.usuario) menuNameEl.textContent = user.usuario;
+        if (menuEmailEl && user.correo) menuEmailEl.textContent = user.correo;
+        
+        console.log('✅ Info de usuario actualizada en topbar');
+    } catch (error) {
+        console.error('❌ Error actualizando info de usuario:', error);
+    }
+}
+
+// =============================================================================
+// INICIALIZAR MENÚ DE USUARIO EN LA TOPBAR
+// =============================================================================
+
 export function inicializarMenuUsuario() {
-    console.log('🔧 Inicializando menú de usuario...');
+    console.log('🔧 Inicializando menú de usuario en topbar...');
     
-    // Obtener elementos del DOM
-    userMenuTrigger = document.getElementById('userMenuTrigger');
-    userMenu = document.querySelector('.user-menu');
+    // Obtener elementos del DOM (topbar)
+    userMenuTrigger = document.getElementById('topbarUserMenuTrigger');
+    userMenu = document.getElementById('topbarUserMenu');
     changeAdminModal = document.getElementById('changeAdminModal');
     changeAdminForm = document.getElementById('changeAdminForm');
-    logoutBtn = document.getElementById('logoutBtn');
-    changeAdminBtn = document.getElementById('changeAdminBtn');
+    logoutBtn = document.getElementById('logoutBtnTopbar');
+    changeAdminBtn = document.getElementById('changeAdminBtnTopbar');
 
     console.log('Elementos encontrados:', {
         userMenuTrigger: !!userMenuTrigger,
@@ -81,18 +119,21 @@ export function inicializarMenuUsuario() {
         changeAdminModal: !!changeAdminModal
     });
 
+    // Actualizar información del usuario
+    actualizarInfoUsuarioTopbar();
+
+    // Actualizar visibilidad según rol
+    actualizarVisibilidadMenu();
+
     // Verificar que los elementos existen
     if (!userMenuTrigger || !userMenu) {
         console.warn('❌ Elementos del menú de usuario no encontrados');
         return;
     }
 
-    // ACTUALIZAR VISIBILIDAD SEGÚN EL ROL
-    actualizarVisibilidadMenu();
-
-    // Event listeners
+    // Event listeners para el menú de usuario
     userMenuTrigger.addEventListener('click', (e) => {
-        console.log('👆 Click en menú de usuario');
+        console.log('👆 Click en menú de usuario topbar');
         toggleUserMenu(e);
     });
     
@@ -106,7 +147,9 @@ export function inicializarMenuUsuario() {
 
     // Cerrar menú al hacer click fuera
     document.addEventListener('click', (e) => {
-        if (!userMenuTrigger.contains(e.target) && !userMenu.contains(e.target)) {
+        if (userMenuTrigger && userMenu && 
+            !userMenuTrigger.contains(e.target) && 
+            !userMenu.contains(e.target)) {
             closeUserMenu();
         }
     });
@@ -116,36 +159,38 @@ export function inicializarMenuUsuario() {
         setupChangeAdminModal();
     }
     
-    console.log('✅ Menú de usuario inicializado');
+    console.log('✅ Menú de usuario en topbar inicializado');
 }
 
 // =============================================================================
 // RE-EVALUAR PERMISOS CUANDO CAMBIA EL USUARIO
 // =============================================================================
 
-// Función para forzar la reevaluación de permisos (útil después de login)
 export function reevaluarPermisosUsuario() {
     console.log('🔄 Re-evaluando permisos de usuario...');
     actualizarVisibilidadMenu();
+    actualizarInfoUsuarioTopbar();
 }
 
-// Escuchar cambios en localStorage (para cuando otro componente modifica el usuario)
+// Escuchar cambios en localStorage
 window.addEventListener('storage', (e) => {
     if (e.key === 'user') {
         console.log('🔄 Usuario actualizado en localStorage, reevaluando permisos...');
-        actualizarVisibilidadMenu();
+        reevaluarPermisosUsuario();
     }
 });
 
-// También podemos exponer la función globalmente
+// Exponer función globalmente
 window.reevaluarPermisosUsuario = reevaluarPermisosUsuario;
 
-// Toggle del menú de usuario
+// =============================================================================
+// FUNCIONES DEL MENÚ
+// =============================================================================
+
 function toggleUserMenu(e) {
     e.stopPropagation();
-    console.log('🔄 Toggle menú');
+    console.log('🔄 Toggle menú topbar');
     const isActive = userMenu.classList.contains('active');
-    console.log('Estado actual:', isActive ? 'abierto' : 'cerrado');
     
     userMenuTrigger.classList.toggle('active');
     userMenu.classList.toggle('active');
@@ -153,13 +198,15 @@ function toggleUserMenu(e) {
     console.log('Nuevo estado:', userMenu.classList.contains('active') ? 'abierto' : 'cerrado');
 }
 
-// Cerrar menú de usuario
 function closeUserMenu() {
     userMenuTrigger.classList.remove('active');
     userMenu.classList.remove('active');
 }
 
-// Manejar logout
+// =============================================================================
+// MANEJAR LOGOUT
+// =============================================================================
+
 async function handleLogout(e) {
     e.preventDefault();
     closeUserMenu();
@@ -172,7 +219,10 @@ async function handleLogout(e) {
     }
 }
 
-// Abrir modal de cambio de administrador
+// =============================================================================
+// ABRIR MODAL DE CAMBIO DE ADMINISTRADOR
+// =============================================================================
+
 async function openChangeAdminModal(e) {
     e.preventDefault();
     closeUserMenu();
@@ -184,7 +234,7 @@ async function openChangeAdminModal(e) {
         return;
     }
 
-    // Verificar permiso de ACCIÓN (roles “solo ver”)
+    // Verificar permiso de ACCIÓN
     await loadCurrentPermissions();
     if (!canAction('admin')) {
         showNoPermissionAlert('admin');
@@ -193,42 +243,41 @@ async function openChangeAdminModal(e) {
     }
     
     if (changeAdminModal) {
-        changeAdminForm.reset();
+        if (changeAdminForm) changeAdminForm.reset();
         changeAdminModal.style.display = 'block';
-        document.body.style.overflow = 'hidden'; // Prevenir scroll
+        document.body.style.overflow = 'hidden';
     }
 }
 
-// Configurar modal de cambio de administrador
+// =============================================================================
+// CONFIGURAR MODAL DE CAMBIO DE ADMINISTRADOR
+// =============================================================================
+
 function setupChangeAdminModal() {
     const closeBtn = document.getElementById('closeChangeAdminModal');
     const cancelBtn = document.getElementById('cancelChangeAdmin');
     const confirmBtn = document.getElementById('confirmChangeAdmin');
 
-    // Cerrar modal
     const closeModal = () => {
         if (changeAdminModal) {
             changeAdminModal.style.display = 'none';
-            document.body.style.overflow = 'auto'; // Restaurar scroll
+            document.body.style.overflow = 'auto';
         }
-        changeAdminForm.reset();
+        if (changeAdminForm) changeAdminForm.reset();
     };
 
     closeBtn?.addEventListener('click', closeModal);
     cancelBtn?.addEventListener('click', closeModal);
 
-    // Cerrar al hacer clic en overlay
     const overlay = changeAdminModal?.querySelector('.modal__overlay');
     if (overlay) {
         overlay.addEventListener('click', closeModal);
     }
 
-    // Confirmar cambio de administrador
     confirmBtn?.addEventListener('click', handleChangeAdmin);
 
-    // Cerrar con ESC
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && changeAdminModal.style.display === 'block') {
+        if (e.key === 'Escape' && changeAdminModal?.style.display === 'block') {
             closeModal();
         }
     });
@@ -247,17 +296,18 @@ window.cerrarModalCambioAdmin = function() {
     }
 };
 
-// Manejar cambio de administrador
+// =============================================================================
+// MANEJAR CAMBIO DE ADMINISTRADOR
+// =============================================================================
+
 async function handleChangeAdmin(e) {
     e.preventDefault();
 
-    // Verificar nuevamente antes de procesar
     if (!esUsuarioAdministrador()) {
         mostrarAlerta('No tienes permisos para realizar esta acción', 'error');
         return;
     }
 
-    // Verificar permiso de ACCIÓN (failsafe)
     await loadCurrentPermissions();
     if (!canAction('admin')) {
         showNoPermissionAlert('admin');
@@ -267,13 +317,11 @@ async function handleChangeAdmin(e) {
 
     console.log('🔐 DEBUG: Iniciando handleChangeAdmin...');
     
-    // Obtener valores del formulario
     const newUser = document.getElementById('newAdminUser');
     const newEmail = document.getElementById('newAdminEmail');
     const newPassword = document.getElementById('newAdminPassword');
     const confirmPassword = document.getElementById('confirmAdminPassword');
     
-    // Debug: verificar elementos
     console.log('🔍 Elementos del formulario:', {
         newAdminUser: newUser ? 'EXISTE' : 'NO EXISTE',
         newAdminEmail: newEmail ? 'EXISTE' : 'NO EXISTE',
@@ -299,48 +347,39 @@ async function handleChangeAdmin(e) {
         confirmPasswordLength: confirmPasswordValue.length
     });
 
-    // Validaciones frontend
     if (!newUserValue || !newEmailValue || !newPasswordValue || !confirmPasswordValue) {
-        console.error('❌ ERROR: Campos vacíos');
         mostrarAlerta('Por favor completa todos los campos', 'error');
         return;
     }
 
     if (newPasswordValue !== confirmPasswordValue) {
-        console.error('❌ ERROR: Contraseñas no coinciden');
         mostrarAlerta('Las contraseñas no coinciden', 'error');
         return;
     }
 
     if (newPasswordValue.length < 6) {
-        console.error('❌ ERROR: Contraseña muy corta');
         mostrarAlerta('La contraseña debe tener al menos 6 caracteres', 'error');
         return;
     }
 
-    // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmailValue)) {
-        console.error('❌ ERROR: Email inválido');
         mostrarAlerta('Por favor ingresa un correo electrónico válido', 'error');
         return;
     }
 
-    // Deshabilitar botón
     const confirmBtn = e.target;
     confirmBtn.disabled = true;
     const originalText = confirmBtn.innerHTML;
     confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
 
     try {
-        // Obtener token
         const token = localStorage.getItem('token');
         if (!token) {
             throw new Error('No estás autenticado. Por favor inicia sesión nuevamente.');
         }
 
         console.log('📤 Enviando solicitud al servidor...');
-        console.log('🔑 Token disponible:', token ? 'SÍ' : 'NO');
         
         const requestBody = {
             nuevoUsuario: newUserValue,
@@ -348,8 +387,6 @@ async function handleChangeAdmin(e) {
             nuevaPassword: newPasswordValue,
             confirmarPassword: confirmPasswordValue
         };
-        
-        console.log('📦 Request body a enviar:', requestBody);
 
         const response = await fetch('/api/admin/request-change', {
             method: 'POST',
@@ -362,7 +399,6 @@ async function handleChangeAdmin(e) {
 
         const responseText = await response.text();
         console.log('📥 Response status:', response.status);
-        console.log('📥 Response text:', responseText);
 
         let data;
         try {
@@ -373,15 +409,11 @@ async function handleChangeAdmin(e) {
         }
 
         if (response.ok) {
-            // Cerrar modal
             window.cerrarModalCambioAdmin();
-            
-            // Mostrar mensaje de éxito
             mostrarAlerta(
                 '✅ Solicitud enviada exitosamente. Se ha enviado un correo de verificación al nuevo administrador.',
                 'success'
             );
-            
             console.log('✅ Solicitud procesada exitosamente:', data);
         } else {
             console.error('❌ Error del servidor:', data);
@@ -391,13 +423,15 @@ async function handleChangeAdmin(e) {
         console.error('🔥 Error en handleChangeAdmin:', error);
         mostrarAlerta(`Error: ${error.message}`, 'error');
     } finally {
-        // Restaurar botón
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = originalText;
     }
 }
 
-// Función auxiliar para mostrar alertas
+// =============================================================================
+// MOSTRAR ALERTA
+// =============================================================================
+
 function mostrarAlerta(mensaje, tipo = 'info') {
     if (typeof window.mostrarNotificacion === 'function') {
         window.mostrarNotificacion(mensaje, tipo);
@@ -429,10 +463,13 @@ function mostrarAlerta(mensaje, tipo = 'info') {
     }
 }
 
-// Función global para toggle de visibilidad de contraseñas
+// =============================================================================
+// FUNCIÓN GLOBAL PARA TOGGLE DE CONTRASEÑAS
+// =============================================================================
+
 window.togglePasswordVisibility = function(inputId) {
     const input = document.getElementById(inputId);
-    const button = input?.parentElement.querySelector('.form__password-toggle');
+    const button = input?.parentElement?.querySelector('.password-toggle');
     const icon = button?.querySelector('i');
     
     if (input && icon) {
@@ -448,5 +485,8 @@ window.togglePasswordVisibility = function(inputId) {
     }
 };
 
-// Exportar funciones adicionales
+// =============================================================================
+// EXPORTACIONES
+// =============================================================================
+
 export { esUsuarioAdministrador };

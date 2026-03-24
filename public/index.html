@@ -43,21 +43,6 @@
 
         <!-- SECCIÓN 3: BARRA LATERAL (SIDEBAR) -->
         <aside class="sidebar">
-            <!-- Cabecera con logo y título -->
-            <div class="sidebar__header">
-                <div class="sidebar__logo-container">
-                    <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
-                    <div class="sidebar__logo-badge">
-                        <i class="fas fa-certificate"></i>
-                    </div>
-                </div>
-                <div class="sidebar__title-container">
-                    <h1 class="sidebar__title">CBTIS</h1>
-                </div>
-            </div>
-
-            <!-- Separador decorativo -->
-            <div class="sidebar__divider"></div>
 
             <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
             <nav class="sidebar__nav">
@@ -184,72 +169,98 @@
                     </div>
                 </div>
             </nav>
-
-            <!-- Pie de la barra lateral -->
-            <div class="sidebar__footer">
-
-                <!-- Perfil de usuario -->
-                <div class="sidebar__user" id="userMenuTrigger">
-                    <div class="sidebar__user-status"></div>
-                    <div class="sidebar__user-avatar">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div class="sidebar__user-info">
-                        <p class="sidebar__user-name">Administrador</p>
-                        <p class="sidebar__user-role">Sistema Principal</p>
-                    </div>
-                    <div class="sidebar__user-actions">
-                        <i class="fas fa-chevron-up sidebar__user-chevron"></i>
-                    </div>
-                </div>
-
-                <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
-                <div class="user-menu" id="userMenu">
-                    <div class="user-menu__header">
-                        <div class="user-menu__status-indicator"></div>
-                        <div class="user-menu__avatar">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                        <div class="user-menu__info">
-                            <p class="user-menu__name">Usuario del Sistema</p>
-                            <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
-                            <p class="user-menu__status">En línea</p>
-                        </div>
-                    </div>
-
-                    <div class="user-menu__divider"></div>
-
-                    <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Cambiar Administrador</span>
-                    </button>
-
-                    <div class="user-menu__divider"></div>
-
-                    <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
-                        <div class="user-menu__option-icon">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </div>
-                        <span>Cerrar Sesión</span>
-                    </button>
-
-                    <div class="user-menu__footer">
-                        <p class="user-menu__version">v1.0.0</p>
-                    </div>
-                </div>
-            </div>
         </aside>
 
         <!-- SECCIÓN 4: CONTENIDO PRINCIPAL -->
         <div class="content-wrapper">
 
-            <!-- SECCIÓN 4.1: BARRA SUPERIOR -->
+            <!-- SECCIÓN 4.1: BARRA SUPERIOR REDISEÑADA -->
             <header class="topbar">
-                <div class="topbar__actions">
+                <!-- Logo y nombre - Izquierda -->
+                <div class="topbar__logo-section">
+                    <div class="topbar__logo-container">
+                        <img class="topbar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
+                        <div class="topbar__logo-badge">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                    </div>
+                    <div class="topbar__title-container">
+                        <h1 class="topbar__title">CBTIS 051</h1>
+                        <p class="topbar__subtitle">Sistema de Gestión de Documentos</p>
+                    </div>
+                </div>
+
+                <!-- Centro vacío -->
+                <div class="topbar__center"></div>
+
+                <!-- Sección derecha: Notificaciones + Usuario -->
+                <div class="topbar__right">
+                    <!-- Botón de notificaciones -->
                     <button class="topbar__action" id="notificationsBtn" title="Notificaciones">
                         <i class="fas fa-bell"></i>
                         <span class="topbar__badge">3</span>
                     </button>
+
+                    <!-- Menú de usuario (dropdown hacia abajo) -->
+                    <div class="topbar__user-wrapper">
+                        <div class="topbar__user" id="topbarUserMenuTrigger">
+                            <div class="topbar__user-status"></div>
+                            <div class="topbar__user-avatar">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="topbar__user-info">
+                                <p class="topbar__user-name">Administrador</p>
+                                <p class="topbar__user-role">Sistema Principal</p>
+                            </div>
+                            <div class="topbar__user-actions">
+                                <i class="fas fa-chevron-down topbar__user-chevron"></i>
+                            </div>
+                        </div>
+
+                        <!-- Menú desplegable del usuario (hacia abajo) -->
+                        <div class="topbar-user-menu" id="topbarUserMenu">
+                            <div class="topbar-user-menu__header">
+                                <div class="topbar-user-menu__status-indicator"></div>
+                                <div class="topbar-user-menu__avatar">
+                                    <i class="fas fa-user-shield"></i>
+                                </div>
+                                <div class="topbar-user-menu__info">
+                                    <p class="topbar-user-menu__name">Usuario del Sistema</p>
+                                    <p class="topbar-user-menu__email" id="userEmailTopbar">admin@cbtis051.edu.mx</p>
+                                    <p class="topbar-user-menu__status">En línea</p>
+                                </div>
+                            </div>
+
+                            <div class="topbar-user-menu__divider"></div>
+
+                            <button class="topbar-user-menu__option topbar-user-menu__option--warning"
+                                id="changeAdminBtnTopbar">
+                                <i class="fas fa-user-shield"></i>
+                                <span>Cambiar Administrador</span>
+                            </button>
+
+                            <div class="topbar-user-menu__divider"></div>
+
+                            <button class="topbar-user-menu__option topbar-user-menu__option--basic">
+                                <i class="fa-solid fa-person"></i>
+                                <span>Mi perfil</span>
+                            </button>
+
+                            <div class="topbar-user-menu__divider"></div>
+
+                            <button class="topbar-user-menu__option topbar-user-menu__option--danger"
+                                id="logoutBtnTopbar">
+                                <div class="topbar-user-menu__option-icon">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </div>
+                                <span>Cerrar Sesión</span>
+                            </button>
+
+                            <div class="topbar-user-menu__footer">
+                                <p class="topbar-user-menu__version">v2.0.0 (BETA)</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -2037,10 +2048,9 @@
                             </div>
                         </div>
 
-                        <!-- Grid principal: formulario + estadísticas -->
-                        <div class="suggest-grid">
-                            <!-- Panel izquierdo: Formulario de sugerencias -->
-                            <div class="suggest-card suggest-card--form">
+                        <!-- Formulario de sugerencias -->
+                        <div class="suggest-form-container">
+                            <div class="suggest-card">
                                 <div class="suggest-card__header">
                                     <div class="suggest-card__icon">
                                         <i class="fas fa-pen-fancy"></i>
@@ -2107,7 +2117,7 @@
 
                                     <div class="suggest-form__row">
                                         <div class="suggest-form__group suggest-form__group--half">
-                                            <label for="suggestPriority" class="suggest-form__label">
+                                            <label class="suggest-form__label">
                                                 <i class="fas fa-flag"></i>
                                                 Prioridad sugerida
                                             </label>
@@ -2128,16 +2138,6 @@
                                             </div>
                                             <input type="hidden" id="suggestPriority" value="media">
                                         </div>
-
-                                        <div class="suggest-form__group suggest-form__group--half">
-                                            <label for="suggestAnonymous"
-                                                class="suggest-form__label suggest-form__label--checkbox">
-                                                <input type="checkbox" id="suggestAnonymous">
-                                                <span>Enviar de forma anónima</span>
-                                            </label>
-                                            <span class="suggest-form__hint">Si marcas esta opción, tu nombre no
-                                                aparecerá públicamente</span>
-                                        </div>
                                     </div>
 
                                     <div class="suggest-form__actions">
@@ -2154,130 +2154,9 @@
                                     </div>
                                 </form>
                             </div>
-
-                            <!-- Panel derecho: Estadísticas y sugerencias recientes -->
-                            <div class="suggest-sidebar">
-                                <!-- Tarjeta de estadísticas -->
-                                <div class="suggest-card suggest-card--stats">
-                                    <div class="suggest-card__header">
-                                        <div class="suggest-card__icon">
-                                            <i class="fas fa-chart-simple"></i>
-                                        </div>
-                                        <h2 class="suggest-card__title">Estadísticas</h2>
-                                    </div>
-                                    <div class="suggest-stats">
-                                        <div class="suggest-stat">
-                                            <div class="suggest-stat__value" id="totalSuggestions">0</div>
-                                            <div class="suggest-stat__label">Sugerencias totales</div>
-                                        </div>
-                                        <div class="suggest-stat">
-                                            <div class="suggest-stat__value" id="pendingSuggestions">0</div>
-                                            <div class="suggest-stat__label">Pendientes</div>
-                                        </div>
-                                        <div class="suggest-stat">
-                                            <div class="suggest-stat__value" id="implementedSuggestions">0</div>
-                                            <div class="suggest-stat__label">Implementadas</div>
-                                        </div>
-                                        <div class="suggest-stat">
-                                            <div class="suggest-stat__value" id="thisMonthSuggestions">0</div>
-                                            <div class="suggest-stat__label">Este mes</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Filtros de sugerencias -->
-                                <div class="suggest-card suggest-card--filters">
-                                    <div class="suggest-card__header">
-                                        <div class="suggest-card__icon">
-                                            <i class="fas fa-filter"></i>
-                                        </div>
-                                        <h2 class="suggest-card__title">Filtrar sugerencias</h2>
-                                    </div>
-                                    <div class="suggest-filters">
-                                        <div class="suggest-filters__group">
-                                            <label class="suggest-filters__label">Categoría</label>
-                                            <select id="suggestFilterCategory" class="suggest-filters__select">
-                                                <option value="all">Todas</option>
-                                                <option value="funcionalidad">Nueva funcionalidad</option>
-                                                <option value="mejora">Mejora de existente</option>
-                                                <option value="ui">Interfaz de usuario (UI)</option>
-                                                <option value="rendimiento">Rendimiento</option>
-                                                <option value="seguridad">Seguridad</option>
-                                                <option value="documentos">Gestión de documentos</option>
-                                                <option value="tareas">Tareas</option>
-                                                <option value="reportes">Reportes</option>
-                                                <option value="otro">Otro</option>
-                                            </select>
-                                        </div>
-                                        <div class="suggest-filters__group">
-                                            <label class="suggest-filters__label">Estado</label>
-                                            <select id="suggestFilterStatus" class="suggest-filters__select">
-                                                <option value="all">Todos</option>
-                                                <option value="pending">Pendiente</option>
-                                                <option value="reviewing">En revisión</option>
-                                                <option value="approved">Aprobada</option>
-                                                <option value="implemented">Implementada</option>
-                                                <option value="rejected">Rechazada</option>
-                                            </select>
-                                        </div>
-                                        <div class="suggest-filters__group">
-                                            <label class="suggest-filters__label">Ordenar por</label>
-                                            <select id="suggestFilterSort" class="suggest-filters__select">
-                                                <option value="recent">Más recientes</option>
-                                                <option value="oldest">Más antiguas</option>
-                                                <option value="votes">Más votadas</option>
-                                            </select>
-                                        </div>
-                                        <button id="suggestRefreshBtn"
-                                            class="suggest-btn suggest-btn--sm suggest-btn--outline">
-                                            <i class="fas fa-sync-alt"></i>
-                                            Actualizar
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Lista de sugerencias recientes -->
-                                <div class="suggest-card suggest-card--list">
-                                    <div class="suggest-card__header">
-                                        <div class="suggest-card__icon">
-                                            <i class="fas fa-list"></i>
-                                        </div>
-                                        <h2 class="suggest-card__title">Sugerencias recientes</h2>
-                                        <span class="suggest-card__badge" id="suggestionsCount">0</span>
-                                    </div>
-                                    <div class="suggest-list" id="suggestionsList">
-                                        <div class="suggest-empty">
-                                            <i class="fas fa-lightbulb suggest-empty__icon"></i>
-                                            <p class="suggest-empty__text">No hay sugerencias aún</p>
-                                            <p class="suggest-empty__subtext">¡Sé el primero en compartir una idea!</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
-                        <!-- Modal para ver detalles de sugerencia -->
-                        <div id="suggestDetailModal" class="suggest-modal">
-                            <div class="suggest-modal__overlay"></div>
-                            <div class="suggest-modal__content">
-                                <div class="suggest-modal__header">
-                                    <h3 class="suggest-modal__title">
-                                        <i class="fas fa-lightbulb"></i>
-                                        Detalles de sugerencia
-                                    </h3>
-                                    <button class="suggest-modal__close" id="closeSuggestDetailModal">&times;</button>
-                                </div>
-                                <div class="suggest-modal__body" id="suggestDetailBody">
-                                    <!-- Contenido dinámico -->
-                                </div>
-                                <div class="suggest-modal__footer">
-                                    <button class="suggest-btn suggest-btn--outline"
-                                        id="closeDetailModalBtn">Cerrar</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Modal de confirmación -->
+                        <!-- Toast de notificación -->
                         <div id="suggestToast" class="suggest-toast" style="display: none;">
                             <div class="suggest-toast__content">
                                 <i class="suggest-toast__icon"></i>
@@ -2286,6 +2165,7 @@
                         </div>
                     </div>
                 </section>
+
             </main>
         </div>
     </div>
