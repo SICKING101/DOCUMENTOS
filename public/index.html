@@ -10,7 +10,8 @@
     <!-- Fuentes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
 
     <!-- Iconos -->
@@ -41,194 +42,203 @@
     <div class="app-layout">
 
         <!-- SECCIÓN 3: BARRA LATERAL (SIDEBAR) -->
-<aside class="sidebar">
-    <!-- Cabecera con logo y título -->
-    <div class="sidebar__header">
-        <div class="sidebar__logo-container">
-            <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
-            <div class="sidebar__logo-badge">
-                <i class="fas fa-certificate"></i>
-            </div>
-        </div>
-        <div class="sidebar__title-container">
-            <h1 class="sidebar__title">CBTIS</h1>
-        </div>
-    </div>
-
-    <!-- Separador decorativo -->
-    <div class="sidebar__divider"></div>
-
-    <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
-    <nav class="sidebar__nav">
-        <!-- Grupo 1: Navegación Principal -->
-        <div class="sidebar__nav-group">
-            <p class="sidebar__nav-group-title">Navegación Principal</p>
-            <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard" data-section="dashboard">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-home"></i>
-                </div>
-                <span class="sidebar__nav-text">Dashboard</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <a href="#" class="sidebar__nav-link" data-tab="personas" data-section="personas">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-users"></i>
-                </div>
-                <span class="sidebar__nav-text">Personas</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <a href="#" class="sidebar__nav-link" data-tab="documentos" data-section="documentos">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <span class="sidebar__nav-text">Documentos</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <a href="#" class="sidebar__nav-link" data-tab="tareas" data-section="tareas">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fa-solid fa-thumbtack"></i>
-                </div>
-                <span class="sidebar__nav-text">Tareas</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <a href="#" class="sidebar__nav-link" data-tab="historial" data-section="historial">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-history"></i>
-                </div>
-                <span class="sidebar__nav-text">Historial</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-        </div>
-
-        <!-- Grupo 2: Herramientas -->
-        <div class="sidebar__nav-group">
-            <p class="sidebar__nav-group-title">Herramientas</p>
-            <a href="#" class="sidebar__nav-link" data-tab="calendario" data-section="calendario">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <span class="sidebar__nav-text">Calendario</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <a href="#" class="sidebar__nav-link" data-tab="papelera" data-section="papelera">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-trash-alt"></i>
-                </div>
-                <span class="sidebar__nav-text">Papelera</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-        </div>
-
-        <!-- Grupo 3: Configuración -->
-        <div class="sidebar__nav-group">
-            <p class="sidebar__nav-group-title">Configuración</p>
-            <a href="#" class="sidebar__nav-link" data-tab="ajustes" data-section="ajustes">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-cog"></i>
-                </div>
-                <span class="sidebar__nav-text">Ajustes</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <a href="#" class="sidebar__nav-link" data-tab="reportes" id="sidebarReportesLink" data-section="reportes">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
-                <span class="sidebar__nav-text">Reportes</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <a href="#" class="sidebar__nav-link" data-tab="soporte" data-section="soporte">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-headset"></i>
-                </div>
-                <span class="sidebar__nav-text">Soporte</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-        </div>
-
-        <!-- Grupo 4: Administración -->
-        <div class="sidebar__nav-group">
-            <p class="sidebar__nav-group-title">Administración</p>
-            <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin" data-section="admin">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-                <span class="sidebar__nav-text">Admin</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <!-- NUEVO: Enlace a Auditoría -->
-            <a href="#" class="sidebar__nav-link" data-tab="auditoria" data-section="auditoria">
-                <div class="sidebar__nav-icon-wrapper">
-                    <i class="fas fa-history"></i>
-                </div>
-                <span class="sidebar__nav-text">Auditoría</span>
-                <div class="sidebar__nav-active-indicator"></div>
-            </a>
-            <div class="dropdown" id="admin-dropdown">
-                <p class="sidebar__nav-group-title">Admin Opciones</p>
-                <a href="#" class="sidebar__nav-link" id="agregar-admin-link" data-section="admin">
-                    <div class="sidebar__nav-icon-wrapper">
-                        <i class="fas fa-user-plus"></i>
+        <aside class="sidebar">
+            <!-- Cabecera con logo y título -->
+            <div class="sidebar__header">
+                <div class="sidebar__logo-container">
+                    <img class="sidebar__logo" src="/assets/images/cbtis051.png" alt="CBTIS051">
+                    <div class="sidebar__logo-badge">
+                        <i class="fas fa-certificate"></i>
                     </div>
-                    <span class="sidebar__nav-text">Agregar Administrador</span>
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Pie de la barra lateral -->
-    <div class="sidebar__footer">
-
-        <!-- Perfil de usuario -->
-        <div class="sidebar__user" id="userMenuTrigger">
-            <div class="sidebar__user-status"></div>
-            <div class="sidebar__user-avatar">
-                <i class="fas fa-user-shield"></i>
-            </div>
-            <div class="sidebar__user-info">
-                <p class="sidebar__user-name">Administrador</p>
-                <p class="sidebar__user-role">Sistema Principal</p>
-            </div>
-            <div class="sidebar__user-actions">
-                <i class="fas fa-chevron-up sidebar__user-chevron"></i>
-            </div>
-        </div>
-
-        <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
-        <div class="user-menu" id="userMenu">
-            <div class="user-menu__header">
-                <div class="user-menu__status-indicator"></div>
-                <div class="user-menu__avatar">
-                    <i class="fas fa-user-shield"></i>
                 </div>
-                <div class="user-menu__info">
-                    <p class="user-menu__name">Usuario del Sistema</p>
-                    <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
-                    <p class="user-menu__status">En línea</p>
+                <div class="sidebar__title-container">
+                    <h1 class="sidebar__title">CBTIS</h1>
                 </div>
             </div>
 
-            <div class="user-menu__divider"></div>
+            <!-- Separador decorativo -->
+            <div class="sidebar__divider"></div>
 
-            <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
-                <i class="fas fa-user-shield"></i>
-                <span>Cambiar Administrador</span>
-            </button>
-
-            <div class="user-menu__divider"></div>
-
-            <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
-                <div class="user-menu__option-icon">
-                    <i class="fas fa-sign-out-alt"></i>
+            <!-- Menú de navegación principal - TODAS LAS SECCIONES VISIBLES -->
+            <nav class="sidebar__nav">
+                <!-- Grupo 1: Navegación Principal -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Navegación Principal</p>
+                    <a href="#" class="sidebar__nav-link sidebar__nav-link--active" data-tab="dashboard"
+                        data-section="dashboard">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Dashboard</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="personas" data-section="personas">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Personas</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="documentos" data-section="documentos">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Documentos</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="tareas" data-section="tareas">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fa-solid fa-thumbtack"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Tareas</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="historial" data-section="historial">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Historial</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
                 </div>
-                <span>Cerrar Sesión</span>
-            </button>
 
-            <div class="user-menu__footer">
-                <p class="user-menu__version">v1.0.0</p>
+                <!-- Grupo 2: Herramientas -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Herramientas</p>
+                    <a href="#" class="sidebar__nav-link" data-tab="calendario" data-section="calendario">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Calendario</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="papelera" data-section="papelera">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Papelera</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="sugerencias" data-section="sugerencias">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Sugerencias</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                </div>
+
+                <!-- Grupo 3: Configuración -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Configuración</p>
+                    <a href="#" class="sidebar__nav-link" data-tab="ajustes" data-section="ajustes">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Ajustes</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="reportes" id="sidebarReportesLink"
+                        data-section="reportes">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Reportes</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <a href="#" class="sidebar__nav-link" data-tab="soporte" data-section="soporte">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Soporte</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                </div>
+
+                <!-- Grupo 4: Administración -->
+                <div class="sidebar__nav-group">
+                    <p class="sidebar__nav-group-title">Administración</p>
+                    <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin" data-section="admin">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Admin</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <!-- NUEVO: Enlace a Auditoría -->
+                    <a href="#" class="sidebar__nav-link" data-tab="auditoria" data-section="auditoria">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Auditoría</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
+                    <div class="dropdown" id="admin-dropdown">
+                        <p class="sidebar__nav-group-title">Admin Opciones</p>
+                        <a href="#" class="sidebar__nav-link" id="agregar-admin-link" data-section="admin">
+                            <div class="sidebar__nav-icon-wrapper">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <span class="sidebar__nav-text">Agregar Administrador</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Pie de la barra lateral -->
+            <div class="sidebar__footer">
+
+                <!-- Perfil de usuario -->
+                <div class="sidebar__user" id="userMenuTrigger">
+                    <div class="sidebar__user-status"></div>
+                    <div class="sidebar__user-avatar">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="sidebar__user-info">
+                        <p class="sidebar__user-name">Administrador</p>
+                        <p class="sidebar__user-role">Sistema Principal</p>
+                    </div>
+                    <div class="sidebar__user-actions">
+                        <i class="fas fa-chevron-up sidebar__user-chevron"></i>
+                    </div>
+                </div>
+
+                <!-- Menú desplegable del usuario - POSICIÓN CORREGIDA -->
+                <div class="user-menu" id="userMenu">
+                    <div class="user-menu__header">
+                        <div class="user-menu__status-indicator"></div>
+                        <div class="user-menu__avatar">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div class="user-menu__info">
+                            <p class="user-menu__name">Usuario del Sistema</p>
+                            <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
+                            <p class="user-menu__status">En línea</p>
+                        </div>
+                    </div>
+
+                    <div class="user-menu__divider"></div>
+
+                    <button class="user-menu__option user-menu__option--warning" id="changeAdminBtn">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Cambiar Administrador</span>
+                    </button>
+
+                    <div class="user-menu__divider"></div>
+
+                    <button class="user-menu__option user-menu__option--danger" id="logoutBtn">
+                        <div class="user-menu__option-icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <span>Cerrar Sesión</span>
+                    </button>
+
+                    <div class="user-menu__footer">
+                        <p class="user-menu__version">v1.0.0</p>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</aside>
+        </aside>
 
         <!-- SECCIÓN 4: CONTENIDO PRINCIPAL -->
         <div class="content-wrapper">
@@ -1939,7 +1949,8 @@
                                             <span class="contact-label">Teléfono</span>
                                             <a href="tel:+1234567890" class="contact-value">+52 669-199-1113</a>
                                         </div>
-                                        <button class="contact-copy" data-text="+52 669-199-1113" title="Copiar teléfono">
+                                        <button class="contact-copy" data-text="+52 669-199-1113"
+                                            title="Copiar teléfono">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
@@ -1952,7 +1963,8 @@
                                             <span class="contact-label">Teléfono</span>
                                             <a href="tel:+1234567890" class="contact-value">+52 669-265-3343</a>
                                         </div>
-                                        <button class="contact-copy" data-text="+52 669-265-3343" title="Copiar teléfono">
+                                        <button class="contact-copy" data-text="+52 669-265-3343"
+                                            title="Copiar teléfono">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
@@ -2004,6 +2016,273 @@
                                 <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
                             </div>
                             <p>Cargando módulo de auditoría...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECCIÓN 4.2.10: PESTAÑA SUGERENCIAS -->
+                <section id="sugerencias" class="tab-content">
+                    <div class="suggest-container">
+                        <!-- Encabezado principal -->
+                        <div class="suggest-header">
+                            <div class="suggest-header__content">
+                                <h1 class="suggest-header__title">
+                                    <i class="fas fa-lightbulb suggest-header__icon"></i>
+                                    Sugerencias y Mejoras
+                                </h1>
+                                <p class="suggest-header__subtitle">
+                                    Comparte tus ideas para mejorar el sistema. Tu opinión es muy importante para
+                                    nosotros.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Grid principal: formulario + estadísticas -->
+                        <div class="suggest-grid">
+                            <!-- Panel izquierdo: Formulario de sugerencias -->
+                            <div class="suggest-card suggest-card--form">
+                                <div class="suggest-card__header">
+                                    <div class="suggest-card__icon">
+                                        <i class="fas fa-pen-fancy"></i>
+                                    </div>
+                                    <h2 class="suggest-card__title">Nueva Sugerencia</h2>
+                                    <p class="suggest-card__description">
+                                        Cuéntanos qué funcionalidad te gustaría ver o qué podríamos mejorar
+                                    </p>
+                                </div>
+
+                                <form id="suggestForm" class="suggest-form">
+                                    <div class="suggest-form__group">
+                                        <label for="suggestTitle" class="suggest-form__label">
+                                            <i class="fas fa-heading"></i>
+                                            Título de la sugerencia *
+                                        </label>
+                                        <input type="text" id="suggestTitle" class="suggest-form__input"
+                                            placeholder="Ej: Mejorar el buscador de documentos" required>
+                                        <span class="suggest-form__hint">Describe en pocas palabras el tema de tu
+                                            sugerencia</span>
+                                    </div>
+
+                                    <div class="suggest-form__group">
+                                        <label for="suggestCategory" class="suggest-form__label">
+                                            <i class="fas fa-tag"></i>
+                                            Categoría *
+                                        </label>
+                                        <div class="suggest-select-wrapper">
+                                            <select id="suggestCategory" class="suggest-form__select" required>
+                                                <option value="">Selecciona una categoría</option>
+                                                <option value="funcionalidad">Nueva funcionalidad</option>
+                                                <option value="mejora">Mejora de existente</option>
+                                                <option value="ui">Interfaz de usuario (UI)</option>
+                                                <option value="rendimiento">Rendimiento</option>
+                                                <option value="seguridad">Seguridad</option>
+                                                <option value="documentos">Gestión de documentos</option>
+                                                <option value="tareas">Tareas</option>
+                                                <option value="reportes">Reportes</option>
+                                                <option value="otro">Otro</option>
+                                            </select>
+                                            <i class="fas fa-chevron-down suggest-select__arrow"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="suggest-form__group">
+                                        <label for="suggestDescription" class="suggest-form__label">
+                                            <i class="fas fa-align-left"></i>
+                                            Descripción detallada *
+                                        </label>
+                                        <textarea id="suggestDescription" class="suggest-form__textarea" rows="5"
+                                            placeholder="Explica tu sugerencia con detalle. ¿Qué problema resuelve? ¿Cómo ayudaría al sistema?"
+                                            required></textarea>
+                                        <span class="suggest-form__hint">Mínimo 10 caracteres, máximo 1000</span>
+                                    </div>
+
+                                    <div class="suggest-form__group">
+                                        <label for="suggestBenefit" class="suggest-form__label">
+                                            <i class="fas fa-chart-line"></i>
+                                            Beneficio esperado
+                                        </label>
+                                        <textarea id="suggestBenefit" class="suggest-form__textarea" rows="3"
+                                            placeholder="¿Qué beneficio traería esta sugerencia al sistema o a los usuarios?"></textarea>
+                                    </div>
+
+                                    <div class="suggest-form__row">
+                                        <div class="suggest-form__group suggest-form__group--half">
+                                            <label for="suggestPriority" class="suggest-form__label">
+                                                <i class="fas fa-flag"></i>
+                                                Prioridad sugerida
+                                            </label>
+                                            <div class="suggest-priority-selector">
+                                                <button type="button" class="suggest-priority-btn" data-priority="baja">
+                                                    <i class="fas fa-flag"></i>
+                                                    <span>Baja</span>
+                                                </button>
+                                                <button type="button" class="suggest-priority-btn"
+                                                    data-priority="media">
+                                                    <i class="fas fa-flag"></i>
+                                                    <span>Media</span>
+                                                </button>
+                                                <button type="button" class="suggest-priority-btn" data-priority="alta">
+                                                    <i class="fas fa-flag"></i>
+                                                    <span>Alta</span>
+                                                </button>
+                                            </div>
+                                            <input type="hidden" id="suggestPriority" value="media">
+                                        </div>
+
+                                        <div class="suggest-form__group suggest-form__group--half">
+                                            <label for="suggestAnonymous"
+                                                class="suggest-form__label suggest-form__label--checkbox">
+                                                <input type="checkbox" id="suggestAnonymous">
+                                                <span>Enviar de forma anónima</span>
+                                            </label>
+                                            <span class="suggest-form__hint">Si marcas esta opción, tu nombre no
+                                                aparecerá públicamente</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="suggest-form__actions">
+                                        <button type="button" class="suggest-btn suggest-btn--outline"
+                                            id="suggestClearBtn">
+                                            <i class="fas fa-eraser"></i>
+                                            Limpiar
+                                        </button>
+                                        <button type="submit" class="suggest-btn suggest-btn--primary"
+                                            id="suggestSubmitBtn">
+                                            <i class="fas fa-paper-plane"></i>
+                                            Enviar Sugerencia
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Panel derecho: Estadísticas y sugerencias recientes -->
+                            <div class="suggest-sidebar">
+                                <!-- Tarjeta de estadísticas -->
+                                <div class="suggest-card suggest-card--stats">
+                                    <div class="suggest-card__header">
+                                        <div class="suggest-card__icon">
+                                            <i class="fas fa-chart-simple"></i>
+                                        </div>
+                                        <h2 class="suggest-card__title">Estadísticas</h2>
+                                    </div>
+                                    <div class="suggest-stats">
+                                        <div class="suggest-stat">
+                                            <div class="suggest-stat__value" id="totalSuggestions">0</div>
+                                            <div class="suggest-stat__label">Sugerencias totales</div>
+                                        </div>
+                                        <div class="suggest-stat">
+                                            <div class="suggest-stat__value" id="pendingSuggestions">0</div>
+                                            <div class="suggest-stat__label">Pendientes</div>
+                                        </div>
+                                        <div class="suggest-stat">
+                                            <div class="suggest-stat__value" id="implementedSuggestions">0</div>
+                                            <div class="suggest-stat__label">Implementadas</div>
+                                        </div>
+                                        <div class="suggest-stat">
+                                            <div class="suggest-stat__value" id="thisMonthSuggestions">0</div>
+                                            <div class="suggest-stat__label">Este mes</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Filtros de sugerencias -->
+                                <div class="suggest-card suggest-card--filters">
+                                    <div class="suggest-card__header">
+                                        <div class="suggest-card__icon">
+                                            <i class="fas fa-filter"></i>
+                                        </div>
+                                        <h2 class="suggest-card__title">Filtrar sugerencias</h2>
+                                    </div>
+                                    <div class="suggest-filters">
+                                        <div class="suggest-filters__group">
+                                            <label class="suggest-filters__label">Categoría</label>
+                                            <select id="suggestFilterCategory" class="suggest-filters__select">
+                                                <option value="all">Todas</option>
+                                                <option value="funcionalidad">Nueva funcionalidad</option>
+                                                <option value="mejora">Mejora de existente</option>
+                                                <option value="ui">Interfaz de usuario (UI)</option>
+                                                <option value="rendimiento">Rendimiento</option>
+                                                <option value="seguridad">Seguridad</option>
+                                                <option value="documentos">Gestión de documentos</option>
+                                                <option value="tareas">Tareas</option>
+                                                <option value="reportes">Reportes</option>
+                                                <option value="otro">Otro</option>
+                                            </select>
+                                        </div>
+                                        <div class="suggest-filters__group">
+                                            <label class="suggest-filters__label">Estado</label>
+                                            <select id="suggestFilterStatus" class="suggest-filters__select">
+                                                <option value="all">Todos</option>
+                                                <option value="pending">Pendiente</option>
+                                                <option value="reviewing">En revisión</option>
+                                                <option value="approved">Aprobada</option>
+                                                <option value="implemented">Implementada</option>
+                                                <option value="rejected">Rechazada</option>
+                                            </select>
+                                        </div>
+                                        <div class="suggest-filters__group">
+                                            <label class="suggest-filters__label">Ordenar por</label>
+                                            <select id="suggestFilterSort" class="suggest-filters__select">
+                                                <option value="recent">Más recientes</option>
+                                                <option value="oldest">Más antiguas</option>
+                                                <option value="votes">Más votadas</option>
+                                            </select>
+                                        </div>
+                                        <button id="suggestRefreshBtn"
+                                            class="suggest-btn suggest-btn--sm suggest-btn--outline">
+                                            <i class="fas fa-sync-alt"></i>
+                                            Actualizar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Lista de sugerencias recientes -->
+                                <div class="suggest-card suggest-card--list">
+                                    <div class="suggest-card__header">
+                                        <div class="suggest-card__icon">
+                                            <i class="fas fa-list"></i>
+                                        </div>
+                                        <h2 class="suggest-card__title">Sugerencias recientes</h2>
+                                        <span class="suggest-card__badge" id="suggestionsCount">0</span>
+                                    </div>
+                                    <div class="suggest-list" id="suggestionsList">
+                                        <div class="suggest-empty">
+                                            <i class="fas fa-lightbulb suggest-empty__icon"></i>
+                                            <p class="suggest-empty__text">No hay sugerencias aún</p>
+                                            <p class="suggest-empty__subtext">¡Sé el primero en compartir una idea!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal para ver detalles de sugerencia -->
+                        <div id="suggestDetailModal" class="suggest-modal">
+                            <div class="suggest-modal__overlay"></div>
+                            <div class="suggest-modal__content">
+                                <div class="suggest-modal__header">
+                                    <h3 class="suggest-modal__title">
+                                        <i class="fas fa-lightbulb"></i>
+                                        Detalles de sugerencia
+                                    </h3>
+                                    <button class="suggest-modal__close" id="closeSuggestDetailModal">&times;</button>
+                                </div>
+                                <div class="suggest-modal__body" id="suggestDetailBody">
+                                    <!-- Contenido dinámico -->
+                                </div>
+                                <div class="suggest-modal__footer">
+                                    <button class="suggest-btn suggest-btn--outline"
+                                        id="closeDetailModalBtn">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal de confirmación -->
+                        <div id="suggestToast" class="suggest-toast" style="display: none;">
+                            <div class="suggest-toast__content">
+                                <i class="suggest-toast__icon"></i>
+                                <span class="suggest-toast__message"></span>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -2801,17 +3080,23 @@
                 <form id="changeAdminForm">
                     <div class="form-group">
                         <label for="newAdminUser" class="form__label">Nuevo Usuario</label>
-                        <input type="text" id="newAdminUser" class="form-input-admin" data-validate="username" minlength="5" maxlength="32" autocomplete="username" placeholder="Ingresa el nuevo nombre de usuario" required>
+                        <input type="text" id="newAdminUser" class="form-input-admin" data-validate="username"
+                            minlength="5" maxlength="32" autocomplete="username"
+                            placeholder="Ingresa el nuevo nombre de usuario" required>
                     </div>
                     <div class="form-group">
                         <label for="newAdminEmail" class="form__label">Correo Electrónico</label>
-                        <input type="email" id="newAdminEmail" class="form-input-admin" data-validate="email" maxlength="64" autocomplete="email" placeholder="correo@ejemplo.com" required>
+                        <input type="email" id="newAdminEmail" class="form-input-admin" data-validate="email"
+                            maxlength="64" autocomplete="email" placeholder="correo@ejemplo.com" required>
                     </div>
                     <div class="form-group">
                         <label for="newAdminPassword" class="form__label">Contraseña</label>
                         <div class="password-wrapper">
-                            <input type="password" id="newAdminPassword" class="form-input-admin" data-validate="password" minlength="8" maxlength="32" autocomplete="new-password" placeholder="Contraseña segura" required>
-                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('newAdminPassword')">
+                            <input type="password" id="newAdminPassword" class="form-input-admin"
+                                data-validate="password" minlength="8" maxlength="32" autocomplete="new-password"
+                                placeholder="Contraseña segura" required>
+                            <button type="button" class="password-toggle"
+                                onclick="togglePasswordVisibility('newAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -2819,8 +3104,11 @@
                     <div class="form-group">
                         <label for="confirmAdminPassword" class="form__label">Confirmar Contraseña</label>
                         <div class="password-wrapper">
-                            <input type="password" id="confirmAdminPassword" class="form-input-admin" data-validate="confirm-password" minlength="8" maxlength="32" autocomplete="new-password" placeholder="Repite la contraseña" required>
-                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmAdminPassword')">
+                            <input type="password" id="confirmAdminPassword" class="form-input-admin"
+                                data-validate="confirm-password" minlength="8" maxlength="32"
+                                autocomplete="new-password" placeholder="Repite la contraseña" required>
+                            <button type="button" class="password-toggle"
+                                onclick="togglePasswordVisibility('confirmAdminPassword')">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>

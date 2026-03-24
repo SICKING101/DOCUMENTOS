@@ -34,7 +34,7 @@ let _navigationLocked  = false;  // Previene cambios durante una transición
 const VALID_TABS = [
   'dashboard', 'personas', 'documentos', 'categorias', 'departamentos',
   'tareas', 'historial', 'papelera', 'calendario', 'reportes',
-  'soporte', 'ajustes', 'admin', 'auditoria',
+  'soporte', 'ajustes', 'admin', 'auditoria', 'sugerencias',
 ];
 
 // =============================================================================
@@ -398,6 +398,21 @@ async function _loadTabData(tabId) {
             window.initializeBasicCalendar();
           }
         }, 50);
+        break;
+
+              case 'sugerencias':
+        try {
+          if (!window.suggestionsModule) {
+            const mod = await import('./modules/sugerencias.js');
+            window.suggestionsModule = mod.default;
+            nlog('_loadTabData: módulo sugerencias cargado');
+          }
+          if (window.suggestionsModule?.init) {
+            await window.suggestionsModule.init();
+          }
+        } catch (e) {
+          nerr('_loadTabData: error cargando sugerencias', e);
+        }
         break;
 
       case 'reportes':

@@ -69,6 +69,7 @@
 @import url('sections/reportes.css');
 @import url('sections/auditoria.css');
 @import url('sections/roles.css');
+@import url('sections/suggestions.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');
