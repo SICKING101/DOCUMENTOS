@@ -29,8 +29,8 @@ const conversationSchema = new mongoose.Schema(
         },
         fuente: {
             type:    String,
-            enum:    ['claude-ai', 'fallback', 'rule-based'],
-            default: 'claude-ai',
+            enum:    ['claude-ai', 'groq', 'fallback', 'rule-based'],  // ← AÑADIR 'groq'
+            default: 'rule-based',
         },
         latencia: {
             type: Number,  // milisegundos

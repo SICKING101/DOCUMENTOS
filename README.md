@@ -142,6 +142,7 @@ DOCUMENTOS/
 │   │   │   ├── auditoria.js
 |   │   │   ├── calendario.js
 │   │   │   ├── categorias.js
+│   │   │   ├── chatbot.js
 │   │   │   ├── dashboard.js
 │   │   │   ├── departamentos.js
 │   │   │   ├── documentos.js
@@ -232,6 +233,7 @@ DOCUMENTOS/
 │       │   ├── auditController.js.js
 |       │   ├── adminController.js
 │       │   ├── categoryController.js
+|       │   ├── chatbotController.js
 │       │   ├── dashboardController.js
 │       │   ├── departmentController.js
 │       │   ├── documentController.js
@@ -254,6 +256,7 @@ DOCUMENTOS/
 │       │   ├── Department.js
 │       │   ├── Category.js
 |       │   ├── Role.js
+│       │   ├── Conversation.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
 │       │   ├── Ticket.js
@@ -267,6 +270,7 @@ DOCUMENTOS/
 │       │    ├── apiRoutes.js
 │       │    ├── adminRoutes.js
 │       │    ├── roleRoutes.js
+|       │    ├── chatbotRoutes.js
 │       │    └── authRoutes.js
 │       │
 │       └── debugRoutes.js           # Debug tareas
