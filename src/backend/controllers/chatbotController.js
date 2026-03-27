@@ -374,9 +374,10 @@ async function saveConv(userId, userMsg, botMsg, extra = {}) {
     }
 }
 
-// ──────────────────────────────────────────────────────────────
-// FALLBACK INTELIGENTE (sin IA)
-// ──────────────────────────────────────────────────────────────
+// ============================================================
+// FALLBACK INTELIGENTE (sin IA) - CORREGIDO
+// Solo muestra información, NO abre modales automáticamente
+// ============================================================
 function ruleBasedResponse(message, ctx) {
     const q = message.toLowerCase().trim();
     const s = ctx.stats || {};
@@ -792,32 +793,6 @@ function ruleBasedResponse(message, ctx) {
         suggestions: ['Ayuda', 'Mis tareas', 'Documentos por vencer', 'Ir a Documentos'],
         actions: []
     };
-}
-
-// ──────────────────────────────────────────────────────────────
-// SUGERENCIAS CONTEXTUALES
-// ──────────────────────────────────────────────────────────────
-function buildSuggestions(message, ctx) {
-    const q = message.toLowerCase();
-    const s = ctx.stats || {};
-    const t = ctx.tareas || {};
-    const out = [];
-
-    if (s.docsPorVencer7 > 0 && !q.includes('vencer'))
-        out.push(`Ver ${s.docsPorVencer7} documento(s) por vencer`);
-    if (t.vencidas > 0 && !q.includes('tarea'))
-        out.push(`Atender ${t.vencidas} tarea(s) vencida(s)`);
-    if (t.pendientes > 0 && !q.includes('tarea') && !q.includes('pendiente'))
-        out.push(`Mis ${t.pendientes} tarea(s) pendiente(s)`);
-
-    if (q.includes('documento')) out.push('Subir documento', 'Generar reporte');
-    else if (q.includes('tarea')) out.push('Crear nueva tarea', 'Ir a Tareas');
-    else if (q.includes('persona')) out.push('Agregar persona', 'Ver departamentos');
-    else if (q.includes('reporte')) out.push('Reporte general', 'Exportar a Excel');
-    else if (out.length === 0)
-        out.push('Mis tareas pendientes', 'Documentos recientes', 'Subir documento', 'Estadísticas');
-
-    return [...new Set(out)].slice(0, 4);
 }
 
 // ──────────────────────────────────────────────────────────────
