@@ -89,6 +89,8 @@ import {
   refreshPermissions,
 } from './navigation.js';
 
+import { initChatbot } from './modules/chatbot.js';
+
 // =============================================================================
 // 1. INICIALIZACIÓN DE LA APLICACIÓN
 // =============================================================================
@@ -191,6 +193,10 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // ── Fase 8: Inicializar tema ──
     _initTheme();
+
+    // ── Fase 9: Inicializar chatbot ──
+    initChatbot();
+    console.log('🤖 Chatbot Assistant integrado');
 
     // ── Evento: re-aplicar permisos cuando cambia el usuario/rol ──
     window.addEventListener('auth:user-updated', async () => {
@@ -340,13 +346,13 @@ function _setupEventListeners() {
 
   // ── Cerrar modales al hacer clic en el backdrop ──
   const modals = {
-    personModal:     DOM.personModal,
-    documentModal:   DOM.documentModal,
-    categoryModal:   DOM.categoryModal,
+    personModal: DOM.personModal,
+    documentModal: DOM.documentModal,
+    categoryModal: DOM.categoryModal,
     departmentModal: DOM.departmentModal,
-    searchModal:     DOM.searchModal,
-    reportModal:     DOM.reportModal,
-    taskModal:       DOM.taskModal,
+    searchModal: DOM.searchModal,
+    reportModal: DOM.reportModal,
+    taskModal: DOM.taskModal,
   };
   setupModalBackdropClose(modals);
 
@@ -414,7 +420,7 @@ async function _loadInitialData() {
 const _getPreferredTheme = () => localStorage.getItem('theme') || 'light';
 
 const _applyTheme = (theme) => {
-  const themeIcon   = document.querySelector('#themeToggle i');
+  const themeIcon = document.querySelector('#themeToggle i');
   const themeToggle = document.getElementById('themeToggle');
 
   if (theme === 'dark') {
@@ -432,7 +438,7 @@ const _applyTheme = (theme) => {
   }
 };
 
-const _initTheme  = () => _applyTheme(_getPreferredTheme());
+const _initTheme = () => _applyTheme(_getPreferredTheme());
 const _toggleTheme = () => _applyTheme(document.body.classList.contains('dark-theme') ? 'light' : 'dark');
 
 // =============================================================================
@@ -491,13 +497,13 @@ function _handleModalClose() {
   if (!modal) return;
 
   switch (modal.id) {
-    case 'personModal':     closePersonModal();             break;
-    case 'documentModal':   documentos.closeDocumentModal?.(); break;
-    case 'categoryModal':   closeCategoryModal();           break;
-    case 'departmentModal': closeDepartmentModal();         break;
-    case 'searchModal':     closeSearchModal();             break;
-    case 'reportModal':     closeReportModal();             break;
-    case 'taskModal':       taskManager?.closeTaskModal?.(); break;
+    case 'personModal': closePersonModal(); break;
+    case 'documentModal': documentos.closeDocumentModal?.(); break;
+    case 'categoryModal': closeCategoryModal(); break;
+    case 'departmentModal': closeDepartmentModal(); break;
+    case 'searchModal': closeSearchModal(); break;
+    case 'reportModal': closeReportModal(); break;
+    case 'taskModal': taskManager?.closeTaskModal?.(); break;
   }
 }
 
@@ -528,11 +534,11 @@ function getTasksStats() {
   if (!taskManager) return null;
   const tasks = taskManager.tasks;
   return {
-    total:      tasks.length,
-    pending:    tasks.filter((t) => t.status === 'pendiente').length,
+    total: tasks.length,
+    pending: tasks.filter((t) => t.status === 'pendiente').length,
     inProgress: tasks.filter((t) => t.status === 'en-progreso').length,
-    completed:  tasks.filter((t) => t.status === 'completada').length,
-    overdue:    tasks.filter((t) => {
+    completed: tasks.filter((t) => t.status === 'completada').length,
+    overdue: tasks.filter((t) => {
       if (!t.dueDate || t.status === 'completada') return false;
       return new Date(t.dueDate) < new Date();
     }).length,
@@ -547,9 +553,9 @@ function showAllDocuments() {
   appState.currentSearchQuery = '';
   appState.filters = { category: '', type: '', date: '', status: '' };
   if (DOM.filterCategory) DOM.filterCategory.value = '';
-  if (DOM.filterType)     DOM.filterType.value     = '';
-  if (DOM.filterDate)     DOM.filterDate.value     = '';
-  if (DOM.filterStatus)   DOM.filterStatus.value   = '';
+  if (DOM.filterType) DOM.filterType.value = '';
+  if (DOM.filterDate) DOM.filterDate.value = '';
+  if (DOM.filterStatus) DOM.filterStatus.value = '';
   if (DOM.documentSearch) DOM.documentSearch.value = '';
   documentos.renderDocumentsTable?.();
   showAlert('Mostrando todos los documentos', 'info');
@@ -590,85 +596,85 @@ function resetApp() {
 // =============================================================================
 
 // ── Documentos ──
-window.downloadDocument           = documentos.downloadDocument;
-window.previewDocument            = documentos.previewDocument;
-window.deleteDocument             = documentos.deleteDocument;
-window.openDocumentModal          = documentos.openDocumentModal;
-window.closeDocumentModal         = documentos.closeDocumentModal;
-window.switchUploadMode           = documentos.switchUploadMode;
+window.downloadDocument = documentos.downloadDocument;
+window.previewDocument = documentos.previewDocument;
+window.deleteDocument = documentos.deleteDocument;
+window.openDocumentModal = documentos.openDocumentModal;
+window.closeDocumentModal = documentos.closeDocumentModal;
+window.switchUploadMode = documentos.switchUploadMode;
 window.handleUploadMultipleDocuments = documentos.handleUploadMultipleDocuments;
-window.debugMultipleUpload        = documentos.debugMultipleUpload;
+window.debugMultipleUpload = documentos.debugMultipleUpload;
 window.testMultipleUploadWithMockFiles = documentos.testMultipleUploadWithMockFiles;
-window.cancelMultipleUpload       = documentos.cancelMultipleUpload;
-window.downloadDocumentSimple     = documentos.downloadDocumentSimple;
-window.downloadDocumentAlternative= documentos.downloadDocumentAlternative;
-window.debugDownload              = documentos.debugDocumentDownload;
-window.testAllDownloads           = documentos.testAllDownloads;
-window.loadDocuments              = documentos.loadDocuments;
-window.renderDocumentsTable       = documentos.renderDocumentsTable;
-window.changeDocumentsPage        = documentos.changeDocumentsPage;
+window.cancelMultipleUpload = documentos.cancelMultipleUpload;
+window.downloadDocumentSimple = documentos.downloadDocumentSimple;
+window.downloadDocumentAlternative = documentos.downloadDocumentAlternative;
+window.debugDownload = documentos.debugDocumentDownload;
+window.testAllDownloads = documentos.testAllDownloads;
+window.loadDocuments = documentos.loadDocuments;
+window.renderDocumentsTable = documentos.renderDocumentsTable;
+window.changeDocumentsPage = documentos.changeDocumentsPage;
 window.populateDocumentCategorySelect = documentos.populateDocumentCategorySelect;
 
 // ── Personas ──
-window.editPerson            = editPerson;
-window.deletePerson          = deletePerson;
-window.openPersonModal       = openPersonModal;
-window.closePersonModal      = closePersonModal;
-window.loadPersons           = loadPersons;
-window.renderPersonsTable    = renderPersonsTable;
-window.populatePersonSelect  = populatePersonSelect;
+window.editPerson = editPerson;
+window.deletePerson = deletePerson;
+window.openPersonModal = openPersonModal;
+window.closePersonModal = closePersonModal;
+window.loadPersons = loadPersons;
+window.renderPersonsTable = renderPersonsTable;
+window.populatePersonSelect = populatePersonSelect;
 window.refreshDepartmentSelect = refreshDepartmentSelect;
 
 // ── Categorías ──
-window.openCategoryModal     = openCategoryModal;
-window.closeCategoryModal    = closeCategoryModal;
-window.editCategory          = editCategory;
-window.deleteCategory        = deleteCategory;
-window.loadCategories        = loadCategories;
-window.renderCategories      = renderCategories;
+window.openCategoryModal = openCategoryModal;
+window.closeCategoryModal = closeCategoryModal;
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
+window.loadCategories = loadCategories;
+window.renderCategories = renderCategories;
 window.populateCategorySelects = populateCategorySelects;
 
 // ── Departamentos ──
-window.openDepartmentModal   = openDepartmentModal;
-window.closeDepartmentModal  = closeDepartmentModal;
-window.editDepartment        = editDepartment;
-window.deleteDepartment      = deleteDepartment;
+window.openDepartmentModal = openDepartmentModal;
+window.closeDepartmentModal = closeDepartmentModal;
+window.editDepartment = editDepartment;
+window.deleteDepartment = deleteDepartment;
 
 // ── Búsqueda y reportes ──
-window.showAdvancedSearch    = showAdvancedSearch;
-window.closeSearchModal      = closeSearchModal;
-window.generateReport        = reportsModule.generateReport;
-window.closeReportModal      = reportsModule.closeReportModal;
-window.handleGenerateReport  = reportsModule.handleGenerateReport;
-window.handleReportTypeChange= reportsModule.handleReportTypeChange;
+window.showAdvancedSearch = showAdvancedSearch;
+window.closeSearchModal = closeSearchModal;
+window.generateReport = reportsModule.generateReport;
+window.closeReportModal = reportsModule.closeReportModal;
+window.handleGenerateReport = reportsModule.handleGenerateReport;
+window.handleReportTypeChange = reportsModule.handleReportTypeChange;
 window.handleReportFormatChange = reportsModule.handleReportFormatChange;
-window.initReportsModule     = reportsModule.initReportsModule;
+window.initReportsModule = reportsModule.initReportsModule;
 
 // ── Historial ──
 window.loadTabSpecificHistorial = loadTabSpecificHistorial;
 
 // ── Papelera ──
-window.initPapelera          = initPapelera;
+window.initPapelera = initPapelera;
 
 // ── Navegación — window.switchTab ya se expone desde navigation.js ──
 // No redefinir aquí para evitar colisión. navigation.js lo hace primero.
 
 // ── Tareas ──
-window.openTaskModal         = openTaskModal;
-window.createQuickTask       = createQuickTask;
-window.getTasksStats         = getTasksStats;
+window.openTaskModal = openTaskModal;
+window.createQuickTask = createQuickTask;
+window.getTasksStats = getTasksStats;
 
 // ── Utilidades ──
-window.showAllDocuments      = showAllDocuments;
-window.debugAppState         = debugAppState;
-window.testAPIConnection     = testAPIConnection;
-window.resetApp              = resetApp;
+window.showAllDocuments = showAllDocuments;
+window.debugAppState = debugAppState;
+window.testAPIConnection = testAPIConnection;
+window.resetApp = resetApp;
 
 // ── Permisos ──
-window.refreshPermissions    = refreshPermissions;
-window.canView               = canView;
-window.canAction             = canAction;
-window.hasPermission         = hasPermission;
+window.refreshPermissions = refreshPermissions;
+window.canView = canView;
+window.canAction = canAction;
+window.hasPermission = hasPermission;
 
 // ── Categorías (compatibilidad) ──
 window.populateCategorySelect = (selectElement) => {
@@ -676,7 +682,7 @@ window.populateCategorySelect = (selectElement) => {
   selectElement.innerHTML = '<option value="">Seleccionar categoría</option>';
   appState.categories?.forEach((cat) => {
     const opt = document.createElement('option');
-    opt.value       = cat.nombre;
+    opt.value = cat.nombre;
     opt.textContent = cat.nombre;
     selectElement.appendChild(opt);
   });
@@ -703,7 +709,7 @@ setTimeout(() => {
   // Re-bindear eventos de tareas si los elementos ya están en el DOM
   if (taskManager) {
     const taskElements = ['tasksContainer', 'addTaskBtn', 'taskModal'];
-    const allPresent   = taskElements.every((id) => document.getElementById(id));
+    const allPresent = taskElements.every((id) => document.getElementById(id));
     if (allPresent) {
       taskManager.bindEvents?.();
       console.log('🔄 Eventos de tareas re-bindeados');

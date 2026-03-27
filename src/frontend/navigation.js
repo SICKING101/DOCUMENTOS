@@ -34,7 +34,7 @@ let _navigationLocked  = false;  // Previene cambios durante una transición
 const VALID_TABS = [
   'dashboard', 'personas', 'documentos', 'categorias', 'departamentos',
   'tareas', 'historial', 'papelera', 'calendario', 'reportes',
-  'soporte', 'ajustes', 'admin', 'auditoria',
+  'soporte', 'ajustes', 'admin', 'auditoria', 'chatbot',
 ];
 
 // =============================================================================

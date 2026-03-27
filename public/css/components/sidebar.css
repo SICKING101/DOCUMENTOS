@@ -3,10 +3,9 @@
 /* Variables adicionales para mejorar el diseño */
 :root {
     --sidebar-width: 280px;
-    --sidebar-header-height: 130px;
-    --sidebar-footer-height: 150px; /* REDUCIDO de 180px a 150px */
+    --sidebar-header-height: 80px;
     --sidebar-transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-    --sidebar-nav-height: calc(100vh - 280px); /* AJUSTADO: de 310px a 280px */
+    --sidebar-nav-height: calc(100vh - 80px);
 }
 
 /* Barra lateral fija con navegación y controles */
@@ -28,13 +27,9 @@
     overflow: hidden;
 }
 
-/* Cabecera del sidebar con logo y nombre de la aplicación */
+/* Cabecera del sidebar simplificada (solo título de sección) */
 .sidebar__header {
-    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-xl);
     min-height: var(--sidebar-header-height);
     height: var(--sidebar-header-height);
     position: relative;
@@ -43,6 +38,9 @@
         rgba(220, 38, 38, 0.05) 100%);
     border-bottom: 1px solid rgba(220, 38, 38, 0.15);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .sidebar__header::before {
@@ -59,75 +57,25 @@
     z-index: 2;
 }
 
-/* Contenedor del logo */
-.sidebar__logo-container {
-    position: relative;
-    transform: translateY(-13%);
-    width: 60px;
-    height: 60px;
-}
-
-/* Logo de la aplicación en el sidebar */
-.sidebar__logo {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
-    object-fit: cover;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: var(--transition);
-}
-
-.sidebar__logo:hover {
-    transform: scale(1.05);
-    border-color: var(--primary);
-}
-
-/* Badge del logo */
-.sidebar__logo-badge {
-    position: absolute;
-    bottom: -4px;
-    right: -4px;
-    width: 24px;
-    height: 24px;
-    background: var(--primary);
-    border-radius: 50%;
+/* Título de la sección en el sidebar */
+.sidebar__section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.75rem;
-    border: 2px solid var(--sidebar-bg);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
-}
-
-/* Contenedor del título */
-.sidebar__title-container {
-    text-align: center;
-}
-
-/* Nombre de la aplicación en el sidebar */
-.sidebar__title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: white;
-    letter-spacing: -0.025em;
-    margin: 0;
-    transform: translateY(-43%);
+    gap: var(--spacing-sm);
     background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.9) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-/* Subtítulo */
-.sidebar__subtitle {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-    letter-spacing: 0.5px;
-    margin-top: 4px;
-    font-weight: 500;
-    text-transform: uppercase;
+.sidebar__section-title i {
+    -webkit-text-fill-color: initial;
+    background: none;
+    color: var(--primary);
 }
 
 /* Separador decorativo */
@@ -141,16 +89,15 @@
     flex-shrink: 0;
 }
 
-/* Navegación principal del sidebar - SIN SCROLL */
+/* Navegación principal del sidebar */
 .sidebar__nav {
     flex: 1;
     padding: var(--spacing-lg) var(--spacing-md);
-    overflow-y: visible;
+    overflow-y: auto;
     scrollbar-color: var(--primary) transparent;
     overflow-x: hidden;
     height: var(--sidebar-nav-height);
     min-height: 500px;
-    max-height: calc(100vh - 280px); /* AJUSTADO: de 310px a 280px */
 }
 
 /* Grupos de navegación con mejor espaciado */
@@ -269,137 +216,264 @@
     box-shadow: 0 0 10px var(--primary);
 }
 
-/* Pie del sidebar con controles de usuario - SIN TEMA */
-.sidebar__footer {
-    padding: var(--spacing-lg);
-    background: rgba(15, 23, 42, 0.95);
-    border-top: 1px solid rgba(220, 38, 38, 0.15);
-    position: relative;
-    min-height: var(--sidebar-footer-height);
-    height: var(--sidebar-footer-height);
-    flex-shrink: 0;
+/* Ocultar opción extra de administración en sidebar (se gestiona dentro de la pestaña Admin) */
+#admin-dropdown {
+    display: none !important;
 }
 
-/* Información del usuario en el footer del sidebar */
-.sidebar__user {
+/* Responsive para tablets */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 260px;
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+}
+
+/* Estilos específicos para pantallas más pequeñas */
+@media (max-height: 800px) {
+    .sidebar__header {
+        padding: var(--spacing-md) var(--spacing-xl);
+    }
+    
+    .sidebar__nav-group {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .sidebar__nav-link {
+        padding: 0.75rem var(--spacing-lg);
+        margin-bottom: 4px;
+    }
+}
+
+/* ===== ESTILOS PARA TOPBAR MEJORADA ===== */
+
+.topbar {
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    border-bottom: 1px solid rgba(220, 38, 38, 0.1);
+    padding: 0.75rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Sección izquierda de la topbar */
+.topbar__left {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-lg);
-    transition: var(--sidebar-transition);
-    transform: translateY(-5%);
-    position: relative;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid transparent;
-    cursor: pointer;
+    gap: 1rem;
 }
 
-.sidebar__user:hover {
+/* Botón de menú móvil */
+.topbar__menu-toggle {
+    display: none;
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    border-radius: var(--radius-md);
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    transition: var(--transition);
+}
+
+.topbar__menu-toggle:hover {
+    background: rgba(220, 38, 38, 0.2);
+    transform: scale(1.05);
+}
+
+/* Logo en la topbar */
+.topbar__logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.topbar__logo-img {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 2px solid rgba(220, 38, 38, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.topbar__logo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.topbar__logo-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    background: var(--primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.topbar__logo-subtitle {
+    font-size: 0.7rem;
+    color: var(--primary-dark);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Sección derecha de la topbar */
+.topbar__right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Notificaciones */
+.topbar__actions {
+    position: relative;
+}
+
+.topbar__action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(220, 38, 38, 0.15);
+    border-radius: var(--radius-md);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-primary);
+    font-size: 1.125rem;
+    position: relative;
+}
+
+.topbar__badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--primary);
+    color: white;
+    font-size: 0.625rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 20px;
+    border: 2px solid var(--bg-primary);
+}
+
+/* Menú de usuario en topbar */
+.topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(220, 38, 38, 0.15);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.topbar__user:hover {
     background: linear-gradient(135deg, 
         rgba(220, 38, 38, 0.1) 0%, 
         rgba(220, 38, 38, 0.05) 100%);
-    border-color: rgba(220, 38, 38, 0.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: rgba(220, 38, 38, 0.3);
+    transform: translateY(-1px);
 }
 
-/* Indicador de estado en línea */
-.sidebar__user-status {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    width: 8px;
-    height: 8px;
-    background: #10b981;
-    border-radius: 50%;
-    border: 2px solid var(--sidebar-bg);
-    z-index: 1;
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-}
-
-/* Avatar del usuario con gradiente */
-.sidebar__user-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+.topbar__user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     background: linear-gradient(135deg, var(--primary), var(--accent));
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.25rem;
+    font-size: 1rem;
     border: 2px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.2);
-    transition: var(--transition);
+    position: relative;
 }
 
-.sidebar__user:hover .sidebar__user-avatar {
-    transform: scale(1.05);
-    border-color: rgba(220, 38, 38, 0.3);
+.topbar__user-status {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 50%;
+    border: 2px solid var(--bg-primary);
 }
 
-/* Contenedor de información del usuario */
-.sidebar__user-info {
-    flex: 1;
-    min-width: 0;
+.topbar__user-info {
+    text-align: left;
 }
 
-/* Nombre del usuario */
-.sidebar__user-name {
+.topbar__user-name {
     font-size: 0.875rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-primary);
     margin-bottom: 0.125rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-/* Rol o cargo del usuario */
-.sidebar__user-role {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
+.topbar__user-role {
+    font-size: 0.6875rem;
+    color: rgba(0, 0, 0, 0.6);
     font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-/* Contenedor de acciones */
-.sidebar__user-actions {
-    display: flex;
-    align-items: center;
-}
-
-/* Chevron del menú desplegable */
-.sidebar__user-chevron {
+.topbar__user-chevron {
     color: rgba(255, 255, 255, 0.5);
-    font-size: 0.875rem;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
 }
 
-.sidebar__user.active .sidebar__user-chevron {
+.topbar__user.active .topbar__user-chevron {
     transform: rotate(180deg);
     color: var(--primary);
 }
 
-/* Menú desplegable del usuario - POSICIÓN CORREGIDA */
+/* Menú desplegable del usuario (posicionado desde topbar) */
 .user-menu {
     position: absolute;
-    bottom: 90px;
-    left: var(--spacing-lg);
-    right: var(--spacing-lg);
+    top: 70px;
+    right: 2rem;
+    width: 320px;
     background: var(--bg-secondary);
-    border: 1px solid rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.2);
     border-radius: var(--radius-xl);
-    box-shadow: 
-        0 10px 40px rgba(0, 0, 0, 0.2),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(10px) scale(0.95);
+    transform: translateY(-10px) scale(0.95);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 1001;
+    z-index: 1002;
     overflow: hidden;
     backdrop-filter: blur(10px);
 }
@@ -407,7 +481,7 @@
 .user-menu.active {
     opacity: 1;
     visibility: visible;
-    transform: translateY(-50px) scale(1);
+    transform: translateY(0) scale(1);
 }
 
 /* Header del menú con información del usuario */
@@ -602,53 +676,58 @@
     opacity: 0.7;
 }
 
-/* Responsive para tablets */
+/* Responsive */
 @media (max-width: 1024px) {
-    .sidebar {
-        width: 260px;
-        transform: translateX(-100%);
+    .topbar__menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
-    .sidebar.active {
-        transform: translateX(0);
-    }
-}
-
-/* Responsive para móviles */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        transform: translateX(-100%);
+    .topbar__logo-title {
+        font-size: 1rem;
     }
     
-    .sidebar.active {
-        transform: translateX(0);
+    .topbar__logo-subtitle {
+        display: none;
     }
     
     .user-menu {
-        left: var(--spacing-md);
-        right: var(--spacing-md);
-        bottom: 80px;
+        right: 1rem;
+        width: 300px;
     }
 }
 
-/* Estilos específicos para pantallas más pequeñas */
-@media (max-height: 800px) {
-    .sidebar__header {
-        padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-md);
+@media (max-width: 768px) {
+    .topbar {
+        padding: 0.75rem 1rem;
     }
     
-    .sidebar__nav-group {
-        margin-bottom: var(--spacing-lg);
+    .topbar__logo-img {
+        width: 35px;
+        height: 35px;
     }
     
-    .sidebar__nav-link {
-        padding: 0.75rem var(--spacing-lg);
-        margin-bottom: 4px;
+    .topbar__logo-title {
+        font-size: 0.875rem;
     }
-}
-
-/* Ocultar opción extra de administración en sidebar (se gestiona dentro de la pestaña Admin) */
-#admin-dropdown {
-    display: none !important;
+    
+    .topbar__user-name {
+        display: none;
+    }
+    
+    .topbar__user-role {
+        display: none;
+    }
+    
+    .topbar__user {
+        padding: 0.5rem;
+    }
+    
+    .user-menu {
+        top: 60px;
+        right: 0.5rem;
+        width: calc(100% - 1rem);
+        max-width: 320px;
+    }
 }
