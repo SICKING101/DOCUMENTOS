@@ -1,7 +1,7 @@
 // src/frontend/task.js
 
 // =============================================================================
-// 1. DEFINICIÓN DE LA CLASE TASKMANAGER - VERSIÓN CON ENDPOINTS CORREGIDOS
+// 1. DEFINICIÓN DE LA CLASE TASKMANAGER - VERSIÓN COMPLETA
 // =============================================================================
 
 import { canView, canAction, showNoPermissionAlert } from './permissions.js';
@@ -16,15 +16,11 @@ class TaskManager {
         this.isLoading = false;
         this.activePreloaders = new Set();
         
-        // Configuración de API - PUERTO 4000
         this.apiBaseUrl = 'http://localhost:4000/api';
         
         this.init();
     }
 
-    /**
-     * 1.1 Inicialización optimizada
-     */
     init() {
         if (!canView('tareas')) {
             showNoPermissionAlert('tareas');
@@ -46,7 +42,7 @@ class TaskManager {
     }
 
     // =============================================================================
-    // 2. SISTEMA DE PRELOADERS (MANTENIDO IGUAL)
+    // 2. SISTEMA DE PRELOADERS
     // =============================================================================
 
     showTasksPreloader() {
@@ -106,39 +102,6 @@ class TaskManager {
         return preloader;
     }
 
-    showTaskActionIndicator(taskId, actionType) {
-        const taskCard = document.querySelector(`[data-task-id="${taskId}"]`)?.closest('.task-card');
-        if (!taskCard) return null;
-
-        const config = {
-            delete: { icon: 'fas fa-trash', className: 'action-indicator--delete' },
-            complete: { icon: 'fas fa-check', className: 'action-indicator--complete' },
-            restart: { icon: 'fas fa-redo', className: 'action-indicator--restart' },
-            edit: { icon: 'fas fa-edit', className: 'action-indicator--edit' }
-        }[actionType] || { icon: 'fas fa-spinner', className: 'action-indicator--default' };
-
-        const indicatorId = `action-indicator-${taskId}`;
-        const indicator = document.createElement('div');
-        indicator.id = indicatorId;
-        indicator.className = `task-action-indicator ${config.className}`;
-        indicator.innerHTML = `
-            <div class="task-action-indicator__content">
-                <i class="${config.icon} task-action-indicator__icon"></i>
-                <div class="task-action-indicator__dots">
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                </div>
-            </div>
-        `;
-
-        taskCard.classList.add('task-card--processing');
-        taskCard.appendChild(indicator);
-        this.activePreloaders.add(indicatorId);
-
-        return indicator;
-    }
-
     showConfirmationPreloader() {
         const modalContent = document.querySelector('#actionModal .modal__content');
         if (!modalContent) return null;
@@ -159,39 +122,6 @@ class TaskManager {
         modalContent.style.position = 'relative';
         modalContent.appendChild(preloader);
         this.activePreloaders.add(preloaderId);
-
-        return preloader;
-    }
-
-    showClearTasksIndicator(count) {
-        const preloaderId = `clear-indicator-${Date.now()}`;
-        const preloader = document.createElement('div');
-        preloader.id = preloaderId;
-        preloader.className = 'clear-tasks-indicator';
-        preloader.innerHTML = `
-            <div class="clear-tasks-indicator__content">
-                <div class="clear-tasks-indicator__header">
-                    <i class="fas fa-spinner fa-spin clear-tasks-indicator__icon"></i>
-                    <h4 class="clear-tasks-indicator__title">Limpiando tareas completadas</h4>
-                </div>
-                <div class="clear-tasks-indicator__body">
-                    <div class="clear-tasks-indicator__count">${count} tareas</div>
-                    <div class="clear-tasks-indicator__progress">
-                        <div class="clear-tasks-indicator__progress-bar"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(preloader);
-        this.activePreloaders.add(preloaderId);
-
-        setTimeout(() => {
-            const progressBar = preloader.querySelector('.clear-tasks-indicator__progress-bar');
-            if (progressBar) {
-                progressBar.style.width = '100%';
-            }
-        }, 100);
 
         return preloader;
     }
@@ -268,7 +198,7 @@ class TaskManager {
     }
 
     // =============================================================================
-    // 3. CONFIGURACIÓN DE EVENTOS (MANTENIDO IGUAL)
+    // 3. CONFIGURACIÓN DE EVENTOS
     // =============================================================================
 
     bindEvents() {
@@ -375,40 +305,18 @@ class TaskManager {
             tasksSearch.addEventListener('input', (e) => this.searchTasks(e));
         }
         
-        const clearCompletedBtn = document.getElementById('clearCompletedBtn');
-        if (clearCompletedBtn) {
-            clearCompletedBtn.addEventListener('click', () => {
-                if (!canAction('tareas')) {
-                    showNoPermissionAlert('tareas');
-                    return;
-                }
-                if (!this.isSaving) this.showClearCompletedModal();
-            });
-        }
-        
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeTaskModal();
                 this.closeActionModal();
             }
         });
-        
-        const formFields = ['taskTitle', 'taskDescription', 'taskPriority', 'taskStatus', 'taskDueDate', 'taskTime'];
-        formFields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.addEventListener('input', () => this.clearFieldError(fieldId));
-            }
-        });
     }
 
     // =============================================================================
-    // 4. FUNCIONALIDAD PRINCIPAL - ENDPOINTS CORREGIDOS
+    // 4. FUNCIONALIDAD PRINCIPAL
     // =============================================================================
 
-    /**
-     * 4.1 Cargar tareas desde la API
-     */
     async loadTasks() {
         if (!canView('tareas')) {
             showNoPermissionAlert('tareas');
@@ -420,15 +328,13 @@ class TaskManager {
         this.showTasksPreloader();
         
         try {
-            console.group('🔍 DEBUG: TaskManager.loadTasks');
             console.log('📡 Llamando API:', `${this.apiBaseUrl}/tasks`);
             
             const response = await fetch(`${this.apiBaseUrl}/tasks`);
             
-            // Verificar si la respuesta es HTML en lugar de JSON
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('text/html')) {
-                throw new Error('El servidor respondió con HTML en lugar de JSON');
+                throw new Error('El servidor respondió con HTML');
             }
             
             if (!response.ok) {
@@ -436,49 +342,34 @@ class TaskManager {
             }
             
             const data = await response.json();
-            console.log('✅ Respuesta API:', data);
             
             if (data.success) {
                 this.tasks = data.tasks || [];
                 console.log(`📋 Tareas cargadas: ${this.tasks.length}`);
-                
                 this.renderTasks();
                 this.updateSummary();
-                console.log('✅ TaskManager actualizado correctamente');
                 
-                // NOTIFICAR AL DASHBOARD QUE LAS TAREAS SE ACTUALIZARON
                 document.dispatchEvent(new CustomEvent('task-data-updated', {
                     detail: { tasks: this.tasks }
                 }));
             } else {
                 throw new Error(data.message || 'Error al cargar tareas');
             }
-            
-            console.groupEnd();
         } catch (error) {
             console.error('❌ Error cargando tareas:', error);
             this.tasks = [];
             
-            // Mostrar estado vacío
             const container = document.getElementById('tasksContainer');
             if (container) {
                 container.innerHTML = this.getEmptyState();
             }
             
-            // Mostrar notificación apropiada
-            if (error.message.includes('HTML')) {
-                this.showNotification('Error en el servidor de tareas', 'error');
-            } else {
-                this.showNotification('Error al cargar tareas: ' + error.message, 'error');
-            }
+            this.showNotification(error.message, 'error');
         } finally {
             this.isLoading = false;
         }
     }
 
-    /**
-     * 4.2 Abrir modal de tarea
-     */
     openTaskModal(task = null) {
         if (!canAction('tareas')) {
             showNoPermissionAlert('tareas');
@@ -491,17 +382,15 @@ class TaskManager {
         this.clearAllFieldErrors();
 
         const title = document.getElementById('taskModalTitle');
-        const form = document.getElementById('taskForm');
         
         if (task) {
             title.textContent = 'Editar Tarea';
             this.populateForm(task);
         } else {
             title.textContent = 'Nueva Tarea';
-            form.reset();
+            document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
             
-            // Establecer fecha mínima como hoy
             const today = new Date().toISOString().split('T')[0];
             const dueDateInput = document.getElementById('taskDueDate');
             if (dueDateInput) {
@@ -509,7 +398,6 @@ class TaskManager {
                 dueDateInput.value = today;
             }
             
-            // Establecer hora mínima según la hora actual
             const now = new Date();
             const currentHour = now.getHours().toString().padStart(2, '0');
             const currentMinute = now.getMinutes().toString().padStart(2, '0');
@@ -526,9 +414,6 @@ class TaskManager {
         setTimeout(() => modal.classList.add('active'), 10);
     }
 
-    /**
-     * 4.3 Rellenar formulario
-     */
     populateForm(task) {
         document.getElementById('taskId').value = task._id;
         document.getElementById('taskTitle').value = task.titulo;
@@ -547,7 +432,6 @@ class TaskManager {
             const dateStr = dueDate.toISOString().split('T')[0];
             document.getElementById('taskDueDate').value = dateStr;
             
-            // Establecer fecha mínima como hoy
             const today = new Date().toISOString().split('T')[0];
             const dueDateInput = document.getElementById('taskDueDate');
             if (dueDateInput) {
@@ -558,7 +442,6 @@ class TaskManager {
             if (taskTimeInput && task.hora_limite) {
                 taskTimeInput.value = task.hora_limite;
                 
-                // Si la fecha es hoy, establecer hora mínima según hora actual
                 if (dateStr === today) {
                     const now = new Date();
                     const currentHour = now.getHours().toString().padStart(2, '0');
@@ -572,9 +455,6 @@ class TaskManager {
         }
     }
 
-    /**
-     * 4.4 Cerrar modal
-     */
     closeTaskModal() {
         const modal = document.getElementById('taskModal');
         if (modal) {
@@ -588,59 +468,8 @@ class TaskManager {
     }
 
     // =============================================================================
-    // 5. SISTEMA DE VALIDACIÓN MEJORADO CON HORA
+    // 5. VALIDACIÓN Y GUARDADO
     // =============================================================================
-
-    showFieldError(fieldId, message) {
-        const field = document.getElementById(fieldId);
-        if (!field) return;
-
-        this.clearFieldError(fieldId);
-
-        const errorElement = document.createElement('div');
-        errorElement.className = 'field-error';
-        errorElement.id = `${fieldId}-error`;
-        errorElement.textContent = message;
-        errorElement.style.cssText = `
-            color: var(--danger);
-            font-size: 0.85rem;
-            margin-top: 4px;
-            margin-bottom: 8px;
-            animation: fadeIn 0.3s ease-out;
-        `;
-
-        field.parentNode.insertBefore(errorElement, field.nextSibling);
-        field.style.borderColor = 'var(--danger)';
-        field.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.2)';
-        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    clearFieldError(fieldId) {
-        const errorElement = document.getElementById(`${fieldId}-error`);
-        if (errorElement) {
-            errorElement.remove();
-        }
-
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.style.borderColor = '';
-            field.style.boxShadow = '';
-        }
-    }
-
-    clearAllFieldErrors() {
-        const errorElements = document.querySelectorAll('.field-error');
-        errorElements.forEach(element => element.remove());
-
-        const fields = ['taskTitle', 'taskDescription', 'taskPriority', 'taskStatus', 'taskDueDate', 'taskTime'];
-        fields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.style.borderColor = '';
-                field.style.boxShadow = '';
-            }
-        });
-    }
 
     validateForm() {
         let isValid = true;
@@ -658,18 +487,6 @@ class TaskManager {
             isValid = false;
         }
 
-        const priority = document.getElementById('taskPriority')?.value;
-        if (!priority) {
-            this.showFieldError('taskPriority', 'La prioridad es obligatoria');
-            isValid = false;
-        }
-
-        const status = document.getElementById('taskStatus')?.value;
-        if (!status) {
-            this.showFieldError('taskStatus', 'El estado es obligatorio');
-            isValid = false;
-        }
-
         const dueDate = document.getElementById('taskDueDate')?.value;
         const dueTime = document.getElementById('taskTime')?.value;
         
@@ -681,18 +498,15 @@ class TaskManager {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
-            // Validar fecha no anterior a hoy
             if (selectedDate < today) {
                 this.showFieldError('taskDueDate', 'La fecha no puede ser anterior a hoy');
                 isValid = false;
             }
             
-            // Validar hora si la fecha es hoy
             if (selectedDate.toDateString() === today.toDateString() && dueTime) {
                 const now = new Date();
                 const selectedDateTime = new Date(`${dueDate}T${dueTime}`);
                 
-                // No permitir horas pasadas para hoy
                 if (selectedDateTime < now) {
                     this.showFieldError('taskTime', 'La hora no puede ser anterior a la hora actual');
                     isValid = false;
@@ -703,9 +517,70 @@ class TaskManager {
         return isValid;
     }
 
-    /**
-     * 5.5 Guardar tarea - ENDPOINT CORREGIDO
-     */
+    showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+
+        this.clearFieldError(fieldId);
+
+        const errorElement = document.createElement('div');
+        errorElement.className = 'field-error';
+        errorElement.id = `${fieldId}-error`;
+        errorElement.textContent = message;
+
+        field.parentNode.insertBefore(errorElement, field.nextSibling);
+        field.style.borderColor = 'var(--danger)';
+    }
+
+    clearFieldError(fieldId) {
+        const errorElement = document.getElementById(`${fieldId}-error`);
+        if (errorElement) errorElement.remove();
+
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.style.borderColor = '';
+        }
+    }
+
+    clearAllFieldErrors() {
+        document.querySelectorAll('.field-error').forEach(el => el.remove());
+        ['taskTitle', 'taskDescription', 'taskDueDate', 'taskTime'].forEach(id => {
+            const field = document.getElementById(id);
+            if (field) field.style.borderColor = '';
+        });
+    }
+
+    getFormData() {
+        const dueDate = this.getDueDate();
+        const dueDateObj = dueDate ? new Date(dueDate) : null;
+        
+        return {
+            _id: document.getElementById('taskId')?.value || null,
+            titulo: document.getElementById('taskTitle')?.value.trim() || '',
+            descripcion: document.getElementById('taskDescription')?.value.trim() || '',
+            prioridad: document.getElementById('taskPriority')?.value || 'media',
+            estado: document.getElementById('taskStatus')?.value || 'pendiente',
+            categoria: document.getElementById('taskCategory')?.value.trim() || '',
+            recordatorio: document.getElementById('taskReminder')?.checked || false,
+            fecha_limite: dueDate,
+            hora_limite: dueDateObj ? dueDateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''
+        };
+    }
+
+    getDueDate() {
+        const dateInput = document.getElementById('taskDueDate');
+        const timeInput = document.getElementById('taskTime');
+        
+        if (!dateInput || !dateInput.value) return null;
+        
+        const date = dateInput.value;
+        
+        if (timeInput && timeInput.value) {
+            return new Date(`${date}T${timeInput.value}`).toISOString();
+        }
+        return new Date(`${date}T23:59:59`).toISOString();
+    }
+
     async saveTask() {
         if (!canAction('tareas')) {
             showNoPermissionAlert('tareas');
@@ -727,8 +602,6 @@ class TaskManager {
             let url;
             
             if (taskData._id) {
-                // Editar tarea existente - CORREGIDO
-                console.log(`📝 Editando tarea ID: ${taskData._id}`);
                 url = `${this.apiBaseUrl}/tasks/${taskData._id}`;
                 response = await fetch(url, {
                     method: 'PUT',
@@ -736,8 +609,6 @@ class TaskManager {
                     body: JSON.stringify(taskData)
                 });
             } else {
-                // Crear nueva tarea - CORREGIDO
-                console.log('📝 Creando nueva tarea');
                 url = `${this.apiBaseUrl}/tasks`;
                 response = await fetch(url, {
                     method: 'POST',
@@ -746,35 +617,22 @@ class TaskManager {
                 });
             }
 
-            // Verificar si es HTML
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('text/html')) {
-                throw new Error('El servidor respondió con HTML. Verifica los endpoints.');
+                throw new Error('Error en el servidor');
             }
 
             const data = await response.json();
             
             if (!response.ok || !data.success) {
-                throw new Error(data.message || 'Error al guardar la tarea');
+                throw new Error(data.message || 'Error al guardar');
             }
 
             this.transformToSuccess(preloader, taskData._id ? 'Tarea actualizada' : 'Tarea creada');
             
-            // NOTIFICAR AL DASHBOARD QUE SE CREÓ/EDITÓ UNA TAREA
-            if (taskData._id) {
-                document.dispatchEvent(new CustomEvent('task-updated', {
-                    detail: { taskId: taskData._id, task: taskData }
-                }));
-            } else {
-                document.dispatchEvent(new CustomEvent('task-created', {
-                    detail: { task: data.task || taskData }
-                }));
-            }
-            
-            // Forzar actualización inmediata en dashboard
-            if (typeof window.forceDashboardTasksUpdate === 'function') {
-                window.forceDashboardTasksUpdate();
-            }
+            document.dispatchEvent(new CustomEvent(taskData._id ? 'task-updated' : 'task-created', {
+                detail: { task: data.task || taskData }
+            }));
             
             setTimeout(() => {
                 this.loadTasks();
@@ -792,28 +650,8 @@ class TaskManager {
         }
     }
 
-    /**
-     * 5.6 Obtener datos del formulario
-     */
-    getFormData() {
-        const dueDate = this.getDueDate();
-        const dueDateObj = dueDate ? new Date(dueDate) : null;
-        
-        return {
-            _id: document.getElementById('taskId')?.value || null,
-            titulo: document.getElementById('taskTitle')?.value.trim() || '',
-            descripcion: document.getElementById('taskDescription')?.value.trim() || '',
-            prioridad: document.getElementById('taskPriority')?.value || 'media',
-            estado: document.getElementById('taskStatus')?.value || 'pendiente',
-            categoria: document.getElementById('taskCategory')?.value.trim() || '',
-            recordatorio: document.getElementById('taskReminder')?.checked || false,
-            fecha_limite: dueDate,
-            hora_limite: dueDateObj ? dueDateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''
-        };
-    }
-
     // =============================================================================
-    // 6. SISTEMA DE ACCIONES - ENDPOINTS COMPLETAMENTE CORREGIDOS
+    // 6. ACCIONES
     // =============================================================================
 
     showActionModal(actionType, taskId) {
@@ -827,10 +665,10 @@ class TaskManager {
         const configs = {
             delete: {
                 title: 'Eliminar Tarea',
-                message: '¿Estás seguro de eliminar esta tarea? Esta acción no se puede deshacer.',
+                message: '¿Estás seguro de eliminar esta tarea?',
                 icon: 'fas fa-trash-alt',
                 btnClass: 'btn--danger',
-                btnText: 'Eliminar Permanentemente'
+                btnText: 'Eliminar'
             },
             complete: {
                 title: 'Completar Tarea',
@@ -845,13 +683,6 @@ class TaskManager {
                 icon: 'fas fa-redo-alt',
                 btnClass: 'btn--primary',
                 btnText: 'Reiniciar'
-            },
-            clearCompleted: {
-                title: 'Limpiar Completadas',
-                message: '¿Eliminar permanentemente todas las tareas completadas? Esta acción no se puede deshacer.',
-                icon: 'fas fa-broom',
-                btnClass: 'btn--warning',
-                btnText: 'Limpiar Permanentemente'
             }
         };
 
@@ -862,7 +693,6 @@ class TaskManager {
         
         const icon = document.getElementById('actionModalIcon');
         icon.innerHTML = `<i class="${config.icon}"></i>`;
-        icon.className = `action-modal__icon action-modal__icon--${actionType}`;
         
         const confirmBtn = document.getElementById('confirmActionBtn');
         confirmBtn.className = `btn ${config.btnClass}`;
@@ -872,19 +702,6 @@ class TaskManager {
         
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('active'), 10);
-    }
-
-    showClearCompletedModal() {
-        if (!canAction('tareas')) {
-            showNoPermissionAlert('tareas');
-            return;
-        }
-        const completedTasks = this.tasks.filter(t => t.estado === 'completada');
-        if (completedTasks.length === 0) {
-            this.showNotification('No hay tareas completadas', 'info');
-            return;
-        }
-        this.showActionModal('clearCompleted');
     }
 
     closeActionModal() {
@@ -898,11 +715,6 @@ class TaskManager {
         this.pendingAction = null;
     }
 
-    /**
-     * 6.1 Ejecutar acción pendiente - ENDPOINTS COMPLETAMENTE CORREGIDOS
-     * CORRECCIÓN: Se eliminaron los endpoints con /status que no existen
-     * Ahora se usa PUT al endpoint principal de tareas con el estado actualizado
-     */
     async executePendingAction() {
         if (!canAction('tareas')) {
             showNoPermissionAlert('tareas');
@@ -921,97 +733,34 @@ class TaskManager {
             
             switch (type) {
                 case 'delete':
-                    // Endpoint: DELETE /api/tasks/:id
                     url = `${this.apiBaseUrl}/tasks/${taskId}`;
-                    console.log(`🗑️  Eliminando tarea: ${url}`);
-                    response = await fetch(url, { 
-                        method: 'DELETE' 
-                    });
-                    
-                    // NOTIFICAR AL DASHBOARD QUE SE ELIMINÓ UNA TAREA
-                    document.dispatchEvent(new CustomEvent('task-deleted', {
-                        detail: { taskId }
-                    }));
+                    response = await fetch(url, { method: 'DELETE' });
+                    document.dispatchEvent(new CustomEvent('task-deleted', { detail: { taskId } }));
                     break;
                     
                 case 'complete':
-                    // Endpoint: PUT /api/tasks/:id con estado "completada"
-                    url = `${this.apiBaseUrl}/tasks/${taskId}`;
-                    console.log(`✅ Completando tarea: ${url}`);
-                    // Primero obtenemos la tarea actual
-                    const completeTask = this.tasks.find(t => t._id === taskId);
-                    if (!completeTask) {
-                        throw new Error('Tarea no encontrada');
-                    }
-                    response = await fetch(url, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            ...completeTask, // Mantenemos todos los datos existentes
-                            estado: 'completada', // Solo cambiamos el estado
-                            updatedAt: new Date().toISOString()
-                        })
-                    });
-                    
-                    // NOTIFICAR AL DASHBOARD QUE SE ACTUALIZÓ UNA TAREA
-                    document.dispatchEvent(new CustomEvent('task-updated', {
-                        detail: { taskId, task: { ...completeTask, estado: 'completada' } }
-                    }));
+                    url = `${this.apiBaseUrl}/tasks/${taskId}/complete`;
+                    response = await fetch(url, { method: 'PATCH' });
                     break;
                     
                 case 'restart':
-                    // Endpoint: PUT /api/tasks/:id con estado "pendiente"
+                    const task = this.tasks.find(t => t._id === taskId);
+                    if (!task) throw new Error('Tarea no encontrada');
                     url = `${this.apiBaseUrl}/tasks/${taskId}`;
-                    console.log(`🔄 Reiniciando tarea: ${url}`);
-                    // Primero obtenemos la tarea actual
-                    const restartTask = this.tasks.find(t => t._id === taskId);
-                    if (!restartTask) {
-                        throw new Error('Tarea no encontrada');
-                    }
                     response = await fetch(url, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            ...restartTask, // Mantenemos todos los datos existentes
-                            estado: 'pendiente', // Solo cambiamos el estado
-                            updatedAt: new Date().toISOString()
-                        })
+                        body: JSON.stringify({ ...task, estado: 'pendiente' })
                     });
-                    
-                    // NOTIFICAR AL DASHBOARD QUE SE ACTUALIZÓ UNA TAREA
-                    document.dispatchEvent(new CustomEvent('task-updated', {
-                        detail: { taskId, task: { ...restartTask, estado: 'pendiente' } }
-                    }));
-                    break;
-                    
-                case 'clearCompleted':
-                    // Endpoint: DELETE /api/tasks/completed
-                    url = `${this.apiBaseUrl}/tasks/completed`;
-                    console.log(`🧹 Limpiando completadas: ${url}`);
-                    response = await fetch(url, { 
-                        method: 'DELETE' 
-                    });
-                    
-                    // NOTIFICAR AL DASHBOARD QUE SE ELIMINARON TAREAS
-                    document.dispatchEvent(new CustomEvent('tasks-cleared', {
-                        detail: { count: this.tasks.filter(t => t.estado === 'completada').length }
-                    }));
                     break;
                     
                 default:
-                    throw new Error(`Tipo de acción no válido: ${type}`);
+                    throw new Error(`Tipo no válido: ${type}`);
             }
 
-            if (!response) {
-                throw new Error('No se recibió respuesta del servidor');
-            }
-
-            // Verificar si es HTML
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('text/html')) {
-                const htmlResponse = await response.text();
-                console.error('❌ El servidor respondió con HTML:', htmlResponse.substring(0, 500));
-                throw new Error(`Endpoint no encontrado o error en el servidor: ${url}`);
+                throw new Error('Error en el servidor');
             }
 
             const data = await response.json();
@@ -1020,9 +769,8 @@ class TaskManager {
                 throw new Error(data.message || `Error en ${type}`);
             }
             
-            this.transformToSuccess(preloader, 'Acción completada exitosamente');
+            this.transformToSuccess(preloader, 'Acción completada');
             
-            // Forzar actualización inmediata en dashboard
             if (typeof window.forceDashboardTasksUpdate === 'function') {
                 window.forceDashboardTasksUpdate();
             }
@@ -1046,31 +794,12 @@ class TaskManager {
     }
 
     // =============================================================================
-    // 7. FUNCIONALIDADES AUXILIARES
+    // 7. RENDERIZADO
     // =============================================================================
-
-    getDueDate() {
-        const dateInput = document.getElementById('taskDueDate');
-        const timeInput = document.getElementById('taskTime');
-        
-        if (!dateInput || !dateInput.value) return null;
-        
-        const date = dateInput.value;
-        
-        if (timeInput && timeInput.value) {
-            // Si hay hora, combinamos fecha y hora
-            return new Date(`${date}T${timeInput.value}`).toISOString();
-        }
-        // Si no hay hora, usamos fin de día
-        return new Date(`${date}T23:59:59`).toISOString();
-    }
 
     filterTasks() {
         const container = document.getElementById('tasksContainer');
-        if (container) {
-            container.style.opacity = '0.5';
-            container.style.transition = 'opacity 0.3s';
-        }
+        if (container) container.style.opacity = '0.5';
 
         this.currentFilter = {
             priority: document.getElementById('filterPriority')?.value || 'all',
@@ -1085,9 +814,7 @@ class TaskManager {
 
     searchTasks(e) {
         const container = document.getElementById('tasksContainer');
-        if (container) {
-            container.style.opacity = '0.5';
-        }
+        if (container) container.style.opacity = '0.5';
 
         this.currentSearch = e.target.value.toLowerCase();
         
@@ -1107,8 +834,7 @@ class TaskManager {
             if (this.currentFilter.status !== 'all' && task.estado !== this.currentFilter.status) return false;
             if (this.currentSearch && 
                 !task.titulo.toLowerCase().includes(this.currentSearch) &&
-                !(task.descripcion && task.descripcion.toLowerCase().includes(this.currentSearch)) &&
-                !(task.categoria && task.categoria.toLowerCase().includes(this.currentSearch))) return false;
+                !(task.descripcion && task.descripcion.toLowerCase().includes(this.currentSearch))) return false;
             return true;
         });
 
@@ -1121,69 +847,33 @@ class TaskManager {
     }
 
     createTaskCard(task) {
-        const canEdit = canAction('tareas');
         const dueDate = task.fecha_limite ? new Date(task.fecha_limite) : null;
         const isOverdue = dueDate && dueDate < new Date() && task.estado !== 'completada';
-        const formattedDate = dueDate ? dueDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha';
-        const formattedTime = task.hora_limite || (dueDate ? dueDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '');
+        const formattedDate = dueDate ? dueDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Sin fecha';
 
         return `
             <div class="task-card task-card--${task.prioridad} ${task.estado === 'completada' ? 'task-card--completed' : ''}" data-task-id="${task._id}">
                 <div class="task-card__header">
                     <h3 class="task-card__title">${this.escapeHtml(task.titulo)}</h3>
-                    <span class="task-card__priority task-card__priority--${task.prioridad}">
-                        ${task.prioridad}
-                    </span>
+                    <span class="task-card__priority task-card__priority--${task.prioridad}">${task.prioridad}</span>
                 </div>
                 
                 ${task.descripcion ? `<p class="task-card__description">${this.escapeHtml(task.descripcion)}</p>` : ''}
                 
                 <div class="task-card__meta">
-                    <span class="task-card__status task-card__status--${task.estado}">
-                        ${task.estado.replace('-', ' ')}
-                    </span>
-                    
+                    <span class="task-card__status task-card__status--${task.estado}">${task.estado.replace('-', ' ')}</span>
                     ${task.categoria ? `<span class="task-card__category">${this.escapeHtml(task.categoria)}</span>` : ''}
-                    
-                    ${dueDate ? `
-                        <div class="task-card__meta-item">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span class="task-card__due-date ${isOverdue ? 'task-card__due-date--overdue' : ''}">
-                                ${formattedDate} ${formattedTime ? `a las ${formattedTime}` : ''}
-                            </span>
-                        </div>
-                    ` : ''}
-                    
-                    ${task.recordatorio ? `
-                        <div class="task-card__meta-item">
-                            <i class="fas fa-bell"></i>
-                            <span>Recordatorio</span>
-                        </div>
-                    ` : ''}
+                    ${dueDate ? `<div class="task-card__meta-item"><i class="fas fa-calendar-alt"></i><span class="${isOverdue ? 'task-card__due-date--overdue' : ''}">${formattedDate}</span></div>` : ''}
                 </div>
                 
                 <div class="task-card__footer">
-                    <div class="task-card__date">
-                        Creada: ${new Date(task.createdAt || task.fecha_creacion).toLocaleDateString('es-ES')}
-                    </div>
+                    <div class="task-card__date">Creada: ${new Date(task.createdAt || task.fecha_creacion).toLocaleDateString()}</div>
                     <div class="task-card__actions">
-                        ${canEdit ? `
-                            ${task.estado !== 'completada' ? `
-                                <button class="task-card__action task-card__action--complete" data-task-id="${task._id}" data-action="complete" title="Completar">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            ` : `
-                                <button class="task-card__action task-card__action--restart" data-task-id="${task._id}" data-action="restart" title="Reiniciar">
-                                    <i class="fas fa-redo"></i>
-                                </button>
-                            `}
-                            <button class="task-card__action task-card__action--edit" data-task-id="${task._id}" data-action="edit" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="task-card__action task-card__action--delete" data-task-id="${task._id}" data-action="delete" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        ` : '<span class="text-muted">-</span>'}
+                        ${task.estado !== 'completada' ? 
+                            `<button class="task-card__action task-card__action--complete" data-task-id="${task._id}" data-action="complete" title="Completar"><i class="fas fa-check"></i></button>` : 
+                            `<button class="task-card__action task-card__action--restart" data-task-id="${task._id}" data-action="restart" title="Reiniciar"><i class="fas fa-redo"></i></button>`}
+                        <button class="task-card__action task-card__action--edit" data-task-id="${task._id}" data-action="edit" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button class="task-card__action task-card__action--delete" data-task-id="${task._id}" data-action="delete" title="Eliminar"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             </div>
@@ -1191,19 +881,12 @@ class TaskManager {
     }
 
     getEmptyState() {
-        const hasFilters = this.currentSearch || this.currentFilter.priority !== 'all' || this.currentFilter.status !== 'all';
-        const canEdit = canAction('tareas');
-        
         return `
             <div class="empty-state empty-state--center">
                 <i class="fas fa-clipboard-list"></i>
-                <h3>${hasFilters ? 'No hay tareas que coincidan' : 'No hay tareas registradas'}</h3>
-                <p class="empty-state__description">${hasFilters ? 'Intenta cambiar los filtros' : (canEdit ? 'Crea tu primera tarea' : 'Solo lectura: no puedes crear tareas.')}</p>
-                ${canEdit ? `
-                    <button class="btn btn--primary" id="addFirstTask">
-                        <i class="fas fa-plus"></i> Crear Tarea
-                    </button>
-                ` : ''}
+                <h3>No hay tareas registradas</h3>
+                <p class="empty-state__description">Crea tu primera tarea</p>
+                <button class="btn btn--primary" id="addFirstTask"><i class="fas fa-plus"></i> Crear Tarea</button>
             </div>
         `;
     }
@@ -1214,12 +897,9 @@ class TaskManager {
         const progress = this.tasks.filter(t => t.estado === 'en-progreso').length;
         const completed = this.tasks.filter(t => t.estado === 'completada').length;
 
-        const elements = ['totalTasks', 'pendingTasks', 'progressTasks', 'completedTasks'];
-        const values = [total, pending, progress, completed];
-        
-        elements.forEach((id, index) => {
-            const element = document.getElementById(id);
-            if (element) element.textContent = values[index];
+        ['totalTasks', 'pendingTasks', 'progressTasks', 'completedTasks'].forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = [total, pending, progress, completed][i];
         });
     }
 
@@ -1235,13 +915,12 @@ class TaskManager {
         const notification = document.createElement('div');
         notification.className = `notification notification--${type}`;
         notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
             <span>${message}</span>
             <button class="notification__close"><i class="fas fa-times"></i></button>
         `;
 
         container.appendChild(notification);
-
         setTimeout(() => notification.classList.add('notification--show'), 10);
         
         setTimeout(() => {
@@ -1257,16 +936,10 @@ class TaskManager {
 
     escapeHtml(text) {
         if (!text) return '';
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 }
 
-// Inicialización
 document.addEventListener('DOMContentLoaded', () => {
     if (!canView('tareas')) return;
     if (window.taskManager) return;

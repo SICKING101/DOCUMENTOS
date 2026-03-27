@@ -2,8 +2,12 @@
 
 import mongoose from 'mongoose';
 import Task from '../models/Task.js';
+import Person from '../models/Person.js';
 
 class TaskController {
+  
+  // ========== MÉTODOS ORIGINALES ==========
+  
   static async getAll(req, res) {
     try {
       const tasks = await Task.find({ activo: true })
@@ -51,7 +55,9 @@ class TaskController {
         categoria: categoria || '',
         recordatorio: recordatorio || false,
         fecha_limite: fecha_limite || null,
-        hora_limite: hora_limite || null
+        hora_limite: hora_limite || null,
+        creador: req.user?.id,
+        asignadoA: req.body.asignadoA || req.user?.id
       });
 
       await nuevaTarea.save();
@@ -278,34 +284,14 @@ class TaskController {
         estado: { $ne: 'completada' }
       };
       
-      console.log('🔍 Query de MongoDB:', JSON.stringify(query, null, 2));
+      console.log('🔍 Query:', JSON.stringify(query, null, 2));
       
       const tasks = await Task.find(query)
-      .sort({ prioridad: -1, fecha_limite: 1 })
-      .limit(5)
-      .lean();
+        .sort({ prioridad: -1, fecha_limite: 1 })
+        .limit(5)
+        .lean();
 
-      console.log('✅ Tareas encontradas:', tasks.length);
-      
-      if (tasks.length > 0) {
-        console.log('📋 Lista de tareas:');
-        tasks.forEach((task, index) => {
-          console.log(`  ${index + 1}. ${task.titulo} (${task.prioridad}) - ${task.estado}`);
-          console.log(`     ID: ${task._id}`);
-          console.log(`     Fecha límite: ${task.fecha_limite}`);
-          console.log(`     Activo: ${task.activo}`);
-        });
-      } else {
-        console.log('ℹ️ No se encontraron tareas con la query');
-        
-        // DEBUG: Verificar qué tareas hay en la base de datos
-        const allTasks = await Task.find({ activo: true }).lean();
-        console.log('📊 Todas las tareas activas:', allTasks.length);
-        allTasks.forEach((task, index) => {
-          console.log(`  ${index + 1}. ${task.titulo} (${task.prioridad}) - ${task.estado}`);
-        });
-      }
-      
+      console.log(`✅ Tareas encontradas: ${tasks.length}`);
       console.groupEnd();
 
       res.json({ 
@@ -314,7 +300,6 @@ class TaskController {
       });
     } catch (error) {
       console.error('❌ Error obteniendo tareas de alta prioridad:', error);
-      console.error('📋 Stack trace:', error.stack);
       res.status(500).json({ 
         success: false, 
         message: 'Error al obtener tareas de alta prioridad' 
@@ -332,9 +317,7 @@ class TaskController {
       const manana = new Date(hoy);
       manana.setDate(manana.getDate() + 1);
 
-      console.log('📅 Rango de fechas para hoy:');
-      console.log(`  Desde: ${hoy.toISOString()}`);
-      console.log(`  Hasta: ${manana.toISOString()}`);
+      console.log('📅 Rango:', hoy.toISOString(), 'a', manana.toISOString());
       
       const query = { 
         activo: true,
@@ -345,41 +328,12 @@ class TaskController {
         }
       };
       
-      console.log('🔍 Query de MongoDB:', JSON.stringify(query, null, 2));
-
       const tasks = await Task.find(query)
-      .sort({ prioridad: -1, hora_limite: 1 })
-      .limit(5)
-      .lean();
+        .sort({ prioridad: -1, hora_limite: 1 })
+        .limit(5)
+        .lean();
 
-      console.log('✅ Tareas encontradas para hoy:', tasks.length);
-      
-      if (tasks.length > 0) {
-        console.log('📋 Lista de tareas para hoy:');
-        tasks.forEach((task, index) => {
-          console.log(`  ${index + 1}. ${task.titulo} (${task.prioridad})`);
-          console.log(`     Fecha límite: ${task.fecha_limite}`);
-          console.log(`     Estado: ${task.estado}`);
-        });
-      } else {
-        console.log('ℹ️ No se encontraron tareas para hoy');
-        
-        // DEBUG: Verificar todas las tareas con fecha límite
-        const tasksWithDates = await Task.find({ 
-          activo: true,
-          fecha_limite: { $exists: true, $ne: null }
-        }).lean();
-        
-        console.log('📊 Tareas con fecha límite:', tasksWithDates.length);
-        tasksWithDates.forEach((task, index) => {
-          const taskDate = new Date(task.fecha_limite);
-          const isToday = taskDate >= hoy && taskDate < manana;
-          console.log(`  ${index + 1}. ${task.titulo}`);
-          console.log(`     Fecha: ${task.fecha_limite} (${isToday ? '✅ HOY' : 'OTRO DÍA'})`);
-          console.log(`     Estado: ${task.estado}`);
-        });
-      }
-      
+      console.log(`✅ Tareas para hoy: ${tasks.length}`);
       console.groupEnd();
 
       res.json({ 
@@ -388,10 +342,201 @@ class TaskController {
       });
     } catch (error) {
       console.error('❌ Error obteniendo tareas para hoy:', error);
-      console.error('📋 Stack trace:', error.stack);
       res.status(500).json({ 
         success: false, 
         message: 'Error al obtener tareas para hoy' 
+      });
+    }
+  }
+
+  // ========== NUEVOS MÉTODOS PARA LAS RUTAS ==========
+
+  /**
+   * Obtener usuarios asignables para tareas
+   * GET /api/tasks/assignable-users
+   */
+  static async getAssignableUsers(req, res) {
+    try {
+      console.log('👥 [TaskController] Obteniendo usuarios asignables...');
+      
+      const users = await Person.find({ activo: true })
+        .select('nombre email departamento puesto')
+        .sort({ nombre: 1 })
+        .limit(50)
+        .lean();
+      
+      console.log(`✅ Encontrados ${users.length} usuarios asignables`);
+      
+      res.json({ 
+        success: true, 
+        data: users 
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo usuarios asignables:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener usuarios asignables' 
+      });
+    }
+  }
+
+  /**
+   * Obtener tareas del usuario actual
+   * GET /api/tasks
+   */
+  static async getUserTasks(req, res) {
+    try {
+      const userId = req.user?.id;
+      console.log(`📋 [TaskController] Obteniendo tareas para usuario: ${userId}`);
+      
+      const tasks = await Task.find({ 
+        activo: true,
+        $or: [
+          { creador: userId },
+          { asignadoA: userId }
+        ]
+      })
+      .sort({ prioridad: -1, fecha_limite: 1 })
+      .lean();
+      
+      console.log(`✅ Encontradas ${tasks.length} tareas`);
+      
+      res.json({ 
+        success: true, 
+        tasks 
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo tareas del usuario:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener tareas' 
+      });
+    }
+  }
+
+  /**
+   * Obtener estadísticas del usuario
+   * GET /api/tasks/stats
+   */
+  static async getUserStats(req, res) {
+    try {
+      const userId = req.user?.id;
+      console.log(`📊 [TaskController] Obteniendo estadísticas para usuario: ${userId}`);
+      
+      const [pendientes, enProgreso, completadas, vencidas] = await Promise.all([
+        Task.countDocuments({ activo: true, estado: 'pendiente', $or: [{ creador: userId }, { asignadoA: userId }] }),
+        Task.countDocuments({ activo: true, estado: 'en-progreso', $or: [{ creador: userId }, { asignadoA: userId }] }),
+        Task.countDocuments({ activo: true, estado: 'completada', $or: [{ creador: userId }, { asignadoA: userId }] }),
+        Task.countDocuments({ 
+          activo: true, 
+          estado: { $in: ['pendiente', 'en-progreso'] },
+          fecha_limite: { $lt: new Date() },
+          $or: [{ creador: userId }, { asignadoA: userId }]
+        })
+      ]);
+      
+      const stats = {
+        pendientes,
+        enProgreso,
+        completadas,
+        vencidas,
+        total: pendientes + enProgreso + completadas
+      };
+      
+      console.log('✅ Estadísticas:', stats);
+      
+      res.json({ 
+        success: true, 
+        stats 
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener estadísticas' 
+      });
+    }
+  }
+
+  /**
+   * Obtener tarea por ID
+   * GET /api/tasks/:id
+   */
+  static async getById(req, res) {
+    try {
+      const { id } = req.params;
+      
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID inválido' 
+        });
+      }
+      
+      const task = await Task.findById(id).lean();
+      
+      if (!task) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Tarea no encontrada' 
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        task 
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo tarea por ID:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al obtener tarea' 
+      });
+    }
+  }
+
+  /**
+   * Completar tarea (marcar como completada)
+   * PATCH /api/tasks/:id/complete
+   */
+  static async complete(req, res) {
+    try {
+      const { id } = req.params;
+      
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID inválido' 
+        });
+      }
+      
+      const task = await Task.findByIdAndUpdate(
+        id,
+        { 
+          estado: 'completada',
+          fecha_completada: new Date(),
+          fecha_actualizacion: new Date()
+        },
+        { new: true }
+      );
+      
+      if (!task) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Tarea no encontrada' 
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Tarea completada',
+        task 
+      });
+    } catch (error) {
+      console.error('❌ Error completando tarea:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error al completar tarea' 
       });
     }
   }
