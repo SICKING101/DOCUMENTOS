@@ -239,7 +239,7 @@ function _initializeAppComponents() {
     console.warn('⚠️ Elementos DOM faltantes:', missingElements);
   }
 
-  // Task Manager
+  // Task Manager - VERSIÓN CORREGIDA
   _initTaskManager();
 
   appState.logState?.();
@@ -254,27 +254,43 @@ function _initTaskManager() {
       return;
     }
 
+    // Verificar si ya existe una instancia global
     if (window.taskManager) {
       taskManager = window.taskManager;
-      console.log('✅ TaskManager ya existe, reutilizando instancia');
+      console.log('✅ TaskManager ya existe globalmente, reutilizando');
       return;
     }
 
-    if (window.api || api) {
+    // Crear nueva instancia y exponer globalmente
+    if (typeof TaskManager !== 'undefined') {
       taskManager = new TaskManager();
       window.taskManager = taskManager;
-      console.log('✅ TaskManager inicializado');
-    } else {
-      // Reintentar después de 1s si la API no está lista
-      setTimeout(() => {
-        if (!canView('tareas')) return;
-        if (window.taskManager) {
-          taskManager = window.taskManager;
-          return;
+      console.log('✅ TaskManager inicializado y expuesto como window.taskManager');
+      
+      // Exponer método de recarga rápida
+      window.refreshTasks = () => {
+        if (window.taskManager && typeof window.taskManager.loadTasks === 'function') {
+          window.taskManager.loadTasks();
+          console.log('🔄 Tareas recargadas manualmente');
         }
-        taskManager = new TaskManager();
-        window.taskManager = taskManager;
-        console.log('✅ TaskManager inicializado (retry)');
+      };
+      
+      // Exponer método para forzar actualización del estado global
+      window.updateAppStateTasks = (tasks) => {
+        if (appState && typeof appState.loadTasks === 'function') {
+          appState.loadTasks(tasks);
+          console.log('📊 Estado global de tareas actualizado:', appState.tasksStats);
+        }
+      };
+      
+    } else {
+      console.warn('⚠️ TaskManager no está disponible, reintentando...');
+      setTimeout(() => {
+        if (typeof TaskManager !== 'undefined') {
+          taskManager = new TaskManager();
+          window.taskManager = taskManager;
+          console.log('✅ TaskManager inicializado (retry)');
+        }
       }, 1000);
     }
   } catch (error) {
