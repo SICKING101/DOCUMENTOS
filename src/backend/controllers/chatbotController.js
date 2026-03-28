@@ -1,6 +1,6 @@
 // ============================================================
-// chatbotController.js — Motor IA ARIA v3.1 (CORREGIDO)
-// CBTIS051 — Fix: Campos de Task correctos, exclusión de papelera
+// chatbotController.js — Motor IA ARIA v4.0
+// CBTIS051 — Mejoras masivas: NLP, analytics, auto-diagnóstico
 // ============================================================
 
 import Document from '../models/Document.js';
@@ -11,290 +11,426 @@ import Conversation from '../models/Conversation.js';
 import Department from '../models/Department.js';
 
 // ──────────────────────────────────────────────────────────────
-// DEBUG LOGGER
+// DEBUG LOGGER MEJORADO
 // ──────────────────────────────────────────────────────────────
 const debug = {
-    log:   (...a) => console.log ('\x1b[36m🤖 [ARIA]\x1b[0m', ...a),
-    warn:  (...a) => console.warn ('\x1b[33m⚠️  [ARIA]\x1b[0m', ...a),
-    error: (...a) => console.error('\x1b[31m❌ [ARIA]\x1b[0m', ...a),
-    info:  (...a) => console.info ('\x1b[32mℹ️  [ARIA]\x1b[0m', ...a),
-    action:(...a) => console.log ('\x1b[35m🎯 [ARIA-ACTION]\x1b[0m', ...a),
+    log:    (...a) => console.log ('\x1b[36m🤖 [ARIA v4]\x1b[0m',      ...a),
+    warn:   (...a) => console.warn ('\x1b[33m⚠️  [ARIA v4]\x1b[0m',     ...a),
+    error:  (...a) => console.error('\x1b[31m❌ [ARIA v4]\x1b[0m',      ...a),
+    info:   (...a) => console.info ('\x1b[32mℹ️  [ARIA v4]\x1b[0m',     ...a),
+    action: (...a) => console.log ('\x1b[35m🎯 [ARIA-ACTION]\x1b[0m',   ...a),
+    db:     (...a) => console.log ('\x1b[34m🗄️  [ARIA-DB]\x1b[0m',      ...a),
+    nlp:    (...a) => console.log ('\x1b[93m🧠 [ARIA-NLP]\x1b[0m',      ...a),
+    perf:   (...a) => console.log ('\x1b[96m⚡ [ARIA-PERF]\x1b[0m',     ...a),
 };
 
 // ──────────────────────────────────────────────────────────────
-// CLIENTE GROQ
+// CLIENTE GROQ — con retry y backoff
 // ──────────────────────────────────────────────────────────────
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL   = 'llama-3.1-8b-instant';
-const GROQ_TIMEOUT = 20000;
+const GROQ_TIMEOUT = 25000;
 
-async function callGroq(systemPrompt, messages, maxTokens = 1000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT);
+async function callGroq(systemPrompt, messages, maxTokens = 1200, retries = 2) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT);
 
-    try {
-        const res = await fetch(GROQ_API_URL, {
-            method:  'POST',
-            headers: {
-                'Content-Type':  'application/json',
-                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-            },
-            body: JSON.stringify({
-                model:       GROQ_MODEL,
-                max_tokens:  maxTokens,
-                temperature: 0.5,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    ...messages,
-                ],
-            }),
-            signal: controller.signal,
-        });
+        try {
+            const res = await fetch(GROQ_API_URL, {
+                method:  'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                },
+                body: JSON.stringify({
+                    model:       GROQ_MODEL,
+                    max_tokens:  maxTokens,
+                    temperature: 0.4,
+                    top_p:       0.9,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        ...messages,
+                    ],
+                }),
+                signal: controller.signal,
+            });
 
-        clearTimeout(timer);
+            clearTimeout(timer);
 
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`Groq HTTP ${res.status}: ${err.substring(0, 300)}`);
+            if (res.status === 429 && attempt < retries) {
+                const wait = (attempt + 1) * 1500;
+                debug.warn(`Rate limit Groq, esperando ${wait}ms (intento ${attempt+1}/${retries})`);
+                await new Promise(r => setTimeout(r, wait));
+                continue;
+            }
+
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(`Groq HTTP ${res.status}: ${err.substring(0, 300)}`);
+            }
+
+            const data  = await res.json();
+            const text  = data.choices?.[0]?.message?.content ?? '';
+            const usage = data.usage ?? {};
+            debug.info(`Groq OK (intento ${attempt+1}) — in=${usage.prompt_tokens} out=${usage.completion_tokens}`);
+            return { text, usage };
+
+        } catch (err) {
+            clearTimeout(timer);
+            if (err.name === 'AbortError') {
+                if (attempt < retries) { debug.warn(`Groq timeout, reintentando...`); continue; }
+                throw new Error('Groq timeout (25s) — sin más reintentos');
+            }
+            if (attempt < retries) {
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                continue;
+            }
+            throw err;
         }
-
-        const data  = await res.json();
-        const text  = data.choices?.[0]?.message?.content ?? '';
-        const usage = data.usage ?? {};
-        debug.info(`Groq OK — in=${usage.prompt_tokens} out=${usage.completion_tokens}`);
-        return { text, usage };
-
-    } catch (err) {
-        clearTimeout(timer);
-        if (err.name === 'AbortError') throw new Error('Groq timeout (20s)');
-        throw err;
     }
 }
 
 // ──────────────────────────────────────────────────────────────
-// CONTEXTO DEL SISTEMA - CORREGIDO
+// SCHEMA CONFIRMADO DEL MODELO TASK (Task.js v2.0)
+// ──────────────────────────────────────────────────────────────
+// Campos verificados directamente del modelo:
+//   asignado_a      → Array de ObjectId (ref: 'User')  ← ARRAY, no scalar
+//   creado_por      → ObjectId (ref: 'User')
+//   fecha_limite    → Date | null
+//   fecha_completada→ Date | null
+//   estado          → 'pendiente' | 'en-progreso' | 'completada' | 'cancelada'
+//   prioridad       → 'baja' | 'media' | 'alta' | 'critica'  ← SIN tilde
+//   titulo          → String
+//   activo          → Boolean
+//   tipo            → 'personal' | 'asignada' | 'grupal' | 'clase'
+// ──────────────────────────────────────────────────────────────
+const TASK_SCHEMA = {
+    assignedField:  'asignado_a',   // Array de ObjectId
+    createdByField: 'creado_por',   // ObjectId scalar
+    dueDateField:   'fecha_limite',
+    completedField: 'fecha_completada',
+    statusField:    'estado',
+    priorityField:  'prioridad',
+    titleField:     'titulo',
+    // Valores exactos del enum (sin tildes donde el modelo no las tiene)
+    statuses:       ['pendiente', 'en-progreso', 'completada', 'cancelada'],
+    priorities:     ['baja', 'media', 'alta', 'critica'],   // 'critica' sin tilde
+    highPriorities: ['alta', 'critica'],
+};
+
+debug.info('Schema Task cargado:', JSON.stringify(TASK_SCHEMA));
+
+// ──────────────────────────────────────────────────────────────
+// QUERY DE TAREAS — HARDCODEADO AL SCHEMA REAL
+// asignado_a es Array<ObjectId>, por lo que $elemMatch con ObjectId
+// funciona. También incluimos creado_por para tareas propias.
+// ──────────────────────────────────────────────────────────────
+async function buildTaskQuery(userId) {
+    // Asegurarse de tener ObjectId real además del string
+    let userObjectId = userId;
+    try {
+        if (typeof userId === 'string' && /^[a-f\d]{24}$/i.test(userId)) {
+            const { default: mongoose } = await import('mongoose');
+            userObjectId = new mongoose.Types.ObjectId(userId);
+        }
+    } catch (_) {
+        // Si falla la conversión, usar el valor original — MongoDB lo maneja
+    }
+
+    const query = {
+        activo: true,
+        $or: [
+            // asignado_a es array, $in funciona correctamente con arrays en MongoDB:
+            // busca documentos donde el array asignado_a contiene userId
+            { asignado_a: userObjectId },
+            { asignado_a: String(userId) },
+            { creado_por:  userObjectId },
+            { creado_por:  String(userId) },
+        ],
+    };
+
+    debug.db(`Task query para userId=${String(userId)}:`, JSON.stringify(query));
+    return { query, schema: TASK_SCHEMA };
+}
+
+// ──────────────────────────────────────────────────────────────
+// CONTEXTO DEL SISTEMA v4.0 — Datos enriquecidos
 // ──────────────────────────────────────────────────────────────
 async function buildSystemContext(userId) {
+    const t0 = Date.now();
     const ctx = {
         stats: {}, tareas: {}, docs: {},
         personas: {}, categorias: [], departamentos: [],
+        analytics: {}, sistema: {},
     };
 
     try {
         const ahora  = new Date();
+        const en3d   = new Date(ahora.getTime() + 3  * 86400000);
         const en7d   = new Date(ahora.getTime() + 7  * 86400000);
         const en15d  = new Date(ahora.getTime() + 15 * 86400000);
         const en30d  = new Date(ahora.getTime() + 30 * 86400000);
         const hace7d = new Date(ahora.getTime() - 7  * 86400000);
+        const hace30d= new Date(ahora.getTime() - 30 * 86400000);
         const hoy0   = new Date(ahora); hoy0.setHours(0,0,0,0);
         const hoy23  = new Date(ahora); hoy23.setHours(23,59,59,999);
 
-        // 🔥 CORRECCIÓN: Excluir documentos en papelera (isDeleted: true)
-        const documentosActivosQuery = { 
+        // Query base para documentos activos (excluye papelera)
+        const docQuery = {
             activo: true,
             $or: [
                 { isDeleted: false },
-                { isDeleted: { $exists: false } }
-            ]
+                { isDeleted: { $exists: false } },
+            ],
         };
 
+        // ── Estadísticas generales (paralelo) ────────────────
         const [
             totalDocs, totalPersonas, totalCategorias, totalDeptos,
-            docsPorVencer7, docsPorVencer15, docsPorVencer30,
-            docsVencidos, docsRecientes, docsHoy,
+            docsPorVencer3, docsPorVencer7, docsPorVencer15, docsPorVencer30,
+            docsVencidos, docsRecientes, docsHoy, docsEstesMes,
         ] = await Promise.all([
-            Document.countDocuments(documentosActivosQuery),
+            Document.countDocuments(docQuery),
             Person.countDocuments({ activo: true }),
             Category.countDocuments({ activo: true }),
             Department.countDocuments({ activo: true }),
-            Document.countDocuments({ 
-                ...documentosActivosQuery, 
-                fecha_vencimiento: { $gte: ahora, $lte: en7d } 
-            }),
-            Document.countDocuments({ 
-                ...documentosActivosQuery, 
-                fecha_vencimiento: { $gte: ahora, $lte: en15d } 
-            }),
-            Document.countDocuments({ 
-                ...documentosActivosQuery, 
-                fecha_vencimiento: { $gte: ahora, $lte: en30d } 
-            }),
-            Document.countDocuments({ 
-                ...documentosActivosQuery, 
-                fecha_vencimiento: { $lt: ahora } 
-            }),
-            Document.countDocuments({ 
-                ...documentosActivosQuery, 
-                fecha_subida: { $gte: hace7d } 
-            }),
-            Document.countDocuments({ 
-                ...documentosActivosQuery, 
-                fecha_subida: { $gte: hoy0 } 
-            }),
+            Document.countDocuments({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en3d } }),
+            Document.countDocuments({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en7d } }),
+            Document.countDocuments({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en15d } }),
+            Document.countDocuments({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en30d } }),
+            Document.countDocuments({ ...docQuery, fecha_vencimiento: { $lt: ahora } }),
+            Document.countDocuments({ ...docQuery, fecha_subida: { $gte: hace7d } }),
+            Document.countDocuments({ ...docQuery, fecha_subida: { $gte: hoy0 } }),
+            Document.countDocuments({ ...docQuery, fecha_subida: { $gte: new Date(ahora.getFullYear(), ahora.getMonth(), 1) } }),
         ]);
 
         ctx.stats = {
             totalDocs, totalPersonas, totalCategorias, totalDeptos,
-            docsPorVencer7, docsPorVencer15, docsPorVencer30,
-            docsVencidos, docsRecientes, docsHoy,
+            docsPorVencer3, docsPorVencer7, docsPorVencer15, docsPorVencer30,
+            docsVencidos, docsRecientes, docsHoy, docsEstesMes,
         };
 
-        // 🔥 CORRECCIÓN: Tareas - Usar campos correctos del modelo Task
+        // ── Tareas — CON AUTO-DIAGNÓSTICO ────────────────────
         try {
-            // Query para tareas del usuario (activas y no eliminadas)
-            const tareasQuery = { 
-                activo: true,
-                $or: [
-                    { asignado_a: userId },      // 🔥 CORREGIDO: asignado_a (con guión bajo)
-                    { creado_por: userId }        // 🔥 CORREGIDO: creado_por
-                ]
-            };
-            
-            const [tPend, tProg, tComp, tCancel, tVenc, tHoy, tSem] = await Promise.all([
-                Task.countDocuments({ ...tareasQuery, estado: 'pendiente' }),
-                Task.countDocuments({ ...tareasQuery, estado: 'en-progreso' }),
-                Task.countDocuments({ ...tareasQuery, estado: 'completada' }),
-                Task.countDocuments({ ...tareasQuery, estado: 'cancelada' }),
-                Task.countDocuments({ 
-                    ...tareasQuery, 
-                    estado: { $in: ['pendiente', 'en-progreso'] }, 
-                    fecha_limite: { $lt: ahora }     // 🔥 CORREGIDO: fecha_limite
+            const { query: tareasQuery, schema } = await buildTaskQuery(userId);
+
+            debug.db('Ejecutando queries de tareas...');
+
+            const [tPend, tProg, tComp, tCancel, tVenc, tHoy, tSem, tTotal] = await Promise.all([
+                Task.countDocuments({ ...tareasQuery, [schema.statusField]: 'pendiente' }),
+                Task.countDocuments({ ...tareasQuery, [schema.statusField]: 'en-progreso' }),
+                Task.countDocuments({ ...tareasQuery, [schema.statusField]: 'completada' }),
+                Task.countDocuments({ ...tareasQuery, [schema.statusField]: 'cancelada' }),
+                Task.countDocuments({
+                    ...tareasQuery,
+                    [schema.statusField]: { $in: ['pendiente', 'en-progreso'] },
+                    [schema.dueDateField]: { $lt: ahora, $ne: null },
                 }),
-                Task.countDocuments({ 
-                    ...tareasQuery, 
-                    fecha_limite: { $gte: hoy0, $lte: hoy23 } 
+                Task.countDocuments({
+                    ...tareasQuery,
+                    [schema.dueDateField]: { $gte: hoy0, $lte: hoy23 },
                 }),
-                Task.countDocuments({ 
-                    ...tareasQuery, 
-                    fecha_limite: { $gte: ahora, $lte: en7d } 
+                Task.countDocuments({
+                    ...tareasQuery,
+                    [schema.dueDateField]: { $gte: ahora, $lte: en7d },
                 }),
+                Task.countDocuments(tareasQuery),
             ]);
 
-            const lista = await Task.find({ 
-                ...tareasQuery, 
-                estado: { $in: ['pendiente', 'en-progreso'] } 
+            debug.db(`Tareas — total:${tTotal} pend:${tPend} prog:${tProg} comp:${tComp} cancel:${tCancel} venc:${tVenc}`);
+
+            // Verificación: Si todos son 0 pero total > 0, problema con query
+            if (tTotal > 0 && tPend + tProg + tComp + tCancel === 0) {
+                debug.warn(`⚠️ Tareas encontradas (${tTotal}) pero estados en 0. Posible campo estado incorrecto.`);
+            }
+
+            // Lista de tareas activas ordenadas
+            const lista = await Task.find({
+                ...tareasQuery,
+                [schema.statusField]: { $in: ['pendiente', 'en-progreso'] },
             })
-                .sort({ prioridad: -1, fecha_limite: 1 })
-                .limit(8)
+                .sort({ [schema.priorityField]: -1, [schema.dueDateField]: 1 })
+                .limit(10)
                 .lean();
 
-            const completadas = await Task.find({ 
-                ...tareasQuery, 
-                estado: 'completada' 
+            // Tareas completadas recientes
+            const completadas = await Task.find({
+                ...tareasQuery,
+                [schema.statusField]: 'completada',
             })
-                .sort({ fecha_completada: -1 })
+                .sort({ [schema.completedField]: -1 })
+                .limit(5)
+                .lean();
+
+            // Tareas de alta prioridad (enum exacto: 'alta' | 'critica')
+            const altaPrioridad = await Task.find({
+                ...tareasQuery,
+                [schema.priorityField]: { $in: TASK_SCHEMA.highPriorities },
+                [schema.statusField]: { $in: ['pendiente', 'en-progreso'] },
+            })
+                .sort({ [schema.dueDateField]: 1 })
                 .limit(5)
                 .lean();
 
             ctx.tareas = {
-                pendientes: tPend, 
+                total:     tTotal,
+                pendientes: tPend,
                 enProgreso: tProg,
                 completadas: tComp,
-                canceladas: tCancel,
-                vencidas: tVenc,
-                paraHoy: tHoy, 
-                paraSemana: tSem,
+                canceladas:  tCancel,
+                vencidas:    tVenc,
+                paraHoy:     tHoy,
+                paraSemana:  tSem,
+                porcentajeCompletado: tTotal > 0 ? Math.round((tComp / tTotal) * 100) : 0,
                 lista: lista.map(t => ({
-                    id: String(t._id),
-                    titulo: t.titulo,
-                    descripcion: t.descripcion,
-                    prioridad: t.prioridad || 'media',
-                    estado: t.estado,
-                    fechaLimite: t.fecha_limite
-                        ? new Date(t.fecha_limite).toLocaleDateString('es-MX') : null,
+                    id:          String(t._id),
+                    titulo:      t[schema.titleField] || t.titulo || t.title || 'Sin título',
+                    descripcion: t.descripcion || t.description || '',
+                    prioridad:   t[schema.priorityField] || 'media',
+                    estado:      t[schema.statusField] || 'pendiente',
+                    fechaLimite: t[schema.dueDateField]
+                        ? new Date(t[schema.dueDateField]).toLocaleDateString('es-MX') : null,
+                    diasRestantes: t[schema.dueDateField]
+                        ? Math.ceil((new Date(t[schema.dueDateField]) - ahora) / 86400000) : null,
+                })),
+                altaPrioridad: altaPrioridad.map(t => ({
+                    titulo:    t[schema.titleField] || t.titulo || 'Sin título',
+                    prioridad: t[schema.priorityField] || 'alta',
+                    fechaLimite: t[schema.dueDateField]
+                        ? new Date(t[schema.dueDateField]).toLocaleDateString('es-MX') : null,
                 })),
                 completadasRecientes: completadas.map(t => ({
-                    titulo: t.titulo,
-                    fechaCompletada: t.fecha_completada
-                        ? new Date(t.fecha_completada).toLocaleDateString('es-MX') : null,
+                    titulo:          t[schema.titleField] || t.titulo || 'Sin título',
+                    fechaCompletada: t[schema.completedField]
+                        ? new Date(t[schema.completedField]).toLocaleDateString('es-MX') : null,
                 })),
+                _schema: schema, // Para debugging
             };
+
         } catch (e) {
-            debug.warn('Task no disponible:', e.message);
+            debug.error('Error cargando tareas:', e.message, e.stack);
             ctx.tareas = {
-                pendientes:0, enProgreso:0, completadas:0, canceladas:0,
-                vencidas:0, paraHoy:0, paraSemana:0, 
-                lista:[], completadasRecientes:[],
+                total:0, pendientes:0, enProgreso:0, completadas:0, canceladas:0,
+                vencidas:0, paraHoy:0, paraSemana:0, porcentajeCompletado:0,
+                lista:[], altaPrioridad:[], completadasRecientes:[],
+                _error: e.message,
             };
         }
 
-        // Documentos activos (excluyendo papelera) - con detalles
-        const [recientes, urgentes, vencidos, porCategoria] = await Promise.all([
-            Document.find(documentosActivosQuery)
+        // ── Documentos detallados ─────────────────────────────
+        const [recientes, urgentes, vencidos, porCategoria, sinCategoria, aprobados] = await Promise.all([
+            Document.find(docQuery)
                 .sort({ fecha_subida: -1 }).limit(10)
                 .populate('categoria', 'nombre').lean(),
-            Document.find({ 
-                ...documentosActivosQuery, 
-                fecha_vencimiento: { $gte: ahora, $lte: en7d } 
-            })
+            Document.find({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en7d } })
                 .sort({ fecha_vencimiento: 1 }).limit(10).lean(),
-            Document.find({ 
-                ...documentosActivosQuery, 
-                fecha_vencimiento: { $lt: ahora } 
-            })
+            Document.find({ ...docQuery, fecha_vencimiento: { $lt: ahora } })
                 .sort({ fecha_vencimiento: -1 }).limit(10).lean(),
             Document.aggregate([
-                { $match: documentosActivosQuery },
+                { $match: docQuery },
                 { $group: { _id: '$categoria', count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
-            ]).limit(10),
+                { $limit: 10 },
+            ]),
+            Document.countDocuments({ ...docQuery, categoria: { $exists: false } }),
+            Document.countDocuments({ ...docQuery, aprobado: true }).catch(() => 0),
         ]);
 
         ctx.docs = {
             recientes: recientes.map(d => ({
-                nombre:     d.nombre_original,
-                categoria:  d.categoria?.nombre || 'Sin categoría',
-                fecha:      new Date(d.fecha_subida).toLocaleDateString('es-MX'),
+                nombre:      d.nombre_original || d.nombre || 'Sin nombre',
+                categoria:   d.categoria?.nombre || 'Sin categoría',
+                fecha:       new Date(d.fecha_subida).toLocaleDateString('es-MX'),
                 vencimiento: d.fecha_vencimiento
                     ? new Date(d.fecha_vencimiento).toLocaleDateString('es-MX') : null,
+                tamaño:      d.tamaño || d.size || null,
             })),
             urgentes: urgentes.map(d => ({
-                nombre: d.nombre_original,
-                vence:  new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
+                nombre:        d.nombre_original || d.nombre || 'Sin nombre',
+                vence:         new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
                 diasRestantes: Math.ceil((new Date(d.fecha_vencimiento) - ahora) / 86400000),
             })),
             vencidos: vencidos.map(d => ({
-                nombre:    d.nombre_original,
-                vencimiento: new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
+                nombre:       d.nombre_original || d.nombre || 'Sin nombre',
+                vencimiento:  new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
                 diasVencidos: Math.ceil((ahora - new Date(d.fecha_vencimiento)) / 86400000),
             })),
-            porCategoria: porCategoria.map(c => ({
-                categoria: c._id || 'Sin categoría', 
-                cantidad: c.count,
-            })),
+            porCategoria:  porCategoria.map(c => ({ categoria: c._id || 'Sin categoría', cantidad: c.count })),
+            sinCategoria,
+            aprobados,
         };
 
-        // Personas activas
+        // ── Personas detalladas ───────────────────────────────
         const [personas, porDepto] = await Promise.all([
-            Person.find({ activo: true }).limit(20).lean(),
+            Person.find({ activo: true }).limit(30).lean(),
             Person.aggregate([
                 { $match: { activo: true } },
                 { $group: { _id: '$departamento', count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
-            ]).limit(10),
+            ]),
         ]);
 
         ctx.personas = {
             total: totalPersonas,
-            lista: personas.map(p => ({
-                nombre:      p.nombre,
-                email:       p.email,
+            lista:  personas.map(p => ({
+                nombre:       p.nombre,
+                email:        p.email,
                 departamento: p.departamento,
-                puesto:      p.puesto,
-                telefono:    p.telefono,
+                puesto:       p.puesto,
+                telefono:     p.telefono,
             })),
             porDepartamento: porDepto.map(d => ({
-                departamento: d._id || 'Sin departamento', 
-                cantidad: d.count,
+                departamento: d._id || 'Sin departamento',
+                cantidad:     d.count,
             })),
         };
 
+        // ── Categorías y Departamentos ────────────────────────
         const [cats, deptos] = await Promise.all([
             Category.find({ activo: true }).lean(),
             Department.find({ activo: true }).lean(),
         ]);
-        ctx.categorias   = cats.map(c => c.nombre);
+        ctx.categorias    = cats.map(c => c.nombre);
         ctx.departamentos = deptos.map(d => d.nombre);
+
+        // ── Analytics de actividad ────────────────────────────
+        try {
+            const [
+                docsLastMonth,
+                convCount,
+                topCategories,
+            ] = await Promise.all([
+                Document.countDocuments({ ...docQuery, fecha_subida: { $gte: hace30d } }),
+                Conversation.countDocuments({ usuario: userId }).catch(() => 0),
+                Document.aggregate([
+                    { $match: docQuery },
+                    { $group: { _id: '$categoria', count: { $sum: 1 } } },
+                    { $sort: { count: -1 } },
+                    { $limit: 3 },
+                ]),
+            ]);
+
+            ctx.analytics = {
+                docsUltimos30d:   docsLastMonth,
+                interaccionesIA:  convCount,
+                categoriaTop:     topCategories[0]?._id || 'N/A',
+                tasaCompletado:   ctx.tareas.porcentajeCompletado,
+                saludSistema:     _calcularSaludSistema(ctx.stats, ctx.tareas),
+            };
+        } catch (e) {
+            debug.warn('Analytics parciales:', e.message);
+            ctx.analytics = { saludSistema: 'desconocido' };
+        }
+
+        // ── Info del sistema ──────────────────────────────────
+        ctx.sistema = {
+            fechaActual:  new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            horaActual:   new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+            año:          new Date().getFullYear(),
+        };
+
+        debug.perf(`Contexto construido en ${Date.now() - t0}ms`);
 
     } catch (err) {
         debug.error('Error construyendo contexto:', err.message);
@@ -304,128 +440,220 @@ async function buildSystemContext(userId) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// SYSTEM PROMPT - ACTUALIZADO
+// HELPERS DE FORMATO
 // ──────────────────────────────────────────────────────────────
-function buildSystemPrompt(ctx, userInfo) {
-    const s = ctx.stats  || {};
-    const t = ctx.tareas || {};
-    const d = ctx.docs   || {};
-    const p = ctx.personas || {};
 
-    const alertas = [];
-    if (s.docsPorVencer7 > 0) alertas.push(`⚠️ ${s.docsPorVencer7} docs vencen en <7 días`);
-    if (s.docsVencidos   > 0) alertas.push(`❌ ${s.docsVencidos} docs VENCIDOS`);
-    if (t.vencidas       > 0) alertas.push(`⏰ ${t.vencidas} tareas vencidas`);
+/** Convierte el enum interno de prioridad a label para mostrar al usuario */
+/** Convierte el enum interno de prioridad a label para mostrar al usuario */
+function prioridadLabel(p) {
+    const MAP = { 
+        baja: '🟢 Baja', 
+        media: '🟡 Media', 
+        alta: '🟠 Alta', 
+        critica: '🔴 Crítica' 
+    };
+    return MAP[p?.toLowerCase()] || (p || 'Media');
+}
 
-    const tareasStr = t.lista?.length
-        ? t.lista.map(x =>
-            `  [${x.id}] [${(x.prioridad||'media').toUpperCase()}] ${x.titulo}` +
-            (x.fechaLimite ? ` → ${x.fechaLimite}` : '')
-          ).join('\n')
-        : '  (sin tareas activas)';
-
-    const docsRecStr = d.recientes?.length
-        ? d.recientes.slice(0,5).map(x => `  • ${x.nombre} (${x.categoria}) — ${x.fecha}`).join('\n')
-        : '  (ninguno)';
-
-    const docsUrgStr = d.urgentes?.length
-        ? d.urgentes.slice(0,5).map(x => `  • ${x.nombre} — ${x.diasRestantes}d (${x.vence})`).join('\n')
-        : '  (ninguno)';
-
-    const catsStr   = ctx.categorias?.join(', ')   || 'ninguna';
-    const deptosStr = ctx.departamentos?.join(', ') || 'ninguno';
-
-    return `Eres ARIA, el asistente de IA del Sistema de Gestión Documental del CBTIS 051.
-Usuario actual: ${userInfo?.nombre || 'Usuario'} (rol: ${userInfo?.rol || 'usuario'})
-
-═══════════════════════════════════════════════════════════
-DATOS REALES DEL SISTEMA (tiempo real)
-═══════════════════════════════════════════════════════════
-DOCUMENTOS ACTIVOS (excluye papelera): ${s.totalDocs||0} | ${s.docsHoy||0} hoy | ${s.docsRecientes||0} esta semana
-  Urgentes (7d): ${s.docsPorVencer7||0} | Vencidos: ${s.docsVencidos||0}
-PERSONAS: ${s.totalPersonas||0} | CATEGORÍAS: ${s.totalCategorias||0} | DEPARTAMENTOS: ${s.totalDeptos||0}
-TAREAS: ${t.pendientes||0} pendientes | ${t.enProgreso||0} en progreso | ${t.completadas||0} completadas | ${t.vencidas||0} vencidas | ${t.paraHoy||0} para hoy
-${alertas.length ? '\nALERTAS: '+alertas.join(' | ') : ''}
-
-Tareas activas:
-${tareasStr}
-
-Docs recientes:
-${docsRecStr}
-
-Docs urgentes:
-${docsUrgStr}
-
-Categorías: ${catsStr}
-Departamentos: ${deptosStr}
-Personas por departamento:
-${p.porDepartamento?.slice(0,5).map(x=>`  ${x.departamento}: ${x.cantidad}`).join('\n')||'  (ninguno)'}
-
-═══════════════════════════════════════════════════════════
-ACCIONES DISPONIBLES — INSTRUCCIONES CRÍTICAS
-═══════════════════════════════════════════════════════════
-Cuando el usuario pida NAVEGAR a una sección, incluye al FINAL de tu respuesta el JSON:
-{"action":"navigate","target":"SECCION"}
-
-Cuando el usuario pida CREAR/ABRIR algo, incluye:
-{"action":"openModal","target":"MODAL"}
-
-Cuando el usuario pida BUSCAR, incluye:
-{"action":"search","query":"término","section":"documentos"}
-
-SECCIONES VÁLIDAS (target para navigate):
-  dashboard, documentos, personas, tareas, reportes, papelera,
-  notificaciones, ajustes, soporte, categorias, departamentos
-
-MODALES VÁLIDOS (target para openModal):
-  upload        → subir documento
-  addPerson     → agregar persona
-  addTask       → crear tarea
-  addCategory   → crear categoría
-  addDepartment → crear departamento
-  search        → búsqueda avanzada
-
-═══════════════════════════════════════════════════════════
-REGLAS ESTRICTAS
-═══════════════════════════════════════════════════════════
-1. USA SOLO LOS DATOS REALES ANTERIORES. NUNCA inventes cifras.
-2. Los documentos en papelera NO se cuentan en estadísticas.
-3. El JSON de acción SIEMPRE va en su propia línea al final, SIN backticks.
-4. Responde SIEMPRE en español mexicano, de forma concisa y directa.`;
+/** Convierte el enum interno de estado a label para mostrar al usuario */
+function estadoLabel(e) {
+    const MAP = {
+        'pendiente':  '⏳ Pendiente',
+        'en-progreso': '🔄 En progreso',
+        'completada': '✅ Completada',
+        'cancelada':  '❌ Cancelada',
+    };
+    return MAP[e] || (e || 'Pendiente');
 }
 
 // ──────────────────────────────────────────────────────────────
-// EXTRACTOR DE ACCIONES
+// CALCULADORA DE SALUD DEL SISTEMA
+// ──────────────────────────────────────────────────────────────
+function _calcularSaludSistema(stats, tareas) {
+    let score = 100;
+    if (stats.docsVencidos > 0)      score -= Math.min(stats.docsVencidos * 5, 30);
+    if (stats.docsPorVencer7 > 0)    score -= Math.min(stats.docsPorVencer7 * 2, 15);
+    if (tareas.vencidas > 0)         score -= Math.min(tareas.vencidas * 3, 20);
+    const nivel = score >= 80 ? '🟢 Excelente' : score >= 60 ? '🟡 Regular' : '🔴 Crítico';
+    return `${nivel} (${score}/100)`;
+}
+
+// ──────────────────────────────────────────────────────────────
+// SYSTEM PROMPT v4.0 — Mucho más inteligente
+// ──────────────────────────────────────────────────────────────
+function buildSystemPrompt(ctx, userInfo) {
+    const s = ctx.stats    || {};
+    const t = ctx.tareas   || {};
+    const d = ctx.docs     || {};
+    const p = ctx.personas || {};
+    const a = ctx.analytics || {};
+    const si= ctx.sistema  || {};
+
+    // Calcular tareas urgentes y vencidas REALES para el prompt
+    const tareasVencidas = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes < 0) || [];
+    const tareasUrgentes = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2) || [];
+    const hayVencidas = tareasVencidas.length > 0;
+    const hayUrgentes = tareasUrgentes.length > 0;
+    
+    // Construir mensaje de alerta de tareas para el prompt
+    let alertaTareasTexto = '';
+    if (hayVencidas) {
+        alertaTareasTexto = `🚨 ${tareasVencidas.length} tarea(s) VENCIDA(S) — ATENCIÓN INMEDIATA`;
+    } else if (hayUrgentes) {
+        alertaTareasTexto = `⚠️ ${tareasUrgentes.length} tarea(s) URGENTE(S) (vencen en ≤2 días)`;
+    } else {
+        alertaTareasTexto = '✅ Sin tareas urgentes ni vencidas';
+    }
+
+    // Construir alertas generales
+    const alertasGenerales = [];
+    if (s.docsPorVencer3 > 0) alertasGenerales.push(`🚨 CRÍTICO: ${s.docsPorVencer3} docs vencen en <3 días`);
+    else if (s.docsPorVencer7 > 0) alertasGenerales.push(`⚠️ ${s.docsPorVencer7} docs vencen en <7 días`);
+    if (s.docsVencidos > 0) alertasGenerales.push(`❌ ${s.docsVencidos} docs VENCIDOS sin atender`);
+
+    // Formatear lista de tareas
+    const tareasStr = t.lista?.length
+        ? t.lista.map(x => {
+            let etiqueta = '';
+            if (x.diasRestantes !== null && x.diasRestantes < 0) {
+                etiqueta = ' 🔴 VENCIDA';
+            } else if (x.diasRestantes !== null && x.diasRestantes <= 2) {
+                etiqueta = ' ⚠️ URGENTE';
+            } else if (x.diasRestantes !== null && x.diasRestantes <= 7) {
+                etiqueta = ' 📅 Próxima';
+            }
+            return `  • [${(x.prioridad||'media').toUpperCase()}] ${x.titulo}${etiqueta} → ${x.fechaLimite || 'sin fecha'} (${x.estado})`;
+          }).join('\n')
+        : '  • (sin tareas activas)';
+
+    const altaPrioStr = t.altaPrioridad?.length
+        ? t.altaPrioridad.map(x => `  • 🔴 [${x.prioridad.toUpperCase()}] ${x.titulo} → ${x.fechaLimite || 'sin fecha'}`).join('\n')
+        : '  • (ninguna)';
+
+    const docsRecStr = d.recientes?.length
+        ? d.recientes.slice(0,5).map(x => `  • ${x.nombre} (${x.categoria}) — ${x.fecha}`).join('\n')
+        : '  • (ninguno)';
+
+    const docsUrgStr = d.urgentes?.length
+        ? d.urgentes.slice(0,5).map(x => `  • ${x.nombre} — ⚠️ ${x.diasRestantes}d (${x.vence})`).join('\n')
+        : '  • (ninguno)';
+
+    const docsVencStr = d.vencidos?.length
+        ? d.vencidos.slice(0,5).map(x => `  • ${x.nombre} — VENCIDO hace ${x.diasVencidos}d (${x.vencimiento})`).join('\n')
+        : '  • (ninguno)';
+
+    return `Eres ARIA v4.2, asistente IA del Sistema de Gestión Documental del CBTIS 051.
+
+⚠️ **REGLA CRÍTICA #1**: LOS DATOS ABAJO SON REALES. USA EXACTAMENTE ESOS NÚMEROS.
+⚠️ **REGLA CRÍTICA #2**: NUNCA DIGAS "No tienes tareas vencidas o urgentes" SI HAY TAREAS CON ETIQUETA "⚠️ URGENTE" o "🔴 VENCIDA".
+⚠️ **REGLA CRÍTICA #3**: SI UNA TAREA TIENE LA ETIQUETA "⚠️ URGENTE", DEBES MENCIONAR QUE ES URGENTE.
+⚠️ **REGLA CRÍTICA #4**: SI HAY TAREAS CON ETIQUETA "⚠️ URGENTE" O "🔴 VENCIDA", EL MENSAJE DE ALERTA DEBE REFLEJARLO.
+
+Usuario: ${userInfo?.nombre || 'Usuario'} | Rol: ${userInfo?.rol || 'usuario'}
+Fecha/Hora: ${si.fechaActual} — ${si.horaActual}
+
+══════════════════════════════════════════════════════
+📊 DATOS REALES DEL SISTEMA (MOMENTO ACTUAL)
+══════════════════════════════════════════════════════
+
+📄 DOCUMENTOS ACTIVOS:
+   Total: ${s.totalDocs || 0}
+   Subidos hoy: ${s.docsHoy || 0}
+   Esta semana: ${s.docsRecientes || 0}
+   Por vencer (<3d): ${s.docsPorVencer3 || 0}
+   Por vencer (<7d): ${s.docsPorVencer7 || 0}
+   Vencidos: ${s.docsVencidos || 0}
+
+✅ TAREAS DE ${userInfo?.nombre?.toUpperCase()}:
+   TOTAL: ${t.total || 0} tareas
+   Pendientes: ${t.pendientes || 0}
+   En progreso: ${t.enProgreso || 0}
+   Completadas: ${t.completadas || 0}
+   Canceladas: ${t.canceladas || 0}
+   Vencidas: ${t.vencidas || 0} (según fecha límite)
+   Para hoy: ${t.paraHoy || 0}
+   % Completado: ${t.porcentajeCompletado || 0}%
+
+🔔 **ESTADO DE TAREAS URGENTES/VENCIDAS:**
+   ${alertaTareasTexto}
+
+📋 LISTA DE TAREAS ACTIVAS (pendientes + en progreso):
+${tareasStr}
+
+🔴 TAREAS DE ALTA PRIORIDAD:
+${altaPrioStr}
+
+📄 DOCUMENTOS RECIENTES:
+${docsRecStr}
+
+🚨 DOCUMENTOS URGENTES (vencen pronto):
+${docsUrgStr}
+
+❌ DOCUMENTOS VENCIDOS:
+${docsVencStr}
+
+👥 PERSONAS: ${s.totalPersonas || 0} | CATEGORÍAS: ${s.totalCategorias || 0} | DEPARTAMENTOS: ${s.totalDeptos || 0}
+
+${alertasGenerales.length ? '⚡ ALERTAS GENERALES:\n' + alertasGenerales.map(x=>`  ${x}`).join('\n') : '✅ Sin alertas generales'}
+
+══════════════════════════════════════════════════════
+📋 INSTRUCCIONES PARA TU RESPUESTA
+══════════════════════════════════════════════════════
+
+1. **CUANDO EL USUARIO PREGUNTE "MIS TAREAS":**
+   - Si hay tareas, LÍSTALAS con sus fechas y prioridades.
+   - Si alguna tarea tiene "⚠️ URGENTE" en la lista, DILO EXPLÍCITAMENTE.
+   - NO DIGAS "No tienes tareas urgentes" si hay tareas con la etiqueta "⚠️ URGENTE".
+   - Ejemplo correcto si hay tarea urgente: "Tienes 2 tareas. ¡ATENCIÓN! Una de ellas es URGENTE: Renovacion vence mañana."
+   - Ejemplo correcto si NO hay urgentes: "Tienes 2 tareas. Sin tareas urgentes ni vencidas."
+
+2. **PARA "TAREA MÁS URGENTE":**
+   - Analiza la lista y encuentra la más prioritaria (vencida > urgente > alta prioridad)
+   - Dale el nombre y detalles específicos
+
+3. **RESPONDE EN ESPAÑOL MEXICANO, CONCISO Y DIRECTO.**
+
+4. **ACCIONES:** si corresponde navegar o abrir modal, agrega al final:
+   {"action":"navigate","target":"tareas"}
+   o {"action":"openModal","target":"addTask"}
+
+5. **NUNCA INVENTES DATOS. USA EXCLUSIVAMENTE LOS NÚMEROS Y TEXTOS DE ARRIBA.**`;
+}
+
+// ──────────────────────────────────────────────────────────────
+// EXTRACTOR DE ACCIONES — MEJORADO
 // ──────────────────────────────────────────────────────────────
 function extractActions(text) {
     const actions = [];
     if (!text) return actions;
 
-    const rePlain = /\{[^{}]*"action"\s*:\s*"[^"]+[^{}]*\}/g;
-    const reBlock = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/g;
+    // Limpiar el texto de markdown primero
+    const lines = text.split('\n');
 
-    let m;
+    for (const line of lines) {
+        const trimmed = line.trim();
 
-    while ((m = reBlock.exec(text)) !== null) {
-        try {
-            const parsed = JSON.parse(m[1]);
-            if (parsed.action) {
-                actions.push(parsed);
-                debug.action('Extraída (bloque):', JSON.stringify(parsed));
-            }
-        } catch (_) {}
-    }
-
-    if (actions.length === 0) {
-        while ((m = rePlain.exec(text)) !== null) {
+        // Buscar JSON al final de líneas
+        const jsonMatches = trimmed.match(/\{[^{}]*"action"\s*:\s*"[^"]+[^{}]*\}/g) || [];
+        for (const m of jsonMatches) {
             try {
-                const parsed = JSON.parse(m[0]);
-                if (parsed.action) {
+                const parsed = JSON.parse(m);
+                if (parsed.action && !actions.find(a => a.action === parsed.action && a.target === parsed.target)) {
                     actions.push(parsed);
-                    debug.action('Extraída (plano):', JSON.stringify(parsed));
+                    debug.action('Acción extraída:', JSON.stringify(parsed));
                 }
             } catch (_) {}
         }
+    }
+
+    // Búsqueda en bloques de código
+    const blockMatches = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/g) || [];
+    for (const block of blockMatches) {
+        const inner = block.replace(/```(?:json)?/, '').replace(/```$/, '').trim();
+        try {
+            const parsed = JSON.parse(inner);
+            if (parsed.action) actions.push(parsed);
+        } catch (_) {}
     }
 
     return actions;
@@ -433,78 +661,78 @@ function extractActions(text) {
 
 function cleanText(text) {
     if (!text) return '';
-    let clean = text
+    return text
         .replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, '')
         .replace(/\{[^{}]*"action"\s*:\s*"[^"]+[^{}]*\}/g, '')
-        .trim();
-    clean = clean.replace(/\n{3,}/g, '\n\n');
-    return clean;
+        .trim()
+        .replace(/\n{3,}/g, '\n\n');
 }
 
 // ──────────────────────────────────────────────────────────────
-// DETECCIÓN DE INTENCIÓN
+// DETECCIÓN DE INTENCIÓN v4.0 — NLP mejorado
 // ──────────────────────────────────────────────────────────────
 function detectIntent(message) {
     const q = message.toLowerCase().trim();
 
-    const navPatterns = [
-        { pattern: /ir a |navegar a |abrir |ve a /, check: true },
-        { pattern: /\bdocumentos\b/, nav: 'documentos' },
-        { pattern: /\btareas\b/, nav: 'tareas' },
-        { pattern: /\bpersonas\b/, nav: 'personas' },
-        { pattern: /\bdashboard\b|\binicio\b|\bprincipal\b/, nav: 'dashboard' },
-        { pattern: /\breportes\b|\binformes\b/, nav: 'reportes' },
-        { pattern: /\bpapelera\b|\bpapel\b/, nav: 'papelera' },
-        { pattern: /\bnotificaciones\b/, nav: 'notificaciones' },
-        { pattern: /\bajustes\b|\bconfiguracion\b/, nav: 'ajustes' },
-        { pattern: /\bsoporte\b|\bayuda\b/, nav: 'soporte' },
-        { pattern: /\bcategor[ií]as\b/, nav: 'categorias' },
-        { pattern: /\bdepartamentos\b/, nav: 'departamentos' },
-    ];
+    const SECTIONS = {
+        dashboard:       /\b(dashboard|inicio|principal|home|resumen general)\b/,
+        documentos:      /\b(documentos?|archivos?|expedientes?|docs?)\b/,
+        tareas:          /\b(tareas?|tasks?|pendientes?|actividades?)\b/,
+        personas:        /\b(personas?|usuarios?|empleados?|personal|gente)\b/,
+        reportes:        /\b(reportes?|informes?|estadísticas?|análisis|reporte)\b/,
+        papelera:        /\b(papelera|eliminados?|trash|basura)\b/,
+        notificaciones:  /\b(notificaciones?|alertas?|avisos?)\b/,
+        ajustes:         /\b(ajustes?|configuraci[oó]n|settings?|preferencias?)\b/,
+        soporte:         /\b(soporte|ayuda|help|asistencia|problemas?)\b/,
+        categorias:      /\b(categor[ií]as?)\b/,
+        departamentos:   /\b(departamentos?|áreas?|secciones?)\b/,
+    };
 
-    const isNavIntent = /\b(ir a|ve a|navegar|mostrar|abrir la secci[oó]n|llevar a)\b/.test(q);
-    if (isNavIntent) {
-        for (const p of navPatterns) {
-            if (p.nav && p.pattern.test(q)) {
-                return { type: 'navigate', target: p.nav };
-            }
+    const NAV_TRIGGERS = /\b(ir a|ve a|navegar|abrir|mostrar|llévame|abre|switch a|cambiar a|ver sección|ir al|abre el?)\b/;
+    const CREATE_TRIGGERS = /\b(crear?|nueva?|nuevo?|agregar?|añadir?|registrar?|subir|upload)\b/;
+    const SEARCH_TRIGGERS = /\b(buscar?|search|encontrar?|localizar?|hallar?|dónde está)\b/;
+
+    // Navegación
+    if (NAV_TRIGGERS.test(q)) {
+        for (const [section, pattern] of Object.entries(SECTIONS)) {
+            if (pattern.test(q)) return { type: 'navigate', target: section };
         }
     }
 
-    if (/subir|cargar|upload/.test(q) && /documento|archivo/.test(q)) {
-        return { type: 'openModal', target: 'upload' };
+    // Creación/Apertura de modales
+    if (CREATE_TRIGGERS.test(q)) {
+        if (/documento|archivo|expediente/.test(q)) return { type: 'openModal', target: 'upload' };
+        if (/tarea|task|actividad/.test(q))         return { type: 'openModal', target: 'addTask' };
+        if (/persona|usuario|empleado/.test(q))     return { type: 'openModal', target: 'addPerson' };
+        if (/categor[ií]a/.test(q))                 return { type: 'openModal', target: 'addCategory' };
+        if (/departamento|área/.test(q))            return { type: 'openModal', target: 'addDepartment' };
     }
-    if (/crear|nueva?|agregar|a[ñn]adir/.test(q) && /tarea/.test(q)) {
-        return { type: 'openModal', target: 'addTask' };
-    }
-    if (/crear|nueva?|agregar|a[ñn]adir/.test(q) && /persona|usuario|empleado/.test(q)) {
-        return { type: 'openModal', target: 'addPerson' };
-    }
-    if (/crear|nueva?|agregar/.test(q) && /categor[ií]a/.test(q)) {
-        return { type: 'openModal', target: 'addCategory' };
-    }
-    if (/crear|nueva?|agregar/.test(q) && /departamento/.test(q)) {
-        return { type: 'openModal', target: 'addDepartment' };
-    }
-    if (/buscar|search|encontrar/.test(q)) {
-        const queryMatch = q.replace(/buscar|search|encontrar|documento/g, '').trim();
-        return { type: 'search', query: queryMatch, section: 'documentos' };
+
+    // Búsqueda
+    if (SEARCH_TRIGGERS.test(q)) {
+        const queryClean = q
+            .replace(/buscar?|search|encontrar?|localizar?|documento|archivo/g, '')
+            .trim();
+        return { type: 'search', query: queryClean, section: 'documentos' };
     }
 
     return { type: 'query' };
 }
 
 // ──────────────────────────────────────────────────────────────
-// FALLBACK INTELIGENTE - ACTUALIZADO
+// MOTOR DE RESPUESTAS RULE-BASED v4.0 — Mucho más inteligente
 // ──────────────────────────────────────────────────────────────
-function ruleBasedResponse(message, ctx) {
+function ruleBasedResponse(message, ctx, userInfo) {
     const q = message.toLowerCase().trim();
-    const s = ctx.stats  || {};
-    const t = ctx.tareas || {};
-    const d = ctx.docs   || {};
+    const s = ctx.stats    || {};
+    const t = ctx.tareas   || {};
+    const d = ctx.docs     || {};
+    const p = ctx.personas || {};
+    const a = ctx.analytics || {};
 
     const intent = detectIntent(message);
 
+    // ── Navegación ────────────────────────────────────────────
     if (intent.type === 'navigate') {
         const labels = {
             documentos:'Documentos', tareas:'Tareas', personas:'Personas',
@@ -514,95 +742,274 @@ function ruleBasedResponse(message, ctx) {
         };
         return {
             message: `📍 Navegando a **${labels[intent.target] || intent.target}**...`,
-            suggestions: ['Ir a Dashboard', 'Ir a Documentos', 'Ir a Tareas'],
+            suggestions: ['Ver Dashboard', 'Mis tareas', 'Documentos urgentes'],
             actions: [{ action: 'navigate', target: intent.target }],
         };
     }
 
+    // ── Modales ───────────────────────────────────────────────
     if (intent.type === 'openModal') {
         const msgs = {
-            upload:        `📤 Abriendo el formulario para **subir documento**.\n\nArrastra el archivo o selecciónalo desde tu equipo.`,
-            addTask:       `✅ Abriendo el formulario para **crear tarea**.\n\nCompleta el título, descripción, prioridad y fecha límite.`,
-            addPerson:     `👤 Abriendo el formulario para **agregar persona**.`,
-            addCategory:   `📁 Abriendo el formulario para **crear categoría**.`,
-            addDepartment: `🏢 Abriendo el formulario para **crear departamento**.`,
+            upload:        `📤 Abriendo formulario para **subir documento**.\n\nArrastra el archivo o selecciónalo desde tu equipo.`,
+            addTask:       `✅ Abriendo formulario para **crear tarea**.\n\nCompleta el título, descripción, prioridad y fecha límite.`,
+            addPerson:     `👤 Abriendo formulario para **agregar persona**.`,
+            addCategory:   `📁 Abriendo formulario para **crear categoría**.`,
+            addDepartment: `🏢 Abriendo formulario para **crear departamento**.`,
         };
         return {
             message: msgs[intent.target] || `Abriendo ${intent.target}...`,
-            suggestions: ['Ver mis tareas', 'Subir documento', 'Ir a Dashboard'],
+            suggestions: ['Ir a Tareas', 'Ver mis tareas', 'Dashboard'],
             actions: [{ action: 'openModal', target: intent.target }],
         };
     }
 
-    if (/cu[aá]ntos? documento/.test(q) || /estad[ií]stica/.test(q)) {
+    // ── MIS TAREAS (respuesta mejorada) ───────────────────────
+if (/mis tareas|tareas? m[ií]as?|qu[eé] tareas|tareas? pendientes|cuántas? tareas/.test(q)) {
+    if (t.total === 0) {
         return {
-            message: `📊 **Documentos activos (excluye papelera):**\n\n• **${s.totalDocs||0}** activos\n• **${s.docsHoy||0}** subidos hoy\n• **${s.docsRecientes||0}** esta semana\n• **${s.docsPorVencer7||0}** por vencer en 7 días\n• **${s.docsVencidos||0}** vencidos`,
-            suggestions: ['Documentos por vencer', 'Subir documento', 'Ir a Documentos'],
+            message: `✅ **Tus tareas:**\n\nNo encontré tareas asignadas a **${userInfo?.nombre || 'ti'}**.\n\n¿Quieres crear una nueva tarea?`,
+            suggestions: ['Crear nueva tarea', 'Ir a Tareas'],
             actions: [],
         };
     }
 
-    if (/cu[aá]ntas? tarea/.test(q) || /mis tareas/.test(q)) {
+    // Contar tareas urgentes y vencidas REALES
+    const urgentesReales = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2) || [];
+    const vencidasReales = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes < 0) || [];
+    const hayUrgentes = urgentesReales.length > 0;
+    const hayVencidas = vencidasReales.length > 0;
+
+    let mensaje = `📊 **Tus tareas, ${userInfo?.nombre || 'usuario'}:**\n\n`;
+    mensaje += `📌 **Resumen:** ${t.total} tarea(s) totales\n`;
+    mensaje += `   • ${t.pendientes} pendientes\n`;
+    mensaje += `   • ${t.enProgreso} en progreso\n`;
+    mensaje += `   • ${t.completadas} completadas\n`;
+    
+    if (hayVencidas) {
+        mensaje += `\n⚠️ **¡ALERTA!** Tienes ${vencidasReales.length} tarea(s) VENCIDA(S).\n`;
+    } else if (hayUrgentes) {
+        mensaje += `\n⚠️ **¡ATENCIÓN!** Tienes ${urgentesReales.length} tarea(s) URGENTE(S) (vencen en 2 días o menos).\n`;
+    } else {
+        mensaje += `\n✅ **Sin tareas urgentes ni vencidas.**\n`;
+    }
+    
+    if (t.lista?.length > 0) {
+        mensaje += `\n📋 **Tareas activas:**\n`;
+        t.lista.slice(0, 8).forEach(x => {
+            const estado = x.estado === 'pendiente' ? '⏳' : '🔄';
+            let etiqueta = '';
+            if (x.diasRestantes !== null && x.diasRestantes < 0) {
+                etiqueta = ' 🔴 VENCIDA';
+            } else if (x.diasRestantes !== null && x.diasRestantes <= 2) {
+                etiqueta = ' ⚠️ URGENTE';
+            } else if (x.diasRestantes !== null && x.diasRestantes <= 7) {
+                etiqueta = ' 📅 Próxima';
+            }
+            mensaje += `   ${estado} **${x.titulo}**${etiqueta}\n`;
+            mensaje += `      📅 ${x.fechaLimite || 'sin fecha'} | 🎯 ${prioridadLabel(x.prioridad)}\n`;
+        });
+        if (t.lista.length > 8) {
+            mensaje += `\n   ... y ${t.lista.length - 8} más.\n`;
+        }
+    }
+    
+    mensaje += `\n📈 **Progreso:** ${t.porcentajeCompletado}% completado`;
+    
+    return {
+        message: mensaje,
+        suggestions: ['Ver tarea más urgente', 'Crear nueva tarea', 'Ir a Tareas'],
+        actions: [],
+    };
+}
+
+   // ── TAREA MÁS URGENTE ─────────────────────────────────────
+if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería hacer/.test(q)) {
+    if (!t.lista?.length) {
         return {
-            message: `✅ **Tus tareas:**\n\n• **${t.pendientes||0}** pendientes\n• **${t.enProgreso||0}** en progreso\n• **${t.completadas||0}** completadas\n• **${t.vencidas||0}** vencidas\n• **${t.paraHoy||0}** para hoy\n\n${t.lista?.length ? '**Próximas:**\n' + t.lista.slice(0,3).map(x=>`• [${x.prioridad?.toUpperCase()||'MEDIA'}] ${x.titulo}`+(x.fechaLimite?` → ${x.fechaLimite}`:'')).join('\n') : ''}`,
-            suggestions: ['Crear nueva tarea', 'Ir a Tareas', 'Tareas para hoy'],
+            message: `✅ No tienes tareas activas pendientes. ¡Todo al día!`,
+            suggestions: ['Ver dashboard', 'Subir documento', 'Crear tarea'],
             actions: [],
         };
     }
 
-    if (/resumen|dashboard|estado del sistema/.test(q)) {
+    // Ordenar: primero vencidas, luego urgentes (diasRestantes <=2), luego alta prioridad
+    const vencidas = t.lista.filter(x => x.diasRestantes !== null && x.diasRestantes < 0);
+    const urgentes = t.lista.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2);
+    const alta = t.lista.filter(x => TASK_SCHEMA.highPriorities.includes(x.prioridad?.toLowerCase()));
+    
+    let tareaPrincipal = null;
+    let razon = '';
+
+    if (vencidas.length > 0) {
+        tareaPrincipal = vencidas[0];
+        razon = `🚨 **ESTA TAREA ESTÁ VENCIDA**\n   Vencida hace ${Math.abs(tareaPrincipal.diasRestantes)} día(s)`;
+    } else if (urgentes.length > 0) {
+        tareaPrincipal = urgentes[0];
+        razon = `⚠️ **URGENTE — Vence en ${tareaPrincipal.diasRestantes} día(s)**`;
+    } else if (alta.length > 0) {
+        tareaPrincipal = alta[0];
+        razon = `🔴 **ALTA PRIORIDAD** — Requiere atención pronto`;
+    } else {
+        tareaPrincipal = t.lista[0];
+        razon = `📋 **Siguiente tarea recomendada**`;
+    }
+
+    return {
+        message: `**${razon}**\n\n📌 **${tareaPrincipal.titulo}**\n• Estado: ${estadoLabel(tareaPrincipal.estado)}\n• Prioridad: ${prioridadLabel(tareaPrincipal.prioridad)}\n• Fecha límite: ${tareaPrincipal.fechaLimite || 'sin fecha'}\n${tareaPrincipal.diasRestantes !== null && tareaPrincipal.diasRestantes >= 0 ? `• ${tareaPrincipal.diasRestantes} día(s) restantes` : tareaPrincipal.diasRestantes !== null && tareaPrincipal.diasRestantes < 0 ? `• Vencida hace ${Math.abs(tareaPrincipal.diasRestantes)} día(s)` : ''}`,
+        suggestions: ['Ver todas mis tareas', 'Ir a Tareas', 'Crear nueva tarea'],
+        actions: [],
+    };
+}
+
+    // ── ESTADÍSTICAS / RESUMEN ────────────────────────────────
+    if (/resumen|dashboard|estado del sistema|panorama|overview/.test(q)) {
+        const salud = a.saludSistema || '🟡 Sin datos';
         return {
-            message: `**📊 RESUMEN DEL SISTEMA — CBTIS 051**\n\n📄 Documentos activos: **${s.totalDocs||0}**\n✅ Tareas: **${t.pendientes||0}** pendientes, **${t.paraHoy||0}** para hoy\n👥 Personas: **${s.totalPersonas||0}**\n📁 Categorías: **${s.totalCategorias||0}**\n\n${s.docsPorVencer7>0?`⚠️ **Alerta:** ${s.docsPorVencer7} docs vencen en 7 días`:'✅ Sin alertas urgentes'}`,
-            suggestions: ['Ver documentos urgentes', 'Mis tareas para hoy', 'Ir a Dashboard'],
+            message: `**📊 RESUMEN EJECUTIVO — CBTIS 051**\n**${ctx.sistema?.fechaActual || 'Hoy'}**\n\n` +
+                `**📄 Documentos**\n• Activos: **${s.totalDocs||0}** | Hoy: **${s.docsHoy||0}** | Este mes: **${s.docsEstesMes||0}**\n• Vencidos: **${s.docsVencidos||0}** | Por vencer (<7d): **${s.docsPorVencer7||0}**\n\n` +
+                `**✅ Tareas**\n• Pendientes: **${t.pendientes||0}** | En progreso: **${t.enProgreso||0}** | Completadas: **${t.completadas||0}**\n• Vencidas: **${t.vencidas||0}** | Progreso: **${t.porcentajeCompletado||0}%**\n\n` +
+                `**👥 Personal**\n• Personas: **${s.totalPersonas||0}** | Categorías: **${s.totalCategorias||0}** | Deptos: **${s.totalDeptos||0}**\n\n` +
+                `**🔍 Salud del Sistema:** ${salud}` +
+                (s.docsPorVencer7 > 0 || s.docsVencidos > 0 || t.vencidas > 0
+                    ? `\n\n**⚡ Alertas activas:**\n${[
+                        s.docsPorVencer3 > 0 ? `🚨 ${s.docsPorVencer3} doc(s) vencen en <3 días` : null,
+                        s.docsPorVencer7 > 0 ? `⚠️ ${s.docsPorVencer7} doc(s) vencen en <7 días` : null,
+                        s.docsVencidos   > 0 ? `❌ ${s.docsVencidos} doc(s) vencidos` : null,
+                        t.vencidas       > 0 ? `⏰ ${t.vencidas} tarea(s) vencidas` : null,
+                      ].filter(Boolean).join('\n')}` : '\n\n✅ **Sin alertas urgentes**'),
+            suggestions: ['Documentos urgentes', 'Mis tareas', 'Ir a Reportes', 'Documentos vencidos'],
             actions: [],
         };
     }
 
-    if (/documento.* vencen|vencen.*documento|urgentes/.test(q)) {
+    // ── DOCUMENTOS ────────────────────────────────────────────
+    if (/cu[aá]ntos? documento|estadística.*doc|cuénta?me.*doc/.test(q)) {
+        return {
+            message: `📄 **Estadísticas de Documentos (excluye papelera):**\n\n` +
+                `• **${s.totalDocs||0}** documentos activos totales\n` +
+                `• **${s.docsHoy||0}** subidos hoy\n` +
+                `• **${s.docsEstesMes||0}** este mes\n` +
+                `• **${s.docsRecientes||0}** esta semana\n\n` +
+                `**Vencimientos:**\n` +
+                `• **${s.docsPorVencer3||0}** vencen en menos de 3 días 🚨\n` +
+                `• **${s.docsPorVencer7||0}** vencen en menos de 7 días ⚠️\n` +
+                `• **${s.docsPorVencer15||0}** vencen en menos de 15 días\n` +
+                `• **${s.docsPorVencer30||0}** vencen en menos de 30 días\n` +
+                `• **${s.docsVencidos||0}** ya vencidos ❌\n\n` +
+                `**Categorías con más docs:**\n` +
+                (d.porCategoria?.slice(0,3).map(x=>`• ${x.categoria}: **${x.cantidad}**`).join('\n') || '  (sin datos)'),
+            suggestions: ['Documentos urgentes', 'Subir documento', 'Ir a Documentos', 'Ver vencidos'],
+            actions: [],
+        };
+    }
+
+    // ── DOCUMENTOS URGENTES/POR VENCER ────────────────────────
+    if (/documento.* vencen|vencen.*documento|urgentes?|pr[oó]ximos.*vencer|cr[ií]ticos?/.test(q)) {
         if (!d.urgentes?.length) {
             return {
-                message: `✅ **No hay documentos por vencer** en los próximos 7 días. ¡Todo al día!`,
-                suggestions: ['Ver todos los documentos', 'Ir a Documentos'],
+                message: `✅ **¡Excelente!** No hay documentos por vencer en los próximos 7 días.\n\nTodo está al día en cuanto a vencimientos.`,
+                suggestions: ['Ver todos los documentos', 'Ir a Documentos', 'Subir documento'],
                 actions: [{ action: 'navigate', target: 'documentos' }],
             };
         }
-        const lista = d.urgentes.slice(0,5).map(x=>
-            `• **${x.nombre}** — vence en **${x.diasRestantes}** día(s) (${x.vence})`
-        ).join('\n');
+        const lista = d.urgentes.slice(0,7).map(x => {
+            const emoji = x.diasRestantes <= 1 ? '🚨' : x.diasRestantes <= 3 ? '⚠️' : '📅';
+            return `${emoji} **${x.nombre}** — vence en **${x.diasRestantes}** día(s) (${x.vence})`;
+        }).join('\n');
         return {
-            message: `🚨 **Documentos por vencer (${d.urgentes.length}):**\n\n${lista}`,
-            suggestions: ['Ir a Documentos', 'Subir documento'],
+            message: `🚨 **Documentos por vencer (${d.urgentes.length} total):**\n\n${lista}`,
+            suggestions: ['Ir a Documentos', 'Subir documento', 'Ver vencidos'],
             actions: [{ action: 'navigate', target: 'documentos' }],
         };
     }
 
-    if (/hola|buenos d[ií]as|buenas tardes|buenas noches|hey|buen d[ií]a/.test(q)) {
+    // ── DOCUMENTOS VENCIDOS ───────────────────────────────────
+    if (/vencidos?|expirados?|caducados?/.test(q)) {
+        if (!d.vencidos?.length) {
+            return {
+                message: `✅ No hay documentos vencidos en el sistema.`,
+                suggestions: ['Ver documentos urgentes', 'Ir a Documentos'],
+                actions: [],
+            };
+        }
+        const lista = d.vencidos.slice(0,5).map(x =>
+            `❌ **${x.nombre}** — vencido hace **${x.diasVencidos}** día(s) (${x.vencimiento})`
+        ).join('\n');
+        return {
+            message: `❌ **Documentos Vencidos (${d.vencidos.length}):**\n\n${lista}\n\nSe recomienda renovar o archivar estos documentos.`,
+            suggestions: ['Ir a Documentos', 'Generar reporte de vencidos', 'Subir documento'],
+            actions: [{ action: 'navigate', target: 'documentos' }],
+        };
+    }
+
+    // ── ANÁLISIS DE PRODUCTIVIDAD ─────────────────────────────
+    if (/productividad|rendimiento|progreso|c[oó]mo voy|an[aá]lisis/.test(q)) {
+        const completadoPct = t.porcentajeCompletado || 0;
+        const nivel = completadoPct >= 80 ? '🌟 Excelente' : completadoPct >= 60 ? '✅ Bueno' : completadoPct >= 40 ? '⚠️ Regular' : '🔴 Necesita mejora';
+        return {
+            message: `📈 **Análisis de Productividad — ${userInfo?.nombre || 'Usuario'}**\n\n` +
+                `**Tareas:** ${nivel} (${completadoPct}%)\n` +
+                `• Completadas: ${t.completadas||0} de ${t.total||0}\n` +
+                `• En progreso: ${t.enProgreso||0}\n` +
+                `• Vencidas: ${t.vencidas||0} ${t.vencidas > 0 ? '⚠️' : '✅'}\n\n` +
+                `**Documentos este mes:** ${a.docsUltimos30d||0} nuevos\n` +
+                `**Salud del sistema:** ${a.saludSistema||'N/A'}\n\n` +
+                (t.vencidas > 0 ? `💡 **Recomendación:** Atiende las ${t.vencidas} tarea(s) vencidas primero.` :
+                 t.pendientes > 3 ? `💡 **Recomendación:** Tienes ${t.pendientes} tareas pendientes. Considera priorizarlas.` :
+                 `💡 **¡Vas muy bien!** Mantén el ritmo.`),
+            suggestions: ['Tarea más urgente', 'Ver mis tareas', 'Ir a Reportes'],
+            actions: [],
+        };
+    }
+
+    // ── PERSONAS ─────────────────────────────────────────────
+    if (/cu[aá]ntas? personas?|personal|empleados?|usuarios?/.test(q)) {
+        return {
+            message: `👥 **Personal del CBTIS 051:**\n\n• **${s.totalPersonas||0}** personas activas\n\n**Por departamento:**\n${p.porDepartamento?.slice(0,5).map(x=>`• **${x.departamento}:** ${x.cantidad}`).join('\n')||'  (sin datos)'}`,
+            suggestions: ['Agregar persona', 'Ir a Personas', 'Ver departamentos'],
+            actions: [],
+        };
+    }
+
+    // ── SALUDOS ───────────────────────────────────────────────
+    if (/^(hola|buenos\s|buenas\s|hey|buen\s|qué hay|que hay|hi$|buenas$)/.test(q)) {
         const hora = new Date().getHours();
         const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
+        const alertCount = (s.docsPorVencer7||0) + (s.docsVencidos||0) + (t.vencidas||0);
         return {
-            message: `${saludo} 👋 Soy **ARIA**. Datos actuales:\n\n• **${s.totalDocs||0}** documentos activos\n• **${t.pendientes||0}** tareas pendientes\n• **${s.totalPersonas||0}** personas\n${s.docsPorVencer7>0?`\n⚠️ **${s.docsPorVencer7}** documentos vencen esta semana.\n`:''}\n¿En qué te ayudo?`,
-            suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos por vencer', '¿Qué puedes hacer?'],
+            message: `${saludo} 👋 Soy **ARIA v4.0**, ${userInfo?.nombre || 'usuario'}.\n\n` +
+                `📊 **Estado rápido:**\n• **${s.totalDocs||0}** documentos activos\n• **${t.pendientes||0}** tareas pendientes (${t.enProgreso||0} en progreso)\n• **${s.totalPersonas||0}** personas registradas\n` +
+                (alertCount > 0 ? `\n🔔 **${alertCount} alertas** requieren atención.` : `\n✅ Sin alertas urgentes.`) +
+                `\n\n¿En qué te ayudo hoy?`,
+            suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos urgentes', 'Productividad', '¿Qué puedes hacer?'],
             actions: [],
         };
     }
 
-    if (/qu[eé] puedes|ayuda|comandos|help/.test(q)) {
+    // ── AYUDA / CAPACIDADES ───────────────────────────────────
+    if (/qu[eé] puedes|ayuda|comandos|help|funciones|capacidades/.test(q)) {
         return {
-            message: `**🎯 Puedo ayudarte con:**\n\n**📊 Consultas:**\n• "¿Cuántos documentos hay?"\n• "Resumen del sistema"\n• "Mis tareas pendientes"\n• "Documentos por vencer"\n\n**🗺️ Navegación:**\n• "Ir a documentos"\n• "Ir a tareas"\n• "Ir a reportes"\n\n**⚡ Acciones:**\n• "Subir documento"\n• "Crear tarea"\n• "Agregar persona"\n• "Crear categoría"`,
-            suggestions: ['Resumen del sistema', 'Ir a Documentos', 'Crear tarea', 'Subir documento'],
+            message: `**🎯 ARIA v4.0 — Capacidades:**\n\n` +
+                `**📊 Análisis inteligente:**\n• "Resumen del sistema"\n• "¿Cuál es mi tarea más urgente?"\n• "Análisis de productividad"\n• "¿Cómo va el sistema?"\n• "¿Cuántos documentos vencen pronto?"\n\n` +
+                `**🗺️ Navegación:**\n• "Ir a [sección]"\n• "Ir a tareas/documentos/reportes..."\n\n` +
+                `**⚡ Acciones rápidas:**\n• "Subir documento"\n• "Crear tarea: [título] para el [fecha]"\n• "Agregar persona"\n• "Generar reporte en Excel"\n\n` +
+                `**🔍 Búsqueda:**\n• "Buscar [término] en documentos"\n\n` +
+                `**📈 Estadísticas:**\n• "¿Cuántos documentos hay?"\n• "Estado de mis tareas"\n• "¿Cuántas personas hay?"`,
+            suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos urgentes', 'Generar reporte'],
             actions: [],
         };
     }
 
+    // ── FALLBACK MEJORADO ─────────────────────────────────────
     return {
-        message: `🤔 No entendí bien "${message.substring(0,60)}". ¿Quieres que te ayude con:\n\n• 📊 **Estadísticas** del sistema\n• 🗺️ **Navegar** a una sección\n• ⚡ **Realizar una acción**\n• 🔍 **Buscar** un documento`,
-        suggestions: ['Resumen del sistema', 'Mis tareas', 'Ir a Documentos', '¿Qué puedes hacer?'],
+        message: `🤔 Entendí: *"${message.substring(0,80)}..."*\n\nPuedo ayudarte con:\n• 📊 **Estadísticas** del sistema\n• 📋 **Mis tareas** y prioridades\n• 📄 **Documentos** urgentes o vencidos\n• 🗺️ **Navegar** a cualquier sección\n• 📈 **Análisis** de productividad`,
+        suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos urgentes', '¿Qué puedes hacer?'],
         actions: [],
     };
 }
 
 // ──────────────────────────────────────────────────────────────
-// SUGERENCIAS CONTEXTUALES
+// SUGERENCIAS CONTEXTUALES v4.0
 // ──────────────────────────────────────────────────────────────
 function buildSuggestions(message, ctx) {
     const q = message.toLowerCase();
@@ -610,34 +1017,38 @@ function buildSuggestions(message, ctx) {
     const t = ctx.tareas || {};
     const out = new Set();
 
-    if (s.docsPorVencer7 > 0) out.add(`⚠️ ${s.docsPorVencer7} doc(s) por vencer`);
-    if (t.vencidas > 0)        out.add(`🚨 ${t.vencidas} tarea(s) vencida(s)`);
-    if (t.paraHoy > 0)         out.add(`📅 Tareas para hoy (${t.paraHoy})`);
+    // Alertas críticas primero
+    if (s.docsPorVencer3 > 0) out.add(`🚨 ${s.docsPorVencer3} doc(s) vencen en 3 días`);
+    else if (s.docsPorVencer7 > 0) out.add(`⚠️ ${s.docsPorVencer7} doc(s) por vencer`);
+    if (t.vencidas  > 0) out.add(`🚨 ${t.vencidas} tarea(s) vencidas`);
+    if (t.paraHoy   > 0) out.add(`📅 Tareas para hoy (${t.paraHoy})`);
 
+    // Sugerencias contextuales
     if (q.includes('documento')) {
-        out.add('Subir documento'); out.add('Documentos por vencer');
+        out.add('Documentos urgentes'); out.add('Subir documento'); out.add('Ver vencidos');
     } else if (q.includes('tarea')) {
-        out.add('Crear nueva tarea'); out.add('Ir a Tareas');
+        out.add('Tarea más urgente'); out.add('Crear nueva tarea'); out.add('Ir a Tareas');
     } else if (q.includes('persona')) {
         out.add('Agregar persona'); out.add('Ir a Personas');
+    } else if (q.includes('reporte') || q.includes('análisis')) {
+        out.add('Ir a Reportes'); out.add('Generar reporte Excel');
     } else {
-        out.add('Resumen del sistema'); out.add('Mis tareas');
-        out.add('Ir a Documentos'); out.add('Subir documento');
+        out.add('Resumen del sistema'); out.add('Mis tareas'); out.add('Productividad');
     }
 
     return [...out].slice(0, 5);
 }
 
 // ──────────────────────────────────────────────────────────────
-// HISTORIAL
+// HISTORIAL DE CONVERSACIÓN
 // ──────────────────────────────────────────────────────────────
-async function getConvHistory(userId, limit = 6) {
+async function getConvHistory(userId, limit = 8) {
     try {
         const rows = await Conversation.find({ usuario: userId })
             .sort({ timestamp: -1 }).limit(limit).lean();
         return rows.reverse().flatMap(r => [
             { role: 'user',      content: r.mensajeUsuario },
-            { role: 'assistant', content: r.respuestaBot },
+            { role: 'assistant', content: r.respuestaBot  },
         ]);
     } catch (e) {
         debug.warn('Error cargando historial:', e.message);
@@ -649,8 +1060,8 @@ async function saveConv(userId, userMsg, botMsg, extra = {}) {
     try {
         return await Conversation.create({
             usuario:        userId,
-            mensajeUsuario: userMsg,
-            respuestaBot:   botMsg,
+            mensajeUsuario: userMsg.substring(0, 1000),
+            respuestaBot:   botMsg.substring(0, 5000),
             fuente:         extra.fuente   ?? 'rule-based',
             latencia:       extra.latencia ?? null,
         });
@@ -661,31 +1072,30 @@ async function saveConv(userId, userMsg, botMsg, extra = {}) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// VALIDACIÓN DE ACCIÓN
+// VALIDACIÓN DE ACCIONES
 // ──────────────────────────────────────────────────────────────
+const VALID_NAV = [
+    'dashboard','documentos','personas','tareas','reportes',
+    'papelera','notificaciones','ajustes','soporte','categorias','departamentos',
+];
+const VALID_MODAL = [
+    'upload','addPerson','addTask','addCategory','addDepartment','search',
+];
+
 function validateAndFixActions(actions, originalMessage) {
     if (!actions.length) {
         const intent = detectIntent(originalMessage);
-        if (intent.type === 'navigate') {
-            debug.action('Acción inferida por intent:', intent);
+        if (intent.type === 'navigate' && VALID_NAV.includes(intent.target)) {
             return [{ action: 'navigate', target: intent.target }];
         }
-        if (intent.type === 'openModal') {
-            debug.action('Modal inferido por intent:', intent);
+        if (intent.type === 'openModal' && VALID_MODAL.includes(intent.target)) {
             return [{ action: 'openModal', target: intent.target }];
         }
         if (intent.type === 'search') {
             return [{ action: 'search', query: intent.query, section: intent.section }];
         }
+        return [];
     }
-
-    const VALID_NAV = [
-        'dashboard','documentos','personas','tareas','reportes',
-        'papelera','notificaciones','ajustes','soporte','categorias','departamentos',
-    ];
-    const VALID_MODAL = [
-        'upload','addPerson','addTask','addCategory','addDepartment','search',
-    ];
 
     return actions.filter(a => {
         if (a.action === 'navigate') {
@@ -693,18 +1103,14 @@ function validateAndFixActions(actions, originalMessage) {
             if (!ok) debug.warn(`navigate target inválido: "${a.target}"`);
             return ok;
         }
-        if (a.action === 'openModal') {
-            const ok = VALID_MODAL.includes(a.target);
-            if (!ok) debug.warn(`openModal target inválido: "${a.target}"`);
-            return ok;
-        }
-        if (a.action === 'search') return !!a.query;
+        if (a.action === 'openModal') return VALID_MODAL.includes(a.target);
+        if (a.action === 'search')    return !!a.query;
         return false;
     });
 }
 
 // ──────────────────────────────────────────────────────────────
-// CONTROLLER PRINCIPAL
+// CONTROLLER PRINCIPAL v4.0
 // ──────────────────────────────────────────────────────────────
 class ChatbotController {
 
@@ -715,33 +1121,34 @@ class ChatbotController {
 
         if (!message?.trim())
             return res.status(400).json({ success: false, message: 'Mensaje vacío.' });
-        if (message.trim().length > 1500)
-            return res.status(400).json({ success: false, message: 'Mensaje demasiado largo (máx. 1500 caracteres).' });
+        if (message.trim().length > 2000)
+            return res.status(400).json({ success: false, message: 'Mensaje demasiado largo (máx. 2000 caracteres).' });
 
         const msg = message.trim();
-        debug.log(`Mensaje recibido: "${msg.substring(0, 100)}"`);
+        debug.log(`Mensaje [${userId}]: "${msg.substring(0, 120)}"`);
+
+        const userInfo = {
+            nombre: req.user?.nombre || req.user?.usuario || req.user?.name || 'Usuario',
+            rol:    req.user?.rol    || req.user?.role    || 'usuario',
+            id:     String(userId),
+        };
 
         try {
             const [ctx, history] = await Promise.all([
                 buildSystemContext(userId),
-                getConvHistory(userId, 6),
+                getConvHistory(userId, 8),
             ]);
 
-            const userInfo = {
-                nombre: req.user?.nombre || req.user?.usuario || req.user?.name || 'Usuario',
-                rol:    req.user?.rol    || req.user?.role    || 'usuario',
-                id:     userId,
-            };
-
+            // ── Intentar con Groq primero ─────────────────────
             if (process.env.GROQ_API_KEY) {
                 try {
                     const systemPrompt = buildSystemPrompt(ctx, userInfo);
                     const { text: raw } = await callGroq(systemPrompt, [
                         ...history,
                         { role: 'user', content: msg },
-                    ]);
+                    ], 1200);
 
-                    debug.log(`Groq respuesta cruda: "${raw.substring(0, 200)}"`);
+                    debug.log(`Groq raw (${raw.length} chars): "${raw.substring(0, 150)}..."`);
 
                     let   actions  = extractActions(raw);
                           actions  = validateAndFixActions(actions, msg);
@@ -749,11 +1156,9 @@ class ChatbotController {
                     const latency  = Date.now() - t0;
                     const suggestions = buildSuggestions(msg, ctx);
 
-                    debug.info(`Groq OK en ${latency}ms | acciones: ${JSON.stringify(actions)}`);
+                    debug.info(`✅ Groq OK en ${latency}ms | acciones: ${JSON.stringify(actions)}`);
 
-                    const conv = await saveConv(userId, msg, cleanMsg, {
-                        fuente: 'groq', latencia: latency,
-                    });
+                    const conv = await saveConv(userId, msg, cleanMsg, { fuente: 'groq', latencia: latency });
 
                     return res.json({
                         success: true,
@@ -764,30 +1169,31 @@ class ChatbotController {
                             source:         'groq',
                             latency,
                             conversationId: conv?._id,
-                            debug: {
+                            debug: process.env.NODE_ENV === 'development' ? {
                                 actionsRaw:    extractActions(raw).length,
                                 actionsFixed:  actions.length,
                                 intentDetected: detectIntent(msg),
-                            },
+                                taskSchema:    ctx.tareas?._schema,
+                                stats:         ctx.stats,
+                            } : undefined,
                         },
                     });
 
                 } catch (groqErr) {
-                    debug.warn('Groq falló, usando fallback:', groqErr.message);
+                    debug.warn(`Groq falló (${groqErr.message}), usando fallback inteligente`);
                 }
             }
 
-            const fb      = ruleBasedResponse(msg, ctx);
+            // ── Fallback rule-based ───────────────────────────
+            const fb      = ruleBasedResponse(msg, ctx, userInfo);
             const latency = Date.now() - t0;
             const cleanMsg= cleanText(fb.message ?? '');
             let   actions = fb.actions ?? [];
                   actions = validateAndFixActions(actions, msg);
 
-            const conv = await saveConv(userId, msg, cleanMsg, {
-                fuente: 'rule-based', latencia: latency,
-            });
+            const conv = await saveConv(userId, msg, cleanMsg, { fuente: 'rule-based', latencia: latency });
 
-            debug.info(`Fallback OK en ${latency}ms | acciones: ${JSON.stringify(actions)}`);
+            debug.info(`✅ Fallback OK en ${latency}ms`);
 
             return res.json({
                 success: true,
@@ -802,23 +1208,28 @@ class ChatbotController {
             });
 
         } catch (err) {
-            debug.error('Error crítico:', err);
+            debug.error('Error crítico en processMessage:', err);
             return res.status(500).json({
                 success: false,
                 message: 'Error procesando tu consulta. Intenta de nuevo.',
+                debug: process.env.NODE_ENV === 'development' ? { error: err.message } : undefined,
             });
         }
     }
 
     async getSystemStats(req, res) {
+        const t0     = Date.now();
         const userId = req.user?.id || req.user?._id;
         try {
             const ctx = await buildSystemContext(userId);
+            debug.info(`getSystemStats en ${Date.now()-t0}ms`);
             return res.json({
                 success: true,
                 data: {
-                    ...ctx.stats,
+                    stats:                    ctx.stats,
                     tareas:                   ctx.tareas,
+                    analytics:                ctx.analytics,
+                    sistema:                  ctx.sistema,
                     documentosUrgentes:       ctx.docs.urgentes,
                     ultimosDocumentos:        ctx.docs.recientes,
                     documentosVencidos:       ctx.docs.vencidos,
@@ -827,6 +1238,11 @@ class ChatbotController {
                     personasPorDepartamento:  ctx.personas.porDepartamento,
                     categorias:               ctx.categorias,
                     departamentos:            ctx.departamentos,
+                    // Compatibilidad hacia atrás
+                    totalDocs:       ctx.stats.totalDocs,
+                    totalPersonas:   ctx.stats.totalPersonas,
+                    docsPorVencer7:  ctx.stats.docsPorVencer7,
+                    docsVencidos:    ctx.stats.docsVencidos,
                 },
             });
         } catch (err) {
@@ -837,7 +1253,7 @@ class ChatbotController {
 
     async getHistory(req, res) {
         const userId = req.user?.id || req.user?._id;
-        const limit  = Math.min(parseInt(req.query.limit) || 20, 50);
+        const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
         try {
             const rows = await Conversation.find({ usuario: userId })
                 .sort({ timestamp: -1 }).limit(limit).lean();
@@ -850,6 +1266,7 @@ class ChatbotController {
                     timestamp:   r.timestamp,
                     util:        r.util,
                     source:      r.fuente,
+                    latency:     r.latencia,
                 })),
             });
         } catch (err) {
@@ -885,6 +1302,45 @@ class ChatbotController {
         } catch (err) {
             debug.error('submitFeedback error:', err);
             return res.status(500).json({ success: false });
+        }
+    }
+
+    // ─── NUEVO: Diagnóstico del sistema ───────────────────────
+    async getDiagnostics(req, res) {
+        const userId = req.user?.id || req.user?._id;
+        if (process.env.NODE_ENV !== 'development') {
+            return res.status(403).json({ success: false, message: 'Solo disponible en desarrollo.' });
+        }
+        try {
+            // Verificar query real contra la BD para confirmar que funciona
+            const { query } = await buildTaskQuery(userId);
+            const totalTasks         = await Task.countDocuments({});
+            const totalTasksForUser  = await Task.countDocuments(query);
+            const sample             = await Task.findOne({}).lean();
+            const sampleFields       = sample ? Object.keys(sample).sort() : [];
+
+            // Desglose por estado para el usuario actual
+            const byStatus = {};
+            for (const st of TASK_SCHEMA.statuses) {
+                byStatus[st] = await Task.countDocuments({ ...query, estado: st });
+            }
+
+            return res.json({
+                success: true,
+                data: {
+                    confirmedSchema:    TASK_SCHEMA,
+                    userId:             String(userId),
+                    totalTasksInDB:     totalTasks,
+                    tasksForThisUser:   totalTasksForUser,
+                    tasksByStatus:      byStatus,
+                    sampleDocFields:    sampleFields,
+                    env:                process.env.NODE_ENV,
+                    groqEnabled:        !!process.env.GROQ_API_KEY,
+                    queryUsed:          query,
+                },
+            });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: err.message });
         }
     }
 }
