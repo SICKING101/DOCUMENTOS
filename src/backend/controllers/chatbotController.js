@@ -1,7 +1,6 @@
 // ============================================================
-// chatbotController.js — Motor IA ARIA v3.0
-// CBTIS051 — Reescritura completa con fix de navegación,
-// acciones reales, creación de entidades y debugging mejorado
+// chatbotController.js — Motor IA ARIA v3.1 (CORREGIDO)
+// CBTIS051 — Fix: Campos de Task correctos, exclusión de papelera
 // ============================================================
 
 import Document from '../models/Document.js';
@@ -73,7 +72,7 @@ async function callGroq(systemPrompt, messages, maxTokens = 1000) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// CONTEXTO DEL SISTEMA
+// CONTEXTO DEL SISTEMA - CORREGIDO
 // ──────────────────────────────────────────────────────────────
 async function buildSystemContext(userId) {
     const ctx = {
@@ -90,21 +89,48 @@ async function buildSystemContext(userId) {
         const hoy0   = new Date(ahora); hoy0.setHours(0,0,0,0);
         const hoy23  = new Date(ahora); hoy23.setHours(23,59,59,999);
 
+        // 🔥 CORRECCIÓN: Excluir documentos en papelera (isDeleted: true)
+        const documentosActivosQuery = { 
+            activo: true,
+            $or: [
+                { isDeleted: false },
+                { isDeleted: { $exists: false } }
+            ]
+        };
+
         const [
             totalDocs, totalPersonas, totalCategorias, totalDeptos,
             docsPorVencer7, docsPorVencer15, docsPorVencer30,
             docsVencidos, docsRecientes, docsHoy,
         ] = await Promise.all([
-            Document.countDocuments({ activo: true }),
+            Document.countDocuments(documentosActivosQuery),
             Person.countDocuments({ activo: true }),
             Category.countDocuments({ activo: true }),
             Department.countDocuments({ activo: true }),
-            Document.countDocuments({ activo: true, fecha_vencimiento: { $gte: ahora, $lte: en7d } }),
-            Document.countDocuments({ activo: true, fecha_vencimiento: { $gte: ahora, $lte: en15d } }),
-            Document.countDocuments({ activo: true, fecha_vencimiento: { $gte: ahora, $lte: en30d } }),
-            Document.countDocuments({ activo: true, fecha_vencimiento: { $lt: ahora } }),
-            Document.countDocuments({ activo: true, fecha_subida: { $gte: hace7d } }),
-            Document.countDocuments({ activo: true, fecha_subida: { $gte: hoy0 } }),
+            Document.countDocuments({ 
+                ...documentosActivosQuery, 
+                fecha_vencimiento: { $gte: ahora, $lte: en7d } 
+            }),
+            Document.countDocuments({ 
+                ...documentosActivosQuery, 
+                fecha_vencimiento: { $gte: ahora, $lte: en15d } 
+            }),
+            Document.countDocuments({ 
+                ...documentosActivosQuery, 
+                fecha_vencimiento: { $gte: ahora, $lte: en30d } 
+            }),
+            Document.countDocuments({ 
+                ...documentosActivosQuery, 
+                fecha_vencimiento: { $lt: ahora } 
+            }),
+            Document.countDocuments({ 
+                ...documentosActivosQuery, 
+                fecha_subida: { $gte: hace7d } 
+            }),
+            Document.countDocuments({ 
+                ...documentosActivosQuery, 
+                fecha_subida: { $gte: hoy0 } 
+            }),
         ]);
 
         ctx.stats = {
@@ -113,36 +139,69 @@ async function buildSystemContext(userId) {
             docsVencidos, docsRecientes, docsHoy,
         };
 
-        // Tareas del usuario
+        // 🔥 CORRECCIÓN: Tareas - Usar campos correctos del modelo Task
         try {
-            const f = { $or: [{ asignadoA: userId }, { creador: userId }] };
-            const [tPend, tProg, tComp, tVenc, tHoy, tSem] = await Promise.all([
-                Task.countDocuments({ ...f, estado: 'pendiente' }),
-                Task.countDocuments({ ...f, estado: 'en-progreso' }),
-                Task.countDocuments({ ...f, estado: 'completada' }),
-                Task.countDocuments({ ...f, estado: { $in: ['pendiente','en-progreso'] }, fechaLimite: { $lt: ahora } }),
-                Task.countDocuments({ ...f, fechaLimite: { $gte: hoy0, $lte: hoy23 } }),
-                Task.countDocuments({ ...f, fechaLimite: { $gte: ahora, $lte: en7d } }),
+            // Query para tareas del usuario (activas y no eliminadas)
+            const tareasQuery = { 
+                activo: true,
+                $or: [
+                    { asignado_a: userId },      // 🔥 CORREGIDO: asignado_a (con guión bajo)
+                    { creado_por: userId }        // 🔥 CORREGIDO: creado_por
+                ]
+            };
+            
+            const [tPend, tProg, tComp, tCancel, tVenc, tHoy, tSem] = await Promise.all([
+                Task.countDocuments({ ...tareasQuery, estado: 'pendiente' }),
+                Task.countDocuments({ ...tareasQuery, estado: 'en-progreso' }),
+                Task.countDocuments({ ...tareasQuery, estado: 'completada' }),
+                Task.countDocuments({ ...tareasQuery, estado: 'cancelada' }),
+                Task.countDocuments({ 
+                    ...tareasQuery, 
+                    estado: { $in: ['pendiente', 'en-progreso'] }, 
+                    fecha_limite: { $lt: ahora }     // 🔥 CORREGIDO: fecha_limite
+                }),
+                Task.countDocuments({ 
+                    ...tareasQuery, 
+                    fecha_limite: { $gte: hoy0, $lte: hoy23 } 
+                }),
+                Task.countDocuments({ 
+                    ...tareasQuery, 
+                    fecha_limite: { $gte: ahora, $lte: en7d } 
+                }),
             ]);
 
-            const lista = await Task.find({ ...f, estado: { $in: ['pendiente','en-progreso'] } })
-                .sort({ prioridad: -1, fechaLimite: 1 }).limit(8).lean();
+            const lista = await Task.find({ 
+                ...tareasQuery, 
+                estado: { $in: ['pendiente', 'en-progreso'] } 
+            })
+                .sort({ prioridad: -1, fecha_limite: 1 })
+                .limit(8)
+                .lean();
 
-            const completadas = await Task.find({ ...f, estado: 'completada' })
-                .sort({ fecha_completada: -1 }).limit(5).lean();
+            const completadas = await Task.find({ 
+                ...tareasQuery, 
+                estado: 'completada' 
+            })
+                .sort({ fecha_completada: -1 })
+                .limit(5)
+                .lean();
 
             ctx.tareas = {
-                pendientes: tPend, enProgreso: tProg,
-                completadas: tComp, vencidas: tVenc,
-                paraHoy: tHoy, paraSemana: tSem,
+                pendientes: tPend, 
+                enProgreso: tProg,
+                completadas: tComp,
+                canceladas: tCancel,
+                vencidas: tVenc,
+                paraHoy: tHoy, 
+                paraSemana: tSem,
                 lista: lista.map(t => ({
                     id: String(t._id),
                     titulo: t.titulo,
                     descripcion: t.descripcion,
                     prioridad: t.prioridad || 'media',
                     estado: t.estado,
-                    fechaLimite: t.fechaLimite
-                        ? new Date(t.fechaLimite).toLocaleDateString('es-MX') : null,
+                    fechaLimite: t.fecha_limite
+                        ? new Date(t.fecha_limite).toLocaleDateString('es-MX') : null,
                 })),
                 completadasRecientes: completadas.map(t => ({
                     titulo: t.titulo,
@@ -153,22 +212,29 @@ async function buildSystemContext(userId) {
         } catch (e) {
             debug.warn('Task no disponible:', e.message);
             ctx.tareas = {
-                pendientes:0, enProgreso:0, completadas:0, vencidas:0,
-                paraHoy:0, paraSemana:0, lista:[], completadasRecientes:[],
+                pendientes:0, enProgreso:0, completadas:0, canceladas:0,
+                vencidas:0, paraHoy:0, paraSemana:0, 
+                lista:[], completadasRecientes:[],
             };
         }
 
-        // Documentos
+        // Documentos activos (excluyendo papelera) - con detalles
         const [recientes, urgentes, vencidos, porCategoria] = await Promise.all([
-            Document.find({ activo: true })
+            Document.find(documentosActivosQuery)
                 .sort({ fecha_subida: -1 }).limit(10)
                 .populate('categoria', 'nombre').lean(),
-            Document.find({ activo: true, fecha_vencimiento: { $gte: ahora, $lte: en7d } })
+            Document.find({ 
+                ...documentosActivosQuery, 
+                fecha_vencimiento: { $gte: ahora, $lte: en7d } 
+            })
                 .sort({ fecha_vencimiento: 1 }).limit(10).lean(),
-            Document.find({ activo: true, fecha_vencimiento: { $lt: ahora } })
+            Document.find({ 
+                ...documentosActivosQuery, 
+                fecha_vencimiento: { $lt: ahora } 
+            })
                 .sort({ fecha_vencimiento: -1 }).limit(10).lean(),
             Document.aggregate([
-                { $match: { activo: true } },
+                { $match: documentosActivosQuery },
                 { $group: { _id: '$categoria', count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
             ]).limit(10),
@@ -179,7 +245,7 @@ async function buildSystemContext(userId) {
                 nombre:     d.nombre_original,
                 categoria:  d.categoria?.nombre || 'Sin categoría',
                 fecha:      new Date(d.fecha_subida).toLocaleDateString('es-MX'),
-                vencimiento:d.fecha_vencimiento
+                vencimiento: d.fecha_vencimiento
                     ? new Date(d.fecha_vencimiento).toLocaleDateString('es-MX') : null,
             })),
             urgentes: urgentes.map(d => ({
@@ -193,11 +259,12 @@ async function buildSystemContext(userId) {
                 diasVencidos: Math.ceil((ahora - new Date(d.fecha_vencimiento)) / 86400000),
             })),
             porCategoria: porCategoria.map(c => ({
-                categoria: c._id || 'Sin categoría', cantidad: c.count,
+                categoria: c._id || 'Sin categoría', 
+                cantidad: c.count,
             })),
         };
 
-        // Personas
+        // Personas activas
         const [personas, porDepto] = await Promise.all([
             Person.find({ activo: true }).limit(20).lean(),
             Person.aggregate([
@@ -212,12 +279,13 @@ async function buildSystemContext(userId) {
             lista: personas.map(p => ({
                 nombre:      p.nombre,
                 email:       p.email,
-                departamento:p.departamento,
+                departamento: p.departamento,
                 puesto:      p.puesto,
                 telefono:    p.telefono,
             })),
             porDepartamento: porDepto.map(d => ({
-                departamento: d._id || 'Sin departamento', cantidad: d.count,
+                departamento: d._id || 'Sin departamento', 
+                cantidad: d.count,
             })),
         };
 
@@ -226,7 +294,7 @@ async function buildSystemContext(userId) {
             Department.find({ activo: true }).lean(),
         ]);
         ctx.categorias   = cats.map(c => c.nombre);
-        ctx.departamentos= deptos.map(d => d.nombre);
+        ctx.departamentos = deptos.map(d => d.nombre);
 
     } catch (err) {
         debug.error('Error construyendo contexto:', err.message);
@@ -236,7 +304,7 @@ async function buildSystemContext(userId) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// SYSTEM PROMPT — MEJORADO CON INSTRUCCIONES DE ACCIÓN CLARAS
+// SYSTEM PROMPT - ACTUALIZADO
 // ──────────────────────────────────────────────────────────────
 function buildSystemPrompt(ctx, userInfo) {
     const s = ctx.stats  || {};
@@ -273,7 +341,7 @@ Usuario actual: ${userInfo?.nombre || 'Usuario'} (rol: ${userInfo?.rol || 'usuar
 ═══════════════════════════════════════════════════════════
 DATOS REALES DEL SISTEMA (tiempo real)
 ═══════════════════════════════════════════════════════════
-DOCUMENTOS: ${s.totalDocs||0} activos | ${s.docsHoy||0} hoy | ${s.docsRecientes||0} esta semana
+DOCUMENTOS ACTIVOS (excluye papelera): ${s.totalDocs||0} | ${s.docsHoy||0} hoy | ${s.docsRecientes||0} esta semana
   Urgentes (7d): ${s.docsPorVencer7||0} | Vencidos: ${s.docsVencidos||0}
 PERSONAS: ${s.totalPersonas||0} | CATEGORÍAS: ${s.totalCategorias||0} | DEPARTAMENTOS: ${s.totalDeptos||0}
 TAREAS: ${t.pendientes||0} pendientes | ${t.enProgreso||0} en progreso | ${t.completadas||0} completadas | ${t.vencidas||0} vencidas | ${t.paraHoy||0} para hoy
@@ -321,32 +389,23 @@ MODALES VÁLIDOS (target para openModal):
 REGLAS ESTRICTAS
 ═══════════════════════════════════════════════════════════
 1. USA SOLO LOS DATOS REALES ANTERIORES. NUNCA inventes cifras.
-2. El JSON de acción SIEMPRE va en su propia línea al final, SIN backticks, SIN markdown, solo el JSON puro.
-3. Si el usuario dice "ir a documentos" → navega a documentos, NO abras el modal de subida.
-4. Si el usuario dice "subir documento" → abre el modal upload.
-5. Si el usuario dice "crear tarea" → abre el modal addTask Y explica que debe completar el formulario.
-6. NUNCA mezcles dos acciones distintas en un mismo mensaje.
-7. Responde SIEMPRE en español mexicano, de forma concisa y directa.
-8. Si el mensaje es ambiguo, pregunta qué quiere hacer exactamente.
-9. Para estadísticas, cita los números exactos del sistema.
-10. Si necesitas realizar una acción en el sistema (crear, editar), usa el JSON de acción correspondiente para abrir el modal; NO finjas haberlo creado.`;
+2. Los documentos en papelera NO se cuentan en estadísticas.
+3. El JSON de acción SIEMPRE va en su propia línea al final, SIN backticks.
+4. Responde SIEMPRE en español mexicano, de forma concisa y directa.`;
 }
 
 // ──────────────────────────────────────────────────────────────
-// EXTRACTOR DE ACCIONES — ROBUSTO
+// EXTRACTOR DE ACCIONES
 // ──────────────────────────────────────────────────────────────
 function extractActions(text) {
     const actions = [];
     if (!text) return actions;
 
-    // Patrón 1: JSON puro en línea (sin backticks)
     const rePlain = /\{[^{}]*"action"\s*:\s*"[^"]+[^{}]*\}/g;
-    // Patrón 2: dentro de bloque ```json ... ```
     const reBlock = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/g;
 
     let m;
 
-    // Extraer bloques de código JSON
     while ((m = reBlock.exec(text)) !== null) {
         try {
             const parsed = JSON.parse(m[1]);
@@ -357,7 +416,6 @@ function extractActions(text) {
         } catch (_) {}
     }
 
-    // Extraer JSON plano (solo si no se encontró en bloque)
     if (actions.length === 0) {
         while ((m = rePlain.exec(text)) !== null) {
             try {
@@ -375,39 +433,35 @@ function extractActions(text) {
 
 function cleanText(text) {
     if (!text) return '';
-    // Eliminar bloques JSON de acción del texto visible
     let clean = text
         .replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, '')
         .replace(/\{[^{}]*"action"\s*:\s*"[^"]+[^{}]*\}/g, '')
         .trim();
-    // Eliminar líneas vacías consecutivas al final
     clean = clean.replace(/\n{3,}/g, '\n\n');
     return clean;
 }
 
 // ──────────────────────────────────────────────────────────────
-// DETECCIÓN DE INTENCIÓN — Para fallback y validación
+// DETECCIÓN DE INTENCIÓN
 // ──────────────────────────────────────────────────────────────
 function detectIntent(message) {
     const q = message.toLowerCase().trim();
 
-    // Navegación
     const navPatterns = [
-        { pattern: /ir a |navegar a |abrir |ve a /,                  check: true },
-        { pattern: /\bdocumentos\b/,                                  nav: 'documentos' },
-        { pattern: /\btareas\b/,                                      nav: 'tareas' },
-        { pattern: /\bpersonas\b/,                                    nav: 'personas' },
-        { pattern: /\bdashboard\b|\binicio\b|\bprincipal\b/,          nav: 'dashboard' },
-        { pattern: /\breportes\b|\binformes\b/,                       nav: 'reportes' },
-        { pattern: /\bpapelera\b|\bpapel\b/,                         nav: 'papelera' },
-        { pattern: /\bnotificaciones\b/,                             nav: 'notificaciones' },
-        { pattern: /\bajustes\b|\bconfiguracion\b|\bconfiguraci[oó]n\b/, nav: 'ajustes' },
-        { pattern: /\bsoporte\b|\bayuda\b/,                          nav: 'soporte' },
-        { pattern: /\bcategor[ií]as\b/,                              nav: 'categorias' },
-        { pattern: /\bdepartamentos\b/,                              nav: 'departamentos' },
+        { pattern: /ir a |navegar a |abrir |ve a /, check: true },
+        { pattern: /\bdocumentos\b/, nav: 'documentos' },
+        { pattern: /\btareas\b/, nav: 'tareas' },
+        { pattern: /\bpersonas\b/, nav: 'personas' },
+        { pattern: /\bdashboard\b|\binicio\b|\bprincipal\b/, nav: 'dashboard' },
+        { pattern: /\breportes\b|\binformes\b/, nav: 'reportes' },
+        { pattern: /\bpapelera\b|\bpapel\b/, nav: 'papelera' },
+        { pattern: /\bnotificaciones\b/, nav: 'notificaciones' },
+        { pattern: /\bajustes\b|\bconfiguracion\b/, nav: 'ajustes' },
+        { pattern: /\bsoporte\b|\bayuda\b/, nav: 'soporte' },
+        { pattern: /\bcategor[ií]as\b/, nav: 'categorias' },
+        { pattern: /\bdepartamentos\b/, nav: 'departamentos' },
     ];
 
-    // Detectar si es navegación explícita
     const isNavIntent = /\b(ir a|ve a|navegar|mostrar|abrir la secci[oó]n|llevar a)\b/.test(q);
     if (isNavIntent) {
         for (const p of navPatterns) {
@@ -417,7 +471,6 @@ function detectIntent(message) {
         }
     }
 
-    // Acciones de creación
     if (/subir|cargar|upload/.test(q) && /documento|archivo/.test(q)) {
         return { type: 'openModal', target: 'upload' };
     }
@@ -442,18 +495,16 @@ function detectIntent(message) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// FALLBACK INTELIGENTE
+// FALLBACK INTELIGENTE - ACTUALIZADO
 // ──────────────────────────────────────────────────────────────
 function ruleBasedResponse(message, ctx) {
     const q = message.toLowerCase().trim();
     const s = ctx.stats  || {};
     const t = ctx.tareas || {};
     const d = ctx.docs   || {};
-    const p = ctx.personas || {};
 
     const intent = detectIntent(message);
 
-    // Acciones directas desde intent
     if (intent.type === 'navigate') {
         const labels = {
             documentos:'Documentos', tareas:'Tareas', personas:'Personas',
@@ -471,8 +522,8 @@ function ruleBasedResponse(message, ctx) {
     if (intent.type === 'openModal') {
         const msgs = {
             upload:        `📤 Abriendo el formulario para **subir documento**.\n\nArrastra el archivo o selecciónalo desde tu equipo.`,
-            addTask:       `✅ Abriendo el formulario para **crear tarea**.\n\nCompleta el título, descripción, prioridad y fecha límite. Una vez que guardes, la tarea aparecerá en tu sección de Tareas.`,
-            addPerson:     `👤 Abriendo el formulario para **agregar persona**.\n\nCompleta nombre, email, departamento y puesto.`,
+            addTask:       `✅ Abriendo el formulario para **crear tarea**.\n\nCompleta el título, descripción, prioridad y fecha límite.`,
+            addPerson:     `👤 Abriendo el formulario para **agregar persona**.`,
             addCategory:   `📁 Abriendo el formulario para **crear categoría**.`,
             addDepartment: `🏢 Abriendo el formulario para **crear departamento**.`,
         };
@@ -483,10 +534,9 @@ function ruleBasedResponse(message, ctx) {
         };
     }
 
-    // Estadísticas
     if (/cu[aá]ntos? documento/.test(q) || /estad[ií]stica/.test(q)) {
         return {
-            message: `📊 **Documentos en el sistema:**\n\n• **${s.totalDocs||0}** activos\n• **${s.docsHoy||0}** subidos hoy\n• **${s.docsRecientes||0}** esta semana\n• **${s.docsPorVencer7||0}** por vencer en 7 días\n• **${s.docsVencidos||0}** vencidos`,
+            message: `📊 **Documentos activos (excluye papelera):**\n\n• **${s.totalDocs||0}** activos\n• **${s.docsHoy||0}** subidos hoy\n• **${s.docsRecientes||0}** esta semana\n• **${s.docsPorVencer7||0}** por vencer en 7 días\n• **${s.docsVencidos||0}** vencidos`,
             suggestions: ['Documentos por vencer', 'Subir documento', 'Ir a Documentos'],
             actions: [],
         };
@@ -502,7 +552,7 @@ function ruleBasedResponse(message, ctx) {
 
     if (/resumen|dashboard|estado del sistema/.test(q)) {
         return {
-            message: `**📊 RESUMEN DEL SISTEMA — CBTIS 051**\n\n📄 Documentos: **${s.totalDocs||0}** activos\n✅ Tareas: **${t.pendientes||0}** pendientes, **${t.paraHoy||0}** para hoy\n👥 Personas: **${s.totalPersonas||0}**\n📁 Categorías: **${s.totalCategorias||0}**\n\n${s.docsPorVencer7>0?`⚠️ **Alerta:** ${s.docsPorVencer7} docs vencen en 7 días`:'✅ Sin alertas urgentes'}`,
+            message: `**📊 RESUMEN DEL SISTEMA — CBTIS 051**\n\n📄 Documentos activos: **${s.totalDocs||0}**\n✅ Tareas: **${t.pendientes||0}** pendientes, **${t.paraHoy||0}** para hoy\n👥 Personas: **${s.totalPersonas||0}**\n📁 Categorías: **${s.totalCategorias||0}**\n\n${s.docsPorVencer7>0?`⚠️ **Alerta:** ${s.docsPorVencer7} docs vencen en 7 días`:'✅ Sin alertas urgentes'}`,
             suggestions: ['Ver documentos urgentes', 'Mis tareas para hoy', 'Ir a Dashboard'],
             actions: [],
         };
@@ -530,8 +580,7 @@ function ruleBasedResponse(message, ctx) {
         const hora = new Date().getHours();
         const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
         return {
-            message: `${saludo} 👋 Soy **ARIA**. Tengo estos datos del sistema:\n\n• **${s.totalDocs||0}** documentos activos\n• **${t.pendientes||0}** tareas pendientes\n• **${s.totalPersonas||0}** personas\n${s.docsPorVencer7>0?`\n⚠️ **${s.docsPorVencer7}** documentos vencen esta semana.\n`:''}
-¿En qué te ayudo?`,
+            message: `${saludo} 👋 Soy **ARIA**. Datos actuales:\n\n• **${s.totalDocs||0}** documentos activos\n• **${t.pendientes||0}** tareas pendientes\n• **${s.totalPersonas||0}** personas\n${s.docsPorVencer7>0?`\n⚠️ **${s.docsPorVencer7}** documentos vencen esta semana.\n`:''}\n¿En qué te ayudo?`,
             suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos por vencer', '¿Qué puedes hacer?'],
             actions: [],
         };
@@ -539,15 +588,14 @@ function ruleBasedResponse(message, ctx) {
 
     if (/qu[eé] puedes|ayuda|comandos|help/.test(q)) {
         return {
-            message: `**🎯 Puedo ayudarte con:**\n\n**📊 Consultas:**\n• "¿Cuántos documentos hay?"\n• "Resumen del sistema"\n• "Mis tareas pendientes"\n• "Documentos por vencer"\n\n**🗺️ Navegación:**\n• "Ir a documentos"\n• "Ir a tareas"\n• "Ir a reportes"\n\n**⚡ Acciones:**\n• "Subir documento"\n• "Crear tarea"\n• "Agregar persona"\n• "Crear categoría"\n\n**🔍 Búsqueda:**\n• "Buscar [nombre del documento]"`,
+            message: `**🎯 Puedo ayudarte con:**\n\n**📊 Consultas:**\n• "¿Cuántos documentos hay?"\n• "Resumen del sistema"\n• "Mis tareas pendientes"\n• "Documentos por vencer"\n\n**🗺️ Navegación:**\n• "Ir a documentos"\n• "Ir a tareas"\n• "Ir a reportes"\n\n**⚡ Acciones:**\n• "Subir documento"\n• "Crear tarea"\n• "Agregar persona"\n• "Crear categoría"`,
             suggestions: ['Resumen del sistema', 'Ir a Documentos', 'Crear tarea', 'Subir documento'],
             actions: [],
         };
     }
 
-    // Respuesta por defecto
     return {
-        message: `🤔 No entendí bien "${message.substring(0,60)}". ¿Quieres que te ayude con:\n\n• 📊 **Estadísticas** del sistema\n• 🗺️ **Navegar** a una sección\n• ⚡ **Realizar una acción** (subir doc, crear tarea...)\n• 🔍 **Buscar** un documento`,
+        message: `🤔 No entendí bien "${message.substring(0,60)}". ¿Quieres que te ayude con:\n\n• 📊 **Estadísticas** del sistema\n• 🗺️ **Navegar** a una sección\n• ⚡ **Realizar una acción**\n• 🔍 **Buscar** un documento`,
         suggestions: ['Resumen del sistema', 'Mis tareas', 'Ir a Documentos', '¿Qué puedes hacer?'],
         actions: [],
     };
@@ -613,11 +661,10 @@ async function saveConv(userId, userMsg, botMsg, extra = {}) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// VALIDACIÓN DE ACCIÓN — Post-proceso para corregir errores comunes
+// VALIDACIÓN DE ACCIÓN
 // ──────────────────────────────────────────────────────────────
 function validateAndFixActions(actions, originalMessage) {
     if (!actions.length) {
-        // Si Groq no generó acción pero el intent es claro, generarla nosotros
         const intent = detectIntent(originalMessage);
         if (intent.type === 'navigate') {
             debug.action('Acción inferida por intent:', intent);
@@ -632,7 +679,6 @@ function validateAndFixActions(actions, originalMessage) {
         }
     }
 
-    // Validar targets de navigate
     const VALID_NAV = [
         'dashboard','documentos','personas','tareas','reportes',
         'papelera','notificaciones','ajustes','soporte','categorias','departamentos',
@@ -662,7 +708,6 @@ function validateAndFixActions(actions, originalMessage) {
 // ──────────────────────────────────────────────────────────────
 class ChatbotController {
 
-    // ── Procesar mensaje ───────────────────────────────────────
     async processMessage(req, res) {
         const t0     = Date.now();
         const userId = req.user?.id || req.user?._id;
@@ -688,7 +733,6 @@ class ChatbotController {
                 id:     userId,
             };
 
-            // ── Intentar con Groq ──────────────────────────────
             if (process.env.GROQ_API_KEY) {
                 try {
                     const systemPrompt = buildSystemPrompt(ctx, userInfo);
@@ -733,7 +777,6 @@ class ChatbotController {
                 }
             }
 
-            // ── Fallback rule-based ────────────────────────────
             const fb      = ruleBasedResponse(msg, ctx);
             const latency = Date.now() - t0;
             const cleanMsg= cleanText(fb.message ?? '');
@@ -767,7 +810,6 @@ class ChatbotController {
         }
     }
 
-    // ── Estadísticas del sistema ───────────────────────────────
     async getSystemStats(req, res) {
         const userId = req.user?.id || req.user?._id;
         try {
@@ -793,7 +835,6 @@ class ChatbotController {
         }
     }
 
-    // ── Historial ──────────────────────────────────────────────
     async getHistory(req, res) {
         const userId = req.user?.id || req.user?._id;
         const limit  = Math.min(parseInt(req.query.limit) || 20, 50);
@@ -817,7 +858,6 @@ class ChatbotController {
         }
     }
 
-    // ── Borrar historial ───────────────────────────────────────
     async clearHistory(req, res) {
         const userId = req.user?.id || req.user?._id;
         try {
@@ -830,7 +870,6 @@ class ChatbotController {
         }
     }
 
-    // ── Feedback ───────────────────────────────────────────────
     async submitFeedback(req, res) {
         const userId = req.user?.id || req.user?._id;
         const { conversationId, util } = req.body;

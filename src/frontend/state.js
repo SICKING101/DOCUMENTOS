@@ -37,6 +37,12 @@ class AppState {
          */
         this.departments = [];
         
+        /**
+         * 2.5 Lista de tareas del usuario
+         * Almacena todas las tareas asignadas o creadas por el usuario.
+         */
+        this.tasks = [];
+        
         // =============================================================================
         // 3. ESTADÍSTICAS DEL DASHBOARD
         // =============================================================================
@@ -69,6 +75,19 @@ class AppState {
              * Contador de categorías disponibles en el sistema.
              */
             totalCategorias: 0
+        };
+        
+        /**
+         * 3.2 Estadísticas de tareas
+         * Objeto que contiene métricas de tareas del usuario.
+         */
+        this.tasksStats = {
+            total: 0,
+            pendientes: 0,
+            enProgreso: 0,
+            completadas: 0,
+            vencidas: 0,
+            paraHoy: 0
         };
         
         // =============================================================================
@@ -154,13 +173,89 @@ class AppState {
         console.log('Persons:', this.persons);
         console.log('Documents:', this.documents);
         console.log('Categories:', this.categories);
+        console.log('Departments:', this.departments);
+        console.log('Tasks:', this.tasks);
         console.log('Dashboard Stats:', this.dashboardStats);
+        console.log('Tasks Stats:', this.tasksStats);
         console.log('Current Tab:', this.currentTab);
         console.log('Selected File:', this.selectedFile);
         console.log('Filters:', this.filters);
         console.log('Search Results:', this.searchResults);
         console.log('Current Search Query:', this.currentSearchQuery);
         console.groupEnd();
+    }
+    
+    /**
+     * 6.2 Actualizar estadísticas de tareas
+     * Recalcula las estadísticas basadas en el array de tareas actual.
+     */
+    updateTasksStats() {
+        const now = new Date();
+        
+        this.tasksStats.total = this.tasks.length;
+        this.tasksStats.pendientes = this.tasks.filter(t => t.estado === 'pendiente').length;
+        this.tasksStats.enProgreso = this.tasks.filter(t => t.estado === 'en-progreso').length;
+        this.tasksStats.completadas = this.tasks.filter(t => t.estado === 'completada').length;
+        
+        // Tareas vencidas (pendientes o en progreso con fecha límite pasada)
+        this.tasksStats.vencidas = this.tasks.filter(t => {
+            if (t.estado === 'completada' || t.estado === 'cancelada') return false;
+            if (!t.fecha_limite) return false;
+            return new Date(t.fecha_limite) < now;
+        }).length;
+        
+        // Tareas para hoy
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        this.tasksStats.paraHoy = this.tasks.filter(t => {
+            if (t.estado === 'completada' || t.estado === 'cancelada') return false;
+            if (!t.fecha_limite) return false;
+            const dueDate = new Date(t.fecha_limite);
+            return dueDate >= today && dueDate < tomorrow;
+        }).length;
+    }
+    
+    /**
+     * 6.3 Agregar una tarea al estado
+     * @param {Object} task - Tarea a agregar
+     */
+    addTask(task) {
+        this.tasks.unshift(task);
+        this.updateTasksStats();
+    }
+    
+    /**
+     * 6.4 Actualizar una tarea existente
+     * @param {string} taskId - ID de la tarea
+     * @param {Object} updatedTask - Datos actualizados
+     */
+    updateTask(taskId, updatedTask) {
+        const index = this.tasks.findIndex(t => t._id === taskId);
+        if (index !== -1) {
+            this.tasks[index] = { ...this.tasks[index], ...updatedTask };
+            this.updateTasksStats();
+        }
+    }
+    
+    /**
+     * 6.5 Eliminar una tarea del estado
+     * @param {string} taskId - ID de la tarea a eliminar
+     */
+    removeTask(taskId) {
+        this.tasks = this.tasks.filter(t => t._id !== taskId);
+        this.updateTasksStats();
+    }
+    
+    /**
+     * 6.6 Cargar tareas desde el servidor
+     * @param {Array} tasks - Lista de tareas del servidor
+     */
+    loadTasks(tasks) {
+        this.tasks = tasks || [];
+        this.updateTasksStats();
     }
 }
 
