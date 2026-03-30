@@ -1,7 +1,7 @@
 // src/backend/middleware/superAdminAuth.js
 import jwt from 'jsonwebtoken';
 
-const TOKEN_EXPIRY = '8h';
+const TOKEN_EXPIRY = '24h';
 
 // Getter para variables de entorno (se leen en tiempo real)
 const env = {

@@ -12,6 +12,77 @@ let logoutBtn;
 let changeAdminBtn;
 
 // =============================================================================
+// FUNCIÓN PARA ACTUALIZAR LA INFORMACIÓN DEL USUARIO EN LA UI
+// =============================================================================
+
+function actualizarInfoUsuario() {
+    try {
+        // Obtener usuario del localStorage
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            console.log('❌ No hay usuario en localStorage');
+            return false;
+        }
+        
+        const user = JSON.parse(userStr);
+        console.log('👤 Actualizando UI con datos de usuario:', user);
+        
+        // Actualizar elementos de la barra superior
+        const userNameElement = document.querySelector('.topbar__user-name');
+        const userRoleElement = document.querySelector('.topbar__user-role');
+        
+        if (userNameElement) {
+            // Mostrar el nombre del usuario o el email si no hay nombre
+            userNameElement.textContent = user.usuario || user.correo || 'Usuario';
+        }
+        
+        if (userRoleElement) {
+            // Mostrar el rol capitalizado
+            const rolMostrado = user.rol === 'administrador' ? 'Administrador' : 
+                               user.rol === 'desactivado' ? 'Desactivado' :
+                               user.rol ? user.rol.charAt(0).toUpperCase() + user.rol.slice(1) : 'Usuario';
+            userRoleElement.textContent = rolMostrado;
+        }
+        
+        // Actualizar elementos del menú desplegable
+        const menuNameElement = document.querySelector('.user-menu__name');
+        const menuEmailElement = document.querySelector('.user-menu__email');
+        const menuStatusElement = document.querySelector('.user-menu__status');
+        
+        if (menuNameElement) {
+            menuNameElement.textContent = user.usuario || user.correo || 'Usuario del Sistema';
+        }
+        
+        if (menuEmailElement) {
+            menuEmailElement.textContent = user.correo || 'usuario@cbtis051.edu.mx';
+        }
+        
+        if (menuStatusElement) {
+            menuStatusElement.textContent = user.activo ? 'En línea' : 'Desconectado';
+        }
+        
+        // Actualizar avatar (opcional, cambiar ícono según rol)
+        const avatarIcon = document.querySelector('.topbar__user-avatar i, .user-menu__avatar i');
+        if (avatarIcon) {
+            if (user.rol === 'administrador') {
+                avatarIcon.className = 'fas fa-user-shield';
+            } else if (user.rol === 'desactivado') {
+                avatarIcon.className = 'fas fa-user-lock';
+            } else {
+                avatarIcon.className = 'fas fa-user';
+            }
+        }
+        
+        console.log('✅ UI de usuario actualizada correctamente');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error actualizando info de usuario:', error);
+        return false;
+    }
+}
+
+// =============================================================================
 // FUNCIÓN PARA VERIFICAR SI EL USUARIO ACTUAL ES ADMINISTRADOR
 // =============================================================================
 
@@ -64,6 +135,9 @@ function actualizarVisibilidadMenu() {
 // Inicializar el menú de usuario
 export function inicializarMenuUsuario() {
     console.log('🔧 Inicializando menú de usuario...');
+    
+    // PRIMERO: Actualizar la información del usuario en la UI
+    actualizarInfoUsuario();
     
     // Obtener elementos del DOM
     userMenuTrigger = document.getElementById('userMenuTrigger');
@@ -126,6 +200,7 @@ export function inicializarMenuUsuario() {
 // Función para forzar la reevaluación de permisos (útil después de login)
 export function reevaluarPermisosUsuario() {
     console.log('🔄 Re-evaluando permisos de usuario...');
+    actualizarInfoUsuario(); // También actualizar la info
     actualizarVisibilidadMenu();
 }
 
@@ -133,12 +208,17 @@ export function reevaluarPermisosUsuario() {
 window.addEventListener('storage', (e) => {
     if (e.key === 'user') {
         console.log('🔄 Usuario actualizado en localStorage, reevaluando permisos...');
+        actualizarInfoUsuario();
         actualizarVisibilidadMenu();
     }
 });
 
 // También podemos exponer la función globalmente
 window.reevaluarPermisosUsuario = reevaluarPermisosUsuario;
+
+// El resto de tu código permanece igual...
+// (toggleUserMenu, closeUserMenu, handleLogout, openChangeAdminModal, 
+//  setupChangeAdminModal, handleChangeAdmin, mostrarAlerta, etc.)
 
 // Toggle del menú de usuario
 function toggleUserMenu(e) {
@@ -184,7 +264,7 @@ async function openChangeAdminModal(e) {
         return;
     }
 
-    // Verificar permiso de ACCIÓN (roles “solo ver”)
+    // Verificar permiso de ACCIÓN (roles "solo ver")
     await loadCurrentPermissions();
     if (!canAction('admin')) {
         showNoPermissionAlert('admin');
