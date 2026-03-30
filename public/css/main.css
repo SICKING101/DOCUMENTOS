@@ -70,6 +70,8 @@
 @import url('sections/reportes.css');
 @import url('sections/auditoria.css');
 @import url('sections/roles.css');
+@import url('sections/versiones.css');
+@import url('sections/super-admin.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');

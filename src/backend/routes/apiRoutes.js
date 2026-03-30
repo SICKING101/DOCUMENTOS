@@ -19,6 +19,12 @@ import TrashController from '../controllers/trashController.js';
 import SupportController from '../controllers/supportController.js';
 import AuditController from '../controllers/auditController.js';
 import ChatbotController from '../controllers/chatbotController.js';
+import {
+  getAllVersions,
+  getCurrentVersion,
+  getVersionById,
+} from '../controllers/versionController.js';
+import { getSystemStatus, getSystemHistory } from '../controllers/systemStateController.js';
 
 // ── Middlewares ───────────────────────────────────────────────
 import { protegerRuta, requirePermission } from '../middleware/auth.js';
@@ -37,6 +43,12 @@ router.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
     });
 });
+
+// Obtener estado actual del sistema (si está cerrado o abierto)
+router.get('/system/status', protegerRuta, getSystemStatus);
+
+// Obtener historial de cierres/reaperturas
+router.get('/system/history', protegerRuta, getSystemHistory);
 
 // ─── AUDITORÍA ────────────────────────────────────────────────
 router.post('/frontend-log', AuditController.frontendLog);
@@ -147,5 +159,10 @@ if (process.env.NODE_ENV === 'development') {
 } else {
     console.log('🚀 Modo producción: rutas de prueba deshabilitadas');
 }
+
+// ─── VERSIONES DEL SISTEMA (solo lectura para usuarios autenticados) ──────────
+router.get('/versions',         protegerRuta, getAllVersions);
+router.get('/versions/current', protegerRuta, getCurrentVersion);
+router.get('/versions/:id',     protegerRuta, getVersionById);
 
 export default router;

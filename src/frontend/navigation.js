@@ -34,7 +34,7 @@ let _navigationLocked  = false;  // Previene cambios durante una transición
 const VALID_TABS = [
   'dashboard', 'personas', 'documentos', 'categorias', 'departamentos',
   'tareas', 'historial', 'papelera', 'calendario', 'reportes',
-  'soporte', 'ajustes', 'admin', 'auditoria', 'chatbot',
+  'soporte', 'ajustes', 'admin', 'auditoria', 'chatbot', 'versiones',
 ];
 
 // =============================================================================
@@ -447,6 +447,16 @@ async function _loadTabData(tabId) {
           nlog('_loadTabData: módulo auditoria cargado');
         } catch (e) {
           nerr('_loadTabData: error cargando auditoria', e);
+        }
+        break;
+
+        case 'versiones':
+        try {
+          const mod = await import('./modules/versiones.js');
+          await mod.renderVersiones?.();
+          nlog('_loadTabData: módulo versiones cargado');
+        } catch (e) {
+          nerr('_loadTabData: error cargando versiones', e);
         }
         break;
 

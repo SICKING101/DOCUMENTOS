@@ -60,7 +60,13 @@ function redirigirALogin() {
  */
 function limpiarSesion() {
     localStorage.removeItem('token');
+    localStorage.removeItem('superAdminToken');
     localStorage.removeItem('user');
+    localStorage.removeItem('userRole');
+    
+    // Limpiar cookies mediante fetch
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    fetch('/api/superadmin/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
 }
 
 /**

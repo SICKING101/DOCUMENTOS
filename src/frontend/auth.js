@@ -140,15 +140,15 @@ export async function checkAdminExists() {
 // =============================================================================
 
 export function showLoginForm() {
-    const authTitle    = document.getElementById('authTitle');
+    const authTitle = document.getElementById('authTitle');
     const authSubtitle = document.getElementById('authSubtitle');
-    const loginForm    = document.getElementById('loginForm');
+    const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const registerLink = document.getElementById('registerLinkContainer');
 
-    if (authTitle)    authTitle.textContent    = 'Iniciar Sesión';
+    if (authTitle) authTitle.textContent = 'Iniciar Sesión';
     if (authSubtitle) authSubtitle.textContent = 'Accede al sistema de gestión';
-    if (loginForm)    loginForm.classList.remove('hidden');
+    if (loginForm) loginForm.classList.remove('hidden');
     if (registerForm) registerForm.classList.add('hidden');
     if (registerLink) registerLink.style.display = 'none';
 
@@ -157,15 +157,15 @@ export function showLoginForm() {
 }
 
 export function showRegisterForm() {
-    const authTitle    = document.getElementById('authTitle');
+    const authTitle = document.getElementById('authTitle');
     const authSubtitle = document.getElementById('authSubtitle');
-    const loginForm    = document.getElementById('loginForm');
+    const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const registerLink = document.getElementById('registerLinkContainer');
 
-    if (authTitle)    authTitle.textContent    = 'Registrar Administrador';
+    if (authTitle) authTitle.textContent = 'Registrar Administrador';
     if (authSubtitle) authSubtitle.textContent = 'Crea la cuenta del primer administrador';
-    if (loginForm)    loginForm.classList.add('hidden');
+    if (loginForm) loginForm.classList.add('hidden');
     if (registerForm) registerForm.classList.remove('hidden');
     if (registerLink) registerLink.style.display = 'block';
 }
@@ -212,19 +212,19 @@ function _clearRegisterErrors() {
  */
 function setupRegisterValidation() {
     const usuarioInput = document.getElementById('registerUsuario');
-    const correoInput  = document.getElementById('registerCorreo');
-    const passInput    = document.getElementById('registerPassword');
+    const correoInput = document.getElementById('registerCorreo');
+    const passInput = document.getElementById('registerPassword');
     const confirmInput = document.getElementById('registerPasswordConfirm');
-    const submitBtn    = document.getElementById('registerBtn');
+    const submitBtn = document.getElementById('registerBtn');
 
     if (!usuarioInput && !correoInput && !passInput) return; // No es la página de registro
 
     /** Recalcula si el botón debe habilitarse */
     function refreshSubmitState() {
         if (!submitBtn) return;
-        const uOk = usuarioInput  ? (usuarioInput.value  && validateUsername(usuarioInput.value).isValid)  : true;
-        const eOk = correoInput   ? (correoInput.value   && validateEmail(correoInput.value).isValid)       : true;
-        const pOk = passInput     ? (passInput.value     && validatePassword(passInput.value).isValid)       : true;
+        const uOk = usuarioInput ? (usuarioInput.value && validateUsername(usuarioInput.value).isValid) : true;
+        const eOk = correoInput ? (correoInput.value && validateEmail(correoInput.value).isValid) : true;
+        const pOk = passInput ? (passInput.value && validatePassword(passInput.value).isValid) : true;
         const cOk = (confirmInput && passInput)
             ? (confirmInput.value && validateConfirmPassword(passInput.value, confirmInput.value).isValid)
             : true;
@@ -338,10 +338,13 @@ export async function handleLogin(e) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
-            logAuthEvent('login_success', { usuario: data.user.usuario });
-
-            showAlert('Inicio de sesión exitoso', 'success');
-            setTimeout(() => window.location.href = '/', 1500);
+            if (data.user.isSuperAdmin) {
+                console.log('🛡️ Superadmin autenticado - Redirigiendo a panel especial');
+                // Puedes redirigir a un dashboard especial o al mismo dashboard
+                window.location.href = '/superadmin-dashboard.html'; // Opcional
+            } else {
+                window.location.href = '/';
+            }
         } else {
             logAuthEvent('login_failed', {
                 usuario: usuarioOCorreo,
@@ -378,17 +381,17 @@ export async function handleRegister(e) {
     e.preventDefault();
 
     const usuarioInput = document.getElementById('registerUsuario');
-    const correoInput  = document.getElementById('registerCorreo');
-    const passInput    = document.getElementById('registerPassword');
+    const correoInput = document.getElementById('registerCorreo');
+    const passInput = document.getElementById('registerPassword');
     const confirmInput = document.getElementById('registerPasswordConfirm');
 
     const usuario = usuarioInput?.value?.trim() || '';
-    const correo  = correoInput?.value?.trim()  || '';
-    const password        = passInput?.value    || '';
+    const correo = correoInput?.value?.trim() || '';
+    const password = passInput?.value || '';
     const confirmPassword = confirmInput?.value || '';
 
     // ── Validar todos los campos antes de enviar ──────────────────
-    let hasErrors  = false;
+    let hasErrors = false;
     let firstError = null;
 
     // 1. Usuario
@@ -483,8 +486,29 @@ export async function handleRegister(e) {
 // =============================================================================
 
 export async function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    try {
+        // Limpiar localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('superAdminToken');
+        localStorage.removeItem('user');
+        
+        // Llamar al endpoint de logout del backend para limpiar cookies
+        await fetch(`${API_URL}/api/auth/logout`, { 
+            method: 'POST', 
+            credentials: 'include' 
+        });
+        
+        // También llamar al logout de superadmin por si acaso
+        await fetch(`${API_URL}/api/superadmin/logout`, { 
+            method: 'POST', 
+            credentials: 'include' 
+        }).catch(() => {});
+        
+    } catch (e) {
+        console.error('Error en logout:', e);
+    }
+    
+    // Redirigir al login
     window.location.href = '/login.html';
 }
 
@@ -494,7 +518,7 @@ export async function logout() {
 
 export function checkAuth() {
     const token = localStorage.getItem('token');
-    const user  = localStorage.getItem('user');
+    const user = localStorage.getItem('user');
     return !!(token && user);
 }
 
@@ -523,12 +547,12 @@ export function initializeAuth() {
     if (isLoginPage) {
         console.log('📍 Página de login detectada, configurando formularios...');
 
-        const loginForm       = document.getElementById('loginForm');
-        const registerForm    = document.getElementById('registerForm');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
         const showRegisterLink = document.getElementById('showRegisterFromLogin');
-        const showLoginLink   = document.getElementById('showLoginFromRegister');
+        const showLoginLink = document.getElementById('showLoginFromRegister');
 
-        if (loginForm)    loginForm.addEventListener('submit', handleLogin);
+        if (loginForm) loginForm.addEventListener('submit', handleLogin);
         if (registerForm) registerForm.addEventListener('submit', handleRegister);
 
         if (showRegisterLink) {

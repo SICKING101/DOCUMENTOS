@@ -32,6 +32,7 @@ DOCUMENTOS/
 │   ├── forgot-password.html
 │   ├── forgot-password-step1.html
 │   ├── verify-admin-change.html
+|   ├── superadmin-dashboard.html
 |   |                  
 |   ├── locales/                   # Traducciones (proximamente)
 |   │   ├── es.json
@@ -155,6 +156,7 @@ DOCUMENTOS/
 |   │   │   ├── roles.js
 |   │   │   ├── soporte.js
 │   │   │   ├── search.js
+|   │   │   ├── versiones.js
 │   │   │   ├── systemStatus.js
 │   │   │   │
 │   │   │   ├── auth/              # Autenticacion
@@ -243,10 +245,14 @@ DOCUMENTOS/
 │       │   ├── reportController.js
 │       │   ├── trashController.js
 │       │   ├── supportController.js
+|       │   ├── systemStateController.js
+|       │   ├── versionController.js
 │       │   └── taskController.js
 │       │
 │       ├── middleware/
 │       │   ├── auditMiddleware.js
+|       │   ├── superAdminAuth.js
+|       │   ├── systemAccess.js
 │       │   └── auth.js
 │       │
 │       ├── models/                 # Modelos MongoDB
@@ -257,8 +263,10 @@ DOCUMENTOS/
 │       │   ├── Category.js
 |       │   ├── Role.js
 │       │   ├── Conversation.js
+|       │   ├── Version.js
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
+│       │   ├── SystemState.js
 │       │   ├── Ticket.js
 │       │   └── Notification.js
 │       │
@@ -271,6 +279,7 @@ DOCUMENTOS/
 │       │    ├── adminRoutes.js
 │       │    ├── roleRoutes.js
 |       │    ├── chatbotRoutes.js
+|       │    ├── superAdminRoutes.js
 │       │    └── authRoutes.js
 │       │
 │       └── debugRoutes.js           # Debug tareas

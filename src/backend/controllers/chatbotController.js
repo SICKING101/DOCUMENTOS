@@ -542,7 +542,7 @@ function buildSystemPrompt(ctx, userInfo) {
         ? d.vencidos.slice(0,5).map(x => `  • ${x.nombre} — VENCIDO hace ${x.diasVencidos}d (${x.vencimiento})`).join('\n')
         : '  • (ninguno)';
 
-    return `Eres ARIA v4.2, asistente IA del Sistema de Gestión Documental del CBTIS 051.
+    return `Eres ARIA v1.0, asistente IA del Sistema de Gestión Documental del CBTIS 051.
 
 ⚠️ **REGLA CRÍTICA #1**: LOS DATOS ABAJO SON REALES. USA EXACTAMENTE ESOS NÚMEROS.
 ⚠️ **REGLA CRÍTICA #2**: NUNCA DIGAS "No tienes tareas vencidas o urgentes" SI HAY TAREAS CON ETIQUETA "⚠️ URGENTE" o "🔴 VENCIDA".
@@ -977,7 +977,7 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
         const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
         const alertCount = (s.docsPorVencer7||0) + (s.docsVencidos||0) + (t.vencidas||0);
         return {
-            message: `${saludo} 👋 Soy **ARIA v4.0**, ${userInfo?.nombre || 'usuario'}.\n\n` +
+            message: `${saludo} 👋 Soy **ARIA v1.0**, ${userInfo?.nombre || 'usuario'}.\n\n` +
                 `📊 **Estado rápido:**\n• **${s.totalDocs||0}** documentos activos\n• **${t.pendientes||0}** tareas pendientes (${t.enProgreso||0} en progreso)\n• **${s.totalPersonas||0}** personas registradas\n` +
                 (alertCount > 0 ? `\n🔔 **${alertCount} alertas** requieren atención.` : `\n✅ Sin alertas urgentes.`) +
                 `\n\n¿En qué te ayudo hoy?`,
@@ -989,7 +989,7 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
     // ── AYUDA / CAPACIDADES ───────────────────────────────────
     if (/qu[eé] puedes|ayuda|comandos|help|funciones|capacidades/.test(q)) {
         return {
-            message: `**🎯 ARIA v4.0 — Capacidades:**\n\n` +
+            message: `**🎯 ARIA v1.0 — Capacidades:**\n\n` +
                 `**📊 Análisis inteligente:**\n• "Resumen del sistema"\n• "¿Cuál es mi tarea más urgente?"\n• "Análisis de productividad"\n• "¿Cómo va el sistema?"\n• "¿Cuántos documentos vencen pronto?"\n\n` +
                 `**🗺️ Navegación:**\n• "Ir a [sección]"\n• "Ir a tareas/documentos/reportes..."\n\n` +
                 `**⚡ Acciones rápidas:**\n• "Subir documento"\n• "Crear tarea: [título] para el [fecha]"\n• "Agregar persona"\n• "Generar reporte en Excel"\n\n` +
