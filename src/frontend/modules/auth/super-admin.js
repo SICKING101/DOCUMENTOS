@@ -8,6 +8,121 @@ let systemStatus = null;
 let shutdownHistory = [];
 
 // =============================================================
+// MANEJO DE TOKEN EXPIRADO Y REFRESH AUTOMÁTICO
+// =============================================================
+
+let refreshTimeout;
+let isRefreshing = false;
+
+function getToken() {
+    return localStorage.getItem('superAdminToken') || localStorage.getItem('token');
+}
+
+// Función para programar refresh del token
+function scheduleTokenRefresh(expiresInMs) {
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    
+    // Refresh 5 minutos antes de expirar (o inmediato si falta menos)
+    const refreshTime = Math.max(expiresInMs - (5 * 60 * 1000), 0);
+    
+    if (refreshTime > 0) {
+        refreshTimeout = setTimeout(() => {
+            refreshSuperAdminToken();
+        }, refreshTime);
+        console.log(`⏰ Token refresh programado en ${Math.floor(refreshTime / 60000)} minutos`);
+    }
+}
+
+// Función para refrescar el token de superadmin
+async function refreshSuperAdminToken() {
+    if (isRefreshing) return;
+    isRefreshing = true;
+    
+    try {
+        console.log('🔄 Intentando refrescar token de superadmin...');
+        
+        const response = await fetch(`${API_URL}/api/superadmin/refresh`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getToken()}`
+            },
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.token) {
+                localStorage.setItem('superAdminToken', data.token);
+                console.log('✅ Token de superadmin refrescado exitosamente');
+                
+                // Programar próximo refresh
+                if (data.expiresIn) {
+                    scheduleTokenRefresh(data.expiresIn);
+                }
+                return true;
+            }
+        }
+        
+        console.warn('⚠️ No se pudo refrescar token');
+        return false;
+        
+    } catch (error) {
+        console.error('❌ Error refrescando token:', error);
+        return false;
+    } finally {
+        isRefreshing = false;
+    }
+}
+
+// Interceptor para todas las llamadas fetch con manejo de 401
+async function fetchWithAuth(url, options = {}) {
+    const token = getToken();
+    
+    const headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+    };
+    
+    try {
+        const response = await fetch(url, { ...options, headers, credentials: 'include' });
+        
+        // Si es 401 (token expirado), intentar refrescar
+        if (response.status === 401) {
+            console.log('⚠️ Token expirado, intentando refrescar...');
+            
+            const refreshed = await refreshSuperAdminToken();
+            
+            if (refreshed) {
+                const newToken = getToken();
+                const newHeaders = {
+                    ...options.headers,
+                    'Authorization': `Bearer ${newToken}`
+                };
+                const retryResponse = await fetch(url, { ...options, headers: newHeaders, credentials: 'include' });
+                
+                if (retryResponse.ok) {
+                    return retryResponse;
+                }
+            }
+            
+            // Si no se pudo refrescar, redirigir a login
+            console.error('❌ No se pudo refrescar la sesión');
+            await logout();
+            throw new Error('Sesión expirada');
+        }
+        
+        return response;
+    } catch (error) {
+        if (error.message === 'Sesión expirada') {
+            window.location.href = '/login.html';
+        }
+        throw error;
+    }
+}
+
+// =============================================================
 // UTILIDADES
 // =============================================================
 function showToast(message, type = 'success') {
@@ -29,10 +144,6 @@ function formatDate(dateString) {
         month: 'long',
         day: 'numeric'
     });
-}
-
-function getToken() {
-    return localStorage.getItem('token') || localStorage.getItem('superAdminToken');
 }
 
 function escapeHtml(text) {
@@ -81,9 +192,8 @@ function switchSection(section) {
 async function loadVersions() {
     const container = document.getElementById('versionsList');
     try {
-        const response = await fetch(`${API_URL}/api/versions`, {
-            credentials: 'include',
-            headers: { 'Authorization': `Bearer ${getToken()}` }
+        const response = await fetchWithAuth(`${API_URL}/api/versions`, {
+            credentials: 'include'
         });
 
         if (!response.ok) throw new Error('Error al cargar versiones');
@@ -292,7 +402,7 @@ function showVersionModal(version) {
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-edit" onclick="window.closeVersionModal()">Cancelar</button>
+                    <button class="btn-edit-big" onclick="window.closeVersionModal()">Cancelar</button>
                     <button class="create-version-btn" onclick="window.saveVersion()">${editingVersionId ? 'Actualizar' : 'Publicar'}</button>
                 </div>
             </div>
@@ -369,13 +479,11 @@ async function saveVersion() {
     const method = editingVersionId ? 'PUT' : 'POST';
     
     try {
-        const response = await fetch(url, {
+        const response = await fetchWithAuth(url, {
             method,
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getToken()}`
+                'Content-Type': 'application/json'
             },
-            credentials: 'include',
             body: JSON.stringify({
                 numero,
                 titulo,
@@ -405,10 +513,8 @@ async function setCurrentVersion(id, numero) {
     if (!confirm(`¿Marcar v${numero} como la versión actual del sistema?`)) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/superadmin/versions/${id}/set-current`, {
-            method: 'PATCH',
-            headers: { 'Authorization': `Bearer ${getToken()}` },
-            credentials: 'include'
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/versions/${id}/set-current`, {
+            method: 'PATCH'
         });
 
         const data = await response.json();
@@ -428,10 +534,8 @@ async function deleteVersion(id, numero) {
     if (!confirm(`¿Eliminar permanentemente la versión v${numero}? Esta acción no se puede deshacer.`)) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/superadmin/versions/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${getToken()}` },
-            credentials: 'include'
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/versions/${id}`, {
+            method: 'DELETE'
         });
 
         const data = await response.json();
@@ -456,10 +560,7 @@ async function loadSystemStatus() {
 
 async function loadCurrentStatus() {
     try {
-        const response = await fetch(`${API_URL}/api/superadmin/system/status`, {
-            credentials: 'include',
-            headers: { 'Authorization': `Bearer ${getToken()}` }
-        });
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/status`, {});
         const data = await response.json();
 
         if (data.success) {
@@ -507,13 +608,11 @@ async function closeSystem() {
     if (!confirm('¿Cerrar el sistema para todos los clientes? Los administradores y el superadmin seguirán teniendo acceso.')) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/superadmin/system/shutdown`, {
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/shutdown`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${getToken()}`
+                'Content-Type': 'application/json'
             },
-            credentials: 'include',
             body: JSON.stringify({ reason })
         });
 
@@ -535,10 +634,8 @@ async function openSystem() {
     if (!confirm('¿Reabrir el sistema para todos los clientes?')) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/superadmin/system/open`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${getToken()}` },
-            credentials: 'include'
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/open`, {
+            method: 'POST'
         });
 
         const data = await response.json();
@@ -556,10 +653,7 @@ async function openSystem() {
 
 async function loadShutdownHistory() {
     try {
-        const response = await fetch(`${API_URL}/api/superadmin/system/history`, {
-            credentials: 'include',
-            headers: { 'Authorization': `Bearer ${getToken()}` }
-        });
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/history`, {});
         const data = await response.json();
 
         if (data.success) {
@@ -600,6 +694,10 @@ function renderShutdownHistory() {
 // LOGOUT
 // =============================================================
 async function logout() {
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    
     try {
         await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
         await fetch(`${API_URL}/api/superadmin/logout`, { method: 'POST', credentials: 'include' });
@@ -614,7 +712,7 @@ async function logout() {
 }
 
 // =============================================================
-// EXPONER FUNCIONES GLOBALMENTE PARA LOS onclick DEL HTML
+// EXPONER FUNCIONES GLOBALMENTE
 // =============================================================
 window.logout = logout;
 window.loadVersions = loadVersions;
@@ -639,6 +737,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Decodificar token para programar refresh
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(base64));
+        
+        if (payload.exp) {
+            const expiresIn = (payload.exp * 1000) - Date.now();
+            if (expiresIn > 0) {
+                scheduleTokenRefresh(expiresIn);
+                console.log(`⏰ Token válido por ${Math.floor(expiresIn / 60000)} minutos`);
+            }
+        }
+    } catch (e) {
+        console.warn('No se pudo decodificar token:', e);
+    }
+
     try {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user && user.usuario) {
@@ -651,4 +766,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     switchSection('versions');
+    
+    // Heartbeat cada 5 minutos para mantener sesión activa
+    setInterval(async () => {
+        try {
+            await fetchWithAuth(`${API_URL}/api/superadmin/verify`, {});
+            console.log('💓 Heartbeat enviado, sesión activa');
+        } catch (e) {
+            console.warn('Heartbeat falló:', e);
+        }
+    }, 5 * 60 * 1000);
 });

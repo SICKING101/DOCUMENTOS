@@ -3,6 +3,7 @@
 // SOLO para operaciones que requieren privilegios de superadmin.
 
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import {
   loginSuperAdmin,
   protegerSuperAdmin,
@@ -85,6 +86,41 @@ router.post('/logout', (req, res) => {
     
     console.log('🛡️ Superadmin sesión cerrada');
     res.json({ success: true, message: 'Sesión cerrada.' });
+});
+
+// =============================================================================
+// REFRESH TOKEN - Mantener sesión activa
+// =============================================================================
+router.post('/refresh', protegerSuperAdmin, (req, res) => {
+    try {
+        const secret = process.env.SUPER_ADMIN_JWT_SECRET || (process.env.JWT_SECRET + '_SUPER');
+        
+        const newToken = jwt.sign(
+            { 
+                rol: 'superadmin', 
+                usuario: req.superAdmin.usuario,
+                email: req.superAdmin.email,
+                isSuperAdmin: true,
+                type: 'superadmin'
+            },
+            secret,
+            { expiresIn: '8h' }
+        );
+        
+        setSuperAdminCookie(res, newToken);
+        
+        res.json({
+            success: true,
+            token: newToken,
+            expiresIn: 8 * 60 * 60 * 1000
+        });
+    } catch (err) {
+        console.error('❌ Error refrescando token:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Error al refrescar token'
+        });
+    }
 });
 
 // =============================================================================
