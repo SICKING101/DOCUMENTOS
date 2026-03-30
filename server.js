@@ -1,3 +1,5 @@
+// server.js - Servidor principal de la aplicación de gestión de documentos
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,10 +15,12 @@ import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 
 import SupportController from './src/backend/controllers/supportController.js';
+import { validarConfigSuperAdmin } from './src/backend/middleware/superAdminAuth.js';
 
 // Importar rutas de autenticación
 import authRoutes from './src/backend/routes/authRoutes.js';
 import apiRoutes from './src/backend/routes/apiRoutes.js';  // ✅ AÑADE ESTA LÍNEA
+import superAdminRoutes from './src/backend/routes/superAdminRoutes.js';
 
 import Document from './src/backend/models/Document.js';
 import Ticket from './src/backend/models/Ticket.js';  // ✅ AÑADE ESTA LÍNEA
@@ -28,8 +32,10 @@ import adminRoutes from './src/backend/routes/adminRoutes.js';
 // Importar modelo y servicio de notificaciones
 import Notification from './src/backend/models/Notification.js';
 import NotificationService from './src/backend/services/notificationService.js';
+import { verificarAccesoSistema } from './src/backend/middleware/systemAccess.js';
 
 dotenv.config();
+validarConfigSuperAdmin();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,6 +100,9 @@ console.log('  • GET /api/tasks');
 console.log('  • GET /api/tasks/high-priority');
 console.log('  • GET /api/tasks/today');
 console.log('  • GET /api/tasks/stats');
+
+app.use('/api/superadmin', superAdminRoutes);
+console.log('🛡️  Super Admin Routes montadas en /api/superadmin');
 
 // -----------------------------
 // Configuración de Multer
@@ -166,6 +175,10 @@ app.get('/api/health', (req, res) => {
     message: 'API funcionando correctamente',
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('/superadmin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'superadmin.html'));
 });
 
 // -----------------------------

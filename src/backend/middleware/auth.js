@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import { hasPermission, PERMISSIONS } from '../config/permissions.js';
 import AuditService from '../services/auditService.js'; // ✅ IMPORTACIÓN DEL SERVICIO DE AUDITORÍA
 import Role from '../models/Role.js';
+import { protegerSuperAdmin } from './superAdminAuth.js';
 
 // =============================================================================
 // PERMISOS PARA ROLES DINÁMICOS (por sección)
@@ -105,12 +106,39 @@ async function _hasDynamicRoleSectionPermission(roleName, permission) {
 export const protegerRuta = async (req, res, next) => {
     try {
         let token;
+        let isSuperAdminAttempt = false;
 
-        // Verificar si hay token en las cookies o en el header
-        if (req.cookies && req.cookies.token) {
+        // =============================================================
+        // 1. Verificar token de superadmin (prioridad)
+        // =============================================================
+        if (req.cookies && req.cookies.superadmin_token) {
+            token = req.cookies.superadmin_token;
+            isSuperAdminAttempt = true;
+        } 
+        // 2. Verificar token normal
+        else if (req.cookies && req.cookies.token) {
             token = req.cookies.token;
-        } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        } 
+        // 3. Verificar header Authorization
+        else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
             token = req.headers.authorization.split(' ')[1];
+            
+            // Intentar decodificar para ver si es superadmin
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                // Si es token normal, continuar
+            } catch (err) {
+                // Si falla con JWT_SECRET, intentar con SUPER_ADMIN_JWT_SECRET
+                try {
+                    const superSecret = process.env.SUPER_ADMIN_JWT_SECRET || (process.env.JWT_SECRET + '_SUPER');
+                    const decoded = jwt.verify(token, superSecret);
+                    if (decoded.rol === 'superadmin') {
+                        isSuperAdminAttempt = true;
+                    }
+                } catch (superErr) {
+                    // No es token de superadmin
+                }
+            }
         }
 
         if (!token) {
@@ -120,11 +148,18 @@ export const protegerRuta = async (req, res, next) => {
             });
         }
 
-        try {
-            // Verificar token
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // =============================================================
+        // Si es intento de superadmin, usar su middleware especial
+        // =============================================================
+        if (isSuperAdminAttempt) {
+            return protegerSuperAdmin(req, res, next);
+        }
 
-            // Buscar usuario
+        // =============================================================
+        // Si no, continuar con autenticación normal (usuarios de BD)
+        // =============================================================
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const user = await User.findById(decoded.id).select('-password');
 
             if (!user) {
@@ -141,13 +176,13 @@ export const protegerRuta = async (req, res, next) => {
                 });
             }
 
-            // Actualizar último acceso
+            // Actualizar último acceso (solo para usuarios normales)
             user.ultimoAcceso = Date.now();
             await user.save();
 
-            // Agregar usuario a la request
             req.user = user;
             next();
+            
         } catch (error) {
             if (error.name === 'TokenExpiredError') {
                 return res.status(401).json({
@@ -162,11 +197,26 @@ export const protegerRuta = async (req, res, next) => {
                 message: 'Token inválido'
             });
         }
+        
     } catch (error) {
         console.error('Error en middleware de autenticación:', error);
         return res.status(500).json({
             success: false,
             message: 'Error del servidor'
+        });
+    }
+};
+
+// =============================================================================
+// MIDDLEWARE: Verificar que sea superadmin (para rutas exclusivas)
+// =============================================================================
+export const soloSuperAdmin = (req, res, next) => {
+    if (req.superAdmin?.isSuperAdmin === true || req.user?.isSuperAdmin === true) {
+        next();
+    } else {
+        return res.status(403).json({
+            success: false,
+            message: 'Acceso denegado. Se requieren privilegios de Super Administrador.'
         });
     }
 };
@@ -364,16 +414,15 @@ export const enviarTokenRespuesta = async (user, statusCode, res, message = 'Aut
             expires: new Date(
                 Date.now() + (process.env.JWT_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
             ),
-            httpOnly: true, // Prevenir ataques XSS
-            secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-            sameSite: 'strict' // Prevenir CSRF
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
         };
 
-        // =======================================================================
-        // REGISTRAR LOGIN EXITOSO EN AUDITORÍA (si tenemos req)
-        // =======================================================================
-        if (req) {
-            // Registrar login exitoso de forma asíncrona (no bloqueante)
+        // =============================================================
+        // REGISTRAR LOGIN EN AUDITORÍA SOLO SI NO ES SUPERADMIN
+        // =============================================================
+        if (req && user && user._id && user._id !== 'superadmin') {
             AuditService.log(req, {
                 action: 'LOGIN_SUCCESS',
                 actionType: 'LOGIN',
@@ -393,6 +442,8 @@ export const enviarTokenRespuesta = async (user, statusCode, res, message = 'Aut
             }).catch(err => console.error('❌ Error registrando LOGIN_SUCCESS:', err.message));
 
             console.log(`✅ Login exitoso registrado en auditoría: ${user.usuario}`);
+        } else {
+            console.log('🛡️ Superadmin login - No registrado en auditoría de usuarios');
         }
 
         res.status(statusCode)
@@ -402,32 +453,25 @@ export const enviarTokenRespuesta = async (user, statusCode, res, message = 'Aut
                 message,
                 token,
                 user: {
-                    id: user._id,
+                    id: user._id || 'superadmin',
                     usuario: user.usuario,
                     correo: user.correo,
-                    rol: user.rol
+                    rol: user.rol,
+                    isSuperAdmin: user.isSuperAdmin || false
                 }
             });
 
     } catch (error) {
         console.error('🔥 Error en enviarTokenRespuesta:', error);
         
-        // Si falla la auditoría, aún así responder con éxito (el login fue exitoso)
         res.status(statusCode)
-            .cookie('token', generarToken(user._id), {
-                expires: new Date(
-                    Date.now() + (process.env.JWT_COOKIE_EXPIRE || 7) * 24 * 60 * 60 * 1000
-                ),
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict'
-            })
+            .cookie('token', generarToken(user._id), options)
             .json({
                 success: true,
                 message,
                 token: generarToken(user._id),
                 user: {
-                    id: user._id,
+                    id: user._id || 'superadmin',
                     usuario: user.usuario,
                     correo: user.correo,
                     rol: user.rol

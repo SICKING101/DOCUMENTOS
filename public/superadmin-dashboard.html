@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - CBTIS051</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+
+<body>
+    <div class="superadmin-layout">
+        <aside class="superadmin-sidebar">
+            <div class="superadmin-sidebar-header">
+                <div class="superadmin-logo">
+                    <i class="fas fa-crown"></i>
+                    <div>
+                        <h1>CBTIS051</h1>
+                        <p>Sistema de Gestión Documental</p>
+                    </div>
+                </div>
+                <div class="superadmin-badge">
+                    <i class="fas fa-shield-alt"></i> Super Administrador
+                </div>
+            </div>
+
+            <nav class="superadmin-nav">
+                <div class="nav-item active" data-section="versions">
+                    <i class="fas fa-code-branch"></i>
+                    <span>Panel de Versiones</span>
+                </div>
+                <div class="nav-item" data-section="shutdown">
+                    <i class="fas fa-power-off"></i>
+                    <span>Cierre del Sistema</span>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="superadmin-content">
+            <div class="superadmin-header">
+                <div class="page-title">
+                    <i class="fas fa-crown"></i>
+                    <div>
+                        <h2 id="pageTitle">Panel de Versiones</h2>
+                        <p id="pageDescription">Gestiona las versiones del sistema y publica actualizaciones</p>
+                    </div>
+                </div>
+                <div class="superadmin-user">
+                    <i class="fas fa-user-shield"></i>
+                    <span id="userName">Super Admin</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="versionsSection" class="versions-section">
+                <button class="create-version-btn" onclick="openCreateVersionModal()">
+                    <i class="fas fa-plus-circle"></i>
+                    Publicar Nueva Versión
+                </button>
+                <div id="versionsList" class="versions-grid">
+                    <div class="loading-spinner" style="margin: 2rem auto;"></div>
+                </div>
+            </div>
+
+            <div id="shutdownSection" class="system-shutdown-section hidden">
+                <div class="shutdown-card">
+                    <div class="shutdown-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <h3>Control de Acceso al Sistema</h3>
+                            <p>Gestiona el estado de disponibilidad del sistema para los clientes</p>
+                        </div>
+                    </div>
+                    <div class="shutdown-status" id="systemStatus"></div>
+                    <div class="shutdown-controls">
+                        <div class="shutdown-reason">
+                            <label>Motivo del cambio</label>
+                            <textarea id="shutdownReason" rows="3"
+                                placeholder="Ej: Mantenimiento programado, Actualización del sistema, etc."></textarea>
+                        </div>
+                        <div class="shutdown-buttons" id="shutdownButtons"></div>
+                    </div>
+                </div>
+
+                <div class="shutdown-history">
+                    <div class="history-header">
+                        <h4><i class="fas fa-history"></i> Historial de cambios</h4>
+                    </div>
+                    <div id="shutdownHistory" class="history-list"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="/src/frontend/modules/auth/super-admin.js"></script>
+</body>
+
+</html>

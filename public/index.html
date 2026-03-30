@@ -146,6 +146,13 @@
                 <!-- Grupo 4: Administración -->
                 <div class="sidebar__nav-group">
                     <p class="sidebar__nav-group-title">Administración</p>
+                    <a href="#" class="sidebar__nav-link" data-tab="versiones" data-section="versiones">
+                        <div class="sidebar__nav-icon-wrapper">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <span class="sidebar__nav-text">Versiones</span>
+                        <div class="sidebar__nav-active-indicator"></div>
+                    </a>
                     <a href="#" class="sidebar__nav-link" data-tab="admin" id="nav-admin" data-section="admin">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-user-shield"></i>
@@ -919,100 +926,100 @@
                 </section>
 
                 <!-- SECCIÓN 4.2.6: PESTAÑA TAREAS - VERSIÓN 2.0 MINI CLASSROOM -->
-<section id="tareas" class="tab-content">
-    <div class="section__header">
-        <div>
-            <h2 class="section__title">
-                <i class="fas fa-tasks"></i> Gestión de Tareas
-            </h2>
-            <p class="section__subtitle">Organiza, asigna y da seguimiento a tus tareas</p>
-        </div>
-        <button class="btn btn--primary" id="addTaskBtn">
-            <i class="fas fa-plus"></i> Nueva Tarea
-        </button>
-    </div>
+                <section id="tareas" class="tab-content">
+                    <div class="section__header">
+                        <div>
+                            <h2 class="section__title">
+                                <i class="fas fa-tasks"></i> Gestión de Tareas
+                            </h2>
+                            <p class="section__subtitle">Organiza, asigna y da seguimiento a tus tareas</p>
+                        </div>
+                        <button class="btn btn--primary" id="addTaskBtn">
+                            <i class="fas fa-plus"></i> Nueva Tarea
+                        </button>
+                    </div>
 
-    <!-- Filtros avanzados -->
-    <div class="filters-bar">
-        <div class="filters-bar__search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Buscar tareas por título, descripción..." id="tasksSearch">
-        </div>
-        <select class="filters-bar__select" id="filterEstado">
-            <option value="all">Todos los estados</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="en-progreso">En progreso</option>
-            <option value="completada">Completadas</option>
-            <option value="cancelada">Canceladas</option>
-        </select>
-        <select class="filters-bar__select" id="filterPrioridad">
-            <option value="all">Todas las prioridades</option>
-            <option value="critica">Crítica</option>
-            <option value="alta">Alta</option>
-            <option value="media">Media</option>
-            <option value="baja">Baja</option>
-        </select>
-        <select class="filters-bar__select" id="filterTipo">
-            <option value="all">Todos los tipos</option>
-            <option value="personal">Personales</option>
-            <option value="asignada">Asignadas a mí</option>
-            <option value="grupal">Grupales</option>
-            <option value="clase">Clase</option>
-        </select>
-    </div>
+                    <!-- Filtros avanzados -->
+                    <div class="filters-bar">
+                        <div class="filters-bar__search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Buscar tareas por título, descripción..." id="tasksSearch">
+                        </div>
+                        <select class="filters-bar__select" id="filterEstado">
+                            <option value="all">Todos los estados</option>
+                            <option value="pendiente">Pendientes</option>
+                            <option value="en-progreso">En progreso</option>
+                            <option value="completada">Completadas</option>
+                            <option value="cancelada">Canceladas</option>
+                        </select>
+                        <select class="filters-bar__select" id="filterPrioridad">
+                            <option value="all">Todas las prioridades</option>
+                            <option value="critica">Crítica</option>
+                            <option value="alta">Alta</option>
+                            <option value="media">Media</option>
+                            <option value="baja">Baja</option>
+                        </select>
+                        <select class="filters-bar__select" id="filterTipo">
+                            <option value="all">Todos los tipos</option>
+                            <option value="personal">Personales</option>
+                            <option value="asignada">Asignadas a mí</option>
+                            <option value="grupal">Grupales</option>
+                            <option value="clase">Clase</option>
+                        </select>
+                    </div>
 
-    <!-- Resumen de tareas -->
-    <div class="tasks-summary">
-        <div class="summary-card">
-            <div class="summary-card__icon summary-card__icon--total">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <div class="summary-card__content">
-                <h3 class="summary-card__value" id="totalTasks">0</h3>
-                <p class="summary-card__label">Total de tareas</p>
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-card__icon summary-card__icon--pending">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="summary-card__content">
-                <h3 class="summary-card__value" id="pendingTasks">0</h3>
-                <p class="summary-card__label">Pendientes</p>
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-card__icon summary-card__icon--progress">
-                <i class="fas fa-spinner"></i>
-            </div>
-            <div class="summary-card__content">
-                <h3 class="summary-card__value" id="progressTasks">0</h3>
-                <p class="summary-card__label">En progreso</p>
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-card__icon summary-card__icon--completed">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="summary-card__content">
-                <h3 class="summary-card__value" id="completedTasks">0</h3>
-                <p class="summary-card__label">Completadas</p>
-            </div>
-        </div>
-    </div>
+                    <!-- Resumen de tareas -->
+                    <div class="tasks-summary">
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--total">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="totalTasks">0</h3>
+                                <p class="summary-card__label">Total de tareas</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--pending">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="pendingTasks">0</h3>
+                                <p class="summary-card__label">Pendientes</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--progress">
+                                <i class="fas fa-spinner"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="progressTasks">0</h3>
+                                <p class="summary-card__label">En progreso</p>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-card__icon summary-card__icon--completed">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="summary-card__content">
+                                <h3 class="summary-card__value" id="completedTasks">0</h3>
+                                <p class="summary-card__label">Completadas</p>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Contenedor de tareas -->
-    <div class="tasks-container" id="tasksContainer">
-        <div class="empty-state">
-            <i class="fas fa-clipboard-list empty-state__icon"></i>
-            <h3 class="empty-state__title">No hay tareas registradas</h3>
-            <p class="empty-state__description">Crea tu primera tarea para comenzar</p>
-            <button class="btn btn--primary" id="addFirstTask">
-                <i class="fas fa-plus"></i> Crear Tarea
-            </button>
-        </div>
-    </div>
-</section>
+                    <!-- Contenedor de tareas -->
+                    <div class="tasks-container" id="tasksContainer">
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-list empty-state__icon"></i>
+                            <h3 class="empty-state__title">No hay tareas registradas</h3>
+                            <p class="empty-state__description">Crea tu primera tarea para comenzar</p>
+                            <button class="btn btn--primary" id="addFirstTask">
+                                <i class="fas fa-plus"></i> Crear Tarea
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- SECCIÓN 4.2.8: PESTAÑA REPORTES (RENOVADA) -->
                 <section id="reportes" class="tab-content">
@@ -2034,6 +2041,19 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- SECCIÓN VERSIONES DEL SISTEMA -->
+                <section id="versiones" class="tab-content">
+                    <div id="versiones-content">
+                        <!-- El módulo versiones.js renderiza aquí dinámicamente -->
+                        <div
+                            style="display:flex; align-items:center; justify-content:center; padding:4rem; flex-direction:column; gap:1rem; color: var(--text-secondary, #9ca3af);">
+                            <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+                            <p style="font-size:0.85rem;">Cargando módulo de versiones...</p>
+                        </div>
+                    </div>
+                </section>
+                
             </main>
         </div>
     </div>
@@ -2538,116 +2558,120 @@
     </dialog>
 
     <!-- MODAL PARA TAREAS - VERSIÓN 2.0 MINI CLASSROOM -->
-<dialog id="taskModal" class="modal">
-    <article class="modal__content modal__content--lg">
-        <header class="modal__header">
-            <h3 class="modal__title" id="taskModalTitle">
-                <i class="fas fa-tasks"></i> Nueva Tarea
-            </h3>
-            <button class="modal__close" id="closeTaskModal">&times;</button>
-        </header>
-        <section class="modal__body">
-            <form id="taskForm" class="task-form">
-                <input type="hidden" id="taskId">
-                
-                <!-- Título -->
-                <div class="form-group">
-                    <label for="taskTitulo">Título <span class="required">*</span></label>
-                    <input type="text" id="taskTitulo" class="form-control" placeholder="Ingresa el título de la tarea">
-                </div>
-                
-                <!-- Descripción -->
-                <div class="form-group">
-                    <label for="taskDescripcion">Descripción</label>
-                    <textarea id="taskDescripcion" class="form-control" rows="3" placeholder="Describe la tarea en detalle..."></textarea>
-                </div>
-                
-                <!-- Fila: Prioridad y Estado -->
-                <div class="form-row">
+    <dialog id="taskModal" class="modal">
+        <article class="modal__content modal__content--lg">
+            <header class="modal__header">
+                <h3 class="modal__title" id="taskModalTitle">
+                    <i class="fas fa-tasks"></i> Nueva Tarea
+                </h3>
+                <button class="modal__close" id="closeTaskModal">&times;</button>
+            </header>
+            <section class="modal__body">
+                <form id="taskForm" class="task-form">
+                    <input type="hidden" id="taskId">
+
+                    <!-- Título -->
                     <div class="form-group">
-                        <label for="taskPrioridad">Prioridad</label>
-                        <select id="taskPrioridad" class="form-control">
-                            <option value="baja">🟢 Baja</option>
-                            <option value="media">🟡 Media</option>
-                            <option value="alta">🔴 Alta</option>
-                            <option value="critica">⚫ Crítica</option>
+                        <label for="taskTitulo">Título <span class="required">*</span></label>
+                        <input type="text" id="taskTitulo" class="form-control"
+                            placeholder="Ingresa el título de la tarea">
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="form-group">
+                        <label for="taskDescripcion">Descripción</label>
+                        <textarea id="taskDescripcion" class="form-control" rows="3"
+                            placeholder="Describe la tarea en detalle..."></textarea>
+                    </div>
+
+                    <!-- Fila: Prioridad y Estado -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskPrioridad">Prioridad</label>
+                            <select id="taskPrioridad" class="form-control">
+                                <option value="baja">🟢 Baja</option>
+                                <option value="media">🟡 Media</option>
+                                <option value="alta">🔴 Alta</option>
+                                <option value="critica">⚫ Crítica</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="taskEstado">Estado</label>
+                            <select id="taskEstado" class="form-control">
+                                <option value="pendiente">⏳ Pendiente</option>
+                                <option value="en-progreso">🔄 En progreso</option>
+                                <option value="completada">✅ Completada</option>
+                                <option value="cancelada">❌ Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fila: Tipo y Categoría -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskTipo">Tipo de tarea</label>
+                            <select id="taskTipo" class="form-control">
+                                <option value="personal">👤 Personal (solo para mí)</option>
+                                <option value="asignada">📌 Asignada (asignar a usuario)</option>
+                                <option value="grupal">👥 Grupal (varios usuarios)</option>
+                                <option value="clase">🏫 Clase (todos los usuarios)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="taskCategoria">Categoría</label>
+                            <input type="text" id="taskCategoria" class="form-control"
+                                placeholder="Ej: Desarrollo, Reunión, Estudio">
+                        </div>
+                    </div>
+
+                    <!-- Asignar a usuarios -->
+                    <div class="form-group assignees-container">
+                        <label for="taskAssignees">
+                            <i class="fas fa-users"></i> Asignar a usuarios
+                        </label>
+                        <select id="taskAssignees" class="form-control" multiple size="4">
+                            <option value="">Seleccionar usuarios (opcional)</option>
+                            <!-- Cargado dinámicamente desde JavaScript -->
                         </select>
+                        <small class="form-text">
+                            <i class="fas fa-info-circle"></i>
+                            Presiona <kbd>Ctrl</kbd> (Windows) o <kbd>Cmd</kbd> (Mac) para seleccionar múltiples
+                            usuarios
+                        </small>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="taskEstado">Estado</label>
-                        <select id="taskEstado" class="form-control">
-                            <option value="pendiente">⏳ Pendiente</option>
-                            <option value="en-progreso">🔄 En progreso</option>
-                            <option value="completada">✅ Completada</option>
-                            <option value="cancelada">❌ Cancelada</option>
-                        </select>
+
+                    <!-- Fila: Fecha y Hora límite -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskDueDate">Fecha límite</label>
+                            <input type="date" id="taskDueDate" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="taskTime">Hora límite</label>
+                            <input type="time" id="taskTime" class="form-control">
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Fila: Tipo y Categoría -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="taskTipo">Tipo de tarea</label>
-                        <select id="taskTipo" class="form-control">
-                            <option value="personal">👤 Personal (solo para mí)</option>
-                            <option value="asignada">📌 Asignada (asignar a usuario)</option>
-                            <option value="grupal">👥 Grupal (varios usuarios)</option>
-                            <option value="clase">🏫 Clase (todos los usuarios)</option>
-                        </select>
+
+                    <!-- Recordatorio -->
+                    <div class="form-check">
+                        <input type="checkbox" id="taskReminder" class="form-check-input">
+                        <label for="taskReminder" class="form-check-label">
+                            <i class="fas fa-bell"></i> Recordatorio (recibir notificación)
+                        </label>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="taskCategoria">Categoría</label>
-                        <input type="text" id="taskCategoria" class="form-control" placeholder="Ej: Desarrollo, Reunión, Estudio">
-                    </div>
-                </div>
-                
-                <!-- Asignar a usuarios -->
-                <div class="form-group assignees-container">
-                    <label for="taskAssignees">
-                        <i class="fas fa-users"></i> Asignar a usuarios
-                    </label>
-                    <select id="taskAssignees" class="form-control" multiple size="4">
-                        <option value="">Seleccionar usuarios (opcional)</option>
-                        <!-- Cargado dinámicamente desde JavaScript -->
-                    </select>
-                    <small class="form-text">
-                        <i class="fas fa-info-circle"></i> 
-                        Presiona <kbd>Ctrl</kbd> (Windows) o <kbd>Cmd</kbd> (Mac) para seleccionar múltiples usuarios
-                    </small>
-                </div>
-                
-                <!-- Fila: Fecha y Hora límite -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="taskDueDate">Fecha límite</label>
-                        <input type="date" id="taskDueDate" class="form-control">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="taskTime">Hora límite</label>
-                        <input type="time" id="taskTime" class="form-control">
-                    </div>
-                </div>
-                
-                <!-- Recordatorio -->
-                <div class="form-check">
-                    <input type="checkbox" id="taskReminder" class="form-check-input">
-                    <label for="taskReminder" class="form-check-label">
-                        <i class="fas fa-bell"></i> Recordatorio (recibir notificación)
-                    </label>
-                </div>
-            </form>
-        </section>
-        <footer class="modal__footer">
-            <button class="btn btn--outline" id="cancelTaskBtn">Cancelar</button>
-            <button class="btn btn--primary" id="saveTaskBtn">
-                <i class="fas fa-save"></i> Guardar Tarea
-            </button>
-        </footer>
-    </article>
-</dialog>
+                </form>
+            </section>
+            <footer class="modal__footer">
+                <button class="btn btn--outline" id="cancelTaskBtn">Cancelar</button>
+                <button class="btn btn--primary" id="saveTaskBtn">
+                    <i class="fas fa-save"></i> Guardar Tarea
+                </button>
+            </footer>
+        </article>
+    </dialog>
 
     <!-- Modal para eliminar múltiples documentos -->
     <div class="modal advanced-modal modal-bulk-delete" id="bulkDeleteModal" style="display: none;">
