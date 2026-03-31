@@ -53,6 +53,7 @@
 @import url('components/preloader/admin-preloader.css');
 @import url('components/preloader/reports.css');
 @import url('components/status.css');
+@import url('components/topbar.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');
