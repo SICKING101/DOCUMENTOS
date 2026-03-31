@@ -90,6 +90,7 @@ import {
 } from './navigation.js';
 
 import { initChatbot } from './modules/chatbot.js';
+import { initSugerenciasModule } from './modules/sugerencias.js';
 
 // =============================================================================
 // 1. INICIALIZACIÓN DE LA APLICACIÓN
@@ -197,6 +198,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     // ── Fase 9: Inicializar chatbot ──
     initChatbot();
     console.log('🤖 Chatbot Assistant integrado');
+
+    initSugerenciasModule();
 
     // ── Evento: re-aplicar permisos cuando cambia el usuario/rol ──
     window.addEventListener('auth:user-updated', async () => {

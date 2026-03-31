@@ -8,6 +8,16 @@ let systemStatus = null;
 let shutdownHistory = [];
 
 // =============================================================
+// SUGERENCIAS - Variables de estado
+// =============================================================
+let currentSuggestions = [];
+let currentSuggestionsPage = 1;
+let totalSuggestionsPages = 1;
+let currentEstado = 'todos';
+let currentCategoria = 'todas';
+let currentSuggestionId = null; // Variable global para el ID de la sugerencia actual
+
+// =============================================================
 // MANEJO DE TOKEN EXPIRADO Y REFRESH AUTOMÁTICO
 // =============================================================
 
@@ -18,13 +28,11 @@ function getToken() {
     return localStorage.getItem('superAdminToken') || localStorage.getItem('token');
 }
 
-// Función para programar refresh del token
 function scheduleTokenRefresh(expiresInMs) {
     if (refreshTimeout) {
         clearTimeout(refreshTimeout);
     }
     
-    // Refresh 5 minutos antes de expirar (o inmediato si falta menos)
     const refreshTime = Math.max(expiresInMs - (5 * 60 * 1000), 0);
     
     if (refreshTime > 0) {
@@ -35,7 +43,6 @@ function scheduleTokenRefresh(expiresInMs) {
     }
 }
 
-// Función para refrescar el token de superadmin
 async function refreshSuperAdminToken() {
     if (isRefreshing) return;
     isRefreshing = true;
@@ -57,7 +64,6 @@ async function refreshSuperAdminToken() {
                 localStorage.setItem('superAdminToken', data.token);
                 console.log('✅ Token de superadmin refrescado exitosamente');
                 
-                // Programar próximo refresh
                 if (data.expiresIn) {
                     scheduleTokenRefresh(data.expiresIn);
                 }
@@ -76,7 +82,6 @@ async function refreshSuperAdminToken() {
     }
 }
 
-// Interceptor para todas las llamadas fetch con manejo de 401
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
     
@@ -88,7 +93,6 @@ async function fetchWithAuth(url, options = {}) {
     try {
         const response = await fetch(url, { ...options, headers, credentials: 'include' });
         
-        // Si es 401 (token expirado), intentar refrescar
         if (response.status === 401) {
             console.log('⚠️ Token expirado, intentando refrescar...');
             
@@ -107,7 +111,6 @@ async function fetchWithAuth(url, options = {}) {
                 }
             }
             
-            // Si no se pudo refrescar, redirigir a login
             console.error('❌ No se pudo refrescar la sesión');
             await logout();
             throw new Error('Sesión expirada');
@@ -168,21 +171,32 @@ function switchSection(section) {
 
     const versionsSection = document.getElementById('versionsSection');
     const shutdownSection = document.getElementById('shutdownSection');
+    const sugerenciasSection = document.getElementById('sugerenciasSection');
     const pageTitle = document.getElementById('pageTitle');
     const pageDescription = document.getElementById('pageDescription');
 
     if (section === 'versions') {
-        versionsSection.classList.remove('hidden');
-        shutdownSection.classList.add('hidden');
+        if (versionsSection) versionsSection.classList.remove('hidden');
+        if (shutdownSection) shutdownSection.classList.add('hidden');
+        if (sugerenciasSection) sugerenciasSection.classList.add('hidden');
         pageTitle.textContent = 'Panel de Versiones';
         pageDescription.textContent = 'Gestiona las versiones del sistema y publica actualizaciones';
         loadVersions();
-    } else {
-        versionsSection.classList.add('hidden');
-        shutdownSection.classList.remove('hidden');
+    } else if (section === 'shutdown') {
+        if (versionsSection) versionsSection.classList.add('hidden');
+        if (shutdownSection) shutdownSection.classList.remove('hidden');
+        if (sugerenciasSection) sugerenciasSection.classList.add('hidden');
         pageTitle.textContent = 'Cierre del Sistema';
         pageDescription.textContent = 'Controla la disponibilidad del sistema para los clientes';
         loadSystemStatus();
+    } else if (section === 'sugerencias') {
+        if (versionsSection) versionsSection.classList.add('hidden');
+        if (shutdownSection) shutdownSection.classList.add('hidden');
+        if (sugerenciasSection) sugerenciasSection.classList.remove('hidden');
+        pageTitle.textContent = 'Bandeja de Sugerencias';
+        pageDescription.textContent = 'Gestiona las sugerencias enviadas por los usuarios';
+        loadSuggestionsPage();
+        loadSuggestionsStats();
     }
 }
 
@@ -691,6 +705,439 @@ function renderShutdownHistory() {
 }
 
 // =============================================================
+// SUGERENCIAS - Funciones principales
+// =============================================================
+
+function createSugerenciasSection() {
+    if (document.getElementById('sugerenciasSection')) return;
+    
+    const shutdownSection = document.getElementById('shutdownSection');
+    if (!shutdownSection) return;
+    
+    const html = `
+        <div id="sugerenciasSection" class="sugerencias-section hidden">
+            <div class="sugerencias-header">
+                <h2><i class="fas fa-lightbulb"></i> Bandeja de Sugerencias</h2>
+                <p>Gestiona las sugerencias enviadas por los usuarios del sistema</p>
+            </div>
+            
+            <div class="sugerencias-stats" id="sugerenciasStats">
+                <div class="sugerencia-stat-card">
+                    <div class="sugerencia-stat-card__icon"><i class="fas fa-inbox"></i></div>
+                    <div><div class="sugerencia-stat-card__value" id="statTotal">0</div><div class="sugerencia-stat-card__label">Total</div></div>
+                </div>
+                <div class="sugerencia-stat-card pendiente">
+                    <div class="sugerencia-stat-card__icon"><i class="fas fa-clock"></i></div>
+                    <div><div class="sugerencia-stat-card__value" id="statPendientes">0</div><div class="sugerencia-stat-card__label">Pendientes</div></div>
+                </div>
+                <div class="sugerencia-stat-card vista">
+                    <div class="sugerencia-stat-card__icon"><i class="fas fa-eye"></i></div>
+                    <div><div class="sugerencia-stat-card__value" id="statVistas">0</div><div class="sugerencia-stat-card__label">Vistas</div></div>
+                </div>
+                <div class="sugerencia-stat-card implementada">
+                    <div class="sugerencia-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+                    <div><div class="sugerencia-stat-card__value" id="statImplementadas">0</div><div class="sugerencia-stat-card__label">Implementadas</div></div>
+                </div>
+            </div>
+            
+            <div class="sugerencias-filters">
+                <div class="filter-group">
+                    <label>Estado</label>
+                    <select id="filterEstado" class="form__select">
+                        <option value="todos">Todos</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="vista">Vistas</option>
+                        <option value="considerando">En consideración</option>
+                        <option value="implementada">Implementadas</option>
+                        <option value="rechazada">Rechazadas</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Categoría</label>
+                    <select id="filterCategoria" class="form__select">
+                        <option value="todas">Todas</option>
+                        <option value="mejora">✨ Mejora</option>
+                        <option value="nueva_funcionalidad">🚀 Nueva funcionalidad</option>
+                        <option value="reporte_error">🐛 Reporte de error</option>
+                        <option value="experiencia_usuario">🎨 Experiencia de usuario</option>
+                        <option value="rendimiento">⚡ Rendimiento</option>
+                        <option value="seguridad">🔒 Seguridad</option>
+                        <option value="otros">📌 Otros</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="sugerencias-list" id="sugerenciasList">
+                <div class="loading-spinner">Cargando sugerencias...</div>
+            </div>
+            
+            <div class="sugerencias-pagination" id="sugerenciasPagination"></div>
+        </div>
+        
+        <div id="suggestionDetailModal" class="modal" style="display: none;">
+            <div class="modal__overlay" onclick="closeSuggestionDetailModal()"></div>
+            <div class="modal__content modal__content--lg">
+                <div class="modal__header">
+                    <h3 class="modal__title"><i class="fas fa-lightbulb"></i> Detalle de Sugerencia</h3>
+                    <button class="modal__close" onclick="closeSuggestionDetailModal()">&times;</button>
+                </div>
+                <div class="modal__body" id="suggestionDetailContent"></div>
+                <div class="modal__footer">
+                    <button class="btn btn--outline" onclick="closeSuggestionDetailModal()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    shutdownSection.insertAdjacentHTML('afterend', html);
+    setupSugerenciasFilters();
+}
+
+function setupSugerenciasFilters() {
+    const filterEstado = document.getElementById('filterEstado');
+    const filterCategoria = document.getElementById('filterCategoria');
+    
+    if (filterEstado) {
+        filterEstado.addEventListener('change', () => {
+            currentEstado = filterEstado.value;
+            loadSuggestionsPage(1);
+        });
+    }
+    if (filterCategoria) {
+        filterCategoria.addEventListener('change', () => {
+            currentCategoria = filterCategoria.value;
+            loadSuggestionsPage(1);
+        });
+    }
+}
+
+async function loadSuggestionsPage(page = 1) {
+    const container = document.getElementById('sugerenciasList');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-spinner">Cargando sugerencias...</div>';
+    
+    try {
+        const token = getToken();
+        const url = `${API_URL}/api/suggestions/admin/all?page=${page}&limit=20&estado=${currentEstado}&categoria=${currentCategoria}`;
+        const response = await fetchWithAuth(url, {});
+        const data = await response.json();
+        
+        if (data.success) {
+            currentSuggestions = data.suggestions;
+            currentSuggestionsPage = data.pagination.page;
+            totalSuggestionsPages = data.pagination.pages;
+            renderSuggestionsList();
+            renderSuggestionsPagination();
+            loadSuggestionsStats();
+        } else {
+            container.innerHTML = '<p class="error">Error cargando sugerencias</p>';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        container.innerHTML = '<p class="error">Error de conexión</p>';
+    }
+}
+
+async function loadSuggestionsStats() {
+    try {
+        const token = getToken();
+        const response = await fetchWithAuth(`${API_URL}/api/suggestions/admin/stats`, {});
+        const data = await response.json();
+        
+        if (data.success) {
+            const statTotal = document.getElementById('statTotal');
+            const statPendientes = document.getElementById('statPendientes');
+            const statVistas = document.getElementById('statVistas');
+            const statImplementadas = document.getElementById('statImplementadas');
+            
+            if (statTotal) statTotal.textContent = data.stats.total;
+            if (statPendientes) statPendientes.textContent = data.stats.pendientes;
+            if (statVistas) statVistas.textContent = data.stats.vistas;
+            if (statImplementadas) statImplementadas.textContent = data.stats.implementadas;
+        }
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+    }
+}
+
+function renderSuggestionsList() {
+    const container = document.getElementById('sugerenciasList');
+    if (!container) return;
+    
+    if (currentSuggestions.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No hay sugerencias</p></div>';
+        return;
+    }
+    
+    const estadoTexto = { pendiente: 'Pendiente', vista: 'Vista', considerando: 'En consideración', implementada: 'Implementada', rechazada: 'Rechazada' };
+    const estadoIcono = { pendiente: '🕐', vista: '👁️', considerando: '🤔', implementada: '✅', rechazada: '❌' };
+    
+    container.innerHTML = currentSuggestions.map(s => `
+        <div class="sugerencia-card ${s.estado}" data-suggestion-id="${s.id}" style="cursor: pointer;">
+            <div class="sugerencia-card__header">
+                <span class="sugerencia-card__number">${s.suggestionNumber}</span>
+                <span class="sugerencia-card__estado ${s.estado}">${estadoIcono[s.estado]} ${estadoTexto[s.estado]}</span>
+            </div>
+            <div class="sugerencia-card__titulo">${escapeHtml(s.titulo)}</div>
+            <div class="sugerencia-card__usuario">
+                <i class="fas fa-user"></i> ${escapeHtml(s.usuario.nombre)}
+                ${s.tieneAdjuntos ? '<i class="fas fa-paperclip" title="Tiene archivos adjuntos"></i>' : ''}
+            </div>
+            <div class="sugerencia-card__footer">
+                <span class="sugerencia-card__fecha"><i class="fas fa-calendar"></i> ${new Date(s.fechaEnvio).toLocaleDateString()}</span>
+                <span class="sugerencia-card__categoria">${getCategoriaTexto(s.categoria)}</span>
+            </div>
+        </div>
+    `).join('');
+    
+    // Agregar event listeners a cada tarjeta
+    document.querySelectorAll('.sugerencia-card').forEach(card => {
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+        
+        newCard.addEventListener('click', (e) => {
+            if (e.target.closest('.btn')) return;
+            const id = newCard.dataset.suggestionId;
+            console.log('🖱️ Tarjeta clickeada, id:', id);
+            if (id) {
+                window.viewSuggestionDetail(id);
+            }
+        });
+    });
+}
+
+function renderSuggestionsPagination() {
+    const container = document.getElementById('sugerenciasPagination');
+    if (!container) return;
+    
+    if (totalSuggestionsPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div class="pagination">';
+    html += `<button class="pagination-btn ${currentSuggestionsPage === 1 ? 'disabled' : ''}" onclick="loadSuggestionsPage(${currentSuggestionsPage - 1})" ${currentSuggestionsPage === 1 ? 'disabled' : ''}>Anterior</button>`;
+    
+    for (let i = 1; i <= Math.min(totalSuggestionsPages, 5); i++) {
+        html += `<button class="pagination-btn ${currentSuggestionsPage === i ? 'active' : ''}" onclick="loadSuggestionsPage(${i})">${i}</button>`;
+    }
+    
+    html += `<button class="pagination-btn ${currentSuggestionsPage === totalSuggestionsPages ? 'disabled' : ''}" onclick="loadSuggestionsPage(${currentSuggestionsPage + 1})" ${currentSuggestionsPage === totalSuggestionsPages ? 'disabled' : ''}>Siguiente</button>`;
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+window.loadSuggestionsPage = (page) => loadSuggestionsPage(page);
+
+window.viewSuggestionDetail = async (id) => {
+    console.log('🔍 viewSuggestionDetail llamado con id:', id);
+    
+    if (!id) {
+        console.error('ID de sugerencia no proporcionado');
+        showToast('Error: ID de sugerencia no válido', 'error');
+        return;
+    }
+    
+    try {
+        const token = getToken();
+        
+        const response = await fetchWithAuth(`${API_URL}/api/suggestions/admin/${id}`, {});
+        const data = await response.json();
+        
+        if (data.success) {
+            const s = data.suggestion;
+            
+            // Guardar el ID en la variable global
+            currentSuggestionId = s._id || s.id;
+            console.log('💾 ID guardado en variable global:', currentSuggestionId);
+            
+            // Marcar como vista automáticamente
+            await fetchWithAuth(`${API_URL}/api/suggestions/admin/${id}/view`, { method: 'PATCH' });
+            
+            let attachmentsHtml = '';
+            if (s.attachments && s.attachments.length > 0) {
+                attachmentsHtml = `
+                    <div class="sugerencia-detail__attachments">
+                        <h4><i class="fas fa-paperclip"></i> Archivos adjuntos (${s.attachments.length})</h4>
+                        <div class="attachment-list">
+                            ${s.attachments.map(a => `
+                                <div class="attachment-item">
+                                    <img src="${a.cloudinary_url}" alt="${a.originalname}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                                    <div>
+                                        <div style="font-weight: 500;">${escapeHtml(a.originalname)}</div>
+                                        <small>${(a.size / 1024).toFixed(1)} KB</small>
+                                        <br>
+                                        <a href="${a.cloudinary_url}" target="_blank" style="color: #f59e0b;">Ver imagen</a>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const modalContent = `
+                <div class="sugerencia-detail">
+                    <div class="sugerencia-detail__header">
+                        <div class="sugerencia-detail__number" style="font-size: 0.75rem; color: var(--text-tertiary); font-family: monospace;">${s.suggestionNumber}</div>
+                        <div class="sugerencia-detail__titulo" style="font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0;">${escapeHtml(s.titulo)}</div>
+                        <div class="sugerencia-detail__usuario" style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            <span><i class="fas fa-user"></i> ${escapeHtml(s.usuario.nombre)}</span>
+                            <span><i class="fas fa-envelope"></i> ${escapeHtml(s.usuario.email)}</span>
+                            <span><i class="fas fa-tag"></i> ${escapeHtml(s.usuario.rol)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="sugerencia-detail__descripcion" style="background: var(--bg-tertiary); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                        <strong>Descripción:</strong>
+                        <p style="margin-top: 0.5rem; white-space: pre-wrap; line-height: 1.5;">${escapeHtml(s.descripcion).replace(/\n/g, '<br>')}</p>
+                    </div>
+                    
+                    ${attachmentsHtml}
+                    
+                    <div class="sugerencia-detail__actions" style="display: flex; gap: 0.5rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <select id="detailStatusSelect" class="form__select" style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary);">
+                            <option value="pendiente" ${s.estado === 'pendiente' ? 'selected' : ''}>🕐 Pendiente</option>
+                            <option value="vista" ${s.estado === 'vista' ? 'selected' : ''}>👁️ Vista</option>
+                            <option value="considerando" ${s.estado === 'considerando' ? 'selected' : ''}>🤔 En consideración</option>
+                            <option value="implementada" ${s.estado === 'implementada' ? 'selected' : ''}>✅ Implementada</option>
+                            <option value="rechazada" ${s.estado === 'rechazada' ? 'selected' : ''}>❌ Rechazada</option>
+                        </select>
+                        <button class="btn btn--primary btn--sm" onclick="updateSuggestionStatus()" style="padding: 0.5rem 1rem; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-save"></i> Actualizar estado
+                        </button>
+                        <button class="btn btn--danger btn--sm" onclick="deleteSuggestion('${s.suggestionNumber}')" style="padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const detailContent = document.getElementById('suggestionDetailContent');
+            if (detailContent) {
+                detailContent.innerHTML = modalContent;
+            }
+            
+            const modal = document.getElementById('suggestionDetailModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+            
+            // Recargar lista para actualizar el estado visual
+            loadSuggestionsPage(currentSuggestionsPage);
+            loadSuggestionsStats();
+        } else {
+            showToast(data.message || 'Error al cargar detalle', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error al cargar detalle', 'error');
+    }
+};
+
+window.updateSuggestionStatus = async () => {
+    const id = currentSuggestionId;
+    console.log('📝 updateSuggestionStatus usando id global:', id);
+    
+    if (!id) {
+        console.error('ID no proporcionado');
+        showToast('Error: ID no válido', 'error');
+        return;
+    }
+    
+    const select = document.getElementById('detailStatusSelect');
+    if (!select) {
+        console.error('Selector de estado no encontrado');
+        showToast('Error: No se encontró el selector de estado', 'error');
+        return;
+    }
+    
+    const nuevoEstado = select.value;
+    console.log('📝 Nuevo estado:', nuevoEstado);
+    
+    try {
+        const token = getToken();
+        const response = await fetchWithAuth(`${API_URL}/api/suggestions/admin/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Estado actualizado correctamente', 'success');
+            closeSuggestionDetailModal();
+            loadSuggestionsPage(currentSuggestionsPage);
+            loadSuggestionsStats();
+        } else {
+            showToast(data.message || 'Error al actualizar estado', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error al actualizar estado', 'error');
+    }
+};
+
+window.deleteSuggestion = async (number) => {
+    const id = currentSuggestionId;
+    console.log('🗑️ deleteSuggestion usando id global:', id, 'number:', number);
+    
+    if (!id) {
+        console.error('ID no proporcionado');
+        showToast('Error: ID no válido', 'error');
+        return;
+    }
+    
+    if (!confirm(`¿Eliminar la sugerencia ${number}? Esta acción no se puede deshacer.`)) return;
+    
+    try {
+        const token = getToken();
+        const response = await fetchWithAuth(`${API_URL}/api/suggestions/admin/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Sugerencia eliminada', 'success');
+            closeSuggestionDetailModal();
+            loadSuggestionsPage(currentSuggestionsPage);
+            loadSuggestionsStats();
+        } else {
+            showToast(data.message || 'Error al eliminar', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error al eliminar', 'error');
+    }
+};
+
+window.closeSuggestionDetailModal = () => {
+    const modal = document.getElementById('suggestionDetailModal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+    currentSuggestionId = null; // Limpiar la variable global
+    console.log('🧹 Variable global currentSuggestionId limpiada');
+};
+
+function getCategoriaTexto(categoria) {
+    const textos = {
+        mejora: '✨ Mejora',
+        nueva_funcionalidad: '🚀 Nueva funcionalidad',
+        reporte_error: '🐛 Reporte de error',
+        experiencia_usuario: '🎨 Experiencia de usuario',
+        rendimiento: '⚡ Rendimiento',
+        seguridad: '🔒 Seguridad',
+        otros: '📌 Otros'
+    };
+    return textos[categoria] || categoria;
+}
+
+// =============================================================
 // LOGOUT
 // =============================================================
 async function logout() {
@@ -737,7 +1184,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Decodificar token para programar refresh
+    // Crear sección de sugerencias
+    createSugerenciasSection();
+
     try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -757,7 +1206,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user && user.usuario) {
-            document.getElementById('userName').textContent = user.usuario;
+            const userNameSpan = document.getElementById('userName');
+            if (userNameSpan) userNameSpan.textContent = user.usuario;
         }
     } catch (e) { }
 
@@ -767,7 +1217,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     switchSection('versions');
     
-    // Heartbeat cada 5 minutos para mantener sesión activa
     setInterval(async () => {
         try {
             await fetchWithAuth(`${API_URL}/api/superadmin/verify`, {});

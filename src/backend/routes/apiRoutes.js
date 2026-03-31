@@ -34,6 +34,7 @@ import upload from '../config/multerConfig.js';
 // ── Sub-rutas ─────────────────────────────────────────────────
 import auditRoutes from './auditRoutes.js';
 import roleRoutes from './roleRoutes.js';
+import suggestionRoutes from './suggestionRoutes.js';
 
 // ─── Health check ─────────────────────────────────────────────
 router.get('/health', (req, res) => {
@@ -164,5 +165,8 @@ if (process.env.NODE_ENV === 'development') {
 router.get('/versions',         protegerRuta, getAllVersions);
 router.get('/versions/current', protegerRuta, getCurrentVersion);
 router.get('/versions/:id',     protegerRuta, getVersionById);
+
+// ─── SUGERENCIAS ────────────────────────────────────────────────
+router.use('/suggestions', suggestionRoutes);
 
 export default router;
