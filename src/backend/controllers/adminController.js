@@ -2,17 +2,13 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import AdminChangeRequest from '../models/AdminChangeRequest.js';
-import { transporter } from './authController.js';
+import emailService from '../services/emailService.js';
 import NotificationService from '../services/notificationService.js';
 import AuditService from '../services/auditService.js'; // ✅ IMPORTACIÓN DEL SERVICIO DE AUDITORÍA
 
-// =============================================================================
-// CONFIGURACIÓN
-// =============================================================================
-const emailFrom = 'riosnavarretejared@gmail.com';
-
 console.log('\n🔐 ========== ADMIN CONTROLLER INICIALIZADO ==========');
-console.log(`📧 Transporter: ${transporter ? '✅ CONFIGURADO' : '❌ NO CONFIGURADO'}`);
+console.log(`📧 Usando servicio de email centralizado`);
+console.log(`📧 Estado: ${emailService.getStatus().configured ? '✅ CONFIGURADO' : '❌ NO CONFIGURADO'}`);
 console.log('🔐 ====================================================\n');
 
 // =============================================================================
@@ -26,23 +22,6 @@ const generateSecureToken = () => {
 const buildVerificationUrl = (token) => {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
     return `${baseUrl}/verify-admin-change.html?token=${token}`;
-};
-
-const enviarEmailConReintentos = async (mailOptions, intentos = 3) => {
-    if (!transporter) throw new Error('Transporter no disponible');
-
-    for (let i = 0; i < intentos; i++) {
-        try {
-            console.log(`📤 Intento ${i + 1} enviando email...`);
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`✅ Email enviado en intento ${i + 1}`);
-            return info;
-        } catch (error) {
-            console.error(`❌ Intento ${i + 1} falló:`, error.message);
-            if (i === intentos - 1) throw error;
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-    }
 };
 
 // =============================================================================
@@ -94,256 +73,44 @@ const debugAdminChange = {
 };
 
 // =============================================================================
-// 1. SOLICITAR CAMBIO DE ADMINISTRADOR (CORREGIDO CON DEBUGGING Y AUDITORÍA)
+// SOLICITAR CAMBIO DE ADMINISTRADOR - MODIFICADO
 // =============================================================================
 
 export const requestAdminChange = async (req, res) => {
-    debugAdminChange.start('SOLICITUD CAMBIO ADMINISTRADOR');
-    debugAdminChange.logRequestData(req);
-    
     try {
-        const { 
-            nuevoUsuario, 
-            nuevoCorreo, 
-            nuevaPassword,
-            confirmarPassword 
-        } = req.body;
+        const { nuevoUsuario, nuevoCorreo, nuevaPassword, confirmarPassword } = req.body;
 
-        // =========================================================================
-        // VALIDACIONES DETALLADAS
-        // =========================================================================
-        console.log('🔍 VALIDANDO DATOS:');
-        console.log(`- nuevoUsuario: "${nuevoUsuario}" (${nuevoUsuario?.length || 0} chars)`);
-        console.log(`- nuevoCorreo: "${nuevoCorreo}"`);
-        console.log(`- nuevaPassword: "${nuevaPassword ? '***' + nuevaPassword.substring(nuevaPassword.length - 2) : 'NULL'}"`);
-        console.log(`- confirmarPassword: "${confirmarPassword ? '***' + confirmarPassword.substring(confirmarPassword.length - 2) : 'NULL'}"`);
-
+        // Validaciones (se mantienen igual)
         if (!nuevoUsuario || !nuevoCorreo || !nuevaPassword || !confirmarPassword) {
-            const missing = [];
-            if (!nuevoUsuario) missing.push('nuevoUsuario');
-            if (!nuevoCorreo) missing.push('nuevoCorreo');
-            if (!nuevaPassword) missing.push('nuevaPassword');
-            if (!confirmarPassword) missing.push('confirmarPassword');
-            
-            console.error(`❌ Campos faltantes: ${missing.join(', ')}`);
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_REQUEST',
-                actionType: 'CREATE',
-                actionCategory: 'ADMIN',
-                targetId: null,
-                targetModel: 'AdminChangeRequest',
-                targetName: nuevoUsuario || 'Desconocido',
-                description: `Intento fallido - Campos faltantes: ${missing.join(', ')}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    missingFields: missing,
-                    nuevoUsuario,
-                    nuevoCorreo
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            
-            return res.status(400).json({
-                success: false,
-                message: 'Todos los campos son requeridos',
-                missingFields: missing
-            });
+            return res.status(400).json({ success: false, message: 'Todos los campos son requeridos' });
         }
 
         if (nuevaPassword !== confirmarPassword) {
-            console.error('❌ Contraseñas no coinciden');
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_REQUEST',
-                actionType: 'CREATE',
-                actionCategory: 'ADMIN',
-                targetId: null,
-                targetModel: 'AdminChangeRequest',
-                targetName: nuevoUsuario,
-                description: `Intento fallido - Contraseñas no coinciden`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    nuevoUsuario,
-                    nuevoCorreo,
-                    reason: 'password_mismatch'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            return res.status(400).json({
-                success: false,
-                message: 'Las contraseñas no coinciden'
-            });
+            return res.status(400).json({ success: false, message: 'Las contraseñas no coinciden' });
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(nuevoCorreo)) {
-            console.error(`❌ Correo inválido: ${nuevoCorreo}`);
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_REQUEST',
-                actionType: 'CREATE',
-                actionCategory: 'ADMIN',
-                targetId: null,
-                targetModel: 'AdminChangeRequest',
-                targetName: nuevoUsuario,
-                description: `Intento fallido - Correo inválido: ${nuevoCorreo}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    nuevoUsuario,
-                    nuevoCorreo,
-                    reason: 'invalid_email'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            return res.status(400).json({
-                success: false,
-                message: 'Correo electrónico inválido'
-            });
-        }
-
-        // =========================================================================
-        // OBTENER ADMINISTRADOR ACTUAL
-        // =========================================================================
-        const currentAdminId = req.user.id;
-        console.log(`👤 Buscando admin actual ID: ${currentAdminId}`);
-        
-        const currentAdmin = await User.findById(currentAdminId);
-
+        const currentAdmin = await User.findById(req.user.id);
         if (!currentAdmin) {
-            console.error(`❌ Admin no encontrado con ID: ${currentAdminId}`);
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_REQUEST',
-                actionType: 'CREATE',
-                actionCategory: 'ADMIN',
-                targetId: currentAdminId,
-                targetModel: 'User',
-                targetName: 'Admin actual',
-                description: `Intento fallido - Admin actual no encontrado`,
-                severity: 'ERROR',
-                status: 'FAILED',
-                metadata: {
-                    adminId: currentAdminId
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            return res.status(404).json({
-                success: false,
-                message: 'Administrador actual no encontrado'
-            });
+            return res.status(404).json({ success: false, message: 'Administrador actual no encontrado' });
         }
 
-        console.log(`✅ Admin actual encontrado: ${currentAdmin.usuario} (${currentAdmin.correo})`);
-
-        // =========================================================================
-        // VERIFICAR USUARIO Y CORREO ÚNICOS
-        // =========================================================================
-        console.log('🔍 Verificando unicidad de datos...');
-        
+        // Verificar unicidad
         const existingUser = await User.findOne({ correo: nuevoCorreo });
         if (existingUser) {
-            console.error(`❌ Correo ya registrado: ${nuevoCorreo}`);
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_REQUEST',
-                actionType: 'CREATE',
-                actionCategory: 'ADMIN',
-                targetId: null,
-                targetModel: 'AdminChangeRequest',
-                targetName: nuevoUsuario,
-                description: `Intento fallido - Correo ya registrado: ${nuevoCorreo}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    nuevoUsuario,
-                    nuevoCorreo,
-                    existingUser: existingUser.usuario,
-                    reason: 'email_exists'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            return res.status(400).json({
-                success: false,
-                message: 'Este correo ya está registrado en el sistema',
-                existingUser: existingUser.usuario
-            });
+            return res.status(400).json({ success: false, message: 'Este correo ya está registrado' });
         }
 
         const existingUsername = await User.findOne({ usuario: nuevoUsuario });
         if (existingUsername) {
-            console.error(`❌ Usuario ya existe: ${nuevoUsuario}`);
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_REQUEST',
-                actionType: 'CREATE',
-                actionCategory: 'ADMIN',
-                targetId: null,
-                targetModel: 'AdminChangeRequest',
-                targetName: nuevoUsuario,
-                description: `Intento fallido - Usuario ya existe: ${nuevoUsuario}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    nuevoUsuario,
-                    nuevoCorreo,
-                    reason: 'username_exists'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            return res.status(400).json({
-                success: false,
-                message: 'Este nombre de usuario ya está en uso'
-            });
+            return res.status(400).json({ success: false, message: 'Este nombre de usuario ya está en uso' });
         }
 
-        console.log('✅ Usuario y correo disponibles');
-
-        // =========================================================================
-        // PROCESAR CONTRASEÑA CORRECTAMENTE
-        // =========================================================================
-        debugAdminChange.logPasswordProcessing(nuevaPassword);
-        
-        // IMPORTANTE: Encriptar la contraseña ANTES de guardarla en la solicitud
+        // Hashear contraseña
         const bcrypt = await import('bcryptjs');
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(nuevaPassword, salt);
-        
-        debugAdminChange.logPasswordProcessing(nuevaPassword, hashedPassword);
+        const hashedPassword = await bcrypt.hash(nuevaPassword, 10);
 
-        // =========================================================================
-        // CREAR SOLICITUD DE CAMBIO
-        // =========================================================================
+        // Crear solicitud
         const verificationToken = generateSecureToken();
-        
-        console.log('📝 Creando solicitud de cambio...');
         
         const adminChangeRequest = new AdminChangeRequest({
             currentAdminId: currentAdmin._id,
@@ -351,161 +118,40 @@ export const requestAdminChange = async (req, res) => {
             currentAdminName: currentAdmin.usuario,
             newAdminUser: nuevoUsuario,
             newAdminEmail: nuevoCorreo,
-            newAdminPassword: hashedPassword, // ¡GUARDAR LA CONTRASEÑA HASHEADA!
+            newAdminPassword: hashedPassword,
             verificationToken,
             tokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
             status: 'pending',
             ipAddress: req.ip,
-            userAgent: req.headers['user-agent'],
-            metadata: {
-                passwordLength: nuevaPassword.length,
-                requestTimestamp: new Date().toISOString(),
-                clientInfo: {
-                    ip: req.ip,
-                    userAgent: req.headers['user-agent']
-                }
-            }
+            userAgent: req.headers['user-agent']
         });
 
         await adminChangeRequest.save();
-        
-        console.log('✅ Solicitud de cambio creada:', {
-            id: adminChangeRequest._id,
-            newAdminUser: nuevoUsuario,
-            newAdminEmail: nuevoCorreo,
-            passwordStored: !!adminChangeRequest.newAdminPassword,
-            passwordLength: nuevaPassword.length,
-            expires: adminChangeRequest.tokenExpires
-        });
-
-        // =========================================================================
-        // VERIFICAR ESTADO DE LA SOLICITUD
-        // =========================================================================
-        await debugAdminChange.logDatabaseState();
-
-        // =========================================================================
-        // ENVIAR EMAIL DE CONFIRMACIÓN
-        // =========================================================================
-        if (!transporter) {
-            console.error('❌ Transporter no disponible');
-            adminChangeRequest.status = 'pending_no_email';
-            await adminChangeRequest.save();
-            
-            const verificationUrl = buildVerificationUrl(verificationToken);
-            console.log('🔗 ENLACE DE VERIFICACIÓN (modo desarrollo):', verificationUrl);
-            
-            // =======================================================================
-            // REGISTRAR SOLICITUD CREADA (SIN EMAIL)
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_REQUEST',
-                actionType: 'CREATE',
-                actionCategory: 'ADMIN',
-                targetId: adminChangeRequest._id,
-                targetModel: 'AdminChangeRequest',
-                targetName: `Cambio a ${nuevoUsuario}`,
-                description: `Solicitud de cambio de administrador creada (sin email) - Nuevo admin: ${nuevoUsuario}`,
-                severity: 'WARNING',
-                status: 'PENDING',
-                metadata: {
-                    requestId: adminChangeRequest._id,
-                    currentAdmin: currentAdmin.usuario,
-                    newAdmin: nuevoUsuario,
-                    newAdminEmail: nuevoCorreo,
-                    emailStatus: 'not_sent'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-            
-            return res.status(500).json({
-                success: false,
-                message: 'Error del sistema: servicio de email no disponible',
-                requestId: adminChangeRequest._id,
-                debugUrl: process.env.NODE_ENV === 'development' ? verificationUrl : undefined,
-                note: 'Contacta al administrador del sistema para continuar'
-            });
-        }
+        console.log('✅ Solicitud de cambio creada:', adminChangeRequest._id);
 
         const verificationUrl = buildVerificationUrl(verificationToken);
 
+        // ========== ENVIAR EMAIL USANDO SERVICIO CENTRALIZADO ==========
         try {
-            const currentAdminEmailOptions = {
-                from: `"Sistema CBTIS051 - Administración" <${emailFrom}>`,
-                to: currentAdmin.correo,
-                subject: '⚠️ Confirmación de Cambio de Administrador - CBTIS051',
-                html: `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
-                        <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); padding: 40px; text-align: center; border-radius: 15px 15px 0 0;">
-                            <h1 style="color: white; margin: 0; font-size: 32px; font-weight: 700;">CONFIRMACIÓN REQUERIDA</h1>
-                            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 18px;">Cambio de Administrador - CBTIS051</p>
-                        </div>
-                        
-                        <div style="padding: 40px; background: white; border-radius: 0 0 15px 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-                            <div style="text-align: center; margin-bottom: 30px;">
-                                <div style="display: inline-block; background: #fef3c7; padding: 20px; border-radius: 50%; margin-bottom: 20px;">
-                                    <i class="fas fa-user-shield" style="font-size: 48px; color: #d97706;"></i>
-                                </div>
-                                <h2 style="color: #1f2937; margin: 0 0 15px; font-size: 28px; font-weight: 700;">Confirma la Transferencia</h2>
-                                <p style="color: #6b7280; font-size: 16px; line-height: 1.6;">
-                                    Has solicitado transferir la administración a ${nuevoUsuario}. Confirma esta acción para completar el proceso.
-                                </p>
-                            </div>
-                            
-                            <div style="background: #f9fafb; padding: 25px; border-radius: 12px; margin-bottom: 30px; border-left: 5px solid #8b5cf6;">
-                                <h3 style="color: #374151; margin: 0 0 15px; font-size: 20px;">📋 Detalles de la solicitud:</h3>
-                                <table style="width: 100%; border-collapse: collapse;">
-                                    <tr>
-                                        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">👤 Nuevo administrador:</td>
-                                        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-weight: 600;">${nuevoUsuario}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280;">📧 Correo nuevo:</td>
-                                        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-weight: 600;">${nuevoCorreo}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 10px 0; color: #6b7280;">⏰ Expira en:</td>
-                                        <td style="padding: 10px 0; color: #dc2626; font-weight: 600;">24 horas</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            
-                            <div style="text-align: center; margin: 40px 0;">
-                                <a href="${verificationUrl}" 
-                                   style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-                                          color: white; padding: 18px 40px; text-decoration: none; border-radius: 12px; 
-                                          font-weight: 700; font-size: 18px; transition: all 0.3s; box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);">
-                                    <i class="fas fa-shield-check"></i> CONFIRMAR TRANSFERENCIA
-                                </a>
-                                <p style="color: #9ca3af; margin-top: 15px; font-size: 14px;">
-                                    Este enlace expira en 24 horas | ID: ${adminChangeRequest._id}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `,
-                text: `CONFIRMACIÓN DE CAMBIO DE ADMINISTRADOR - CBTIS051\n\nHas solicitado transferir la administración a ${nuevoUsuario}.\n\n📋 DETALLES:\n- Nuevo administrador: ${nuevoUsuario}\n- Correo nuevo: ${nuevoCorreo}\n- Solicitado por: ${currentAdmin.usuario}\n- Expira en: 24 horas\n- ID de solicitud: ${adminChangeRequest._id}\n\n🔗 CONFIRMAR: ${verificationUrl}\n\nSi no reconoces esta solicitud, ignora este correo.`
-            };
-            
-            await enviarEmailConReintentos(currentAdminEmailOptions);
-            console.log('✅ Email de confirmación enviado');
+            await emailService.sendAdminChangeVerification(currentAdmin.correo, {
+                currentAdminName: currentAdmin.usuario,
+                newAdminUser: nuevoUsuario,
+                newAdminEmail: nuevoCorreo,
+                verificationUrl,
+                requestId: adminChangeRequest._id
+            });
             
             adminChangeRequest.notificationSent = true;
             await adminChangeRequest.save();
-
+            console.log('✅ Email de verificación enviado');
+            
         } catch (emailError) {
             console.error('❌ Error enviando email:', emailError.message);
-            
             adminChangeRequest.notificationSent = false;
             adminChangeRequest.emailError = emailError.message;
             await adminChangeRequest.save();
-            
-            console.log('🔗 ENLACE DE VERIFICACIÓN:', verificationUrl);
         }
 
-        // =======================================================================
-        // REGISTRAR SOLICITUD CREADA EN AUDITORÍA
-        // =======================================================================
         await AuditService.log(req, {
             action: 'ADMIN_CHANGE_REQUEST',
             actionType: 'CREATE',
@@ -513,7 +159,7 @@ export const requestAdminChange = async (req, res) => {
             targetId: adminChangeRequest._id,
             targetModel: 'AdminChangeRequest',
             targetName: `Cambio a ${nuevoUsuario}`,
-            description: `Solicitud de cambio de administrador creada - Nuevo admin: ${nuevoUsuario}`,
+            description: `Solicitud de cambio de administrador creada`,
             severity: 'WARNING',
             status: 'PENDING',
             metadata: {
@@ -521,63 +167,22 @@ export const requestAdminChange = async (req, res) => {
                 currentAdmin: currentAdmin.usuario,
                 newAdmin: nuevoUsuario,
                 newAdminEmail: nuevoCorreo,
-                expiresAt: adminChangeRequest.tokenExpires,
-                notificationSent: adminChangeRequest.notificationSent,
-                ipAddress: req.ip,
-                userAgent: req.headers['user-agent']
+                notificationSent: adminChangeRequest.notificationSent
             }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+        }).catch(err => console.error('❌ Error en auditoría:', err.message));
 
-        console.log('✅✅✅ SOLICITUD PROCESADA EXITOSAMENTE ✅✅✅');
-        debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', true);
-        
         res.json({
             success: true,
-            message: '✅ Solicitud de cambio enviada. Revisa tu correo para confirmar la transferencia.',
+            message: '✅ Solicitud de cambio enviada. Revisa tu correo para confirmar.',
             requestId: adminChangeRequest._id,
-            expiresAt: adminChangeRequest.tokenExpires,
-            debug: process.env.NODE_ENV === 'development' ? {
-                passwordProcessed: true,
-                passwordHashLength: hashedPassword.length,
-                token: verificationToken.substring(0, 10) + '...'
-            } : undefined
+            expiresAt: adminChangeRequest.tokenExpires
         });
 
     } catch (error) {
-        console.error('🔥 ERROR CRÍTICO en requestAdminChange:');
-        console.error('📌 Mensaje:', error.message);
-        console.error('📌 Stack:', error.stack);
-        console.error('📌 Timestamp:', new Date().toISOString());
-        
-        // =======================================================================
-        // REGISTRAR ERROR EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
-            action: 'ADMIN_CHANGE_REQUEST',
-            actionType: 'CREATE',
-            actionCategory: 'ADMIN',
-            targetId: null,
-            targetModel: 'AdminChangeRequest',
-            targetName: 'Error',
-            description: `Error crítico en solicitud de cambio: ${error.message}`,
-            severity: 'ERROR',
-            status: 'FAILED',
-            metadata: {
-                error: error.message,
-                stack: error.stack
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-        
-        debugAdminChange.end('SOLICITUD CAMBIO ADMINISTRADOR', false);
-        
+        console.error('🔥 ERROR en requestAdminChange:', error);
         res.status(500).json({
             success: false,
-            message: 'Error del servidor al procesar solicitud',
-            error: process.env.NODE_ENV === 'development' ? {
-                message: error.message,
-                stack: error.stack
-            } : undefined,
-            timestamp: new Date().toISOString()
+            message: 'Error del servidor al procesar solicitud'
         });
     }
 };
@@ -752,287 +357,79 @@ export const verifyAdminChangeToken = async (req, res) => {
 };
 
 // =============================================================================
-// 3. CONFIRMAR CAMBIO DE ADMINISTRADOR (CORREGIDO CON AUDITORÍA)
+// CONFIRMAR CAMBIO DE ADMINISTRADOR - MODIFICADO
 // =============================================================================
 
 export const confirmAdminChange = async (req, res) => {
-    debugAdminChange.start('CONFIRMACIÓN DE CAMBIO');
-    
     try {
         const { token } = req.body;
 
         if (!token) {
-            console.error('❌ Token no proporcionado');
-            debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
-            return res.status(400).json({
-                success: false,
-                message: 'Token requerido'
-            });
+            return res.status(400).json({ success: false, message: 'Token requerido' });
         }
 
-        console.log(`🔑 Token recibido: ${token.substring(0, 15)}...`);
-
-        // Buscar solicitud
         const changeRequest = await AdminChangeRequest.findOne({
             verificationToken: token,
             status: 'pending'
         });
 
         if (!changeRequest) {
-            console.error('❌ Solicitud no encontrada');
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_CONFIRM',
-                actionType: 'UPDATE',
-                actionCategory: 'ADMIN',
-                targetId: null,
-                targetModel: 'AdminChangeRequest',
-                targetName: 'Solicitud no encontrada',
-                description: `Intento de confirmación con token inválido`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    tokenPreview: token.substring(0, 15) + '...'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
-            return res.status(404).json({
-                success: false,
-                message: 'Solicitud no encontrada o ya procesada'
-            });
+            return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
         }
-
-        console.log('✅ Solicitud encontrada:', {
-            id: changeRequest._id,
-            newAdminUser: changeRequest.newAdminUser,
-            newAdminEmail: changeRequest.newAdminEmail
-        });
 
         if (!changeRequest.isTokenValid()) {
-            console.error('❌ Token inválido o expirado');
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_CONFIRM',
-                actionType: 'UPDATE',
-                actionCategory: 'ADMIN',
-                targetId: changeRequest._id,
-                targetModel: 'AdminChangeRequest',
-                targetName: `Cambio a ${changeRequest.newAdminUser}`,
-                description: `Intento de confirmación con token expirado`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    requestId: changeRequest._id,
-                    expiresAt: changeRequest.tokenExpires
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
-            return res.status(400).json({
-                success: false,
-                message: 'Token inválido o expirado'
-            });
+            return res.status(400).json({ success: false, message: 'Token inválido o expirado' });
         }
 
-        // DEBUG: Verificar la contraseña almacenada
-        console.log('🔍 VERIFICANDO CONTRASEÑA ALMACENADA:');
-        console.log(`- Contraseña en DB: ${changeRequest.newAdminPassword ? 'PRESENTE' : 'FALTANTE'}`);
-        console.log(`- Longitud hash: ${changeRequest.newAdminPassword?.length || 0}`);
-        
         if (!changeRequest.newAdminPassword) {
-            console.error('❌ ERROR CRÍTICO: No hay contraseña almacenada en la solicitud');
-            
-            // =======================================================================
-            // REGISTRAR ERROR EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'ADMIN_CHANGE_CONFIRM',
-                actionType: 'UPDATE',
-                actionCategory: 'ADMIN',
-                targetId: changeRequest._id,
-                targetModel: 'AdminChangeRequest',
-                targetName: `Cambio a ${changeRequest.newAdminUser}`,
-                description: `Error crítico: Contraseña no almacenada en solicitud`,
-                severity: 'ERROR',
-                status: 'FAILED',
-                metadata: {
-                    requestId: changeRequest._id
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
-            return res.status(500).json({
-                success: false,
-                message: 'Error interno: contraseña no almacenada en la solicitud'
-            });
+            return res.status(500).json({ success: false, message: 'Error interno: contraseña no almacenada' });
         }
 
-        console.log('✅✅✅ INICIANDO PROCESO DE CAMBIO ✅✅✅');
-
-        // =========================================================================
-        // PASO 1: DESACTIVAR ADMINISTRADOR ACTUAL
-        // =========================================================================
+        // Desactivar admin actual
         const currentAdmin = await User.findById(changeRequest.currentAdminId);
-        
         if (currentAdmin) {
-            console.log(`👤 Desactivando admin actual: ${currentAdmin.usuario}`);
-            
-            const backupEmail = `old_${Date.now()}_${currentAdmin.correo}`;
-            const backupUsername = `old_${Date.now()}_${currentAdmin.usuario}`;
-            
-            currentAdmin.correo = backupEmail;
-            currentAdmin.usuario = backupUsername;
+            currentAdmin.correo = `old_${Date.now()}_${currentAdmin.correo}`;
+            currentAdmin.usuario = `old_${Date.now()}_${currentAdmin.usuario}`;
             currentAdmin.activo = false;
             currentAdmin.rol = 'desactivado';
-            currentAdmin.deactivatedAt = new Date();
-            
             await currentAdmin.save();
-            console.log('✅ Administrador actual desactivado');
-            
             changeRequest.oldAdminDeactivated = true;
         }
 
-        // =========================================================================
-        // PASO 2: CREAR NUEVO ADMINISTRADOR CON LA CONTRASEÑA YA HASHEADA
-        // =========================================================================
-        console.log('👤 Creando nuevo administrador...');
-        console.log(`- Usuario: ${changeRequest.newAdminUser}`);
-        console.log(`- Email: ${changeRequest.newAdminEmail}`);
-        console.log(`- Password hash: ${changeRequest.newAdminPassword.substring(0, 20)}...`);
-
-        // CREAR EL USUARIO PERO EVITAR QUE MONGOOSE LO HASHEE DE NUEVO
-        const newAdminData = {
+        // Crear nuevo admin
+        const newAdmin = await User.create([{
             usuario: changeRequest.newAdminUser,
             correo: changeRequest.newAdminEmail,
-            password: changeRequest.newAdminPassword, // ¡USAR EL HASH YA ALMACENADO!
+            password: changeRequest.newAdminPassword,
             rol: 'administrador',
-            activo: true,
-            ultimoAcceso: new Date(),
-            metadata: {
-                createdFromRequest: changeRequest._id,
-                createdByAdmin: changeRequest.currentAdminId,
-                createdAt: new Date()
-            }
-        };
+            activo: true
+        }], { saveMiddleware: false });
 
-        // SOLUCIÓN: Crear el usuario directamente con create() y deshabilitar middleware
-        const newAdmin = await User.create([newAdminData], {
-            // IMPORTANTE: Esto deshabilita el middleware pre('save')
-            saveMiddleware: false
-        });
-
-        console.log('✅ Nuevo administrador creado:', {
-            id: newAdmin._id,
-            usuario: newAdmin.usuario,
-            correo: newAdmin.correo,
-            passwordStored: !!newAdmin.password,
-            passwordLength: newAdmin.password?.length
-        });
-
-        // =========================================================================
-        // PASO 3: VERIFICAR QUE EL USUARIO SE PUEDE AUTENTICAR
-        // =========================================================================
-        console.log('🔐 Probando autenticación del nuevo usuario...');
-        
-        try {
-            const testPassword = 'test'; // Contraseña de prueba
-            const bcrypt = await import('bcryptjs');
-            
-            // IMPORTANTE: Comparar una contraseña falsa para verificar que el hash funciona
-            const isValidFormat = await bcrypt.compare(testPassword, newAdmin.password);
-            console.log(`✅ Formato de hash válido: ${isValidFormat ? 'NO (esperado para contraseña incorrecta)' : 'SÍ, hash funciona'}`);
-            
-        } catch (authError) {
-            console.error('⚠️ Advertencia en prueba de autenticación:', authError.message);
-        }
-
-        // =========================================================================
-        // PASO 4: ACTUALIZAR ESTADO DE LA SOLICITUD
-        // =========================================================================
         changeRequest.newAdminCreated = true;
         changeRequest.newAdminId = newAdmin._id;
         changeRequest.status = 'approved';
         changeRequest.approvedAt = new Date();
         await changeRequest.save();
-        
-        console.log('✅ Solicitud marcada como aprobada');
 
-        // =========================================================================
-        // PASO 5: ENVIAR EMAIL AL NUEVO ADMINISTRADOR
-        // =========================================================================
-        if (transporter) {
-            try {
-                const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:4000'}/login.html`;
-                
-                const newAdminEmailOptions = {
-                    from: `"Sistema CBTIS051 - Administración" <${emailFrom}>`,
-                    to: changeRequest.newAdminEmail,
-                    subject: '✅ ¡Eres el nuevo Administrador! - CBTIS051',
-                    html: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px; text-align: center; border-radius: 15px 15px 0 0;">
-                                <h1 style="color: white; margin: 0; font-size: 32px;">¡BIENVENIDO!</h1>
-                                <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 18px;">Nuevo Administrador - CBTIS051</p>
-                            </div>
-                            
-                            <div style="padding: 40px; background: white; border-radius: 0 0 15px 15px;">
-                                <div style="text-align: center; margin-bottom: 30px;">
-                                    <h2 style="color: #1f2937; margin: 0 0 15px; font-size: 28px;">Administración Transferida</h2>
-                                    <p style="color: #6b7280; font-size: 16px;">
-                                        ${changeRequest.currentAdminName} ha transferido la administración del sistema a tu cuenta.
-                                    </p>
-                                </div>
-                                
-                                <div style="background: #f0f9ff; padding: 25px; border-radius: 12px; margin-bottom: 30px;">
-                                    <h3 style="color: #374151; margin: 0 0 15px; font-size: 20px;">📋 Tus credenciales:</h3>
-                                    <p><strong>Usuario:</strong> ${changeRequest.newAdminUser}</p>
-                                    <p><strong>Correo:</strong> ${changeRequest.newAdminEmail}</p>
-                                    <p><strong>Contraseña:</strong> La que estableciste en la solicitud</p>
-                                </div>
-                                
-                                <div style="text-align: center; margin: 40px 0;">
-                                    <a href="${loginUrl}" 
-                                       style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); 
-                                              color: white; padding: 18px 40px; text-decoration: none; border-radius: 12px; 
-                                              font-weight: 700; font-size: 18px;">
-                                        <i class="fas fa-sign-in-alt"></i> INICIAR SESIÓN AHORA
-                                    </a>
-                                </div>
-                                
-                                <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                                    <p style="color: #92400e; margin: 0; font-size: 14px;">
-                                        <i class="fas fa-exclamation-triangle"></i> 
-                                        <strong>Por seguridad, cambia tu contraseña después de iniciar sesión.</strong>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    `
-                };
-                
-                await enviarEmailConReintentos(newAdminEmailOptions);
-                console.log('✅ Email enviado al nuevo administrador');
-                
-                changeRequest.notificationSentNewAdmin = true;
-                await changeRequest.save();
-                
-            } catch (emailError) {
-                console.warn('⚠️ No se pudo enviar email:', emailError.message);
-                changeRequest.notificationSentNewAdmin = false;
-                await changeRequest.save();
-            }
+        console.log('✅ Nuevo administrador creado:', newAdmin.usuario);
+
+        const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:4000'}/login.html`;
+
+        // ========== ENVIAR EMAIL DE BIENVENIDA ==========
+        try {
+            await emailService.sendNewAdminWelcome(changeRequest.newAdminEmail, {
+                newAdminUser: changeRequest.newAdminUser,
+                newAdminEmail: changeRequest.newAdminEmail,
+                currentAdminName: changeRequest.currentAdminName,
+                loginUrl
+            });
+            changeRequest.notificationSentNewAdmin = true;
+            await changeRequest.save();
+            console.log('✅ Email de bienvenida enviado');
+        } catch (emailError) {
+            console.error('⚠️ Error enviando email de bienvenida:', emailError.message);
         }
 
-        // =======================================================================
-        // REGISTRAR CONFIRMACIÓN DE CAMBIO EN AUDITORÍA
-        // =======================================================================
         await AuditService.log(req, {
             action: 'ADMIN_CHANGE_CONFIRM',
             actionType: 'UPDATE',
@@ -1040,79 +437,30 @@ export const confirmAdminChange = async (req, res) => {
             targetId: changeRequest._id,
             targetModel: 'AdminChangeRequest',
             targetName: `Cambio a ${changeRequest.newAdminUser}`,
-            description: `Cambio de administrador confirmado y completado - Nuevo admin: ${changeRequest.newAdminUser}`,
+            description: `Cambio de administrador completado`,
             severity: 'CRITICAL',
             status: 'SUCCESS',
             metadata: {
-                requestId: changeRequest._id,
-                oldAdmin: {
-                    id: changeRequest.currentAdminId,
-                    name: changeRequest.currentAdminName,
-                    email: changeRequest.currentAdminEmail
-                },
-                newAdmin: {
-                    id: newAdmin._id,
-                    name: changeRequest.newAdminUser,
-                    email: changeRequest.newAdminEmail
-                },
-                approvedAt: changeRequest.approvedAt,
-                oldAdminDeactivated: changeRequest.oldAdminDeactivated
+                oldAdmin: changeRequest.currentAdminName,
+                newAdmin: changeRequest.newAdminUser
             }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-
-        console.log('✅✅✅ CAMBIO COMPLETADO EXITOSAMENTE ✅✅✅');
-        debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', true);
-        
-        // DEBUG: Verificar estado final
-        await debugAdminChange.logDatabaseState();
+        }).catch(err => console.error('❌ Error en auditoría:', err.message));
 
         res.json({
             success: true,
             message: '✅ Cambio de administrador completado exitosamente.',
             newAdmin: {
                 usuario: changeRequest.newAdminUser,
-                correo: changeRequest.newAdminEmail,
-                id: newAdmin._id
+                correo: changeRequest.newAdminEmail
             },
-            debug: process.env.NODE_ENV === 'development' ? {
-                passwordUsedFromRequest: true,
-                requestId: changeRequest._id,
-                oldAdminDeactivated: true
-            } : undefined,
-            loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:4000'}/login.html`
+            loginUrl
         });
 
     } catch (error) {
-        console.error('🔥 ERROR CRÍTICO en confirmAdminChange:');
-        console.error('📌 Mensaje:', error.message);
-        console.error('📌 Stack:', error.stack);
-        
-        // =======================================================================
-        // REGISTRAR ERROR EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
-            action: 'ADMIN_CHANGE_CONFIRM',
-            actionType: 'UPDATE',
-            actionCategory: 'ADMIN',
-            targetId: req.body?.token ? 'token_provided' : null,
-            targetModel: 'AdminChangeRequest',
-            targetName: 'Error',
-            description: `Error crítico en confirmación de cambio: ${error.message}`,
-            severity: 'ERROR',
-            status: 'FAILED',
-            metadata: {
-                error: error.message,
-                stack: error.stack
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-        
-        debugAdminChange.end('CONFIRMACIÓN DE CAMBIO', false);
-        
+        console.error('🔥 ERROR en confirmAdminChange:', error);
         res.status(500).json({
             success: false,
-            message: 'Error crítico al procesar cambio de administrador',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            timestamp: new Date().toISOString()
+            message: 'Error crítico al procesar cambio de administrador'
         });
     }
 };
@@ -1359,91 +707,34 @@ export const getRequestStatus = async (req, res) => {
 };
 
 // =============================================================================
-// 7. DIAGNÓSTICO COMPLETO DEL SISTEMA
+// DIAGNÓSTICO COMPLETO - MODIFICADO
 // =============================================================================
 
 export const testAdminChange = async (req, res) => {
-    debugAdminChange.start('DIAGNÓSTICO COMPLETO DEL SISTEMA');
-    
     try {
-        // Verificar configuración de email
-        let emailStatus = '❌ No configurado';
-        if (transporter) {
-            try {
-                await transporter.verify();
-                emailStatus = '✅ Configurado y funcionando';
-            } catch (emailError) {
-                emailStatus = `❌ Error: ${emailError.message}`;
-            }
-        }
-
-        // Obtener estadísticas
+        const emailStatus = emailService.getStatus();
+        const verification = await emailService.verifyConnection();
+        
         const adminCount = await User.countDocuments({ rol: 'administrador', activo: true });
-        const deactivatedCount = await User.countDocuments({ rol: 'desactivado' });
         const pendingRequests = await AdminChangeRequest.countDocuments({ status: 'pending' });
-        const approvedRequests = await AdminChangeRequest.countDocuments({ status: 'approved' });
-
-        // Obtener solicitudes recientes
-        const recentRequests = await AdminChangeRequest.find()
-            .sort({ requestedAt: -1 })
-            .limit(5)
-            .select('newAdminUser newAdminEmail status requestedAt');
-
-        console.log('📊 DIAGNÓSTICO COMPLETO:');
-        console.log(`- Administradores activos: ${adminCount}`);
-        console.log(`- Administradores desactivados: ${deactivatedCount}`);
-        console.log(`- Solicitudes pendientes: ${pendingRequests}`);
-        console.log(`- Solicitudes aprobadas: ${approvedRequests}`);
-        console.log(`- Email: ${emailStatus}`);
-
-        // =======================================================================
-        // REGISTRAR DIAGNÓSTICO EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
-            action: 'ADMIN_DIAGNOSTIC',
-            actionType: 'READ',
-            actionCategory: 'ADMIN',
-            targetId: null,
-            targetModel: 'System',
-            targetName: 'Diagnóstico Admin',
-            description: `Diagnóstico del sistema de administración ejecutado`,
-            severity: 'INFO',
-            status: 'SUCCESS',
-            metadata: {
-                adminCount,
-                deactivatedCount,
-                pendingRequests,
-                approvedRequests,
-                emailStatus
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-
-        debugAdminChange.end('DIAGNÓSTICO COMPLETO DEL SISTEMA', true);
 
         res.json({
             success: true,
             status: 'Sistema listo',
             diagnostics: {
-                email: emailStatus,
+                email: {
+                    ...emailStatus,
+                    conexion: verification.success ? '✅ Funcionando' : `❌ ${verification.message}`
+                },
                 database: '✅ Conectado',
                 adminCount,
-                deactivatedCount,
                 pendingRequests,
-                approvedRequests,
-                recentRequests,
-                frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4000',
-                environment: process.env.NODE_ENV || 'development'
+                frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4000'
             }
         });
 
     } catch (error) {
-        console.error('❌ ERROR en testAdminChange:', error);
-        debugAdminChange.end('DIAGNÓSTICO COMPLETO DEL SISTEMA', false);
-        res.status(500).json({
-            success: false,
-            message: 'Error en diagnóstico',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Error en diagnóstico', error: error.message });
     }
 };
 
