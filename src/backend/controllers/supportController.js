@@ -461,92 +461,181 @@ class SupportController {
     // =====================================================================
 
     static async getSystemStatus(req, res) {
-        req.startTime = Date.now();
+    req.startTime = Date.now();
+    
+    try {
+        console.log('🖥️ Verificando estado REAL del sistema...');
         
+        const now = new Date().toISOString();
+        
+        // 1. Estado de BD
+        let dbStatus = { connected: false, message: 'No conectado', timestamp: now };
         try {
-            console.log('🖥️ Verificando estado REAL del sistema...');
-            monitorMemory();
-            
-            // 1. Estado de BD
-            let dbStatus = { connected: false, message: 'No conectado' };
-            try {
-                const dbState = mongoose.connection.readyState;
-                if (dbState === 1) {
-                    await mongoose.connection.db.admin().ping();
-                    dbStatus = { connected: true, message: 'Conectado', details: { database: mongoose.connection.name } };
-                } else {
-                    dbStatus = { connected: false, message: 'Desconectado' };
-                }
-            } catch (dbError) {
-                dbStatus = { connected: false, message: 'Error de conexión', error: dbError.message };
+            const dbState = mongoose.connection.readyState;
+            if (dbState === 1) {
+                await mongoose.connection.db.admin().ping();
+                dbStatus = { 
+                    connected: true, 
+                    message: 'Conectado', 
+                    details: { database: mongoose.connection.name },
+                    timestamp: now
+                };
+            } else {
+                dbStatus = { 
+                    connected: false, 
+                    message: 'Desconectado', 
+                    timestamp: now 
+                };
             }
-
-            // 2. Estado del sistema
-            const systemStatus = {
-                operational: true,
-                message: 'Operacional',
-                details: {
-                    uptime: Math.floor(process.uptime()) + ' segundos',
-                    memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB'
-                }
+        } catch (dbError) {
+            dbStatus = { 
+                connected: false, 
+                message: 'Error de conexión', 
+                error: dbError.message,
+                timestamp: now 
             };
-
-            // 3. Estado de Cloudinary
-            let cloudStorageStatus = { active: false, message: 'Inactivo' };
-            try {
-                if (process.env.CLOUDINARY_CLOUD_NAME) {
-                    await cloudinary.api.ping();
-                    cloudStorageStatus = { active: true, message: 'Activo y funcionando' };
-                }
-            } catch (cloudError) {
-                cloudStorageStatus = { active: false, message: 'Error', error: cloudError.message };
-            }
-
-            // 4. Estado de Email - USANDO emailService
-            const emailStatus = emailService.getStatus();
-            const emailVerification = await emailService.verifyConnection();
-            
-            const emailServiceStatus = {
-                configured: emailStatus.configured,
-                canSend: emailVerification.success,
-                message: emailVerification.success ? 'Configurado y verificado' : emailVerification.message,
-                details: emailStatus.config
-            };
-
-            // Calcular estado general
-            const errorCount = [
-                !dbStatus.connected,
-                !systemStatus.operational,
-                !cloudStorageStatus.active,
-                !emailServiceStatus.configured
-            ].filter(Boolean).length;
-            
-            let overallStatus = errorCount === 0 ? 'healthy' : 'degraded';
-
-            res.json({
-                success: true,
-                overallStatus,
-                services: {
-                    database: { name: 'Base de Datos', status: dbStatus.connected ? 'operational' : 'error', ...dbStatus },
-                    system: { name: 'Sistema Principal', status: 'operational', ...systemStatus },
-                    cloudStorage: { name: 'Almacenamiento Cloud', status: cloudStorageStatus.active ? 'operational' : 'error', ...cloudStorageStatus },
-                    emailService: { name: 'Servicio de Email', status: emailServiceStatus.configured ? 'operational' : 'error', ...emailServiceStatus }
-                },
-                metrics: {
-                    responseTime: Date.now() - req.startTime,
-                    environment: process.env.NODE_ENV || 'production'
-                }
-            });
-
-        } catch (error) {
-            console.error('🔥 ERROR verificando estado:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error interno al verificar estado',
-                error: error.message
-            });
         }
+
+        // 2. Estado del sistema
+        const systemStatus = {
+            operational: true,
+            message: 'Operacional',
+            details: {
+                uptime: Math.floor(process.uptime()) + ' segundos',
+                memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB'
+            },
+            timestamp: now
+        };
+
+        // 3. Estado de Cloudinary
+        let cloudStorageStatus = { 
+            active: false, 
+            message: 'Inactivo',
+            timestamp: now 
+        };
+        try {
+            if (process.env.CLOUDINARY_CLOUD_NAME) {
+                await cloudinary.api.ping();
+                cloudStorageStatus = { 
+                    active: true, 
+                    message: 'Activo y funcionando',
+                    timestamp: now 
+                };
+            }
+        } catch (cloudError) {
+            cloudStorageStatus = { 
+                active: false, 
+                message: 'Error', 
+                error: cloudError.message,
+                timestamp: now 
+            };
+        }
+
+        // 4. Estado de Email - USANDO emailService
+        const emailStatus = emailService.getStatus();
+        const emailVerification = await emailService.verifyConnection();
+        
+        const emailServiceStatus = {
+            configured: emailStatus.configured,
+            canSend: emailVerification.success,
+            message: emailVerification.success ? 'Configurado y verificado' : emailVerification.message,
+            details: emailStatus.config,
+            timestamp: now
+        };
+
+        // Calcular estado general
+        const errorCount = [
+            !dbStatus.connected,
+            !systemStatus.operational,
+            !cloudStorageStatus.active,
+            !emailServiceStatus.configured
+        ].filter(Boolean).length;
+        
+        let overallStatus = errorCount === 0 ? 'healthy' : 'degraded';
+
+        // ✅ RESPUESTA CORREGIDA CON TIMESTAMPS
+        res.json({
+            success: true,
+            timestamp: now,  // ✅ Timestamp general
+            overallStatus,
+            services: {
+                database: { 
+                    name: 'Base de Datos', 
+                    status: dbStatus.connected ? 'operational' : 'error', 
+                    message: dbStatus.message,
+                    timestamp: dbStatus.timestamp,  // ✅ Timestamp del servicio
+                    details: dbStatus.details
+                },
+                system: { 
+                    name: 'Sistema Principal', 
+                    status: systemStatus.operational ? 'operational' : 'error', 
+                    message: systemStatus.message,
+                    timestamp: systemStatus.timestamp,  // ✅ Timestamp del servicio
+                    details: systemStatus.details
+                },
+                cloudStorage: { 
+                    name: 'Almacenamiento Cloud', 
+                    status: cloudStorageStatus.active ? 'operational' : 'error', 
+                    message: cloudStorageStatus.message,
+                    timestamp: cloudStorageStatus.timestamp,  // ✅ Timestamp del servicio
+                    details: cloudStorageStatus.error ? { error: cloudStorageStatus.error } : {}
+                },
+                emailService: { 
+                    name: 'Servicio de Email', 
+                    status: emailServiceStatus.configured ? 'operational' : 'error', 
+                    message: emailServiceStatus.message,
+                    timestamp: emailServiceStatus.timestamp,  // ✅ Timestamp del servicio
+                    details: emailServiceStatus.details
+                }
+            },
+            metrics: {
+                responseTime: Date.now() - req.startTime,
+                environment: process.env.NODE_ENV || 'production',
+                timestamp: now
+            }
+        });
+
+    } catch (error) {
+        console.error('🔥 ERROR verificando estado:', error);
+        
+        const now = new Date().toISOString();
+        
+        // ✅ Respuesta de error también con timestamps
+        res.status(500).json({
+            success: false,
+            timestamp: now,
+            overallStatus: 'error',
+            message: 'Error interno al verificar estado',
+            error: error.message,
+            services: {
+                database: {
+                    name: 'Base de Datos',
+                    status: 'error',
+                    message: 'Error de verificación',
+                    timestamp: now
+                },
+                system: {
+                    name: 'Sistema Principal',
+                    status: 'error',
+                    message: error.message,
+                    timestamp: now
+                },
+                cloudStorage: {
+                    name: 'Almacenamiento Cloud',
+                    status: 'error',
+                    message: 'Error de verificación',
+                    timestamp: now
+                },
+                emailService: {
+                    name: 'Servicio de Email',
+                    status: 'error',
+                    message: 'Error de verificación',
+                    timestamp: now
+                }
+            }
+        });
     }
+}
 
     // =====================================================================
     // 14. ACTIVAR ERRORES REALES (solo desarrollo)
