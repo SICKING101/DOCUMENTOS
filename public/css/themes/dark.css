@@ -487,6 +487,10 @@ body.dark-theme .form__textarea:focus {
     color: var(--gray-300, #e2e8f0);
 }
 
+.dark-theme .topbar__user-role {
+    color: var(--text-primary);
+}
+
 /* Ajustes para modo oscuro en subida múltiple */
 .dark-theme .file-item {
     background: rgba(255, 255, 255, 0.05);
