@@ -3643,10 +3643,11 @@ if (process.env.NODE_ENV === 'development') {
 // -----------------------------
 // Iniciar servidor
 // -----------------------------
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
+const serverPort = process.env.PORT || PORT;
+app.listen(serverPort, '0.0.0.0', () => {
+  console.log(`🚀 Servidor ejecutándose en puerto ${serverPort}`);
   console.log(`📊 Sistema de Gestión de Documentos - CBTIS051`);
   console.log(`🗄️ Base de datos: ${MONGO_URI}`);
   console.log(`☁️ Cloudinary: ${cloudinary.config().cloud_name}`);
-    console.log(`🔌 API disponible en: http://localhost:${PORT}/api`);  // ✅ NUEVO MENSAJE
+  console.log(`🔌 API disponible en: https://documentos-kj6t.onrender.com`);
 });
