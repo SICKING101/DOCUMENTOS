@@ -1,5 +1,7 @@
 // server.js - Servidor principal de la aplicación de gestión de documentos
 
+import './src/backend/config/env.js';
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,33 +14,52 @@ import { v2 as cloudinary } from 'cloudinary';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import dotenv from 'dotenv';
-import nodemailer from 'nodemailer';
 
+// ===== CONFIGURACIÓN CRÍTICA DE DOTENV - DEBE SER LO PRIMERO =====
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Cargar .env desde la raíz del proyecto
+const envPath = path.join(__dirname, '.env');
+console.log('🔍 Buscando .env en:', envPath);
+
+if (fs.existsSync(envPath)) {
+    const result = dotenv.config({ path: envPath });
+    if (result.error) {
+        console.error('❌ Error cargando .env:', result.error);
+    } else {
+        console.log('✅ .env cargado correctamente');
+    }
+} else {
+    console.warn('⚠️ Archivo .env no encontrado en:', envPath);
+}
+
+// DEBUG: Verificar variables cargadas
+console.log('🔑 BREVO_API_KEY cargada:', process.env.BREVO_API_KEY ? '✅ SÍ' : '❌ NO');
+console.log('📧 EMAIL_FROM:', process.env.EMAIL_FROM || 'No configurado');
+// ===== FIN CONFIGURACIÓN DOTENV =====
+
+// AHORA SÍ - Importar emailService DESPUÉS de cargar .env
+import emailService from './src/backend/services/emailService.js';
+
+// Luego el resto de imports
 import SupportController from './src/backend/controllers/supportController.js';
 import { validarConfigSuperAdmin } from './src/backend/middleware/superAdminAuth.js';
-
-// Importar rutas de autenticación
 import authRoutes from './src/backend/routes/authRoutes.js';
-import apiRoutes from './src/backend/routes/apiRoutes.js';  // ✅ AÑADE ESTA LÍNEA
+import apiRoutes from './src/backend/routes/apiRoutes.js';
 import superAdminRoutes from './src/backend/routes/superAdminRoutes.js';
-
 import Document from './src/backend/models/Document.js';
-import Ticket from './src/backend/models/Ticket.js';  // ✅ AÑADE ESTA LÍNEA
+import Ticket from './src/backend/models/Ticket.js';
 import Person from './src/backend/models/Person.js';
 import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
 import adminRoutes from './src/backend/routes/adminRoutes.js';
-
-// Importar modelo y servicio de notificaciones
 import Notification from './src/backend/models/Notification.js';
 import NotificationService from './src/backend/services/notificationService.js';
 import { verificarAccesoSistema } from './src/backend/middleware/systemAccess.js';
 
-dotenv.config();
 validarConfigSuperAdmin();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 // -----------------------------
@@ -3411,134 +3432,13 @@ const ticketUpload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// =============================================================================
-// CONFIGURACIÓN GMAIL - VERSIÓN QUE FUNCIONA
-// =============================================================================
-
-console.log('\n📧 ========== INICIALIZANDO GMAIL ==========');
-
-// VARIABLE GLOBAL para el transporter
-let gmailTransporter = null;
-
-// Función para inicializar Gmail (se llama automáticamente)
-const inicializarGmail = () => {
-    console.log('🔄 Inicializando transporte Gmail...');
-    
-    try {
-        // CONFIGURACIÓN EXACTA QUE FUNCIONA (igual que en authController)
-        const config = {
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false, // IMPORTANTE: false para puerto 587
-            auth: {
-                user: 'riosnavarretejared@gmail.com',
-                pass: 'emdkqnupuzzzucnw'
-            },
-            tls: {
-                ciphers: 'SSLv3',
-                rejectUnauthorized: false
-            }
-        };
-        
-        console.log('🔧 Configuración Gmail:');
-        console.log(`   📧 Usuario: ${config.auth.user}`);
-        console.log(`   🔑 Contraseña: ${'*'.repeat(config.auth.pass.length)} (${config.auth.pass.length} chars)`);
-        console.log(`   🖥️  Host: ${config.host}:${config.port}`);
-        console.log(`   🔐 Secure: ${config.secure}`);
-        
-        // Crear el transporter
-        gmailTransporter = nodemailer.createTransport(config);
-        console.log('✅ Transporter Gmail creado');
-        
-        // Verificar conexión (pero NO bloquear si falla)
-        gmailTransporter.verify((error, success) => {
-            if (error) {
-                console.error('⚠️  ADVERTENCIA verificando Gmail:', error.message);
-                console.error('   Código:', error.code);
-                console.error('   Comando:', error.command);
-                
-                // IMPORTANTE: No establecer a null si falla la verificación
-                // El transporter puede seguir funcionando para enviar emails
-                console.log('⚠️  Verificación falló, pero el transporter se mantiene activo');
-                console.log('⚠️  Los emails se intentarán enviar de todas formas');
-            } else {
-                console.log('✅✅✅ CONEXIÓN GMAIL VERIFICADA ✅✅✅');
-                console.log('✅ Los emails se enviarán a Gmail real');
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ ERROR creando transporter:', error.message);
-        gmailTransporter = null;
-    }
-};
-
-// Inicializar Gmail inmediatamente
-inicializarGmail();
-
-console.log('📧 =========================================\n');
-
 app.post('/api/support/tickets', upload.array('files', 5), SupportController.createTicket);
-
-// =============================================================================
-// 2. RUTA DE PRUEBA MÁS SIMPLE
-// =============================================================================
-
-app.get('/api/support/test-gmail-simple', async (req, res) => {
-    console.log('\n🧪 PRUEBA SIMPLE GMAIL');
-    
-    // Configuración DIRECTA Y SIMPLE
-    const testTransporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: 'riosnavarretejared@gmail.com',
-            pass: 'emdkqnupuzzzucnw'
-        }
-    });
-    
-    try {
-        console.log('✅ Transporter creado');
-        
-        const info = await testTransporter.sendMail({
-            from: '"Prueba Simple" <riosnavarretejared@gmail.com>',
-            to: 'riosnavarretejared@gmail.com',
-            subject: 'PRUEBA SIMPLE GMAIL - CBTIS051',
-            text: `Prueba simple de Gmail desde el sistema CBTIS051.
-            
-Fecha: ${new Date().toLocaleString()}
-Hora: ${new Date().toLocaleTimeString()}
-
-Este es un email de prueba directa.`
-        });
-        
-        console.log('✅✅✅ EMAIL ENVIADO ✅✅✅');
-        console.log('ID:', info.messageId);
-        console.log('Respuesta:', info.response);
-        
-        res.json({
-            success: true,
-            message: 'Email de prueba enviado',
-            messageId: info.messageId
-        });
-        
-    } catch (error) {
-        console.error('❌ ERROR:', error.message);
-        console.error('Código:', error.code);
-        console.error('Comando:', error.command);
-        
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            code: error.code,
-            note: 'Verifica tus credenciales de Gmail'
-        });
-    }
-});
 
 // =============================================================================
 // 3. OBTENER TICKETS (MANTENER EXISTENTE)
 // =============================================================================
 
+// Obtener tickets
 app.get('/api/support/tickets', async (req, res) => {
     try {
         console.log('📥 Obteniendo tickets...');
@@ -3572,393 +3472,160 @@ app.get('/api/support/tickets', async (req, res) => {
     }
 });
 
-// =============================================================================
-// 4. MANTENER FAQ Y GUÍA (EXISTENTE)
-// =============================================================================
+// FAQ y Guía
+app.get('/api/support/faq', SupportController.getFAQ);
+app.get('/api/support/guide', SupportController.getSystemGuide);
 
-app.get('/api/support/faq', async (req, res) => {
-    const faq = [
-        {
-            question: "¿Cómo subo un documento al sistema?",
-            answer: "Ve a la sección 'Documentos', haz clic en 'Subir Documento', selecciona el archivo y completa la información requerida.",
-            category: "documentos"
-        },
-        {
-            question: "¿Cómo agrego una nueva persona?",
-            answer: "En la sección 'Personas', haz clic en 'Agregar Persona' y completa el formulario con los datos requeridos.",
-            category: "personas"
-        }
-    ];
-    
-    res.json({ success: true, faq });
-});
-
-app.get('/api/support/guide', async (req, res) => {
-    const guide = [
-        { step: 1, title: "Dashboard", description: "Resumen general del sistema", icon: "home", duration: "2 min" },
-        { step: 2, title: "Documentos", description: "Sube y organiza documentos", icon: "file", duration: "5 min" },
-        { step: 3, title: "Personas", description: "Gestiona usuarios y personal", icon: "users", duration: "4 min" }
-    ];
-    
-    res.json({ success: true, guide });
-});
-
-// =============================================================================
-// 5. OBTENER DETALLES DE UN TICKET ESPECÍFICO (NUEVA RUTA)
-// =============================================================================
-
+// Detalles de ticket
 app.get('/api/support/tickets/:id', async (req, res) => {
-    console.log('\n' + '🔍'.repeat(40));
-    console.log('OBTENIENDO DETALLES DE TICKET');
-    console.log('🔍'.repeat(40));
-    
     try {
         const { id } = req.params;
-        console.log(`📋 ID solicitado: ${id}`);
         
-        // Verificar si es un ObjectId válido
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            console.log('❌ ID no válido');
-            return res.status(400).json({
-                success: false,
-                message: 'ID de ticket no válido'
-            });
+            return res.status(400).json({ success: false, message: 'ID de ticket no válido' });
         }
         
-        // Cargar modelo Ticket
-        let TicketModel;
-        try {
-            const ticketModule = await import('./src/backend/models/Ticket.js');
-            TicketModel = ticketModule.default;
-            console.log('✅ Modelo Ticket cargado');
-        } catch (error) {
-            console.error('❌ Error cargando modelo Ticket:', error.message);
-            return res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor'
-            });
-        }
+        const ticketModule = await import('./src/backend/models/Ticket.js');
+        const TicketModel = ticketModule.default;
         
-        // Buscar el ticket
-        const ticket = await TicketModel.findOne({
-            _id: id,
-            isDeleted: false
-        }).lean(); // .lean() para obtener objeto plano
+        const ticket = await TicketModel.findOne({ _id: id, isDeleted: false }).lean();
         
         if (!ticket) {
-            console.log(`❌ Ticket no encontrado: ${id}`);
-            return res.status(404).json({
-                success: false,
-                message: 'Ticket no encontrado'
-            });
+            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
         
-        console.log(`✅ Ticket encontrado: ${ticket.ticketNumber || 'Sin número'}`);
-        console.log(`📋 Asunto: ${ticket.subject}`);
-        console.log(`📊 Estado: ${ticket.status}`);
-        console.log(`📅 Creado: ${ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('es-MX') : 'N/A'}`);
-        
-        console.log('\n' + '✅'.repeat(40));
-        console.log('DETALLES ENVIADOS AL FRONTEND');
-        console.log('✅'.repeat(40));
-        
-        res.json({
-            success: true,
-            ticket: ticket
-        });
+        res.json({ success: true, ticket });
         
     } catch (error) {
-        console.error('\n❌❌❌ ERROR OBTENIENDO DETALLES ❌❌❌');
-        console.error('Mensaje:', error.message);
-        console.error('Stack:', error.stack);
-        
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al obtener detalles del ticket',
-            error: error.message
-        });
+        console.error('Error obteniendo detalles:', error);
+        res.status(500).json({ success: false, message: 'Error interno' });
     }
 });
 
-// =============================================================================
-// 6. ACTUALIZAR ESTADO DE UN TICKET
-// =============================================================================
-
+// Actualizar estado
 app.patch('/api/support/tickets/:id/status', async (req, res) => {
-    console.log('\n' + '🔄'.repeat(40));
-    console.log('ACTUALIZANDO ESTADO DE TICKET');
-    console.log('🔄'.repeat(40));
-    
     try {
         const { id } = req.params;
         const { status, message } = req.body;
         
-        console.log(`📋 ID: ${id}`);
-        console.log(`📊 Nuevo estado: ${status}`);
-        console.log(`💬 Mensaje: ${message || 'Sin mensaje'}`);
-        
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'ID de ticket no válido'
-            });
+            return res.status(400).json({ success: false, message: 'ID no válido' });
         }
         
-        if (!status) {
-            return res.status(400).json({
-                success: false,
-                message: 'El nuevo estado es requerido'
-            });
-        }
+        const ticketModule = await import('./src/backend/models/Ticket.js');
+        const TicketModel = ticketModule.default;
         
-        // Estados válidos
-        const estadosValidos = ['abierto', 'en_proceso', 'esperando_respuesta', 'cerrado', 'resuelto'];
-        if (!estadosValidos.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Estado no válido. Use: ${estadosValidos.join(', ')}`
-            });
-        }
-        
-        // Cargar modelo Ticket
-        let TicketModel;
-        try {
-            const ticketModule = await import('./src/backend/models/Ticket.js');
-            TicketModel = ticketModule.default;
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor'
-            });
-        }
-        
-        // Buscar y actualizar ticket
         const ticket = await TicketModel.findOneAndUpdate(
             { _id: id, isDeleted: false },
             { 
-                $set: { 
-                    status: status,
-                    updatedAt: new Date()
-                },
-                $push: {
-                    updates: {
-                        user: 'system',
-                        userName: 'Sistema',
-                        message: message || `Estado cambiado a: ${status}`,
-                        createdAt: new Date()
-                    }
-                }
+                $set: { status, updatedAt: new Date() },
+                $push: { updates: { user: 'system', userName: 'Sistema', message: message || `Estado: ${status}`, createdAt: new Date() } }
             },
-            { new: true } // Retornar el documento actualizado
+            { new: true }
         ).lean();
         
         if (!ticket) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ticket no encontrado'
-            });
+            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
         
-        console.log(`✅ Estado actualizado: ${ticket.ticketNumber} -> ${status}`);
-        
-        res.json({
-            success: true,
-            message: `Estado actualizado a ${status}`,
-            ticket: ticket
-        });
+        res.json({ success: true, message: `Estado actualizado a ${status}`, ticket });
         
     } catch (error) {
-        console.error('❌ Error actualizando estado:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al actualizar estado'
-        });
+        console.error('Error actualizando estado:', error);
+        res.status(500).json({ success: false, message: 'Error interno' });
     }
 });
 
-// =============================================================================
-// 7. AGREGAR RESPUESTA A TICKET
-// =============================================================================
-
+// Agregar respuesta
 app.post('/api/support/tickets/:id/response', async (req, res) => {
-    console.log('\n' + '💬'.repeat(40));
-    console.log('AGREGANDO RESPUESTA A TICKET');
-    console.log('💬'.repeat(40));
-    
     try {
         const { id } = req.params;
         const { message } = req.body;
         
-        console.log(`📋 ID: ${id}`);
-        console.log(`💬 Respuesta: ${message ? message.substring(0, 100) + '...' : 'Sin mensaje'}`);
-        
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'ID de ticket no válido'
-            });
+            return res.status(400).json({ success: false, message: 'ID no válido' });
         }
         
-        if (!message || message.trim() === '') {
-            return res.status(400).json({
-                success: false,
-                message: 'El mensaje es requerido'
-            });
-        }
+        const ticketModule = await import('./src/backend/models/Ticket.js');
+        const TicketModel = ticketModule.default;
         
-        // Cargar modelo Ticket
-        let TicketModel;
-        try {
-            const ticketModule = await import('./src/backend/models/Ticket.js');
-            TicketModel = ticketModule.default;
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor'
-            });
-        }
-        
-        // Buscar y actualizar ticket
         const ticket = await TicketModel.findOneAndUpdate(
             { _id: id, isDeleted: false },
             { 
-                $set: { 
-                    updatedAt: new Date()
-                },
-                $push: {
-                    updates: {
-                        user: 'system',
-                        userName: 'Sistema',
-                        message: message.trim(),
-                        createdAt: new Date()
-                    }
-                }
+                $set: { updatedAt: new Date() },
+                $push: { updates: { user: 'system', userName: 'Sistema', message: message.trim(), createdAt: new Date() } }
             },
             { new: true }
         ).lean();
         
         if (!ticket) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ticket no encontrado'
-            });
+            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
         
-        console.log(`✅ Respuesta agregada a: ${ticket.ticketNumber}`);
-        console.log(`📊 Total actualizaciones: ${ticket.updates ? ticket.updates.length : 0}`);
-        
-        res.json({
-            success: true,
-            message: 'Respuesta agregada exitosamente',
-            ticket: ticket
-        });
+        res.json({ success: true, message: 'Respuesta agregada', ticket });
         
     } catch (error) {
-        console.error('❌ Error agregando respuesta:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al agregar respuesta'
-        });
+        console.error('Error agregando respuesta:', error);
+        res.status(500).json({ success: false, message: 'Error interno' });
     }
 });
 
-// =============================================================================
-// 8. ELIMINAR TICKET (SOFT DELETE)
-// =============================================================================
-
+// Eliminar ticket
 app.delete('/api/support/tickets/:id', async (req, res) => {
-    console.log('\n' + '🗑️'.repeat(40));
-    console.log('ELIMINANDO TICKET');
-    console.log('🗑️'.repeat(40));
-    
     try {
         const { id } = req.params;
         
-        console.log(`📋 ID a eliminar: ${id}`);
-        
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'ID de ticket no válido'
-            });
+            return res.status(400).json({ success: false, message: 'ID no válido' });
         }
         
-        // Cargar modelo Ticket
-        let TicketModel;
-        try {
-            const ticketModule = await import('./src/backend/models/Ticket.js');
-            TicketModel = ticketModule.default;
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error interno del servidor'
-            });
-        }
+        const ticketModule = await import('./src/backend/models/Ticket.js');
+        const TicketModel = ticketModule.default;
         
-        // Soft delete (marcar como eliminado)
         const ticket = await TicketModel.findOneAndUpdate(
             { _id: id, isDeleted: false },
-            { 
-                $set: { 
-                    isDeleted: true,
-                    deletedAt: new Date(),
-                    deletedBy: 'system'
-                }
-            },
+            { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: 'system' } },
             { new: true }
         ).lean();
         
         if (!ticket) {
-            return res.status(404).json({
-                success: false,
-                message: 'Ticket no encontrado'
-            });
+            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
         
-        console.log(`✅ Ticket eliminado: ${ticket.ticketNumber}`);
-        console.log(`📅 Fecha eliminación: ${ticket.deletedAt}`);
-        
-        res.json({
-            success: true,
-            message: 'Ticket eliminado exitosamente',
-            ticket: {
-                _id: ticket._id,
-                ticketNumber: ticket.ticketNumber,
-                subject: ticket.subject,
-                deletedAt: ticket.deletedAt
-            }
-        });
+        res.json({ success: true, message: 'Ticket eliminado' });
         
     } catch (error) {
-        console.error('❌ Error eliminando ticket:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno al eliminar ticket'
-        });
+        console.error('Error eliminando ticket:', error);
+        res.status(500).json({ success: false, message: 'Error interno' });
     }
 });
 
-console.log('✅ Rutas de soporte con Gmail configuradas');
+// Test de email con Brevo
+app.post('/api/support/test-email', SupportController.testSupportEmail);
+app.get('/api/support/system-status', SupportController.getSystemStatus);
+
+console.log('✅ Rutas de soporte con Brevo configuradas');
 
 // Verificar configuración de email al iniciar
 console.log('');
 console.log('🔍 ========== CONFIGURACIÓN DEL SISTEMA ==========');
 console.log(`🚀 Puerto: ${process.env.PORT || 4000}`);
 console.log(`🗄️ MongoDB: ${process.env.MONGO_URI ? '✅ Configurado' : '❌ No configurado'}`);
-console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ ' + process.env.EMAIL_USER : '❌ No configurado'}`);
+
+const emailStatus = await import('./src/backend/services/emailService.js').then(m => m.default.getStatus());
+console.log(`📧 Email: ${emailStatus.configured ? '✅ Brevo API' : '❌ No configurado'}`);
+
 console.log(`🌐 Frontend: ${process.env.FRONTEND_URL ? '✅ ' + process.env.FRONTEND_URL : '❌ No configurado'}`);
 console.log(`🔌 API Routes: ✅ Cargadas desde apiRoutes.js`);  // ✅ NUEVO MENSAJE
 console.log('🔍 ===============================================');
 console.log('');
 
-// Si no hay email configurado, mostrar mensaje
-if (!process.env.EMAIL_USER && !process.env.SMTP_USER) {
+if (!process.env.BREVO_API_KEY) {
   console.log('');
-  console.log('⚠️  IMPORTANTE: Credenciales de Email no encontradas');
-  console.log('   Los códigos de recuperación aparecerán en la consola del servidor');
-  console.log('   Para enviar emails reales, configura las variables en .env:');
-  console.log('   EMAIL_USER=tu_correo@gmail.com');
-  console.log('   EMAIL_PASS=tu_app_password');
+  console.log('⚠️  IMPORTANTE: BREVO_API_KEY no configurada');
+  console.log('   Los emails se mostrarán en la consola del servidor');
+  console.log('   Para enviar emails reales, configura en .env:');
+  console.log('   BREVO_API_KEY=xkeysib-tu-api-key');
   console.log('');
 }
 
