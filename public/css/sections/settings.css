@@ -541,22 +541,6 @@ body.high-contrast .switch-label {
   border: 3px solid var(--border);
 }
 
-body.large-font {
-  /* Eliminado uso de 'large-font' en favor de tamaños predefinidos */
-}
-
-body.large-font .settings-title {
-  /* Eliminado */
-}
-
-body.large-font .settings-label {
-  /* Eliminado */
-}
-
-body.large-font .switch-title {
-  /* Eliminado */
-}
-
 body.reduced-motion * {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;

@@ -22,13 +22,13 @@ import { getCurrentUser } from './auth.js';
 
 // ─── Debug ────────────────────────────────────────────────────────────────────
 const DEBUG = true;
-function nlog(...args)  { if (DEBUG) console.log('🧭 [Nav]', ...args); }
+function nlog(...args) { if (DEBUG) console.log('🧭 [Nav]', ...args); }
 function nwarn(...args) { if (DEBUG) console.warn('⚠️ [Nav]', ...args); }
-function nerr(...args)  {           console.error('❌ [Nav]', ...args); }
+function nerr(...args) { console.error('❌ [Nav]', ...args); }
 
 // ─── Estado de navegación ─────────────────────────────────────────────────────
-let _currentTab        = 'dashboard';
-let _navigationLocked  = false;  // Previene cambios durante una transición
+let _currentTab = 'dashboard';
+let _navigationLocked = false;  // Previene cambios durante una transición
 
 // Tabs válidas del sistema
 const VALID_TABS = [
@@ -196,12 +196,10 @@ export async function switchTab(tabId) {
   if (!canView(tabId)) {
     nwarn(`switchTab: sin permiso para "${tabId}"`);
 
-    // Si es admin/auditoria sin ser administrador, mostrar alerta
     if (tabId === 'admin' || tabId === 'auditoria') {
       showNoPermissionAlert(tabId);
     }
 
-    // Redirigir a dashboard si la pestaña actual no está disponible
     if (tabId !== 'dashboard') {
       await switchTab('dashboard');
     }
@@ -228,11 +226,13 @@ export async function switchTab(tabId) {
     _currentTab = tabId;
     if (window.appState) window.appState.currentTab = tabId;
 
-    // 4. Cargar datos específicos de la sección
+    // 4. 🔥 MANEJAR VISIBILIDAD DEL WIDGET DE ARIA 🔥
+    _handleAriaWidgetVisibility(tabId);
+
+    // 5. Cargar datos específicos de la sección
     await _loadTabData(tabId);
 
-    // 5. Re-aplicar permisos de acción en el nuevo contenido
-    // (dar tiempo para que el DOM se actualice)
+    // 6. Re-aplicar permisos de acción en el nuevo contenido
     setTimeout(() => {
       applyActionPermissions();
     }, 150);
@@ -242,6 +242,40 @@ export async function switchTab(tabId) {
     nerr(`switchTab: error al cargar "${tabId}"`, e);
   } finally {
     _navigationLocked = false;
+  }
+}
+
+/**
+ * Maneja la visibilidad del widget flotante de ARIA
+ * cuando se entra/sale de la sección chatbot
+ */
+function _handleAriaWidgetVisibility(tabId) {
+  const ariaToggle = document.getElementById('ariaToggle');
+  const ariaWindow = document.getElementById('ariaWindow');
+
+  if (!ariaToggle || !ariaWindow) {
+    nlog('_handleAriaWidgetVisibility: Elementos de ARIA no encontrados aún');
+    return;
+  }
+
+  if (tabId === 'chatbot') {
+    // Entrando a la sección ARIA → ocultar widget flotante
+    ariaToggle.style.display = 'none';
+    if (!ariaWindow.classList.contains('aria-window--closed')) {
+      ariaWindow.classList.add('aria-window--closed');
+    }
+    // También remover clase de toggle abierto si existe
+    ariaToggle.classList.remove('aria-toggle--open');
+    nlog('_handleAriaWidgetVisibility: widget flotante OCULTO (sección ARIA)');
+  } else {
+    // Saliendo de la sección ARIA → mostrar widget flotante
+    ariaToggle.style.display = 'flex';
+    // Asegurar que la ventana esté cerrada
+    if (!ariaWindow.classList.contains('aria-window--closed')) {
+      ariaWindow.classList.add('aria-window--closed');
+    }
+    ariaToggle.classList.remove('aria-toggle--open');
+    nlog('_handleAriaWidgetVisibility: widget flotante VISIBLE');
   }
 }
 
@@ -310,7 +344,7 @@ function _showTabContent(tabId) {
 function _createAdminTab() {
   const mainContent = document.querySelector('.main-content') || document.body;
   const section = document.createElement('section');
-  section.id        = 'admin';
+  section.id = 'admin';
   section.className = 'tab-content';
   section.style.display = 'none';
   section.innerHTML = `
@@ -450,7 +484,7 @@ async function _loadTabData(tabId) {
         }
         break;
 
-        case 'versiones':
+      case 'versiones':
         try {
           const mod = await import('./modules/versiones.js');
           await mod.renderVersiones?.();
@@ -458,6 +492,28 @@ async function _loadTabData(tabId) {
         } catch (e) {
           nerr('_loadTabData: error cargando versiones', e);
         }
+        break;
+
+      case 'chatbot':
+        nlog('_loadTabData: cargando ARIA fullscreen');
+        setTimeout(() => {
+          const container = document.getElementById('ariaFullscreenContainer');
+          nlog('Container encontrado:', !!container);
+
+          if (window.__aria) {
+            nlog('window.__aria existe, llamando setMode');
+            window.__aria.setMode('fullscreen');
+          } else if (typeof initChatbot === 'function') {
+            nlog('initChatbot existe, creando instancia');
+            const aria = initChatbot();
+            setTimeout(() => {
+              nlog('Llamando setMode después de init');
+              aria.setMode('fullscreen');
+            }, 100);
+          } else {
+            nerr('initChatbot NO está definido en navigation.js');
+          }
+        }, 50);
         break;
 
       default:
@@ -521,12 +577,12 @@ function _updateUserInfo() {
     const user = getCurrentUser?.() || null;
     if (!user) return;
 
-    const nameEl  = document.querySelector('.sidebar__user-name');
-    const roleEl  = document.querySelector('.sidebar__user-role');
+    const nameEl = document.querySelector('.sidebar__user-name');
+    const roleEl = document.querySelector('.sidebar__user-role');
     const emailEl = document.getElementById('userEmail');
 
-    if (nameEl)  nameEl.textContent  = user.usuario || user.name || 'Usuario';
-    if (emailEl) emailEl.textContent = user.correo  || user.email || '';
+    if (nameEl) nameEl.textContent = user.usuario || user.name || 'Usuario';
+    if (emailEl) emailEl.textContent = user.correo || user.email || '';
 
     if (roleEl) {
       const rol = user.rol || user.role || '';
@@ -607,11 +663,11 @@ export async function refreshPermissions() {
 
 // Hacer funciones disponibles globalmente para compatibilidad con app.js
 // y código legacy que accede a window.switchTab
-window.switchTab        = switchTab;
-window.getCurrentTab    = getCurrentTab;
-window.showTab          = showTab;
+window.switchTab = switchTab;
+window.getCurrentTab = getCurrentTab;
+window.showTab = showTab;
 window.initializeNavigation = initializeNavigation;
-window.refreshPermissions   = refreshPermissions;
+window.refreshPermissions = refreshPermissions;
 
 // Función de debug
 window._navDebug = () => {
