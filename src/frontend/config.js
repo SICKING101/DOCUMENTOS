@@ -2,6 +2,18 @@
 // 1. CONFIGURACIÓN GENERAL DE LA APLICACIÓN
 // =============================================================================
 
+const isLocalhost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || 
+     window.location.hostname === '127.0.0.1' ||
+     window.location.hostname.includes('local'));
+
+const API_BASE_URL = isLocalhost 
+    ? 'http://localhost:4000/api'
+    : 'https://documentos-kj6t.onrender.com/api';
+
+console.log(`🌐 API_BASE_URL configurada: ${API_BASE_URL}`);
+
+
 /**
  * 1.1 Constante de configuración principal
  * Contiene todas las variables de configuración para el funcionamiento
@@ -12,7 +24,7 @@ const CONFIG = {
      * 1.2 URL base de la API del backend
      * Define el endpoint principal para todas las comunicaciones con el servidor.
      */
-    API_BASE_URL: 'http://localhost:4000/api',
+    API_BASE_URL: '/api',
 
     /**
      * 1.3 Credenciales de Cloudinary
