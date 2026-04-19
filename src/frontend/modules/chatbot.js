@@ -12,52 +12,53 @@ import { showAlert } from '../utils.js';
 const ARIA_DEBUG = true;
 
 const log = {
-    info:   (...a) => ARIA_DEBUG && console.log  ('%c[ARIA v4]',       'color:#818cf8;font-weight:bold', ...a),
-    warn:   (...a) => ARIA_DEBUG && console.warn ('%c[ARIA-WARN]',     'color:#f59e0b;font-weight:bold', ...a),
-    error:  (...a) =>               console.error('%c[ARIA-ERROR]',    'color:#ef4444;font-weight:bold', ...a),
-    action: (...a) => ARIA_DEBUG && console.log  ('%c[ARIA-ACTION]',   'color:#34d399;font-weight:bold', ...a),
-    nav:    (...a) => ARIA_DEBUG && console.log  ('%c[ARIA-NAV]',      'color:#60a5fa;font-weight:bold', ...a),
-    voice:  (...a) => ARIA_DEBUG && console.log  ('%c[ARIA-VOICE]',    'color:#f59e0b;font-weight:bold', ...a),
-    report: (...a) => ARIA_DEBUG && console.log  ('%c[ARIA-REPORT]',   'color:#10b981;font-weight:bold', ...a),
-    nlp:    (...a) => ARIA_DEBUG && console.log  ('%c[ARIA-NLP]',      'color:#c084fc;font-weight:bold', ...a),
-    task:   (...a) => ARIA_DEBUG && console.log  ('%c[ARIA-TASK]',     'color:#fb923c;font-weight:bold', ...a),
-    perf:   (...a) => ARIA_DEBUG && console.log  ('%c[ARIA-PERF]',     'color:#2dd4bf;font-weight:bold', ...a),
+    info: (...a) => ARIA_DEBUG && console.log('%c[ARIA v4]', 'color:#818cf8;font-weight:bold', ...a),
+    warn: (...a) => ARIA_DEBUG && console.warn('%c[ARIA-WARN]', 'color:#f59e0b;font-weight:bold', ...a),
+    error: (...a) => console.error('%c[ARIA-ERROR]', 'color:#ef4444;font-weight:bold', ...a),
+    action: (...a) => ARIA_DEBUG && console.log('%c[ARIA-ACTION]', 'color:#34d399;font-weight:bold', ...a),
+    nav: (...a) => ARIA_DEBUG && console.log('%c[ARIA-NAV]', 'color:#60a5fa;font-weight:bold', ...a),
+    voice: (...a) => ARIA_DEBUG && console.log('%c[ARIA-VOICE]', 'color:#f59e0b;font-weight:bold', ...a),
+    report: (...a) => ARIA_DEBUG && console.log('%c[ARIA-REPORT]', 'color:#10b981;font-weight:bold', ...a),
+    nlp: (...a) => ARIA_DEBUG && console.log('%c[ARIA-NLP]', 'color:#c084fc;font-weight:bold', ...a),
+    task: (...a) => ARIA_DEBUG && console.log('%c[ARIA-TASK]', 'color:#fb923c;font-weight:bold', ...a),
+    perf: (...a) => ARIA_DEBUG && console.log('%c[ARIA-PERF]', 'color:#2dd4bf;font-weight:bold', ...a),
 };
 
 // ──────────────────────────────────────────────────────────────
 // CONSTANTES
 // ──────────────────────────────────────────────────────────────
 const NAV_MAP = {
-    dashboard:      { hash: '#/dashboard',      label: 'Dashboard',      icon: 'fa-tachometer-alt', tabId: 'dashboard'      },
-    documentos:     { hash: '#/documentos',     label: 'Documentos',     icon: 'fa-file-alt',       tabId: 'documentos'     },
-    personas:       { hash: '#/personas',       label: 'Personas',       icon: 'fa-users',          tabId: 'personas'       },
-    tareas:         { hash: '#/tareas',         label: 'Tareas',         icon: 'fa-check-square',   tabId: 'tareas'         },
-    reportes:       { hash: '#/reportes',       label: 'Reportes',       icon: 'fa-chart-bar',      tabId: 'reportes'       },
-    papelera:       { hash: '#/papelera',       label: 'Papelera',       icon: 'fa-trash-alt',      tabId: 'papelera'       },
-    notificaciones: { hash: '#/notificaciones', label: 'Notificaciones', icon: 'fa-bell',           tabId: 'notificaciones' },
-    ajustes:        { hash: '#/ajustes',        label: 'Ajustes',        icon: 'fa-cog',            tabId: 'ajustes'        },
-    soporte:        { hash: '#/soporte',        label: 'Soporte',        icon: 'fa-life-ring',      tabId: 'soporte'        },
-    categorias:     { hash: '#/categorias',     label: 'Categorías',     icon: 'fa-folder',         tabId: 'categorias'     },
-    departamentos:  { hash: '#/departamentos',  label: 'Departamentos',  icon: 'fa-building',       tabId: 'departamentos'  },
+    dashboard: { hash: '#/dashboard', label: 'Dashboard', icon: 'fa-tachometer-alt', tabId: 'dashboard' },
+    documentos: { hash: '#/documentos', label: 'Documentos', icon: 'fa-file-alt', tabId: 'documentos' },
+    personas: { hash: '#/personas', label: 'Personas', icon: 'fa-users', tabId: 'personas' },
+    tareas: { hash: '#/tareas', label: 'Tareas', icon: 'fa-check-square', tabId: 'tareas' },
+    reportes: { hash: '#/reportes', label: 'Reportes', icon: 'fa-chart-bar', tabId: 'reportes' },
+    papelera: { hash: '#/papelera', label: 'Papelera', icon: 'fa-trash-alt', tabId: 'papelera' },
+    notificaciones: { hash: '#/notificaciones', label: 'Notificaciones', icon: 'fa-bell', tabId: 'notificaciones' },
+    ajustes: { hash: '#/ajustes', label: 'Ajustes', icon: 'fa-cog', tabId: 'ajustes' },
+    soporte: { hash: '#/soporte', label: 'Soporte', icon: 'fa-life-ring', tabId: 'soporte' },
+    categorias: { hash: '#/categorias', label: 'Categorías', icon: 'fa-folder', tabId: 'categorias' },
+    departamentos: { hash: '#/departamentos', label: 'Departamentos', icon: 'fa-building', tabId: 'departamentos' },
+    chatbot: { hash: '#/chatbot', label: 'ARIA', icon: 'fa-robot', tabId: 'chatbot' },
 };
 
 const MODAL_LABELS = {
-    upload:        'Subir Documento',
-    addPerson:     'Agregar Persona',
-    addTask:       'Nueva Tarea',
-    addCategory:   'Nueva Categoría',
+    upload: 'Subir Documento',
+    addPerson: 'Agregar Persona',
+    addTask: 'Nueva Tarea',
+    addCategory: 'Nueva Categoría',
     addDepartment: 'Nuevo Departamento',
-    search:        'Búsqueda Avanzada',
+    search: 'Búsqueda Avanzada',
 };
 
 // ──────────────────────────────────────────────────────────────
 // PARSEO DE FECHAS AVANZADO
 // ──────────────────────────────────────────────────────────────
 const MESES = {
-    'enero':0,'febrero':1,'marzo':2,'abril':3,'mayo':4,'junio':5,
-    'julio':6,'agosto':7,'septiembre':8,'octubre':9,'noviembre':10,'diciembre':11,
-    'ene':0,'feb':1,'mar':2,'abr':3,'may':4,'jun':5,
-    'jul':6,'ago':7,'sep':8,'oct':9,'nov':10,'dic':11,
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+    'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+    'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+    'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
 };
 
 function parseDateFromText(text) {
@@ -91,30 +92,30 @@ function parseDateFromText(text) {
             case 'numeric': {
                 const [_, dm, mm, yy] = match;
                 const year = yy ? parseInt(yy) : now.getFullYear();
-                const d = new Date(year, parseInt(mm)-1, parseInt(dm), 23, 59, 59, 999);
+                const d = new Date(year, parseInt(mm) - 1, parseInt(dm), 23, 59, 59, 999);
                 if (d < now && !yy) d.setFullYear(year + 1);
                 return d;
             }
             case 'mañana': {
-                const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23,59,59,999); return d;
+                const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(23, 59, 59, 999); return d;
             }
             case 'pasadoMañana': {
-                const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(23,59,59,999); return d;
+                const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(23, 59, 59, 999); return d;
             }
             case 'days': {
-                const d = new Date(); d.setDate(d.getDate() + parseInt(match[1])); d.setHours(23,59,59,999); return d;
+                const d = new Date(); d.setDate(d.getDate() + parseInt(match[1])); d.setHours(23, 59, 59, 999); return d;
             }
             case 'nextWeek': {
-                const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23,59,59,999); return d;
+                const d = new Date(); d.setDate(d.getDate() + 7); d.setHours(23, 59, 59, 999); return d;
             }
             case 'nextMonth': {
-                const d = new Date(); d.setMonth(d.getMonth() + 1); d.setHours(23,59,59,999); return d;
+                const d = new Date(); d.setMonth(d.getMonth() + 1); d.setHours(23, 59, 59, 999); return d;
             }
             case 'weekend': {
                 const d = new Date();
                 const daysUntilFri = (5 - d.getDay() + 7) % 7;
                 d.setDate(d.getDate() + (daysUntilFri || 7));
-                d.setHours(23,59,59,999); return d;
+                d.setHours(23, 59, 59, 999); return d;
             }
         }
     }
@@ -136,7 +137,6 @@ function detectTaskCreation(message) {
         const match = message.match(pattern);
         if (match?.[1]) {
             let title = match[1].trim().replace(/^["']|["']$/g, '');
-            // Limpiar el título de fragmentos de fecha
             title = title
                 .replace(/\s+(para el|para|que venza|antes del?|antes de|con fecha|el día|vence el?).*$/i, '')
                 .replace(/\s+(\d{1,2}\/\d{1,2}|mañana|pasado mañana|esta semana).*$/i, '')
@@ -157,17 +157,17 @@ function detectReportCommand(message) {
     if (!/\b(reporte|reportes?|generar|exportar|descargar)\b/i.test(q)) return { detected: false };
 
     const typeMap = [
-        { pattern: /\b(general|completo|todos?)\b/,                           type: 'general',     label: 'General' },
-        { pattern: /\b(por\s+categor[ií]a|por\s+categorías?|categorías?)\b/,  type: 'byCategory',  label: 'por Categoría' },
-        { pattern: /\b(por\s+persona|por\s+usuario|personas?)\b/,              type: 'byPerson',    label: 'por Persona' },
-        { pattern: /\b(por\s+vencer|próximos?\s+a\s+vencer|vencen\s+pronto)\b/,type: 'expiring',   label: 'Por Vencer' },
-        { pattern: /\b(vencidos?|expirados?)\b/,                               type: 'expired',    label: 'Vencidos' },
+        { pattern: /\b(general|completo|todos?)\b/, type: 'general', label: 'General' },
+        { pattern: /\b(por\s+categor[ií]a|por\s+categorías?|categorías?)\b/, type: 'byCategory', label: 'por Categoría' },
+        { pattern: /\b(por\s+persona|por\s+usuario|personas?)\b/, type: 'byPerson', label: 'por Persona' },
+        { pattern: /\b(por\s+vencer|próximos?\s+a\s+vencer|vencen\s+pronto)\b/, type: 'expiring', label: 'Por Vencer' },
+        { pattern: /\b(vencidos?|expirados?)\b/, type: 'expired', label: 'Vencidos' },
     ];
 
     const fmtMap = [
         { pattern: /\b(excel|xlsx)\b/, format: 'excel', label: 'Excel' },
-        { pattern: /\b(csv)\b/,        format: 'csv',   label: 'CSV'   },
-        { pattern: /\b(pdf)\b/,        format: 'pdf',   label: 'PDF'   },
+        { pattern: /\b(csv)\b/, format: 'csv', label: 'CSV' },
+        { pattern: /\b(pdf)\b/, format: 'pdf', label: 'PDF' },
     ];
 
     let reportType = 'general', typeLabel = 'General';
@@ -192,20 +192,24 @@ function detectReportCommand(message) {
 class ChatbotAssistant {
 
     constructor() {
-        this.isOpen    = false;
+        this.isOpen = false;
         this.isLoading = false;
-        this.messages  = [];
-        this.systemStats   = null;
-        this.userContext   = null;
-        this._els          = {};
+        this.messages = [];
+        this.systemStats = null;
+        this.userContext = null;
+        this._els = {};
         this._currentFormat = 'excel';
         this._reportProgressInterval = null;
         this._typingTimeout = null;
         this._lastStatsLoad = 0;
+        this._fullscreenMode = false;
+        this._fullscreenContainer = null;
+        this._originalWindow = null;
+        this._originalToggle = null;
 
         // Voice
-        this.recognition    = null;
-        this.isListening    = false;
+        this.recognition = null;
+        this.isListening = false;
         this.voiceRetryCount = 0;
 
         this.quickSuggestions = [
@@ -238,22 +242,32 @@ class ChatbotAssistant {
         setTimeout(() => this._showWelcomeBadge(), 4000);
         log.info('ARIA v4.0 lista ✅');
 
-        // Recargar stats cada 5 minutos si el chat está abierto
         setInterval(() => {
             if (this.isOpen && Date.now() - this._lastStatsLoad > 300000) {
                 this._loadStats(true);
             }
         }, 60000);
+
+        setTimeout(() => {
+            const currentTab = window.getCurrentTab?.() || 'dashboard';
+            if (currentTab !== 'chatbot' && this._els.toggle) {
+                this._els.toggle.style.display = 'flex';
+                log.info('_init: toggle visible');
+            } else if (currentTab === 'chatbot' && this._els.toggle) {
+                this._els.toggle.style.display = 'none';
+                log.info('_init: toggle oculto');
+            }
+        }, 200);
     }
 
     _loadUserContext() {
         try {
-            const raw  = localStorage.getItem('user') || sessionStorage.getItem('user');
+            const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
             const user = raw ? JSON.parse(raw) : {};
             this.userContext = {
-                id:     user._id || user.id,
+                id: user._id || user.id,
                 nombre: user.usuario || user.name || user.nombre || 'Usuario',
-                rol:    user.rol || user.role || 'usuario',
+                rol: user.rol || user.role || 'usuario',
             };
             log.info('Contexto:', this.userContext);
         } catch (e) {
@@ -268,11 +282,7 @@ class ChatbotAssistant {
             if (res?.success) {
                 this.systemStats = res.data;
                 this._lastStatsLoad = Date.now();
-                if (!silent) log.info('Stats cargadas:', {
-                    docs: res.data.stats?.totalDocs,
-                    tareas: res.data.tareas?.total,
-                    personas: res.data.stats?.totalPersonas,
-                });
+                if (!silent) log.info('Stats cargadas');
                 this._dispatchStatsUpdate();
             }
         } catch (e) {
@@ -287,7 +297,6 @@ class ChatbotAssistant {
         if (window.dashboardManager?.refresh) window.dashboardManager.refresh();
     }
 
-    // ─── FECHA LÍMITE POR DEFECTO ─────────────────────────────
     _getDefaultDueDate() {
         const d = new Date();
         d.setDate(d.getDate() + 3);
@@ -295,103 +304,83 @@ class ChatbotAssistant {
         return d;
     }
 
-    // ─── CREACIÓN DIRECTA DE TAREA ────────────────────────────
-   async _createTaskDirectly(title, dueDate = null) {
-    log.task('Creando tarea:', { title, dueDate: dueDate?.toLocaleDateString('es-MX') });
+    async _createTaskDirectly(title, dueDate = null) {
+        log.task('Creando tarea:', { title });
 
-    if (!title?.trim() || title.trim().length < 3) {
-        return { success: false, message: '❌ El título debe tener al menos 3 caracteres.' };
-    }
-    if (title.length > 200) {
-        return { success: false, message: '❌ El título no puede exceder los 200 caracteres.' };
-    }
-
-    try {
-        this._setStatus('Creando tarea...');
-
-        let fechaLimite = dueDate || this._getDefaultDueDate();
-        const hoy = new Date(); hoy.setHours(0,0,0,0);
-        if (fechaLimite < hoy) {
-            log.warn('Fecha pasada — usando +3 días');
-            fechaLimite = this._getDefaultDueDate();
+        if (!title?.trim() || title.trim().length < 3) {
+            return { success: false, message: '❌ El título debe tener al menos 3 caracteres.' };
+        }
+        if (title.length > 200) {
+            return { success: false, message: '❌ El título no puede exceder los 200 caracteres.' };
         }
 
-        const taskData = {
-            titulo:      title.trim(),
-            descripcion: `Tarea creada por ARIA: "${title.trim()}"${dueDate ? `. Fecha: ${dueDate.toLocaleDateString('es-MX')}` : ''}`,
-            prioridad:   'media',
-            estado:      'pendiente',        // ✅ CORREGIDO: antes era 'en-progreso'
-            tipo:        'personal',
-            asignado_a:  this.userContext?.id ? [this.userContext.id] : [],
-            creado_por:      this.userContext?.id   || null,
-            creado_por_nombre: this.userContext?.nombre || 'ARIA',
-            fecha_limite: fechaLimite,
-            recordatorio: false,
-            activo:       true,
-        };
+        try {
+            this._setStatus('Creando tarea...');
 
-        log.task('POST /tasks:', taskData);
-        const response = await api.call('/tasks', { method: 'POST', body: taskData });
+            let fechaLimite = dueDate || this._getDefaultDueDate();
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+            if (fechaLimite < hoy) {
+                fechaLimite = this._getDefaultDueDate();
+            }
 
-        if (response && (response.success || response._id)) {
-            const task = response.data || response;
-            log.task('✅ Tarea creada:', task._id || task.id);
-
-            // Sincronización con el sistema
-            await this._syncAfterTaskCreate(task);
-
-            const fechaStr = fechaLimite.toLocaleDateString('es-MX', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            });
-
-            return {
-                success: true,
-                message: `✅ **Tarea creada exitosamente**\n\n📌 **"${title.trim()}"**\n\n📅 **Fecha límite:** ${fechaStr}\n🎯 **Prioridad:** Media\n📋 **Estado:** Pendiente\n\n✨ Ya está visible en la sección **Tareas**.`,
-                task,
+            const taskData = {
+                titulo: title.trim(),
+                descripcion: `Tarea creada por ARIA: "${title.trim()}"`,
+                prioridad: 'media',
+                estado: 'pendiente',
+                tipo: 'personal',
+                asignado_a: this.userContext?.id ? [this.userContext.id] : [],
+                creado_por: this.userContext?.id || null,
+                creado_por_nombre: this.userContext?.nombre || 'ARIA',
+                fecha_limite: fechaLimite,
+                recordatorio: false,
+                activo: true,
             };
+
+            const response = await api.call('/tasks', { method: 'POST', body: taskData });
+
+            if (response && (response.success || response._id)) {
+                const task = response.data || response;
+                await this._syncAfterTaskCreate(task);
+
+                const fechaStr = fechaLimite.toLocaleDateString('es-MX', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                return {
+                    success: true,
+                    message: `✅ **Tarea creada exitosamente**\n\n📌 **"${title.trim()}"**\n\n📅 **Fecha límite:** ${fechaStr}\n🎯 **Prioridad:** Media\n📋 **Estado:** Pendiente`,
+                    task,
+                };
+            }
+
+            throw new Error(response?.message || 'Respuesta inválida del servidor');
+
+        } catch (error) {
+            log.error('Error creando tarea:', error.message);
+            return {
+                success: false,
+                message: `❌ **No pude crear la tarea**\n\n${error.message}`,
+            };
+        } finally {
+            this._setStatus('En línea');
         }
-
-        throw new Error(response?.message || 'Respuesta inválida del servidor');
-
-    } catch (error) {
-        log.error('Error creando tarea:', error.message);
-        return {
-            success: false,
-            message: `❌ **No pude crear la tarea**\n\n${error.message || 'Error de conexión. Intenta de nuevo o créala manualmente.'}`,
-        };
-    } finally {
-        this._setStatus('En línea');
     }
-}
 
     async _syncAfterTaskCreate(task) {
-        // 1. appState
         if (window.appState?.tasks) {
             window.appState.tasks.unshift(task);
             window.appState.updateTasksStats?.();
         }
-        // 2. TaskManager
         if (window.taskManager?.loadTasks) {
-            try { await window.taskManager.loadTasks(); } catch(e) {}
+            try { await window.taskManager.loadTasks(); } catch (e) { }
         }
-        // 3. Dashboard
-        if (window.dashboard?.updateDashboardTasks) {
-            try { await window.dashboard.updateDashboardTasks(); } catch(e) {}
-        }
-        // 4. Eventos globales
-        window.dispatchEvent(new CustomEvent('taskCreated',   { detail: { task } }));
+        window.dispatchEvent(new CustomEvent('taskCreated', { detail: { task } }));
         window.dispatchEvent(new CustomEvent('tasks:updated', { detail: { task } }));
         window.dispatchEvent(new CustomEvent('tasks:reload'));
-        // 5. Rerender si la pestaña está activa
-        const currentTab = window.appState?.currentTab || document.querySelector('.tab.active')?.dataset?.tab;
-        if (currentTab === 'tareas') {
-            window.taskManager?.renderTasks?.();
-        }
-        // 6. Reload stats
         await this._loadStats(true);
     }
 
-    // ─── GENERAR REPORTE ──────────────────────────────────────
     async _generateReportDirectly(cmd) {
         const { reportType, format, days, typeLabel, formatLabel } = cmd;
         log.report('Generando:', { reportType, format, days });
@@ -406,9 +395,9 @@ class ChatbotAssistant {
             const fullUrl = `${window.CONFIG?.API_BASE_URL || '/api'}${endpoint}`;
 
             const controller = new AbortController();
-            const timeoutId  = setTimeout(() => controller.abort(), 60000);
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+            const token = localStorage.getItem('token') || '';
             const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: {
@@ -424,7 +413,7 @@ class ChatbotAssistant {
 
             if (!response.ok) {
                 let errMsg = `Error ${response.status}`;
-                try { const j = await response.json(); errMsg = j.message || errMsg; } catch(_) {}
+                try { const j = await response.json(); errMsg = j.message || errMsg; } catch (_) { }
                 throw new Error(errMsg);
             }
 
@@ -432,23 +421,23 @@ class ChatbotAssistant {
             if (blob.size === 0) throw new Error('El reporte está vacío.');
 
             const url = URL.createObjectURL(blob);
-            const a   = Object.assign(document.createElement('a'), {
-                href:     url,
-                download: `reporte_${reportType}_${new Date().toISOString().slice(0,10)}.${format === 'csv' ? 'csv' : 'xlsx'}`,
+            const a = Object.assign(document.createElement('a'), {
+                href: url,
+                download: `reporte_${reportType}_${new Date().toISOString().slice(0, 10)}.${format === 'csv' ? 'csv' : 'xlsx'}`,
             });
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
             return {
                 success: true,
-                message: `✅ **Reporte ${typeLabel} generado**\n\n📄 Formato: **${formatLabel}**\n📊 Tamaño: **${this._formatBytes(blob.size)}**\n📅 ${new Date().toLocaleString('es-MX')}\n\nEl archivo se descargó automáticamente.`,
+                message: `✅ **Reporte ${typeLabel} generado**\n\n📄 Formato: **${formatLabel}**\n📊 Tamaño: **${this._formatBytes(blob.size)}**`,
             };
 
         } catch (error) {
             this._showReportProgress(false);
             log.error('Error reporte:', error.message);
             const msg = error.name === 'AbortError'
-                ? 'La generación tomó demasiado tiempo. Intenta con menos datos.'
+                ? 'La generación tomó demasiado tiempo.'
                 : error.message;
             return { success: false, message: `❌ **Error generando reporte**\n\n${msg}` };
         } finally {
@@ -458,12 +447,11 @@ class ChatbotAssistant {
 
     _formatBytes(bytes) {
         if (!bytes) return '0 B';
-        const k = 1024, sizes = ['B','KB','MB','GB'];
+        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
     }
 
-    // ─── ENVIAR MENSAJE ───────────────────────────────────────
     async _sendMessage() {
         const text = this._els.input?.value.trim();
         if (!text || this.isLoading) return;
@@ -482,7 +470,6 @@ class ChatbotAssistant {
         this.isLoading = true;
         this._updateSendBtn();
 
-        // ── Detección de tarea ────────────────────────────────
         const taskCmd = detectTaskCreation(text);
         if (taskCmd.detected) {
             this._showTyping(true);
@@ -491,17 +478,16 @@ class ChatbotAssistant {
             this._showTyping(false);
             this._appendBotMessage(result.message, {
                 suggestions: result.success
-                    ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas', 'Mis tareas para hoy']
-                    : ['Intentar de nuevo', 'Ir a Tareas', 'Ayuda'],
-                isTaskResult:  true,
-                taskCreated:   result.success,
+                    ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas']
+                    : ['Intentar de nuevo', 'Ir a Tareas'],
+                isTaskResult: true,
+                taskCreated: result.success,
             });
             if (result.success) showAlert('✅ Tarea creada', 'success', 3000);
             this._finishLoading();
             return;
         }
 
-        // ── Detección de reporte ──────────────────────────────
         const reportCmd = detectReportCommand(text);
         if (reportCmd.detected) {
             this._showTyping(true);
@@ -510,7 +496,7 @@ class ChatbotAssistant {
             this._showTyping(false);
             this._appendBotMessage(result.message, {
                 suggestions: result.success
-                    ? ['Generar otro reporte', 'Ir a Reportes', 'Ver documentos']
+                    ? ['Generar otro reporte', 'Ir a Reportes']
                     : ['Intentar de nuevo', 'Ir a Reportes'],
                 isReportResult: true,
             });
@@ -519,35 +505,27 @@ class ChatbotAssistant {
             return;
         }
 
-        // ── API principal ─────────────────────────────────────
         this._showTyping(true);
         this._setStatus('ARIA está pensando...');
 
         try {
             const res = await api.call('/chatbot/message', {
                 method: 'POST',
-                body:   { message: text },
+                body: { message: text },
             });
 
             this._showTyping(false);
 
             if (!res?.success || !res.data) {
-                throw new Error(res?.message || 'Respuesta inválida del servidor');
+                throw new Error(res?.message || 'Respuesta inválida');
             }
 
-            const { message: rawMsg, actions = [], suggestions = [], latency, conversationId, debug: dbg } = res.data;
+            const { message: rawMsg, actions = [], suggestions = [], latency } = res.data;
             const cleanMsg = this._cleanJSON(rawMsg);
 
             log.info(`Respuesta en ${latency}ms | acciones: ${actions.length}`);
-            if (dbg && ARIA_DEBUG) {
-                log.info('Debug stats:', dbg);
-                if (dbg.taskSchema) log.info('Task schema:', dbg.taskSchema);
-            }
 
-            this._appendBotMessage(cleanMsg, {
-                actions, suggestions, latency,
-                conversationId: String(conversationId || ''),
-            });
+            this._appendBotMessage(cleanMsg, { actions, suggestions, latency });
 
             if (suggestions?.length > 0) this._renderSuggestions(suggestions);
 
@@ -565,7 +543,7 @@ class ChatbotAssistant {
             log.error('Error en sendMessage:', err);
             this._showTyping(false);
             this._appendBotMessage(
-                `⚠️ **Error de conexión**\n\nNo pude procesar tu mensaje. Verifica tu conexión e intenta de nuevo.\n\n_${err.message}_`,
+                `⚠️ **Error de conexión**\n\nNo pude procesar tu mensaje.\n\n_${err.message}_`,
                 { isError: true }
             );
             this._setStatus('Error — reintentando...');
@@ -578,17 +556,16 @@ class ChatbotAssistant {
 
     _appendBotMessage(content, opts = {}) {
         const msg = {
-            role:           'assistant',
+            role: 'assistant',
             content,
-            timestamp:      new Date().toISOString(),
-            actions:        opts.actions        || [],
-            suggestions:    opts.suggestions    || [],
-            latency:        opts.latency        || null,
-            conversationId: opts.conversationId || '',
-            isError:        opts.isError        || false,
-            isTaskResult:   opts.isTaskResult   || false,
+            timestamp: new Date().toISOString(),
+            actions: opts.actions || [],
+            suggestions: opts.suggestions || [],
+            latency: opts.latency || null,
+            isError: opts.isError || false,
+            isTaskResult: opts.isTaskResult || false,
             isReportResult: opts.isReportResult || false,
-            taskCreated:    opts.taskCreated    || false,
+            taskCreated: opts.taskCreated || false,
         };
         this.messages.push(msg);
         this._appendMessage(msg);
@@ -601,15 +578,14 @@ class ChatbotAssistant {
         this._updateSendBtn();
     }
 
-    // ─── EJECUTAR ACCIONES ────────────────────────────────────
     async _executeAction(action) {
         if (!action?.action) return false;
         log.action('Ejecutando:', JSON.stringify(action));
         switch (action.action) {
-            case 'navigate':  return this._doNavigate(action.target);
+            case 'navigate': return this._doNavigate(action.target);
             case 'openModal': return this._doOpenModal(action.target);
-            case 'search':    return this._doSearch(action.query, action.section);
-            default:          log.warn('Acción desconocida:', action.action); return false;
+            case 'search': return this._doSearch(action.query, action.section);
+            default: log.warn('Acción desconocida:', action.action); return false;
         }
     }
 
@@ -618,7 +594,6 @@ class ChatbotAssistant {
         const nav = NAV_MAP[target.toLowerCase()];
         if (!nav) {
             log.warn(`Sección "${target}" no encontrada`);
-            this._appendSystemNote(`⚠️ Sección "${target}" no disponible.`);
             return false;
         }
         log.nav(`Navegando a: ${nav.label}`);
@@ -627,12 +602,11 @@ class ChatbotAssistant {
         await new Promise(r => setTimeout(r, 250));
 
         if (typeof window.switchTab === 'function') {
-            try { await window.switchTab(nav.tabId); this._setStatus('En línea'); return true; } catch(e) {}
+            try { await window.switchTab(nav.tabId); this._setStatus('En línea'); return true; } catch (e) { }
         }
         const link = document.querySelector(`[data-tab="${nav.tabId}"]`);
         if (link?.offsetParent) { link.click(); this._setStatus('En línea'); return true; }
         window.location.hash = nav.hash;
-        window.dispatchEvent(new HashChangeEvent('hashchange'));
         this._setStatus('En línea');
         return true;
     }
@@ -644,34 +618,26 @@ class ChatbotAssistant {
         this.close();
         await new Promise(r => setTimeout(r, 200));
 
-        const sectionMap = { upload:'documentos', addPerson:'personas', addTask:'tareas', addCategory:'categorias', addDepartment:'departamentos' };
-        const section = sectionMap[target];
-        if (section && typeof window.switchTab === 'function') {
-            try { await window.switchTab(section); await new Promise(r => setTimeout(r, 300)); } catch(e) {}
-        }
-
         const fnMap = {
-            upload:        ['openDocumentModal','openUploadModal','showUploadModal'],
-            addPerson:     ['openPersonModal','showPersonModal','addPersonModal'],
-            addTask:       ['openTaskModal','showTaskModal','addTaskModal','openNewTaskModal'],
-            addCategory:   ['openCategoryModal','showCategoryModal','addCategoryModal'],
-            addDepartment: ['openDepartmentModal','showDeptModal','addDeptModal'],
-            search:        ['showAdvancedSearch','openSearchModal'],
+            upload: ['openDocumentModal', 'openUploadModal'],
+            addPerson: ['openPersonModal', 'showPersonModal'],
+            addTask: ['openTaskModal', 'showTaskModal'],
+            addCategory: ['openCategoryModal', 'showCategoryModal'],
+            addDepartment: ['openDepartmentModal', 'showDeptModal'],
         };
 
         for (const fn of (fnMap[target] || [])) {
             if (typeof window[fn] === 'function') {
-                try { window[fn](); this._setStatus('En línea'); return true; } catch(e) {}
+                try { window[fn](); this._setStatus('En línea'); return true; } catch (e) { }
             }
         }
 
         const btnMap = {
-            upload:        ['#uploadDocumentBtn','#btnSubirDoc','#addDocumentBtn','[data-action="upload"]'],
-            addPerson:     ['#addPersonBtn','#btnAgregarPersona','[data-action="addPerson"]'],
-            addTask:       ['#addTaskBtn','#btnCrearTarea','#newTaskBtn','[data-action="addTask"]'],
-            addCategory:   ['#addCategoryBtn','#btnNuevaCategoria'],
-            addDepartment: ['#addDepartmentBtn','#btnNuevoDepto'],
-            search:        ['#searchBtn','#btnBuscar','[data-action="search"]'],
+            upload: ['#uploadDocumentBtn', '#addDocumentBtn'],
+            addPerson: ['#addPersonBtn'],
+            addTask: ['#addTaskBtn', '#newTaskBtn'],
+            addCategory: ['#addCategoryBtn'],
+            addDepartment: ['#addDepartmentBtn'],
         };
 
         for (const sel of (btnMap[target] || [])) {
@@ -679,9 +645,6 @@ class ChatbotAssistant {
             if (btn) { btn.click(); this._setStatus('En línea'); return true; }
         }
 
-        this._appendSystemNote(`⚠️ No pude abrir **${MODAL_LABELS[target]}** automáticamente. Búscalo en la sección correspondiente.`);
-        showAlert(`Ve a ${section || 'la sección'} y usa el botón de agregar`, 'info');
-        this._setStatus('En línea');
         return false;
     }
 
@@ -694,17 +657,13 @@ class ChatbotAssistant {
 
         if (NAV_MAP[section]) { await this._doNavigate(section); await new Promise(r => setTimeout(r, 500)); }
 
-        const selectors = ['#searchInput','#docSearch','#documentSearch','input[type="search"]',
-                           'input[placeholder*="buscar" i]','input[placeholder*="search" i]','.search-input'];
+        const selectors = ['#searchInput', '#docSearch', 'input[type="search"]', '.search-input'];
         for (const sel of selectors) {
             const input = document.querySelector(sel);
             if (input?.offsetParent) {
                 input.value = query;
-                ['input','change'].forEach(ev => input.dispatchEvent(new Event(ev, { bubbles: true })));
+                ['input', 'change'].forEach(ev => input.dispatchEvent(new Event(ev, { bubbles: true })));
                 input.focus();
-                for (const fn of ['handleDocumentSearch','searchDocuments','filterDocuments']) {
-                    if (typeof window[fn] === 'function') { window[fn](); break; }
-                }
                 this._setStatus('En línea');
                 return true;
             }
@@ -713,11 +672,6 @@ class ChatbotAssistant {
         return false;
     }
 
-    _appendSystemNote(text) {
-        this._appendBotMessage(text, { isSystem: true });
-    }
-
-    // ─── RENDERIZADO ──────────────────────────────────────────
     _renderAll() {
         if (!this._els.messages) return;
         this._els.messages.innerHTML = '';
@@ -725,7 +679,7 @@ class ChatbotAssistant {
         this._scrollBottom();
 
         const lastBot = [...this.messages].reverse().find(m => m.role === 'assistant');
-        this._renderSuggestions(lastBot?.suggestions?.length ? lastBot.suggestions : this.quickSuggestions.slice(0,6));
+        this._renderSuggestions(lastBot?.suggestions?.length ? lastBot.suggestions : this.quickSuggestions.slice(0, 6));
         this._setStatus('En línea');
     }
 
@@ -737,16 +691,13 @@ class ChatbotAssistant {
         el.className = [
             'aria-msg',
             isUser ? 'aria-msg--user' : 'aria-msg--bot',
-            msg.isError   ? 'aria-msg--error'   : '',
-            msg.isWelcome ? 'aria-msg--welcome'  : '',
-            msg.isSystem  ? 'aria-msg--system'   : '',
-            (msg.taskCreated || (msg.isTaskResult && !msg.isError)) ? 'aria-msg--success' : '',
+            msg.isError ? 'aria-msg--error' : '',
+            msg.isWelcome ? 'aria-msg--welcome' : '',
         ].filter(Boolean).join(' ');
 
         const contentHtml = this._parseMarkdown(msg.content);
-        const timeStr     = this._formatTime(msg.timestamp);
+        const timeStr = this._formatTime(msg.timestamp);
 
-        // Botones de acción integrados en el mensaje
         let actionHtml = '';
         if (msg.actions?.length) {
             const btns = msg.actions.map(a => {
@@ -766,25 +717,8 @@ class ChatbotAssistant {
             if (btns) actionHtml = `<div class="aria-msg__actions">${btns}</div>`;
         }
 
-        // Debug latency (solo localhost)
-        const isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
-        const latencyHtml = (msg.latency && isLocal)
-            ? `<span class="aria-msg__latency">${msg.latency}ms</span>` : '';
-
-        // Feedback
-        const feedbackHtml = (msg.conversationId && !isUser && !msg.isError && !msg.isSystem)
-            ? `<button class="aria-feedback-btn" data-conv-id="${msg.conversationId}" data-feedback="true"  title="Útil">👍</button>
-               <button class="aria-feedback-btn" data-conv-id="${msg.conversationId}" data-feedback="false" title="No útil">👎</button>`
-            : '';
-
-        // Copiar
-        const copyHtml = (!isUser && !msg.isSystem)
-            ? `<button class="aria-copy-btn" data-copy="${this._escapeAttr(msg.content)}" title="Copiar">
-                <i class="fas fa-copy"></i>
-               </button>` : '';
-
         el.innerHTML = `
-            <div class="aria-msg__avatar" aria-hidden="true">
+            <div class="aria-msg__avatar">
                 <i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i>
             </div>
             <div class="aria-msg__body">
@@ -794,9 +728,6 @@ class ChatbotAssistant {
                 </div>
                 <div class="aria-msg__meta">
                     <span class="aria-msg__time">${timeStr}</span>
-                    ${latencyHtml}
-                    ${feedbackHtml}
-                    ${copyHtml}
                 </div>
             </div>`;
 
@@ -820,31 +751,26 @@ class ChatbotAssistant {
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
         html = html.replace(/`([^`]+)`/g, '<code class="aria-inline-code">$1</code>');
-        html = html.replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>');
-        html = html.replace(/(<li>.*?<\/li>\n?)+/gs, m => `<ul class="aria-list">${m}</ul>`);
         html = html.replace(/\n/g, '<br>');
         return html;
     }
 
-    // ─── HISTORIAL ────────────────────────────────────────────
     async _loadHistory() {
-        // Intentar desde servidor
         try {
             const res = await api.call('/chatbot/history?limit=12', { method: 'GET' });
             if (res?.success && res.data?.length > 0) {
                 this.messages = res.data.flatMap(h => [
-                    { role: 'user',      content: h.userMessage, timestamp: h.timestamp },
-                    { role: 'assistant', content: h.botResponse,  timestamp: h.timestamp },
+                    { role: 'user', content: h.userMessage, timestamp: h.timestamp },
+                    { role: 'assistant', content: h.botResponse, timestamp: h.timestamp },
                 ]);
                 this._renderAll();
-                log.info(`Historial del servidor: ${res.data.length} conversaciones`);
+                log.info(`Historial cargado: ${res.data.length}`);
                 return;
             }
         } catch (e) {
-            log.warn('No se pudo cargar historial del servidor:', e.message);
+            log.warn('No se pudo cargar historial:', e.message);
         }
 
-        // Intentar desde localStorage
         try {
             const saved = localStorage.getItem('aria_history_v4');
             if (saved) {
@@ -852,11 +778,10 @@ class ChatbotAssistant {
                 if (parsed?.length > 0) {
                     this.messages = parsed.slice(-40);
                     this._renderAll();
-                    log.info('Historial de localStorage');
                     return;
                 }
             }
-        } catch (e) {}
+        } catch (e) { }
 
         this._showWelcome();
     }
@@ -867,8 +792,8 @@ class ChatbotAssistant {
             const res = await api.call('/chatbot/history?limit=30', { method: 'GET' });
             if (res?.success && res.data?.length > 0) {
                 this.messages = res.data.flatMap(h => [
-                    { role: 'user',      content: h.userMessage, timestamp: h.timestamp },
-                    { role: 'assistant', content: h.botResponse,  timestamp: h.timestamp },
+                    { role: 'user', content: h.userMessage, timestamp: h.timestamp },
+                    { role: 'assistant', content: h.botResponse, timestamp: h.timestamp },
                 ]);
                 this._renderAll();
                 showAlert(`${res.data.length} conversaciones cargadas`, 'success');
@@ -882,8 +807,8 @@ class ChatbotAssistant {
     }
 
     async _clearChat() {
-        if (!confirm('¿Borrar toda la conversación? También se eliminará del servidor.')) return;
-        try { await api.call('/chatbot/history', { method: 'DELETE' }); } catch(e) {}
+        if (!confirm('¿Borrar toda la conversación?')) return;
+        try { await api.call('/chatbot/history', { method: 'DELETE' }); } catch (e) { }
         this.messages = [];
         localStorage.removeItem('aria_history_v4');
         this._showWelcome();
@@ -891,75 +816,51 @@ class ChatbotAssistant {
     }
 
     _exportChat() {
-        if (!this.messages.length) { showAlert('No hay conversación para exportar', 'warning'); return; }
+        if (!this.messages.length) { showAlert('No hay conversación', 'warning'); return; }
         const data = {
             exportado: new Date().toLocaleString('es-MX'),
-            usuario:   this.userContext?.nombre,
-            total:     this.messages.length,
+            usuario: this.userContext?.nombre,
+            total: this.messages.length,
             conversacion: this.messages.map(m => ({
-                rol:     m.role === 'user' ? 'Usuario' : 'ARIA',
+                rol: m.role === 'user' ? 'Usuario' : 'ARIA',
                 mensaje: m.content,
-                hora:    m.timestamp ? new Date(m.timestamp).toLocaleString('es-MX') : '',
+                hora: m.timestamp ? new Date(m.timestamp).toLocaleString('es-MX') : '',
             })),
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url  = URL.createObjectURL(blob);
-        const a    = Object.assign(document.createElement('a'), {
-            href: url, download: `aria_chat_${new Date().toISOString().slice(0,10)}.json`,
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), {
+            href: url, download: `aria_chat_${new Date().toISOString().slice(0, 10)}.json`,
         });
         a.click(); URL.revokeObjectURL(url);
         showAlert('Conversación exportada', 'success');
     }
 
-    async _sendFeedback(conversationId, util) {
-        if (!conversationId) return;
-        try {
-            await api.call('/chatbot/feedback', { method: 'PATCH', body: { conversationId, util } });
-        } catch (e) { log.warn('Error enviando feedback:', e.message); }
-    }
-
-    // ─── BIENVENIDA ───────────────────────────────────────────
     _showWelcome() {
-        const stats   = this.systemStats || {};
-        const nombre  = this.userContext?.nombre || 'usuario';
-        const hora    = new Date().getHours();
-        const saludo  = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
+        const stats = this.systemStats || {};
+        const nombre = this.userContext?.nombre || 'usuario';
+        const hora = new Date().getHours();
+        const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
         const s = stats.stats || {};
         const t = stats.tareas || {};
 
-        const alertas = [
-            s.docsPorVencer3 > 0 ? `🚨 **${s.docsPorVencer3}** doc(s) vencen en <3 días` : null,
-            s.docsPorVencer7 > 0 ? `⚠️ **${s.docsPorVencer7}** doc(s) vencen esta semana` : null,
-            s.docsVencidos   > 0 ? `❌ **${s.docsVencidos}** doc(s) vencidos` : null,
-            t.vencidas       > 0 ? `⏰ **${t.vencidas}** tarea(s) vencidas` : null,
-        ].filter(Boolean);
-
         const lines = [
-            `${saludo}, **${nombre}** 👋 Soy **ARIA v4.0**, tu asistente inteligente del CBTIS051.`,
+            `${saludo}, **${nombre}** 👋 Soy **ARIA v4.0**`,
             '',
-            `📊 **Estado actual del sistema:**`,
-            `• ${s.totalDocs ?? 0} documentos activos`,
-            `• ${t.pendientes ?? 0} tareas pendientes (${t.enProgreso ?? 0} en progreso)`,
-            `• ${s.totalPersonas ?? 0} personas registradas`,
-            `• ${s.totalCategorias ?? 0} categorías | ${s.totalDeptos ?? 0} departamentos`,
-            ...(alertas.length > 0 ? ['', '🔔 **Alertas activas:**', ...alertas] : ['', '✅ Sin alertas urgentes.']),
-            '',
-            `💡 **Ahora puedo:**`,
-            `• Analizar y priorizar tus tareas`,
-            `• Consultas complejas: *"¿Cuál es mi tarea más urgente?"*`,
-            `• Crear tareas con fecha: *"Crea tarea: X para el 15 de abril"*`,
-            `• Generar reportes: *"Generar reporte de vencidos en Excel"*`,
-            `• Análisis de productividad y salud del sistema`,
+            `📊 **Estado actual:**`,
+            `• ${s.totalDocs ?? 0} documentos`,
+            `• ${t.pendientes ?? 0} tareas pendientes`,
+            `• ${s.totalPersonas ?? 0} personas`,
             '',
             `¿En qué te ayudo hoy?`,
         ].join('\n');
 
         this.messages = [{
-            role:        'assistant',
-            content:     lines,
-            timestamp:   new Date().toISOString(),
+            role: 'assistant',
+            content: lines,
+            timestamp: new Date().toISOString(),
             suggestions: this.quickSuggestions.slice(0, 6),
-            isWelcome:   true,
+            isWelcome: true,
         }];
         this._renderAll();
         this._saveLocal();
@@ -977,7 +878,6 @@ class ChatbotAssistant {
         }
     }
 
-    // ─── UI ───────────────────────────────────────────────────
     toggle() { this.isOpen ? this.close() : this.open(); }
 
     open() {
@@ -987,7 +887,6 @@ class ChatbotAssistant {
         if (this._els.badge) this._els.badge.style.display = 'none';
         this._setStatus('En línea');
         setTimeout(() => this._els.input?.focus(), 100);
-        // Recargar stats si llevan más de 2 min
         if (Date.now() - this._lastStatsLoad > 120000) this._loadStats(true);
     }
 
@@ -995,7 +894,14 @@ class ChatbotAssistant {
         this.isOpen = false;
         this._els.window?.classList.add('aria-window--closed');
         this._els.toggle?.classList.remove('aria-toggle--open');
+
+        const currentTab = window.getCurrentTab?.() || 'dashboard';
+        if (currentTab !== 'chatbot' && this._els.toggle) {
+            this._els.toggle.style.display = 'flex';
+        }
+
         if (this.isListening) this._stopVoice();
+        log.info('close: widget cerrado');
     }
 
     _showTyping(show) {
@@ -1033,28 +939,23 @@ class ChatbotAssistant {
         if (!this._els.charCount) return;
         const len = this._els.input?.value.length ?? 0;
         this._els.charCount.textContent = `${len} / 2000`;
-        this._els.charCount.classList.toggle('aria-char-count--warn', len > 1600);
     }
 
     _saveLocal() {
         try {
             localStorage.setItem('aria_history_v4', JSON.stringify(this.messages.slice(-40)));
-        } catch(e) {}
+        } catch (e) { }
     }
 
     _cleanJSON(text) {
         if (!text) return '';
-        return text
-            .replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, '')
-            .replace(/\{[^{}]*"action"\s*:\s*"[^"]+[^{}]*\}/g, '')
-            .trim()
-            .replace(/\n{3,}/g, '\n\n');
+        return text.replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, '').trim();
     }
 
     _formatTime(ts) {
         if (!ts) return '';
         try { return new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }); }
-        catch(_) { return ''; }
+        catch (_) { return ''; }
     }
 
     _escapeHtml(str) {
@@ -1069,7 +970,6 @@ class ChatbotAssistant {
         return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // ─── REPORTE PROGRESS ─────────────────────────────────────
     _showReportProgress(show) {
         if (!show) {
             clearInterval(this._reportProgressInterval);
@@ -1088,26 +988,12 @@ class ChatbotAssistant {
                 <div class="aria-report-preloader__spinner"></div>
                 <div class="aria-report-preloader__text">
                     <h4>Generando Reporte</h4>
-                    <p>Procesando datos del sistema...</p>
-                    <div class="aria-report-preloader__steps">
-                        <div class="aria-report-preloader__step" id="arStep1"><i class="fas fa-database"></i><span>Consultando datos</span></div>
-                        <div class="aria-report-preloader__step" id="arStep2"><i class="fas fa-chart-line"></i><span>Procesando</span></div>
-                        <div class="aria-report-preloader__step" id="arStep3"><i class="fas fa-${icon}"></i><span>Generando archivo</span></div>
-                        <div class="aria-report-preloader__step" id="arStep4"><i class="fas fa-download"></i><span>Descargando</span></div>
-                    </div>
+                    <p>Procesando datos...</p>
                 </div>
             </div>`;
         document.body.appendChild(el);
-
-        let step = 1;
-        this._reportProgressInterval = setInterval(() => {
-            const s = document.getElementById(`arStep${step}`);
-            if (s) { s.classList.add('aria-report-preloader__step--active'); step++; }
-            if (step > 4) clearInterval(this._reportProgressInterval);
-        }, 800);
     }
 
-    // ─── VOZ ──────────────────────────────────────────────────
     _initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) {
@@ -1118,14 +1004,12 @@ class ChatbotAssistant {
             this.recognition = new SR();
             this.recognition.lang = 'es-MX';
             this.recognition.interimResults = false;
-            this.recognition.maxAlternatives = 1;
             this.recognition.continuous = false;
 
-            this.recognition.onstart  = () => { this.isListening = true; this._updateVoiceUI(true); };
-            this.recognition.onend    = () => this._stopVoice();
+            this.recognition.onstart = () => { this.isListening = true; this._updateVoiceUI(true); };
+            this.recognition.onend = () => this._stopVoice();
             this.recognition.onresult = (ev) => {
                 const text = ev.results[0][0].transcript;
-                log.voice('Reconocido:', text);
                 if (this._els.input) {
                     this._els.input.value = text;
                     this._autoResize();
@@ -1136,22 +1020,20 @@ class ChatbotAssistant {
             };
             this.recognition.onerror = (ev) => {
                 log.error('Voice error:', ev.error);
-                if (ev.error === 'not-allowed') showAlert('Permite el micrófono para usar voz', 'warning');
-                else if (ev.error === 'no-speech') showAlert('No detecté voz. Intenta de nuevo.', 'info', 2000);
                 this._stopVoice();
             };
-        } catch(e) {
+        } catch (e) {
             if (this._els.voiceBtn) this._els.voiceBtn.style.display = 'none';
         }
     }
 
     _startVoice() {
         if (!this.recognition || this.isListening) return;
-        try { this.recognition.start(); } catch(e) { this._stopVoice(); }
+        try { this.recognition.start(); } catch (e) { this._stopVoice(); }
     }
 
     _stopVoice() {
-        try { if (this.isListening && this.recognition) this.recognition.stop(); } catch(e) {}
+        try { if (this.isListening && this.recognition) this.recognition.stop(); } catch (e) { }
         this.isListening = false;
         this._updateVoiceUI(false);
     }
@@ -1161,15 +1043,13 @@ class ChatbotAssistant {
         const icon = this._els.voiceBtn.querySelector('i');
         this._els.voiceBtn.classList.toggle('aria-voice-btn--listening', listening);
         if (icon) icon.className = listening ? 'fas fa-microphone-slash' : 'fas fa-microphone';
-        this._els.voiceBtn.title = listening ? 'Detener grabación' : 'Entrada de voz';
     }
 
     _toggleVoice() {
-        if (!this.recognition) { showAlert('Voz no disponible en este navegador', 'warning'); return; }
+        if (!this.recognition) { showAlert('Voz no disponible', 'warning'); return; }
         this.isListening ? this._stopVoice() : this._startVoice();
     }
 
-    // ─── CREAR UI ─────────────────────────────────────────────
     _createUI() {
         if (document.getElementById('ariaContainer')) {
             this._cacheEls(); return;
@@ -1184,17 +1064,17 @@ class ChatbotAssistant {
 
     _cacheEls() {
         this._els = {
-            toggle:      document.getElementById('ariaToggle'),
-            window:      document.getElementById('ariaWindow'),
-            messages:    document.getElementById('ariaMessages'),
-            input:       document.getElementById('ariaInput'),
-            send:        document.getElementById('ariaSend'),
-            badge:       document.getElementById('ariaBadge'),
-            status:      document.getElementById('ariaStatus'),
-            typing:      document.getElementById('ariaTyping'),
+            toggle: document.getElementById('ariaToggle'),
+            window: document.getElementById('ariaWindow'),
+            messages: document.getElementById('ariaMessages'),
+            input: document.getElementById('ariaInput'),
+            send: document.getElementById('ariaSend'),
+            badge: document.getElementById('ariaBadge'),
+            status: document.getElementById('ariaStatus'),
+            typing: document.getElementById('ariaTyping'),
             suggestions: document.getElementById('ariaSuggestions'),
-            charCount:   document.getElementById('ariaCharCount'),
-            voiceBtn:    document.getElementById('ariaVoice'),
+            charCount: document.getElementById('ariaCharCount'),
+            voiceBtn: document.getElementById('ariaVoice'),
         };
     }
 
@@ -1215,22 +1095,22 @@ class ChatbotAssistant {
                         <span class="aria-avatar__dot"></span>
                     </div>
                     <div class="aria-header__info">
-                        <span class="aria-header__name">ARIA <span class="aria-version-tag">v1.0</span></span>
+                        <span class="aria-header__name">ARIA <span class="aria-version-tag">v4.0</span></span>
                         <span class="aria-header__sub" id="ariaStatus">Cargando...</span>
                     </div>
                 </div>
                 <div class="aria-header__actions">
-                    <button class="aria-btn-icon" id="ariaRefreshBtn"  title="Actualizar estadísticas"><i class="fas fa-sync-alt"></i></button>
-                    <button class="aria-btn-icon" id="ariaHistoryBtn"  title="Cargar historial del servidor"><i class="fas fa-history"></i></button>
-                    <button class="aria-btn-icon" id="ariaClearBtn"    title="Nueva conversación"><i class="fas fa-broom"></i></button>
-                    <button class="aria-btn-icon" id="ariaExportBtn"   title="Exportar conversación"><i class="fas fa-download"></i></button>
-                    <button class="aria-btn-icon aria-btn-close" id="ariaClose" title="Cerrar (Esc)"><i class="fas fa-times"></i></button>
+                    <button class="aria-btn-icon" id="ariaRefreshBtn" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+                    <button class="aria-btn-icon" id="ariaHistoryBtn" title="Historial"><i class="fas fa-history"></i></button>
+                    <button class="aria-btn-icon" id="ariaClearBtn" title="Nueva conversación"><i class="fas fa-broom"></i></button>
+                    <button class="aria-btn-icon" id="ariaExportBtn" title="Exportar"><i class="fas fa-download"></i></button>
+                    <button class="aria-btn-icon aria-btn-close" id="ariaClose" title="Cerrar"><i class="fas fa-times"></i></button>
                 </div>
             </div>
 
-            <div class="aria-messages" id="ariaMessages" role="log" aria-live="polite"></div>
+            <div class="aria-messages" id="ariaMessages" role="log"></div>
 
-            <div class="aria-typing" id="ariaTyping" style="display:none" aria-hidden="true">
+            <div class="aria-typing" id="ariaTyping" style="display:none">
                 <div class="aria-typing__avatar"><i class="fas fa-robot"></i></div>
                 <div class="aria-typing__dots"><span></span><span></span><span></span></div>
             </div>
@@ -1241,43 +1121,30 @@ class ChatbotAssistant {
 
             <div class="aria-input-area">
                 <div class="aria-input-row">
-                    <textarea
-                        id="ariaInput"
-                        class="aria-input"
-                        rows="1"
-                        placeholder="Pregúntame lo que quieras..."
-                        maxlength="2000"
-                        aria-label="Mensaje para ARIA"
-                    ></textarea>
-                    <button class="aria-voice-btn" id="ariaVoice" title="Voz" aria-label="Entrada de voz">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <button class="aria-send-btn" id="ariaSend" title="Enviar (Ctrl+Enter)" disabled aria-label="Enviar">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+                    <textarea id="ariaInput" class="aria-input" rows="1" placeholder="Pregúntame lo que quieras..." maxlength="2000"></textarea>
+                    <button class="aria-voice-btn" id="ariaVoice" title="Voz"><i class="fas fa-microphone"></i></button>
+                    <button class="aria-send-btn" id="ariaSend" title="Enviar" disabled><i class="fas fa-paper-plane"></i></button>
                 </div>
                 <div class="aria-input-meta">
                     <span class="aria-char-count" id="ariaCharCount">0 / 2000</span>
-                    <span class="aria-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> enviar</span>
+                    <span class="aria-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
                 </div>
             </div>
         </div>`;
     }
 
-    // ─── BIND EVENTS ──────────────────────────────────────────
     _bindEvents() {
         const e = this._els;
 
         e.toggle?.addEventListener('click', () => this.toggle());
-        document.getElementById('ariaClose')?.addEventListener('click',      () => this.close());
-        document.getElementById('ariaClearBtn')?.addEventListener('click',   () => this._clearChat());
-        document.getElementById('ariaExportBtn')?.addEventListener('click',  () => this._exportChat());
+        document.getElementById('ariaClose')?.addEventListener('click', () => this.close());
+        document.getElementById('ariaClearBtn')?.addEventListener('click', () => this._clearChat());
+        document.getElementById('ariaExportBtn')?.addEventListener('click', () => this._exportChat());
         document.getElementById('ariaHistoryBtn')?.addEventListener('click', () => this._loadFromServer());
         document.getElementById('ariaRefreshBtn')?.addEventListener('click', async () => {
-            this._setStatus('Actualizando estadísticas...');
+            this._setStatus('Actualizando...');
             await this._loadStats();
-            this._setStatus('En línea ✓');
-            setTimeout(() => this._setStatus('En línea'), 2000);
+            this._setStatus('En línea');
             showAlert('Estadísticas actualizadas', 'success', 2000);
         });
 
@@ -1297,7 +1164,6 @@ class ChatbotAssistant {
             }
         });
 
-        // Chips de sugerencias
         document.getElementById('ariaSuggestions')?.addEventListener('click', ev => {
             const btn = ev.target.closest('[data-query]');
             if (btn && e.input) {
@@ -1308,38 +1174,329 @@ class ChatbotAssistant {
             }
         });
 
-        // Acciones dentro de mensajes
-        document.getElementById('ariaMessages')?.addEventListener('click', ev => {
-            const navBtn    = ev.target.closest('[data-nav]');
-            const modalBtn  = ev.target.closest('[data-modal]');
-            const copyBtn   = ev.target.closest('[data-copy]');
-            const fbBtn     = ev.target.closest('[data-feedback]');
-
-            if (navBtn)   { this._doNavigate(navBtn.dataset.nav); return; }
-            if (modalBtn) { this._doOpenModal(modalBtn.dataset.modal); return; }
-            if (copyBtn) {
-                navigator.clipboard?.writeText(copyBtn.dataset.copy)
-                    .then(() => showAlert('Copiado', 'success', 1500))
-                    .catch(() => {});
-                return;
-            }
-            if (fbBtn) {
-                const conv = fbBtn.dataset.convId;
-                const util = fbBtn.dataset.feedback === 'true';
-                this._sendFeedback(conv, util);
-                fbBtn.classList.add('aria-feedback-btn--active');
-                fbBtn.parentElement?.querySelectorAll('.aria-feedback-btn').forEach(b => b.disabled = true);
-            }
-        });
-
         document.addEventListener('keydown', ev => {
             if (ev.key === 'Escape' && this.isOpen) this.close();
         });
 
-        // Escuchar eventos del sistema
-        window.addEventListener('taskCreated',    () => this._loadStats(true));
-        window.addEventListener('tasks:updated',  () => this._loadStats(true));
-        window.addEventListener('documentSaved',  () => this._loadStats(true));
+        window.addEventListener('taskCreated', () => this._loadStats(true));
+        window.addEventListener('tasks:updated', () => this._loadStats(true));
+    }
+
+    // ========== FULLSCREEN ==========
+    renderFullscreen(container) {
+        if (!container) container = document.getElementById('ariaFullscreenContainer');
+        if (!container) return;
+
+        this._fullscreenContainer = container;
+        this._originalWindow = this._els.window;
+        this._originalToggle = this._els.toggle;
+
+        container.innerHTML = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'aria-fullscreen-wrapper';
+
+        const header = document.createElement('div');
+        header.className = 'aria-fullscreen-header';
+        header.innerHTML = `
+            <div class="aria-fullscreen-header-left">
+                <div class="aria-fullscreen-avatar"><i class="fas fa-robot"></i></div>
+                <div class="aria-fullscreen-title">
+                    <h2>ARIA</h2>
+                    <p>Asistente Inteligente v4.0 · CBTIS 051 <span class="aria-fullscreen-status"><span class="aria-fullscreen-status-dot"></span><span id="ariaFullscreenStatus">En línea</span></span></p>
+                </div>
+            </div>
+            <div class="aria-fullscreen-actions">
+                <button class="aria-fullscreen-btn" id="ariaFullscreenRefresh" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+                <button class="aria-fullscreen-btn" id="ariaFullscreenHistory" title="Historial"><i class="fas fa-history"></i></button>
+                <button class="aria-fullscreen-btn" id="ariaFullscreenClear" title="Nueva conversación"><i class="fas fa-broom"></i></button>
+                <button class="aria-fullscreen-btn" id="ariaFullscreenExport" title="Exportar"><i class="fas fa-download"></i></button>
+            </div>
+        `;
+
+        const messagesContainer = document.createElement('div');
+        messagesContainer.className = 'aria-fullscreen-messages';
+        messagesContainer.id = 'ariaFullscreenMessages';
+
+        const suggestionsBar = document.createElement('div');
+        suggestionsBar.className = 'aria-fullscreen-suggestions';
+        suggestionsBar.innerHTML = `<div class="aria-fullscreen-suggestions-inner" id="ariaFullscreenSuggestions"></div>`;
+
+        const inputArea = document.createElement('div');
+        inputArea.className = 'aria-fullscreen-input-area';
+        inputArea.innerHTML = `
+            <div class="aria-fullscreen-input-wrapper">
+                <textarea id="ariaFullscreenInput" class="aria-fullscreen-input" placeholder="Escribe tu mensaje..." rows="1" maxlength="2000"></textarea>
+                <div class="aria-fullscreen-input-actions">
+                    <button class="aria-fullscreen-voice-btn" id="ariaFullscreenVoice" title="Voz"><i class="fas fa-microphone"></i></button>
+                    <button class="aria-fullscreen-send-btn" id="ariaFullscreenSend" disabled title="Enviar"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+            <div class="aria-fullscreen-input-meta">
+                <span class="aria-fullscreen-char-count" id="ariaFullscreenCharCount">0 / 2000</span>
+                <span class="aria-fullscreen-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+            </div>
+        `;
+
+        wrapper.appendChild(header);
+        wrapper.appendChild(messagesContainer);
+        wrapper.appendChild(suggestionsBar);
+        wrapper.appendChild(inputArea);
+        container.appendChild(wrapper);
+
+        this._fullscreenMode = true;
+        this._fullscreenMessages = messagesContainer;
+        this._fullscreenInput = document.getElementById('ariaFullscreenInput');
+        this._fullscreenSend = document.getElementById('ariaFullscreenSend');
+        this._fullscreenVoice = document.getElementById('ariaFullscreenVoice');
+        this._fullscreenCharCount = document.getElementById('ariaFullscreenCharCount');
+        this._fullscreenStatus = document.getElementById('ariaFullscreenStatus');
+        this._fullscreenSuggestions = document.getElementById('ariaFullscreenSuggestions');
+
+        this._renderMessagesToContainer(messagesContainer);
+
+        const lastBotMsg = [...this.messages].reverse().find(m => m.role === 'assistant');
+        this._renderFullscreenSuggestions(lastBotMsg?.suggestions?.length ? lastBotMsg.suggestions : this.quickSuggestions.slice(0, 6));
+
+        this._bindFullscreenEvents();
+
+        if (this._els.window) this._els.window.style.display = 'none';
+        if (this._els.toggle) this._els.toggle.style.display = 'none';
+
+        if (this._fullscreenStatus) this._fullscreenStatus.textContent = 'En línea';
+    }
+
+    _renderMessagesToContainer(container) {
+        if (!container) return;
+        container.innerHTML = '';
+        for (const msg of this.messages) {
+            const el = this._createFullscreenMessageElement(msg);
+            container.appendChild(el);
+        }
+        this._scrollContainer(container);
+    }
+
+    _createFullscreenMessageElement(msg) {
+        const isUser = msg.role === 'user';
+        const el = document.createElement('div');
+        el.className = `aria-msg ${isUser ? 'aria-msg--user' : 'aria-msg--bot'}`;
+        if (msg.isWelcome) el.classList.add('aria-msg--welcome');
+        if (msg.isError) el.classList.add('aria-msg--error');
+
+        const content = this._parseMarkdown(msg.content);
+        const time = this._formatTime(msg.timestamp);
+
+        let actionsHtml = '';
+        if (msg.actions?.length) {
+            actionsHtml = `<div class="aria-msg__actions">` + msg.actions.map(a => {
+                if (a.action === 'navigate') return `<button class="aria-action-btn" data-nav="${a.target}"><i class="fas fa-arrow-right"></i> Ir a ${a.target}</button>`;
+                if (a.action === 'openModal') return `<button class="aria-action-btn aria-action-btn--modal" data-modal="${a.target}"><i class="fas fa-plus-circle"></i> ${a.target}</button>`;
+                return '';
+            }).join('') + `</div>`;
+        }
+
+        el.innerHTML = `
+            <div class="aria-msg__avatar"><i class="fas ${isUser ? 'fa-user' : 'fa-robot'}"></i></div>
+            <div class="aria-msg__body">
+                <div class="aria-msg__bubble"><div class="aria-msg__text">${content}</div>${actionsHtml}</div>
+                <div class="aria-msg__meta"><span class="aria-msg__time">${time}</span></div>
+            </div>
+        `;
+
+        el.querySelectorAll('[data-nav]').forEach(btn => btn.addEventListener('click', () => this._doNavigate(btn.dataset.nav)));
+        el.querySelectorAll('[data-modal]').forEach(btn => btn.addEventListener('click', () => this._doOpenModal(btn.dataset.modal)));
+
+        return el;
+    }
+
+    _renderFullscreenSuggestions(suggestions) {
+        if (!this._fullscreenSuggestions || !suggestions?.length) return;
+        this._fullscreenSuggestions.innerHTML = suggestions.slice(0, 8).map(s => {
+            const short = s.length > 50 ? s.substring(0, 50) + '…' : s;
+            return `<button class="aria-fullscreen-chip" data-query="${this._escapeAttr(s)}">${this._escapeHtml(short)}</button>`;
+        }).join('');
+    }
+
+    _bindFullscreenEvents() {
+        if (this._fullscreenInput) {
+            this._fullscreenInput.addEventListener('input', () => {
+                this._fullscreenSend.disabled = !this._fullscreenInput.value.trim() || this.isLoading;
+                if (this._fullscreenCharCount) {
+                    this._fullscreenCharCount.textContent = `${this._fullscreenInput.value.length} / 2000`;
+                }
+                this._fullscreenInput.style.height = 'auto';
+                this._fullscreenInput.style.height = Math.min(this._fullscreenInput.scrollHeight, 150) + 'px';
+            });
+            this._fullscreenInput.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    this._sendFullscreenMessage();
+                }
+            });
+        }
+
+        if (this._fullscreenSend) this._fullscreenSend.addEventListener('click', () => this._sendFullscreenMessage());
+        if (this._fullscreenVoice) this._fullscreenVoice.addEventListener('click', () => this._toggleVoice());
+
+        document.getElementById('ariaFullscreenRefresh')?.addEventListener('click', async () => {
+            this._setFullscreenStatus('Actualizando...');
+            await this._loadStats(true);
+            this._setFullscreenStatus('En línea');
+            showAlert('Estadísticas actualizadas', 'success');
+        });
+        document.getElementById('ariaFullscreenHistory')?.addEventListener('click', () => this._loadFromServer());
+        document.getElementById('ariaFullscreenClear')?.addEventListener('click', () => this._clearChat());
+        document.getElementById('ariaFullscreenExport')?.addEventListener('click', () => this._exportChat());
+
+        if (this._fullscreenSuggestions) {
+            this._fullscreenSuggestions.addEventListener('click', (e) => {
+                const chip = e.target.closest('[data-query]');
+                if (chip && this._fullscreenInput) {
+                    this._fullscreenInput.value = chip.dataset.query;
+                    this._fullscreenInput.dispatchEvent(new Event('input'));
+                    this._sendFullscreenMessage();
+                }
+            });
+        }
+    }
+
+    async _sendFullscreenMessage() {
+        const text = this._fullscreenInput?.value.trim();
+        if (!text || this.isLoading) return;
+
+        const originalInput = this._els.input;
+        const originalMessages = this._els.messages;
+        const originalSend = this._els.send;
+        const originalSuggestions = this._els.suggestions;
+
+        this._els.input = this._fullscreenInput;
+        this._els.messages = this._fullscreenMessages;
+        this._els.send = this._fullscreenSend;
+        this._els.suggestions = this._fullscreenSuggestions;
+
+        const messageText = text;
+        this._fullscreenInput.value = '';
+        this._fullscreenInput.style.height = 'auto';
+        this._fullscreenSend.disabled = true;
+
+        const userMsg = { role: 'user', content: messageText, timestamp: new Date().toISOString() };
+        this.messages.push(userMsg);
+        this._fullscreenMessages.appendChild(this._createFullscreenMessageElement(userMsg));
+        this._scrollContainer(this._fullscreenMessages);
+        this._saveLocal();
+
+        this.isLoading = true;
+        this._fullscreenSend.disabled = true;
+        this._setFullscreenStatus('Procesando...');
+
+        try {
+            await this._processMessageFullscreen(messageText);
+        } catch (error) {
+            this._appendFullscreenBotMessage('❌ Error al procesar tu mensaje.', { isError: true });
+        } finally {
+            this.isLoading = false;
+            this._fullscreenSend.disabled = false;
+            this._setFullscreenStatus('En línea');
+
+            this._els.input = originalInput;
+            this._els.messages = originalMessages;
+            this._els.send = originalSend;
+            this._els.suggestions = originalSuggestions;
+        }
+    }
+
+    async _processMessageFullscreen(text) {
+        const taskCmd = detectTaskCreation(text);
+        if (taskCmd.detected) {
+            this._setFullscreenStatus('Creando tarea...');
+            const result = await this._createTaskDirectly(taskCmd.title, taskCmd.dueDate);
+            this._appendFullscreenBotMessage(result.message, {
+                suggestions: result.success ? ['Ver mis tareas', 'Crear otra tarea'] : ['Intentar de nuevo'],
+                taskCreated: result.success
+            });
+            return;
+        }
+
+        const reportCmd = detectReportCommand(text);
+        if (reportCmd.detected) {
+            this._setFullscreenStatus('Generando reporte...');
+            const result = await this._generateReportDirectly(reportCmd);
+            this._appendFullscreenBotMessage(result.message, {
+                suggestions: result.success ? ['Generar otro reporte', 'Ir a Reportes'] : ['Intentar de nuevo']
+            });
+            return;
+        }
+
+        try {
+            const res = await api.call('/chatbot/message', { method: 'POST', body: { message: text } });
+            if (res?.success && res.data) {
+                const cleanMsg = this._cleanJSON(res.data.message);
+                this._appendFullscreenBotMessage(cleanMsg, {
+                    actions: res.data.actions,
+                    suggestions: res.data.suggestions,
+                    latency: res.data.latency
+                });
+                if (res.data.actions?.length) {
+                    setTimeout(async () => {
+                        for (const action of res.data.actions) await this._executeAction(action);
+                    }, 500);
+                }
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    _appendFullscreenBotMessage(content, opts = {}) {
+        const msg = {
+            role: 'assistant', content, timestamp: new Date().toISOString(),
+            actions: opts.actions || [], suggestions: opts.suggestions || [],
+            isError: opts.isError || false, taskCreated: opts.taskCreated || false
+        };
+        this.messages.push(msg);
+        const msgEl = this._createFullscreenMessageElement(msg);
+        this._fullscreenMessages.appendChild(msgEl);
+        this._scrollContainer(this._fullscreenMessages);
+        this._saveLocal();
+        if (msg.suggestions?.length) this._renderFullscreenSuggestions(msg.suggestions);
+    }
+
+    _setFullscreenStatus(text) {
+        if (this._fullscreenStatus) this._fullscreenStatus.textContent = text;
+    }
+
+    setMode(mode) {
+        log.info(`setMode: cambiando a "${mode}"`);
+        if (mode === 'fullscreen') {
+            const container = document.getElementById('ariaFullscreenContainer');
+            if (container) {
+                this.renderFullscreen(container);
+                this._fullscreenMode = true;
+                if (this._els.toggle) this._els.toggle.style.display = 'none';
+                if (this._els.window) this._els.window.classList.add('aria-window--closed');
+                this.isOpen = false;
+                log.info('setMode: fullscreen activado');
+            } else {
+                log.error('setMode: contenedor no encontrado');
+            }
+        } else {
+            this._fullscreenMode = false;
+            if (this._fullscreenContainer) this._fullscreenContainer.innerHTML = '';
+            this._els.input = document.getElementById('ariaInput');
+            this._els.messages = document.getElementById('ariaMessages');
+            this._els.send = document.getElementById('ariaSend');
+            this._els.suggestions = document.getElementById('ariaSuggestions');
+            if (this._els.toggle) this._els.toggle.style.display = 'flex';
+            if (this._els.window) this._els.window.classList.add('aria-window--closed');
+            this._renderAll();
+            this.isOpen = false;
+            this._setStatus('En línea');
+            log.info('setMode: widget restaurado');
+        }
+    }
+
+    _scrollContainer(container) {
+        if (container) container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
 }
 
@@ -1355,24 +1512,12 @@ export function initChatbot() {
 
     if (ARIA_DEBUG) {
         window.__ariaDebug = () => {
-            console.group('%c[ARIA v4.0] Debug Info', 'color:#818cf8;font-weight:bold');
-            console.log('Abierto:',    _instance.isOpen);
-            console.log('Cargando:',   _instance.isLoading);
-            console.log('Mensajes:',   _instance.messages.length);
-            console.log('Stats:',      _instance.systemStats);
-            console.log('Usuario:',    _instance.userContext);
-            console.log('Voice:',      !!_instance.recognition);
-            console.log('Last stats:', new Date(_instance._lastStatsLoad).toLocaleTimeString('es-MX'));
-            console.log('Tareas totales:', _instance.systemStats?.tareas?.total);
-            console.log('Tareas pendientes:', _instance.systemStats?.tareas?.pendientes);
-            console.log('Tareas en progreso:', _instance.systemStats?.tareas?.enProgreso);
+            console.group('%c[ARIA v4.0] Debug', 'color:#818cf8');
+            console.log('Abierto:', _instance.isOpen);
+            console.log('Mensajes:', _instance.messages.length);
             console.groupEnd();
         };
-        window.__ariaForceReload = () => {
-            _instance._loadStats();
-            log.info('Stats recargadas manualmente');
-        };
-        console.log('%c[ARIA v4.0] Debug disponible. Usa window.__ariaDebug() o window.__ariaForceReload()', 'color:#818cf8');
+        console.log('%c[ARIA v4.0] Debug: window.__ariaDebug()', 'color:#818cf8');
     }
 
     return _instance;

@@ -9,37 +9,31 @@ export function initSugerenciasModule() {
         createSuggestionModal();
     }
     
-    if (!document.getElementById('suggestionFab')) {
-        createFloatingButton();
-    }
-    
+    setupTopbarButton();
     setupEventListeners();
 }
 
-function createFloatingButton() {
-    const fab = document.createElement('div');
-    fab.id = 'suggestionFab';
-    fab.className = 'suggestion-fab';
-    fab.innerHTML = `
-        <button class="suggestion-fab__btn" title="Enviar sugerencia">
-            <i class="fas fa-lightbulb"></i>
-            <span class="suggestion-fab__tooltip">Enviar Sugerencia</span>
-        </button>
-    `;
-    document.body.appendChild(fab);
-    fab.querySelector('.suggestion-fab__btn').addEventListener('click', openSuggestionModal);
+function setupTopbarButton() {
+    const suggestionsBtn = document.getElementById('suggestionsBtn');
+    if (suggestionsBtn) {
+        // Limpiar listener anterior
+        const newBtn = suggestionsBtn.cloneNode(true);
+        suggestionsBtn.parentNode.replaceChild(newBtn, suggestionsBtn);
+        newBtn.addEventListener('click', openSuggestionModal);
+    }
 }
 
 function createSuggestionModal() {
     const modalHTML = `
         <div id="suggestionModal" class="modal" style="display: none;">
-            <div class="modal__overlay" onclick="closeSuggestionModal()"></div>
-            <div class="modal__content modal__content--md">
+            <div class="modal__overlay"></div>
+            <div class="modal__content modal__content--lg">
                 <div class="modal__header">
                     <h3 class="modal__title">
-                        <i class="fas fa-lightbulb"></i> Enviar Sugerencia
+                        <i class="fas fa-lightbulb" style="color: #f59e0b;"></i> 
+                        Enviar Sugerencia
                     </h3>
-                    <button class="modal__close" onclick="closeSuggestionModal()">&times;</button>
+                    <button class="modal__close">&times;</button>
                 </div>
                 <div class="modal__body">
                     <form id="suggestionForm">
@@ -56,6 +50,7 @@ function createSuggestionModal() {
                                 Categoría <span class="required">*</span>
                             </label>
                             <select id="suggestionCategoria" class="form__select" required>
+                                <option value="" disabled selected>Selecciona una categoría</option>
                                 <option value="mejora">✨ Mejora de funcionalidad existente</option>
                                 <option value="nueva_funcionalidad">🚀 Nueva funcionalidad</option>
                                 <option value="reporte_error">🐛 Reporte de error</option>
@@ -72,14 +67,17 @@ function createSuggestionModal() {
                             </label>
                             <textarea id="suggestionDescripcion" class="form__textarea" rows="6" 
                                       placeholder="Describe tu sugerencia en detalle..." maxlength="5000" required></textarea>
+                            <div class="form__char-count">
+                                <span id="suggestionCharCount">0</span> / 5000
+                            </div>
                         </div>
                         
                         <div class="form__group">
-                            <label class="form__label">Adjuntar imágenes (opcional)</label>
+                            <label class="form__label">📎 Adjuntar imágenes (opcional)</label>
                             <div class="suggestion-file-upload" id="suggestionFileUpload">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <p>Arrastra imágenes aquí o haz clic para seleccionar</p>
-                                <p class="suggestion-file-hint">Formatos: JPG, PNG, GIF, WEBP (máx. 10MB)</p>
+                                <p class="suggestion-file-hint">Formatos: JPG, PNG, GIF, WEBP (máx. 10MB por archivo)</p>
                             </div>
                             <input type="file" id="suggestionFileInput" multiple 
                                    accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
@@ -88,12 +86,12 @@ function createSuggestionModal() {
                         
                         <div class="alert alert--info">
                             <i class="fas fa-info-circle"></i>
-                            <div>Tu sugerencia será revisada por el equipo administrativo.</div>
+                            <div>Tu sugerencia será revisada por el equipo administrativo. ¡Gracias por contribuir!</div>
                         </div>
                     </form>
                 </div>
                 <div class="modal__footer">
-                    <button class="btn btn--outline" onclick="closeSuggestionModal()">Cancelar</button>
+                    <button class="btn btn--outline" id="cancelSuggestionBtn">Cancelar</button>
                     <button class="btn btn--primary" id="submitSuggestionBtn">
                         <i class="fas fa-paper-plane"></i> Enviar Sugerencia
                     </button>
@@ -103,6 +101,24 @@ function createSuggestionModal() {
     `;
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     suggestionModal = document.getElementById('suggestionModal');
+    
+    // Configurar cierre del modal
+    const closeBtn = suggestionModal.querySelector('.modal__close');
+    const cancelBtn = document.getElementById('cancelSuggestionBtn');
+    const overlay = suggestionModal.querySelector('.modal__overlay');
+    
+    closeBtn.addEventListener('click', closeSuggestionModal);
+    cancelBtn.addEventListener('click', closeSuggestionModal);
+    overlay.addEventListener('click', closeSuggestionModal);
+    
+    // Contador de caracteres
+    const descripcionInput = document.getElementById('suggestionDescripcion');
+    const charCount = document.getElementById('suggestionCharCount');
+    if (descripcionInput && charCount) {
+        descripcionInput.addEventListener('input', () => {
+            charCount.textContent = descripcionInput.value.length;
+        });
+    }
 }
 
 function setupEventListeners() {
@@ -110,54 +126,34 @@ function setupEventListeners() {
     const fileInput = document.getElementById('suggestionFileInput');
     const submitBtn = document.getElementById('submitSuggestionBtn');
     
-    // Configurar el área de upload para abrir el selector de archivos
     if (fileUploadArea && fileInput) {
-        // Limpiar listeners anteriores clonando
-        const newFileUploadArea = fileUploadArea.cloneNode(true);
-        fileUploadArea.parentNode.replaceChild(newFileUploadArea, fileUploadArea);
+        fileUploadArea.addEventListener('click', () => fileInput.click());
         
-        // Agregar nuevo listener
-        newFileUploadArea.addEventListener('click', (e) => {
+        fileUploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            fileInput.click(); // Usar la referencia directa
+            fileUploadArea.classList.add('drag-over');
         });
         
-        newFileUploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            newFileUploadArea.classList.add('drag-over');
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('drag-over');
         });
         
-        newFileUploadArea.addEventListener('dragleave', () => {
-            newFileUploadArea.classList.remove('drag-over');
-        });
-        
-        newFileUploadArea.addEventListener('drop', (e) => {
+        fileUploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            newFileUploadArea.classList.remove('drag-over');
-            const files = Array.from(e.dataTransfer.files);
-            handleFiles(files);
+            fileUploadArea.classList.remove('drag-over');
+            handleFiles(Array.from(e.dataTransfer.files));
         });
     }
     
-    // Configurar el input de archivos
     if (fileInput) {
-        const newFileInput = fileInput.cloneNode(true);
-        fileInput.parentNode.replaceChild(newFileInput, fileInput);
-        
-        newFileInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            if (files.length > 0) {
-                handleFiles(files);
-            }
-            newFileInput.value = ''; // Limpiar para permitir seleccionar el mismo archivo
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(Array.from(e.target.files));
+            fileInput.value = '';
         });
     }
     
     if (submitBtn) {
-        const newSubmitBtn = submitBtn.cloneNode(true);
-        submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-        newSubmitBtn.addEventListener('click', submitSuggestion);
+        submitBtn.addEventListener('click', submitSuggestion);
     }
 }
 
@@ -169,7 +165,7 @@ function handleFiles(files) {
             showToast(`El archivo ${file.name} excede 10MB`, 'error');
             continue;
         }
-        if (!selectedFiles.some(f => f.name === file.name)) {
+        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
             selectedFiles.push(file);
         }
     }
@@ -198,7 +194,7 @@ function renderFileList() {
     `).join('');
     
     container.querySelectorAll('.suggestion-file-remove').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', () => {
             const index = parseInt(btn.dataset.index);
             selectedFiles.splice(index, 1);
             renderFileList();
@@ -218,6 +214,10 @@ export function openSuggestionModal() {
     selectedFiles = [];
     renderFileList();
     
+    // Resetear contador de caracteres
+    const charCount = document.getElementById('suggestionCharCount');
+    if (charCount) charCount.textContent = '0';
+    
     suggestionModal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 }
@@ -230,12 +230,20 @@ export function closeSuggestionModal() {
 }
 
 async function submitSuggestion() {
-    const titulo = document.getElementById('suggestionTitulo')?.value;
+    const titulo = document.getElementById('suggestionTitulo')?.value?.trim();
     const categoria = document.getElementById('suggestionCategoria')?.value;
-    const descripcion = document.getElementById('suggestionDescripcion')?.value;
+    const descripcion = document.getElementById('suggestionDescripcion')?.value?.trim();
     
-    if (!titulo || !descripcion) {
-        showToast('Por favor completa todos los campos obligatorios', 'error');
+    if (!titulo) {
+        showToast('Por favor ingresa un título', 'error');
+        return;
+    }
+    if (!categoria) {
+        showToast('Por favor selecciona una categoría', 'error');
+        return;
+    }
+    if (!descripcion) {
+        showToast('Por favor ingresa una descripción', 'error');
         return;
     }
     
@@ -264,7 +272,7 @@ async function submitSuggestion() {
         const data = await response.json();
         
         if (data.success) {
-            showToast(`✅ Sugerencia enviada. N°: ${data.suggestionNumber}`, 'success');
+            showToast(`✅ ¡Sugerencia enviada correctamente!`, 'success');
             closeSuggestionModal();
         } else {
             showToast(data.message || 'Error al enviar sugerencia', 'error');
@@ -291,17 +299,27 @@ function showToast(message, type = 'success') {
     toast.style.cssText = `
         position: fixed; bottom: 20px; right: 20px;
         background: ${type === 'success' ? '#10b981' : '#ef4444'};
-        color: white; padding: 12px 20px; border-radius: 8px;
-        z-index: 10001; animation: slideIn 0.3s ease;
+        color: white; padding: 12px 24px; border-radius: 10px;
+        z-index: 10001; box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        display: flex; align-items: center; gap: 10px;
+        font-weight: 500;
     `;
     toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
+// Exponer globalmente
 window.openSuggestionModal = openSuggestionModal;
 window.closeSuggestionModal = closeSuggestionModal;
 
+// Inicializar cuando el DOM esté listo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSugerenciasModule);
 } else {
