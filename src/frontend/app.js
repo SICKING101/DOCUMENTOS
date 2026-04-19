@@ -21,6 +21,7 @@ import {
 import TaskManager from './task.js';
 import SupportModule from './modules/soporte.js';
 import { api } from './services/api.js';
+import { initAvisosModule } from './modules/avisos.js';
 
 // =============================================================================
 // IMPORTAR TODOS LOS MÓDULOS ORGANIZADOS
@@ -200,6 +201,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log('🤖 Chatbot Assistant integrado');
 
     initSugerenciasModule();
+    initAvisosModule();
 
     // ── Evento: re-aplicar permisos cuando cambia el usuario/rol ──
     window.addEventListener('auth:user-updated', async () => {

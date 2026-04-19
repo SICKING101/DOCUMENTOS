@@ -36,6 +36,9 @@ import auditRoutes from './auditRoutes.js';
 import roleRoutes from './roleRoutes.js';
 import suggestionRoutes from './suggestionRoutes.js';
 
+// ─── AVISOS ──────────────────────────────────────────────────
+import avisoRoutes from './avisoRoutes.js';
+
 // ─── Health check ─────────────────────────────────────────────
 router.get('/health', (req, res) => {
     res.json({
@@ -57,6 +60,9 @@ router.use('/audit', auditRoutes);
 
 // ─── ROLES DINÁMICOS ──────────────────────────────────────────
 router.use('/roles', roleRoutes);
+
+// ─── AVISOS ──────────────────────────────────────────────────
+router.use('/avisos', avisoRoutes);
 
 // ─── DASHBOARD ────────────────────────────────────────────────
 router.get('/dashboard', protegerRuta, DashboardController.getDashboardStats);

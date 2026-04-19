@@ -208,8 +208,11 @@
      margin-bottom: var(--spacing-xl);
  }
 
+ .transform-center {
+     transform: translateX(217%);
+ }
+
  .create-version-btn:hover {
-     transform: translateY(-2px);
      box-shadow: var(--shadow-lg);
  }
 

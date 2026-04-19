@@ -1,3 +1,7 @@
+import avisoService from '../../services/avisoService.js';
+window.avisoService = avisoService;
+let currentAvisos = [], currentAvisosPage = 1, totalAvisosPages = 1, editingAvisoId = null;
+
 // =============================================================
 // CONFIGURACIÓN
 // =============================================================
@@ -157,11 +161,279 @@ function escapeHtml(text) {
 }
 
 // =============================================================
+// AVISOS - Funciones CRUD
+// =============================================================
+
+async function loadAvisos(page = 1) {
+    const container = document.getElementById('avisosList');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-spinner" style="margin: 2rem auto;"></div>';
+    
+    try {
+        const activo = document.getElementById('filterAvisoActivo')?.value || '';
+        const tipo = document.getElementById('filterAvisoTipo')?.value || '';
+        
+        const filters = {};
+        if (activo !== '') filters.activo = activo;
+        if (tipo !== '') filters.tipo = tipo;
+        
+        const result = await avisoService.getAllAvisos(page, filters);
+        
+        if (result.success) {
+            currentAvisos = result.avisos || [];
+            currentAvisosPage = result.pagination?.page || 1;
+            totalAvisosPages = result.pagination?.pages || 1;
+            renderAvisosList();
+            renderAvisosPagination();
+        } else {
+            container.innerHTML = '<p class="error">Error al cargar avisos</p>';
+        }
+    } catch (error) {
+        console.error('Error cargando avisos:', error);
+        container.innerHTML = '<p class="error">Error de conexión</p>';
+    }
+}
+
+function renderAvisosList() {
+    const container = document.getElementById('avisosList');
+    if (!container) return;
+    
+    if (!currentAvisos || currentAvisos.length === 0) {
+        container.innerHTML = `
+            <div class="version-card" style="text-align: center; padding: 3rem; grid-column: 1/-1;">
+                <i class="fas fa-bullhorn" style="font-size: 3rem; color: var(--text-tertiary);"></i>
+                <p>No hay avisos registrados</p>
+                <button class="create-version-btn" onclick="openAvisoModal()" style="margin-top: 1rem;">
+                    <i class="fas fa-plus-circle"></i> Crear primer aviso
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    const prioridadColor = { baja: '#10b981', media: '#f59e0b', alta: '#f97316', critica: '#ef4444' };
+    const tipoIcon = { general: '📢', mantenimiento: '🔧', importante: '⭐', actualizacion: '🔄', evento: '📅' };
+    
+    container.innerHTML = currentAvisos.map(a => {
+        // Formatear fechas usando UTC para evitar desplazamiento
+        const fechaInicioStr = a.fechaInicio ? new Date(a.fechaInicio).toLocaleDateString('es-MX', {
+            year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+        }) : '—';
+        
+        const fechaFinStr = a.fechaFin ? new Date(a.fechaFin).toLocaleDateString('es-MX', {
+            year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+        }) : '—';
+        
+        return `
+        <div class="version-card ${!a.activo ? 'inactive' : ''}" style="position: relative;">
+            ${!a.activo ? '<span class="version-badge badge-deprecada" style="position: absolute; top: 1rem; right: 1rem;">Inactivo</span>' : ''}
+            <div class="version-card-header">
+                <div class="version-info">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.5rem;">${tipoIcon[a.tipo] || '📢'}</span>
+                        <span class="version-badge" style="background: ${prioridadColor[a.prioridad]}; color: white;">${a.prioridad.toUpperCase()}</span>
+                    </div>
+                    <div class="version-title">${escapeHtml(a.titulo)}</div>
+                    <div class="version-meta">
+                        <span><i class="fas fa-calendar"></i> ${fechaInicioStr} - ${fechaFinStr}</span>
+                        <span><i class="fas fa-eye"></i> Visto por ${a.vistoPor?.length || 0} usuarios</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="version-description" style="white-space: pre-line; line-height: 1.6; margin: 1rem 0;">
+                ${escapeHtml(a.descripcion)}
+            </div>
+            
+            <div class="version-actions">
+                <button class="btn-edit" onclick="editAviso('${a._id}')">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn-delete" onclick="deleteAviso('${a._id}', '${escapeHtml(a.titulo)}')">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    `;
+    }).join('');
+}
+
+function renderAvisosPagination() {
+    const container = document.getElementById('avisosPagination');
+    if (!container) return;
+    
+    if (totalAvisosPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div class="pagination" style="justify-content: center; margin-top: 2rem;">';
+    html += `<button class="pagination-btn" onclick="loadAvisos(${currentAvisosPage - 1})" ${currentAvisosPage === 1 ? 'disabled' : ''}>Anterior</button>`;
+    html += `<span style="margin: 0 1rem;">Página ${currentAvisosPage} de ${totalAvisosPages}</span>`;
+    html += `<button class="pagination-btn" onclick="loadAvisos(${currentAvisosPage + 1})" ${currentAvisosPage === totalAvisosPages ? 'disabled' : ''}>Siguiente</button>`;
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+function openAvisoModal(aviso = null) {
+    const modal = document.getElementById('avisoModal');
+    const title = document.getElementById('avisoModalTitle');
+    
+    if (aviso) {
+        title.innerHTML = '<i class="fas fa-edit"></i> Editar Aviso';
+        document.getElementById('avisoTitulo').value = aviso.titulo || '';
+        document.getElementById('avisoDescripcion').value = aviso.descripcion || '';
+        document.getElementById('avisoTipo').value = aviso.tipo || 'general';
+        document.getElementById('avisoPrioridad').value = aviso.prioridad || 'media';
+        document.getElementById('avisoActivo').checked = aviso.activo !== false;
+        
+        // Usar UTC para obtener la fecha correcta sin desplazamiento
+        if (aviso.fechaInicio) {
+            const fecha = new Date(aviso.fechaInicio);
+            const year = fecha.getUTCFullYear();
+            const month = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getUTCDate()).padStart(2, '0');
+            document.getElementById('avisoFechaInicio').value = `${year}-${month}-${day}`;
+        }
+        if (aviso.fechaFin) {
+            const fecha = new Date(aviso.fechaFin);
+            const year = fecha.getUTCFullYear();
+            const month = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getUTCDate()).padStart(2, '0');
+            document.getElementById('avisoFechaFin').value = `${year}-${month}-${day}`;
+        }
+        
+        editingAvisoId = aviso._id;
+    } else {
+        title.innerHTML = '<i class="fas fa-plus-circle"></i> Nuevo Aviso';
+        document.getElementById('avisoTitulo').value = '';
+        document.getElementById('avisoDescripcion').value = '';
+        document.getElementById('avisoTipo').value = 'general';
+        document.getElementById('avisoPrioridad').value = 'media';
+        document.getElementById('avisoActivo').checked = true;
+        
+        const now = new Date();
+        const later = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        document.getElementById('avisoFechaInicio').value = now.toISOString().split('T')[0];
+        document.getElementById('avisoFechaFin').value = later.toISOString().split('T')[0];
+        
+        editingAvisoId = null;
+    }
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAvisoModal() {
+    const modal = document.getElementById('avisoModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    editingAvisoId = null;
+}
+
+async function saveAviso() {
+    const titulo = document.getElementById('avisoTitulo')?.value?.trim();
+    const descripcion = document.getElementById('avisoDescripcion')?.value?.trim();
+    const tipo = document.getElementById('avisoTipo')?.value;
+    const prioridad = document.getElementById('avisoPrioridad')?.value;
+    const fechaInicio = document.getElementById('avisoFechaInicio')?.value;
+    const fechaFin = document.getElementById('avisoFechaFin')?.value;
+    const activo = document.getElementById('avisoActivo')?.checked;
+    
+    if (!titulo) { showToast('El título es obligatorio', 'error'); return; }
+    if (!descripcion) { showToast('La descripción es obligatoria', 'error'); return; }
+    if (!fechaInicio) { showToast('La fecha de inicio es obligatoria', 'error'); return; }
+    if (!fechaFin) { showToast('La fecha de fin es obligatoria', 'error'); return; }
+    
+    // Validación con strings YYYY-MM-DD
+    const hoy = new Date();
+    const hoyStr = hoy.getFullYear() + '-' + 
+                   String(hoy.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(hoy.getDate()).padStart(2, '0');
+    
+    if (fechaInicio < hoyStr) {
+        showToast('❌ La fecha de inicio no puede ser anterior a hoy', 'error');
+        return;
+    }
+    
+    if (fechaFin < fechaInicio) {
+        showToast('❌ La fecha de fin debe ser igual o posterior a la fecha de inicio', 'error');
+        return;
+    }
+    
+    const data = { titulo, descripcion, tipo, prioridad, fechaInicio, fechaFin, activo };
+    
+    try {
+        const result = editingAvisoId 
+            ? await avisoService.updateAviso(editingAvisoId, data)
+            : await avisoService.createAviso(data);
+        
+        if (result.success) {
+            showToast(editingAvisoId ? '✅ Aviso actualizado' : '✅ Aviso creado exitosamente', 'success');
+            closeAvisoModal();
+            loadAvisos(currentAvisosPage);
+        } else {
+            showToast(result.message || 'Error al guardar aviso', 'error');
+        }
+    } catch (error) {
+        console.error('Error guardando aviso:', error);
+        showToast('Error al guardar aviso', 'error');
+    }
+}
+
+async function editAviso(id) {
+    try {
+        const result = await avisoService.getAllAvisos(1, {});
+        if (result.success) {
+            const aviso = result.avisos?.find(a => a._id === id);
+            if (aviso) {
+                openAvisoModal(aviso);
+            } else {
+                showToast('Aviso no encontrado', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error cargando aviso:', error);
+        showToast('Error al cargar aviso', 'error');
+    }
+}
+
+async function deleteAviso(id, titulo) {
+    if (!confirm(`¿Eliminar el aviso "${titulo}"?\nEsta acción no se puede deshacer.`)) return;
+    
+    try {
+        const result = await avisoService.deleteAviso(id);
+        if (result.success) {
+            showToast('Aviso eliminado', 'success');
+            loadAvisos(currentAvisosPage);
+        } else {
+            showToast(result.message || 'Error al eliminar', 'error');
+        }
+    } catch (error) {
+        console.error('Error eliminando aviso:', error);
+        showToast('Error al eliminar aviso', 'error');
+    }
+}
+
+// Exponer funciones de avisos globalmente
+window.loadAvisos = loadAvisos;
+window.openAvisoModal = () => openAvisoModal(null);
+window.closeAvisoModal = closeAvisoModal;
+window.saveAviso = saveAviso;
+window.editAviso = editAviso;
+window.deleteAviso = deleteAviso;
+
+// =============================================================
 // NAVEGACIÓN
 // =============================================================
 function switchSection(section) {
     currentSection = section;
 
+    // Actualizar clase active en el sidebar
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
         if (item.dataset.section === section) {
@@ -169,34 +441,43 @@ function switchSection(section) {
         }
     });
 
+    // Obtener todas las secciones
     const versionsSection = document.getElementById('versionsSection');
-    const shutdownSection = document.getElementById('shutdownSection');
+    const avisosSection = document.getElementById('avisosSection');
     const sugerenciasSection = document.getElementById('sugerenciasSection');
+    const shutdownSection = document.getElementById('shutdownSection');
+    
     const pageTitle = document.getElementById('pageTitle');
     const pageDescription = document.getElementById('pageDescription');
 
+    // PRIMERO: Ocultar TODAS las secciones
+    if (versionsSection) versionsSection.classList.add('hidden');
+    if (avisosSection) avisosSection.classList.add('hidden');
+    if (sugerenciasSection) sugerenciasSection.classList.add('hidden');
+    if (shutdownSection) shutdownSection.classList.add('hidden');
+
+    // SEGUNDO: Mostrar SOLO la sección seleccionada
     if (section === 'versions') {
         if (versionsSection) versionsSection.classList.remove('hidden');
-        if (shutdownSection) shutdownSection.classList.add('hidden');
-        if (sugerenciasSection) sugerenciasSection.classList.add('hidden');
-        pageTitle.textContent = 'Panel de Versiones';
-        pageDescription.textContent = 'Gestiona las versiones del sistema y publica actualizaciones';
+        if (pageTitle) pageTitle.textContent = 'Panel de Versiones';
+        if (pageDescription) pageDescription.textContent = 'Gestiona las versiones del sistema y publica actualizaciones';
         loadVersions();
-    } else if (section === 'shutdown') {
-        if (versionsSection) versionsSection.classList.add('hidden');
-        if (shutdownSection) shutdownSection.classList.remove('hidden');
-        if (sugerenciasSection) sugerenciasSection.classList.add('hidden');
-        pageTitle.textContent = 'Cierre del Sistema';
-        pageDescription.textContent = 'Controla la disponibilidad del sistema para los clientes';
-        loadSystemStatus();
+    } else if (section === 'avisos') {
+        if (avisosSection) avisosSection.classList.remove('hidden');
+        if (pageTitle) pageTitle.textContent = 'Gestión de Avisos';
+        if (pageDescription) pageDescription.textContent = 'Administra los avisos del sistema';
+        loadAvisos();
     } else if (section === 'sugerencias') {
-        if (versionsSection) versionsSection.classList.add('hidden');
-        if (shutdownSection) shutdownSection.classList.add('hidden');
         if (sugerenciasSection) sugerenciasSection.classList.remove('hidden');
-        pageTitle.textContent = 'Bandeja de Sugerencias';
-        pageDescription.textContent = 'Gestiona las sugerencias enviadas por los usuarios';
+        if (pageTitle) pageTitle.textContent = 'Bandeja de Sugerencias';
+        if (pageDescription) pageDescription.textContent = 'Gestiona las sugerencias enviadas por los usuarios';
         loadSuggestionsPage();
         loadSuggestionsStats();
+    } else if (section === 'shutdown') {
+        if (shutdownSection) shutdownSection.classList.remove('hidden');
+        if (pageTitle) pageTitle.textContent = 'Cierre del Sistema';
+        if (pageDescription) pageDescription.textContent = 'Controla la disponibilidad del sistema para los clientes';
+        loadSystemStatus();
     }
 }
 
