@@ -30,6 +30,10 @@
                     <i class="fas fa-code-branch"></i>
                     <span>Panel de Versiones</span>
                 </div>
+                <div class="nav-item" data-section="avisos">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Avisos</span>
+                </div>
                 <div class="nav-item" data-section="sugerencias">
                     <i class="fas fa-lightbulb"></i>
                     <span>Sugerencias</span>
@@ -59,6 +63,7 @@
                 </div>
             </div>
 
+            <!-- SECCIÓN VERSIONES -->
             <div id="versionsSection" class="versions-section">
                 <button class="create-version-btn" onclick="openCreateVersionModal()">
                     <i class="fas fa-plus-circle"></i>
@@ -69,6 +74,187 @@
                 </div>
             </div>
 
+            <!-- SECCIÓN AVISOS -->
+            <div id="avisosSection" class="versions-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.25rem;"><i class="fas fa-bullhorn" style="margin-right: 0.5rem; color: #f59e0b;"></i> Gestión de Avisos</h3>
+                        <p style="margin: 0.25rem 0 0; color: var(--text-secondary);">Administra los avisos que se mostrarán a los usuarios</p>
+                    </div>
+                    <button class="create-version-btn" onclick="openAvisoModal()">
+                        <i class="fas fa-plus-circle"></i> Nuevo Aviso
+                    </button>
+                </div>
+                
+                <!-- Filtros -->
+                <div class="sugerencias-filters" style="margin-bottom: 1rem;">
+                    <div class="filter-group">
+                        <label>Estado</label>
+                        <select id="filterAvisoActivo" class="form__select" onchange="loadAvisos(1)">
+                            <option value="">Todos</option>
+                            <option value="true">Activos</option>
+                            <option value="false">Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Tipo</label>
+                        <select id="filterAvisoTipo" class="form__select" onchange="loadAvisos(1)">
+                            <option value="">Todos</option>
+                            <option value="general">📢 General</option>
+                            <option value="mantenimiento">🔧 Mantenimiento</option>
+                            <option value="importante">⭐ Importante</option>
+                            <option value="actualizacion">🔄 Actualización</option>
+                            <option value="evento">📅 Evento</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="avisosList" class="versions-grid">
+                    <div class="loading-spinner" style="margin: 2rem auto;"></div>
+                </div>
+                
+                <div id="avisosPagination" class="sugerencias-pagination"></div>
+            </div>
+
+            <!-- SECCIÓN SUGERENCIAS -->
+            <div id="sugerenciasSection" class="sugerencias-section hidden">
+                <div class="sugerencias-header">
+                    <h2><i class="fas fa-lightbulb"></i> Bandeja de Sugerencias</h2>
+                    <p>Gestiona las sugerencias enviadas por los usuarios del sistema</p>
+                </div>
+                
+                <div class="sugerencias-stats" id="sugerenciasStats">
+                    <div class="sugerencia-stat-card">
+                        <div class="sugerencia-stat-card__icon"><i class="fas fa-inbox"></i></div>
+                        <div><div class="sugerencia-stat-card__value" id="statTotal">0</div><div class="sugerencia-stat-card__label">Total</div></div>
+                    </div>
+                    <div class="sugerencia-stat-card pendiente">
+                        <div class="sugerencia-stat-card__icon"><i class="fas fa-clock"></i></div>
+                        <div><div class="sugerencia-stat-card__value" id="statPendientes">0</div><div class="sugerencia-stat-card__label">Pendientes</div></div>
+                    </div>
+                    <div class="sugerencia-stat-card vista">
+                        <div class="sugerencia-stat-card__icon"><i class="fas fa-eye"></i></div>
+                        <div><div class="sugerencia-stat-card__value" id="statVistas">0</div><div class="sugerencia-stat-card__label">Vistas</div></div>
+                    </div>
+                    <div class="sugerencia-stat-card implementada">
+                        <div class="sugerencia-stat-card__icon"><i class="fas fa-check-circle"></i></div>
+                        <div><div class="sugerencia-stat-card__value" id="statImplementadas">0</div><div class="sugerencia-stat-card__label">Implementadas</div></div>
+                    </div>
+                </div>
+                
+                <div class="sugerencias-filters">
+                    <div class="filter-group">
+                        <label>Estado</label>
+                        <select id="filterEstado" class="form__select">
+                            <option value="todos">Todos</option>
+                            <option value="pendiente">Pendientes</option>
+                            <option value="vista">Vistas</option>
+                            <option value="considerando">En consideración</option>
+                            <option value="implementada">Implementadas</option>
+                            <option value="rechazada">Rechazadas</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Categoría</label>
+                        <select id="filterCategoria" class="form__select">
+                            <option value="todas">Todas</option>
+                            <option value="mejora">✨ Mejora</option>
+                            <option value="nueva_funcionalidad">🚀 Nueva funcionalidad</option>
+                            <option value="reporte_error">🐛 Reporte de error</option>
+                            <option value="experiencia_usuario">🎨 Experiencia de usuario</option>
+                            <option value="rendimiento">⚡ Rendimiento</option>
+                            <option value="seguridad">🔒 Seguridad</option>
+                            <option value="otros">📌 Otros</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="sugerencias-list" id="sugerenciasList"></div>
+                <div class="sugerencias-pagination" id="sugerenciasPagination"></div>
+            </div>
+
+            <!-- MODAL DETALLE SUGERENCIA -->
+            <div id="suggestionDetailModal" class="modal" style="display: none;">
+                <div class="modal__overlay" onclick="closeSuggestionDetailModal()"></div>
+                <div class="modal__content modal__content--lg">
+                    <div class="modal__header">
+                        <h3 class="modal__title"><i class="fas fa-lightbulb"></i> Detalle de Sugerencia</h3>
+                        <button class="modal__close" onclick="closeSuggestionDetailModal()">&times;</button>
+                    </div>
+                    <div class="modal__body" id="suggestionDetailContent"></div>
+                    <div class="modal__footer">
+                        <button class="btn btn--outline" onclick="closeSuggestionDetailModal()">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL AVISO -->
+            <div id="avisoModal" class="modal" style="display: none;">
+                <div class="modal__overlay" onclick="closeAvisoModal()"></div>
+                <div class="modal__content">
+                    <div class="modal__header">
+                        <h3 class="modal__title" id="avisoModalTitle"><i class="fas fa-bullhorn"></i> Nuevo Aviso</h3>
+                        <button class="modal__close" onclick="closeAvisoModal()">&times;</button>
+                    </div>
+                    <div class="modal__body">
+                        <form id="avisoForm">
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Título <span style="color: #ef4444;">*</span></label>
+                                <input type="text" id="avisoTitulo" class="form__input" placeholder="Ej: Mantenimiento programado" maxlength="200">
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Descripción <span style="color: #ef4444;">*</span></label>
+                                <textarea id="avisoDescripcion" class="form__textarea" rows="5" placeholder="Describe el aviso en detalle..." maxlength="5000"></textarea>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Tipo</label>
+                                    <select id="avisoTipo" class="form__select">
+                                        <option value="general">📢 General</option>
+                                        <option value="mantenimiento">🔧 Mantenimiento</option>
+                                        <option value="importante">⭐ Importante</option>
+                                        <option value="actualizacion">🔄 Actualización</option>
+                                        <option value="evento">📅 Evento</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Prioridad</label>
+                                    <select id="avisoPrioridad" class="form__select">
+                                        <option value="baja">🟢 Baja</option>
+                                        <option value="media" selected>🟡 Media</option>
+                                        <option value="alta">🟠 Alta</option>
+                                        <option value="critica">🔴 Crítica</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- 🔥 CAMBIADO: datetime-local → date (SOLO FECHA, SIN HORA) 🔥 -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Fecha inicio <span style="color: #ef4444;">*</span></label>
+                                    <input type="date" id="avisoFechaInicio" class="form__input" required>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Fecha fin <span style="color: #ef4444;">*</span></label>
+                                    <input type="date" id="avisoFechaFin" class="form__input" required>
+                                </div>
+                            </div>
+                            <div style="margin-top: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="avisoActivo" checked> Activo (visible para usuarios)
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal__footer">
+                        <button class="btn btn--outline" onclick="closeAvisoModal()">Cancelar</button>
+                        <button class="btn btn--primary" onclick="saveAviso()">
+                            <i class="fas fa-save"></i> Guardar Aviso
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN CIERRE DEL SISTEMA -->
             <div id="shutdownSection" class="system-shutdown-section hidden">
                 <div class="shutdown-card">
                     <div class="shutdown-header">

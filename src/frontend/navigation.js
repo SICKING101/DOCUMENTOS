@@ -34,7 +34,7 @@ let _navigationLocked = false;  // Previene cambios durante una transición
 const VALID_TABS = [
   'dashboard', 'personas', 'documentos', 'categorias', 'departamentos',
   'tareas', 'historial', 'papelera', 'calendario', 'reportes',
-  'soporte', 'ajustes', 'admin', 'auditoria', 'chatbot', 'versiones',
+  'soporte', 'ajustes', 'admin', 'auditoria', 'chatbot', 'versiones', 'avisos',
 ];
 
 // =============================================================================
@@ -515,6 +515,25 @@ async function _loadTabData(tabId) {
           }
         }, 50);
         break;
+
+        case 'avisos':
+    nlog('_loadTabData: cargando sección de Avisos');
+    setTimeout(async () => {
+        if (typeof window.renderAvisosSection === 'function') {
+            await window.renderAvisosSection();
+        } else {
+            // Cargar dinámicamente el módulo si no está disponible
+            try {
+                const mod = await import('./modules/avisos.js');
+                if (mod.renderAvisosSection) {
+                    await mod.renderAvisosSection();
+                }
+            } catch (e) {
+                nerr('Error cargando módulo de avisos:', e);
+            }
+        }
+    }, 50);
+    break;
 
       default:
         nlog(`_loadTabData: sin carga específica para "${tabId}"`);
