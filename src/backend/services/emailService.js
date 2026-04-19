@@ -1,99 +1,95 @@
 // src/backend/services/emailService.js
 
-import nodemailer from 'nodemailer';
+import fetch from 'node-fetch';
 import AuditService from './auditService.js';
 
 /**
- * Servicio centralizado de envío de correos electrónicos
+ * Servicio centralizado de envío de correos electrónicos usando Brevo API
  * Maneja toda la configuración de email del sistema
  */
 class EmailService {
     constructor() {
-        this.transporter = null;
-        this.config = this.loadConfig();
-        this.initializeTransporter();
-    }
+    this.config = this.loadConfig();
+    this.apiKey = process.env.BREVO_API_KEY || '';
+    this.apiUrl = 'https://api.brevo.com/v3/smtp/email';
+    this.initialized = this.validateConfig();
+}
 
     /**
      * Carga la configuración desde variables de entorno o valores por defecto
      */
     loadConfig() {
         const config = {
-            user: process.env.EMAIL_USER || 'riosnavarretejared@gmail.com',
-            pass: process.env.EMAIL_PASS || 'emdkqnupuzzzucnw',
-            host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-            port: parseInt(process.env.EMAIL_PORT) || 587,
-            from: process.env.EMAIL_FROM || 'riosnavarretejared@gmail.com',
-            frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4000'
+            from: process.env.EMAIL_FROM || 'noreply@cbtis051.edu.mx',
+            fromName: process.env.EMAIL_FROM_NAME || 'Sistema CBTIS051',
+            frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4000',
+            brevoApiKey: process.env.BREVO_API_KEY || ''
         };
 
-        console.log('\n📧 ========== SERVICIO DE EMAIL INICIALIZADO ==========');
-        console.log(`📧 Usuario: ${config.user}`);
-        console.log(`🌐 Host: ${config.host}:${config.port}`);
+        console.log('\n📧 ========== SERVICIO DE EMAIL INICIALIZADO (BREVO) ==========');
+        console.log(`📧 Remitente: ${config.fromName} <${config.from}>`);
         console.log(`🔗 Frontend: ${config.frontendUrl}`);
-        console.log('📧 ====================================================\n');
+        console.log(`🔑 API Key configurada: ${config.brevoApiKey ? '✅ Sí' : '❌ No'}`);
+        console.log('📧 ============================================================\n');
 
         return config;
     }
 
     /**
-     * Inicializa el transporter de nodemailer
+     * Valida la configuración de Brevo
      */
-    initializeTransporter() {
-        try {
-            this.transporter = nodemailer.createTransport({
-                host: this.config.host,
-                port: this.config.port,
-                secure: false,
-                auth: {
-                    user: this.config.user,
-                    pass: this.config.pass
-                },
-                tls: {
-                    ciphers: 'SSLv3',
-                    rejectUnauthorized: false
-                },
-                connectionTimeout: 10000,
-                greetingTimeout: 10000,
-                socketTimeout: 10000,
-                debug: process.env.NODE_ENV === 'development',
-                logger: process.env.NODE_ENV === 'development'
-            });
-
-            // Verificar conexión en segundo plano
-            this.transporter.verify((error, success) => {
-                if (error) {
-                    console.error('❌ Error verificando conexión de email:', error.message);
-                } else {
-                    console.log('✅ Conexión de email verificada correctamente');
-                }
-            });
-
-        } catch (error) {
-            console.error('❌ Error crítico inicializando email:', error.message);
-            this.transporter = null;
+    validateConfig() {
+        if (!this.apiKey) {
+            console.warn('⚠️ ADVERTENCIA: BREVO_API_KEY no configurada. Los emails se mostrarán en consola.');
+            return false;
         }
+        return true;
     }
 
     /**
-     * Envía un email con reintentos automáticos
-     * @param {Object} mailOptions - Opciones del email (from, to, subject, html, text)
+     * Envía un email a través de la API de Brevo con reintentos automáticos
+     * @param {Object} mailOptions - Opciones del email (to, subject, html, text, toName)
      * @param {number} retries - Número de intentos (default: 3)
      * @returns {Promise<Object>} - Información del envío
      */
     async sendWithRetry(mailOptions, retries = 3) {
-        if (!this.transporter) {
-            console.log('📧 Transporter no disponible - Email simulado en consola');
+        if (!this.initialized) {
+            console.log('📧 API Key no configurada - Email simulado en consola');
             this.logEmailToConsole(mailOptions);
-            return { simulated: true, message: 'Email simulado (transporter no disponible)' };
+            return { simulated: true, message: 'Email simulado (BREVO_API_KEY no configurada)' };
         }
 
         for (let i = 0; i < retries; i++) {
             try {
-                console.log(`📤 Intento ${i + 1}/${retries} enviando email a: ${mailOptions.to}`);
-                const info = await this.transporter.sendMail(mailOptions);
-                console.log(`✅ Email enviado exitosamente en intento ${i + 1}`);
-                return info;
+                console.log(`📤 Intento ${i + 1}/${retries} enviando email vía Brevo a: ${mailOptions.to}`);
+                
+                const payload = this.buildBrevoPayload(mailOptions);
+                
+                const response = await fetch(this.apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'api-key': this.apiKey,
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
+                }
+
+                console.log(`✅ Email enviado exitosamente vía Brevo en intento ${i + 1}`);
+                console.log(`   Message ID: ${data.messageId}`);
+                
+                return { 
+                    success: true, 
+                    messageId: data.messageId,
+                    provider: 'brevo'
+                };
+
             } catch (error) {
                 console.error(`❌ Intento ${i + 1} falló:`, error.message);
                 
@@ -110,19 +106,46 @@ class EmailService {
     }
 
     /**
+     * Construye el payload para la API de Brevo
+     */
+    buildBrevoPayload(mailOptions) {
+        const payload = {
+            sender: {
+                name: this.config.fromName,
+                email: this.config.from
+            },
+            to: [
+                {
+                    email: mailOptions.to,
+                    name: mailOptions.toName || mailOptions.to
+                }
+            ],
+            subject: mailOptions.subject,
+            htmlContent: mailOptions.html
+        };
+
+        // Agregar texto plano si existe
+        if (mailOptions.text) {
+            payload.textContent = mailOptions.text;
+        }
+
+        return payload;
+    }
+
+    /**
      * Muestra el contenido del email en consola (modo desarrollo/fallback)
      */
     logEmailToConsole(mailOptions) {
         console.log('\n' + '='.repeat(80));
-        console.log('📧 EMAIL (SIMULADO EN CONSOLA)');
+        console.log('📧 EMAIL (SIMULADO EN CONSOLA - Configura BREVO_API_KEY para enviar)');
         console.log('='.repeat(80));
-        console.log(`📨 De: ${mailOptions.from}`);
+        console.log(`📨 De: ${this.config.fromName} <${this.config.from}>`);
         console.log(`📨 Para: ${mailOptions.to}`);
         console.log(`📧 Asunto: ${mailOptions.subject}`);
         console.log('='.repeat(80));
         if (mailOptions.text) {
             console.log('📝 Texto plano:');
-            console.log(mailOptions.text.substring(0, 500) + '...');
+            console.log(mailOptions.text.substring(0, 500) + (mailOptions.text.length > 500 ? '...' : ''));
         }
         console.log('='.repeat(80) + '\n');
     }
@@ -149,8 +172,8 @@ class EmailService {
      */
     async sendPasswordResetCode(email, code, userName) {
         const mailOptions = {
-            from: `"Sistema CBTIS051" <${this.config.from}>`,
             to: email,
+            toName: userName,
             subject: '🔐 Código de recuperación - CBTIS051',
             html: this.getPasswordResetTemplate(code, userName),
             text: `CBTIS051 - Código de recuperación\n\nHola ${userName},\n\nTu código de verificación es: ${code}\n\nEste código expira en 15 minutos.\n\nSi no solicitaste este cambio, ignora este mensaje.`
@@ -164,8 +187,8 @@ class EmailService {
      */
     async sendPasswordChangeConfirmation(email, userName, metadata = {}) {
         const mailOptions = {
-            from: `"Sistema CBTIS051" <${this.config.from}>`,
             to: email,
+            toName: userName,
             subject: '✅ Contraseña cambiada exitosamente - CBTIS051',
             html: this.getPasswordChangeTemplate(userName, metadata),
             text: `CONTRASEÑA CAMBIADA - CBTIS051\n\nHola ${userName},\n\nTu contraseña ha sido cambiada exitosamente.\n\nFecha: ${new Date().toLocaleString('es-MX')}\n\nSi no realizaste este cambio, contacta al administrador inmediatamente.`
@@ -181,8 +204,8 @@ class EmailService {
         const { currentAdminName, newAdminUser, newAdminEmail, verificationUrl, requestId } = data;
         
         const mailOptions = {
-            from: `"Sistema CBTIS051 - Administración" <${this.config.from}>`,
             to: email,
+            toName: currentAdminName,
             subject: '⚠️ Confirmación de Cambio de Administrador - CBTIS051',
             html: this.getAdminChangeVerificationTemplate(data),
             text: `CONFIRMACIÓN DE CAMBIO DE ADMINISTRADOR - CBTIS051\n\nHas solicitado transferir la administración a ${newAdminUser}.\n\nDETALLES:\n- Nuevo administrador: ${newAdminUser}\n- Correo nuevo: ${newAdminEmail}\n- Solicitado por: ${currentAdminName}\n- ID de solicitud: ${requestId}\n\nCONFIRMAR: ${verificationUrl}`
@@ -198,8 +221,8 @@ class EmailService {
         const { newAdminUser, newAdminEmail, currentAdminName, loginUrl } = data;
         
         const mailOptions = {
-            from: `"Sistema CBTIS051 - Administración" <${this.config.from}>`,
             to: email,
+            toName: newAdminUser,
             subject: '✅ ¡Eres el nuevo Administrador! - CBTIS051',
             html: this.getNewAdminWelcomeTemplate(data),
             text: `¡BIENVENIDO NUEVO ADMINISTRADOR!\n\n${currentAdminName} ha transferido la administración a tu cuenta.\n\nCREDENCIALES:\n- Usuario: ${newAdminUser}\n- Correo: ${newAdminEmail}\n- Contraseña: La que estableciste\n\nINICIAR SESIÓN: ${loginUrl}`
@@ -215,8 +238,8 @@ class EmailService {
         const { ticket, user, adminName } = data;
         
         const mailOptions = {
-            from: `"Sistema de Soporte CBTIS051" <${this.config.from}>`,
             to: email,
+            toName: adminName,
             subject: `✅ TICKET CREADO: ${ticket.ticketNumber} - ${ticket.subject}`,
             html: this.getTicketAdminTemplate(ticket, user, adminName),
             text: this.getTicketAdminText(ticket, user, adminName)
@@ -232,8 +255,8 @@ class EmailService {
         const { ticket, user } = data;
         
         const mailOptions = {
-            from: `"Soporte CBTIS051" <${this.config.from}>`,
             to: email,
+            toName: user.name || user.email,
             subject: `🚨 NUEVO TICKET RECIBIDO: ${ticket.ticketNumber} - ${ticket.subject}`,
             html: this.getTicketUserTemplate(ticket, user),
             text: this.getTicketUserText(ticket, user)
@@ -247,18 +270,18 @@ class EmailService {
      */
     async sendTestEmail(email, adminName = 'Administrador') {
         const mailOptions = {
-            from: `"Sistema CBTIS051" <${this.config.from}>`,
             to: email,
-            subject: '🧪 Prueba de Email - CBTIS051',
+            toName: adminName,
+            subject: '🧪 Prueba de Email - CBTIS051 (Brevo)',
             html: this.getTestEmailTemplate(email, adminName),
-            text: `PRUEBA DE EMAIL - CBTIS051\n\nHola ${adminName},\n\nEste email prueba que el sistema está configurado correctamente.\n\nFecha: ${new Date().toLocaleString('es-MX')}\nServidor: ${this.config.host}:${this.config.port}\n\n✅ Configuración correcta`
+            text: `PRUEBA DE EMAIL - CBTIS051\n\nHola ${adminName},\n\nEste email prueba que el sistema está configurado correctamente con Brevo.\n\nFecha: ${new Date().toLocaleString('es-MX')}\nProveedor: Brevo API\n\n✅ Configuración correcta`
         };
 
         return this.sendWithRetry(mailOptions);
     }
 
     // =========================================================================
-    // PLANTILLAS HTML
+    // PLANTILLAS HTML (MANTENIDAS IGUAL)
     // =========================================================================
 
     getPasswordResetTemplate(code, userName) {
@@ -351,7 +374,6 @@ class EmailService {
     }
 
     getTicketAdminTemplate(ticket, user, adminName) {
-        // Plantilla VERDE para administrador
         let attachmentsHTML = this.generateAttachmentsHTML(ticket.attachments, 'admin');
         
         return `
@@ -386,7 +408,6 @@ class EmailService {
     }
 
     getTicketUserTemplate(ticket, user) {
-        // Plantilla ROJA para usuario
         let attachmentsHTML = this.generateAttachmentsHTML(ticket.attachments, 'user');
         
         return `
@@ -421,15 +442,14 @@ class EmailService {
         return `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                    <h1 style="color: white; margin: 0;">🧪 Prueba de Email</h1>
+                    <h1 style="color: white; margin: 0;">🧪 Prueba de Email (Brevo)</h1>
                 </div>
                 <div style="padding: 40px; background: white; border-radius: 0 0 10px 10px;">
                     <h2>✅ Email de Prueba Exitoso</h2>
-                    <p>Hola <strong>${adminName}</strong>, el sistema de email está funcionando correctamente.</p>
+                    <p>Hola <strong>${adminName}</strong>, el sistema de email está funcionando correctamente con Brevo.</p>
                     <div style="background: #f5f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
                         <p><strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}</p>
-                        <p><strong>📧 Servidor:</strong> ${this.config.host}:${this.config.port}</p>
-                        <p><strong>👤 Cuenta:</strong> ${this.config.user}</p>
+                        <p><strong>☁️ Proveedor:</strong> Brevo API</p>
                         <p><strong>📨 Destino:</strong> ${email}</p>
                     </div>
                 </div>
@@ -497,39 +517,49 @@ class EmailService {
      */
     getStatus() {
         return {
-            configured: !!this.transporter,
+            provider: 'brevo',
+            configured: this.initialized,
             config: {
-                user: this.config.user,
-                host: this.config.host,
-                port: this.config.port,
-                frontendUrl: this.config.frontendUrl
+                from: this.config.from,
+                fromName: this.config.fromName,
+                frontendUrl: this.config.frontendUrl,
+                hasApiKey: !!this.apiKey
             },
             timestamp: new Date().toISOString()
         };
     }
 
     /**
-     * Verifica la conexión con el servidor de email
+     * Verifica la conexión con Brevo API
      */
     async verifyConnection() {
-        if (!this.transporter) {
-            return { success: false, message: 'Transporter no configurado' };
+        if (!this.initialized) {
+            return { success: false, message: 'BREVO_API_KEY no configurada' };
         }
         
         try {
-            await this.transporter.verify();
-            return { success: true, message: 'Conexión verificada' };
+            // Intentar obtener información de la cuenta para verificar la API key
+            const response = await fetch('https://api.brevo.com/v3/account', {
+                method: 'GET',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': this.apiKey
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                return { 
+                    success: true, 
+                    message: `Conectado a Brevo - Cuenta: ${data.email}`,
+                    account: data.email
+                };
+            } else {
+                return { success: false, message: 'API Key inválida' };
+            }
         } catch (error) {
             return { success: false, message: error.message };
         }
-    }
-
-    /**
-     * Reinicia la configuración del transporter
-     */
-    resetTransporter() {
-        this.initializeTransporter();
-        return !!this.transporter;
     }
 }
 

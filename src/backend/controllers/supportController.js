@@ -4,7 +4,6 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import nodemailer from 'nodemailer';
 import mongoose from 'mongoose';
 import emailService from '../services/emailService.js';
 
@@ -19,109 +18,12 @@ cloudinary.config({
 });
 
 console.log('\n🎫 ========== SUPPORT CONTROLLER INICIALIZADO ==========');
-console.log(`📧 Usando servicio de email centralizado`);
+console.log(`📧 Usando servicio de email centralizado (Brevo)`);
 console.log(`📧 Estado: ${emailService.getStatus().configured ? '✅ CONFIGURADO' : '❌ NO CONFIGURADO'}`);
 console.log('🎫 ======================================================\n');
 
-try {
-    console.log('📧 Configurando transporter de email con variables de entorno...');
-    console.log('🔍 Variables de entorno encontradas:', {
-        EMAIL_HOST: !!process.env.EMAIL_HOST,
-        EMAIL_USER: !!process.env.EMAIL_USER,
-        EMAIL_PASS: !!process.env.EMAIL_PASS,
-        EMAIL_PORT: !!process.env.EMAIL_PORT
-    });
-    
-    if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        transporter = nodemailer.createTransport({
-            host: EMAIL_HOST,
-            port: EMAIL_PORT,
-            secure: false,
-            auth: {
-                user: SYSTEM_EMAIL,
-                pass: SYSTEM_EMAIL_PASS
-            },
-            tls: {
-                ciphers: 'SSLv3',
-                rejectUnauthorized: false
-            },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 10000,
-            debug: true,
-            logger: true
-        });
-
-        console.log('✅ TRANSPORTER GMAIL CONFIGURADO CON VARIABLES DE ENTORNO');
-        console.log(`📧 Usuario: ${SYSTEM_EMAIL}`);
-        console.log(`🌐 Host: ${EMAIL_HOST}:${EMAIL_PORT}`);
-        
-        // Verificar conexión
-        transporter.verify((error, success) => {
-            if (error) {
-                console.error('❌ ERROR VERIFICANDO CONEXIÓN GMAIL:', error.message);
-            } else {
-                console.log('✅ CONEXIÓN GMAIL VERIFICADA CON ÉXITO');
-            }
-        });
-        
-    } else {
-        console.warn('⚠️ Variables de entorno de email no encontradas, usando credenciales hardcodeadas');
-        
-        // Fallback a credenciales hardcodeadas
-        transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: 'riosnavarretejared@gmail.com',
-                pass: 'emdkqnupuzzzucnw'
-            },
-            tls: {
-                ciphers: 'SSLv3',
-                rejectUnauthorized: false
-            }
-        });
-    }
-    
-} catch (error) {
-    console.error('❌ ERROR CRÍTICO configurando email:', error.message);
-}
-
-// =============================================================================
-// FUNCIÓN PARA ENVIAR EMAIL CON GMAIL
-// =============================================================================
-
-const enviarEmailGmail = async (mailOptions, intentos = 3) => {
-    if (!transporter) {
-        console.log('📧 Transporter no disponible - Mostrando email en consola');
-        console.log('='.repeat(80));
-        console.log('📧 EMAIL SIMULADO:');
-        console.log('='.repeat(80));
-        console.log(`Para: ${mailOptions.to}`);
-        console.log(`Asunto: ${mailOptions.subject}`);
-        console.log('='.repeat(80));
-        return { message: 'Email simulado' };
-    }
-
-    for (let i = 0; i < intentos; i++) {
-        try {
-            console.log(`📤 Intento ${i + 1} de ${intentos} enviando email...`);
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`✅ Email enviado en intento ${i + 1}`);
-            return info;
-        } catch (error) {
-            console.error(`❌ Intento ${i + 1} falló:`, error.message);
-            
-            if (i === intentos - 1) {
-                console.error('🔥 TODOS los intentos fallaron');
-                throw error;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-    }
-};
+// ELIMINADO TODO EL CÓDIGO DE NODEMAILER Y TRANSPORTER
+// ELIMINADA LA FUNCIÓN enviarEmailGmail
 
 const monitorMemory = () => {
     const memoryUsage = process.memoryUsage();
@@ -138,11 +40,7 @@ const monitorMemory = () => {
 
 class SupportController {
     // =====================================================================
-    // 1. CREAR NUEVO TICKET
-    // =====================================================================
-    
-    // =====================================================================
-    // CREAR NUEVO TICKET - MODIFICADO
+    // CREAR NUEVO TICKET
     // =====================================================================
     
     static async createTicket(req, res) {
@@ -176,7 +74,8 @@ class SupportController {
             }
             
             // Buscar administrador
-            let adminEmail = emailService.config.user;
+            const emailStatus = emailService.getStatus();
+            let adminEmail = emailStatus.config?.from || 'admin@cbtis051.edu.mx';
             let adminName = 'Administrador del Sistema';
             
             try {
@@ -268,7 +167,7 @@ class SupportController {
                     user: userForEmails,
                     adminName
                 });
-                console.log('✅ Email VERDE enviado al administrador');
+                console.log('✅ Email VERDE enviado al administrador vía Brevo');
                 
                 // Email al usuario (ROJO)
                 if (emailNotifications === 'true') {
@@ -276,10 +175,11 @@ class SupportController {
                         ticket: newTicket,
                         user: userForEmails
                     });
-                    console.log('✅ Email ROJO enviado al usuario');
+                    console.log('✅ Email ROJO enviado al usuario vía Brevo');
                 }
             } catch (emailError) {
-                console.error('⚠️ Error enviando emails:', emailError.message);
+                console.error('⚠️ Error enviando emails vía Brevo:', emailError.message);
+                // No fallamos el ticket si el email falla
             }
             
             console.log('🎫 ========== TICKET CREADO EXITOSAMENTE ==========\n');
@@ -313,7 +213,7 @@ class SupportController {
     }
 
     // =====================================================================
-    // 5. OBTENER GUÍA DEL SISTEMA
+    // OBTENER GUÍA DEL SISTEMA
     // =====================================================================
     
     static async getSystemGuide(req, res) {
@@ -374,21 +274,21 @@ class SupportController {
         }
     }
 
-     // =====================================================================
-    // PRUEBA DE EMAIL - MODIFICADO
+    // =====================================================================
+    // PRUEBA DE EMAIL
     // =====================================================================
     
     static async testSupportEmail(req, res) {
         try {
-            console.log('\n🧪 Probando sistema de emails de soporte...');
+            console.log('\n🧪 Probando sistema de emails de soporte con Brevo...');
             
-            const testEmail = req.body.email || emailService.config.user;
+            const testEmail = req.body.email || emailService.config.from;
             const info = await emailService.sendTestEmail(testEmail, 'Soporte');
             
             res.json({
                 success: true,
-                message: 'Email de prueba enviado exitosamente',
-                info: info.simulated ? { simulated: true } : { messageId: info.messageId }
+                message: '✅ Email de prueba enviado exitosamente vía Brevo',
+                info: info.simulated ? { simulated: true } : { messageId: info.messageId, provider: 'Brevo' }
             });
         } catch (error) {
             res.status(500).json({
@@ -400,7 +300,7 @@ class SupportController {
     }
 
     // =====================================================================
-    // 12. OBTENER FAQ (PREGUNTAS FRECUENTES)
+    // OBTENER FAQ (PREGUNTAS FRECUENTES)
     // =====================================================================
 
     static async getFAQ(req, res) {
@@ -457,188 +357,187 @@ class SupportController {
     }
 
     // =====================================================================
-    // OBTENER ESTADO DEL SISTEMA - MODIFICADO para usar emailService
+    // OBTENER ESTADO DEL SISTEMA
     // =====================================================================
 
     static async getSystemStatus(req, res) {
-    req.startTime = Date.now();
-    
-    try {
-        console.log('🖥️ Verificando estado REAL del sistema...');
+        req.startTime = Date.now();
         
-        const now = new Date().toISOString();
-        
-        // 1. Estado de BD
-        let dbStatus = { connected: false, message: 'No conectado', timestamp: now };
         try {
-            const dbState = mongoose.connection.readyState;
-            if (dbState === 1) {
-                await mongoose.connection.db.admin().ping();
-                dbStatus = { 
-                    connected: true, 
-                    message: 'Conectado', 
-                    details: { database: mongoose.connection.name },
-                    timestamp: now
-                };
-            } else {
+            console.log('🖥️ Verificando estado REAL del sistema...');
+            
+            const now = new Date().toISOString();
+            
+            // 1. Estado de BD
+            let dbStatus = { connected: false, message: 'No conectado', timestamp: now };
+            try {
+                const dbState = mongoose.connection.readyState;
+                if (dbState === 1) {
+                    await mongoose.connection.db.admin().ping();
+                    dbStatus = { 
+                        connected: true, 
+                        message: 'Conectado', 
+                        details: { database: mongoose.connection.name },
+                        timestamp: now
+                    };
+                } else {
+                    dbStatus = { 
+                        connected: false, 
+                        message: 'Desconectado', 
+                        timestamp: now 
+                    };
+                }
+            } catch (dbError) {
                 dbStatus = { 
                     connected: false, 
-                    message: 'Desconectado', 
+                    message: 'Error de conexión', 
+                    error: dbError.message,
                     timestamp: now 
                 };
             }
-        } catch (dbError) {
-            dbStatus = { 
-                connected: false, 
-                message: 'Error de conexión', 
-                error: dbError.message,
-                timestamp: now 
-            };
-        }
 
-        // 2. Estado del sistema
-        const systemStatus = {
-            operational: true,
-            message: 'Operacional',
-            details: {
-                uptime: Math.floor(process.uptime()) + ' segundos',
-                memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB'
-            },
-            timestamp: now
-        };
-
-        // 3. Estado de Cloudinary
-        let cloudStorageStatus = { 
-            active: false, 
-            message: 'Inactivo',
-            timestamp: now 
-        };
-        try {
-            if (process.env.CLOUDINARY_CLOUD_NAME) {
-                await cloudinary.api.ping();
-                cloudStorageStatus = { 
-                    active: true, 
-                    message: 'Activo y funcionando',
-                    timestamp: now 
-                };
-            }
-        } catch (cloudError) {
-            cloudStorageStatus = { 
-                active: false, 
-                message: 'Error', 
-                error: cloudError.message,
-                timestamp: now 
-            };
-        }
-
-        // 4. Estado de Email - USANDO emailService
-        const emailStatus = emailService.getStatus();
-        const emailVerification = await emailService.verifyConnection();
-        
-        const emailServiceStatus = {
-            configured: emailStatus.configured,
-            canSend: emailVerification.success,
-            message: emailVerification.success ? 'Configurado y verificado' : emailVerification.message,
-            details: emailStatus.config,
-            timestamp: now
-        };
-
-        // Calcular estado general
-        const errorCount = [
-            !dbStatus.connected,
-            !systemStatus.operational,
-            !cloudStorageStatus.active,
-            !emailServiceStatus.configured
-        ].filter(Boolean).length;
-        
-        let overallStatus = errorCount === 0 ? 'healthy' : 'degraded';
-
-        // ✅ RESPUESTA CORREGIDA CON TIMESTAMPS
-        res.json({
-            success: true,
-            timestamp: now,  // ✅ Timestamp general
-            overallStatus,
-            services: {
-                database: { 
-                    name: 'Base de Datos', 
-                    status: dbStatus.connected ? 'operational' : 'error', 
-                    message: dbStatus.message,
-                    timestamp: dbStatus.timestamp,  // ✅ Timestamp del servicio
-                    details: dbStatus.details
+            // 2. Estado del sistema
+            const systemStatus = {
+                operational: true,
+                message: 'Operacional',
+                details: {
+                    uptime: Math.floor(process.uptime()) + ' segundos',
+                    memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB'
                 },
-                system: { 
-                    name: 'Sistema Principal', 
-                    status: systemStatus.operational ? 'operational' : 'error', 
-                    message: systemStatus.message,
-                    timestamp: systemStatus.timestamp,  // ✅ Timestamp del servicio
-                    details: systemStatus.details
-                },
-                cloudStorage: { 
-                    name: 'Almacenamiento Cloud', 
-                    status: cloudStorageStatus.active ? 'operational' : 'error', 
-                    message: cloudStorageStatus.message,
-                    timestamp: cloudStorageStatus.timestamp,  // ✅ Timestamp del servicio
-                    details: cloudStorageStatus.error ? { error: cloudStorageStatus.error } : {}
-                },
-                emailService: { 
-                    name: 'Servicio de Email', 
-                    status: emailServiceStatus.configured ? 'operational' : 'error', 
-                    message: emailServiceStatus.message,
-                    timestamp: emailServiceStatus.timestamp,  // ✅ Timestamp del servicio
-                    details: emailServiceStatus.details
-                }
-            },
-            metrics: {
-                responseTime: Date.now() - req.startTime,
-                environment: process.env.NODE_ENV || 'production',
                 timestamp: now
-            }
-        });
+            };
 
-    } catch (error) {
-        console.error('🔥 ERROR verificando estado:', error);
-        
-        const now = new Date().toISOString();
-        
-        // ✅ Respuesta de error también con timestamps
-        res.status(500).json({
-            success: false,
-            timestamp: now,
-            overallStatus: 'error',
-            message: 'Error interno al verificar estado',
-            error: error.message,
-            services: {
-                database: {
-                    name: 'Base de Datos',
-                    status: 'error',
-                    message: 'Error de verificación',
-                    timestamp: now
+            // 3. Estado de Cloudinary
+            let cloudStorageStatus = { 
+                active: false, 
+                message: 'Inactivo',
+                timestamp: now 
+            };
+            try {
+                if (process.env.CLOUDINARY_CLOUD_NAME) {
+                    await cloudinary.api.ping();
+                    cloudStorageStatus = { 
+                        active: true, 
+                        message: 'Activo y funcionando',
+                        timestamp: now 
+                    };
+                }
+            } catch (cloudError) {
+                cloudStorageStatus = { 
+                    active: false, 
+                    message: 'Error', 
+                    error: cloudError.message,
+                    timestamp: now 
+                };
+            }
+
+            // 4. Estado de Email - USANDO emailService
+            const emailStatus = emailService.getStatus();
+            const emailVerification = await emailService.verifyConnection();
+            
+            const emailServiceStatus = {
+                configured: emailStatus.configured,
+                canSend: emailVerification.success,
+                message: emailVerification.success ? 'Configurado y verificado' : emailVerification.message,
+                provider: emailStatus.provider || 'brevo',
+                details: emailStatus.config,
+                timestamp: now
+            };
+
+            // Calcular estado general
+            const errorCount = [
+                !dbStatus.connected,
+                !systemStatus.operational,
+                !cloudStorageStatus.active,
+                !emailServiceStatus.configured
+            ].filter(Boolean).length;
+            
+            let overallStatus = errorCount === 0 ? 'healthy' : 'degraded';
+
+            res.json({
+                success: true,
+                timestamp: now,
+                overallStatus,
+                services: {
+                    database: { 
+                        name: 'Base de Datos', 
+                        status: dbStatus.connected ? 'operational' : 'error', 
+                        message: dbStatus.message,
+                        timestamp: dbStatus.timestamp,
+                        details: dbStatus.details
+                    },
+                    system: { 
+                        name: 'Sistema Principal', 
+                        status: systemStatus.operational ? 'operational' : 'error', 
+                        message: systemStatus.message,
+                        timestamp: systemStatus.timestamp,
+                        details: systemStatus.details
+                    },
+                    cloudStorage: { 
+                        name: 'Almacenamiento Cloud', 
+                        status: cloudStorageStatus.active ? 'operational' : 'error', 
+                        message: cloudStorageStatus.message,
+                        timestamp: cloudStorageStatus.timestamp,
+                        details: cloudStorageStatus.error ? { error: cloudStorageStatus.error } : {}
+                    },
+                    emailService: { 
+                        name: 'Servicio de Email (Brevo)', 
+                        status: emailServiceStatus.configured ? 'operational' : 'error', 
+                        message: emailServiceStatus.message,
+                        timestamp: emailServiceStatus.timestamp,
+                        details: emailServiceStatus.details
+                    }
                 },
-                system: {
-                    name: 'Sistema Principal',
-                    status: 'error',
-                    message: error.message,
-                    timestamp: now
-                },
-                cloudStorage: {
-                    name: 'Almacenamiento Cloud',
-                    status: 'error',
-                    message: 'Error de verificación',
-                    timestamp: now
-                },
-                emailService: {
-                    name: 'Servicio de Email',
-                    status: 'error',
-                    message: 'Error de verificación',
+                metrics: {
+                    responseTime: Date.now() - req.startTime,
+                    environment: process.env.NODE_ENV || 'production',
                     timestamp: now
                 }
-            }
-        });
+            });
+
+        } catch (error) {
+            console.error('🔥 ERROR verificando estado:', error);
+            
+            const now = new Date().toISOString();
+            
+            res.status(500).json({
+                success: false,
+                timestamp: now,
+                overallStatus: 'error',
+                message: 'Error interno al verificar estado',
+                error: error.message,
+                services: {
+                    database: {
+                        name: 'Base de Datos',
+                        status: 'error',
+                        message: 'Error de verificación',
+                        timestamp: now
+                    },
+                    system: {
+                        name: 'Sistema Principal',
+                        status: 'error',
+                        message: error.message,
+                        timestamp: now
+                    },
+                    cloudStorage: {
+                        name: 'Almacenamiento Cloud',
+                        status: 'error',
+                        message: 'Error de verificación',
+                        timestamp: now
+                    },
+                    emailService: {
+                        name: 'Servicio de Email (Brevo)',
+                        status: 'error',
+                        message: 'Error de verificación',
+                        timestamp: now
+                    }
+                }
+            });
+        }
     }
-}
 
     // =====================================================================
-    // 14. ACTIVAR ERRORES REALES (solo desarrollo)
+    // ACTIVAR ERRORES REALES (solo desarrollo)
     // =====================================================================
 
     static async activateRealErrors(req, res) {
@@ -651,9 +550,6 @@ class SupportController {
             }
             
             console.log('🔥 Activando errores REALES:', req.body.services);
-            
-            // Aquí puedes implementar la lógica para activar errores reales
-            // Por ejemplo, cambiar configuraciones, invalidar credenciales, etc.
             
             res.json({
                 success: true,
@@ -673,7 +569,7 @@ class SupportController {
     }
 
     // =====================================================================
-    // 15. RESTABLECER ERRORES REALES
+    // RESTABLECER ERRORES REALES
     // =====================================================================
 
     static async resetRealErrors(req, res) {
@@ -686,8 +582,6 @@ class SupportController {
             }
             
             console.log('🔄 Restableciendo errores REALES');
-            
-            // Restaurar configuraciones normales
             
             res.json({
                 success: true,
@@ -706,14 +600,15 @@ class SupportController {
     }
 
     // =====================================================================
-    // 16. VALIDAR ERRORES DEL SISTEMA
+    // VALIDAR ERRORES DEL SISTEMA
     // =====================================================================
 
     static async validateSystemErrors(req, res) {
         try {
             console.log('🔍 Validando errores del sistema');
             
-            // Realizar validaciones específicas
+            const emailStatus = emailService.getStatus();
+            
             const validations = {
                 database: {
                     status: 'healthy',
@@ -731,8 +626,8 @@ class SupportController {
                     checkedAt: new Date().toISOString()
                 },
                 emailService: {
-                    status: 'healthy',
-                    message: 'Servicio de email configurado',
+                    status: emailStatus.configured ? 'healthy' : 'error',
+                    message: emailStatus.configured ? 'Servicio de email configurado (Brevo)' : 'Servicio de email no configurado',
                     checkedAt: new Date().toISOString()
                 }
             };
@@ -755,7 +650,7 @@ class SupportController {
     }
 
     // =====================================================================
-    // 17. SIMULAR ERROR REAL EN SERVICIO ESPECÍFICO
+    // SIMULAR ERROR REAL EN SERVICIO ESPECÍFICO
     // =====================================================================
 
     static async simulateRealError(req, res) {
@@ -765,7 +660,7 @@ class SupportController {
                     success: false,
                     message: 'Esta función solo está disponible en modo desarrollo'
                 });
-        }
+            }
         
             const { service } = req.params;
             console.log(`🧪 Simulando error REAL en: ${service}`);
@@ -783,7 +678,7 @@ class SupportController {
                     message = 'Credenciales de Cloudinary invalidadas temporalmente';
                     break;
                 case 'emailService':
-                    message = 'Servicio SMTP deshabilitado temporalmente';
+                    message = 'Servicio de email (Brevo) deshabilitado temporalmente';
                     break;
                 default:
                     return res.status(400).json({
@@ -810,7 +705,7 @@ class SupportController {
     }
 
     // =====================================================================
-    // 18. RESTABLECER TODOS LOS ERRORES
+    // RESTABLECER TODOS LOS ERRORES
     // =====================================================================
 
     static async resetAllRealErrors(req, res) {
