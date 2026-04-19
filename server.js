@@ -66,7 +66,7 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 // Configuración
 // -----------------------------
 const app = express();
-const PORT = Number(process.env.PORT) || 4000;
+const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI;
 
 // Configuración de Cloudinary
@@ -182,7 +182,6 @@ mongoose.connect(MONGO_URI)
   })
   .catch(err => {
     console.error('❌ Error conectando a MongoDB:', err);
-    process.exit(1);
   });
 
 // -----------------------------
@@ -3609,7 +3608,7 @@ console.log('✅ Rutas de soporte con Brevo configuradas');
 // Verificar configuración de email al iniciar
 console.log('');
 console.log('🔍 ========== CONFIGURACIÓN DEL SISTEMA ==========');
-console.log(`🚀 Puerto: ${process.env.PORT || 4000}`);
+console.log(`🚀 Puerto: ${process.env.PORT || 4000} (${PORT})`);
 console.log(`🗄️ MongoDB: ${process.env.MONGO_URI ? '✅ Configurado' : '❌ No configurado'}`);
 
 const emailStatus = await import('./src/backend/services/emailService.js').then(m => m.default.getStatus());
@@ -3643,11 +3642,46 @@ if (process.env.NODE_ENV === 'development') {
 // -----------------------------
 // Iniciar servidor
 // -----------------------------
-const serverPort = process.env.PORT || PORT;
-app.listen(serverPort, '0.0.0.0', () => {
+const serverPort = process.env.PORT || 4000;
+const server = app.listen(serverPort, '0.0.0.0', () => {
   console.log(`🚀 Servidor ejecutándose en puerto ${serverPort}`);
   console.log(`📊 Sistema de Gestión de Documentos - CBTIS051`);
   console.log(`🗄️ Base de datos: ${MONGO_URI}`);
   console.log(`☁️ Cloudinary: ${cloudinary.config().cloud_name}`);
-  console.log(`🔌 API disponible en: https://documentos-kj6t.onrender.com`);
+  console.log(`🔌 API disponible en: https://documentos-kj6t.onrender.com/api`);
+});
+
+// Manejar errores del servidor
+server.on('error', (error) => {
+  console.error('❌ Error del servidor:', error.message);
+  process.exit(1);
+});
+
+// Manejar errores no capturados
+process.on('uncaughtException', (error) => {
+  console.error('🔥 UNCAUGHT EXCEPTION:', error.message);
+  console.error(error.stack);
+  // NO llamar process.exit(1) - dejar que el servidor siga corriendo
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 UNHANDLED REJECTION:', reason);
+  // NO llamar process.exit(1)
+});
+
+// Manejar señales de terminación gracefulmente
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM recibido - cerrando servidor gracefulmente');
+  server.close(() => {
+    console.log('✅ Servidor cerrado');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT recibido - cerrando servidor gracefulmente');
+  server.close(() => {
+    console.log('✅ Servidor cerrado');
+    process.exit(0);
+  });
 });
