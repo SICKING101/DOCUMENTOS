@@ -688,7 +688,7 @@ function renderShutdownHistory() {
     }
 
     container.innerHTML = shutdownHistory.map(h => `
-        <div class="history-item">
+        <div class="history-item-admin">
             <div class="history-info">
                 <div class="history-date">
                     <i class="fas fa-calendar"></i> ${formatDate(h.createdAt)}
