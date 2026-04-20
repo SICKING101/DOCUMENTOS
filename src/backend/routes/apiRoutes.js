@@ -26,6 +26,9 @@ import {
 } from '../controllers/versionController.js';
 import { getSystemStatus, getSystemHistory } from '../controllers/systemStateController.js';
 
+// ── Modelos ────────────────────────────────────────────────────
+import User from '../models/User.js';
+
 // ── Middlewares ───────────────────────────────────────────────
 import { protegerRuta, requirePermission } from '../middleware/auth.js';
 import { PERMISSIONS } from '../config/permissions.js';
@@ -174,5 +177,51 @@ router.get('/versions/:id',     protegerRuta, getVersionById);
 
 // ─── SUGERENCIAS ────────────────────────────────────────────────
 router.use('/suggestions', suggestionRoutes);
+
+// ─── TEMA DEL USUARIO ──────────────────────────────────────────────
+router.get('/user/theme', protegerRuta, async (req, res) => {
+  try {
+    console.log(`🎨 [THEME API] GET solicitud para usuario ${req.user.id}`);
+    const user = await User.findById(req.user.id).select('theme');
+    if (!user) {
+      console.log(`❌ [THEME API] Usuario no encontrado: ${req.user.id}`);
+      return res.status(404).json({ ok: false, message: 'Usuario no encontrado' });
+    }
+    const themeToReturn = user.theme || 'light';
+    console.log(`✅ [THEME API] Tema devuelto para usuario ${req.user.id}:`, themeToReturn);
+    console.log(`🎨 [THEME API] Usuario completo:`, user);
+    res.json({ ok: true, theme: themeToReturn });
+  } catch (error) {
+    console.error('❌ [THEME API] Error obteniendo tema:', error);
+    res.status(500).json({ ok: false, message: 'Error al obtener tema' });
+  }
+});
+
+router.patch('/user/theme', protegerRuta, async (req, res) => {
+  try {
+    const { theme } = req.body;
+    
+    // Validar que el tema sea válido
+    if (!['light', 'dark', 'system'].includes(theme)) {
+      return res.status(400).json({ ok: false, message: 'Tema inválido. Debe ser: light, dark o system' });
+    }
+
+    console.log(`🎨 [THEME API] PATCH recibido para usuario ${req.user.id}, tema: ${theme}`);
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { theme },
+      { new: true, runValidators: true }
+    ).select('theme');
+    
+    console.log(`🎨 [THEME API] Usuario actualizado, tema guardado en BD:`, user?.theme);
+    console.log(`🎨 [THEME API] Usuario completo después de actualizar:`, user);
+    
+    res.json({ ok: true, theme: user.theme });
+  } catch (error) {
+    console.error('❌ [THEME API] Error actualizando tema:', error);
+    res.status(500).json({ ok: false, message: 'Error al actualizar tema' });
+  }
+});
 
 export default router;
