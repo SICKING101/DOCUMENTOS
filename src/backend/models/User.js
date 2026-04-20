@@ -95,6 +95,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false
     },
+
+    // ─── TEMA DE LA APLICACIÓN ─────────────────────────────────────────────
+    // Preferencia de tema del usuario (light, dark, o system)
+    theme: {
+      type: String,
+      enum: ['light', 'dark', 'system'],
+      default: 'light'
+    },
   },
   {
     timestamps: true, // createdAt, updatedAt automáticos

@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // ── Fase 8: Inicializar tema ──
-    _initTheme();
+    await _initTheme();
 
     // ── Fase 9: Inicializar chatbot ──
     initChatbot();
@@ -435,32 +435,123 @@ async function _loadInitialData() {
 }
 
 // =============================================================================
-// 7. TEMA OSCURO / CLARO
+// 7. TEMA OSCURO / CLARO - Sincronizado con MongoDB
 // =============================================================================
 
-const _getPreferredTheme = () => localStorage.getItem('theme') || 'light';
-
-const _applyTheme = (theme) => {
-  const themeIcon = document.querySelector('#themeToggle i');
-  const themeToggle = document.getElementById('themeToggle');
-
-  if (theme === 'dark') {
-    document.body.classList.add('dark-theme');
-    themeIcon?.classList.replace('fa-moon', 'fa-sun');
-    themeToggle?.setAttribute('aria-pressed', 'true');
-    if (themeToggle) themeToggle.title = 'Tema: Oscuro';
-    localStorage.setItem('theme', 'dark');
-  } else {
-    document.body.classList.remove('dark-theme');
-    themeIcon?.classList.replace('fa-sun', 'fa-moon');
-    themeToggle?.setAttribute('aria-pressed', 'false');
-    if (themeToggle) themeToggle.title = 'Tema: Claro';
-    localStorage.setItem('theme', 'light');
+/**
+ * Obtiene el tema preferido del usuario desde la base de datos
+ * Si no está disponible, usa localStorage como fallback y luego 'light'
+ */
+const _loadThemeFromDB = async () => {
+  try {
+    console.log('🌐 [THEME DEBUG] Iniciando fetch de tema desde BD...');
+    const res = await fetch(`${CONFIG.API_BASE_URL}/api/user/theme`);
+    if (!res.ok) throw new Error('Error al obtener tema');
+    const { theme } = await res.json();
+    console.log('✅ [THEME DEBUG] Tema obtenido de BD:', theme);
+    return theme || 'light';
+  } catch (error) {
+    console.warn('⚠️ [THEME DEBUG] Error cargando tema de BD, usando fallback:', error);
+    // Fallback a localStorage si la API falla
+    const fallbackTheme = localStorage.getItem('theme') || 'light';
+    console.log('✅ [THEME DEBUG] Usando fallback de localStorage:', fallbackTheme);
+    return fallbackTheme;
   }
 };
 
-const _initTheme = () => _applyTheme(_getPreferredTheme());
-const _toggleTheme = () => _applyTheme(document.body.classList.contains('dark-theme') ? 'light' : 'dark');
+/**
+ * Aplica el tema al documento usando data-theme
+ * - Si theme es 'system', detecta la preferencia del SO
+ * - También aplica clase dark-theme al body para compatibilidad con CSS existente
+ * - Guarda en localStorage como fallback
+ */
+const _applyTheme = (theme) => {
+  console.log(`🎨 [THEME DEBUG] Aplicando tema: ${theme}`);
+  
+  const themeIcon = document.querySelector('#themeToggle i');
+  const themeToggle = document.getElementById('themeToggle');
+
+  // Detectar tema real si es 'system'
+  let appliedTheme = theme;
+  if (theme === 'system') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    appliedTheme = prefersDark ? 'dark' : 'light';
+    console.log(`🎨 [THEME DEBUG] Sistema detectó preferencia: ${appliedTheme}`);
+  }
+
+  // Aplicar data-theme al html
+  console.log(`🎨 [THEME DEBUG] Estableciendo data-theme="${appliedTheme}" en <html>`);
+  document.documentElement.setAttribute('data-theme', appliedTheme);
+  
+  // Aplicar clase al body para compatibilidad con CSS existente
+  if (appliedTheme === 'dark') {
+    document.body.classList.add('dark-theme');
+    console.log(`🎨 [THEME DEBUG] Agregada clase dark-theme al body`);
+  } else {
+    document.body.classList.remove('dark-theme');
+    console.log(`🎨 [THEME DEBUG] Removida clase dark-theme del body`);
+  }
+
+  // Actualizar icono y atributos del botón
+  if (appliedTheme === 'dark') {
+    themeIcon?.classList.remove('fa-moon');
+    themeIcon?.classList.add('fa-sun');
+    themeToggle?.setAttribute('aria-pressed', 'true');
+    if (themeToggle) themeToggle.title = 'Tema: Oscuro';
+  } else {
+    themeIcon?.classList.remove('fa-sun');
+    themeIcon?.classList.add('fa-moon');
+    themeToggle?.setAttribute('aria-pressed', 'false');
+    if (themeToggle) themeToggle.title = 'Tema: Claro';
+  }
+
+  // Guardar como fallback en localStorage
+  localStorage.setItem('theme', theme);
+  console.log(`🎨 [THEME DEBUG] Guardado en localStorage['theme']: ${theme}`);
+  console.log(`🎨 [THEME DEBUG] Tema aplicado completamente: ${appliedTheme}`);
+};
+
+/**
+ * Inicializa el tema al cargar la app
+ * Carga desde BD y aplica
+ */
+const _initTheme = async () => {
+  try {
+    console.log('🎨 [THEME DEBUG] === INICIANDO _initTheme() ===');
+    const theme = await _loadThemeFromDB();
+    console.log(`🎨 [THEME DEBUG] Tema cargado, aplicando: ${theme}`);
+    _applyTheme(theme);
+    console.log('✅ [THEME DEBUG] === TEMA INICIALIZADO CORRECTAMENTE ===');
+  } catch (error) {
+    console.error('❌ [THEME DEBUG] Error inicializando tema:', error);
+    _applyTheme('light'); // Fallback final
+  }
+};
+
+/**
+ * Alterna el tema y guarda en BD
+ */
+const _toggleTheme = async () => {
+  try {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+    // Guardar en BD
+    const res = await fetch(`${CONFIG.API_BASE_URL}/api/user/theme`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: nextTheme })
+    });
+
+    if (!res.ok) throw new Error('Error al guardar tema');
+    const { theme } = await res.json();
+    _applyTheme(theme);
+    console.log('✅ Tema guardado:', theme);
+  } catch (error) {
+    console.error('❌ Error al cambiar tema:', error);
+    showAlert('Error al cambiar el tema', 'error');
+  }
+};
 
 // =============================================================================
 // 8. MANEJADORES DE UI
