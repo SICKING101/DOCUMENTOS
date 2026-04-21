@@ -160,6 +160,8 @@ class SettingsManager {
             this.log('💾 Ajustes guardados');
             
             if (this.settings.appearance.currentTheme) {
+                // Guardar en ambas claves para compatibilidad
+                localStorage.setItem('theme', this.settings.appearance.currentTheme);
                 localStorage.setItem('cbtis051_current_theme', this.settings.appearance.currentTheme);
             }
             
@@ -253,10 +255,12 @@ class SettingsManager {
         // IMPORTANTE: Eventos para monitorear actividad del usuario
         this.setupActivityListeners();
         
-        window.addEventListener('load', () => {
-            this.log('📄 Página completamente cargada, aplicando tema persistente');
-            this.applyTheme();
-        });
+        // ⚠️ COMENTADO: El tema ya se inicializa en app.js DOMContentLoaded con _initTheme()
+        // Ejecutar applyTheme() aquí en window.load causaba que reseteara el tema
+        // window.addEventListener('load', () => {
+        //     this.log('📄 Página completamente cargada, aplicando tema persistente');
+        //     this.applyTheme();
+        // });
         
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
@@ -667,20 +671,27 @@ collectFormData() {
     }
 
     /**
+    /**
      * Aplicar tema seleccionado
      */
     applyTheme() {
     const body = document.body;
     body.classList.remove('light-theme', 'dark-theme');
     
-    // SIEMPRE usar el tema guardado en localStorage primero
-    const savedTheme = localStorage.getItem('cbtis051_current_theme');
+    // PRIORIDAD de lectura:
+    // 1. Nuevo sistema (MongoDB): localStorage['theme']
+    // 2. Antiguo sistema (local): localStorage['cbtis051_current_theme']
+    // 3. Settings del objeto: appearance.theme o appearance.currentTheme
+    // 4. Default: 'light'
+    
+    const savedThemeNewSystem = localStorage.getItem('theme'); // Nuevo sistema
+    const savedThemeOldSystem = localStorage.getItem('cbtis051_current_theme'); // Sistema antiguo
     const themeFromSettings = this.settings.appearance.theme !== 'auto' 
         ? this.settings.appearance.theme 
         : this.settings.appearance.currentTheme;
     
-    // Prioridad: 1. Tema guardado directo, 2. Tema de settings, 3. Light
-    const themeToApply = savedTheme || themeFromSettings || 'light';
+    // Usar la clave correcta con prioridad
+    const themeToApply = savedThemeNewSystem || savedThemeOldSystem || themeFromSettings || 'light';
     
     body.classList.add(`${themeToApply}-theme`);
     body.setAttribute('data-theme', themeToApply);
@@ -688,7 +699,7 @@ collectFormData() {
     // Actualizar el estado interno
     this.settings.appearance.currentTheme = themeToApply;
     
-    this.log(`🎨 Tema aplicado: ${themeToApply}`);
+    this.log(`🎨 Tema aplicado: ${themeToApply} (New: ${savedThemeNewSystem}, Old: ${savedThemeOldSystem})`);
     this.saveThemeInMultiplePlaces();
 }
 
@@ -702,6 +713,10 @@ collectFormData() {
         
         if (!themeToSave) return;
         
+        // Guardar en AMBAS claves para compatibilidad:
+        // - 'theme': nuevo sistema (MongoDB/app.js)
+        // - 'cbtis051_current_theme': antiguo sistema (ajustes.js)
+        localStorage.setItem('theme', themeToSave);
         localStorage.setItem('cbtis051_current_theme', themeToSave);
         
         const expiryDate = new Date();
@@ -711,7 +726,7 @@ collectFormData() {
         sessionStorage.setItem('current_theme', themeToSave);
         document.body.setAttribute('data-theme', themeToSave);
         
-        this.log(`🔐 Tema guardado en múltiples lugares: ${themeToSave}`);
+        this.log(`🔐 Tema guardado en múltiples lugares (theme + cbtis051_current_theme): ${themeToSave}`);
     }
 
     /**
@@ -1380,12 +1395,14 @@ updateForm() {
      * Verificar persistencia del tema
      */
     checkThemePersistence() {
-        const storedTheme = localStorage.getItem('cbtis051_current_theme');
+        const storedThemeNew = localStorage.getItem('theme');
+        const storedThemeOld = localStorage.getItem('cbtis051_current_theme');
         const calculatedTheme = this.calculateAndSetTheme();
         const appliedTheme = this.getCurrentTheme();
         
         this.log('🔍 Verificando persistencia del tema:', {
-            stored: storedTheme,
+            storedNew: storedThemeNew,
+            storedOld: storedThemeOld,
             calculated: calculatedTheme,
             applied: appliedTheme,
             config: this.settings.appearance.theme
@@ -1427,11 +1444,15 @@ const settingsManager = new SettingsManager();
 
 // Función auxiliar para verificar el tema al cargar la página
 (function checkThemeOnLoad() {
-    const savedTheme = localStorage.getItem('cbtis051_current_theme');
+    // Leer de ambas claves: primero el nuevo sistema, luego el antiguo
+    const savedThemeNewSystem = localStorage.getItem('theme');
+    const savedThemeOldSystem = localStorage.getItem('cbtis051_current_theme');
+    const savedTheme = savedThemeNewSystem || savedThemeOldSystem;
+    
     if (savedTheme) {
         document.body.classList.add(`${savedTheme}-theme`);
         document.body.setAttribute('data-theme', savedTheme);
-        console.log(`🎨 Tema persistente aplicado al cargar: ${savedTheme}`);
+        console.log(`🎨 Tema persistente aplicado al cargar: ${savedTheme} (New: ${savedThemeNewSystem}, Old: ${savedThemeOldSystem})`);
     }
 })();
 
