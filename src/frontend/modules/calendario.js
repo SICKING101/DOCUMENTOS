@@ -1,2140 +1,2267 @@
-// ===== CALENDARIO ACADÉMICO - FUNCIONALIDAD COMPLETA =====
+// ===== CALENDARIO ACADÉMICO v2.0 — LÓGICA RENOVADA =====
+// Motor de eventos con detección de conflictos, drag & drop,
+// recurrencia inteligente, undo/redo, y sistema de permisos integrado.
 
-import { canView, canAction, showNoPermissionAlert, loadCurrentPermissions } from '../permissions.js';
+import {
+    canView,
+    canAction,
+    showNoPermissionAlert,
+    loadCurrentPermissions
+} from '../permissions.js';
+
+// ─── CONSTANTES ──────────────────────────────────────────────────────────────
+
+const STORAGE_KEY   = 'cal_events_v2';
+const SETTINGS_KEY  = 'cal_settings_v2';
+const UNDO_LIMIT    = 50;
+
+const MONTH_NAMES = [
+    'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+];
+const DAY_NAMES_SHORT  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const DAY_NAMES_LONG   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+const EVENT_TYPES = {
+    academic:  { label: 'Académico',  color: '#6366f1', icon: '📚' },
+    meetings:  { label: 'Reunión',    color: '#10b981', icon: '🤝' },
+    deadlines: { label: 'Plazo',      color: '#f59e0b', icon: '⏰' },
+    holidays:  { label: 'Festivo',    color: '#ef4444', icon: '🎉' },
+    exam:      { label: 'Examen',     color: '#8b5cf6', icon: '📝' },
+    personal:  { label: 'Personal',   color: '#06b6d4', icon: '👤' },
+};
+
+const RECURRENCE_OPTIONS = [
+    { value: 'none',    label: 'Sin repetición' },
+    { value: 'daily',   label: 'Cada día' },
+    { value: 'weekly',  label: 'Cada semana' },
+    { value: 'biweekly',label: 'Cada 2 semanas' },
+    { value: 'monthly', label: 'Cada mes' },
+    { value: 'yearly',  label: 'Cada año' },
+];
+
+// ─── UTILIDADES PURAS (sin efectos secundarios) ──────────────────────────────
+
+const uid = () => `e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+const sid = () => `s_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+const dateToStr  = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const strToDate  = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const addDays    = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+const addMonths  = (d, n) => { const r = new Date(d); r.setMonth(r.getMonth()+n); return r; };
+const addYears   = (d, n) => { const r = new Date(d); r.setFullYear(r.getFullYear()+n); return r; };
+const isSameDay  = (a,b)  => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const daysBetween = (a,b) => Math.round((b-a)/(1000*60*60*24));
+
+function hexToRgba(hex, alpha=1) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function formatTime(t) {
+    if (!t) return '';
+    const [h,m] = t.split(':').map(Number);
+    const ampm  = h >= 12 ? 'PM' : 'AM';
+    const hh    = h % 12 || 12;
+    return `${hh}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function formatDateShort(d) {
+    return `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0,3)}`;
+}
+
+function formatDateLong(d) {
+    return `${DAY_NAMES_LONG[d.getDay()]}, ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ─── MOTOR DE RECURRENCIA ────────────────────────────────────────────────────
+
+function generateRecurringDates(startStr, recurrence, limitDate) {
+    const dates   = [];
+    const start   = strToDate(startStr);
+    const limit   = limitDate || addYears(new Date(), 2);
+    let   current = new Date(start);
+
+    while (current <= limit) {
+        dates.push(dateToStr(current));
+        switch (recurrence) {
+            case 'daily':     current = addDays(current, 1);    break;
+            case 'weekly':    current = addDays(current, 7);    break;
+            case 'biweekly':  current = addDays(current, 14);   break;
+            case 'monthly':   current = addMonths(current, 1);  break;
+            case 'yearly':    current = addYears(current, 1);   break;
+            default: return dates;
+        }
+        if (dates.length > 500) break; // seguro
+    }
+    return dates;
+}
+
+function expandEventToInstances(eventTemplate) {
+    if (!eventTemplate.recurrence || eventTemplate.recurrence === 'none') {
+        return [{
+            ...eventTemplate,
+            instanceId: eventTemplate.id,
+            isSingle: true
+        }];
+    }
+
+    const startD = strToDate(eventTemplate.startDate);
+    const endD   = eventTemplate.endDate ? strToDate(eventTemplate.endDate) : startD;
+    const duration = daysBetween(startD, endD);
+
+    return generateRecurringDates(eventTemplate.startDate, eventTemplate.recurrence)
+        .map(dateStr => {
+            const iStart = strToDate(dateStr);
+            const iEnd   = addDays(iStart, duration);
+            return {
+                ...eventTemplate,
+                instanceId:    `${eventTemplate.id}_${dateStr}`,
+                startDate:     dateStr,
+                endDate:       dateToStr(iEnd),
+                isSingle:      false,
+                originalStart: eventTemplate.startDate,
+            };
+        });
+}
+
+// ─── DETECTOR DE CONFLICTOS ──────────────────────────────────────────────────
+
+function eventsConflict(a, b) {
+    if (a.id === b.id) return false;
+    const aStart = strToDate(a.startDate);
+    const aEnd   = a.endDate   ? strToDate(a.endDate)   : aStart;
+    const bStart = strToDate(b.startDate);
+    const bEnd   = b.endDate   ? strToDate(b.endDate)   : bStart;
+
+    // Solapamiento de fechas
+    if (aEnd < bStart || bEnd < aStart) return false;
+
+    // Si hay horas, verificar solapamiento horario también
+    if (a.startTime && b.startTime) {
+        const aT1 = a.startTime, aT2 = a.endTime || '23:59';
+        const bT1 = b.startTime, bT2 = b.endTime || '23:59';
+        if (aT2 <= bT1 || bT2 <= aT1) return false;
+    }
+    return true;
+}
+
+function detectConflicts(events, candidate) {
+    return events.filter(ev => ev.id !== candidate.id && eventsConflict(ev, candidate));
+}
+
+// ─── STORE DE EVENTOS ────────────────────────────────────────────────────────
+
+class EventStore {
+    constructor() {
+        this._events    = [];   // eventos "plantilla" (master)
+        this._undoStack = [];
+        this._redoStack = [];
+        this._listeners = new Set();
+        this.load();
+    }
+
+    // — Persistencia —
+    load() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            this._events = raw ? JSON.parse(raw) : [];
+        } catch { this._events = []; }
+    }
+
+    save() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this._events)); }
+        catch(e) { console.error('Cal: error guardando', e); }
+    }
+
+    // — Suscriptores (reactivo) —
+    subscribe(fn)   { this._listeners.add(fn); }
+    unsubscribe(fn) { this._listeners.delete(fn); }
+    _notify()       { this._listeners.forEach(fn => fn(this._events)); }
+
+    // — Snapshot para undo/redo —
+    _snapshot() { return JSON.parse(JSON.stringify(this._events)); }
+
+    _pushUndo() {
+        this._undoStack.push(this._snapshot());
+        if (this._undoStack.length > UNDO_LIMIT) this._undoStack.shift();
+        this._redoStack = [];
+    }
+
+    undo() {
+        if (!this._undoStack.length) return false;
+        this._redoStack.push(this._snapshot());
+        this._events = this._undoStack.pop();
+        this.save();
+        this._notify();
+        return true;
+    }
+
+    redo() {
+        if (!this._redoStack.length) return false;
+        this._undoStack.push(this._snapshot());
+        this._events = this._redoStack.pop();
+        this.save();
+        this._notify();
+        return true;
+    }
+
+    canUndo() { return this._undoStack.length > 0; }
+    canRedo() { return this._redoStack.length > 0; }
+
+    // — CRUD —
+    getAll() { return [...this._events]; }
+
+    getById(id) { return this._events.find(e => e.id === id) || null; }
+
+    add(eventData) {
+        this._pushUndo();
+        const event = { ...eventData, id: eventData.id || uid(), seriesId: eventData.seriesId || sid(), createdAt: new Date().toISOString() };
+        this._events.push(event);
+        this.save();
+        this._notify();
+        return event;
+    }
+
+    update(id, changes) {
+        this._pushUndo();
+        const idx = this._events.findIndex(e => e.id === id);
+        if (idx === -1) return null;
+        this._events[idx] = { ...this._events[idx], ...changes, updatedAt: new Date().toISOString() };
+        this.save();
+        this._notify();
+        return this._events[idx];
+    }
+
+    updateSeries(seriesId, changes) {
+        this._pushUndo();
+        this._events = this._events.map(e =>
+            e.seriesId === seriesId ? { ...e, ...changes, updatedAt: new Date().toISOString() } : e
+        );
+        this.save();
+        this._notify();
+    }
+
+    updateSeriesFrom(id, changes) {
+        const ev = this.getById(id);
+        if (!ev) return;
+        this._pushUndo();
+        const threshold = ev.startDate;
+        this._events = this._events.map(e =>
+            e.seriesId === ev.seriesId && e.startDate >= threshold
+                ? { ...e, ...changes, updatedAt: new Date().toISOString() }
+                : e
+        );
+        this.save();
+        this._notify();
+    }
+
+    delete(id) {
+        this._pushUndo();
+        this._events = this._events.filter(e => e.id !== id);
+        this.save();
+        this._notify();
+    }
+
+    deleteSeries(seriesId) {
+        this._pushUndo();
+        this._events = this._events.filter(e => e.seriesId !== seriesId);
+        this.save();
+        this._notify();
+    }
+
+    deleteSeriesFrom(id) {
+        const ev = this.getById(id);
+        if (!ev) return;
+        this._pushUndo();
+        const threshold = ev.startDate;
+        this._events = this._events.filter(e =>
+            !(e.seriesId === ev.seriesId && e.startDate >= threshold)
+        );
+        this.save();
+        this._notify();
+    }
+
+    clear() {
+        this._pushUndo();
+        this._events = [];
+        this.save();
+        this._notify();
+    }
+
+    // — Consultas —
+
+    // Obtiene instancias expandidas para un rango de fechas
+    getInstancesInRange(startStr, endStr) {
+        const rangeStart = strToDate(startStr);
+        const rangeEnd   = strToDate(endStr);
+
+        const instances = [];
+        for (const ev of this._events) {
+            const evs = expandEventToInstances(ev);
+            for (const inst of evs) {
+                const iStart = strToDate(inst.startDate);
+                const iEnd   = inst.endDate ? strToDate(inst.endDate) : iStart;
+                // Dentro del rango
+                if (iStart <= rangeEnd && iEnd >= rangeStart) {
+                    instances.push(inst);
+                }
+            }
+        }
+        return instances;
+    }
+
+    getInstancesForDate(dateStr) {
+        return this.getInstancesInRange(dateStr, dateStr);
+    }
+
+    getInstancesForMonth(year, month) {
+        const first = dateToStr(new Date(year, month, 1));
+        const last  = dateToStr(new Date(year, month+1, 0));
+        return this.getInstancesInRange(first, last);
+    }
+
+    // Eventos próximos (x días desde hoy)
+    getUpcoming(days = 14) {
+        const today = dateToStr(new Date());
+        const limit = dateToStr(addDays(new Date(), days));
+        return this.getInstancesInRange(today, limit)
+            .sort((a,b) => a.startDate.localeCompare(b.startDate));
+    }
+
+    // Estadísticas rápidas
+    getStats() {
+        const total = this._events.length;
+        const byType = {};
+        this._events.forEach(e => { byType[e.type] = (byType[e.type]||0) + 1; });
+        const thisMonth = this.getInstancesForMonth(new Date().getFullYear(), new Date().getMonth()).length;
+        return { total, byType, thisMonth };
+    }
+}
+
+// ─── GESTOR DE CONFIGURACIÓN ─────────────────────────────────────────────────
+
+class Settings {
+    constructor() {
+        this._data = { firstDayMonday: true, defaultView: 'month', activeFilter: 'all', showWeekNumbers: false };
+        this.load();
+    }
+    load() {
+        try {
+            const raw = localStorage.getItem(SETTINGS_KEY);
+            if (raw) this._data = { ...this._data, ...JSON.parse(raw) };
+        } catch {}
+    }
+    save() {
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(this._data)); } catch {}
+    }
+    get(key)      { return this._data[key]; }
+    set(key, val) { this._data[key] = val; this.save(); }
+}
+
+// ─── TOAST MANAGER ───────────────────────────────────────────────────────────
+
+class Toast {
+    static show(message, type = 'info', duration = 3200) {
+        const existing = document.getElementById('cal-toast-container');
+        const container = existing || (() => {
+            const c = document.createElement('div');
+            c.id = 'cal-toast-container';
+            c.style.cssText = `position:fixed;top:1.25rem;right:1.25rem;z-index:99999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;`;
+            document.body.appendChild(c);
+            return c;
+        })();
+
+        const icons = { info:'ℹ', success:'✓', warning:'⚠', error:'✕', undo:'↩' };
+        const colors = {
+            info:    '#6366f1',
+            success: '#10b981',
+            warning: '#f59e0b',
+            error:   '#ef4444',
+            undo:    '#8b5cf6',
+        };
+
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: #0f0e17;
+            color: #fffffe;
+            padding: 0.75rem 1.1rem;
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            pointer-events: all;
+            cursor: default;
+            border-left: 3px solid ${colors[type] || colors.info};
+            max-width: 320px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            will-change: transform, opacity;
+        `;
+        toast.innerHTML = `<span style="color:${colors[type]};font-size:1rem;flex-shrink:0;">${icons[type]||icons.info}</span><span>${message}</span>`;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.style.opacity   = '1';
+            toast.style.transform = 'translateX(0)';
+        });
+
+        const remove = () => {
+            toast.style.opacity   = '0';
+            toast.style.transform = 'translateX(110%)';
+            setTimeout(() => toast.remove(), 300);
+        };
+        toast.addEventListener('click', remove);
+        setTimeout(remove, duration);
+    }
+}
+
+// ─── MODAL ENGINE ─────────────────────────────────────────────────────────────
+
+class Modal {
+    static _stack = [];
+
+    static open(config) {
+        // config: { title, body, actions, size='md', onClose }
+        const overlay = document.createElement('div');
+        overlay.className = 'cal-modal-overlay';
+        overlay.style.cssText = `
+            position:fixed;inset:0;z-index:9000;
+            background:rgba(15,14,23,0.72);
+            backdrop-filter:blur(6px);
+            display:flex;align-items:center;justify-content:center;
+            opacity:0;transition:opacity 0.22s ease;
+            padding: 1rem;
+        `;
+
+        const sizeMap = { sm:'400px', md:'560px', lg:'720px', xl:'900px' };
+        const panel = document.createElement('div');
+        panel.className = 'cal-modal-panel';
+        panel.style.cssText = `
+            background:#0f0e17;
+            border:1px solid rgba(99,102,241,0.2);
+            border-radius:20px;
+            width:100%;
+            max-width:${sizeMap[config.size||'md']};
+            max-height:90vh;
+            overflow-y:auto;
+            padding:2rem;
+            transform:translateY(24px) scale(0.97);
+            transition:transform 0.28s cubic-bezier(0.34,1.56,0.64,1),opacity 0.22s ease;
+            opacity:0;
+            scrollbar-width:thin;
+            scrollbar-color:rgba(99,102,241,0.3) transparent;
+            position:relative;
+        `;
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = `display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;`;
+        header.innerHTML = `
+            <h3 style="margin:0;font-size:1.2rem;font-weight:700;color:#fffffe;font-family:'DM Sans',sans-serif;">${config.title}</h3>
+            <button class="cal-modal-close" style="
+                background:rgba(255,255,255,0.06);border:none;
+                width:32px;height:32px;border-radius:8px;
+                cursor:pointer;color:#a8a8b3;font-size:1rem;
+                display:flex;align-items:center;justify-content:center;
+                transition:background 0.15s,color 0.15s;
+            ">✕</button>
+        `;
+
+        // Body
+        const body = document.createElement('div');
+        body.style.cssText = `color:#a8a8b3;font-family:'DM Sans',sans-serif;`;
+        if (typeof config.body === 'string') {
+            body.innerHTML = config.body;
+        } else if (config.body instanceof HTMLElement) {
+            body.appendChild(config.body);
+        }
+
+        // Actions
+        const footer = document.createElement('div');
+        footer.style.cssText = `display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.75rem;flex-wrap:wrap;`;
+        (config.actions || []).forEach(action => {
+            const btn = document.createElement('button');
+            btn.textContent = action.label;
+            const styles = {
+                cancel: `background:rgba(255,255,255,0.06);color:#fffffe;border:1px solid rgba(255,255,255,0.1);`,
+                primary:`background:#6366f1;color:#fff;border:none;`,
+                danger: `background:#ef4444;color:#fff;border:none;`,
+                success:`background:#10b981;color:#fff;border:none;`,
+            };
+            btn.style.cssText = `
+                padding:0.6rem 1.2rem;
+                border-radius:10px;
+                font-family:'DM Sans',sans-serif;
+                font-size:0.875rem;
+                font-weight:600;
+                cursor:pointer;
+                transition:filter 0.15s,transform 0.1s;
+                ${styles[action.variant||'cancel']}
+            `;
+            btn.addEventListener('mouseenter', () => btn.style.filter = 'brightness(1.15)');
+            btn.addEventListener('mouseleave', () => btn.style.filter = '');
+            btn.addEventListener('mousedown',  () => btn.style.transform = 'scale(0.97)');
+            btn.addEventListener('mouseup',    () => btn.style.transform = '');
+            btn.addEventListener('click', () => {
+                if (action.onClick) action.onClick();
+                if (action.close !== false) Modal.close(overlay);
+            });
+            footer.appendChild(btn);
+        });
+
+        panel.appendChild(header);
+        panel.appendChild(body);
+        panel.appendChild(footer);
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        Modal._stack.push(overlay);
+
+        const closeBtn = header.querySelector('.cal-modal-close');
+        const close = () => {
+            if (config.onClose) config.onClose();
+            Modal.close(overlay);
+        };
+        closeBtn.addEventListener('click', close);
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            panel.style.opacity   = '1';
+            panel.style.transform = 'translateY(0) scale(1)';
+        });
+
+        // Esc para cerrar
+        const escHandler = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }};
+        document.addEventListener('keydown', escHandler);
+
+        return { overlay, panel, body, close };
+    }
+
+    static close(overlay) {
+        overlay.style.opacity = '0';
+        const panel = overlay.querySelector('.cal-modal-panel');
+        if (panel) { panel.style.opacity = '0'; panel.style.transform = 'translateY(16px) scale(0.97)'; }
+        setTimeout(() => { overlay.remove(); Modal._stack = Modal._stack.filter(o => o !== overlay); }, 250);
+    }
+
+    static closeAll() {
+        Modal._stack.forEach(o => Modal.close(o));
+    }
+}
+
+// ─── FORMULARIO DE EVENTOS ───────────────────────────────────────────────────
+
+class EventForm {
+    constructor(store, onSaved) {
+        this._store   = store;
+        this._onSaved = onSaved;
+        this._editId  = null;
+    }
+
+    _buildForm(defaults = {}) {
+        const now = dateToStr(new Date());
+
+        const form = document.createElement('form');
+        form.style.cssText = `display:flex;flex-direction:column;gap:1.1rem;`;
+        form.innerHTML = `
+            <div class="cf-row" style="display:grid;grid-template-columns:1fr auto;gap:0.75rem;align-items:start;">
+                <div class="cf-field">
+                    <label class="cf-label">Título del evento *</label>
+                    <input id="cf-title" type="text" class="cf-input" placeholder="Nombre del evento..." value="${defaults.title||''}" maxlength="100" autocomplete="off">
+                    <span class="cf-err" id="cf-err-title"></span>
+                </div>
+                <div class="cf-field">
+                    <label class="cf-label">Color</label>
+                    <div style="position:relative;width:50px;">
+                        <input id="cf-color" type="color" class="cf-color-input" value="${defaults.color||'#6366f1'}">
+                        <div id="cf-color-preview" style="
+                            width:48px;height:48px;border-radius:12px;
+                            background:${defaults.color||'#6366f1'};
+                            cursor:pointer;border:2px solid rgba(255,255,255,0.1);
+                            position:absolute;top:0;left:0;pointer-events:none;
+                        "></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div class="cf-field">
+                    <label class="cf-label">Tipo</label>
+                    <select id="cf-type" class="cf-input">
+                        ${Object.entries(EVENT_TYPES).map(([k,v]) =>
+                            `<option value="${k}" ${(defaults.type||'academic')===k?'selected':''}>${v.icon} ${v.label}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="cf-field">
+                    <label class="cf-label">Prioridad</label>
+                    <select id="cf-priority" class="cf-input">
+                        <option value="normal"  ${(defaults.priority||'normal')==='normal'?'selected':''}>Normal</option>
+                        <option value="high"    ${defaults.priority==='high'?'selected':''}>Alta</option>
+                        <option value="urgent"  ${defaults.priority==='urgent'?'selected':''}>Urgente</option>
+                        <option value="low"     ${defaults.priority==='low'?'selected':''}>Baja</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.75rem;">
+                <div class="cf-field">
+                    <label class="cf-label">Fecha inicio *</label>
+                    <input id="cf-start-date" type="date" class="cf-input" value="${defaults.startDate||now}">
+                    <span class="cf-err" id="cf-err-date"></span>
+                </div>
+                <div class="cf-field">
+                    <label class="cf-label">Hora inicio</label>
+                    <input id="cf-start-time" type="time" class="cf-input" value="${defaults.startTime||'09:00'}">
+                </div>
+                <div class="cf-field">
+                    <label class="cf-label">Fecha fin</label>
+                    <input id="cf-end-date" type="date" class="cf-input" value="${defaults.endDate||defaults.startDate||now}">
+                </div>
+                <div class="cf-field">
+                    <label class="cf-label">Hora fin</label>
+                    <input id="cf-end-time" type="time" class="cf-input" value="${defaults.endTime||'10:00'}">
+                </div>
+            </div>
+
+            <div class="cf-field">
+                <label class="cf-label">Ubicación</label>
+                <input id="cf-location" type="text" class="cf-input" placeholder="Aula, sala, plataforma..." value="${defaults.location||''}" maxlength="150">
+            </div>
+
+            <div class="cf-field">
+                <label class="cf-label">Descripción</label>
+                <textarea id="cf-desc" class="cf-input" rows="3" placeholder="Detalles del evento..." style="resize:vertical;min-height:72px;">${defaults.description||''}</textarea>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div class="cf-field">
+                    <label class="cf-label">Recordatorio</label>
+                    <select id="cf-reminder" class="cf-input">
+                        <option value="">Sin recordatorio</option>
+                        <option value="15m"  ${defaults.reminder==='15m'?'selected':''}>15 minutos antes</option>
+                        <option value="30m"  ${defaults.reminder==='30m'?'selected':''}>30 minutos antes</option>
+                        <option value="1h"   ${defaults.reminder==='1h'?'selected':''}>1 hora antes</option>
+                        <option value="1d"   ${defaults.reminder==='1d'?'selected':''}>1 día antes</option>
+                        <option value="3d"   ${defaults.reminder==='3d'?'selected':''}>3 días antes</option>
+                    </select>
+                </div>
+                <div class="cf-field">
+                    <label class="cf-label">Repetir</label>
+                    <select id="cf-recurrence" class="cf-input">
+                        ${RECURRENCE_OPTIONS.map(o =>
+                            `<option value="${o.value}" ${(defaults.recurrence||'none')===o.value?'selected':''}>${o.label}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+            </div>
+
+            <div id="cf-conflict-warning" style="
+                display:none;
+                background:rgba(245,158,11,0.1);
+                border:1px solid rgba(245,158,11,0.3);
+                border-radius:10px;
+                padding:0.75rem 1rem;
+                font-size:0.8rem;
+                color:#fcd34d;
+            "></div>
+        `;
+
+        // Estilos del formulario
+        const style = document.createElement('style');
+        style.textContent = `
+            .cf-label {
+                display:block;
+                font-size:0.75rem;
+                font-weight:600;
+                color:#7b7b8a;
+                margin-bottom:0.35rem;
+                text-transform:uppercase;
+                letter-spacing:0.06em;
+            }
+            .cf-input {
+                width:100%;
+                background:rgba(255,255,255,0.05);
+                border:1px solid rgba(99,102,241,0.2);
+                border-radius:10px;
+                color:#fffffe;
+                font-family:'DM Sans',sans-serif;
+                font-size:0.875rem;
+                padding:0.6rem 0.875rem;
+                outline:none;
+                transition:border-color 0.15s,background 0.15s;
+                box-sizing:border-box;
+                color-scheme:dark;
+            }
+            .cf-input:focus {
+                border-color:#6366f1;
+                background:rgba(99,102,241,0.08);
+            }
+            .cf-input option { background:#1a1a2e;color:#fffffe; }
+            .cf-color-input {
+                position:absolute;opacity:0;width:48px;height:48px;cursor:pointer;border:none;padding:0;z-index:1;
+            }
+            .cf-err {
+                display:block;
+                font-size:0.75rem;
+                color:#f87171;
+                margin-top:0.25rem;
+                min-height:1rem;
+            }
+            .cf-field { display:flex;flex-direction:column; }
+        `;
+        form.prepend(style);
+
+        // — Lógica reactiva del formulario —
+
+        const colorInput   = form.querySelector('#cf-color');
+        const colorPreview = form.querySelector('#cf-color-preview');
+        colorInput.addEventListener('input', () => {
+            colorPreview.style.background = colorInput.value;
+        });
+        colorPreview.parentElement.addEventListener('click', () => colorInput.click());
+
+        // Auto-rellenar fecha fin al cambiar inicio
+        const startDateInput = form.querySelector('#cf-start-date');
+        const endDateInput   = form.querySelector('#cf-end-date');
+        startDateInput.addEventListener('change', () => {
+            if (!endDateInput.value || endDateInput.value < startDateInput.value) {
+                endDateInput.value = startDateInput.value;
+            }
+            this._checkConflicts(form);
+        });
+        endDateInput.addEventListener('change',        () => this._checkConflicts(form));
+        form.querySelector('#cf-start-time').addEventListener('change', () => this._checkConflicts(form));
+        form.querySelector('#cf-end-time').addEventListener('change',   () => this._checkConflicts(form));
+
+        // Autocompletar hora fin (+1h)
+        form.querySelector('#cf-start-time').addEventListener('change', e => {
+            const [h,m] = e.target.value.split(':').map(Number);
+            const endTime = form.querySelector('#cf-end-time');
+            if (!endTime.value || endTime.value <= e.target.value) {
+                const nh = (h+1) % 24;
+                endTime.value = `${String(nh).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+            }
+        });
+
+        // Color automático por tipo
+        form.querySelector('#cf-type').addEventListener('change', e => {
+            const typeColor = EVENT_TYPES[e.target.value]?.color;
+            if (typeColor && !defaults.color) {
+                colorInput.value           = typeColor;
+                colorPreview.style.background = typeColor;
+            }
+        });
+
+        this._form = form;
+        return form;
+    }
+
+    _checkConflicts(form) {
+        const warning = form.querySelector('#cf-conflict-warning');
+        if (!warning) return;
+
+        const sd = form.querySelector('#cf-start-date').value;
+        const ed = form.querySelector('#cf-end-date').value;
+        const st = form.querySelector('#cf-start-time').value;
+        const et = form.querySelector('#cf-end-time').value;
+
+        if (!sd) { warning.style.display = 'none'; return; }
+
+        const candidate = { id: this._editId || '__new__', startDate: sd, endDate: ed || sd, startTime: st, endTime: et };
+        const conflicts = detectConflicts(this._store.getAll(), candidate);
+
+        if (conflicts.length > 0) {
+            warning.style.display = 'block';
+            warning.innerHTML = `⚠ Conflicto con: ${conflicts.map(c => `<strong>${c.title}</strong>`).join(', ')}`;
+        } else {
+            warning.style.display = 'none';
+        }
+    }
+
+    _validate(form) {
+        let valid = true;
+        const title = form.querySelector('#cf-title');
+        const start = form.querySelector('#cf-start-date');
+        const end   = form.querySelector('#cf-end-date');
+
+        form.querySelectorAll('.cf-err').forEach(e => e.textContent = '');
+
+        if (!title.value.trim()) {
+            form.querySelector('#cf-err-title').textContent = 'El título es obligatorio';
+            title.style.borderColor = '#ef4444';
+            valid = false;
+        } else { title.style.borderColor = ''; }
+
+        if (!start.value) {
+            form.querySelector('#cf-err-date').textContent = 'La fecha de inicio es obligatoria';
+            valid = false;
+        } else if (end.value && end.value < start.value) {
+            form.querySelector('#cf-err-date').textContent = 'La fecha fin no puede ser anterior al inicio';
+            valid = false;
+        }
+
+        return valid;
+    }
+
+    _getData(form) {
+        return {
+            title:      form.querySelector('#cf-title').value.trim(),
+            type:       form.querySelector('#cf-type').value,
+            priority:   form.querySelector('#cf-priority').value,
+            color:      form.querySelector('#cf-color').value,
+            startDate:  form.querySelector('#cf-start-date').value,
+            startTime:  form.querySelector('#cf-start-time').value,
+            endDate:    form.querySelector('#cf-end-date').value || form.querySelector('#cf-start-date').value,
+            endTime:    form.querySelector('#cf-end-time').value,
+            location:   form.querySelector('#cf-location').value.trim(),
+            description:form.querySelector('#cf-desc').value.trim(),
+            reminder:   form.querySelector('#cf-reminder').value,
+            recurrence: form.querySelector('#cf-recurrence').value,
+        };
+    }
+
+    openNew(defaultDate = null) {
+        this._editId = null;
+        const defaults = defaultDate ? { startDate: defaultDate, endDate: defaultDate } : {};
+        const form = this._buildForm(defaults);
+
+        const { close } = Modal.open({
+            title: '✦ Nuevo Evento',
+            body: form,
+            size: 'lg',
+            actions: [
+                { label: 'Cancelar', variant: 'cancel' },
+                {
+                    label: 'Guardar Evento',
+                    variant: 'primary',
+                    close: false,
+                    onClick: () => {
+                        if (!this._validate(form)) return;
+                        const data = this._getData(form);
+                        const event = this._store.add(data);
+                        Toast.show(`Evento "${event.title}" guardado`, 'success');
+                        close();
+                        if (this._onSaved) this._onSaved(event);
+                    }
+                }
+            ]
+        });
+    }
+
+    openEdit(eventId) {
+        const event = this._store.getById(eventId);
+        if (!event) return;
+        this._editId = eventId;
+
+        const isRecurring = event.recurrence && event.recurrence !== 'none';
+        const form = this._buildForm(event);
+
+        const actions = [
+            { label: 'Cancelar', variant: 'cancel' },
+        ];
+
+        if (isRecurring) {
+            // Para recurrentes: opciones de edición
+            actions.push({
+                label: 'Guardar solo este',
+                variant: 'primary',
+                close: false,
+                onClick: () => {
+                    if (!this._validate(form)) return;
+                    const data = this._getData(form);
+                    // Desvinculamos de la serie
+                    this._store.update(eventId, { ...data, recurrence: 'none', seriesId: sid() });
+                    Toast.show('Evento actualizado', 'success');
+                    Modal.closeAll();
+                    if (this._onSaved) this._onSaved();
+                }
+            });
+            actions.push({
+                label: 'Guardar toda la serie',
+                variant: 'success',
+                close: false,
+                onClick: () => {
+                    if (!this._validate(form)) return;
+                    const data = this._getData(form);
+                    this._store.updateSeries(event.seriesId, data);
+                    Toast.show('Serie actualizada', 'success');
+                    Modal.closeAll();
+                    if (this._onSaved) this._onSaved();
+                }
+            });
+        } else {
+            actions.push({
+                label: 'Guardar Cambios',
+                variant: 'primary',
+                close: false,
+                onClick: () => {
+                    if (!this._validate(form)) return;
+                    const data = this._getData(form);
+                    this._store.update(eventId, data);
+                    Toast.show('Evento actualizado', 'success');
+                    Modal.closeAll();
+                    if (this._onSaved) this._onSaved();
+                }
+            });
+        }
+
+        Modal.open({
+            title: '✦ Editar Evento',
+            body: form,
+            size: 'lg',
+            actions
+        });
+    }
+
+    openDelete(eventId) {
+        const event = this._store.getById(eventId);
+        if (!event) return;
+        const isRecurring = event.recurrence && event.recurrence !== 'none';
+
+        if (!isRecurring) {
+            Modal.open({
+                title: 'Eliminar Evento',
+                body: `<p style="color:#a8a8b3;font-size:0.95rem;">¿Eliminar "<strong style="color:#fffffe;">${event.title}</strong>"? Esta acción no se puede deshacer.</p>`,
+                actions: [
+                    { label: 'Cancelar', variant: 'cancel' },
+                    { label: 'Eliminar', variant: 'danger', onClick: () => {
+                        this._store.delete(eventId);
+                        Toast.show('Evento eliminado', 'error');
+                        if (this._onSaved) this._onSaved();
+                    }}
+                ]
+            });
+            return;
+        }
+
+        // Recurrente: opciones
+        const container = document.createElement('div');
+        container.style.cssText = `display:flex;flex-direction:column;gap:0.75rem;`;
+
+        const seriesCount = this._store.getAll().filter(e => e.seriesId === event.seriesId).length;
+        const opts = [
+            { action: 'single',  label: 'Solo este evento', sub: '1 evento', color: '#6366f1' },
+            { action: 'forward', label: 'Este y siguientes', sub: 'Desde esta fecha', color: '#f59e0b' },
+            { action: 'series',  label: 'Toda la serie', sub: `${seriesCount} eventos`, color: '#ef4444' },
+        ];
+
+        opts.forEach(opt => {
+            const card = document.createElement('div');
+            card.style.cssText = `
+                padding:0.875rem 1rem;
+                border-radius:12px;
+                border:1px solid rgba(255,255,255,0.08);
+                cursor:pointer;
+                display:flex;justify-content:space-between;align-items:center;
+                transition:background 0.15s,border-color 0.15s;
+            `;
+            card.innerHTML = `
+                <div>
+                    <div style="color:#fffffe;font-weight:600;font-size:0.9rem;margin-bottom:0.2rem;">${opt.label}</div>
+                    <div style="color:#7b7b8a;font-size:0.8rem;">${opt.sub}</div>
+                </div>
+                <span style="color:${opt.color};font-size:1.1rem;">→</span>
+            `;
+            card.addEventListener('mouseenter', () => { card.style.background = 'rgba(255,255,255,0.04)'; card.style.borderColor = opt.color; });
+            card.addEventListener('mouseleave', () => { card.style.background = ''; card.style.borderColor = 'rgba(255,255,255,0.08)'; });
+            card.addEventListener('click', () => {
+                if (opt.action === 'single')  this._store.delete(eventId);
+                if (opt.action === 'forward') this._store.deleteSeriesFrom(eventId);
+                if (opt.action === 'series')  this._store.deleteSeries(event.seriesId);
+                Toast.show('Evento(s) eliminado(s)', 'error');
+                Modal.closeAll();
+                if (this._onSaved) this._onSaved();
+            });
+            container.appendChild(card);
+        });
+
+        Modal.open({
+            title: 'Eliminar Evento Recurrente',
+            body: container,
+            actions: [{ label: 'Cancelar', variant: 'cancel' }]
+        });
+    }
+}
+
+// ─── RENDERER DEL CALENDARIO ─────────────────────────────────────────────────
+
+class CalendarRenderer {
+    constructor(store, settings, form, canEdit) {
+        this._store    = store;
+        this._settings = settings;
+        this._form     = form;
+        this._canEdit  = canEdit;
+        this._year     = new Date().getFullYear();
+        this._month    = new Date().getMonth();
+        this._filter   = 'all';
+        this._view     = 'month'; // month | week | agenda
+        this._selected = null;
+
+        this._dragState = null;
+        this._root      = null;
+    }
+
+    mount(container) {
+        this._root = container;
+        this._buildShell();
+        this._store.subscribe(() => this.refresh());
+        this.refresh();
+    }
+
+    // — Shell del DOM —
+    _buildShell() {
+        this._root.innerHTML = '';
+        this._root.style.cssText = `
+            display:flex;flex-direction:column;gap:0;
+            height:100%;min-height:600px;
+            font-family:'DM Sans',sans-serif;
+        `;
+
+        // Toolbar
+        const toolbar = document.createElement('div');
+        toolbar.id = 'cal-toolbar';
+        toolbar.style.cssText = `
+            display:flex;align-items:center;gap:0.75rem;
+            padding:1rem 1.5rem;
+            border-bottom:1px solid rgba(99,102,241,0.15);
+            flex-wrap:wrap;
+        `;
+        this._root.appendChild(toolbar);
+
+        // Body: sidebar + grid
+        const body = document.createElement('div');
+        body.style.cssText = `display:flex;flex:1;overflow:hidden;min-height:0;`;
+
+        const sidebar = document.createElement('div');
+        sidebar.id = 'cal-sidebar';
+        sidebar.style.cssText = `
+            width:260px;flex-shrink:0;
+            border-right:1px solid rgba(99,102,241,0.15);
+            display:flex;flex-direction:column;
+            overflow-y:auto;padding:1.25rem;gap:1.25rem;
+            scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.2) transparent;
+        `;
+
+        const main = document.createElement('div');
+        main.id = 'cal-main';
+        main.style.cssText = `flex:1;overflow:auto;min-width:0;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.2) transparent;`;
+
+        body.appendChild(sidebar);
+        body.appendChild(main);
+        this._root.appendChild(body);
+    }
+
+    refresh() {
+        this._renderToolbar();
+        this._renderSidebar();
+        if (this._view === 'month')  this._renderMonthView();
+        if (this._view === 'week')   this._renderWeekView();
+        if (this._view === 'agenda') this._renderAgendaView();
+    }
+
+    _navigate(dir) {
+        if (this._view === 'month') {
+            this._month += dir;
+            if (this._month > 11) { this._month = 0;  this._year++; }
+            if (this._month < 0)  { this._month = 11; this._year--; }
+        } else if (this._view === 'week') {
+            this._weekOffset = (this._weekOffset || 0) + dir;
+        }
+        this.refresh();
+    }
+
+    _goToday() {
+        const t = new Date();
+        this._year  = t.getFullYear();
+        this._month = t.getMonth();
+        this._weekOffset = 0;
+        this.refresh();
+    }
+
+    _setView(v) { this._view = v; this._settings.set('defaultView', v); this.refresh(); }
+    _setFilter(f) { this._filter = f; this.refresh(); }
+
+    _matchesFilter(event) {
+        if (this._filter === 'all') return true;
+        return event.type === this._filter;
+    }
+
+    // ─ TOOLBAR ────────────────────────────────────────────────────────────────
+
+    _renderToolbar() {
+        const tb = document.getElementById('cal-toolbar');
+        if (!tb) return;
+        tb.innerHTML = '';
+
+        // Navegación
+        const navGroup = document.createElement('div');
+        navGroup.style.cssText = `display:flex;align-items:center;gap:0.5rem;`;
+
+        const prevBtn = this._mkBtn('←', () => this._navigate(-1));
+        const todayBtn = this._mkBtn('Hoy', () => this._goToday(), 'secondary');
+        const nextBtn = this._mkBtn('→', () => this._navigate(1));
+
+        const monthLabel = document.createElement('span');
+        monthLabel.style.cssText = `
+            font-size:1.25rem;font-weight:800;color:#fffffe;
+            min-width:190px;text-align:center;letter-spacing:-0.02em;
+        `;
+        monthLabel.textContent = `${MONTH_NAMES[this._month]} ${this._year}`;
+
+        navGroup.appendChild(prevBtn);
+        navGroup.appendChild(todayBtn);
+        navGroup.appendChild(monthLabel);
+        navGroup.appendChild(nextBtn);
+        tb.appendChild(navGroup);
+
+        // Spacer
+        const sp = document.createElement('div');
+        sp.style.cssText = `flex:1;`;
+        tb.appendChild(sp);
+
+        // Filtros
+        const filterGroup = document.createElement('div');
+        filterGroup.style.cssText = `display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;`;
+
+        [{ k: 'all', label: 'Todos' }, ...Object.entries(EVENT_TYPES).map(([k,v]) => ({ k, label: v.label }))].forEach(({ k, label }) => {
+            const btn = document.createElement('button');
+            const isActive = this._filter === k;
+            btn.textContent = label;
+            btn.style.cssText = `
+                padding:0.35rem 0.75rem;
+                border-radius:999px;
+                font-family:'DM Sans',sans-serif;
+                font-size:0.78rem;
+                font-weight:600;
+                cursor:pointer;
+                transition:all 0.15s;
+                border:1px solid ${isActive ? (EVENT_TYPES[k]?.color||'#6366f1') : 'rgba(255,255,255,0.1)'};
+                background:${isActive ? (EVENT_TYPES[k]?.color||'#6366f1')+'22' : 'transparent'};
+                color:${isActive ? (EVENT_TYPES[k]?.color||'#6366f1') : '#7b7b8a'};
+            `;
+            btn.addEventListener('click', () => this._setFilter(k));
+            filterGroup.appendChild(btn);
+        });
+        tb.appendChild(filterGroup);
+
+        // View switcher
+        const viewGroup = document.createElement('div');
+        viewGroup.style.cssText = `display:flex;align-items:center;gap:0.25rem;background:rgba(255,255,255,0.04);border-radius:10px;padding:3px;`;
+        [
+            { v: 'month', label: 'Mes' },
+            { v: 'week',  label: 'Semana' },
+            { v: 'agenda',label: 'Lista' },
+        ].forEach(({ v, label }) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            const isA = this._view === v;
+            btn.style.cssText = `
+                padding:0.35rem 0.75rem;border-radius:8px;
+                font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:600;
+                cursor:pointer;transition:all 0.15s;border:none;
+                background:${isA ? '#6366f1' : 'transparent'};
+                color:${isA ? '#fff' : '#7b7b8a'};
+            `;
+            btn.addEventListener('click', () => this._setView(v));
+            viewGroup.appendChild(btn);
+        });
+        tb.appendChild(viewGroup);
+
+        // Botón nuevo evento
+        if (this._canEdit) {
+            const addBtn = this._mkBtn('+ Nuevo evento', () => this._form.openNew(), 'primary');
+            tb.appendChild(addBtn);
+        }
+
+        // Undo/Redo
+        const undoBtn = this._mkBtn('↩', () => {
+            if (this._store.undo()) Toast.show('Acción deshecha', 'undo');
+            else Toast.show('Nada que deshacer', 'info');
+        });
+        const redoBtn = this._mkBtn('↪', () => {
+            if (this._store.redo()) Toast.show('Acción rehecha', 'undo');
+            else Toast.show('Nada que rehacer', 'info');
+        });
+        undoBtn.title = 'Deshacer (Ctrl+Z)';
+        redoBtn.title = 'Rehacer (Ctrl+Y)';
+        tb.appendChild(undoBtn);
+        tb.appendChild(redoBtn);
+    }
+
+    _mkBtn(label, onClick, variant = 'ghost') {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        const styles = {
+            ghost:    `background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#a8a8b3;`,
+            secondary:`background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;`,
+            primary:  `background:#6366f1;border:none;color:#fff;`,
+        };
+        btn.style.cssText = `
+            padding:0.45rem 0.875rem;border-radius:10px;
+            font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;
+            cursor:pointer;transition:filter 0.15s,transform 0.1s;
+            ${styles[variant]||styles.ghost}
+        `;
+        btn.addEventListener('mouseenter', () => btn.style.filter = 'brightness(1.2)');
+        btn.addEventListener('mouseleave', () => btn.style.filter = '');
+        btn.addEventListener('mousedown',  () => btn.style.transform = 'scale(0.96)');
+        btn.addEventListener('mouseup',    () => btn.style.transform = '');
+        btn.addEventListener('click', onClick);
+        return btn;
+    }
+
+    // ─ SIDEBAR ────────────────────────────────────────────────────────────────
+
+    _renderSidebar() {
+        const sidebar = document.getElementById('cal-sidebar');
+        if (!sidebar) return;
+        sidebar.innerHTML = '';
+
+        // Mini calendario
+        sidebar.appendChild(this._buildMiniCalendar());
+
+        // Próximos eventos
+        sidebar.appendChild(this._buildUpcoming());
+
+        // Estadísticas
+        sidebar.appendChild(this._buildStats());
+    }
+
+    _buildMiniCalendar() {
+        const wrap = document.createElement('div');
+
+        const header = document.createElement('div');
+        header.style.cssText = `display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;`;
+        header.innerHTML = `
+            <span style="font-size:0.8rem;font-weight:700;color:#fffffe;text-transform:uppercase;letter-spacing:0.05em;">
+                ${MONTH_NAMES[this._month].slice(0,3)} ${this._year}
+            </span>
+        `;
+        const navRow = document.createElement('div');
+        navRow.style.cssText = `display:flex;gap:4px;`;
+        const p = this._mkBtn('‹', () => this._navigate(-1));
+        const n = this._mkBtn('›', () => this._navigate(1));
+        p.style.padding = n.style.padding = '0.2rem 0.5rem';
+        navRow.appendChild(p); navRow.appendChild(n);
+        header.appendChild(navRow);
+        wrap.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);gap:2px;`;
+
+        // Encabezados
+        const startDay = 1; // Lunes
+        const dayLabels = ['L','M','X','J','V','S','D'];
+        dayLabels.forEach(d => {
+            const cell = document.createElement('div');
+            cell.textContent = d;
+            cell.style.cssText = `text-align:center;font-size:0.65rem;font-weight:700;color:#4a4a5a;padding:2px 0;`;
+            grid.appendChild(cell);
+        });
+
+        const firstDay = new Date(this._year, this._month, 1);
+        let startOffset = (firstDay.getDay() + 6) % 7; // Lunes=0
+        const daysInMonth = new Date(this._year, this._month+1, 0).getDate();
+        const today = new Date();
+
+        for (let i = 0; i < startOffset; i++) {
+            grid.appendChild(document.createElement('div'));
+        }
+
+        const instances = this._store.getInstancesForMonth(this._year, this._month);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(this._year, this._month, d);
+            const dateStr = dateToStr(date);
+            const isToday = isSameDay(date, today);
+            const hasEvents = instances.some(e => e.startDate === dateStr || (e.startDate <= dateStr && e.endDate >= dateStr));
+
+            const cell = document.createElement('div');
+            cell.textContent = d;
+            cell.style.cssText = `
+                width:28px;height:28px;
+                display:flex;align-items:center;justify-content:center;
+                border-radius:50%;font-size:0.75rem;cursor:pointer;
+                transition:background 0.15s;margin:0 auto;
+                font-weight:${isToday?'800':'400'};
+                background:${isToday ? '#6366f1' : 'transparent'};
+                color:${isToday ? '#fff' : '#a8a8b3'};
+                position:relative;
+            `;
+            if (hasEvents && !isToday) {
+                const dot = document.createElement('span');
+                dot.style.cssText = `position:absolute;bottom:2px;width:4px;height:4px;border-radius:50%;background:#6366f1;`;
+                cell.appendChild(dot);
+            }
+            cell.addEventListener('mouseenter', () => { if (!isToday) cell.style.background = 'rgba(99,102,241,0.15)'; });
+            cell.addEventListener('mouseleave', () => { if (!isToday) cell.style.background = 'transparent'; });
+            cell.addEventListener('click', () => {
+                if (this._canEdit) this._form.openNew(dateStr);
+            });
+            grid.appendChild(cell);
+        }
+
+        wrap.appendChild(grid);
+        return wrap;
+    }
+
+    _buildUpcoming() {
+        const wrap = document.createElement('div');
+
+        const title = document.createElement('div');
+        title.style.cssText = `font-size:0.75rem;font-weight:700;color:#4a4a5a;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem;`;
+        title.textContent = 'Próximos 14 días';
+        wrap.appendChild(title);
+
+        const upcoming = this._store.getUpcoming(14).filter(e => this._matchesFilter(e)).slice(0, 8);
+
+        if (!upcoming.length) {
+            const empty = document.createElement('div');
+            empty.style.cssText = `color:#4a4a5a;font-size:0.8rem;text-align:center;padding:1rem 0;`;
+            empty.textContent = 'Sin eventos próximos';
+            wrap.appendChild(empty);
+            return wrap;
+        }
+
+        upcoming.forEach(ev => {
+            const item = document.createElement('div');
+            const d = strToDate(ev.startDate);
+            const isToday = isSameDay(d, new Date());
+            const diffDays = daysBetween(new Date().setHours(0,0,0,0), d.setHours(0,0,0,0));
+
+            item.style.cssText = `
+                padding:0.5rem 0.625rem;
+                border-radius:8px;
+                border-left:3px solid ${ev.color};
+                background:${hexToRgba(ev.color, 0.07)};
+                margin-bottom:0.375rem;
+                cursor:pointer;
+                transition:background 0.15s;
+            `;
+            item.innerHTML = `
+                <div style="font-size:0.75rem;font-weight:700;color:${ev.color};">
+                    ${isToday ? 'Hoy' : diffDays === 1 ? 'Mañana' : formatDateShort(d)}
+                    ${ev.startTime ? `· ${formatTime(ev.startTime)}` : ''}
+                </div>
+                <div style="font-size:0.8rem;color:#fffffe;font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ev.title}</div>
+                ${ev.location ? `<div style="font-size:0.7rem;color:#6b6b7a;margin-top:1px;">📍 ${ev.location}</div>` : ''}
+            `;
+            item.addEventListener('mouseenter', () => item.style.background = hexToRgba(ev.color, 0.14));
+            item.addEventListener('mouseleave', () => item.style.background = hexToRgba(ev.color, 0.07));
+            item.addEventListener('click', () => {
+                if (this._canEdit) {
+                    const master = this._store.getById(ev.id);
+                    if (master) this._form.openEdit(ev.id);
+                }
+            });
+            wrap.appendChild(item);
+        });
+
+        return wrap;
+    }
+
+    _buildStats() {
+        const stats = this._store.getStats();
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `margin-top:0.5rem;`;
+
+        const title = document.createElement('div');
+        title.style.cssText = `font-size:0.75rem;font-weight:700;color:#4a4a5a;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.625rem;`;
+        title.textContent = 'Resumen';
+        wrap.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.style.cssText = `display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;`;
+
+        const cards = [
+            { label: 'Total eventos', value: stats.total, color: '#6366f1' },
+            { label: 'Este mes', value: stats.thisMonth, color: '#10b981' },
+        ];
+        cards.forEach(c => {
+            const card = document.createElement('div');
+            card.style.cssText = `
+                background:${hexToRgba(c.color, 0.08)};
+                border:1px solid ${hexToRgba(c.color, 0.2)};
+                border-radius:10px;padding:0.625rem;text-align:center;
+            `;
+            card.innerHTML = `
+                <div style="font-size:1.4rem;font-weight:800;color:${c.color};">${c.value}</div>
+                <div style="font-size:0.7rem;color:#6b6b7a;margin-top:2px;">${c.label}</div>
+            `;
+            grid.appendChild(card);
+        });
+        wrap.appendChild(grid);
+
+        // Por tipo
+        if (Object.keys(stats.byType).length > 0) {
+            const list = document.createElement('div');
+            list.style.cssText = `margin-top:0.625rem;display:flex;flex-direction:column;gap:0.3rem;`;
+            Object.entries(stats.byType).forEach(([type, count]) => {
+                const t = EVENT_TYPES[type] || { label: type, color: '#6366f1' };
+                const row = document.createElement('div');
+                row.style.cssText = `display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;`;
+                row.innerHTML = `
+                    <span style="width:8px;height:8px;border-radius:50%;background:${t.color};flex-shrink:0;"></span>
+                    <span style="color:#7b7b8a;flex:1;">${t.label}</span>
+                    <span style="color:#fffffe;font-weight:700;">${count}</span>
+                `;
+                list.appendChild(row);
+            });
+            wrap.appendChild(list);
+        }
+
+        return wrap;
+    }
+
+    // ─ VISTA MENSUAL ──────────────────────────────────────────────────────────
+
+    _renderMonthView() {
+        const main = document.getElementById('cal-main');
+        if (!main) return;
+        main.innerHTML = '';
+
+        const table = document.createElement('div');
+        table.style.cssText = `display:flex;flex-direction:column;height:100%;min-height:560px;`;
+
+        // Encabezados días
+        const headerRow = document.createElement('div');
+        headerRow.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid rgba(99,102,241,0.12);`;
+        const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+        days.forEach((d, i) => {
+            const cell = document.createElement('div');
+            cell.textContent = d;
+            cell.style.cssText = `
+                padding:0.625rem 0;text-align:center;
+                font-size:0.7rem;font-weight:700;letter-spacing:0.08em;
+                color:${i >= 5 ? '#6366f1' : '#4a4a5a'};
+                text-transform:uppercase;
+                border-right:${i<6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
+            `;
+            headerRow.appendChild(cell);
+        });
+        table.appendChild(headerRow);
+
+        // Grid días
+        const grid = document.createElement('div');
+        grid.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);flex:1;`;
+
+        const firstDay = new Date(this._year, this._month, 1);
+        const daysInMonth = new Date(this._year, this._month+1, 0).getDate();
+        const startOffset = (firstDay.getDay() + 6) % 7; // Lunes=0
+        const prevMonthDays = new Date(this._year, this._month, 0).getDate();
+        const today = new Date();
+
+        // Instancias del mes + algo de margen para eventos multi-día
+        const rangeStart = dateToStr(addDays(new Date(this._year, this._month, 1), -7));
+        const rangeEnd   = dateToStr(addDays(new Date(this._year, this._month+1, 0), 7));
+        const allInstances = this._store.getInstancesInRange(rangeStart, rangeEnd)
+            .filter(e => this._matchesFilter(e));
+
+        const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+        for (let i = 0; i < totalCells; i++) {
+            let date, isCurrentMonth;
+            if (i < startOffset) {
+                date = new Date(this._year, this._month-1, prevMonthDays - startOffset + i + 1);
+                isCurrentMonth = false;
+            } else if (i - startOffset < daysInMonth) {
+                date = new Date(this._year, this._month, i - startOffset + 1);
+                isCurrentMonth = true;
+            } else {
+                date = new Date(this._year, this._month+1, i - startOffset - daysInMonth + 1);
+                isCurrentMonth = false;
+            }
+
+            const dateStr    = dateToStr(date);
+            const isToday    = isSameDay(date, today);
+            const isWeekend  = date.getDay() === 0 || date.getDay() === 6;
+            const colIndex   = i % 7;
+
+            const cell = document.createElement('div');
+            cell.dataset.date = dateStr;
+            cell.style.cssText = `
+                min-height:110px;
+                padding:0.4rem 0.5rem;
+                border-right:${colIndex<6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
+                border-bottom:1px solid rgba(99,102,241,0.08);
+                position:relative;
+                cursor:${this._canEdit ? 'pointer' : 'default'};
+                transition:background 0.12s;
+                background:${!isCurrentMonth ? 'rgba(0,0,0,0.15)' : isWeekend ? 'rgba(99,102,241,0.025)' : 'transparent'};
+                display:flex;flex-direction:column;
+                overflow:hidden;
+            `;
+
+            // Número del día
+            const dayNum = document.createElement('div');
+            dayNum.textContent = date.getDate();
+            dayNum.style.cssText = `
+                width:28px;height:28px;
+                display:flex;align-items:center;justify-content:center;
+                border-radius:50%;
+                font-size:0.82rem;font-weight:${isToday?'800':'600'};
+                background:${isToday ? '#6366f1' : 'transparent'};
+                color:${isToday ? '#fff' : !isCurrentMonth ? '#3a3a4a' : isWeekend ? '#8b8bff' : '#fffffe'};
+                align-self:flex-end;
+                margin-bottom:2px;flex-shrink:0;
+            `;
+            cell.appendChild(dayNum);
+
+            // Eventos del día
+            const dayInstances = allInstances.filter(e => {
+                return e.startDate <= dateStr && e.endDate >= dateStr;
+            });
+
+            const MAX_VISIBLE = 3;
+            const visible  = dayInstances.slice(0, MAX_VISIBLE);
+            const overflow = dayInstances.length - MAX_VISIBLE;
+
+            visible.forEach(ev => {
+                const chip = document.createElement('div');
+                const isStart  = ev.startDate === dateStr;
+                const isEnd    = ev.endDate === dateStr;
+                const isMulti  = ev.startDate !== ev.endDate;
+
+                chip.textContent = isStart || !isMulti ? ev.title : '';
+                chip.style.cssText = `
+                    font-size:0.7rem;font-weight:600;
+                    padding:2px 5px;
+                    border-radius:${isMulti ? (isStart ? '4px 0 0 4px' : isEnd ? '0 4px 4px 0' : '0') : '4px'};
+                    background:${hexToRgba(ev.color, isMulti && !isStart ? 0.2 : 0.85)};
+                    color:${isMulti && !isStart ? ev.color : '#fff'};
+                    border-left:${isMulti && !isStart ? `2px solid ${ev.color}` : 'none'};
+                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                    cursor:pointer;
+                    transition:filter 0.12s;
+                    margin-bottom:2px;flex-shrink:0;
+                    ${ev.priority === 'urgent' ? `box-shadow:0 0 0 1px ${ev.color};` : ''}
+                `;
+
+                chip.addEventListener('mouseenter', () => chip.style.filter = 'brightness(1.2)');
+                chip.addEventListener('mouseleave', () => chip.style.filter = '');
+                chip.addEventListener('click', e => {
+                    e.stopPropagation();
+                    this._showEventPopover(ev, chip);
+                });
+
+                // Drag start
+                if (this._canEdit) {
+                    chip.draggable = true;
+                    chip.addEventListener('dragstart', de => {
+                        this._dragState = { eventId: ev.id, originalDate: ev.startDate };
+                        de.dataTransfer.effectAllowed = 'move';
+                        chip.style.opacity = '0.5';
+                    });
+                    chip.addEventListener('dragend', () => { chip.style.opacity = ''; this._dragState = null; });
+                }
+
+                cell.appendChild(chip);
+            });
+
+            if (overflow > 0) {
+                const more = document.createElement('div');
+                more.textContent = `+${overflow} más`;
+                more.style.cssText = `
+                    font-size:0.68rem;color:#6366f1;cursor:pointer;
+                    padding:1px 4px;font-weight:600;
+                `;
+                more.addEventListener('click', e => {
+                    e.stopPropagation();
+                    this._showDayModal(date, dayInstances);
+                });
+                cell.appendChild(more);
+            }
+
+            // Click en celda vacía = nuevo evento
+            cell.addEventListener('click', () => {
+                if (this._canEdit) this._form.openNew(dateStr);
+            });
+
+            // Drop target
+            cell.addEventListener('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                cell.style.background = 'rgba(99,102,241,0.1)';
+            });
+            cell.addEventListener('dragleave', () => {
+                cell.style.background = '';
+            });
+            cell.addEventListener('drop', e => {
+                e.preventDefault();
+                cell.style.background = '';
+                if (!this._dragState) return;
+                const { eventId, originalDate } = this._dragState;
+                const diff = daysBetween(strToDate(originalDate), strToDate(dateStr));
+                if (diff === 0) return;
+                const ev = this._store.getById(eventId);
+                if (!ev) return;
+                const newStart = dateToStr(addDays(strToDate(ev.startDate), diff));
+                const newEnd   = ev.endDate ? dateToStr(addDays(strToDate(ev.endDate), diff)) : newStart;
+                this._store.update(eventId, { startDate: newStart, endDate: newEnd });
+                Toast.show(`"${ev.title}" movido a ${formatDateShort(strToDate(newStart))}`, 'success');
+                this._dragState = null;
+            });
+
+            cell.addEventListener('mouseenter', () => {
+                if (!this._dragState) cell.style.background = isCurrentMonth ? 'rgba(99,102,241,0.04)' : 'rgba(0,0,0,0.18)';
+            });
+            cell.addEventListener('mouseleave', () => {
+                cell.style.background = !isCurrentMonth ? 'rgba(0,0,0,0.15)' : isWeekend ? 'rgba(99,102,241,0.025)' : 'transparent';
+            });
+
+            grid.appendChild(cell);
+        }
+
+        table.appendChild(grid);
+        main.appendChild(table);
+    }
+
+    // ─ VISTA SEMANAL ──────────────────────────────────────────────────────────
+
+    _renderWeekView() {
+        const main = document.getElementById('cal-main');
+        if (!main) return;
+        main.innerHTML = '';
+
+        const offset = this._weekOffset || 0;
+        const today  = new Date();
+        const startOfWeek = addDays(today, (1 - (today.getDay() || 7) + offset * 7));
+
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `display:flex;flex-direction:column;height:100%;`;
+
+        // Header días
+        const headerRow = document.createElement('div');
+        headerRow.style.cssText = `display:grid;grid-template-columns:60px repeat(7,1fr);border-bottom:1px solid rgba(99,102,241,0.12);flex-shrink:0;`;
+
+        const cornerCell = document.createElement('div');
+        cornerCell.style.cssText = `border-right:1px solid rgba(99,102,241,0.12);`;
+        headerRow.appendChild(cornerCell);
+
+        for (let d = 0; d < 7; d++) {
+            const date = addDays(startOfWeek, d);
+            const isT  = isSameDay(date, new Date());
+            const cell = document.createElement('div');
+            cell.style.cssText = `
+                padding:0.625rem;text-align:center;
+                border-right:${d<6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
+            `;
+            cell.innerHTML = `
+                <div style="font-size:0.68rem;font-weight:700;color:#4a4a5a;text-transform:uppercase;letter-spacing:0.06em;">${DAY_NAMES_SHORT[date.getDay()]}</div>
+                <div style="
+                    width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+                    border-radius:50%;margin:2px auto 0;
+                    font-size:1rem;font-weight:800;
+                    background:${isT ? '#6366f1' : 'transparent'};
+                    color:${isT ? '#fff' : '#fffffe'};
+                ">${date.getDate()}</div>
+            `;
+            headerRow.appendChild(cell);
+        }
+        wrap.appendChild(headerRow);
+
+        // Time grid
+        const scrollable = document.createElement('div');
+        scrollable.style.cssText = `flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.2) transparent;`;
+
+        const timeGrid = document.createElement('div');
+        timeGrid.style.cssText = `display:grid;grid-template-columns:60px repeat(7,1fr);position:relative;`;
+
+        // Horas (0-23)
+        for (let h = 0; h < 24; h++) {
+            const timeLabel = document.createElement('div');
+            timeLabel.style.cssText = `
+                height:56px;display:flex;align-items:flex-start;justify-content:flex-end;
+                padding:2px 8px 0 0;font-size:0.68rem;color:#4a4a5a;font-weight:600;
+                border-bottom:1px solid rgba(99,102,241,0.05);
+                border-right:1px solid rgba(99,102,241,0.12);
+            `;
+            timeLabel.textContent = h === 0 ? '' : `${String(h).padStart(2,'0')}:00`;
+            timeGrid.appendChild(timeLabel);
+
+            for (let d = 0; d < 7; d++) {
+                const date = addDays(startOfWeek, d);
+                const cell = document.createElement('div');
+                cell.style.cssText = `
+                    height:56px;
+                    border-bottom:1px solid rgba(99,102,241,0.05);
+                    border-right:${d<6 ? '1px solid rgba(99,102,241,0.05)' : 'none'};
+                    position:relative;cursor:${this._canEdit?'pointer':'default'};
+                    transition:background 0.1s;
+                `;
+                cell.dataset.date = dateToStr(date);
+                cell.dataset.hour  = h;
+
+                cell.addEventListener('mouseenter', () => cell.style.background = 'rgba(99,102,241,0.04)');
+                cell.addEventListener('mouseleave', () => cell.style.background = '');
+                cell.addEventListener('click', () => {
+                    if (this._canEdit) {
+                        const t = `${String(h).padStart(2,'0')}:00`;
+                        this._form.openNew(cell.dataset.date);
+                    }
+                });
+                timeGrid.appendChild(cell);
+            }
+        }
+
+        // Colocar eventos en el grid
+        for (let d = 0; d < 7; d++) {
+            const date = addDays(startOfWeek, d);
+            const dateStr = dateToStr(date);
+            const dayEvs  = this._store.getInstancesForDate(dateStr).filter(e => this._matchesFilter(e) && e.startTime);
+
+            dayEvs.forEach(ev => {
+                const [sh, sm] = ev.startTime.split(':').map(Number);
+                const [eh, em] = (ev.endTime || `${sh+1}:00`).split(':').map(Number);
+                const top    = (sh * 60 + sm) / 60 * 56;
+                const height = Math.max(((eh * 60 + em) - (sh * 60 + sm)) / 60 * 56, 28);
+
+                const slot = timeGrid.querySelector(`[data-date="${dateStr}"][data-hour="${sh}"]`);
+                if (!slot) return;
+
+                const chip = document.createElement('div');
+                chip.style.cssText = `
+                    position:absolute;left:2px;right:2px;
+                    top:0;height:${height}px;
+                    background:${hexToRgba(ev.color, 0.85)};
+                    border-radius:6px;padding:2px 5px;
+                    font-size:0.7rem;font-weight:600;color:#fff;
+                    overflow:hidden;cursor:pointer;z-index:1;
+                    transition:filter 0.12s;
+                `;
+                chip.textContent = ev.title;
+                chip.addEventListener('mouseenter', () => chip.style.filter = 'brightness(1.2)');
+                chip.addEventListener('mouseleave', () => chip.style.filter = '');
+                chip.addEventListener('click', e => { e.stopPropagation(); this._showEventPopover(ev, chip); });
+                slot.style.position = 'relative';
+                slot.appendChild(chip);
+            });
+        }
+
+        // Línea de hora actual
+        const nowH = new Date().getHours();
+        const nowM = new Date().getMinutes();
+        const nowTop = (nowH * 60 + nowM) / 60 * 56;
+        const nowLine = document.createElement('div');
+        nowLine.style.cssText = `
+            position:absolute;left:60px;right:0;
+            top:${nowTop}px;height:2px;
+            background:#ef4444;z-index:2;
+            pointer-events:none;
+        `;
+        const nowDot = document.createElement('div');
+        nowDot.style.cssText = `
+            position:absolute;left:-4px;top:-4px;
+            width:10px;height:10px;border-radius:50%;background:#ef4444;
+        `;
+        nowLine.appendChild(nowDot);
+        timeGrid.style.position = 'relative';
+        timeGrid.appendChild(nowLine);
+
+        scrollable.appendChild(timeGrid);
+        wrap.appendChild(scrollable);
+        main.appendChild(wrap);
+
+        // Scroll a hora actual
+        setTimeout(() => { scrollable.scrollTop = Math.max(0, nowTop - 100); }, 50);
+    }
+
+    // ─ VISTA AGENDA ───────────────────────────────────────────────────────────
+
+    _renderAgendaView() {
+        const main = document.getElementById('cal-main');
+        if (!main) return;
+        main.innerHTML = '';
+
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `padding:1.5rem;max-width:740px;`;
+
+        // Obtener próximos 90 días
+        const from = dateToStr(new Date(this._year, this._month, 1));
+        const to   = dateToStr(new Date(this._year, this._month+1, 0));
+        const instances = this._store.getInstancesInRange(from, to)
+            .filter(e => this._matchesFilter(e))
+            .sort((a,b) => a.startDate.localeCompare(b.startDate) || a.startTime?.localeCompare(b.startTime||''));
+
+        if (!instances.length) {
+            const empty = document.createElement('div');
+            empty.style.cssText = `
+                display:flex;flex-direction:column;align-items:center;justify-content:center;
+                padding:4rem;color:#3a3a4a;gap:0.75rem;
+            `;
+            empty.innerHTML = `
+                <div style="font-size:3rem;opacity:0.5;">◷</div>
+                <div style="font-size:1rem;font-weight:600;">Sin eventos este mes</div>
+                ${this._canEdit ? `<div style="font-size:0.85rem;">Haz clic en "+ Nuevo evento" para empezar</div>` : ''}
+            `;
+            wrap.appendChild(empty);
+            main.appendChild(wrap);
+            return;
+        }
+
+        // Agrupar por fecha
+        const groups = {};
+        instances.forEach(ev => {
+            if (!groups[ev.startDate]) groups[ev.startDate] = [];
+            groups[ev.startDate].push(ev);
+        });
+
+        const today = dateToStr(new Date());
+        const yesterday = dateToStr(addDays(new Date(), -1));
+        const tomorrow  = dateToStr(addDays(new Date(), 1));
+
+        Object.entries(groups).forEach(([dateStr, evs]) => {
+            const date = strToDate(dateStr);
+            let dateLabel = formatDateLong(date);
+            if (dateStr === today)     dateLabel = 'Hoy — ' + dateLabel;
+            if (dateStr === tomorrow)  dateLabel = 'Mañana — ' + dateLabel;
+
+            // Separador de fecha
+            const sep = document.createElement('div');
+            sep.style.cssText = `
+                display:flex;align-items:center;gap:0.75rem;
+                margin:1.5rem 0 0.75rem;
+            `;
+            sep.innerHTML = `
+                <span style="font-size:0.8rem;font-weight:700;color:#6366f1;white-space:nowrap;">${dateLabel}</span>
+                <span style="flex:1;height:1px;background:rgba(99,102,241,0.15);"></span>
+            `;
+            wrap.appendChild(sep);
+
+            evs.forEach(ev => {
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    display:flex;gap:0.875rem;
+                    padding:0.875rem 1rem;
+                    border-radius:12px;
+                    border:1px solid rgba(255,255,255,0.06);
+                    background:rgba(255,255,255,0.02);
+                    margin-bottom:0.5rem;
+                    cursor:pointer;
+                    transition:background 0.15s,border-color 0.15s;
+                    position:relative;overflow:hidden;
+                `;
+                card.innerHTML = `
+                    <div style="
+                        width:4px;border-radius:999px;
+                        background:${ev.color};flex-shrink:0;align-self:stretch;
+                    "></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                            <span style="font-size:0.95rem;font-weight:700;color:#fffffe;">${ev.title}</span>
+                            ${ev.priority === 'urgent' ? `<span style="font-size:0.68rem;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:4px;">URGENTE</span>` : ''}
+                            ${ev.recurrence && ev.recurrence !== 'none' ? `<span style="font-size:0.68rem;color:#6366f1;background:rgba(99,102,241,0.1);padding:1px 6px;border-radius:4px;">↺ ${RECURRENCE_OPTIONS.find(r=>r.value===ev.recurrence)?.label||''}</span>` : ''}
+                        </div>
+                        <div style="display:flex;gap:1rem;margin-top:3px;flex-wrap:wrap;">
+                            ${ev.startTime ? `<span style="font-size:0.78rem;color:#6b6b7a;">${formatTime(ev.startTime)}${ev.endTime ? ` – ${formatTime(ev.endTime)}` : ''}</span>` : ''}
+                            ${ev.location  ? `<span style="font-size:0.78rem;color:#6b6b7a;">📍 ${ev.location}</span>` : ''}
+                        </div>
+                        ${ev.description ? `<div style="font-size:0.8rem;color:#5a5a6a;margin-top:4px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ev.description}</div>` : ''}
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:0.35rem;flex-shrink:0;">
+                        <span style="font-size:0.68rem;font-weight:700;color:${ev.color};background:${hexToRgba(ev.color,0.1)};padding:2px 8px;border-radius:6px;white-space:nowrap;">
+                            ${EVENT_TYPES[ev.type]?.icon||'•'} ${EVENT_TYPES[ev.type]?.label||ev.type}
+                        </span>
+                    </div>
+                `;
+                card.addEventListener('mouseenter', () => {
+                    card.style.background = 'rgba(255,255,255,0.04)';
+                    card.style.borderColor = hexToRgba(ev.color, 0.3);
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.background = 'rgba(255,255,255,0.02)';
+                    card.style.borderColor = 'rgba(255,255,255,0.06)';
+                });
+                card.addEventListener('click', () => this._showEventPopover(ev, card));
+                wrap.appendChild(card);
+            });
+        });
+
+        main.appendChild(wrap);
+    }
+
+    // ─ POPOVER DE EVENTO ──────────────────────────────────────────────────────
+
+    _showEventPopover(evInstance, anchor) {
+        // Buscar el evento master (original)
+        const master = this._store.getById(evInstance.id);
+        if (!master) return;
+
+        const { close } = Modal.open({
+            title: `${EVENT_TYPES[master.type]?.icon||'•'} ${master.title}`,
+            size: 'sm',
+            body: `
+                <div style="display:flex;flex-direction:column;gap:0.625rem;">
+                    ${master.startDate ? `
+                    <div style="display:flex;gap:0.5rem;align-items:flex-start;">
+                        <span style="color:#4a4a5a;font-size:0.875rem;flex-shrink:0;margin-top:2px;">📅</span>
+                        <span style="color:#fffffe;font-size:0.875rem;">
+                            ${formatDateLong(strToDate(master.startDate))}
+                            ${master.endDate && master.endDate !== master.startDate ? ` — ${formatDateLong(strToDate(master.endDate))}` : ''}
+                        </span>
+                    </div>` : ''}
+                    ${master.startTime ? `
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <span style="color:#4a4a5a;font-size:0.875rem;">⏰</span>
+                        <span style="color:#fffffe;font-size:0.875rem;">${formatTime(master.startTime)}${master.endTime ? ` – ${formatTime(master.endTime)}` : ''}</span>
+                    </div>` : ''}
+                    ${master.location ? `
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <span style="color:#4a4a5a;font-size:0.875rem;">📍</span>
+                        <span style="color:#fffffe;font-size:0.875rem;">${master.location}</span>
+                    </div>` : ''}
+                    ${master.recurrence && master.recurrence !== 'none' ? `
+                    <div style="display:flex;gap:0.5rem;align-items:center;">
+                        <span style="color:#4a4a5a;font-size:0.875rem;">↺</span>
+                        <span style="color:#6366f1;font-size:0.875rem;">${RECURRENCE_OPTIONS.find(r=>r.value===master.recurrence)?.label||''}</span>
+                    </div>` : ''}
+                    ${master.description ? `
+                    <div style="margin-top:0.25rem;padding:0.625rem;background:rgba(255,255,255,0.03);border-radius:8px;font-size:0.85rem;color:#a8a8b3;line-height:1.5;">${master.description}</div>
+                    ` : ''}
+                </div>
+            `,
+            actions: [
+                { label: 'Cerrar', variant: 'cancel' },
+                ...(this._canEdit ? [
+                    { label: 'Editar', variant: 'primary', onClick: () => { close(); this._form.openEdit(master.id); }},
+                    { label: 'Eliminar', variant: 'danger', onClick: () => { close(); this._form.openDelete(master.id); }},
+                ] : [])
+            ]
+        });
+    }
+
+    // ─ MODAL: TODOS LOS EVENTOS DE UN DÍA ────────────────────────────────────
+
+    _showDayModal(date, instances) {
+        const filtered = instances.filter(e => this._matchesFilter(e));
+        const container = document.createElement('div');
+        container.style.cssText = `display:flex;flex-direction:column;gap:0.5rem;`;
+
+        filtered.forEach(ev => {
+            const row = document.createElement('div');
+            row.style.cssText = `
+                display:flex;align-items:center;gap:0.625rem;
+                padding:0.6rem 0.75rem;border-radius:10px;
+                background:${hexToRgba(ev.color, 0.08)};
+                border-left:3px solid ${ev.color};
+                cursor:pointer;transition:background 0.12s;
+            `;
+            row.innerHTML = `
+                <span style="font-size:0.875rem;font-weight:600;color:#fffffe;flex:1;">${ev.title}</span>
+                ${ev.startTime ? `<span style="font-size:0.75rem;color:#6b6b7a;">${formatTime(ev.startTime)}</span>` : ''}
+            `;
+            row.addEventListener('mouseenter', () => row.style.background = hexToRgba(ev.color, 0.15));
+            row.addEventListener('mouseleave', () => row.style.background = hexToRgba(ev.color, 0.08));
+            row.addEventListener('click', () => { Modal.closeAll(); this._showEventPopover(ev, row); });
+            container.appendChild(row);
+        });
+
+        Modal.open({
+            title: `Eventos — ${formatDateLong(date)}`,
+            body: container,
+            actions: [
+                { label: 'Cerrar', variant: 'cancel' },
+                ...(this._canEdit ? [{ label: '+ Nuevo evento este día', variant: 'primary', onClick: () => { Modal.closeAll(); this._form.openNew(dateToStr(date)); }}] : [])
+            ]
+        });
+    }
+
+    // ─ IMPRESIÓN ──────────────────────────────────────────────────────────────
+
+    print() {
+        const win = window.open('', '_blank');
+        if (!win) { Toast.show('Habilita las ventanas emergentes para imprimir', 'warning'); return; }
+
+        const instances = this._store.getInstancesForMonth(this._year, this._month)
+            .filter(e => this._matchesFilter(e));
+
+        const firstDay   = new Date(this._year, this._month, 1);
+        const daysInMonth= new Date(this._year, this._month+1, 0).getDate();
+        const startOffset= (firstDay.getDay() + 6) % 7;
+
+        let rows = '';
+        let day = 0;
+        for (let w = 0; w < 6; w++) {
+            let row = '<tr>';
+            for (let d = 0; d < 7; d++) {
+                const ci = w * 7 + d;
+                if (ci < startOffset || ci >= startOffset + daysInMonth) {
+                    row += '<td></td>';
+                    continue;
+                }
+                day++;
+                const date = new Date(this._year, this._month, day);
+                const dateStr = dateToStr(date);
+                const evs = instances.filter(e => e.startDate <= dateStr && e.endDate >= dateStr);
+                row += `<td style="${isSameDay(date, new Date()) ? 'background:#e8e8ff;' : ''}">
+                    <div class="day-num">${day}</div>
+                    ${evs.map(e => `<div class="ev" style="background:${e.color};">${e.title}</div>`).join('')}
+                </td>`;
+            }
+            row += '</tr>';
+            rows += row;
+            if (day >= daysInMonth) break;
+        }
+
+        win.document.write(`
+            <!DOCTYPE html><html><head><title>Calendario ${MONTH_NAMES[this._month]} ${this._year}</title>
+            <style>
+                body{font-family:Arial,sans-serif;margin:20px;}
+                h1{text-align:center;font-size:20px;margin-bottom:16px;}
+                table{width:100%;border-collapse:collapse;}
+                th{background:#f0f0f0;padding:8px;text-align:center;border:1px solid #ddd;font-size:12px;}
+                td{border:1px solid #ddd;padding:6px;vertical-align:top;height:90px;font-size:11px;}
+                .day-num{font-weight:bold;margin-bottom:4px;}
+                .ev{color:#fff;padding:2px 4px;border-radius:3px;margin:1px 0;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+            </style></head><body>
+            <h1>${MONTH_NAMES[this._month]} ${this._year}</h1>
+            <table><thead><tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr></thead>
+            <tbody>${rows}</tbody></table>
+            <script>window.onload=()=>window.print();<\/script>
+            </body></html>
+        `);
+        win.document.close();
+    }
+
+    // ─ RESET ──────────────────────────────────────────────────────────────────
+
+    confirmReset() {
+        Modal.open({
+            title: 'Reiniciar Calendario',
+            body: `<p style="color:#a8a8b3;">Esta acción eliminará <strong style="color:#ef4444;">todos los eventos</strong> permanentemente. No se puede deshacer después de confirmado.</p>`,
+            actions: [
+                { label: 'Cancelar', variant: 'cancel' },
+                { label: 'Reiniciar todo', variant: 'danger', onClick: () => {
+                    this._store.clear();
+                    Toast.show('Calendario reiniciado', 'info');
+                }}
+            ]
+        });
+    }
+
+    // ─ BÚSQUEDA RÁPIDA ────────────────────────────────────────────────────────
+
+    openSearch() {
+        const container = document.createElement('div');
+        container.style.cssText = `display:flex;flex-direction:column;gap:1rem;`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Buscar eventos...';
+        input.style.cssText = `
+            width:100%;background:rgba(255,255,255,0.05);
+            border:1px solid rgba(99,102,241,0.3);border-radius:10px;
+            color:#fffffe;font-family:'DM Sans',sans-serif;font-size:0.95rem;
+            padding:0.75rem 1rem;outline:none;box-sizing:border-box;color-scheme:dark;
+        `;
+        container.appendChild(input);
+
+        const results = document.createElement('div');
+        results.style.cssText = `display:flex;flex-direction:column;gap:0.4rem;max-height:320px;overflow-y:auto;`;
+        container.appendChild(results);
+
+        const { close } = Modal.open({ title: '🔍 Buscar Eventos', body: container, size: 'md', actions: [{ label: 'Cerrar', variant: 'cancel' }] });
+
+        const doSearch = q => {
+            results.innerHTML = '';
+            if (!q.trim()) return;
+            const hits = this._store.getAll()
+                .filter(e => e.title.toLowerCase().includes(q.toLowerCase()) || e.description?.toLowerCase().includes(q.toLowerCase()) || e.location?.toLowerCase().includes(q.toLowerCase()))
+                .slice(0, 20);
+
+            if (!hits.length) {
+                results.innerHTML = `<div style="color:#4a4a5a;text-align:center;padding:1rem;font-size:0.875rem;">Sin resultados para "${q}"</div>`;
+                return;
+            }
+            hits.forEach(ev => {
+                const row = document.createElement('div');
+                row.style.cssText = `
+                    padding:0.6rem 0.75rem;border-radius:8px;
+                    border-left:3px solid ${ev.color};
+                    background:${hexToRgba(ev.color, 0.07)};
+                    cursor:pointer;transition:background 0.12s;
+                `;
+                row.innerHTML = `
+                    <div style="font-size:0.875rem;font-weight:600;color:#fffffe;">${ev.title}</div>
+                    <div style="font-size:0.75rem;color:#6b6b7a;margin-top:2px;">
+                        ${formatDateShort(strToDate(ev.startDate))}
+                        ${ev.startTime ? `· ${formatTime(ev.startTime)}` : ''}
+                        ${ev.location ? `· 📍 ${ev.location}` : ''}
+                    </div>
+                `;
+                row.addEventListener('mouseenter', () => row.style.background = hexToRgba(ev.color, 0.14));
+                row.addEventListener('mouseleave', () => row.style.background = hexToRgba(ev.color, 0.07));
+                row.addEventListener('click', () => {
+                    close();
+                    if (this._canEdit) this._form.openEdit(ev.id);
+                    else this._showEventPopover(ev, document.body);
+                });
+                results.appendChild(row);
+            });
+        };
+
+        input.addEventListener('input', e => doSearch(e.target.value));
+        setTimeout(() => input.focus(), 100);
+    }
+}
+
+// ─── CONTROLADOR PRINCIPAL ───────────────────────────────────────────────────
 
 class CalendarManager {
     constructor() {
-        console.debug('🔧 Constructor de CalendarManager llamado');
-        this.currentDate = new Date();
-        this.currentYear = this.currentDate.getFullYear();
-        this.currentMonth = this.currentDate.getMonth();
-        this.selectedDate = new Date();
-        this.activeFilter = 'all';
-        this.events = this.loadEvents();
-        this.editingEvent = null;
-        this.editingSeriesId = null;
-        
-        console.debug('📅 Estado inicial:', {
-            currentDate: this.currentDate.toISOString().split('T')[0],
-            currentYear: this.currentYear,
-            currentMonth: this.currentMonth,
-            activeFilter: this.activeFilter,
-            eventsCount: this.events.length
-        });
-        
-        this.init();
+        this._store    = new EventStore();
+        this._settings = new Settings();
+        this._canEdit  = false;
+        this._renderer = null;
+        this._form     = null;
+        this._unloaded = false;
     }
 
-    // Inicializar el calendario
-    init() {
-        console.debug('🔧 Inicializando Calendario...');
-        
+    async init() {
         try {
-            // Configurar eventos del DOM
-            this.setupEventListeners();
-            
-            // Renderizar vista inicial
-            this.renderCalendar();
-            
-            // Actualizar eventos próximos
-            this.updateUpcomingEvents();
-            
-            // Renderizar mini calendario
-            this.renderMiniCalendar();
-            
-            // Actualizar fecha actual
-            this.updateCurrentDate();
-            
-            console.debug('✅ Calendario inicializado correctamente');
-        } catch (error) {
-            console.error('❌ Error en la inicialización del calendario:', error);
-            this.showNotification('Error al inicializar el calendario');
-        }
-    }
+            await loadCurrentPermissions();
 
-    // Configurar event listeners
-    setupEventListeners() {
-        console.debug('🎯 Configurando event listeners...');
-        
-        try {
-            // Navegación por meses
-            document.getElementById('prevYear')?.addEventListener('click', () => {
-                console.debug('⬅️ Navegando al mes anterior');
-                this.navigateMonth(-1);
-            });
-            
-            document.getElementById('nextYear')?.addEventListener('click', () => {
-                console.debug('➡️ Navegando al mes siguiente');
-                this.navigateMonth(1);
-            });
-            
-            // Filtros
-            document.querySelectorAll('.calendar__filter-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const filter = e.currentTarget.dataset.filter;
-                    console.debug(`🔍 Aplicando filtro: ${filter}`);
-                    this.setFilter(filter);
-                });
-            });
-            
-            // Agregar evento
-            document.getElementById('addEvent')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.debug('➕ Abriendo modal para nuevo evento');
-                this.openEventModal();
-            });
-            
-            // Imprimir calendario
-            document.getElementById('printCalendar')?.addEventListener('click', () => {
-                console.debug('🖨️ Preparando para imprimir calendario');
-                this.printCalendar();
-            });
-            
-            // Mini calendario
-            document.getElementById('miniPrev')?.addEventListener('click', () => {
-                console.debug('⬅️ Navegando mini calendario anterior');
-                this.navigateMiniCalendar(-1);
-            });
-            
-            document.getElementById('miniNext')?.addEventListener('click', () => {
-                console.debug('➡️ Navegando mini calendario siguiente');
-                this.navigateMiniCalendar(1);
-            });
-            
-            // Reiniciar calendario
-            document.getElementById('resetCalendar')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.debug('🔄 Solicitando reinicio del calendario');
-                this.showResetCalendarModal();
-            });
-            
-            // Modal de eventos
-            this.setupModalEvents();
-            
-            console.debug('✅ Event listeners configurados correctamente');
-        } catch (error) {
-            console.error('❌ Error configurando event listeners:', error);
-        }
-    }
-
-    // Configurar eventos del modal
-    setupModalEvents() {
-        console.debug('🎯 Configurando eventos del modal...');
-        
-        try {
-            const modal = document.getElementById('calendarEventModal');
-            const closeBtn = document.getElementById('closeCalendarModal');
-            const cancelBtn = document.getElementById('cancelCalendarEvent');
-            const saveBtn = document.getElementById('saveCalendarEvent');
-            const deleteBtn = document.getElementById('deleteCalendarEvent');
-            const colorPicker = document.getElementById('eventColor');
-            
-            if (!modal) {
-                console.error('❌ Modal no encontrado en el DOM');
+            if (!canView('calendario')) {
+                showNoPermissionAlert('calendario');
+                console.warn('Cal: sin permisos de vista');
                 return;
             }
-            
-            // Cerrar modal
-            const closeModal = () => {
-                console.debug('❌ Cerrando modal de evento');
-                modal.removeAttribute('open');
-                this.editingEvent = null;
-                this.editingSeriesId = null;
-                document.getElementById('deleteCalendarEvent').style.display = 'none';
-                document.getElementById('modalEventTitle').textContent = 'Nuevo Evento';
-                document.getElementById('calendarEventForm').reset();
-                this.clearFormAlerts();
-            };
-            
-            closeBtn?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                closeModal();
-            });
-            
-            cancelBtn?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                closeModal();
-            });
-            
-            // Cerrar al hacer clic fuera
-            modal?.addEventListener('click', (e) => {
-                if (e.target === modal || e.target.classList.contains('modal__backdrop')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeModal();
-                }
-            });
-            
-            // Guardar evento
-            saveBtn?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.debug('💾 Guardando evento...');
-                this.saveEvent();
-            });
-            
-            // Eliminar evento
-            deleteBtn?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.debug('🗑️ Eliminando evento...');
-                this.deleteEvent();
-            });
-            
-            // Actualizar vista previa del color
-            if (colorPicker) {
-                colorPicker.addEventListener('input', (e) => {
-                    const colorPreview = document.getElementById('colorPreview');
-                    if (colorPreview) {
-                        colorPreview.style.backgroundColor = e.target.value;
-                    }
-                });
-            }
-            
-            // Fecha de fin por defecto igual a inicio
-            document.getElementById('eventStartDate')?.addEventListener('change', (e) => {
-                const endDateInput = document.getElementById('eventEndDate');
-                if (endDateInput && !endDateInput.value) {
-                    endDateInput.value = e.target.value;
-                }
-            });
-            
-            // Limpiar alertas al cambiar valores
-            const formFields = document.querySelectorAll('#calendarEventForm input, #calendarEventForm select, #calendarEventForm textarea');
-            formFields.forEach(field => {
-                field.addEventListener('input', () => {
-                    this.clearFieldAlert(field.id);
-                });
-            });
-            
-            // Prevenir que el clic en el formulario cierre el modal
-            document.getElementById('calendarEventForm')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-            
-            console.debug('✅ Eventos del modal configurados correctamente');
-        } catch (error) {
-            console.error('❌ Error configurando eventos del modal:', error);
-        }
-    }
 
-    // ===== SISTEMA DE ALERTAS MINIMALISTA =====
+            this._canEdit = canAction('calendario');
+            this._form = new EventForm(this._store, () => this._renderer?.refresh());
+            this._renderer = new CalendarRenderer(this._store, this._settings, this._form, this._canEdit);
 
-    // Mostrar alerta de campo
-    showFieldAlert(fieldId, message) {
-        const field = document.getElementById(fieldId);
-        if (!field) return;
-        
-        // Limpiar alerta anterior si existe
-        this.clearFieldAlert(fieldId);
-        
-        // Crear elemento de alerta
-        const alertElement = document.createElement('div');
-        alertElement.className = 'field-alert';
-        alertElement.id = `alert-${fieldId}`;
-        alertElement.textContent = message;
-        
-        // Insertar después del campo
-        field.parentNode.insertBefore(alertElement, field.nextSibling);
-        
-        // Resaltar campo
-        field.classList.add('field-error');
-    }
+            const section = document.getElementById('calendario');
+            if (!section) { console.warn('Cal: sección #calendario no encontrada'); return; }
 
-    // Limpiar alerta de campo específico
-    clearFieldAlert(fieldId) {
-        const alertElement = document.getElementById(`alert-${fieldId}`);
-        if (alertElement) {
-            alertElement.remove();
-        }
-        
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.classList.remove('field-error');
-        }
-    }
-
-    // Limpiar todas las alertas del formulario
-    clearFormAlerts() {
-        const alerts = document.querySelectorAll('.field-alert');
-        alerts.forEach(alert => alert.remove());
-        
-        const fields = document.querySelectorAll('.field-error');
-        fields.forEach(field => field.classList.remove('field-error'));
-    }
-
-    // Mostrar notificación simple
-    showNotification(message, type = 'info') {
-        console.debug(`🔔 Notificación (${type}): ${message}`);
-        
-        const notification = document.createElement('div');
-        notification.className = `simple-notification simple-notification--${type}`;
-        notification.innerHTML = `
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Remover después de 3 segundos
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 3000);
-    }
-
-    // Navegar entre meses
-    navigateMonth(direction) {
-        console.debug(`📅 Navegando ${direction > 0 ? 'siguiente' : 'anterior'} mes`);
-        
-        this.currentMonth += direction;
-        
-        if (this.currentMonth > 11) {
-            this.currentMonth = 0;
-            this.currentYear++;
-        } else if (this.currentMonth < 0) {
-            this.currentMonth = 11;
-            this.currentYear--;
-        }
-        
-        console.debug(`📍 Nueva fecha: ${this.currentMonth + 1}/${this.currentYear}`);
-        
-        this.renderCalendar();
-        this.renderMiniCalendar();
-        this.updateCurrentDate();
-    }
-
-    // Navegar mini calendario
-    navigateMiniCalendar(direction) {
-        console.debug(`📅 Navegando mini calendario ${direction > 0 ? 'siguiente' : 'anterior'}`);
-        
-        const miniMonthElement = document.getElementById('miniMonth');
-        const current = miniMonthElement.dataset.month || this.currentMonth;
-        const currentYear = miniMonthElement.dataset.year || this.currentYear;
-        
-        let newMonth = parseInt(current) + direction;
-        let newYear = parseInt(currentYear);
-        
-        if (newMonth > 11) {
-            newMonth = 0;
-            newYear++;
-        } else if (newMonth < 0) {
-            newMonth = 11;
-            newYear--;
-        }
-        
-        console.debug(`📍 Nuevo mes mini: ${newMonth + 1}/${newYear}`);
-        
-        this.renderMiniCalendar(newMonth, newYear);
-    }
-
-    // Establecer filtro
-    setFilter(filter) {
-        console.debug(`🔍 Cambiando filtro a: ${filter}`);
-        
-        this.activeFilter = filter;
-        
-        // Actualizar botones activos
-        document.querySelectorAll('.calendar__filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filter === filter);
-        });
-        
-        // Re-renderizar eventos
-        this.renderCalendar();
-        this.updateUpcomingEvents();
-    }
-
-    // Renderizar calendario
-    renderCalendar() {
-        console.debug('🎨 Renderizando calendario...');
-        
-        try {
-            // Actualizar encabezados
-            this.updateHeaders();
-            
-            // Renderizar vista mensual
-            this.renderMonthView();
-            
-            console.debug('✅ Calendario renderizado correctamente');
-        } catch (error) {
-            console.error('❌ Error renderizando calendario:', error);
-        }
-    }
-
-    // Actualizar encabezados
-    updateHeaders() {
-        const monthNames = [
-            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-        ];
-        
-        // Actualizar mes y año
-        const monthElement = document.getElementById('currentMonth');
-        
-        if (monthElement) {
-            monthElement.textContent = `${monthNames[this.currentMonth]} ${this.currentYear}`;
-        }
-        
-        // Actualizar mini calendario
-        const miniMonth = this.currentMonth;
-        const miniYear = this.currentYear;
-        const miniMonthElement = document.getElementById('miniMonth');
-        
-        if (miniMonthElement) {
-            miniMonthElement.textContent = `${monthNames[miniMonth].substring(0, 3)} ${miniYear}`;
-            miniMonthElement.dataset.month = miniMonth;
-            miniMonthElement.dataset.year = miniYear;
-        }
-    }
-
-    // Actualizar fecha actual
-    updateCurrentDate() {
-        const dateElement = document.getElementById('currentDate');
-        if (dateElement) {
-            const today = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            dateElement.textContent = `Hoy: ${today.toLocaleDateString('es-ES', options)}`;
-        }
-    }
-
-    // Renderizar vista mensual
-    renderMonthView() {
-        console.debug('📅 Renderizando vista mensual...');
-        
-        const grid = document.getElementById('calendarGrid');
-        if (!grid) {
-            console.error('❌ Grid de calendario no encontrado');
-            return;
-        }
-        
-        grid.innerHTML = '';
-        
-        const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-        const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
-        const daysInMonth = lastDay.getDate();
-        const firstDayIndex = firstDay.getDay();
-        
-        console.debug(`📊 Mes: ${daysInMonth} días, Primer día índice: ${firstDayIndex}`);
-        
-        // Días del mes anterior
-        const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0).getDate();
-        for (let i = firstDayIndex - 1; i >= 0; i--) {
-            const day = document.createElement('div');
-            day.className = 'calendar__day other-month';
-            day.innerHTML = `<div class="calendar__day-number">${prevMonthLastDay - i}</div>`;
-            grid.appendChild(day);
-        }
-        
-        // Días del mes actual
-        const today = new Date();
-        for (let i = 1; i <= daysInMonth; i++) {
-            const date = new Date(this.currentYear, this.currentMonth, i);
-            const isToday = this.isSameDay(date, today);
-            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-            
-            // Obtener eventos para este día
-            const dayEvents = this.getEventsForDate(date);
-            const filteredEvents = this.filterEvents(dayEvents);
-            const visibleEvents = filteredEvents.slice(0, 3);
-            const hasMoreEvents = filteredEvents.length > 3;
-            
-            const day = document.createElement('div');
-            day.className = `calendar__day ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}`;
-            day.dataset.date = date.toISOString().split('T')[0];
-            day.dataset.day = i;
-            
-            // Calcular si el día tiene eventos de múltiples días
-            const multiDayEvents = dayEvents.filter(event => 
-                event.endDate && event.startDate !== event.endDate
-            );
-            
-            // Aplicar color de fondo para eventos de múltiples días
-            multiDayEvents.forEach(event => {
-                const eventStart = new Date(event.startDate);
-                const eventEnd = new Date(event.endDate);
-                
-                if (date >= eventStart && date <= eventEnd) {
-                    // Día de inicio - color completo
-                    if (this.isSameDay(date, eventStart)) {
-                        day.style.backgroundColor = event.color;
-                        day.style.color = 'white';
-                    } 
-                    // Días intermedios - color con opacidad
-                    else {
-                        day.style.backgroundColor = this.hexToRgba(event.color, 0.2);
-                        day.style.borderLeft = `3px solid ${event.color}`;
-                    }
-                }
-            });
-            
-            day.innerHTML = `
-                <div class="calendar__day-number">${i}</div>
-                <div class="calendar__events">
-                    ${visibleEvents.map(event => {
-                        const isMultiDay = event.endDate && event.startDate !== event.endDate;
-                        const isStartDay = this.isSameDay(date, new Date(event.startDate));
-                        const eventClass = isMultiDay && !isStartDay ? 'calendar__event--multi-day' : '';
-                        
-                        return `
-                            <div class="calendar__event ${eventClass}" 
-                                 data-event-id="${event.id}"
-                                 data-series-id="${event.seriesId || ''}"
-                                 title="${event.title}"
-                                 style="background-color: ${event.color}; ${isMultiDay && !isStartDay ? 'opacity: 0.7;' : ''}">
-                                ${event.title}
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                ${hasMoreEvents ? `<div class="calendar__more-events">+${filteredEvents.length - 3} más</div>` : ''}
-            `;
-            
-            // Event listeners para el día
-            day.addEventListener('click', (e) => {
-                if (!e.target.closest('.calendar__event') && !e.target.closest('.calendar__more-events')) {
-                    this.selectedDate = date;
-                    this.openEventModal(date);
-                }
-            });
-            
-            // Event listeners para eventos individuales
-            day.querySelectorAll('.calendar__event').forEach(eventEl => {
-                eventEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const eventId = eventEl.dataset.eventId;
-                    const seriesId = eventEl.dataset.seriesId;
-                    
-                    if (seriesId && seriesId !== 'single') {
-                        // Si es un evento recurrente, mostrar modal de opciones
-                        this.showRecurringEventOptions(eventId, seriesId);
-                    } else {
-                        this.editEvent(eventId);
-                    }
-                });
-            });
-            
-            if (hasMoreEvents) {
-                day.querySelector('.calendar__more-events')?.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.showAllEventsForDate(date);
-                });
-            }
-            
-            grid.appendChild(day);
-        }
-        
-        // Días del siguiente mes
-        const totalCells = 42; // 6 semanas * 7 días
-        const cellsUsed = firstDayIndex + daysInMonth;
-        const nextMonthDays = totalCells - cellsUsed;
-        
-        for (let i = 1; i <= nextMonthDays; i++) {
-            const day = document.createElement('div');
-            day.className = 'calendar__day other-month';
-            day.innerHTML = `<div class="calendar__day-number">${i}</div>`;
-            grid.appendChild(day);
-        }
-    }
-
-    // Renderizar mini calendario
-    renderMiniCalendar(month = this.currentMonth, year = this.currentYear) {
-        console.debug(`📅 Renderizando mini calendario: ${month + 1}/${year}`);
-        
-        const miniCalendar = document.getElementById('miniCalendar');
-        if (!miniCalendar) return;
-        
-        const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
-                           'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        
-        document.getElementById('miniMonth').textContent = `${monthNames[month]} ${year}`;
-        document.getElementById('miniMonth').dataset.month = month;
-        document.getElementById('miniMonth').dataset.year = year;
-        
-        miniCalendar.innerHTML = '';
-        
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const daysInMonth = lastDay.getDate();
-        const firstDayIndex = (firstDay.getDay() + 6) % 7; // Lunes como primer día
-        
-        // Días vacíos al inicio
-        for (let i = 0; i < firstDayIndex; i++) {
-            const emptyDay = document.createElement('div');
-            emptyDay.className = 'calendar__mini-day other-month';
-            miniCalendar.appendChild(emptyDay);
-        }
-        
-        // Días del mes
-        const today = new Date();
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(year, month, day);
-            const isToday = this.isSameDay(date, today);
-            
-            // Obtener eventos filtrados para este día
-            const dayEvents = this.getEventsForDate(date);
-            const filteredEvents = this.filterEvents(dayEvents);
-            const hasEvents = filteredEvents.length > 0;
-            
-            const dayDiv = document.createElement('div');
-            dayDiv.className = `calendar__mini-day ${isToday ? 'today' : ''} ${hasEvents ? 'has-events' : ''}`;
-            dayDiv.textContent = day;
-            dayDiv.dataset.date = date.toISOString().split('T')[0];
-            
-            dayDiv.addEventListener('click', () => {
-                console.debug(`📅 Mini calendario: clic en día ${day}`);
-                this.currentMonth = month;
-                this.currentYear = year;
-                this.selectedDate = date;
-                this.renderCalendar();
-                this.updateCurrentDate();
-            });
-            
-            miniCalendar.appendChild(dayDiv);
-        }
-    }
-
-    // Abrir modal de evento
-    openEventModal(date = this.selectedDate) {
-        console.debug(`📋 Abriendo modal de evento para fecha: ${date.toISOString().split('T')[0]}`);
-
-        const canEdit = canAction('calendario');
-
-        // Si se intenta crear un evento nuevo sin permisos de acción, bloquear.
-        if (!canEdit && !this.editingEvent) {
-            showNoPermissionAlert('calendario');
-            this.showNotification('No tienes permisos para crear eventos');
-            return;
-        }
-        
-        const modal = document.getElementById('calendarEventModal');
-        const form = document.getElementById('calendarEventForm');
-        
-        if (!modal) {
-            console.error('❌ Modal no encontrado en el DOM');
-            return;
-        }
-        
-        // Limpiar alertas anteriores
-        this.clearFormAlerts();
-        
-        // Configurar fecha por defecto
-        const dateStr = date.toISOString().split('T')[0];
-        const startDateInput = document.getElementById('eventStartDate');
-        const endDateInput = document.getElementById('eventEndDate');
-        
-        if (startDateInput) startDateInput.value = dateStr;
-        if (endDateInput && !endDateInput.value) endDateInput.value = dateStr;
-        
-        // Limpiar formulario si no se está editando
-        if (!this.editingEvent) {
-            form.reset();
-            document.getElementById('deleteCalendarEvent').style.display = 'none';
-            document.getElementById('modalEventTitle').textContent = 'Nuevo Evento';
-            
-            // Establecer fechas por defecto
-            if (startDateInput) startDateInput.value = dateStr;
-            if (endDateInput) endDateInput.value = dateStr;
-            
-            // Resetear color picker
-            const colorPicker = document.getElementById('eventColor');
-            const colorPreview = document.getElementById('colorPreview');
-            if (colorPicker) colorPicker.value = '#3b82f6';
-            if (colorPreview) colorPreview.style.backgroundColor = '#3b82f6';
-            
-            // Establecer valores por defecto
-            document.getElementById('eventStartTime').value = '09:00';
-            document.getElementById('eventEndTime').value = '17:00';
-            
-            // Establecer tipo por defecto basado en el filtro actual
-            const eventTypeSelect = document.getElementById('eventType');
-            if (eventTypeSelect && this.activeFilter !== 'all') {
-                eventTypeSelect.value = this.activeFilter;
-            }
-        }
-        
-        // Usar atributo [open] para mostrar el modal
-        modal.setAttribute('open', '');
-
-        // Modo solo lectura cuando el usuario no puede actuar
-        if (!canEdit) {
-            const saveBtn = document.getElementById('saveCalendarEvent');
-            if (saveBtn) saveBtn.style.display = 'none';
-
-            const deleteBtn = document.getElementById('deleteCalendarEvent');
-            if (deleteBtn) deleteBtn.style.display = 'none';
-
-            if (form) {
-                form.querySelectorAll('input, select, textarea').forEach(el => {
-                    el.disabled = true;
-                });
-            }
-        } else if (form) {
-            // Rehabilitar campos por si el modal se abrió antes en solo lectura
-            form.querySelectorAll('input, select, textarea').forEach(el => {
-                el.disabled = false;
-            });
-
-            const saveBtn = document.getElementById('saveCalendarEvent');
-            if (saveBtn) saveBtn.style.display = '';
-        }
-        console.debug('✅ Modal de evento abierto correctamente');
-    }
-
-    // Guardar evento con validación mejorada
-    saveEvent() {
-        console.debug('💾 Guardando evento...');
-
-        if (!canAction('calendario')) {
-            showNoPermissionAlert('calendario');
-            this.showNotification('No tienes permisos para guardar eventos');
-            return;
-        }
-        
-        try {
-            // Limpiar alertas anteriores
-            this.clearFormAlerts();
-            
-            // Obtener valores del formulario
-            const title = document.getElementById('eventTitle').value.trim();
-            const type = document.getElementById('eventType').value;
-            const color = document.getElementById('eventColor').value;
-            const startDate = document.getElementById('eventStartDate').value;
-            const startTime = document.getElementById('eventStartTime').value || '09:00';
-            const endDate = document.getElementById('eventEndDate').value || startDate;
-            const endTime = document.getElementById('eventEndTime').value || '17:00';
-            const location = document.getElementById('eventLocation').value.trim();
-            const description = document.getElementById('eventDescription').value.trim();
-            const reminder = document.getElementById('eventReminder').value;
-            const recurrence = document.querySelector('input[name="recurrence"]:checked')?.value || 'none';
-            
-            // Validar campos requeridos
-            let hasErrors = false;
-            
-            if (!title) {
-                this.showFieldAlert('eventTitle', 'El título del evento es obligatorio');
-                hasErrors = true;
-            }
-            
-            if (!startDate) {
-                this.showFieldAlert('eventStartDate', 'La fecha de inicio es obligatoria');
-                hasErrors = true;
-            }
-            
-            if (type === '') {
-                this.showFieldAlert('eventType', 'Seleccione un tipo de evento');
-                hasErrors = true;
-            }
-            
-            // Validar fecha de fin
-            if (endDate && new Date(endDate) < new Date(startDate)) {
-                this.showFieldAlert('eventEndDate', 'La fecha de fin no puede ser anterior a la fecha de inicio');
-                hasErrors = true;
-            }
-            
-            // Si hay errores, detener el proceso
-            if (hasErrors) {
-                this.showNotification('Por favor, complete los campos obligatorios correctamente');
-                return;
-            }
-            
-            // Crear objeto de evento
-            const eventData = {
-                id: this.editingEvent?.id || this.generateEventId(),
-                title: title,
-                type: type,
-                color: color,
-                startDate: startDate,
-                startTime: startTime,
-                endDate: endDate,
-                endTime: endTime,
-                location: location,
-                description: description,
-                reminder: reminder,
-                recurrence: recurrence,
-                seriesId: this.editingEvent?.seriesId || this.generateSeriesId(),
-                createdAt: this.editingEvent?.createdAt || new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-            
-            console.debug('📝 Datos del evento:', eventData);
-            
-            // Si estamos editando una serie completa, eliminar todos los eventos de la serie
-            if (this.editingSeriesId && this.editingSeriesId !== 'single') {
-                console.debug(`🗑️ Eliminando serie completa: ${this.editingSeriesId}`);
-                this.events = this.events.filter(e => e.seriesId !== this.editingSeriesId);
-            } 
-            // Si estamos editando un solo evento, eliminar solo ese evento
-            else if (this.editingEvent) {
-                console.debug(`🗑️ Eliminando evento individual: ${this.editingEvent.id}`);
-                this.events = this.events.filter(e => e.id !== this.editingEvent.id);
-            }
-            
-            // Generar eventos recurrentes si es necesario
-            const eventsToSave = this.generateRecurringEvents(eventData);
-            
-            console.debug(`📊 Guardando ${eventsToSave.length} evento(s)`);
-            
-            // Agregar nuevos eventos
-            eventsToSave.forEach(event => {
-                this.events.push(event);
-            });
-            
-            // Guardar en localStorage
-            this.saveEvents();
-            
-            // Actualizar UI
-            this.renderCalendar();
-            this.updateUpcomingEvents();
-            this.renderMiniCalendar();
-            
-            // Mostrar notificación
-            const notificationText = eventsToSave.length > 1 
-                ? `${eventsToSave.length} eventos guardados correctamente` 
-                : `Evento "${eventData.title}" guardado correctamente`;
-            
-            this.showNotification(notificationText);
-            
-            // Cerrar modal y limpiar
-            this.closeEventModal();
-            
-        } catch (error) {
-            console.error('❌ Error guardando evento:', error);
-            this.showNotification('Error al guardar el evento');
-        }
-    }
-
-    // Generar eventos recurrentes
-    generateRecurringEvents(eventData) {
-        console.debug(`🔄 Generando eventos recurrentes para: ${eventData.title}`);
-        
-        const events = [];
-        const startDate = new Date(eventData.startDate);
-        const endDate = new Date(eventData.endDate || eventData.startDate);
-        
-        // Si no hay recurrencia, solo guardar el evento original
-        if (eventData.recurrence === 'none') {
-            eventData.seriesId = 'single';
-            events.push(eventData);
-            return events;
-        }
-        
-        // Calcular la duración del evento en días
-        const eventDurationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-        
-        // Generar eventos según el patrón de recurrencia
-        let currentDate = new Date(startDate);
-        const seriesId = eventData.seriesId;
-        const maxDate = new Date();
-        maxDate.setFullYear(maxDate.getFullYear() + 2); // Limitar a 2 años en el futuro
-        
-        while (currentDate <= maxDate) {
-            const eventStart = new Date(currentDate);
-            const eventEnd = new Date(eventStart);
-            eventEnd.setDate(eventEnd.getDate() + eventDurationDays);
-            
-            const eventCopy = {
-                ...eventData,
-                id: this.generateEventId(),
-                seriesId: seriesId,
-                startDate: eventStart.toISOString().split('T')[0],
-                endDate: eventEnd.toISOString().split('T')[0]
-            };
-            
-            events.push(eventCopy);
-            
-            // Determinar siguiente fecha según el patrón de recurrencia
-            switch (eventData.recurrence) {
-                case 'weekly':
-                    currentDate.setDate(currentDate.getDate() + 7);
-                    break;
-                case 'monthly':
-                    currentDate.setMonth(currentDate.getMonth() + 1);
-                    break;
-                case 'yearly':
-                    currentDate.setFullYear(currentDate.getFullYear() + 1);
-                    break;
-                default:
-                    console.error(`❌ Patrón de recurrencia no válido: ${eventData.recurrence}`);
-                    return events;
-            }
-        }
-        
-        console.debug(`📊 Generados ${events.length} eventos recurrentes`);
-        return events;
-    }
-
-    // Mostrar modal de opciones para evento recurrente
-    showRecurringEventOptions(eventId, seriesId) {
-        console.debug(`🔄 Mostrando opciones para evento recurrente. Evento: ${eventId}, Serie: ${seriesId}`);
-        
-        const event = this.events.find(e => e.id === eventId);
-        if (!event) return;
-        
-        const seriesEvents = this.getEventsInSeries(seriesId);
-        const currentMonthEvents = this.getEventsInSeriesForMonth(seriesId, new Date(event.startDate));
-        
-        // Crear modal de opciones
-        const optionsModal = document.createElement('div');
-        optionsModal.className = 'modal';
-        optionsModal.innerHTML = `
-            <div class="modal__backdrop"></div>
-            <article class="modal__content">
-                <header class="modal__header">
-                    <h3 class="modal__title">
-                        <i class="fas fa-redo me-2"></i>
-                        Evento Recurrente
-                    </h3>
-                    <button class="modal__close" id="closeOptionsModal">&times;</button>
-                </header>
-                <section class="modal__body">
-                    <div class="action-modal__content">
-                        <div class="action-modal__icon action-modal__icon--info">
-                            <i class="fas fa-calendar-week"></i>
-                        </div>
-                        <p class="action-modal__message">
-                            <strong>"${event.title}"</strong><br>
-                            Este evento es parte de una serie recurrente.<br>
-                            <small>${seriesEvents.length} eventos en total</small>
-                        </p>
-                        <div class="recurring-options">
-                            <div class="option-card" data-action="single">
-                                <div class="option-icon">
-                                    <i class="fas fa-calendar-day"></i>
-                                </div>
-                                <div class="option-content">
-                                    <h4>Solo este evento</h4>
-                                    <p>Editar o eliminar solo el evento de esta fecha específica</p>
-                                </div>
-                            </div>
-                            <div class="option-card" data-action="month">
-                                <div class="option-icon">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                                <div class="option-content">
-                                    <h4>Este mes (${currentMonthEvents.length})</h4>
-                                    <p>Afectar a los ${currentMonthEvents.length} eventos de este mes</p>
-                                </div>
-                            </div>
-                            <div class="option-card" data-action="series">
-                                <div class="option-icon">
-                                    <i class="fas fa-layer-group"></i>
-                                </div>
-                                <div class="option-content">
-                                    <h4>Toda la serie (${seriesEvents.length})</h4>
-                                    <p>Afectar a los ${seriesEvents.length} eventos de toda la serie</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <footer class="modal__footer modal__footer--centered">
-                    <button type="button" class="btn btn--outline" id="cancelOptions">
-                        <i class="fas fa-times"></i>
-                        Cancelar
-                    </button>
-                </footer>
-            </article>
-        `;
-        
-        document.body.appendChild(optionsModal);
-        optionsModal.setAttribute('open', '');
-        
-        // Configurar event listeners para el modal
-        const closeModal = () => {
-            optionsModal.remove();
-        };
-        
-        optionsModal.querySelector('#closeOptionsModal').addEventListener('click', closeModal);
-        optionsModal.querySelector('#cancelOptions').addEventListener('click', closeModal);
-        optionsModal.querySelector('.modal__backdrop').addEventListener('click', closeModal);
-        
-        // Event listeners para las opciones
-        optionsModal.querySelectorAll('.option-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const action = card.dataset.action;
-                closeModal();
-                
-                if (action === 'single') {
-                    this.editEvent(eventId, 'single');
-                } else if (action === 'month') {
-                    this.editEvent(eventId, 'month');
-                } else if (action === 'series') {
-                    this.editEvent(eventId, seriesId);
-                }
-            });
-        });
-    }
-
-    // Editar evento
-    editEvent(eventId, seriesAction = null) {
-        console.debug(`✏️ Editando evento ID: ${eventId}, Acción: ${seriesAction || 'individual'}`);
-        
-        const event = this.events.find(e => e.id === eventId);
-        if (!event) {
-            console.error(`❌ Evento no encontrado: ${eventId}`);
-            this.showNotification('Evento no encontrado');
-            return;
-        }
-        
-        this.editingEvent = event;
-        
-        if (seriesAction === 'single') {
-            this.editingSeriesId = 'single';
-        } else if (seriesAction === 'month') {
-            this.editingSeriesId = 'month';
-        } else if (seriesAction === event.seriesId) {
-            this.editingSeriesId = event.seriesId;
-        } else {
-            this.editingSeriesId = event.seriesId === 'single' ? 'single' : null;
-        }
-        
-        // Llenar formulario con datos del evento
-        document.getElementById('eventTitle').value = event.title;
-        document.getElementById('eventType').value = event.type;
-        document.getElementById('eventColor').value = event.color;
-        document.getElementById('eventStartDate').value = event.startDate;
-        document.getElementById('eventStartTime').value = event.startTime || '09:00';
-        document.getElementById('eventEndDate').value = event.endDate || event.startDate;
-        document.getElementById('eventEndTime').value = event.endTime || '17:00';
-        document.getElementById('eventLocation').value = event.location || '';
-        document.getElementById('eventDescription').value = event.description || '';
-        document.getElementById('eventReminder').value = event.reminder || '';
-        
-        // Actualizar vista previa del color
-        const colorPreview = document.getElementById('colorPreview');
-        if (colorPreview) colorPreview.style.backgroundColor = event.color;
-        
-        // Seleccionar recurrencia
-        const recurrenceInput = document.querySelector(`input[name="recurrence"][value="${event.recurrence || 'none'}"]`);
-        if (recurrenceInput) recurrenceInput.checked = true;
-        
-        // Actualizar UI del modal
-        let modalTitle = 'Editar Evento';
-        if (this.editingSeriesId === 'single') {
-            modalTitle = 'Editar Evento (Solo este)';
-        } else if (this.editingSeriesId === 'month') {
-            const monthEvents = this.getEventsInSeriesForMonth(event.seriesId, new Date(event.startDate));
-            modalTitle = `Editar Eventos del Mes (${monthEvents.length})`;
-        } else if (this.editingSeriesId && this.editingSeriesId !== 'single') {
-            const seriesEvents = this.getEventsInSeries(event.seriesId);
-            modalTitle = `Editar Serie Completa (${seriesEvents.length})`;
-        }
-        
-        document.getElementById('modalEventTitle').textContent = modalTitle;
-        document.getElementById('deleteCalendarEvent').style.display = 'block';
-        
-        // Abrir modal
-        this.openEventModal(new Date(event.startDate));
-    }
-
-    // Eliminar evento
-    deleteEvent() {
-        if (!canAction('calendario')) {
-            showNoPermissionAlert('calendario');
-            this.showNotification('No tienes permisos para eliminar eventos');
-            return;
-        }
-
-        if (!this.editingEvent) {
-            console.error('❌ No hay evento para eliminar');
-            return;
-        }
-        
-        const event = this.editingEvent;
-        const isRecurring = event.recurrence && event.recurrence !== 'none';
-        const isSeries = event.seriesId && event.seriesId !== 'single';
-        
-        if (isRecurring && isSeries) {
-            // Para eventos recurrentes, mostrar modal de opciones
-            this.showDeleteRecurringOptions();
-            return;
-        } else {
-            // Para eventos individuales
-            this.showConfirmDeleteModal('single');
-        }
-    }
-
-    // Mostrar opciones para eliminar evento recurrente
-    showDeleteRecurringOptions() {
-        const event = this.editingEvent;
-        const seriesId = event.seriesId;
-        const seriesEvents = this.getEventsInSeries(seriesId);
-        const currentMonthEvents = this.getEventsInSeriesForMonth(seriesId, new Date(event.startDate));
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        
-        modal.innerHTML = `
-            <div class="modal__backdrop"></div>
-            <article class="modal__content">
-                <header class="modal__header">
-                    <h3 class="modal__title">
-                        <i class="fas fa-trash me-2"></i>
-                        Eliminar Evento Recurrente
-                    </h3>
-                    <button class="modal__close" id="closeDeleteOptionsModal">&times;</button>
-                </header>
-                <section class="modal__body">
-                    <div class="action-modal__content">
-                        <div class="action-modal__icon action-modal__icon--warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <p class="action-modal__message">
-                            <strong>"${event.title}"</strong><br>
-                            Este evento es parte de una serie recurrente.<br>
-                            <small>${seriesEvents.length} eventos en total</small>
-                        </p>
-                        <div class="recurring-options">
-                            <div class="option-card delete-option" data-action="single">
-                                <div class="option-icon delete-icon">
-                                    <i class="fas fa-calendar-day"></i>
-                                </div>
-                                <div class="option-content">
-                                    <h4>Solo este evento</h4>
-                                    <p>Eliminar solo el evento de esta fecha específica</p>
-                                    <div class="option-details">
-                                        <span class="badge badge--light">1 evento</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="option-card delete-option" data-action="month">
-                                <div class="option-icon delete-icon">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </div>
-                                <div class="option-content">
-                                    <h4>Este mes</h4>
-                                    <p>Eliminar los ${currentMonthEvents.length} eventos de este mes</p>
-                                    <div class="option-details">
-                                        <span class="badge badge--warning">${currentMonthEvents.length} eventos</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="option-card delete-option" data-action="series">
-                                <div class="option-icon delete-icon">
-                                    <i class="fas fa-layer-group"></i>
-                                </div>
-                                <div class="option-content">
-                                    <h4>Toda la serie</h4>
-                                    <p>Eliminar los ${seriesEvents.length} eventos de toda la serie</p>
-                                    <div class="option-details">
-                                        <span class="badge badge--danger">${seriesEvents.length} eventos</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <footer class="modal__footer modal__footer--centered">
-                    <button type="button" class="btn btn--outline" id="cancelDeleteOptions">
-                        <i class="fas fa-times"></i>
-                        Cancelar
-                    </button>
-                </footer>
-            </article>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.setAttribute('open', '');
-        
-        const closeModal = () => {
-            modal.remove();
-        };
-        
-        modal.querySelector('#closeDeleteOptionsModal').addEventListener('click', closeModal);
-        modal.querySelector('#cancelDeleteOptions').addEventListener('click', closeModal);
-        modal.querySelector('.modal__backdrop').addEventListener('click', closeModal);
-        
-        // Event listeners para las opciones de eliminación
-        modal.querySelectorAll('.delete-option').forEach(card => {
-            card.addEventListener('click', () => {
-                const action = card.dataset.action;
-                closeModal();
-                
-                if (action === 'single') {
-                    this.showConfirmDeleteModal('single');
-                } else if (action === 'month') {
-                    this.showConfirmDeleteModal('month');
-                } else if (action === 'series') {
-                    this.showConfirmDeleteModal('series');
-                }
-            });
-        });
-    }
-
-    // Mostrar modal de confirmación para eliminar
-    showConfirmDeleteModal(actionType) {
-        const event = this.editingEvent;
-        let eventCount = 1;
-        let description = '';
-        
-        if (actionType === 'single') {
-            description = `¿Está seguro de eliminar el evento "<strong>${event.title}</strong>"?<br><br>
-                          Esta acción no se puede deshacer.`;
-        } else if (actionType === 'month') {
-            const currentMonthEvents = this.getEventsInSeriesForMonth(event.seriesId, new Date(event.startDate));
-            eventCount = currentMonthEvents.length;
-            description = `¿Está seguro de eliminar <strong>${eventCount} eventos</strong> del mes?<br><br>
-                          Esta acción eliminará todos los eventos de "<strong>${event.title}</strong>" 
-                          de este mes y no se puede deshacer.`;
-        } else if (actionType === 'series') {
-            const seriesEvents = this.getEventsInSeries(event.seriesId);
-            eventCount = seriesEvents.length;
-            description = `¿Está seguro de eliminar <strong>${eventCount} eventos</strong> de toda la serie?<br><br>
-                          Esta acción eliminará todos los eventos de "<strong>${event.title}</strong>" 
-                          y no se puede deshacer.`;
-        }
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        
-        modal.innerHTML = `
-            <div class="modal__backdrop"></div>
-            <article class="modal__content modal__content--sm">
-                <header class="modal__header">
-                    <h3 class="modal__title">
-                        <i class="fas fa-trash me-2"></i>
-                        ${actionType === 'single' ? 'Eliminar Evento' : 
-                          actionType === 'month' ? 'Eliminar Eventos del Mes' : 
-                          'Eliminar Serie Completa'}
-                    </h3>
-                    <button class="modal__close" id="closeConfirmModal">&times;</button>
-                </header>
-                <section class="modal__body">
-                    <div class="action-modal__content">
-                        <div class="action-modal__icon action-modal__icon--warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <p class="action-modal__message">
-                            ${description}
-                        </p>
-                    </div>
-                </section>
-                <footer class="modal__footer modal__footer--centered">
-                    <button type="button" class="btn btn--outline" id="cancelDelete">
-                        <i class="fas fa-times"></i>
-                        Cancelar
-                    </button>
-                    <button type="button" class="btn btn--danger" id="confirmDelete">
-                        <i class="fas fa-trash"></i>
-                        ${actionType === 'single' ? 'Eliminar Evento' : 
-                          actionType === 'month' ? `Eliminar ${eventCount} Eventos` : 
-                          `Eliminar Serie (${eventCount})`}
-                    </button>
-                </footer>
-            </article>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.setAttribute('open', '');
-        
-        const closeModal = () => {
-            modal.remove();
-        };
-        
-        modal.querySelector('#closeConfirmModal').addEventListener('click', closeModal);
-        modal.querySelector('.modal__backdrop').addEventListener('click', closeModal);
-        modal.querySelector('#cancelDelete').addEventListener('click', closeModal);
-        
-        modal.querySelector('#confirmDelete').addEventListener('click', () => {
-            closeModal();
-            this.executeDelete(actionType);
-        });
-    }
-
-    // Ejecutar eliminación
-    executeDelete(actionType) {
-        const event = this.editingEvent;
-        let deletedCount = 0;
-        
-        // Realizar la eliminación
-        if (actionType === 'single') {
-            console.debug(`🗑️ Eliminando evento individual: ${event.id}`);
-            this.events = this.events.filter(e => e.id !== event.id);
-            deletedCount = 1;
-        } 
-        else if (actionType === 'month') {
-            // Eliminar eventos del mismo mes
-            const eventDate = new Date(event.startDate);
-            const eventMonth = eventDate.getMonth();
-            const eventYear = eventDate.getFullYear();
-            
-            const eventsToDelete = this.events.filter(e => 
-                e.seriesId === event.seriesId && 
-                this.isEventInMonth(e, eventMonth, eventYear)
-            );
-            
-            console.debug(`🗑️ Eliminando ${eventsToDelete.length} eventos del mes`);
-            this.events = this.events.filter(e => 
-                !(e.seriesId === event.seriesId && this.isEventInMonth(e, eventMonth, eventYear))
-            );
-            
-            deletedCount = eventsToDelete.length;
-        } 
-        else if (actionType === 'series') {
-            // Eliminar toda la serie
-            const seriesId = event.seriesId;
-            const seriesEvents = this.getEventsInSeries(seriesId);
-            
-            console.debug(`🗑️ Eliminando serie completa: ${seriesId} (${seriesEvents.length} eventos)`);
-            this.events = this.events.filter(e => e.seriesId !== seriesId);
-            
-            deletedCount = seriesEvents.length;
-        }
-        
-        // Guardar cambios
-        this.saveEvents();
-        
-        // Actualizar UI
-        this.renderCalendar();
-        this.updateUpcomingEvents();
-        
-        // Mostrar notificación
-        let notificationText = '';
-        if (actionType === 'single') {
-            notificationText = `Evento "${event.title}" eliminado`;
-        } else if (actionType === 'month') {
-            notificationText = `${deletedCount} eventos del mes eliminados`;
-        } else if (actionType === 'series') {
-            notificationText = `Serie completa (${deletedCount} eventos) eliminada`;
-        }
-        
-        this.showNotification(notificationText);
-        
-        // Cerrar modal
-        this.closeEventModal();
-    }
-
-    // Verificar si un evento está en un mes específico
-    isEventInMonth(event, month, year) {
-        const eventDate = new Date(event.startDate);
-        return eventDate.getMonth() === month && eventDate.getFullYear() === year;
-    }
-
-    // Obtener eventos en una serie para un mes específico
-    getEventsInSeriesForMonth(seriesId, date) {
-        const targetMonth = date.getMonth();
-        const targetYear = date.getFullYear();
-        
-        return this.events.filter(event => 
-            event.seriesId === seriesId && 
-            this.isEventInMonth(event, targetMonth, targetYear)
-        );
-    }
-
-    // Cerrar modal de evento
-    closeEventModal() {
-        const modal = document.getElementById('calendarEventModal');
-        if (modal) {
-            modal.removeAttribute('open');
-        }
-        this.editingEvent = null;
-        this.editingSeriesId = null;
-        document.getElementById('calendarEventForm').reset();
-        this.clearFormAlerts();
-    }
-
-    // Obtener eventos en una serie
-    getEventsInSeries(seriesId) {
-        return this.events.filter(event => event.seriesId === seriesId);
-    }
-
-    // Mostrar todos los eventos de una fecha
-    showAllEventsForDate(date) {
-        console.debug(`📅 Mostrando todos los eventos para: ${date.toISOString().split('T')[0]}`);
-        
-        const events = this.getEventsForDate(date);
-        const filteredEvents = this.filterEvents(events);
-        
-        if (filteredEvents.length === 0) {
-            console.debug('📅 No hay eventos para esta fecha');
-            this.showNotification('No hay eventos para esta fecha');
-            return;
-        }
-        
-        // Crear modal para mostrar eventos
-        const eventsModal = document.createElement('div');
-        eventsModal.className = 'modal';
-        
-        const formattedDate = date.toLocaleDateString('es-ES', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-        
-        let eventsHTML = '';
-        filteredEvents.forEach((event, index) => {
-            const time = event.startTime ? ` a las ${event.startTime}` : '';
-            const isRecurring = event.recurrence && event.recurrence !== 'none';
-            const recurringText = isRecurring ? ` (${event.recurrence})` : '';
-            
-            eventsHTML += `
-                <div class="event-detail-item">
-                    <div class="event-detail-header">
-                        <span class="event-index">${index + 1}.</span>
-                        <strong class="event-title">${event.title}${time}${recurringText}</strong>
-                    </div>
-                    ${event.location ? `<div class="event-location"><i class="fas fa-map-marker-alt"></i> ${event.location}</div>` : ''}
-                    ${event.description ? `<div class="event-description">${event.description}</div>` : ''}
-                </div>
-            `;
-        });
-        
-        eventsModal.innerHTML = `
-            <div class="modal__backdrop"></div>
-            <article class="modal__content">
-                <header class="modal__header">
-                    <h3 class="modal__title">
-                        <i class="fas fa-calendar-day me-2"></i>
-                        Eventos del ${formattedDate}
-                    </h3>
-                    <button class="modal__close" id="closeEventsModal">&times;</button>
-                </header>
-                <section class="modal__body">
-                    <div class="events-list">
-                        ${eventsHTML}
-                    </div>
-                </section>
-                <footer class="modal__footer">
-                    <button type="button" class="btn btn--primary" id="closeEventsModalBtn">
-                        <i class="fas fa-times"></i>
-                        Cerrar
-                    </button>
-                </footer>
-            </article>
-        `;
-        
-        document.body.appendChild(eventsModal);
-        eventsModal.setAttribute('open', '');
-        
-        // Configurar eventos del modal
-        const closeModal = () => {
-            eventsModal.remove();
-        };
-        
-        eventsModal.querySelector('#closeEventsModal').addEventListener('click', closeModal);
-        eventsModal.querySelector('#closeEventsModalBtn').addEventListener('click', closeModal);
-        eventsModal.querySelector('.modal__backdrop').addEventListener('click', closeModal);
-    }
-
-    // Actualizar eventos próximos
-    updateUpcomingEvents() {
-        console.debug('📅 Actualizando eventos próximos...');
-        
-        const upcomingList = document.getElementById('upcomingEvents');
-        const countElement = document.getElementById('upcomingCount');
-        
-        if (!upcomingList || !countElement) {
-            console.error('❌ Elementos de eventos próximos no encontrados');
-            return;
-        }
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // Obtener eventos próximos (próximos 7 días)
-        const upcomingEvents = this.events
-            .filter(event => {
-                const eventDate = new Date(event.startDate);
-                eventDate.setHours(0, 0, 0, 0);
-                const diffTime = eventDate.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays >= 0 && diffDays <= 7;
-            })
-            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
-            .slice(0, 10); // Mostrar hasta 10 eventos
-        
-        // Aplicar filtro
-        const filteredEvents = this.filterEvents(upcomingEvents);
-        
-        // Actualizar contador
-        countElement.textContent = filteredEvents.length;
-        
-        // Renderizar eventos
-        if (filteredEvents.length === 0) {
-            upcomingList.innerHTML = `
-                <div class="calendar__upcoming-empty">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>No hay eventos próximos ${this.activeFilter !== 'all' ? `para ${this.getFilterName(this.activeFilter)}` : ''}</p>
-                </div>
-            `;
-        } else {
-            upcomingList.innerHTML = filteredEvents.map(event => {
-                const eventDate = new Date(event.startDate);
-                const diffTime = eventDate.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
-                let dateText = '';
-                if (diffDays === 0) {
-                    dateText = `Hoy - ${event.startTime || 'Todo el día'}`;
-                } else if (diffDays === 1) {
-                    dateText = `Mañana - ${event.startTime || 'Todo el día'}`;
-                } else {
-                    dateText = `${eventDate.toLocaleDateString('es-ES', { 
-                        day: 'numeric', 
-                        month: 'short' 
-                    })} - ${event.startTime || 'Todo el día'}`;
-                }
-                
-                const isUrgent = diffDays === 0;
-                const isImportant = diffDays <= 2;
-                
-                return `
-                    <div class="calendar__upcoming-item ${isUrgent ? 'calendar__upcoming-item--urgent' : ''} ${isImportant ? 'calendar__upcoming-item--important' : ''}" 
-                         data-event-id="${event.id}"
-                         data-series-id="${event.seriesId || ''}">
-                        <div class="calendar__upcoming-date">
-                            <i class="fas fa-calendar-day"></i>
-                            ${dateText}
-                        </div>
-                        <div class="calendar__upcoming-event">${event.title}</div>
-                        ${event.location ? `<div class="calendar__upcoming-details">${event.location}</div>` : ''}
-                    </div>
+            // Contenedor del calendario
+            let container = section.querySelector('.cal-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'cal-container';
+                container.style.cssText = `
+                    width:100%;height:100%;
+                    background:#0f0e17;
+                    border-radius:20px;
+                    overflow:hidden;
+                    display:flex;flex-direction:column;
+                    border:1px solid rgba(99,102,241,0.15);
+                    min-height:680px;
                 `;
-            }).join('');
-        }
-        
-        // Agregar event listeners
-        upcomingList.querySelectorAll('.calendar__upcoming-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const eventId = item.dataset.eventId;
-                const seriesId = item.dataset.seriesId;
-                
-                if (seriesId && seriesId !== 'single') {
-                    this.showRecurringEventOptions(eventId, seriesId);
-                } else {
-                    this.editEvent(eventId);
-                }
-            });
-        });
-        
-        console.debug(`✅ Eventos próximos actualizados: ${filteredEvents.length} eventos`);
-    }
-
-    // Imprimir calendario
-    printCalendar() {
-        console.debug('🖨️ Generando vista para impresión...');
-        
-        try {
-            // Crear una ventana de impresión
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) {
-                console.error('❌ No se pudo abrir ventana de impresión');
-                this.showNotification('Por favor, habilite las ventanas emergentes para imprimir');
-                return;
+                section.appendChild(container);
             }
-            
-            const monthNames = [
-                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-            ];
-            
-            // Contenido HTML para impresión
-            const printContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Calendario Académico - ${monthNames[this.currentMonth]} ${this.currentYear}</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        .print-header { text-align: center; margin-bottom: 30px; }
-                        .print-header h1 { color: #333; margin: 0; }
-                        .print-header .subtitle { color: #666; margin-top: 5px; }
-                        .print-calendar { width: 100%; border-collapse: collapse; }
-                        .print-calendar th { background: #f0f0f0; padding: 10px; text-align: center; border: 1px solid #ddd; }
-                        .print-calendar td { padding: 10px; border: 1px solid #ddd; vertical-align: top; height: 100px; }
-                        .print-day { font-weight: bold; margin-bottom: 5px; }
-                        .print-event { font-size: 11px; margin: 2px 0; padding: 2px 5px; border-radius: 3px; color: white; }
-                        .print-today { background: #e3f2fd; }
-                        .print-weekend { background: #f9f9f9; }
-                        .print-footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; }
-                        @media print {
-                            body { margin: 0; }
-                            .print-header { margin-bottom: 20px; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="print-header">
-                        <h1>Calendario Académico</h1>
-                        <div class="subtitle">${monthNames[this.currentMonth]} ${this.currentYear}</div>
-                        <div class="subtitle">Generado el ${new Date().toLocaleDateString()}</div>
-                    </div>
-                    
-                    <table class="print-calendar">
-                        <thead>
-                            <tr>
-                                <th>Dom</th><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${this.generatePrintCalendarGrid()}
-                        </tbody>
-                    </table>
-                    
-                    <div class="print-footer">
-                        Sistema de Gestión Documental - Calendario Académico
-                    </div>
-                    
-                    <script>
-                        window.onload = () => window.print();
-                    </script>
-                </body>
-                </html>
-            `;
-            
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-            
-            console.debug('✅ Vista de impresión generada correctamente');
-        } catch (error) {
-            console.error('❌ Error generando vista de impresión:', error);
-            this.showNotification('Error al generar la vista de impresión');
+
+            this._renderer.mount(container);
+            this._setupKeyboard();
+            this._setupExternalButton();
+
+            console.debug('Cal: inicializado correctamente');
+        } catch (e) {
+            console.error('Cal: error de inicialización', e);
         }
     }
 
-    // Generar grid para impresión
-    generatePrintCalendarGrid() {
-        const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-        const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
-        const daysInMonth = lastDay.getDate();
-        const firstDayIndex = firstDay.getDay();
-        
-        let rows = '';
-        let dayCounter = 0;
-        
-        for (let week = 0; week < 6; week++) {
-            rows += '<tr>';
-            
-            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-                const cellIndex = week * 7 + dayOfWeek;
-                let cellContent = '';
-                let cellClass = '';
-                
-                if (cellIndex >= firstDayIndex && dayCounter < daysInMonth) {
-                    dayCounter++;
-                    const date = new Date(this.currentYear, this.currentMonth, dayCounter);
-                    const isToday = this.isSameDay(date, new Date());
-                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                    const events = this.getEventsForDate(date);
-                    
-                    cellClass = `${isToday ? 'print-today' : ''} ${isWeekend ? 'print-weekend' : ''}`;
-                    cellContent = `
-                        <div class="print-day">${dayCounter}</div>
-                        ${events.map(event => `
-                            <div class="print-event" style="background-color: ${event.color}">
-                                ${event.startTime ? event.startTime.substring(0,5) : ''} ${event.title}
-                            </div>
-                        `).join('')}
-                    `;
-                }
-                
-                rows += `<td class="${cellClass}">${cellContent}</td>`;
-            }
-            
-            rows += '</tr>';
-            
-            if (dayCounter >= daysInMonth) break;
-        }
-        
-        return rows;
+    _setupKeyboard() {
+        const handler = e => {
+            if (e.target.matches('input,textarea,select')) return;
+            if (e.ctrlKey && e.key === 'z') { e.preventDefault(); if (this._store.undo()) Toast.show('Deshecho', 'undo'); }
+            if (e.ctrlKey && e.key === 'y') { e.preventDefault(); if (this._store.redo()) Toast.show('Rehecho', 'undo'); }
+            if (e.key === 'ArrowLeft')       this._renderer?._navigate(-1);
+            if (e.key === 'ArrowRight')      this._renderer?._navigate(1);
+            if (e.key === 'Home' || e.key==='t') this._renderer?._goToday();
+            if ((e.key === 'f' || e.key === '/') && e.ctrlKey) { e.preventDefault(); this._renderer?.openSearch(); }
+            if (e.key === 'n' && this._canEdit) this._form?.openNew();
+            if (e.key === 'p' && e.ctrlKey) { e.preventDefault(); this._renderer?.print(); }
+        };
+        document.addEventListener('keydown', handler);
+        this._kbHandler = handler;
     }
 
-    // ===== FUNCIONES AUXILIARES =====
-
-    // Obtener eventos para una fecha específica (incluyendo eventos de múltiples días)
-    getEventsForDate(date) {
-        const dateStr = date.toISOString().split('T')[0];
-        return this.events.filter(event => {
-            const eventStart = new Date(event.startDate);
-            const eventEnd = new Date(event.endDate || event.startDate);
-            const targetDate = new Date(dateStr);
-            
-            // El evento ocurre en esta fecha si la fecha está entre startDate y endDate
-            return targetDate >= eventStart && targetDate <= eventEnd;
+    _setupExternalButton() {
+        // Botones externos que llamen acciones del calendario
+        document.getElementById('printCalendar')  ?.addEventListener('click', () => this._renderer?.print());
+        document.getElementById('resetCalendar')  ?.addEventListener('click', () => {
+            if (!this._canEdit) { showNoPermissionAlert('calendario'); return; }
+            this._renderer?.confirmReset();
         });
+        document.getElementById('addEvent')       ?.addEventListener('click', () => {
+            if (!this._canEdit) { showNoPermissionAlert('calendario'); return; }
+            this._form?.openNew();
+        });
+        document.getElementById('searchCalendar') ?.addEventListener('click', () => this._renderer?.openSearch());
     }
 
-    // Función para verificar si un evento coincide con el filtro
-    doesEventMatchFilter(event, filter) {
-        if (filter === 'all') return true;
-        
-        // Mapeo de tipos de evento a los filtros disponibles
-        const typeMap = {
-            'academic': ['academic', 'academico', 'académico'],
-            'meetings': ['meetings', 'reunion', 'reunión', 'reuniones'],
-            'deadlines': ['deadlines', 'plazo', 'plazos', 'deadline'],
-            'holidays': ['holidays', 'festivo', 'festivos', 'vacaciones']
-        };
-        
-        const eventType = (event.type || '').toLowerCase().trim();
-        const filterTypes = typeMap[filter] || [filter];
-        
-        return filterTypes.some(type => eventType.includes(type.toLowerCase()));
+    destroy() {
+        if (this._unloaded) return;
+        this._unloaded = true;
+        if (this._kbHandler) document.removeEventListener('keydown', this._kbHandler);
+        Modal.closeAll();
     }
 
-    // Filtrar eventos según el filtro activo
-    filterEvents(events) {
-        if (this.activeFilter === 'all') {
-            return events;
-        }
-        
-        return events.filter(event => this.doesEventMatchFilter(event, this.activeFilter));
+    // — API pública para debug —
+    debug() {
+        console.group('📅 CalendarManager Debug');
+        console.log('Eventos master:', this._store.getAll().length);
+        console.log('Puede editar:', this._canEdit);
+        console.log('Vista:', this._renderer?._view);
+        console.log('Mes/Año:', `${this._renderer?._month + 1}/${this._renderer?._year}`);
+        console.log('Estadísticas:', this._store.getStats());
+        console.groupEnd();
     }
-
-    // Obtener nombre legible del filtro
-    getFilterName(filter) {
-        const filterNames = {
-            'all': 'todos los eventos',
-            'academic': 'académicos',
-            'meetings': 'reuniones',
-            'deadlines': 'plazos',
-            'holidays': 'festivos'
-        };
-        return filterNames[filter] || filter;
-    }
-
-    // Verificar si dos fechas son el mismo día
-    isSameDay(date1, date2) {
-        return date1.getFullYear() === date2.getFullYear() &&
-               date1.getMonth() === date2.getMonth() &&
-               date1.getDate() === date2.getDate();
-    }
-
-    // Convertir hex a rgba
-    hexToRgba(hex, alpha = 1) {
-        try {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        } catch (error) {
-            console.error('❌ Error convirtiendo color hex:', error);
-            return `rgba(59, 130, 246, ${alpha})`; // Color por defecto
-        }
-    }
-
-    // Generar ID único para evento
-    generateEventId() {
-        return 'event_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-
-    // Generar ID único para serie de eventos
-    generateSeriesId() {
-        return 'series_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-
-    // Cargar eventos desde localStorage
-loadEvents() {
-    try {
-        const saved = localStorage.getItem('calendar_events');
-        if (saved) {
-            const events = JSON.parse(saved);
-            console.debug(`📂 Eventos cargados desde localStorage: ${events.length} eventos`);
-            
-            // Asegurarnos de que todos los eventos tengan seriesId
-            events.forEach(event => {
-                if (!event.seriesId) {
-                    event.seriesId = event.recurrence && event.recurrence !== 'none' 
-                        ? this.generateSeriesId() 
-                        : 'single';
-                }
-            });
-            
-            return events;
-        }
-    } catch (error) {
-        console.error('❌ Error al cargar eventos desde localStorage:', error);
-    }
-    
-    console.debug('📂 No hay eventos guardados, inicializando calendario vacío');
-    return [];  // 👈 Esto llama a getSampleEvents() que ahora retorna []
 }
 
-    // Crear eventos de ejemplo - AHORA RETORNA ARRAY VACÍO
-getSampleEvents() {
-    // ===== CAMBIO IMPORTANTE: Retornar array vacío =====
-    // Ya no queremos eventos de ejemplo, el calendario debe iniciar vacío
-    console.debug('📂 Inicializando calendario vacío (sin eventos de ejemplo)');
-    return [];
-    
-    /* Código anterior comentado para referencia
-    const today = new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
-    
-    const sampleEvents = [
-        {
-            id: this.generateEventId(),
-            title: 'Examen Final Matemáticas',
-            type: 'academic',
-            color: '#3b82f6',
-            startDate: this.formatDate(today),
-            startTime: '09:00',
-            endDate: this.formatDate(today),
-            endTime: '11:00',
-            location: 'Aula 101',
-            description: 'Examen final del curso de Matemáticas Avanzadas',
-            reminder: '1_day',
-            recurrence: 'none',
-            seriesId: 'single',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        },
-        {
-            id: this.generateEventId(),
-            title: 'Reunión de Departamento',
-            type: 'meetings',
-            color: '#10b981',
-            startDate: this.formatDate(this.addDays(today, 1)),
-            startTime: '14:00',
-            endDate: this.formatDate(this.addDays(today, 1)),
-            endTime: '16:00',
-            location: 'Sala de Conferencias',
-            description: 'Reunión mensual del departamento académico',
-            reminder: '30_minutes',
-            recurrence: 'monthly',
-            seriesId: this.generateSeriesId(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        },
-        {
-            id: this.generateEventId(),
-            title: 'Entrega Proyecto Final',
-            type: 'deadlines',
-            color: '#f59e0b',
-            startDate: this.formatDate(this.addDays(today, 3)),
-            startTime: '23:59',
-            endDate: this.formatDate(this.addDays(today, 3)),
-            endTime: '23:59',
-            location: 'Plataforma Virtual',
-            description: 'Fecha límite para entrega del proyecto final',
-            reminder: '2_days',
-            recurrence: 'none',
-            seriesId: 'single',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        },
-        {
-            id: this.generateEventId(),
-            title: 'Día Festivo Nacional',
-            type: 'holidays',
-            color: '#ef4444',
-            startDate: this.formatDate(this.addDays(today, 5)),
-            startTime: '00:00',
-            endDate: this.formatDate(this.addDays(today, 5)),
-            endTime: '23:59',
-            location: '',
-            description: 'Día festivo nacional - No hay clases',
-            reminder: '',
-            recurrence: 'yearly',
-            seriesId: this.generateSeriesId(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        },
-        {
-            id: this.generateEventId(),
-            title: 'Conferencia Invitado Especial',
-            type: 'academic',
-            color: '#8b5cf6',
-            startDate: this.formatDate(this.addDays(today, 2)),
-            startTime: '10:00',
-            endDate: this.formatDate(this.addDays(today, 2)),
-            endTime: '12:00',
-            location: 'Auditorio Principal',
-            description: 'Conferencia sobre Inteligencia Artificial',
-            reminder: '1_hour',
-            recurrence: 'none',
-            seriesId: 'single',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        },
-        {
-            id: this.generateEventId(),
-            title: 'Reunión de Estudiantes',
-            type: 'meetings',
-            color: '#06b6d4',
-            startDate: this.formatDate(this.addDays(today, 4)),
-            startTime: '16:00',
-            endDate: this.formatDate(this.addDays(today, 4)),
-            endTime: '18:00',
-            location: 'Cafetería',
-            description: 'Reunión del consejo estudiantil',
-            reminder: '15_minutes',
-            recurrence: 'weekly',
-            seriesId: this.generateSeriesId(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        }
-    ];
-    
-    console.debug('📋 Eventos de ejemplo creados');
-    return sampleEvents;
-    */
-}
+// ─── BOOTSTRAP ───────────────────────────────────────────────────────────────
 
-    // Función auxiliar para formatear fechas
-    formatDate(date) {
-        return date.toISOString().split('T')[0];
-    }
+let _managerInstance = null;
 
-    // Función auxiliar para añadir días
-    addDays(date, days) {
-        const result = new Date(date);
-        result.setDate(result.getDate() + days);
-        return result;
-    }
+function _tryInit() {
+    const section = document.getElementById('calendario');
+    if (!section) return;
 
-    // Guardar eventos en localStorage
-    saveEvents() {
-        try {
-            localStorage.setItem('calendar_events', JSON.stringify(this.events));
-            console.debug(`💾 Eventos guardados en localStorage: ${this.events.length} eventos`);
-        } catch (error) {
-            console.error('❌ Error al guardar eventos en localStorage:', error);
-        }
-    }
-
-    // Mostrar modal de reinicio del calendario
-    showResetCalendarModal() {
-        if (!canAction('calendario')) {
-            showNoPermissionAlert('calendario');
-            this.showNotification('No tienes permisos para reiniciar el calendario');
-            return;
-        }
-
-        console.debug('🔄 Mostrando modal de reinicio del calendario');
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal__backdrop"></div>
-            <article class="modal__content modal__content--sm">
-                <header class="modal__header">
-                    <h3 class="modal__title">
-                        <i class="fas fa-trash-alt me-2"></i>
-                        Reiniciar Calendario
-                    </h3>
-                    <button class="modal__close" id="closeResetModal">&times;</button>
-                </header>
-                <section class="modal__body">
-                    <div class="action-modal__content">
-                        <div class="action-modal__icon action-modal__icon--warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <p class="action-modal__message">
-                            <strong>¿Estás seguro de reiniciar el calendario?</strong><br><br>
-                            Esta acción eliminará <strong>todos los eventos</strong> y quedara en blanco el calendario.<br><br>
-                            <small>Esta acción no se puede deshacer.</small>
-                        </p>
-                    </div>
-                </section>
-                <footer class="modal__footer modal__footer--centered">
-                    <button type="button" class="btn btn--outline" id="cancelReset">
-                        <i class="fas fa-times"></i>
-                        Cancelar
-                    </button>
-                    <button type="button" class="btn btn--danger" id="confirmReset">
-                        <i class="fas fa-trash-alt"></i>
-                        Reiniciar Calendario
-                    </button>
-                </footer>
-            </article>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.setAttribute('open', '');
-        
-        // Configurar event listeners del modal
-        const closeModal = () => {
-            modal.remove();
-        };
-        
-        modal.querySelector('#closeResetModal').addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            closeModal();
+    if (section.classList.contains('active') && !_managerInstance) {
+        _managerInstance = new CalendarManager();
+        _managerInstance.init().then(() => {
+            window.calendarManager = _managerInstance;
+            window.debugCalendar   = () => _managerInstance?.debug();
+            console.debug('📅 Calendario listo. Usa debugCalendar() para inspección.');
         });
-        
-        modal.querySelector('#cancelReset').addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            closeModal();
-        });
-        
-        modal.querySelector('.modal__backdrop').addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal__backdrop')) {
-                e.preventDefault();
-                e.stopPropagation();
-                closeModal();
-            }
-        });
-        
-        modal.querySelector('#confirmReset').addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.debug('🔄 Confirmado: Reiniciando calendario...');
-            this.resetCalendar();
-            closeModal();
-        });
-    }
-
-    // Reiniciar calendario
-resetCalendar() {
-    if (!canAction('calendario')) {
-        showNoPermissionAlert('calendario');
-        this.showNotification('No tienes permisos para reiniciar el calendario');
         return;
     }
 
-    try {
-        console.debug('🔄 Reiniciando calendario...');
-        
-        // 1. Eliminar del localStorage
-        localStorage.removeItem('calendar_events');
-        
-        // 2. Inicializar con array vacío en lugar de eventos de ejemplo
-        this.events = [];  // 👈 CAMBIO IMPORTANTE: array vacío
-        
-        // 3. Guardar el array vacío
-        this.saveEvents();
-        
-        // 4. Actualizar la UI
-        this.renderCalendar();
-        this.updateUpcomingEvents();
-        this.renderMiniCalendar();
-        
-        // 5. Mostrar notificación de éxito
-        this.showNotification('Calendario reiniciado correctamente');
-        
-        console.debug('✅ Calendario reiniciado correctamente');
-    } catch (error) {
-        console.error('❌ Error reiniciando calendario:', error);
-        this.showNotification('Error al reiniciar el calendario');
+    if (!section.classList.contains('active') && _managerInstance) {
+        _managerInstance.destroy();
+        _managerInstance = null;
+        window.calendarManager = null;
     }
 }
 
-    // Debug: Mostrar información del estado actual
-    debugInfo() {
-        console.debug('=== DEBUG CALENDARIO ===');
-        console.debug(`Fecha actual: ${this.currentDate.toISOString().split('T')[0]}`);
-        console.debug(`Año actual: ${this.currentYear}`);
-        console.debug(`Mes actual: ${this.currentMonth}`);
-        console.debug(`Fecha seleccionada: ${this.selectedDate.toISOString().split('T')[0]}`);
-        console.debug(`Filtro activo: ${this.activeFilter}`);
-        console.debug(`Total eventos: ${this.events.length}`);
-        console.debug('Eventos por tipo:');
-        const eventTypes = {};
-        this.events.forEach(event => {
-            eventTypes[event.type] = (eventTypes[event.type] || 0) + 1;
-        });
-        Object.entries(eventTypes).forEach(([type, count]) => {
-            console.debug(`  ${type}: ${count} eventos`);
-        });
-        console.debug('Eventos próximos (próximos 7 días):');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const upcomingEvents = this.events.filter(event => {
-            const eventDate = new Date(event.startDate);
-            eventDate.setHours(0, 0, 0, 0);
-            const diffTime = eventDate.getTime() - today.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays >= 0 && diffDays <= 7;
-        });
-        upcomingEvents.forEach(event => {
-            const eventDate = new Date(event.startDate);
-            console.debug(`  • ${eventDate.toLocaleDateString()}: ${event.title} (${event.type})`);
-        });
-        console.debug('=======================');
-    }
-}
+document.addEventListener('DOMContentLoaded', () => {
+    _tryInit();
 
-// ===== INICIALIZACIÓN =====
-
-// Esperar a que el DOM esté completamente cargado
-document.addEventListener('DOMContentLoaded', async () => {
-    console.debug('📅 Inicializando Módulo de Calendario...');
-    
-    try {
-        await loadCurrentPermissions();
-
-        if (!canView('calendario')) {
-            const calendarSection = document.getElementById('calendario');
-            if (calendarSection) {
-                showNoPermissionAlert('calendario');
-            }
-            return;
-        }
-
-        // Verificar si estamos en la página de calendario
-        const calendarSection = document.getElementById('calendario');
-        if (calendarSection) {
-            // Verificar si ya está activo
-            if (calendarSection.classList.contains('active')) {
-                // Inicializar el calendario
-                window.calendarManager = new CalendarManager();
-                
-                // Exponer función de debug para la consola
-                window.debugCalendar = () => {
-                    if (window.calendarManager) {
-                        window.calendarManager.debugInfo();
-                    } else {
-                        console.error('❌ CalendarManager no está inicializado');
-                    }
-                };
-                
-                console.debug('🚀 Módulo de Calendario listo para usar');
-                console.debug('💡 Usa debugCalendar() en la consola para ver información de debug');
-            } else {
-                console.debug('⏳ Calendario encontrado pero no activo. Esperando activación...');
-                
-                // Observar cambios en la clase active
-                const observer = new MutationObserver((mutations) => {
-                    mutations.forEach((mutation) => {
-                        if (mutation.attributeName === 'class' && 
-                            calendarSection.classList.contains('active') && 
-                            !window.calendarManager) {
-                            
-                            console.debug('🎬 Calendario activado, inicializando...');
-                            window.calendarManager = new CalendarManager();
-                            window.debugCalendar = () => window.calendarManager.debugInfo();
-                            
-                            // Dejar de observar
-                            observer.disconnect();
-                        }
-                    });
-                });
-                
-                observer.observe(calendarSection, { attributes: true });
-            }
-        } else {
-            console.debug('⚠️ Sección de calendario no encontrada');
-        }
-    } catch (error) {
-        console.error('❌ Error inicializando calendario:', error);
+    // Observar activación de sección
+    const section = document.getElementById('calendario');
+    if (section) {
+        const obs = new MutationObserver(_tryInit);
+        obs.observe(section, { attributes: true, attributeFilter: ['class'] });
     }
 });
 
-// Manejo de errores global
-window.addEventListener('error', (event) => {
-    console.error('❌ Error no manejado en el calendario:', event.error);
-    
-    // Intentar recuperar el calendario
-    if (window.calendarManager) {
-        console.debug('🔄 Intentando recuperar calendario...');
-        try {
-            window.calendarManager.renderCalendar();
-        } catch (recoveryError) {
-            console.error('❌ No se pudo recuperar el calendario:', recoveryError);
-        }
+// Reaccionar a cambios de visibilidad de pestaña
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && _managerInstance) {
+        _managerInstance._renderer?.refresh();
     }
 });
 
-// Manejo de promesas rechazadas no manejadas
-window.addEventListener('unhandledrejection', (event) => {
-    console.error('❌ Promesa rechazada no manejada:', event.reason);
+window.addEventListener('unhandledrejection', e => {
+    console.error('Cal: promesa rechazada no manejada:', e.reason);
 });
