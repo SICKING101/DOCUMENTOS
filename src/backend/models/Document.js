@@ -12,7 +12,7 @@ const documentSchema = new mongoose.Schema({
   cloudinary_url: { type: String, required: true },
   public_id: { type: String, required: true },
   resource_type: { type: String, required: true },
-  // Flujo de revisión/aprobación (compatibilidad: si falta, asumir "approved")
+  // Flujo de revisión/aprobación
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
@@ -28,6 +28,12 @@ const documentSchema = new mongoose.Schema({
   deletedBy: { type: String, default: null }
 }, { timestamps: true });
 
-// Usar export default
+// Índices para optimizar consultas frecuentes
+documentSchema.index({ persona_id: 1 });
+documentSchema.index({ categoria: 1 });
+documentSchema.index({ fecha_subida: -1 });
+documentSchema.index({ status: 1 });
+documentSchema.index({ isDeleted: 1 });
+
 const Document = mongoose.model('Document', documentSchema);
 export default Document;

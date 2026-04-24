@@ -112,10 +112,10 @@ const userSchema = new mongoose.Schema(
 // =============================================================================
 // ÍNDICES
 // =============================================================================
+// NOTA: usuario y correo ya tienen unique: true, lo que crea índices automáticamente
+// Solo definimos índices adicionales aquí
 
-userSchema.index({ usuario: 1 });
-userSchema.index({ correo:  1 });
-userSchema.index({ rol:     1 }); // útil para aggregate de conteo por rol
+userSchema.index({ rol: 1 }); // útil para aggregate de conteo por rol
 
 // =============================================================================
 // MIDDLEWARE — Hash de contraseña antes de guardar

@@ -37,8 +37,8 @@ const ticketSchema = new mongoose.Schema({
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: false, // ✅ Cambia de true a false
-        default: null    // ✅ Agrega default null
+        required: false,
+        default: null
     },
     createdByName: {
         type: String,
@@ -51,17 +51,15 @@ const ticketSchema = new mongoose.Schema({
         trim: true
     },
     
-    // ✅ AGREGAR ESTOS 2 CAMPOS NUEVOS (CRÍTICOS PARA LA LÓGICA DE EMAILS)
     adminEmail: {
         type: String,
         required: true,
-        default: 'riosnavarretejared@gmail.com' // Fallback
+        default: 'riosnavarretejared@gmail.com'
     },
     adminName: {
         type: String,
         default: 'Administrador del Sistema'
     },
-    // ✅ FIN DE CAMPOS NUEVOS
     
     attachments: [{
         filename: String,
@@ -121,14 +119,13 @@ const ticketSchema = new mongoose.Schema({
 });
 
 // Índices para mejor rendimiento
-ticketSchema.index({ ticketNumber: 1 });
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ priority: 1 });
 ticketSchema.index({ category: 1 });
 ticketSchema.index({ createdAt: -1 });
 ticketSchema.index({ createdBy: 1 });
 ticketSchema.index({ createdBy: 1, status: 1 }); // Para búsquedas de usuario específico
-ticketSchema.index({ adminEmail: 1 }); // ✅ AGREGAR ESTE ÍNDICE
+ticketSchema.index({ adminEmail: 1 });
 
 // Middleware pre-save para generar número de ticket
 ticketSchema.pre('save', function(next) {
@@ -145,7 +142,6 @@ ticketSchema.pre('save', function(next) {
         }
     }
     
-    // ✅ AGREGAR LÓGICA PARA adminEmail SI NO EXISTE
     if (!this.adminEmail) {
         this.adminEmail = 'riosnavarretejared@gmail.com';
     }
