@@ -19,9 +19,6 @@ export const SYSTEM_SECTIONS = [
   { key: 'historial',      label: 'Historial',       icon: '📜' },
   { key: 'notificaciones', label: 'Notificaciones',  icon: '🔔' },
   { key: 'soporte',        label: 'Soporte',         icon: '🛟' },
-  // Secciones exclusivas del administrador (solo admin puede ver/actuar)
-  // { key: 'admin',       label: 'Administración',  icon: '⚙️'  },  // Solo admin
-  // { key: 'auditoria',   label: 'Auditoría',        icon: '📋' },  // Solo admin
 ];
 
 /**
@@ -85,7 +82,7 @@ const roleSchema = new mongoose.Schema(
 );
 
 // ─── Índices ───────────────────────────────────────────────────────────────────
-roleSchema.index({ name: 1 });
+// NOTA: El campo 'name' ya tiene unique: true, lo que crea un índice automáticamente
 roleSchema.index({ isSystem: 1 });
 
 // ─── Métodos de instancia ──────────────────────────────────────────────────────

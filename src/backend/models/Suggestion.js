@@ -101,7 +101,8 @@ const suggestionSchema = new mongoose.Schema({
     timestamps: true
 });
 
-suggestionSchema.index({ suggestionNumber: 1 });
+// Índices para mejor rendimiento
+// NOTA: suggestionNumber ya tiene unique: true, lo que crea un índice automáticamente
 suggestionSchema.index({ estado: 1 });
 suggestionSchema.index({ categoria: 1 });
 suggestionSchema.index({ fechaEnvio: -1 });

@@ -29,7 +29,7 @@ const conversationSchema = new mongoose.Schema(
         },
         fuente: {
             type:    String,
-            enum:    ['claude-ai', 'groq', 'fallback', 'rule-based'],  // ← AÑADIR 'groq'
+            enum:    ['claude-ai', 'groq', 'fallback', 'rule-based'],
             default: 'rule-based',
         },
         latencia: {
@@ -38,7 +38,7 @@ const conversationSchema = new mongoose.Schema(
         timestamp: {
             type:    Date,
             default: Date.now,
-            index:   true,
+            // ELIMINADO index: true para evitar duplicado
         },
     },
     {
@@ -51,6 +51,7 @@ const conversationSchema = new mongoose.Schema(
 conversationSchema.index({ usuario: 1, timestamp: -1 });
 
 // TTL index: borrar automáticamente conversaciones > 90 días
+// Este índice también cubre consultas por timestamp
 conversationSchema.index(
     { timestamp: 1 },
     { expireAfterSeconds: 90 * 24 * 60 * 60 }
