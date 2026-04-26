@@ -68,7 +68,7 @@ router.use('/roles', roleRoutes);
 router.use('/avisos', avisoRoutes);
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-router.get('/dashboard', protegerRuta, DashboardController.getDashboardStats);
+router.get('/dashboard', protegerRuta, inyectarSchoolId, DashboardController.getDashboardStats);
 
 // ─── CHATBOT ──────────────────────────────────────────────────
 // Motor IA principal — procesar mensajes
@@ -94,17 +94,17 @@ router.delete('/persons/:id', protegerRuta, inyectarSchoolId, requirePermission(
 router.patch('/persons/:id/deactivate', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.deactivate);
 router.patch('/persons/:id/reactivate', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.reactivate);
 
-// ─── CATEGORÍAS ───────────────────────────────────────────────
-router.get('/categories', protegerRuta, requirePermission(PERMISSIONS.VIEW_CATEGORIES), CategoryController.getAll);
-router.post('/categories', protegerRuta, requirePermission(PERMISSIONS.CREATE_CATEGORY), CategoryController.create);
-router.put('/categories/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_CATEGORY), CategoryController.update);
-router.delete('/categories/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_CATEGORY), CategoryController.delete);
+// ─── CATEGORÍAS (AISLADAS POR ESCUELA) ────────────────────────
+router.get('/categories', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_CATEGORIES), CategoryController.getAll);
+router.post('/categories', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.CREATE_CATEGORY), CategoryController.create);
+router.put('/categories/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_CATEGORY), CategoryController.update);
+router.delete('/categories/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.DELETE_CATEGORY), CategoryController.delete);
 
-// ─── DEPARTAMENTOS ────────────────────────────────────────────
-router.get('/departments', protegerRuta, requirePermission(PERMISSIONS.VIEW_DEPARTMENTS), DepartmentController.getAll);
-router.post('/departments', protegerRuta, requirePermission(PERMISSIONS.CREATE_DEPARTMENT), DepartmentController.create);
-router.put('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_DEPARTMENT), DepartmentController.update);
-router.delete('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DEPARTMENT), DepartmentController.delete);
+// ─── DEPARTAMENTOS (AISLADOS POR ESCUELA) ─────────────────────
+router.get('/departments', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DEPARTMENTS), DepartmentController.getAll);
+router.post('/departments', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.CREATE_DEPARTMENT), DepartmentController.create);
+router.put('/departments/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_DEPARTMENT), DepartmentController.update);
+router.delete('/departments/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.DELETE_DEPARTMENT), DepartmentController.delete);
 
 // ─── DOCUMENTOS ───────────────────────────────────────────────
 router.get('/documents', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getAll);
