@@ -1,3 +1,5 @@
+// src/frontend/modules/auth/super-admin.js
+
 import avisoService from '../../services/avisoService.js';
 window.avisoService = avisoService;
 let currentAvisos = [], currentAvisosPage = 1, totalAvisosPages = 1, editingAvisoId = null;
@@ -433,7 +435,6 @@ window.deleteAviso = deleteAviso;
 function switchSection(section) {
     currentSection = section;
 
-    // Actualizar clase active en el sidebar
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
         if (item.dataset.section === section) {
@@ -441,26 +442,27 @@ function switchSection(section) {
         }
     });
 
-    // Obtener todas las secciones
     const versionsSection = document.getElementById('versionsSection');
     const avisosSection = document.getElementById('avisosSection');
     const sugerenciasSection = document.getElementById('sugerenciasSection');
+    const invitationsSection = document.getElementById('invitationsSection'); // 🆕
     const shutdownSection = document.getElementById('shutdownSection');
     
     const pageTitle = document.getElementById('pageTitle');
     const pageDescription = document.getElementById('pageDescription');
 
-    // PRIMERO: Ocultar TODAS las secciones
+    // Ocultar TODAS
     if (versionsSection) versionsSection.classList.add('hidden');
     if (avisosSection) avisosSection.classList.add('hidden');
     if (sugerenciasSection) sugerenciasSection.classList.add('hidden');
+    if (invitationsSection) invitationsSection.classList.add('hidden'); // 🆕
     if (shutdownSection) shutdownSection.classList.add('hidden');
 
-    // SEGUNDO: Mostrar SOLO la sección seleccionada
+    // Mostrar según sección
     if (section === 'versions') {
         if (versionsSection) versionsSection.classList.remove('hidden');
         if (pageTitle) pageTitle.textContent = 'Panel de Versiones';
-        if (pageDescription) pageDescription.textContent = 'Gestiona las versiones del sistema y publica actualizaciones';
+        if (pageDescription) pageDescription.textContent = 'Gestiona las versiones del sistema';
         loadVersions();
     } else if (section === 'avisos') {
         if (avisosSection) avisosSection.classList.remove('hidden');
@@ -470,13 +472,21 @@ function switchSection(section) {
     } else if (section === 'sugerencias') {
         if (sugerenciasSection) sugerenciasSection.classList.remove('hidden');
         if (pageTitle) pageTitle.textContent = 'Bandeja de Sugerencias';
-        if (pageDescription) pageDescription.textContent = 'Gestiona las sugerencias enviadas por los usuarios';
+        if (pageDescription) pageDescription.textContent = 'Gestiona las sugerencias de los usuarios';
         loadSuggestionsPage();
         loadSuggestionsStats();
-    } else if (section === 'shutdown') {
+    } 
+    // ===== 🆕 NUEVO CASE =====
+    else if (section === 'invitations') {
+        if (invitationsSection) invitationsSection.classList.remove('hidden');
+        if (pageTitle) pageTitle.textContent = 'Invitaciones';
+        if (pageDescription) pageDescription.textContent = 'Envía invitaciones para nuevos administradores';
+        loadInvitations();
+    } 
+    else if (section === 'shutdown') {
         if (shutdownSection) shutdownSection.classList.remove('hidden');
         if (pageTitle) pageTitle.textContent = 'Cierre del Sistema';
-        if (pageDescription) pageDescription.textContent = 'Controla la disponibilidad del sistema para los clientes';
+        if (pageDescription) pageDescription.textContent = 'Controla la disponibilidad del sistema';
         loadSystemStatus();
     }
 }
@@ -1419,6 +1429,209 @@ function getCategoriaTexto(categoria) {
 }
 
 // =============================================================
+// 🆕 INVITACIONES - Funciones CRUD
+// =============================================================
+
+const API_INVITATIONS = '/api/superadmin/invitations';
+
+/**
+ * Abre el modal para crear una nueva invitación
+ */
+function openInvitationModal() {
+    const modal = document.getElementById('invitationModal');
+    if (modal) {
+        document.getElementById('inviteEmail').value = '';
+        document.getElementById('inviteSchoolName').value = '';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+/**
+ * Cierra el modal de invitación
+ */
+function closeInvitationModal() {
+    const modal = document.getElementById('invitationModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+/**
+ * Envía una invitación a un nuevo administrador
+ */
+async function sendInvitation() {
+    const email = document.getElementById('inviteEmail')?.value?.trim();
+    const schoolName = document.getElementById('inviteSchoolName')?.value?.trim();
+
+    if (!email) {
+        showToast('El email es obligatorio', 'error');
+        return;
+    }
+    if (!schoolName) {
+        showToast('El nombre de la escuela es obligatorio', 'error');
+        return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showToast('Formato de email inválido', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}${API_INVITATIONS}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, schoolName })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`✅ Invitación enviada a ${email}`, 'success');
+            closeInvitationModal();
+            loadInvitations();
+        } else {
+            showToast(data.message || 'Error al enviar invitación', 'error');
+        }
+    } catch (error) {
+        console.error('Error enviando invitación:', error);
+        showToast('Error de conexión al enviar invitación', 'error');
+    }
+}
+
+/**
+ * Carga la lista de invitaciones
+ */
+async function loadInvitations() {
+    const container = document.getElementById('invitationsList');
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading-spinner" style="margin: 2rem auto;"></div>';
+
+    try {
+        const status = document.getElementById('filterInvitationStatus')?.value || '';
+        const url = status ? `${API_URL}${API_INVITATIONS}?status=${status}` : `${API_URL}${API_INVITATIONS}`;
+
+        const response = await fetchWithAuth(url, {});
+        const data = await response.json();
+
+        if (data.success) {
+            renderInvitations(data.invitations || []);
+        } else {
+            container.innerHTML = '<p class="error">Error al cargar invitaciones</p>';
+        }
+    } catch (error) {
+        console.error('Error cargando invitaciones:', error);
+        container.innerHTML = '<p class="error">Error de conexión</p>';
+    }
+}
+
+/**
+ * Renderiza la lista de invitaciones
+ */
+function renderInvitations(invitations) {
+    const container = document.getElementById('invitationsList');
+    if (!container) return;
+
+    if (!invitations || invitations.length === 0) {
+        container.innerHTML = `
+            <div class="version-card" style="text-align: center; padding: 3rem; grid-column: 1/-1;">
+                <i class="fas fa-envelope-open-text" style="font-size: 3rem; color: var(--text-tertiary);"></i>
+                <p>No hay invitaciones</p>
+                <button class="create-version-btn" onclick="openInvitationModal()" style="margin-top: 1rem;">
+                    <i class="fas fa-plus-circle"></i> Enviar primera invitación
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const statusColors = {
+        pending: '#F59E0B',
+        used: '#10B981',
+        expired: '#6B7280',
+        revoked: '#EF4444'
+    };
+
+    const statusIcons = {
+        pending: '⏳',
+        used: '✅',
+        expired: '⏰',
+        revoked: '🚫'
+    };
+
+    const statusText = {
+        pending: 'Pendiente',
+        used: 'Usada',
+        expired: 'Expirada',
+        revoked: 'Revocada'
+    };
+
+    container.innerHTML = invitations.map(inv => `
+        <div class="version-card ${inv.status === 'revoked' || inv.status === 'expired' ? 'inactive' : ''}">
+            <div class="version-card-header">
+                <div class="version-info">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.5rem;">${statusIcons[inv.status] || '📧'}</span>
+                        <span class="version-badge" style="background: ${statusColors[inv.status] || '#6B7280'}; color: white;">
+                            ${statusText[inv.status] || inv.status}
+                        </span>
+                    </div>
+                    <div class="version-title">${escapeHtml(inv.schoolName)}</div>
+                    <div class="version-meta">
+                        <span><i class="fas fa-envelope"></i> ${escapeHtml(inv.email)}</span>
+                        <span><i class="fas fa-fingerprint"></i> ${inv.schoolId}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="version-description" style="white-space: pre-line; line-height: 1.6; margin: 1rem 0;">
+                <p><strong>📅 Creada:</strong> ${formatDate(inv.createdAt)}</p>
+                <p><strong>⏰ Expira:</strong> ${formatDate(inv.expiresAt)}</p>
+                ${inv.createdUserId ? `<p><strong>👤 Usuario creado:</strong> ${escapeHtml(inv.createdUserId.usuario || 'N/A')}</p>` : ''}
+                ${inv.usedAt ? `<p><strong>✅ Usada el:</strong> ${formatDate(inv.usedAt)}</p>` : ''}
+            </div>
+            
+            ${inv.status === 'pending' ? `
+            <div class="version-actions">
+                <button class="btn-delete" onclick="revokeInvitation('${inv._id}', '${escapeHtml(inv.email)}')">
+                    <i class="fas fa-ban"></i> Revocar
+                </button>
+            </div>` : ''}
+        </div>
+    `).join('');
+}
+
+/**
+ * Revoca una invitación pendiente
+ */
+async function revokeInvitation(id, email) {
+    if (!confirm(`¿Revocar la invitación de ${email}?\n\nEsta acción no se puede deshacer y el token dejará de ser válido.`)) return;
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}${API_INVITATIONS}/${id}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Invitación revocada exitosamente', 'success');
+            loadInvitations();
+        } else {
+            showToast(data.message || 'Error al revocar invitación', 'error');
+        }
+    } catch (error) {
+        console.error('Error revocando invitación:', error);
+        showToast('Error al revocar invitación', 'error');
+    }
+}
+
+// =============================================================
 // LOGOUT
 // =============================================================
 async function logout() {
@@ -1454,6 +1667,13 @@ window.addCambio = addCambio;
 window.removeCambio = removeCambio;
 window.closeSystem = closeSystem;
 window.openSystem = openSystem;
+
+// ===== 🆕 AGREGAR ESTAS LÍNEAS =====
+window.openInvitationModal = openInvitationModal;
+window.closeInvitationModal = closeInvitationModal;
+window.sendInvitation = sendInvitation;
+window.loadInvitations = loadInvitations;
+window.revokeInvitation = revokeInvitation;
 
 // =============================================================
 // INICIALIZACIÓN

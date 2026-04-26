@@ -30,7 +30,7 @@ import { getSystemStatus, getSystemHistory } from '../controllers/systemStateCon
 import User from '../models/User.js';
 
 // ── Middlewares ───────────────────────────────────────────────
-import { protegerRuta, requirePermission } from '../middleware/auth.js';
+import { protegerRuta, requirePermission, inyectarSchoolId } from '../middleware/auth.js';
 import { PERMISSIONS } from '../config/permissions.js';
 import upload from '../config/multerConfig.js';
 
@@ -87,13 +87,12 @@ router.delete('/chatbot/history', protegerRuta, (req, res) => ChatbotController.
 router.patch('/chatbot/feedback', protegerRuta, (req, res) => ChatbotController.submitFeedback(req, res));
 
 // ─── PERSONAS ─────────────────────────────────────────────────
-router.get('/persons', protegerRuta, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getAll);
-router.get('/persons/inactive', protegerRuta, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getInactive);
-router.post('/persons', protegerRuta, requirePermission(PERMISSIONS.CREATE_PERSON), PersonController.create);
-router.put('/persons/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.update);
-router.delete('/persons/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_PERSON), PersonController.delete);
-router.patch('/persons/:id/deactivate', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.deactivate);
-router.patch('/persons/:id/reactivate', protegerRuta, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.reactivate);
+router.get('/persons', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getAll);
+router.post('/persons', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.CREATE_PERSON), PersonController.create);
+router.put('/persons/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.update);
+router.delete('/persons/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.DELETE_PERSON), PersonController.delete);
+router.patch('/persons/:id/deactivate', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.deactivate);
+router.patch('/persons/:id/reactivate', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_PERSON), PersonController.reactivate);
 
 // ─── CATEGORÍAS ───────────────────────────────────────────────
 router.get('/categories', protegerRuta, requirePermission(PERMISSIONS.VIEW_CATEGORIES), CategoryController.getAll);
@@ -108,17 +107,17 @@ router.put('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_
 router.delete('/departments/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DEPARTMENT), DepartmentController.delete);
 
 // ─── DOCUMENTOS ───────────────────────────────────────────────
-router.get('/documents', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getAll);
-router.post('/documents', protegerRuta, requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS), upload.single('file'), DocumentController.create);
-router.delete('/documents/bulk-delete', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.bulkDelete);
-router.put('/documents/:id', protegerRuta, requirePermission(PERMISSIONS.EDIT_DOCUMENTS), upload.single('file'), DocumentController.update);
-router.get('/documents/:id/preview', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.preview);
-router.get('/documents/:id/download', protegerRuta, requirePermission(PERMISSIONS.DOWNLOAD_DOCUMENTS), DocumentController.download);
-router.get('/documents/:id/content', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getContent);
-router.get('/documents/:id/info', protegerRuta, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getInfo);
-router.delete('/documents/:id', protegerRuta, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.delete);
-router.patch('/documents/:id/approve', protegerRuta, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.approve);
-router.patch('/documents/:id/reject', protegerRuta, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.reject);
+router.get('/documents', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getAll);
+router.post('/documents', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS), upload.single('file'), DocumentController.create);
+router.delete('/documents/bulk-delete', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.bulkDelete);
+router.put('/documents/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_DOCUMENTS), upload.single('file'), DocumentController.update);
+router.get('/documents/:id/preview', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.preview);
+router.get('/documents/:id/download', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.DOWNLOAD_DOCUMENTS), DocumentController.download);
+router.get('/documents/:id/content', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getContent);
+router.get('/documents/:id/info', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getInfo);
+router.delete('/documents/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.delete);
+router.patch('/documents/:id/approve', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.approve);
+router.patch('/documents/:id/reject', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.reject);
 
 // ─── TAREAS ───────────────────────────────────────────────────
 router.get('/tasks/assignable-users', protegerRuta, TaskController.getAssignableUsers);

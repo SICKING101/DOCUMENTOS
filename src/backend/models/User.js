@@ -69,6 +69,12 @@ const userSchema = new mongoose.Schema(
       ref:     'User',
       default: null,
     },
+     // ===== 🆕 NUEVO: Identificador de escuela =====
+    schoolId: {
+      type: String,
+      index: true,
+      default: null,  // null para superadmin
+    },
      // ===== CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA =====
     // Token para recuperación (código de 6 dígitos hasheado)
     resetPasswordToken: {
@@ -116,6 +122,7 @@ const userSchema = new mongoose.Schema(
 // Solo definimos índices adicionales aquí
 
 userSchema.index({ rol: 1 }); // útil para aggregate de conteo por rol
+userSchema.index({ schoolId: 1, rol: 1 });
 
 // =============================================================================
 // MIDDLEWARE — Hash de contraseña antes de guardar

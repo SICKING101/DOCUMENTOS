@@ -14,7 +14,7 @@ export function initializeTableFilters() {
             documents: [],
             filters: {
                 category: '',
-                status: ''
+                status: ''  // ✅ Por defecto: Todos los estados
             },
             currentSearchQuery: ''
         };
@@ -26,7 +26,16 @@ export function initializeTableFilters() {
         window.appState.documents = [];
     }
     
+    // ✅ Asegurar que filters existe y status es ''
+    if (!window.appState.filters) {
+        window.appState.filters = { category: '', status: '' };
+    }
+    if (window.appState.filters.status === undefined || window.appState.filters.status === null) {
+        window.appState.filters.status = '';
+    }
+    
     console.log(`📊 Estado actual: ${window.appState.documents.length} documentos cargados`);
+    console.log('📊 Filtros iniciales:', window.appState.filters);
     
     // Inicializar filtros individuales
     initializeCategoryFilter();
@@ -422,44 +431,49 @@ export function loadFilterState() {
             if (!window.appState) {
                 window.appState = {
                     documents: [],
-                    filters: {
-                        category: '',
-                        status: ''
-                    },
+                    filters: { category: '', status: '' },
                     currentSearchQuery: ''
                 };
             }
             
             if (!window.appState.filters) {
-                window.appState.filters = {
-                    category: '',
-                    status: ''
-                };
+                window.appState.filters = { category: '', status: '' };
             }
             
-            const parsedFilters = JSON.parse(savedFilters);
+            let parsedFilters;
+            try {
+                parsedFilters = JSON.parse(savedFilters);
+            } catch (parseError) {
+                console.warn('⚠️ Error parseando filtros guardados, usando defaults');
+                parsedFilters = { category: '', status: '' };
+            }
+            
             console.log('📥 Filtros parseados:', parsedFilters);
             
-            // Actualizar filtros
-            if (parsedFilters.category !== undefined) {
+            // ✅ Restaurar categoría SOLO si tiene valor
+            if (parsedFilters.category && parsedFilters.category !== '') {
                 window.appState.filters.category = parsedFilters.category;
+            } else {
+                window.appState.filters.category = '';
             }
-            if (parsedFilters.status !== undefined) {
+            
+            // ✅ Restaurar estado SOLO si tiene valor válido
+            const validStatuses = ['', 'active', 'expiring', 'expired', 'no_expiration'];
+            if (parsedFilters.status && parsedFilters.status !== '' && validStatuses.includes(parsedFilters.status)) {
                 window.appState.filters.status = parsedFilters.status;
+            } else {
+                window.appState.filters.status = '';  // ✅ Por defecto: TODOS
             }
             
             // Restaurar valores en los inputs
             restoreFilterInputs();
         }
         
-        if (savedSearch !== null) {
+        if (savedSearch !== null && savedSearch !== '') {
             if (!window.appState) {
                 window.appState = {
                     documents: [],
-                    filters: {
-                        category: '',
-                        status: ''
-                    },
+                    filters: { category: '', status: '' },
                     currentSearchQuery: ''
                 };
             }
@@ -474,7 +488,12 @@ export function loadFilterState() {
         console.log('📥 Estado final de filtros:', window.appState.filters);
         
     } catch (error) {
-        console.warn('⚠️  No se pudo cargar el estado de filtros:', error);
+        console.warn('⚠️ No se pudo cargar el estado de filtros:', error);
+        // ✅ En caso de error, asegurar defaults limpios
+        if (window.appState && window.appState.filters) {
+            window.appState.filters.status = '';
+            window.appState.filters.category = '';
+        }
     }
 }
 
@@ -484,7 +503,7 @@ export function loadFilterState() {
  */
 function restoreFilterInputs() {
     if (!window.appState || !window.appState.filters) {
-        console.warn('⚠️  No hay filtros para restaurar');
+        console.warn('⚠️ No hay filtros para restaurar');
         return;
     }
     
@@ -493,42 +512,58 @@ function restoreFilterInputs() {
     
     try {
         // Restaurar categoría
-        if (DOM.filterCategory && filters.category !== undefined && filters.category !== '') {
-            // Primero intentar por valor exacto
-            const exactMatch = Array.from(DOM.filterCategory.options).find(
-                option => option.value.toLowerCase() === filters.category.toLowerCase()
-            );
-            
-            if (exactMatch) {
-                DOM.filterCategory.value = exactMatch.value;
-                console.log(`🔄 Categoría restaurada por valor exacto: "${filters.category}"`);
-            } else {
-                // Si no hay match exacto, buscar por texto
-                const textMatch = Array.from(DOM.filterCategory.options).find(
-                    option => option.textContent.toLowerCase() === filters.category.toLowerCase()
+        if (DOM.filterCategory) {
+            if (filters.category && filters.category !== '') {
+                // Primero intentar por valor exacto
+                const exactMatch = Array.from(DOM.filterCategory.options).find(
+                    option => option.value.toLowerCase() === filters.category.toLowerCase()
                 );
                 
-                if (textMatch) {
-                    DOM.filterCategory.value = textMatch.value;
-                    console.log(`🔄 Categoría restaurada por texto: "${filters.category}" -> "${textMatch.value}"`);
+                if (exactMatch) {
+                    DOM.filterCategory.value = exactMatch.value;
+                    console.log(`🔄 Categoría restaurada por valor exacto: "${filters.category}"`);
                 } else {
-                    console.warn(`⚠️  No se encontró la categoría "${filters.category}" en las opciones disponibles`);
-                    DOM.filterCategory.value = '';
-                    window.appState.filters.category = '';
+                    // Si no hay match exacto, buscar por texto
+                    const textMatch = Array.from(DOM.filterCategory.options).find(
+                        option => option.textContent.toLowerCase() === filters.category.toLowerCase()
+                    );
+                    
+                    if (textMatch) {
+                        DOM.filterCategory.value = textMatch.value;
+                        console.log(`🔄 Categoría restaurada por texto: "${filters.category}" -> "${textMatch.value}"`);
+                    } else {
+                        console.warn(`⚠️ No se encontró la categoría "${filters.category}" en las opciones disponibles`);
+                        DOM.filterCategory.value = '';
+                        window.appState.filters.category = '';
+                    }
                 }
+            } else {
+                DOM.filterCategory.value = '';
+                window.appState.filters.category = '';
             }
-        } else if (DOM.filterCategory) {
-            DOM.filterCategory.value = '';
         }
         
-        // Restaurar estado (más simple)
-        if (DOM.filterStatus && filters.status !== undefined) {
-            DOM.filterStatus.value = filters.status || '';
-            console.log(`🔄 Estado restaurado: "${filters.status}"`);
+        // ✅ Restaurar estado con validación
+        if (DOM.filterStatus) {
+            const validStatuses = ['', 'active', 'expiring', 'expired', 'no_expiration'];
+            const statusValue = (filters.status && validStatuses.includes(filters.status)) 
+                ? filters.status 
+                : '';
+            
+            DOM.filterStatus.value = statusValue;
+            window.appState.filters.status = statusValue;
+            console.log(`🔄 Estado restaurado: "${statusValue || '(todos)'}"`);
         }
         
     } catch (error) {
         console.error('❌ Error restaurando filtros:', error);
+        // ✅ En caso de error, limpiar todo
+        if (DOM.filterCategory) DOM.filterCategory.value = '';
+        if (DOM.filterStatus) DOM.filterStatus.value = '';
+        if (window.appState.filters) {
+            window.appState.filters.category = '';
+            window.appState.filters.status = '';
+        }
     }
 }
 

@@ -35,7 +35,15 @@ if (fs.existsSync(envPath)) {
 }
 
 // DEBUG: Verificar variables cargadas
-console.log('🔑 BREVO_API_KEY cargada:', process.env.BREVO_API_KEY ? '✅ SÍ' : '❌ NO');
+// DEBUG COMPLETO DE BREVO_API_KEY
+const rawKey = process.env.BREVO_API_KEY;
+console.log('🔑 DEBUG BREVO_API_KEY:');
+console.log('  - ¿Existe?:', !!rawKey);
+console.log('  - Longitud:', rawKey?.length);
+console.log('  - Empieza con xkeysib:', rawKey?.startsWith('xkeysib'));
+console.log('  - Termina con Wy:', rawKey?.endsWith('Wy'));
+console.log('  - Contiene saltos de línea:', rawKey?.includes('\n') || rawKey?.includes('\r'));
+console.log('  - Valor exacto entre comillas:', JSON.stringify(rawKey));
 console.log('📧 EMAIL_FROM:', process.env.EMAIL_FROM || 'No configurado');
 // ===== FIN CONFIGURACIÓN DOTENV =====
 
@@ -57,6 +65,7 @@ import adminRoutes from './src/backend/routes/adminRoutes.js';
 import Notification from './src/backend/models/Notification.js';
 import NotificationService from './src/backend/services/notificationService.js';
 import { verificarAccesoSistema } from './src/backend/middleware/systemAccess.js';
+import { protegerRuta, inyectarSchoolId } from './src/backend/middleware/auth.js';
 
 validarConfigSuperAdmin();
 
@@ -202,43 +211,46 @@ app.get('/superadmin', (req, res) => {
 });
 
 // -----------------------------
-// DASHBOARD
+// DASHBOARD (AISLADO POR ESCUELA)
 // -----------------------------
-app.get('/api/dashboard', async (req, res) => {
+app.get('/api/dashboard', protegerRuta, inyectarSchoolId, async (req, res) => {
   try {
-    const totalPersonas = await Person.countDocuments({ activo: true });
-    
-    // CORREGIDO: Contar documentos que NO estén eliminados (sin filtrar por activo)
-    const totalDocumentos = await Document.countDocuments({
+    // 🆕 Filtro base por escuela
+    const docFilter = {
       $or: [
         { isDeleted: false },
         { isDeleted: { $exists: false } }
       ]
-    });
+    };
+    if (req.schoolId) docFilter.schoolId = req.schoolId;
+
+    const personFilter = { activo: true };
+    if (req.schoolId) personFilter.schoolId = req.schoolId;
+
+    const categoryFilter = { activo: true };
+    // Las categorías pueden ser compartidas o no, según tu decisión
+    // Si quieres aislarlas también: if (req.schoolId) categoryFilter.schoolId = req.schoolId;
+
+    const totalPersonas = await Person.countDocuments(personFilter);
     
-    const totalCategorias = await Category.countDocuments({ activo: true });
+    const totalDocumentos = await Document.countDocuments(docFilter);
+    
+    const totalCategorias = await Category.countDocuments(categoryFilter);
 
     // Documentos próximos a vencer (en los próximos 30 días)
     const fechaLimite = new Date();
     fechaLimite.setDate(fechaLimite.getDate() + 30);
-    const proximosVencer = await Document.countDocuments({
-      $or: [
-        { isDeleted: false },
-        { isDeleted: { $exists: false } }
-      ],
-      fecha_vencimiento: { 
-        $gte: new Date(), 
-        $lte: fechaLimite 
-      }
-    });
+    
+    const proximosVencerFilter = { ...docFilter };
+    proximosVencerFilter.fecha_vencimiento = { 
+      $gte: new Date(), 
+      $lte: fechaLimite 
+    };
+    
+    const proximosVencer = await Document.countDocuments(proximosVencerFilter);
 
     // Documentos recientes
-    const recentDocuments = await Document.find({
-      $or: [
-        { isDeleted: false },
-        { isDeleted: { $exists: false } }
-      ]
-    })
+    const recentDocuments = await Document.find(docFilter)
       .populate('persona_id', 'nombre')
       .sort({ fecha_subida: -1 })
       .limit(5)
@@ -264,16 +276,184 @@ app.get('/api/dashboard', async (req, res) => {
 });
 
 // -----------------------------
-// PERSONAS - RUTAS ACTUALIZADAS PARA ELIMINACIÓN PERMANENTE
+// PERSONAS (AISLADO POR ESCUELA)
 // -----------------------------
 
-app.get('/api/persons', async (req, res) => {
+// GET /api/persons
+app.get('/api/persons', protegerRuta, inyectarSchoolId, async (req, res) => {
   try {
-    const persons = await Person.find({ activo: true }).sort({ nombre: 1 });
+    const filter = { activo: true };
+    // 🆕 Filtro por escuela
+    if (req.schoolId) filter.schoolId = req.schoolId;
+    
+    const persons = await Person.find(filter).sort({ nombre: 1 });
     res.json({ success: true, persons });
   } catch (error) {
     console.error('Error obteniendo personas:', error);
     res.status(500).json({ success: false, message: 'Error al obtener personas' });
+  }
+});
+
+// POST /api/persons
+app.post('/api/persons', protegerRuta, inyectarSchoolId, async (req, res) => {
+  try {
+    const { nombre, email, telefono, departamento, puesto } = req.body;
+    
+    if (!nombre || !email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Nombre y email son obligatorios' 
+      });
+    }
+
+    // 🆕 Verificar duplicados SOLO dentro de la misma escuela
+    const emailFilter = { 
+      email: { $regex: new RegExp(`^${email}$`, 'i') }
+    };
+    if (req.schoolId) emailFilter.schoolId = req.schoolId;
+    
+    const personaExistente = await Person.findOne(emailFilter);
+
+    if (personaExistente) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Ya existe una persona con ese email en tu escuela' 
+      });
+    }
+
+    const nuevaPersona = new Person({
+      nombre,
+      email,
+      telefono,
+      departamento,
+      puesto,
+      schoolId: req.schoolId || 'superadmin'  // 🆕 Asignar schoolId
+    });
+
+    await nuevaPersona.save();
+    
+    // Crear notificación de persona agregada
+    try {
+      await NotificationService.personaAgregada(nuevaPersona);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Persona agregada correctamente',
+      person: nuevaPersona 
+    });
+  } catch (error) {
+    console.error('Error creando persona:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al crear persona' 
+    });
+  }
+});
+
+// PUT /api/persons/:id - También aislado
+app.put('/api/persons/:id', protegerRuta, inyectarSchoolId, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, email, telefono, departamento, puesto } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'ID inválido' });
+    }
+
+    // 🆕 Buscar solo dentro de la escuela del admin
+    const filter = { _id: id };
+    if (req.schoolId) filter.schoolId = req.schoolId;
+
+    const personaActualizada = await Person.findOneAndUpdate(
+      filter,
+      { nombre, email, telefono, departamento, puesto },
+      { new: true, runValidators: true }
+    );
+
+    if (!personaActualizada) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Persona no encontrada o no pertenece a tu escuela' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Persona actualizada correctamente',
+      person: personaActualizada 
+    });
+  } catch (error) {
+    console.error('Error actualizando persona:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al actualizar persona' 
+    });
+  }
+});
+
+// DELETE /api/persons/:id - También aislado
+app.delete('/api/persons/:id', protegerRuta, inyectarSchoolId, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'ID inválido' });
+    }
+
+    // 🆕 Buscar solo dentro de la escuela
+    const filter = { _id: id };
+    if (req.schoolId) filter.schoolId = req.schoolId;
+
+    const personaExistente = await Person.findOne(filter);
+    if (!personaExistente) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Persona no encontrada o no pertenece a tu escuela' 
+      });
+    }
+
+    const nombrePersona = personaExistente.nombre;
+
+    // Verificar documentos asociados (también filtrados)
+    const docFilter = { 
+      persona_id: id,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    };
+    if (req.schoolId) docFilter.schoolId = req.schoolId;
+
+    const documentosAsociados = await Document.countDocuments(docFilter);
+
+    if (documentosAsociados > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No se puede eliminar la persona porque tiene documentos asociados' 
+      });
+    }
+
+    await Person.findByIdAndDelete(id);
+
+    try {
+      await NotificationService.personaEliminada(nombrePersona);
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Persona eliminada permanentemente del sistema' 
+    });
+  } catch (error) {
+    console.error('Error eliminando persona:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al eliminar persona' 
+    });
   }
 });
 
@@ -853,51 +1033,34 @@ app.delete('/api/departments/:id', async (req, res) => {
 });
 
 // -----------------------------
-// DOCUMENTOS
+// DOCUMENTOS (AISLADO POR ESCUELA)
 // -----------------------------
-app.get('/api/documents', async (req, res) => {
+app.get('/api/documents', protegerRuta, inyectarSchoolId, async (req, res) => {
   try {
     console.log('📊 ========== OBTENIENDO DOCUMENTOS ==========');
     
-    // Estadísticas para debugging
-    const totalDocs = await Document.countDocuments();
-    console.log(`📊 Total documentos en BD: ${totalDocs}`);
-    
-    const activeDocs = await Document.countDocuments({ activo: true });
-    console.log(`📊 Documentos activos: ${activeDocs}`);
-    
-    const deletedDocs = await Document.countDocuments({ isDeleted: true });
-    console.log(`📊 Documentos en papelera: ${deletedDocs}`);
-    
-    const noDeletedField = await Document.countDocuments({ isDeleted: { $exists: false } });
-    console.log(`📊 Documentos sin campo isDeleted: ${noDeletedField}`);
-
-    // QUERY: Solo documentos no eliminados
-    const documents = await Document.find({ 
+    // 🆕 Filtro base por escuela
+    const filter = { 
       $or: [
         { isDeleted: false },
         { isDeleted: { $exists: false } }
       ]
-    })
+    };
+    if (req.schoolId) filter.schoolId = req.schoolId;
+    
+    // Estadísticas para debugging
+    const totalDocs = await Document.countDocuments(filter);
+    console.log(`📊 Documentos encontrados (filtrados por escuela): ${totalDocs}`);
+
+    const documents = await Document.find(filter)
       .populate('persona_id', 'nombre email departamento puesto')
       .sort({ fecha_subida: -1 })
-      .lean(); // Usar lean() para objetos planos
+      .lean();
 
-    console.log(`📊 Documentos encontrados: ${documents.length}`);
-
-    // DEBUG: Verificar estructura de documentos
-    if (documents.length > 0) {
-      console.log('🔍 ESTRUCTURA DEL PRIMER DOCUMENTO:');
-      const primerDoc = documents[0];
-      console.log('- Campos existentes:', Object.keys(primerDoc));
-      console.log('- Tiene fecha_vencimiento?:', 'fecha_vencimiento' in primerDoc);
-      console.log('- Tiene estado?:', 'estado' in primerDoc, '(NO debería existir)');
-      console.log('- persona_id:', primerDoc.persona_id ? 'Populado' : 'Null/Vacío');
-    }
+    console.log(`📊 Documentos después de populate: ${documents.length}`);
 
     // Transformar documentos para asegurar consistencia
     const documentosTransformados = documents.map(doc => {
-      // Crear un objeto limpio sin campos no deseados
       const documentoLimpio = {
         _id: doc._id,
         nombre_original: doc.nombre_original,
@@ -911,28 +1074,28 @@ app.get('/api/documents', async (req, res) => {
         cloudinary_url: doc.cloudinary_url,
         public_id: doc.public_id,
         resource_type: doc.resource_type,
-        activo: doc.activo !== false, // default true
+        activo: doc.activo !== false,
         isDeleted: doc.isDeleted || false,
+        schoolId: doc.schoolId, // 🆕 Incluir en respuesta
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt
       };
 
-      // CALCULAR "estadoVirtual" basado en fecha_vencimiento (para el frontend si lo necesita)
-      // Esto es opcional, solo si el frontend espera algún tipo de estado
+      // Estado virtual basado en fecha_vencimiento
       if (doc.fecha_vencimiento) {
         const hoy = new Date();
         const fechaVencimiento = new Date(doc.fecha_vencimiento);
         const diasRestantes = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
         
         if (diasRestantes < 0) {
-          documentoLimpio.estadoVirtual = 'vencido'; // Ya pasó la fecha
+          documentoLimpio.estadoVirtual = 'vencido';
         } else if (diasRestantes <= 7) {
-          documentoLimpio.estadoVirtual = 'por_vencer'; // Próximo a vencer
+          documentoLimpio.estadoVirtual = 'por_vencer';
         } else {
-          documentoLimpio.estadoVirtual = 'activo'; // Con fecha futura
+          documentoLimpio.estadoVirtual = 'activo';
         }
       } else {
-        documentoLimpio.estadoVirtual = 'sin_fecha'; // Sin fecha de vencimiento
+        documentoLimpio.estadoVirtual = 'sin_fecha';
       }
 
       return documentoLimpio;
@@ -946,8 +1109,7 @@ app.get('/api/documents', async (req, res) => {
       documents: documentosTransformados,
       metadata: {
         total: totalDocs,
-        activos: activeDocs,
-        enPapelera: deletedDocs
+        schoolId: req.schoolId || 'superadmin' // 🆕 Indicar escuela
       }
     });
 
@@ -961,7 +1123,7 @@ app.get('/api/documents', async (req, res) => {
   }
 });
 
-app.post('/api/documents', upload.single('file'), async (req, res) => {
+app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file'), async (req, res) => {
   try {
     console.log('📥 ========== CREACIÓN DE DOCUMENTO ==========');
     console.log('📋 Headers:', req.headers);
@@ -1100,19 +1262,20 @@ app.post('/api/documents', upload.single('file'), async (req, res) => {
     console.log('💾 Guardando documento en la base de datos...');
 
     // CREAR DOCUMENTO CON LOS CAMPOS CORRECTOS (sin "estado")
-    const nuevoDocumento = new Document({
+        const nuevoDocumento = new Document({
       nombre_original: req.file.originalname,
       tipo_archivo: req.file.originalname.split('.').pop().toLowerCase(),
       tamano_archivo: req.file.size,
       descripcion: descripcion || '',
-      categoria: categoria, // Ya validamos que no esté vacía
-      fecha_vencimiento: fechaVencimientoProcesada, // Usar el valor procesado
-      persona_id: personaIdProcesado, // Usar el valor procesado
-      // NO INCLUIR: estado (porque no existe en el modelo)
+      categoria: categoria,
+      fecha_vencimiento: fechaVencimientoProcesada,
+      persona_id: personaIdProcesado,
       cloudinary_url: cloudinaryResult.secure_url,
       public_id: cloudinaryResult.public_id,
       resource_type: cloudinaryResult.resource_type,
-      activo: true
+      activo: true,
+      schoolId: req.schoolId || 'superadmin',
+      uploadedBy: req.user?._id || null
     });
 
     // DEBUG: Mostrar el documento que se va a guardar

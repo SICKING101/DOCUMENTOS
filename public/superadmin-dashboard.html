@@ -10,6 +10,7 @@
 </head>
 
 <body>
+    <!-- superadmin-dashboard.html -->
     <div class="superadmin-layout">
         <aside class="superadmin-sidebar">
             <div class="superadmin-sidebar-header">
@@ -37,6 +38,11 @@
                 <div class="nav-item" data-section="sugerencias">
                     <i class="fas fa-lightbulb"></i>
                     <span>Sugerencias</span>
+                </div>
+                <!-- 🆕 NUEVO: Invitaciones -->
+                <div class="nav-item" data-section="invitations">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <span>Invitaciones</span>
                 </div>
                 <div class="nav-item" data-section="shutdown">
                     <i class="fas fa-power-off"></i>
@@ -86,7 +92,6 @@
                     </button>
                 </div>
                 
-                <!-- Filtros -->
                 <div class="sugerencias-filters" style="margin-bottom: 1rem;">
                     <div class="filter-group">
                         <label>Estado</label>
@@ -173,84 +178,39 @@
                 <div class="sugerencias-pagination" id="sugerenciasPagination"></div>
             </div>
 
-            <!-- MODAL DETALLE SUGERENCIA -->
-            <div id="suggestionDetailModal" class="modal" style="display: none;">
-                <div class="modal__overlay" onclick="closeSuggestionDetailModal()"></div>
-                <div class="modal__content modal__content--lg">
-                    <div class="modal__header">
-                        <h3 class="modal__title"><i class="fas fa-lightbulb"></i> Detalle de Sugerencia</h3>
-                        <button class="modal__close" onclick="closeSuggestionDetailModal()">&times;</button>
+            <!-- 🆕 SECCIÓN INVITACIONES -->
+            <div id="invitationsSection" class="versions-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.25rem;">
+                            <i class="fas fa-envelope-open-text" style="margin-right: 0.5rem; color: #4F46E5;"></i> 
+                            Invitaciones a Administradores
+                        </h3>
+                        <p style="margin: 0.25rem 0 0; color: var(--text-secondary);">
+                            Envía invitaciones para que nuevas escuelas registren su administrador
+                        </p>
                     </div>
-                    <div class="modal__body" id="suggestionDetailContent"></div>
-                    <div class="modal__footer">
-                        <button class="btn btn--outline" onclick="closeSuggestionDetailModal()">Cerrar</button>
+                    <button class="create-version-btn" onclick="openInvitationModal()">
+                        <i class="fas fa-plus-circle"></i> Nueva Invitación
+                    </button>
+                </div>
+                
+                <!-- Filtros de invitaciones -->
+                <div class="sugerencias-filters" style="margin-bottom: 1rem;">
+                    <div class="filter-group">
+                        <label>Estado</label>
+                        <select id="filterInvitationStatus" class="form__select" onchange="loadInvitations()">
+                            <option value="">Todas</option>
+                            <option value="pending">Pendientes</option>
+                            <option value="used">Usadas</option>
+                            <option value="expired">Expiradas</option>
+                            <option value="revoked">Revocadas</option>
+                        </select>
                     </div>
                 </div>
-            </div>
-
-            <!-- MODAL AVISO -->
-            <div id="avisoModal" class="modal" style="display: none;">
-                <div class="modal__overlay" onclick="closeAvisoModal()"></div>
-                <div class="modal__content">
-                    <div class="modal__header">
-                        <h3 class="modal__title" id="avisoModalTitle"><i class="fas fa-bullhorn"></i> Nuevo Aviso</h3>
-                        <button class="modal__close" onclick="closeAvisoModal()">&times;</button>
-                    </div>
-                    <div class="modal__body">
-                        <form id="avisoForm">
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Título <span style="color: #ef4444;">*</span></label>
-                                <input type="text" id="avisoTitulo" class="form__input" placeholder="Ej: Mantenimiento programado" maxlength="200">
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Descripción <span style="color: #ef4444;">*</span></label>
-                                <textarea id="avisoDescripcion" class="form__textarea" rows="5" placeholder="Describe el aviso en detalle..." maxlength="5000"></textarea>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Tipo</label>
-                                    <select id="avisoTipo" class="form__select">
-                                        <option value="general">📢 General</option>
-                                        <option value="mantenimiento">🔧 Mantenimiento</option>
-                                        <option value="importante">⭐ Importante</option>
-                                        <option value="actualizacion">🔄 Actualización</option>
-                                        <option value="evento">📅 Evento</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Prioridad</label>
-                                    <select id="avisoPrioridad" class="form__select">
-                                        <option value="baja">🟢 Baja</option>
-                                        <option value="media" selected>🟡 Media</option>
-                                        <option value="alta">🟠 Alta</option>
-                                        <option value="critica">🔴 Crítica</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <!-- 🔥 CAMBIADO: datetime-local → date (SOLO FECHA, SIN HORA) 🔥 -->
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Fecha inicio <span style="color: #ef4444;">*</span></label>
-                                    <input type="date" id="avisoFechaInicio" class="form__input" required>
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Fecha fin <span style="color: #ef4444;">*</span></label>
-                                    <input type="date" id="avisoFechaFin" class="form__input" required>
-                                </div>
-                            </div>
-                            <div style="margin-top: 1rem;">
-                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                    <input type="checkbox" id="avisoActivo" checked> Activo (visible para usuarios)
-                                </label>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal__footer">
-                        <button class="btn btn--outline" onclick="closeAvisoModal()">Cancelar</button>
-                        <button class="btn btn--primary" onclick="saveAviso()">
-                            <i class="fas fa-save"></i> Guardar Aviso
-                        </button>
-                    </div>
+                
+                <div id="invitationsList" class="versions-grid">
+                    <div class="loading-spinner" style="margin: 2rem auto;"></div>
                 </div>
             </div>
 
@@ -285,7 +245,129 @@
         </main>
     </div>
 
+    <!-- MODAL DETALLE SUGERENCIA -->
+    <div id="suggestionDetailModal" class="modal" style="display: none;">
+        <div class="modal__overlay" onclick="closeSuggestionDetailModal()"></div>
+        <div class="modal__content modal__content--lg">
+            <div class="modal__header">
+                <h3 class="modal__title"><i class="fas fa-lightbulb"></i> Detalle de Sugerencia</h3>
+                <button class="modal__close" onclick="closeSuggestionDetailModal()">&times;</button>
+            </div>
+            <div class="modal__body" id="suggestionDetailContent"></div>
+            <div class="modal__footer">
+                <button class="btn btn--outline" onclick="closeSuggestionDetailModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AVISO -->
+    <div id="avisoModal" class="modal" style="display: none;">
+        <div class="modal__overlay" onclick="closeAvisoModal()"></div>
+        <div class="modal__content">
+            <div class="modal__header">
+                <h3 class="modal__title" id="avisoModalTitle"><i class="fas fa-bullhorn"></i> Nuevo Aviso</h3>
+                <button class="modal__close" onclick="closeAvisoModal()">&times;</button>
+            </div>
+            <div class="modal__body">
+                <form id="avisoForm">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Título <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="avisoTitulo" class="form__input" placeholder="Ej: Mantenimiento programado" maxlength="200">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Descripción <span style="color: #ef4444;">*</span></label>
+                        <textarea id="avisoDescripcion" class="form__textarea" rows="5" placeholder="Describe el aviso en detalle..." maxlength="5000"></textarea>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Tipo</label>
+                            <select id="avisoTipo" class="form__select">
+                                <option value="general">📢 General</option>
+                                <option value="mantenimiento">🔧 Mantenimiento</option>
+                                <option value="importante">⭐ Importante</option>
+                                <option value="actualizacion">🔄 Actualización</option>
+                                <option value="evento">📅 Evento</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Prioridad</label>
+                            <select id="avisoPrioridad" class="form__select">
+                                <option value="baja">🟢 Baja</option>
+                                <option value="media" selected>🟡 Media</option>
+                                <option value="alta">🟠 Alta</option>
+                                <option value="critica">🔴 Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Fecha inicio <span style="color: #ef4444;">*</span></label>
+                            <input type="date" id="avisoFechaInicio" class="form__input" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Fecha fin <span style="color: #ef4444;">*</span></label>
+                            <input type="date" id="avisoFechaFin" class="form__input" required>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="avisoActivo" checked> Activo (visible para usuarios)
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal__footer">
+                <button class="btn btn--outline" onclick="closeAvisoModal()">Cancelar</button>
+                <button class="btn btn--primary" onclick="saveAviso()">
+                    <i class="fas fa-save"></i> Guardar Aviso
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 MODAL INVITACIÓN -->
+    <div id="invitationModal" class="modal" style="display: none;">
+        <div class="modal__overlay" onclick="closeInvitationModal()"></div>
+        <div class="modal__content">
+            <div class="modal__header">
+                <h3 class="modal__title">
+                    <i class="fas fa-envelope"></i> Nueva Invitación
+                </h3>
+                <button class="modal__close" onclick="closeInvitationModal()">&times;</button>
+            </div>
+            <div class="modal__body">
+                <form id="invitationForm" onsubmit="event.preventDefault(); sendInvitation();">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                            Email del administrador <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="email" id="inviteEmail" class="form__input" 
+                               placeholder="admin@escuela.edu.mx" required>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                            Nombre de la escuela <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="text" id="inviteSchoolName" class="form__input" 
+                               placeholder="Ej: CBTIS 051" required>
+                    </div>
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                        <p style="margin: 0; font-size: 0.85rem; color: #92400E;">
+                            <i class="fas fa-info-circle"></i> 
+                            Se enviará un email con un token único. El destinatario tendrá <strong>48 horas</strong> para registrarse.
+                        </p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal__footer">
+                <button class="btn btn--outline" onclick="closeInvitationModal()">Cancelar</button>
+                <button class="btn btn--primary" onclick="sendInvitation()">
+                    <i class="fas fa-paper-plane"></i> Enviar Invitación
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="/src/frontend/modules/auth/super-admin.js"></script>
 </body>
-
 </html>
