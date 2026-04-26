@@ -13,8 +13,16 @@ class PersonController {
   static async getAll(req, res) {
     try {
       console.log('📋 PersonController.getAll - Iniciando');
+      console.log('🏫 req.schoolId:', req.schoolId || 'superadmin (sin filtro)');
       
-      const persons = await Person.find({ activo: true }).sort({ nombre: 1 });
+      const filter = { activo: true };
+      
+      // ✅ Filtrar por escuela si no es superadmin
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+      
+      const persons = await Person.find(filter).sort({ nombre: 1 });
       
       console.log(`✅ ${persons.length} personas encontradas`);
       
@@ -34,6 +42,7 @@ class PersonController {
   static async create(req, res) {
     console.log('\n🔍 ========== CREANDO NUEVA PERSONA ==========');
     console.log('📝 Body recibido:', req.body);
+    console.log('🏫 School ID:', req.schoolId);
     console.log('👤 Usuario autenticado:', req.user ? {
       id: req.user._id,
       usuario: req.user.usuario,
@@ -53,30 +62,37 @@ class PersonController {
         });
       }
 
-      // Verificar email duplicado
-      const personaExistente = await Person.findOne({ 
+      // ✅ Verificar email duplicado SOLO dentro de la misma escuela
+      const emailFilter = { 
         email: { $regex: new RegExp(`^${email}$`, 'i') }
-      });
+      };
+      if (req.schoolId) {
+        emailFilter.schoolId = req.schoolId;
+      }
+
+      const personaExistente = await Person.findOne(emailFilter);
 
       if (personaExistente) {
-        console.log('❌ Email duplicado:', email);
+        console.log('❌ Email duplicado en la misma escuela:', email);
         return res.status(400).json({ 
           success: false, 
-          message: 'Ya existe una persona con ese email' 
+          message: 'Ya existe una persona con ese email en tu escuela' 
         });
       }
 
-      // Crear y guardar la persona
+      // ✅ Crear y guardar la persona CON schoolId
       const nuevaPersona = new Person({
         nombre,
         email,
         telefono,
         departamento,
-        puesto
+        puesto,
+        schoolId: req.schoolId || 'superadmin'  // 🆕 Asignar schoolId
       });
 
       await nuevaPersona.save();
       console.log('✅ Persona guardada en BD con ID:', nuevaPersona._id);
+      console.log('🏫 School ID asignado:', nuevaPersona.schoolId);
       
       // =======================================================================
       // REGISTRAR EN AUDITORÍA
@@ -89,7 +105,6 @@ class PersonController {
         console.log('✅✅✅ AUDITORÍA REGISTRADA EXITOSAMENTE');
       } catch (auditError) {
         console.error('❌ ERROR REGISTRANDO AUDITORÍA:', auditError.message);
-        // No interrumpimos el flujo principal si falla la auditoría
       }
       
       // Crear notificación
@@ -128,6 +143,7 @@ class PersonController {
     console.log('\n🔍 ========== ACTUALIZANDO PERSONA ==========');
     console.log('📝 ID:', req.params.id);
     console.log('📝 Body:', req.body);
+    console.log('🏫 School ID:', req.schoolId);
     
     try {
       const { id } = req.params;
@@ -141,14 +157,19 @@ class PersonController {
         });
       }
 
-      // Obtener la persona ANTES de actualizar
-      const personaOriginal = await Person.findById(id);
+      // ✅ Buscar solo dentro de la escuela del admin
+      const filter = { _id: id };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+
+      const personaOriginal = await Person.findOne(filter);
       
       if (!personaOriginal) {
-        console.log('❌ Persona no encontrada:', id);
+        console.log('❌ Persona no encontrada o no pertenece a tu escuela:', id);
         return res.status(404).json({ 
           success: false, 
-          message: 'Persona no encontrada' 
+          message: 'Persona no encontrada o no pertenece a tu escuela' 
         });
       }
 
@@ -170,8 +191,8 @@ class PersonController {
       };
 
       // Actualizar
-      const personaActualizada = await Person.findByIdAndUpdate(
-        id,
+      const personaActualizada = await Person.findOneAndUpdate(
+        filter,
         { 
           nombre: nombre || personaOriginal.nombre,
           email: email || personaOriginal.email,
@@ -219,7 +240,6 @@ class PersonController {
         console.log('✅✅✅ AUDITORÍA REGISTRADA EXITOSAMENTE');
       } catch (auditError) {
         console.error('❌ ERROR REGISTRANDO AUDITORÍA:', auditError.message);
-        // No interrumpimos el flujo principal si falla la auditoría
       }
 
       console.log('✅✅✅ ACTUALIZACIÓN COMPLETADA');
@@ -246,6 +266,7 @@ class PersonController {
   static async delete(req, res) {
     console.log('\n🔍 ========== ELIMINANDO PERSONA ==========');
     console.log('📝 ID:', req.params.id);
+    console.log('🏫 School ID:', req.schoolId);
 
     try {
       const { id } = req.params;
@@ -258,14 +279,19 @@ class PersonController {
         });
       }
 
-      // Obtener datos antes de eliminar
-      const personaExistente = await Person.findById(id);
+      // ✅ Buscar solo dentro de la escuela
+      const filter = { _id: id };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+
+      const personaExistente = await Person.findOne(filter);
       
       if (!personaExistente) {
-        console.log('❌ Persona no encontrada:', id);
+        console.log('❌ Persona no encontrada o no pertenece a tu escuela:', id);
         return res.status(404).json({ 
           success: false, 
-          message: 'Persona no encontrada' 
+          message: 'Persona no encontrada o no pertenece a tu escuela' 
         });
       }
 
@@ -274,21 +300,22 @@ class PersonController {
         email: personaExistente.email
       });
 
-      // Verificar documentos asociados
-      const documentosAsociados = await Document.countDocuments({ 
+      // ✅ Verificar documentos asociados (también filtrados por escuela)
+      const docFilter = { 
         persona_id: id, 
         $or: [
           { isDeleted: false },
           { isDeleted: { $exists: false } }
         ]
-      });
+      };
+      if (req.schoolId) {
+        docFilter.schoolId = req.schoolId;
+      }
+
+      const documentosAsociados = await Document.countDocuments(docFilter);
 
       if (documentosAsociados > 0) {
         console.log(`❌ Persona tiene ${documentosAsociados} documentos asociados`);
-        
-        // =======================================================================
-        // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-        // =======================================================================
         
         try {
           await AuditService.log(req, {
@@ -362,7 +389,14 @@ class PersonController {
   // ===========================================================================
   static async getInactive(req, res) {
     try {
-      const persons = await Person.find({ activo: false }).sort({ nombre: 1 });
+      const filter = { activo: false };
+      
+      // ✅ Filtrar por escuela si no es superadmin
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+      
+      const persons = await Person.find(filter).sort({ nombre: 1 });
       res.json({ success: true, persons });
     } catch (error) {
       console.error('Error obteniendo personas inactivas:', error);
