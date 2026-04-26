@@ -7,15 +7,35 @@ class CategoryController {
   // Obtener todas las categorías con conteo de documentos
   static async getAll(req, res) {
     try {
-      const categories = await Category.find({ activo: true }).sort({ nombre: 1 });
+      console.log('📋 CategoryController.getAll - Iniciando');
+      console.log('🏫 req.schoolId:', req.schoolId || 'superadmin (sin filtro)');
       
-      // Contar documentos por categoría
+      // ✅ Filtro por escuela
+      const filter = { activo: true };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+      
+      const categories = await Category.find(filter).sort({ nombre: 1 });
+      
+      // Contar documentos por categoría (filtrados por escuela)
       const categoriesWithCounts = await Promise.all(
         categories.map(async (category) => {
-          const documentCount = await Document.countDocuments({ 
+          const docFilter = { 
             categoria: category.nombre,
-            activo: true 
-          });
+            activo: true,
+            $or: [
+              { isDeleted: false },
+              { isDeleted: { $exists: false } }
+            ]
+          };
+          
+          if (req.schoolId) {
+            docFilter.schoolId = req.schoolId;
+          }
+          
+          const documentCount = await Document.countDocuments(docFilter);
+          
           return {
             ...category.toObject(),
             documentCount
@@ -23,6 +43,7 @@ class CategoryController {
         })
       );
 
+      console.log(`✅ ${categories.length} categorías encontradas`);
       res.json({ success: true, categories: categoriesWithCounts });
     } catch (error) {
       console.error('Error obteniendo categorías:', error);
@@ -42,29 +63,36 @@ class CategoryController {
         });
       }
 
-      // Verificar si ya existe una categoría con el mismo nombre
-      const categoriaExistente = await Category.findOne({ 
+      // ✅ Verificar duplicado SOLO dentro de la misma escuela
+      const duplicadoFilter = { 
         nombre: { $regex: new RegExp(`^${nombre}$`, 'i') },
         activo: true 
-      });
+      };
+      if (req.schoolId) {
+        duplicadoFilter.schoolId = req.schoolId;
+      }
+
+      const categoriaExistente = await Category.findOne(duplicadoFilter);
 
       if (categoriaExistente) {
         return res.status(400).json({ 
           success: false, 
-          message: 'Ya existe una categoría con ese nombre' 
+          message: 'Ya existe una categoría con ese nombre en tu escuela' 
         });
       }
 
+      // ✅ CREAR CON schoolId
       const nuevaCategoria = new Category({
         nombre,
         descripcion,
         color: color || '#4f46e5',
-        icon: icon || 'folder'
+        icon: icon || 'folder',
+        schoolId: req.schoolId || 'superadmin'  // 🆕 ASIGNAR schoolId
       });
 
       await nuevaCategoria.save();
+      console.log('✅ Categoría creada:', nuevaCategoria.nombre, '| schoolId:', nuevaCategoria.schoolId);
       
-      // Crear notificación de categoría agregada
       try {
         await NotificationService.categoriaAgregada(nuevaCategoria);
       } catch (notifError) {
@@ -80,7 +108,7 @@ class CategoryController {
       console.error('Error creando categoría:', error);
       res.status(500).json({ 
         success: false, 
-        message: 'Error al crear categoría' 
+        message: 'Error al crear categoría: ' + error.message 
       });
     }
   }
@@ -110,6 +138,8 @@ class CategoryController {
           message: 'Categoría no encontrada' 
         });
       }
+
+      console.log('✅ Categoría actualizada:', categoriaActualizada.nombre);
 
       res.json({ 
         success: true, 
@@ -145,20 +175,32 @@ class CategoryController {
         });
       }
 
-      // Verificar si hay documentos en esta categoría
-      const documentosEnCategoria = await Document.countDocuments({ 
+      // ✅ Verificar documentos en esta categoría (filtrados por escuela)
+      const docFilter = { 
         categoria: categoria.nombre,
-        activo: true 
-      });
+        activo: true,
+        $or: [
+          { isDeleted: false },
+          { isDeleted: { $exists: false } }
+        ]
+      };
+      
+      if (req.schoolId) {
+        docFilter.schoolId = req.schoolId;
+      }
+
+      const documentosEnCategoria = await Document.countDocuments(docFilter);
 
       if (documentosEnCategoria > 0) {
         return res.status(400).json({ 
           success: false, 
-          message: 'No se puede eliminar la categoría porque tiene documentos asociados' 
+          message: `No se puede eliminar la categoría porque tiene ${documentosEnCategoria} documentos asociados en tu escuela` 
         });
       }
 
       await Category.findByIdAndUpdate(id, { activo: false });
+
+      console.log('✅ Categoría eliminada (soft delete):', categoria.nombre);
 
       res.json({ 
         success: true, 
