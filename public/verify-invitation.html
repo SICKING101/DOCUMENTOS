@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validar Invitación - CBTIS051</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <!-- verify-invitation.html -->
+    <div class="auth-wrapper">
+        <div class="auth-info-panel">
+            <div class="info-content">
+                <div class="logo-container">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span class="logo-text">CBTIS 051</span>
+                </div>
+                <h1 class="info-title">Validar Invitación</h1>
+                <p class="info-subtitle">Proceso seguro para nuevos administradores</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-envelope-open-text"></i>
+                        <span>Token enviado por email</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Proceso verificado</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Válido por 48 horas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-form-panel">
+            <div class="form-container">
+                <!-- Paso 1: Validar token -->
+                <div id="stepValidate">
+                    <div class="form-header">
+                        <div class="form-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <h2 class="form-title">Validar Token</h2>
+                        <p class="form-subtitle">Ingresa el token que recibiste por email</p>
+                    </div>
+
+                    <div id="alertContainer" class="alert-container"></div>
+
+                    <form id="validateForm">
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <input type="text" id="inviteToken" class="form-input"
+                                   placeholder="Token de invitación" required>
+                        </div>
+                        <button type="submit" class="btn-primary" id="validateBtn">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Validar Token</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Paso 2: Registro (oculto inicialmente) -->
+                <div id="stepRegister" class="hidden">
+                    <div class="form-header">
+                        <div class="form-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h2 class="form-title">Crear Cuenta</h2>
+                        <p class="form-subtitle" id="schoolInfo"></p>
+                    </div>
+
+                    <form id="registerForm">
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <input type="text" id="regUsuario" class="form-input"
+                                   placeholder="Nombre de usuario" required>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <input type="email" id="regEmail" class="form-input"
+                                   placeholder="Email" readonly>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <input type="password" id="regPassword" class="form-input"
+                                   placeholder="Contraseña (mín. 6 caracteres)" required>
+                            <button type="button" class="password-toggle" id="toggleRegPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <input type="password" id="regPasswordConfirm" class="form-input"
+                                   placeholder="Confirmar contraseña" required>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-user-check"></i>
+                            <span>Crear Cuenta de Administrador</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="loading-overlay" id="loading">
+                    <div class="spinner"></div>
+                    <p>Procesando...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api } from '/src/frontend/services/api.js';
+
+        const API_BASE = '/api/superadmin/invitations';
+
+        // Obtener token de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+
+        // Si hay token en URL, auto-validar
+        if (tokenFromUrl) {
+            document.getElementById('inviteToken').value = tokenFromUrl;
+        }
+
+        // Mostrar alerta
+        function showAlert(message, type = 'error') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert--${type}">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Ocultar/mostrar loading
+        function setLoading(show) {
+            document.getElementById('loading').classList.toggle('hidden', !show);
+        }
+
+        // =============================================================
+        // PASO 1: Validar token
+        // =============================================================
+        document.getElementById('validateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = document.getElementById('inviteToken').value.trim();
+            
+            if (!token) {
+                showAlert('Ingresa el token de invitación');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_BASE}/validate/${token}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showAlert(data.message);
+                    return;
+                }
+
+                // Token válido → mostrar paso 2
+                document.getElementById('stepValidate').classList.add('hidden');
+                document.getElementById('stepRegister').classList.remove('hidden');
+                
+                document.getElementById('regEmail').value = data.data.email;
+                document.getElementById('schoolInfo').textContent = 
+                    `Escuela: ${data.data.schoolName}`;
+
+                showAlert('✅ Token válido. Crea tu cuenta.', 'success');
+                
+            } catch (error) {
+                showAlert('Error al validar token');
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // =============================================================
+        // PASO 2: Registrar admin
+        // =============================================================
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const token = document.getElementById('inviteToken').value.trim();
+            const usuario = document.getElementById('regUsuario').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+            if (password !== passwordConfirm) {
+                showAlert('Las contraseñas no coinciden');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, usuario, password })
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('✅ Cuenta creada exitosamente. Redirigiendo...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.loginUrl || '/login.html';
+                    }, 2000);
+                } else {
+                    showAlert(data.message);
+                }
+            } catch (error) {
+                showAlert('Error al registrar');
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Toggle password visibility
+        document.getElementById('toggleRegPassword').addEventListener('click', function() {
+            const input = document.getElementById('regPassword');
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    </script>
+</body>
+</html>

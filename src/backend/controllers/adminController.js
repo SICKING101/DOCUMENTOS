@@ -1,3 +1,5 @@
+// src/backend/controllers/adminController.js
+
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import User from '../models/User.js';

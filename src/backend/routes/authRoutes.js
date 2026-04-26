@@ -44,61 +44,6 @@ router.get('/check-admin', async (req, res) => {
 });
 
 // =============================================================================
-// REGISTRAR PRIMER ADMINISTRADOR
-// =============================================================================
-router.post('/register', async (req, res) => {
-    try {
-        const { usuario, correo, password } = req.body;
-
-        // Verificar que no exista ya un administrador
-        const existeAdmin = await User.countDocuments();
-        if (existeAdmin > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Ya existe un administrador registrado'
-            });
-        }
-
-        // Validar datos
-        if (!usuario || !correo || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Por favor proporciona todos los campos requeridos'
-            });
-        }
-
-        // Crear usuario
-        const user = await User.create({
-            usuario,
-            correo,
-            password,
-            rol: 'administrador'
-        });
-
-        console.log('✅ Administrador registrado:', usuario);
-
-        // Enviar token
-        enviarTokenRespuesta(user, 201, res, 'Administrador registrado exitosamente');
-    } catch (error) {
-        console.error('Error al registrar admin:', error);
-
-        if (error.code === 11000) {
-            const campo = Object.keys(error.keyPattern)[0];
-            return res.status(400).json({
-                success: false,
-                message: `El ${campo} ya está en uso`
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Error al registrar administrador',
-            error: error.message
-        });
-    }
-});
-
-// =============================================================================
 // INICIAR SESIÓN - AHORA CON SOPORTE PARA SUPERADMIN
 // =============================================================================
 router.post('/login', async (req, res) => {
@@ -221,7 +166,6 @@ router.post('/logout', (req, res) => {
 // =============================================================================
 router.get('/me', protegerRuta, async (req, res) => {
     try {
-        // Si es superadmin, devolver datos especiales
         if (req.user?.isSuperAdmin) {
             return res.json({
                 success: true,
@@ -230,12 +174,12 @@ router.get('/me', protegerRuta, async (req, res) => {
                     usuario: req.user.usuario,
                     correo: req.user.correo,
                     rol: 'superadmin',
+                    schoolId: null,  // 🆕
                     isSuperAdmin: true
                 }
             });
         }
         
-        // Si es usuario normal, buscar en BD
         const user = await User.findById(req.user.id);
         
         if (!user) {
@@ -252,6 +196,7 @@ router.get('/me', protegerRuta, async (req, res) => {
                 usuario: user.usuario,
                 correo: user.correo,
                 rol: user.rol,
+                schoolId: user.schoolId,  // 🆕
                 ultimoAcceso: user.ultimoAcceso
             }
         });

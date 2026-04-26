@@ -1,3 +1,5 @@
+// models/Document.js
+
 import mongoose from 'mongoose';
 
 const documentSchema = new mongoose.Schema({
@@ -25,8 +27,26 @@ const documentSchema = new mongoose.Schema({
   // Campos para papelera
   isDeleted: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },
-  deletedBy: { type: String, default: null }
+  deletedBy: { type: String, default: null },
+  // ===== 🆕 NUEVO: Identificador de escuela =====
+  schoolId: { 
+    type: String, 
+    required: true, 
+    index: true 
+  },
+  
+  // ===== 🆕 NUEVO: Quién subió el documento =====
+  uploadedBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User',
+    default: null 
+  },
 }, { timestamps: true });
+
+// Índices existentes + nuevo
+documentSchema.index({ schoolId: 1, fecha_subida: -1 });
+documentSchema.index({ schoolId: 1, categoria: 1 });
+documentSchema.index({ schoolId: 1, isDeleted: 1 });
 
 // Índices para optimizar consultas frecuentes
 documentSchema.index({ persona_id: 1 });

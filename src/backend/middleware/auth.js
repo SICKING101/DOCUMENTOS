@@ -457,6 +457,7 @@ export const enviarTokenRespuesta = async (user, statusCode, res, message = 'Aut
                     usuario: user.usuario,
                     correo: user.correo,
                     rol: user.rol,
+                    schoolId: user.schoolId || null,  // 🆕 NUEVO
                     isSuperAdmin: user.isSuperAdmin || false
                 }
             });
@@ -580,4 +581,28 @@ export const requirePermission = (permission) => async (req, res, next) => {
     }
 
     return next();
+};
+
+/**
+ * Middleware que inyecta el schoolId en req para aislamiento de datos.
+ * Debe usarse DESPUÉS de protegerRuta.
+ * Superadmin NO tiene schoolId → ve todo.
+ */
+export const inyectarSchoolId = (req, res, next) => {
+  // Superadmin ve todo
+  if (req.user?.isSuperAdmin || req.superAdmin?.isSuperAdmin) {
+    req.schoolId = null; // null = sin filtro
+    return next();
+  }
+  
+  // Usuario normal debe tener schoolId
+  if (!req.user?.schoolId) {
+    return res.status(403).json({
+      success: false,
+      message: 'No tienes una escuela asignada.'
+    });
+  }
+  
+  req.schoolId = req.user.schoolId;
+  next();
 };
