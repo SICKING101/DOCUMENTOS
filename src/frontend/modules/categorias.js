@@ -301,20 +301,31 @@ async function saveCategory() {
     }
 }
 
-/**
- * 2.3 Cargar lista de categorías desde la API - CORREGIDO
- */
 async function loadCategories() {
-    // Verificar permiso de vista
     if (!canView('categorias')) {
         console.log('🔒 Sin permiso para ver categorías');
 
         if (DOM.categoriesStats) {
+            // Forzar display block para ocupar todo el ancho
+            DOM.categoriesStats.style.display = 'block';
+            DOM.categoriesStats.style.gridTemplateColumns = 'none';
+            
             DOM.categoriesStats.innerHTML = `
-                <div class="empty-state error-state">
-                    <div class="error-state__icon"><i class="fas fa-lock"></i></div>
+                <div class="empty-state empty-state--category empty-state--locked empty-state--full-width">
+                    <div class="empty-state__illustration empty-state__illustration--locked">
+                        <div class="empty-state__lock-icon">
+                            <i class="fas fa-lock"></i>
+                            <div class="empty-state__lock-shackle"></div>
+                        </div>
+                    </div>
                     <h3 class="empty-state__title">Acceso Restringido</h3>
-                    <p class="empty-state__description">No tienes permisos para ver las categorías.</p>
+                    <p class="empty-state__description">
+                        No cuentas con los permisos necesarios para visualizar las categorías
+                    </p>
+                    <div class="empty-state__help">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Solicita acceso al administrador del sistema</span>
+                    </div>
                 </div>
             `;
         }
@@ -322,10 +333,16 @@ async function loadCategories() {
         if (DOM.categoriasTableBody) {
             DOM.categoriasTableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty-state error-state">
-                        <div class="error-state__icon"><i class="fas fa-lock"></i></div>
-                        <h3 class="empty-state__title">Acceso Restringido</h3>
-                        <p class="empty-state__description">No tienes permisos para ver la lista de categorías.</p>
+                    <td colspan="6" style="padding: 0;">
+                        <div class="empty-state empty-state--category empty-state--locked empty-state--compact empty-state--full-width">
+                            <div class="empty-state__illustration--small">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <h4 class="empty-state__title empty-state__title--sm">Acceso Restringido</h4>
+                            <p class="empty-state__description empty-state__description--sm">
+                                No tienes permisos para ver la lista de categorías
+                            </p>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -337,16 +354,13 @@ async function loadCategories() {
     try {
         console.log('🏷️ Cargando categorías...');
         
-        // Mostrar skeleton cards con tiempo mínimo
-        showCategorySkeletonCards(4);
+        showCategorySkeletonCards(3);
         showCategorySkeletonTable();
         
-        // Tiempo mínimo para mostrar skeleton: 1.2 segundos
         await showCategoryPreloader('Cargando categorías...', 1200);
         
         const data = await api.getCategories();
         
-        // Tiempo adicional para simular procesamiento
         await new Promise(resolve => setTimeout(resolve, 600));
         
         if (data.success) {
@@ -363,12 +377,28 @@ async function loadCategories() {
         showAlert('Error al cargar categorías: ' + error.message, 'error');
         
         if (DOM.categoriesStats) {
+            // Forzar display block para ocupar todo el ancho
+            DOM.categoriesStats.style.display = 'block';
+            DOM.categoriesStats.style.gridTemplateColumns = 'none';
+            
             DOM.categoriesStats.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-triangle empty-state__icon"></i>
-                    <h3 class="empty-state__title">Error al cargar categorías</h3>
-                    <p class="empty-state__description">${error.message}</p>
-                    <button class="btn btn--primary" onclick="loadCategories()">Reintentar</button>
+                <div class="empty-state empty-state--category empty-state--error empty-state--full-width">
+                    <div class="empty-state__illustration empty-state__illustration--error">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <div class="empty-state__error-pulse"></div>
+                    </div>
+                    <h3 class="empty-state__title">Error de conexión</h3>
+                    <p class="empty-state__description">
+                        ${error.message || 'No pudimos cargar las categorías. Verifica tu conexión.'}
+                    </p>
+                    <div class="empty-state__actions">
+                        <button class="btn btn--primary" onclick="loadCategories()">
+                            <i class="fas fa-redo-alt"></i> Reintentar
+                        </button>
+                        <button class="btn btn--outline" onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt"></i> Recargar página
+                        </button>
+                    </div>
                 </div>
             `;
         }
@@ -474,7 +504,7 @@ async function deleteCategory(id) {
 // =============================================================================
 
 /**
- * 3.1 Renderizar categorías en la interfaz
+ * 3.1 Renderizar categorías en la interfaz - MEJORADO (GRID FIX)
  */
 function renderCategories() {
     const canEdit = canAction('categorias');
@@ -483,22 +513,43 @@ function renderCategories() {
         DOM.categoriesStats.innerHTML = '';
         
         if (window.appState.categories.length === 0) {
+            // Forzar que el empty-state ocupe todo el ancho rompiendo el grid
+            DOM.categoriesStats.style.display = 'block';
+            DOM.categoriesStats.style.gridTemplateColumns = 'none';
+            
             DOM.categoriesStats.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-tags empty-state__icon"></i>
-                    <h3 class="empty-state__title">No hay categorías creadas</h3>
-                    <p class="empty-state__description">Crea tu primera categoría para organizar los documentos</p>
+                <div class="empty-state empty-state--category empty-state--full-width">
+                    <div class="empty-state__illustration">
+                        <div class="empty-state__illustration-circle">
+                            <i class="fas fa-tags empty-state__illustration-icon"></i>
+                        </div>
+                        <div class="empty-state__illustration-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <h3 class="empty-state__title">No hay categorías aún</h3>
+                    <p class="empty-state__description">
+                        Organiza tus documentos creando categorías para clasificarlos fácilmente
+                    </p>
                     ${canEdit ? `
-                        <button class="btn btn--primary" onclick="openCategoryModal()">
-                            <i class="fas fa-plus"></i> Crear Categoría
+                        <button class="btn btn--primary empty-state__action" onclick="openCategoryModal()">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Crear mi primera categoría</span>
                         </button>
                     ` : `
-                        <p class="empty-state__description">No tienes permisos para crear categorías.</p>
+                        <div class="empty-state__permission-hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Contacta al administrador para crear categorías</span>
+                        </div>
                     `}
                 </div>
             `;
             return;
         }
+        
+        // Restaurar el grid cuando hay elementos
+        DOM.categoriesStats.style.display = '';
+        DOM.categoriesStats.style.gridTemplateColumns = '';
         
         window.appState.categories.forEach(category => {
             const categoryCard = document.createElement('div');
@@ -523,7 +574,6 @@ function renderCategories() {
                 ` : ''}
             `;
             
-            // Mostrar acciones al hover
             categoryCard.addEventListener('mouseenter', () => {
                 const actions = categoryCard.querySelector('.category-card-actions');
                 if (actions) actions.style.opacity = '1';
@@ -538,16 +588,28 @@ function renderCategories() {
         });
     }
     
+    // Tabla
     if (DOM.categoriasTableBody) {
         DOM.categoriasTableBody.innerHTML = '';
         
         if (window.appState.categories.length === 0) {
             DOM.categoriasTableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty-state">
-                        <i class="fas fa-tags empty-state__icon"></i>
-                        <h3 class="empty-state__title">No hay categorías creadas</h3>
-                        <p class="empty-state__description">Crea tu primera categoría para organizar los documentos</p>
+                    <td colspan="6" style="padding: 0;">
+                        <div class="empty-state empty-state--category empty-state--compact empty-state--full-width">
+                            <div class="empty-state__illustration empty-state__illustration--small">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <h4 class="empty-state__title empty-state__title--sm">Sin categorías registradas</h4>
+                            <p class="empty-state__description empty-state__description--sm">
+                                Las categorías que crees aparecerán aquí
+                            </p>
+                            ${canEdit ? `
+                                <button class="btn btn--sm btn--primary" onclick="openCategoryModal()">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            ` : ''}
+                        </div>
                     </td>
                 </tr>
             `;
