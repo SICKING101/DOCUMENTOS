@@ -73,28 +73,47 @@ static async create(req, res) {
         return res.status(500).json({ success: false, message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message });
       }
 
-const nuevoDocumento = new Document({
-    nombre_original: req.file.originalname,
-    tipo_archivo: req.file.originalname.split('.').pop().toLowerCase(),
-    tamano_archivo: req.file.size,
-    descripcion: descripcion || '',
-    categoria: categoria || 'General',
-    fecha_vencimiento: fecha_vencimiento || null,
-    persona_id: persona_id || null,
-    cloudinary_url: cloudinaryResult.secure_url,
-    public_id: cloudinaryResult.public_id,
-    resource_type: cloudinaryResult.resource_type,
-    status: 'approved',
-    // ===== 🆕 AGREGAR ESTAS 2 LÍNEAS =====
-    schoolId: req.schoolId || 'superadmin',
-    uploadedBy: req.user?._id || null
-});
+      const nuevoDocumento = new Document({
+        nombre_original: req.file.originalname,
+        tipo_archivo: req.file.originalname.split('.').pop().toLowerCase(),
+        tamano_archivo: req.file.size,
+        descripcion: descripcion || '',
+        categoria: categoria || 'General',
+        fecha_vencimiento: fecha_vencimiento || null,
+        persona_id: persona_id || null,
+        cloudinary_url: cloudinaryResult.secure_url,
+        public_id: cloudinaryResult.public_id,
+        resource_type: cloudinaryResult.resource_type,
+        status: 'approved',
+        schoolId: req.schoolId || 'superadmin',
+        uploadedBy: req.user?._id || null
+      });
 
       await nuevoDocumento.save();
       FileService.cleanTempFile(req.file.path);
 
       const documentoConPersona = await Document.findById(nuevoDocumento._id)
         .populate('persona_id', 'nombre');
+
+      // ✅ Notificación con schoolId
+      try {
+        await NotificationService.documentoSubido(
+          documentoConPersona,
+          documentoConPersona.persona_id,
+          req.schoolId
+        );
+        console.log('✅ Notificación de documento creada');
+      } catch (notifError) {
+        console.error('⚠️ Error creando notificación:', notifError.message);
+      }
+
+      // Auditoría
+      try {
+        await AuditService.logDocumentUpload(req, nuevoDocumento, documentoConPersona?.persona_id);
+        console.log('✅ Auditoría registrada');
+      } catch (auditError) {
+        console.error('❌ Error registrando auditoría:', auditError.message);
+      }
 
       res.json({
         success: true,
@@ -335,6 +354,19 @@ const nuevoDocumento = new Document({
       documento.deletedAt = new Date();
       documento.deletedBy = req.user?.usuario || 'Usuario';
       await documento.save();
+
+      // ✅ Notificación con schoolId
+      try {
+        await NotificationService.documentoEliminado(
+          documento.nombre_original,
+          documento.categoria,
+          req.user?.usuario || 'Usuario',
+          req.schoolId
+        );
+        console.log('✅ Notificación de eliminación creada');
+      } catch (notifError) {
+        console.error('⚠️ Error creando notificación:', notifError.message);
+      }
 
       res.json({ success: true, message: 'Documento eliminado correctamente' });
     } catch (error) {

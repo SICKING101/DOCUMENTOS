@@ -1,29 +1,17 @@
+// src/backend/services/notificationService.js
 import Notification from '../models/Notification.js';
 
-// =============================================================================
-// 1. DEFINICIÓN DEL SERVICIO DE NOTIFICACIONES
-// =============================================================================
-
-/**
- * 1.1 Clase principal del servicio de notificaciones
- * Servicio para gestionar todas las operaciones relacionadas con notificaciones,
- * incluyendo creación, consulta y gestión del ciclo de vida.
- */
 class NotificationService {
   
   // =============================================================================
-  // 2. MÉTODOS GENERALES DE CREACIÓN
+  // MÉTODO GENÉRICO DE CREACIÓN
   // =============================================================================
   
-  /**
-   * 2.1 Crear notificación genérica
-   * Método base para crear cualquier tipo de notificación en la base de datos.
-   */
   static async crear(data) {
     try {
       const notificacion = new Notification(data);
       await notificacion.save();
-      console.log('🔔 Notificación creada:', notificacion.titulo);
+      console.log('🔔 Notificación creada:', notificacion.titulo, '| schoolId:', notificacion.schoolId || 'global');
       return notificacion;
     } catch (error) {
       console.error('❌ Error creando notificación:', error);
@@ -32,19 +20,17 @@ class NotificationService {
   }
 
   // =============================================================================
-  // 2.x NOTIFICACIONES DE USUARIOS
+  // NOTIFICACIONES DE USUARIOS
   // =============================================================================
 
-  /**
-   * Notificar creación de usuario
-   */
-  static async usuarioCreado(nuevoUsuario, creadoPor = 'Administrador') {
+  static async usuarioCreado(nuevoUsuario, creadoPor = 'Administrador', schoolId = null) {
     return await this.crear({
       tipo: 'usuario_creado',
       titulo: '👤 Nuevo usuario creado',
       mensaje: `${creadoPor} creó el usuario "${nuevoUsuario.usuario}" (${nuevoUsuario.correo}) con rol ${nuevoUsuario.rol}`,
       icono: 'user-plus',
       prioridad: 'media',
+      schoolId: schoolId || nuevoUsuario.schoolId || null,
       metadata: {
         usuario: nuevoUsuario.usuario,
         correo: nuevoUsuario.correo,
@@ -55,14 +41,10 @@ class NotificationService {
   }
   
   // =============================================================================
-  // 3. NOTIFICACIONES ESPECÍFICAS DE DOCUMENTOS
+  // NOTIFICACIONES DE DOCUMENTOS
   // =============================================================================
   
-  /**
-   * 3.1 Notificar subida de documento
-   * Genera notificación cuando un usuario sube un nuevo documento al sistema.
-   */
-  static async documentoSubido(documento, persona = null) {
+  static async documentoSubido(documento, persona = null, schoolId = null) {
     const nombrePersona = persona ? persona.nombre : 'Usuario';
     return await this.crear({
       tipo: 'documento_subido',
@@ -72,6 +54,7 @@ class NotificationService {
       prioridad: 'media',
       documento_id: documento._id,
       persona_id: persona?._id || null,
+      schoolId: schoolId || documento.schoolId || null,
       metadata: {
         tipo_archivo: documento.tipo_archivo,
         tamano: documento.tamano_archivo,
@@ -80,46 +63,30 @@ class NotificationService {
     });
   }
 
-  /**
-   * 3.2 Notificar eliminación de documento
-   * Alerta sobre la eliminación de un documento del sistema.
-   */
-  static async documentoEliminado(nombreDocumento, categoria, usuario = 'Usuario') {
+  static async documentoEliminado(nombreDocumento, categoria, usuario = 'Usuario', schoolId = null) {
     return await this.crear({
       tipo: 'documento_eliminado',
       titulo: '❌ Documento eliminado',
       mensaje: `${usuario} eliminó el documento "${nombreDocumento}" de la categoría ${categoria}`,
       icono: 'trash',
       prioridad: 'baja',
-      metadata: {
-        documento: nombreDocumento,
-        categoria: categoria
-      }
+      schoolId: schoolId || null,
+      metadata: { documento: nombreDocumento, categoria: categoria }
     });
   }
 
-  /**
-   * 3.3 Notificar documento restaurado
-   * Alerta cuando se restaura un documento desde la papelera.
-   */
-  static async documentoRestaurado(nombreDocumento, categoria, usuario = 'Usuario') {
+  static async documentoRestaurado(nombreDocumento, categoria, usuario = 'Usuario', schoolId = null) {
     return await this.crear({
       tipo: 'documento_restaurado',
       titulo: '♻️ Documento restaurado',
       mensaje: `${usuario} restauró el documento "${nombreDocumento}" de la categoría ${categoria}`,
       icono: 'undo',
       prioridad: 'media',
-      metadata: {
-        documento: nombreDocumento,
-        categoria: categoria
-      }
+      schoolId: schoolId || null,
+      metadata: { documento: nombreDocumento, categoria: categoria }
     });
   }
 
-  /**
-   * 3.4 Notificar documento próximo a vencer
-   * Alerta preventiva sobre documentos con fecha de vencimiento cercana.
-   */
   static async documentoProximoVencer(documento, diasRestantes) {
     return await this.crear({
       tipo: 'documento_proximo_vencer',
@@ -128,6 +95,7 @@ class NotificationService {
       icono: 'clock',
       prioridad: diasRestantes <= 3 ? 'alta' : 'media',
       documento_id: documento._id,
+      schoolId: documento.schoolId || null,
       metadata: {
         dias_restantes: diasRestantes,
         fecha_vencimiento: documento.fecha_vencimiento
@@ -135,10 +103,6 @@ class NotificationService {
     });
   }
 
-  /**
-   * 3.4 Notificar documento vencido
-   * Alerta crítica sobre documentos cuya fecha de vencimiento ha expirado
-   */
   static async documentoVencido(documento) {
     return await this.crear({
       tipo: 'documento_vencido',
@@ -147,28 +111,24 @@ class NotificationService {
       icono: 'exclamation-triangle',
       prioridad: 'critica',
       documento_id: documento._id,
-      metadata: {
-        fecha_vencimiento: documento.fecha_vencimiento
-      }
+      schoolId: documento.schoolId || null,
+      metadata: { fecha_vencimiento: documento.fecha_vencimiento }
     });
   }
   
   // =============================================================================
-  // 4. NOTIFICACIONES DE PERSONAS
+  // NOTIFICACIONES DE PERSONAS
   // =============================================================================
   
-  /**
-   * 4.1 Notificar agregado de persona
-   * Informa sobre la creación de un nuevo registro de persona en el sistema.
-   */
-  static async personaAgregada(persona) {
+  static async personaAgregada(persona, schoolId = null) {
     return await this.crear({
       tipo: 'persona_agregada',
       titulo: '✅ Persona agregada',
-      mensaje: `Se agregó a ${persona.nombre} (${persona.puesto}) al sistema`,
+      mensaje: `Se agregó a ${persona.nombre} (${persona.puesto || 'Sin puesto'}) al sistema`,
       icono: 'user-plus',
       prioridad: 'baja',
       persona_id: persona._id,
+      schoolId: schoolId || persona.schoolId || null,
       metadata: {
         departamento: persona.departamento,
         puesto: persona.puesto
@@ -176,48 +136,38 @@ class NotificationService {
     });
   }
 
-  /**
-   * 4.2 Notificar eliminación de persona
-   * Informa sobre la eliminación de un registro de persona del sistema.
-   */
-  static async personaEliminada(nombrePersona) {
+  static async personaEliminada(nombrePersona, schoolId = null) {
     return await this.crear({
       tipo: 'persona_eliminada',
       titulo: '❌ Persona eliminada',
       mensaje: `Se eliminó a ${nombrePersona} del sistema`,
       icono: 'user-minus',
-      prioridad: 'baja'
+      prioridad: 'baja',
+      schoolId: schoolId || null
     });
   }
   
   // =============================================================================
-  // 5. NOTIFICACIONES DE CATEGORÍAS
+  // NOTIFICACIONES DE CATEGORÍAS
   // =============================================================================
   
-  /**
-   * 5.1 Notificar creación de categoría
-   * Informa sobre la creación de una nueva categoría para documentos.
-   */
-  static async categoriaAgregada(categoria) {
+  static async categoriaAgregada(categoria, schoolId = null) {
     return await this.crear({
       tipo: 'categoria_agregada',
       titulo: '✅ Categoría agregada',
       mensaje: `Se creó la categoría "${categoria.nombre}"`,
       icono: 'folder-plus',
       prioridad: 'baja',
-      categoria_id: categoria._id
+      categoria_id: categoria._id,
+      schoolId: schoolId || categoria.schoolId || null
     });
   }
   
   // =============================================================================
-  // 6. NOTIFICACIONES DE REPORTES Y SISTEMA
+  // NOTIFICACIONES DE REPORTES Y SISTEMA
   // =============================================================================
   
-  /**
-   * 6.1 Notificar generación de reporte
-   * Confirma la creación exitosa de un reporte en el sistema.
-   */
-  static async reporteGenerado(tipoReporte, formato, cantidadRegistros) {
+  static async reporteGenerado(tipoReporte, formato, cantidadRegistros, schoolId = null) {
     const nombresReportes = {
       general: 'General',
       byCategory: 'Por Categoría',
@@ -232,18 +182,11 @@ class NotificationService {
       mensaje: `Se generó el reporte "${nombresReportes[tipoReporte] || tipoReporte}" en formato ${formato.toUpperCase()} con ${cantidadRegistros} registro(s)`,
       icono: 'chart-bar',
       prioridad: 'baja',
-      metadata: {
-        tipo_reporte: tipoReporte,
-        formato: formato,
-        registros: cantidadRegistros
-      }
+      schoolId: schoolId || null,
+      metadata: { tipo_reporte: tipoReporte, formato: formato, registros: cantidadRegistros }
     });
   }
 
-  /**
-   * 6.2 Notificar inicio del sistema
-   * Registra el evento de inicio del sistema para auditoría y monitoreo.
-   */
   static async sistemaIniciado() {
     return await this.crear({
       tipo: 'sistema_iniciado',
@@ -251,17 +194,11 @@ class NotificationService {
       mensaje: `Sistema de Gestión de Documentos CBTIS051 iniciado correctamente el ${new Date().toLocaleString('es-MX')}`,
       icono: 'check-circle',
       prioridad: 'baja',
-      metadata: {
-        fecha_inicio: new Date(),
-        version: '1.0.0'
-      }
+      schoolId: null,
+      metadata: { fecha_inicio: new Date(), version: '1.0.0' }
     });
   }
 
-  /**
-   * 6.3 Notificar error del sistema
-   * Alerta sobre errores críticos que requieren atención administrativa.
-   */
   static async errorSistema(mensaje, detalles = {}) {
     return await this.crear({
       tipo: 'error_sistema',
@@ -269,18 +206,15 @@ class NotificationService {
       mensaje: mensaje,
       icono: 'exclamation-circle',
       prioridad: 'alta',
+      schoolId: null,
       metadata: detalles
     });
   }
   
   // =============================================================================
-  // 7. CONSULTAS Y GESTIÓN DE NOTIFICACIONES
+  // CONSULTAS Y GESTIÓN
   // =============================================================================
   
-  /**
-   * 7.1 Obtener notificaciones con filtros
-   * Consulta paginada con múltiples filtros para listar notificaciones en el frontend.
-   */
   static async obtener(filtros = {}, opciones = {}) {
     const {
       leida = null,
@@ -288,6 +222,7 @@ class NotificationService {
       prioridad = null,
       desde = null,
       hasta = null,
+      schoolId = null,
       limite = 50,
       pagina = 1
     } = { ...filtros, ...opciones };
@@ -303,6 +238,15 @@ class NotificationService {
       if (hasta) query.fecha_creacion.$lte = new Date(hasta);
     }
 
+    // ✅ Filtrar por escuela
+    if (schoolId) {
+      query.$or = [
+        { schoolId: schoolId },
+        { schoolId: { $exists: false } },
+        { schoolId: null }
+      ];
+    }
+
     const skip = (pagina - 1) * limite;
 
     const notificaciones = await Notification.find(query)
@@ -313,7 +257,7 @@ class NotificationService {
       .skip(skip);
 
     const total = await Notification.countDocuments(query);
-    const noLeidas = await Notification.countDocuments({ leida: false });
+    const noLeidas = await Notification.countDocuments({ ...query, leida: false });
 
     return {
       notificaciones,
@@ -324,54 +268,33 @@ class NotificationService {
     };
   }
 
-  /**
-   * 7.2 Marcar notificación individual como leída
-   * Cambia el estado de una notificación específica a "leída".
-   */
   static async marcarLeida(id) {
     const notificacion = await Notification.findById(id);
-    if (!notificacion) {
-      throw new Error('Notificación no encontrada');
-    }
+    if (!notificacion) throw new Error('Notificación no encontrada');
     return await notificacion.marcarLeida();
   }
 
-  /**
-   * 7.3 Marcar todas las notificaciones como leídas
-   * Cambia masivamente el estado de todas las notificaciones no leídas.
-   */
-  static async marcarTodasLeidas() {
-    const resultado = await Notification.updateMany(
-      { leida: false },
-      { leida: true }
-    );
+  static async marcarTodasLeidas(schoolId = null) {
+    const query = { leida: false };
+    if (schoolId) {
+      query.$or = [
+        { schoolId: schoolId },
+        { schoolId: { $exists: false } },
+        { schoolId: null }
+      ];
+    }
+    const resultado = await Notification.updateMany(query, { leida: true });
     return resultado.modifiedCount;
   }
 
-  /**
-   * 7.4 Eliminar notificación específica
-   * Remueve permanentemente una notificación de la base de datos.
-   */
   static async eliminar(id) {
     return await Notification.findByIdAndDelete(id);
   }
   
-  // =============================================================================
-  // 8. ESTADÍSTICAS Y MANTENIMIENTO
-  // =============================================================================
-  
-  /**
-   * 8.1 Obtener estadísticas generales
-   * Genera métricas sobre el estado de las notificaciones para dashboards.
-   */
-  static async obtenerEstadisticas() {
-    return await Notification.obtenerEstadisticas();
+  static async obtenerEstadisticas(schoolId = null) {
+    return await Notification.obtenerEstadisticas(schoolId);
   }
 
-  /**
-   * 8.2 Limpiar notificaciones antiguas
-   * Tarea de mantenimiento para eliminar notificaciones leídas antiguas.
-   */
   static async limpiarAntiguas(dias = 30) {
     return await Notification.limpiarAntiguas(dias);
   }

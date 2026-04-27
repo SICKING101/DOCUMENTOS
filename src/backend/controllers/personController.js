@@ -53,7 +53,6 @@ class PersonController {
     try {
       const { nombre, email, telefono, departamento, puesto } = req.body;
       
-      // Validaciones básicas
       if (!nombre || !email) {
         console.log('❌ Validación falló: nombre y email requeridos');
         return res.status(400).json({ 
@@ -62,43 +61,41 @@ class PersonController {
         });
       }
 
-      // ✅ Verificar email duplicado SOLO dentro de la misma escuela
-      const emailFilter = { 
+      // ✅ Verificar si el email existe en CUALQUIER escuela
+      const emailExistente = await Person.findOne({ 
         email: { $regex: new RegExp(`^${email}$`, 'i') }
-      };
-      if (req.schoolId) {
-        emailFilter.schoolId = req.schoolId;
-      }
+      });
 
-      const personaExistente = await Person.findOne(emailFilter);
-
-      if (personaExistente) {
-        console.log('❌ Email duplicado en la misma escuela:', email);
+      if (emailExistente) {
+        // Si existe en la MISMA escuela
+        if (emailExistente.schoolId === req.schoolId) {
+          console.log('❌ Email duplicado en la misma escuela:', email);
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Ya existe una persona con ese email en tu escuela' 
+          });
+        }
+        
+        // Si existe en OTRA escuela
+        console.log('❌ Email registrado en otra escuela:', email, '| schoolId:', emailExistente.schoolId);
         return res.status(400).json({ 
           success: false, 
-          message: 'Ya existe una persona con ese email en tu escuela' 
+          message: 'Este email ya está registrado en otra escuela. Debe darse de baja primero en esa escuela antes de poder registrarlo aquí.' 
         });
       }
 
-      // ✅ Crear y guardar la persona CON schoolId
       const nuevaPersona = new Person({
         nombre,
         email,
         telefono,
         departamento,
         puesto,
-        schoolId: req.schoolId || 'superadmin'  // 🆕 Asignar schoolId
+        schoolId: req.schoolId || 'superadmin'
       });
 
       await nuevaPersona.save();
       console.log('✅ Persona guardada en BD con ID:', nuevaPersona._id);
       console.log('🏫 School ID asignado:', nuevaPersona.schoolId);
-      
-      // =======================================================================
-      // REGISTRAR EN AUDITORÍA
-      // =======================================================================
-      
-      console.log('📝 Intentando registrar en auditoría...');
       
       try {
         await AuditService.logPersonCreate(req, nuevaPersona);
@@ -107,9 +104,8 @@ class PersonController {
         console.error('❌ ERROR REGISTRANDO AUDITORÍA:', auditError.message);
       }
       
-      // Crear notificación
       try {
-        await NotificationService.personaAgregada(nuevaPersona);
+        await NotificationService.personaAgregada(nuevaPersona, req.schoolId);
         console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
@@ -279,7 +275,6 @@ class PersonController {
         });
       }
 
-      // ✅ Buscar solo dentro de la escuela
       const filter = { _id: id };
       if (req.schoolId) {
         filter.schoolId = req.schoolId;
@@ -300,7 +295,6 @@ class PersonController {
         email: personaExistente.email
       });
 
-      // ✅ Verificar documentos asociados (también filtrados por escuela)
       const docFilter = { 
         persona_id: id, 
         $or: [
@@ -344,14 +338,9 @@ class PersonController {
         });
       }
 
-      // ELIMINACIÓN PERMANENTE
       await Person.findByIdAndDelete(id);
       console.log('✅ Persona eliminada de BD');
 
-      // =======================================================================
-      // REGISTRAR ELIMINACIÓN EN AUDITORÍA
-      // =======================================================================
-      
       try {
         await AuditService.logPersonDelete(req, personaExistente, false);
         console.log('✅✅✅ ELIMINACIÓN REGISTRADA EN AUDITORÍA');
@@ -359,9 +348,9 @@ class PersonController {
         console.error('❌ Error registrando eliminación:', auditError.message);
       }
 
-      // Crear notificación
+      // ✅ Notificación con schoolId
       try {
-        await NotificationService.personaEliminada(personaExistente.nombre);
+        await NotificationService.personaEliminada(personaExistente.nombre, req.schoolId);
         console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);

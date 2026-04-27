@@ -136,12 +136,12 @@ router.post('/reports/excel', protegerRuta, requirePermission(PERMISSIONS.GENERA
 router.post('/reports/pdf', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generatePDF);
 router.post('/reports/csv', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateCSV);
 
-// ─── NOTIFICACIONES ───────────────────────────────────────────
-router.get('/notifications', protegerRuta, NotificationController.getAll);
-router.get('/notifications/unread', protegerRuta, NotificationController.getUnread);
-router.get('/notifications/stats', protegerRuta, NotificationController.getStats);
+// ─── NOTIFICACIONES (AISLADAS POR ESCUELA) ─────────────────────
+router.get('/notifications', protegerRuta, inyectarSchoolId, NotificationController.getAll);
+router.get('/notifications/unread', protegerRuta, inyectarSchoolId, NotificationController.getUnread);
+router.get('/notifications/stats', protegerRuta, inyectarSchoolId, NotificationController.getStats);
 router.patch('/notifications/:id/read', protegerRuta, NotificationController.markAsRead);
-router.patch('/notifications/read-all', protegerRuta, NotificationController.markAllAsRead);
+router.patch('/notifications/read-all', protegerRuta, inyectarSchoolId, NotificationController.markAllAsRead);
 router.delete('/notifications/:id', protegerRuta, requirePermission(PERMISSIONS.CLEAR_HISTORY), NotificationController.delete);
 router.post('/notifications/cleanup', protegerRuta, requirePermission(PERMISSIONS.CLEAR_HISTORY), NotificationController.cleanup);
 
