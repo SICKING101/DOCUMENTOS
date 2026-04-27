@@ -773,29 +773,6 @@
     font-size: 0.875rem;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 2rem;
-}
-
-.empty-state__icon {
-    color: var(--text-secondary);
-    margin-bottom: 0.75rem;
-}
-
-.empty-state__title {
-    font-size: 1rem;
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-}
-
-.empty-state__description {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
-}
-
 /* =============================================================================
    RESPONSIVE
    ============================================================================= */

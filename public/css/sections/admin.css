@@ -852,33 +852,6 @@ input:checked + .slider:before {
   background-color: white;
 }
 
-/* Estados vacíos y de carga */
-.empty-state {
-  text-align: center;
-  padding: 2.5rem 1.5rem;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 2px dashed var(--border);
-}
-
-.empty-state__icon {
-  font-size: 2.5rem;
-  color: var(--text-tertiary);
-  margin-bottom: 0.8rem;
-}
-
-.empty-state__title {
-  color: var(--text-primary);
-  margin-bottom: 0.4rem;
-  font-size: 1.2rem;
-}
-
-.empty-state__description {
-  color: var(--text-secondary);
-  margin-bottom: 1.25rem;
-  font-size: 0.9rem;
-}
-
 .admin-loading {
   text-align: center;
   padding: 2.5rem;
