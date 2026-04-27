@@ -1453,30 +1453,54 @@ async function savePerson() {
             throw new Error(data.message);
         }
         
-    } catch (error) {
+        } catch (error) {
         console.error('❌ Error guardando persona:', error);
         
-        // Manejar errores de permisos específicamente
-        if (error.message.includes('403') || error.message.includes('permisos')) {
+        // Extraer el mensaje real del error
+        let rawMessage = error.message || 'Error desconocido';
+        let serverMessage = rawMessage;
+        
+        // Si el error viene con formato "Error HTTP 400: {...}", extraer el JSON
+        if (rawMessage.includes('{')) {
+            try {
+                const jsonStart = rawMessage.indexOf('{');
+                const jsonStr = rawMessage.substring(jsonStart);
+                const parsed = JSON.parse(jsonStr);
+                serverMessage = parsed.message || rawMessage;
+            } catch (e) {
+                // No se pudo parsear, usar mensaje crudo
+            }
+        }
+        
+        // Manejar errores de permisos
+        if (rawMessage.includes('403') || rawMessage.includes('permisos')) {
             showFormAlert('❌ No tienes permisos para realizar esta acción', 'error');
             showNoPermissionAlert('personas');
-        } else {
-            // Mostrar alerta de error
-            let errorMessage = 'Error al guardar persona: ' + error.message;
-            
-            // Mensajes más amigables para errores comunes
-            if (error.message.includes('duplicate') || error.message.includes('ya existe')) {
-                errorMessage = '❌ Ya existe una persona con ese email. Usa un email diferente.';
-                showFormAlert(errorMessage, 'error', 'email');
-            } else if (error.message.includes('departamento')) {
-                errorMessage = '❌ Error con el departamento. Verifica que exista o crea uno nuevo.';
-                showFormAlert(errorMessage, 'error', 'departamento');
-            } else if (error.message.includes('required')) {
-                errorMessage = '❌ Faltan campos obligatorios. Revisa el formulario.';
-                showFormAlert(errorMessage, 'error');
-            } else {
-                showFormAlert(`❌ ${errorMessage}`, 'error');
-            }
+        }
+        // ✅ Email registrado en OTRA escuela
+        else if (serverMessage.includes('otra escuela') || serverMessage.includes('darse de baja')) {
+            showFormAlert(
+                '⚠️ Este email ya está registrado en otra escuela. Debe darse de baja primero en esa escuela antes de poder registrarlo aquí.',
+                'warning',
+                'email'
+            );
+            showAlert('Este email pertenece a otra escuela. Contacta al administrador para darlo de baja.', 'warning');
+        }
+        // Email duplicado en la MISMA escuela
+        else if (serverMessage.includes('ya existe') || serverMessage.includes('duplicate') || serverMessage.includes('tu escuela')) {
+            showFormAlert('❌ Ya existe una persona con ese email en tu escuela. Usa un email diferente.', 'error', 'email');
+        }
+        // Error de departamento
+        else if (serverMessage.includes('departamento')) {
+            showFormAlert('❌ Error con el departamento. Verifica que exista o crea uno nuevo.', 'error', 'departamento');
+        }
+        // Campos requeridos
+        else if (serverMessage.includes('required') || serverMessage.includes('obligatorios')) {
+            showFormAlert('❌ Faltan campos obligatorios. Revisa el formulario.', 'error');
+        }
+        // Otros errores
+        else {
+            showFormAlert(`❌ ${serverMessage}`, 'error');
         }
         
         // Mostrar error en el preloader
@@ -1488,7 +1512,7 @@ async function savePerson() {
                         <i class="fas fa-exclamation-circle"></i>
                     </div>
                     <h3 class="preloader-overlay__title">¡Error!</h3>
-                    <p class="preloader-overlay__subtitle">${error.message}</p>
+                    <p class="preloader-overlay__subtitle">${serverMessage}</p>
                     <div class="preloader-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
                         <button class="btn btn--outline btn--sm" onclick="this.closest('.preloader-overlay').remove(); 
                                                                          document.querySelectorAll('#personForm input, #personForm select, #personForm button').forEach(el => {
@@ -1504,7 +1528,6 @@ async function savePerson() {
                 </div>
             `;
             
-            // Aplicar animación de error al modal
             const modalContent = document.querySelector('.modal__content');
             if (modalContent) {
                 modalContent.classList.add('modal-error');
@@ -1514,8 +1537,7 @@ async function savePerson() {
             }
         }
         
-        // Mostrar alerta general
-        showAlert(error.message, 'error');
+        showAlert(serverMessage, 'warning');
     } finally {
         // Limpieza final
         setTimeout(() => {
