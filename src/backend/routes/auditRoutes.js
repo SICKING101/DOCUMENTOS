@@ -1,40 +1,19 @@
 import express from 'express';
 import AuditController from '../controllers/auditController.js';
-import { protegerRuta, soloAdministrador } from '../middleware/auth.js';
+import { protegerRuta, soloAdministrador, inyectarSchoolId } from '../middleware/auth.js';
 import { auditMiddleware } from '../middleware/auditMiddleware.js';
 
 const router = express.Router();
 
-// =============================================================================
-// TODAS LAS RUTAS REQUIEREN AUTENTICACIÓN
-// =============================================================================
 router.use(protegerRuta);
 router.use(auditMiddleware);
 
-// =============================================================================
-// RUTAS PÚBLICAS (PARA USUARIOS AUTENTICADOS)
-// =============================================================================
-
-// Obtener logs con filtros (todos pueden ver sus propios logs)
-router.get('/logs', AuditController.getLogs);
-
-// Obtener log específico
+// Estas rutas ven SOLO los logs de su escuela
+router.get('/logs', inyectarSchoolId, AuditController.getLogs);
 router.get('/logs/:id', AuditController.getLogById);
-
-// Obtener acciones disponibles para filtros
 router.get('/actions', AuditController.getActions);
-
-// =============================================================================
-// RUTAS DE ADMINISTRADOR
-// =============================================================================
-
-// Obtener estadísticas (solo admin)
-router.get('/stats', soloAdministrador, AuditController.getStats);
-
-// Exportar logs (solo admin)
-router.get('/export', soloAdministrador, AuditController.exportLogs);
-
-// Limpiar logs antiguos (solo admin)
+router.get('/stats', inyectarSchoolId, soloAdministrador, AuditController.getStats);
+router.get('/export', inyectarSchoolId, soloAdministrador, AuditController.exportLogs);
 router.post('/cleanup', soloAdministrador, AuditController.cleanupLogs);
 
 export default router;

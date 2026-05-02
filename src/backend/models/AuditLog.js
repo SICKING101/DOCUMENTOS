@@ -186,6 +186,13 @@ const auditLogSchema = new mongoose.Schema({
         index: true
     },
 
+        // ===== 🆕 NUEVO =====
+    schoolId: { 
+        type: String, 
+        index: true,
+        default: null 
+    },
+
     // =========================================================================
     // TIMESTAMPS
     // =========================================================================
@@ -214,6 +221,7 @@ auditLogSchema.index({ action: 1, createdAt: -1 });
 auditLogSchema.index({ severity: 1, createdAt: -1 });
 auditLogSchema.index({ targetId: 1, targetModel: 1 });
 auditLogSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+auditLogSchema.index({ schoolId: 1, createdAt: -1 });
 
 // =============================================================================
 // MÉTODOS ESTÁTICOS
@@ -230,26 +238,27 @@ auditLogSchema.statics.log = async function(data) {
         console.log(`📋 Descripción: ${data.description}`);
 
         const logEntry = new this({
-            userId: data.userId,
-            username: data.username,
-            userRole: data.userRole,
-            userEmail: data.userEmail,
-            action: data.action,
-            actionType: data.actionType,
-            actionCategory: data.actionCategory,
-            targetId: data.targetId,
-            targetModel: data.targetModel,
-            targetName: data.targetName,
-            description: data.description,
-            changes: data.changes,
-            metadata: {
-                ipAddress: data.ipAddress,
-                userAgent: data.userAgent,
-                ...data.metadata
-            },
-            severity: data.severity || 'INFO',
-            status: data.status || 'SUCCESS'
-        });
+    userId: data.userId,
+    username: data.username,
+    userRole: data.userRole,
+    userEmail: data.userEmail,
+    action: data.action,
+    actionType: data.actionType,
+    actionCategory: data.actionCategory,
+    targetId: data.targetId,
+    targetModel: data.targetModel,
+    targetName: data.targetName,
+    description: data.description,
+    changes: data.changes,
+    metadata: {
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+        ...data.metadata
+    },
+    severity: data.severity || 'INFO',
+    status: data.status || 'SUCCESS',
+    schoolId: data.schoolId || null
+});
 
         await logEntry.save();
         console.log(`✅ Auditoría registrada ID: ${logEntry._id}`);
@@ -293,6 +302,24 @@ auditLogSchema.statics.getFilteredLogs = async function(filters = {}, page = 1, 
             { username: new RegExp(filters.search, 'i') }
         ];
     }
+    
+    // ✅ Filtro por escuela
+    if (filters.schoolId) {
+        // Si ya hay un $or por búsqueda, agregar schoolId a cada condición
+        if (query.$or) {
+            query.$and = [
+                { $or: query.$or },
+                { $or: [{ schoolId: filters.schoolId }, { schoolId: { $exists: false } }, { schoolId: null }] }
+            ];
+            delete query.$or;
+        } else {
+            query.$or = [
+                { schoolId: filters.schoolId },
+                { schoolId: { $exists: false } },
+                { schoolId: null }
+            ];
+        }
+    }
 
     const skip = (page - 1) * limit;
     
@@ -312,12 +339,23 @@ auditLogSchema.statics.getFilteredLogs = async function(filters = {}, page = 1, 
 /**
  * Obtener estadísticas de auditoría
  */
-auditLogSchema.statics.getStats = async function(days = 30) {
+auditLogSchema.statics.getStats = async function(days = 30, schoolId = null) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
+    const matchStage = { createdAt: { $gte: startDate } };
+    
+    // ✅ Filtro por escuela
+    if (schoolId) {
+        matchStage.$or = [
+            { schoolId: schoolId },
+            { schoolId: { $exists: false } },
+            { schoolId: null }
+        ];
+    }
+
     const stats = await this.aggregate([
-        { $match: { createdAt: { $gte: startDate } } },
+        { $match: matchStage },
         {
             $facet: {
                 byAction: [
