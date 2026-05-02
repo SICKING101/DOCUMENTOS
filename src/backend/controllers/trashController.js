@@ -5,22 +5,24 @@ import mongoose from 'mongoose';
 
 class TrashController {
   // ===========================================================================
-  // OBTENER DOCUMENTOS EN PAPELERA
+  // OBTENER DOCUMENTOS EN PAPELERA (AISLADO POR ESCUELA)
   // ===========================================================================
   static async getTrashDocuments(req, res) {
     try {
-      console.log('🗑️ ========== OBTENIENDO PAPELERA ==========');
+      console.log('🗑️ Obteniendo papelera - schoolId:', req.schoolId || 'superadmin');
       
-      const documents = await Document.find({ 
-        isDeleted: true,
-        activo: true
-      })
+      // ✅ Filtro por escuela
+      const filter = { isDeleted: true, activo: true };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+      
+      const documents = await Document.find(filter)
         .populate('persona_id', 'nombre email departamento puesto')
         .sort({ deletedAt: -1 });
 
       console.log(`📊 Documentos en papelera encontrados: ${documents.length}`);
       
-      // Calcular días restantes para cada documento
       const documentsWithDaysLeft = documents.map(doc => {
         const deletedDate = new Date(doc.deletedAt);
         const expirationDate = new Date(deletedDate);
@@ -36,10 +38,6 @@ class TrashController {
         };
       });
 
-      // =======================================================================
-      // REGISTRAR EN AUDITORÍA
-      // =======================================================================
-      
       try {
         await AuditService.logTrashView(req, documents.length);
         console.log('✅✅✅ VISUALIZACIÓN DE PAPELERA REGISTRADA EN AUDITORÍA');
@@ -57,7 +55,6 @@ class TrashController {
     } catch (error) {
       console.error('❌ Error obteniendo papelera:', error);
       
-      // Registrar error en auditoría
       try {
         await AuditService.log(req, {
           action: 'TRASH_VIEW',
@@ -69,9 +66,7 @@ class TrashController {
           description: `Error al visualizar papelera: ${error.message}`,
           severity: 'ERROR',
           status: 'FAILED',
-          metadata: {
-            error: error.message
-          }
+          metadata: { error: error.message }
         });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de visualización:', auditError.message);
@@ -85,7 +80,7 @@ class TrashController {
   }
 
   // ===========================================================================
-  // RESTAURAR DOCUMENTO
+  // RESTAURAR DOCUMENTO (SOLO DE SU ESCUELA)
   // ===========================================================================
   static async restoreDocument(req, res) {
     console.log('\n🔍 ========== RESTAURANDO DOCUMENTO ==========');
@@ -96,18 +91,21 @@ class TrashController {
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
         console.log('❌ ID inválido:', id);
-        return res.status(400).json({ 
-          success: false, 
-          message: 'ID inválido' 
-        });
+        return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
-      const document = await Document.findById(id);
+      // ✅ Buscar solo dentro de la escuela del admin
+      const filter = { _id: id, isDeleted: true };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+
+      const document = await Document.findOne(filter);
       if (!document) {
-        console.log('❌ Documento no encontrado:', id);
+        console.log('❌ Documento no encontrado o no pertenece a tu escuela:', id);
         return res.status(404).json({ 
           success: false, 
-          message: 'Documento no encontrado' 
+          message: 'Documento no encontrado o no pertenece a tu escuela' 
         });
       }
 
@@ -119,20 +117,17 @@ class TrashController {
         });
       }
 
-      // Guardar estado antes de restaurar
       const beforeState = {
         isDeleted: document.isDeleted,
         deletedAt: document.deletedAt,
         deletedBy: document.deletedBy
       };
 
-      // Restaurar documento
       document.isDeleted = false;
       document.deletedAt = null;
       document.deletedBy = null;
       await document.save();
 
-      // Estado después
       const afterState = {
         isDeleted: document.isDeleted,
         deletedAt: document.deletedAt,
@@ -141,10 +136,6 @@ class TrashController {
 
       console.log(`✅ Documento restaurado exitosamente: ${document.nombre_original}`);
 
-      // =======================================================================
-      // REGISTRAR RESTAURACIÓN EN AUDITORÍA
-      // =======================================================================
-      
       try {
         await AuditService.logDocumentRestore(req, document, beforeState, afterState);
         console.log('✅✅✅ RESTAURACIÓN REGISTRADA EN AUDITORÍA');
@@ -163,7 +154,6 @@ class TrashController {
     } catch (error) {
       console.error('❌ Error restaurando documento:', error);
       
-      // Registrar error en auditoría
       try {
         await AuditService.log(req, {
           action: 'DOCUMENT_RESTORE',
@@ -175,10 +165,7 @@ class TrashController {
           description: `Error al restaurar documento: ${error.message}`,
           severity: 'ERROR',
           status: 'FAILED',
-          metadata: {
-            error: error.message,
-            documentId: req.params.id
-          }
+          metadata: { error: error.message, documentId: req.params.id }
         });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de restauración:', auditError.message);
@@ -192,7 +179,7 @@ class TrashController {
   }
 
   // ===========================================================================
-  // ELIMINAR DOCUMENTO PERMANENTEMENTE
+  // ELIMINAR DOCUMENTO PERMANENTEMENTE (SOLO DE SU ESCUELA)
   // ===========================================================================
   static async deletePermanently(req, res) {
     console.log('\n🔍 ========== ELIMINANDO PERMANENTEMENTE DOCUMENTO ==========');
@@ -203,22 +190,24 @@ class TrashController {
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
         console.log('❌ ID inválido:', id);
-        return res.status(400).json({ 
-          success: false, 
-          message: 'ID inválido' 
-        });
+        return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
-      const document = await Document.findById(id);
+      // ✅ Buscar solo dentro de la escuela
+      const filter = { _id: id, isDeleted: true };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
+
+      const document = await Document.findOne(filter);
       if (!document) {
-        console.log('❌ Documento no encontrado:', id);
+        console.log('❌ Documento no encontrado o no pertenece a tu escuela:', id);
         return res.status(404).json({ 
           success: false, 
-          message: 'Documento no encontrado' 
+          message: 'Documento no encontrado o no pertenece a tu escuela' 
         });
       }
 
-      // Guardar datos del documento para referencia
       const documentData = {
         _id: document._id,
         nombre_original: document.nombre_original,
@@ -229,7 +218,6 @@ class TrashController {
         categoria: document.categoria
       };
 
-      // Eliminar de Cloudinary
       if (document.public_id) {
         try {
           await cloudinary.v2.uploader.destroy(document.public_id, {
@@ -241,17 +229,12 @@ class TrashController {
         }
       }
 
-      // Marcar como inactivo en la base de datos
       document.activo = false;
       await document.save();
       console.log(`✅ Documento marcado como inactivo: ${document.nombre_original}`);
 
-      // =======================================================================
-      // REGISTRAR ELIMINACIÓN PERMANENTE EN AUDITORÍA
-      // =======================================================================
-      
       try {
-        await AuditService.logDocumentDelete(req, document, false); // false = eliminación permanente
+        await AuditService.logDocumentDelete(req, document, false);
         console.log('✅✅✅ ELIMINACIÓN PERMANENTE REGISTRADA EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando eliminación permanente:', auditError.message);
@@ -267,7 +250,6 @@ class TrashController {
     } catch (error) {
       console.error('❌ Error eliminando documento permanentemente:', error);
       
-      // Registrar error en auditoría
       try {
         await AuditService.log(req, {
           action: 'DOCUMENT_PERMANENT_DELETE',
@@ -279,10 +261,7 @@ class TrashController {
           description: `Error al eliminar documento permanentemente: ${error.message}`,
           severity: 'ERROR',
           status: 'FAILED',
-          metadata: {
-            error: error.message,
-            documentId: req.params.id
-          }
+          metadata: { error: error.message, documentId: req.params.id }
         });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de eliminación permanente:', auditError.message);
@@ -296,24 +275,25 @@ class TrashController {
   }
 
   // ===========================================================================
-  // VACIAR PAPELERA COMPLETA
+  // VACIAR PAPELERA COMPLETA (SOLO DE SU ESCUELA)
   // ===========================================================================
   static async emptyTrash(req, res) {
     console.log('\n🔍 ========== VACIANDO PAPELERA COMPLETA ==========');
 
     try {
-      const documents = await Document.find({ 
-        isDeleted: true,
-        activo: true
-      });
+      // ✅ Filtro por escuela
+      const filter = { isDeleted: true, activo: true };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
 
+      const documents = await Document.find(filter);
       let deletedCount = 0;
       let errors = [];
       const deletedDocuments = [];
 
       for (const doc of documents) {
         try {
-          // Guardar datos para auditoría
           deletedDocuments.push({
             _id: doc._id,
             nombre_original: doc.nombre_original,
@@ -321,14 +301,12 @@ class TrashController {
             public_id: doc.public_id
           });
 
-          // Eliminar de Cloudinary
           if (doc.public_id) {
             await cloudinary.v2.uploader.destroy(doc.public_id, {
               resource_type: doc.resource_type || 'auto'
             });
           }
 
-          // Marcar como inactivo
           doc.activo = false;
           await doc.save();
           deletedCount++;
@@ -340,10 +318,6 @@ class TrashController {
 
       console.log(`✅ Papelera vaciada: ${deletedCount} documentos eliminados`);
 
-      // =======================================================================
-      // REGISTRAR VACIADO DE PAPELERA EN AUDITORÍA
-      // =======================================================================
-      
       try {
         await AuditService.logTrashEmpty(req, deletedCount, deletedDocuments);
         console.log('✅✅✅ VACIADO DE PAPELERA REGISTRADO EN AUDITORÍA');
@@ -363,7 +337,6 @@ class TrashController {
     } catch (error) {
       console.error('❌ Error vaciando papelera:', error);
       
-      // Registrar error en auditoría
       try {
         await AuditService.log(req, {
           action: 'TRASH_EMPTY',
@@ -375,9 +348,7 @@ class TrashController {
           description: `Error al vaciar papelera: ${error.message}`,
           severity: 'ERROR',
           status: 'FAILED',
-          metadata: {
-            error: error.message
-          }
+          metadata: { error: error.message }
         });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de vaciado:', auditError.message);
@@ -391,7 +362,7 @@ class TrashController {
   }
 
   // ===========================================================================
-  // LIMPIEZA AUTOMÁTICA (documentos con más de 30 días)
+  // LIMPIEZA AUTOMÁTICA (SOLO DE SU ESCUELA)
   // ===========================================================================
   static async autoCleanup(req, res) {
     console.log('\n🔍 ========== INICIANDO LIMPIEZA AUTOMÁTICA DE PAPELERA ==========');
@@ -400,18 +371,22 @@ class TrashController {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const documents = await Document.find({ 
+      // ✅ Filtro por escuela
+      const filter = { 
         isDeleted: true,
         activo: true,
         deletedAt: { $lt: thirtyDaysAgo }
-      });
+      };
+      if (req.schoolId) {
+        filter.schoolId = req.schoolId;
+      }
 
+      const documents = await Document.find(filter);
       let deletedCount = 0;
       const deletedDocuments = [];
 
       for (const doc of documents) {
         try {
-          // Guardar datos para auditoría
           deletedDocuments.push({
             _id: doc._id,
             nombre_original: doc.nombre_original,
@@ -420,14 +395,12 @@ class TrashController {
             deletedAt: doc.deletedAt
           });
 
-          // Eliminar de Cloudinary
           if (doc.public_id) {
             await cloudinary.v2.uploader.destroy(doc.public_id, {
               resource_type: doc.resource_type || 'auto'
             });
           }
 
-          // Marcar como inactivo
           doc.activo = false;
           await doc.save();
           deletedCount++;
@@ -438,10 +411,6 @@ class TrashController {
 
       console.log(`✅ Limpieza automática completada: ${deletedCount} documentos eliminados`);
 
-      // =======================================================================
-      // REGISTRAR LIMPIEZA AUTOMÁTICA EN AUDITORÍA
-      // =======================================================================
-      
       try {
         await AuditService.logTrashAutoCleanup(req, deletedCount, 30);
         console.log('✅✅✅ LIMPIEZA AUTOMÁTICA REGISTRADA EN AUDITORÍA');
@@ -460,7 +429,6 @@ class TrashController {
     } catch (error) {
       console.error('❌ Error en limpieza automática:', error);
       
-      // Registrar error en auditoría
       try {
         await AuditService.log(req, {
           action: 'TRASH_AUTO_CLEANUP',
@@ -472,9 +440,7 @@ class TrashController {
           description: `Error en limpieza automática: ${error.message}`,
           severity: 'ERROR',
           status: 'FAILED',
-          metadata: {
-            error: error.message
-          }
+          metadata: { error: error.message }
         });
       } catch (auditError) {
         console.error('❌ Error registrando fallo de limpieza automática:', auditError.message);
