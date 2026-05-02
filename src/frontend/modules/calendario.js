@@ -163,18 +163,28 @@ class EventStore {
         this.load();
     }
 
-    // — Persistencia —
-    load() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            this._events = raw ? JSON.parse(raw) : [];
-        } catch { this._events = []; }
+    get _storageKey() {
+    try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        return `cal_events_v2_${user?.schoolId || 'global'}`;
+    } catch {
+        return 'cal_events_v2_global';
     }
+}
 
-    save() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this._events)); }
-        catch(e) { console.error('Cal: error guardando', e); }
+load() {
+    try {
+        const raw = localStorage.getItem(this._storageKey);
+        this._events = raw ? JSON.parse(raw) : [];
+    } catch { this._events = []; }
+}
+
+save() {
+    try { 
+        localStorage.setItem(this._storageKey, JSON.stringify(this._events)); 
     }
+    catch(e) { console.error('Cal: error guardando', e); }
+}
 
     // — Suscriptores (reactivo) —
     subscribe(fn)   { this._listeners.add(fn); }
@@ -348,15 +358,27 @@ class Settings {
         this._data = { firstDayMonday: true, defaultView: 'month', activeFilter: 'all', showWeekNumbers: false };
         this.load();
     }
-    load() {
-        try {
-            const raw = localStorage.getItem(SETTINGS_KEY);
-            if (raw) this._data = { ...this._data, ...JSON.parse(raw) };
-        } catch {}
+    get _storageKey() {
+    try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        return `cal_settings_v2_${user?.schoolId || 'global'}`;
+    } catch {
+        return 'cal_settings_v2_global';
     }
-    save() {
-        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(this._data)); } catch {}
-    }
+}
+
+load() {
+    try {
+        const raw = localStorage.getItem(this._storageKey);
+        if (raw) this._data = { ...this._data, ...JSON.parse(raw) };
+    } catch {}
+}
+
+save() {
+    try { 
+        localStorage.setItem(this._storageKey, JSON.stringify(this._data)); 
+    } catch {}
+}
     get(key)      { return this._data[key]; }
     set(key, val) { this._data[key] = val; this.save(); }
 }

@@ -146,11 +146,11 @@ router.delete('/notifications/:id', protegerRuta, requirePermission(PERMISSIONS.
 router.post('/notifications/cleanup', protegerRuta, requirePermission(PERMISSIONS.CLEAR_HISTORY), NotificationController.cleanup);
 
 // ─── PAPELERA ─────────────────────────────────────────────────
-router.get('/trash', protegerRuta, requirePermission(PERMISSIONS.VIEW_TRASH), TrashController.getTrashDocuments);
-router.post('/trash/empty-all', protegerRuta, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.emptyTrash);
-router.post('/trash/auto-cleanup', protegerRuta, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.autoCleanup);
-router.post('/trash/:id/restore', protegerRuta, requirePermission(PERMISSIONS.RESTORE_FROM_TRASH), TrashController.restoreDocument);
-router.delete('/trash/:id', protegerRuta, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.deletePermanently);
+router.get('/trash', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_TRASH), TrashController.getTrashDocuments);
+router.post('/trash/empty-all', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.emptyTrash);
+router.post('/trash/auto-cleanup', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.autoCleanup);
+router.post('/trash/:id/restore', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.RESTORE_FROM_TRASH), TrashController.restoreDocument);
+router.delete('/trash/:id', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.EMPTY_TRASH), TrashController.deletePermanently);
 
 // ─── SOPORTE ──────────────────────────────────────────────────
 router.post('/tickets', protegerRuta, requirePermission(PERMISSIONS.CREATE_TICKET), upload.array('files', 10), SupportController.createTicket);
