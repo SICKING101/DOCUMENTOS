@@ -15,7 +15,7 @@ import {
     deleteUserPermanently,
     deactivateUser
 } from '../controllers/adminController.js';
-import { protegerRuta, soloAdministrador } from '../middleware/auth.js';
+import { protegerRuta, soloAdministrador, inyectarSchoolId } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -26,23 +26,21 @@ const router = express.Router();
 router.post('/request-change', protegerRuta, soloAdministrador, requestAdminChange);
 router.get('/pending-requests', protegerRuta, soloAdministrador, getPendingRequests);
 
-// Crear usuarios con rol - SOLO ADMIN
-router.post('/users', protegerRuta, soloAdministrador, createUserWithRole);
+// Crear usuarios con rol - SOLO ADMIN (AISLADO POR ESCUELA)
+router.post('/users', protegerRuta, inyectarSchoolId, soloAdministrador, createUserWithRole);
 
-// Listar usuarios - SOLO ADMIN
-router.get('/users', protegerRuta, soloAdministrador, getUsers);
+// Listar usuarios - SOLO ADMIN (AISLADO POR ESCUELA)
+router.get('/users', protegerRuta, inyectarSchoolId, soloAdministrador, getUsers);
 
-// ACTUALIZAR usuario - SOLO ADMIN
-router.patch('/users/:id', protegerRuta, soloAdministrador, updateUser);
+// ACTUALIZAR usuario - SOLO ADMIN (AISLADO POR ESCUELA)
+router.patch('/users/:id', protegerRuta, inyectarSchoolId, soloAdministrador, updateUser);
 
-// PRIMERO LAS RUTAS ESPECÍFICAS (con sub-rutas)
 // DESACTIVAR usuario - SOLO ADMIN
 router.patch('/users/:id/deactivate', protegerRuta, soloAdministrador, deactivateUser);
 
 // REACTIVAR usuario - SOLO ADMIN
 router.patch('/users/:id/reactivate', protegerRuta, soloAdministrador, reactivateUser);
 
-// LUEGO LA RUTA GENÉRICA DELETE
 // ELIMINAR PERMANENTEMENTE usuario - SOLO ADMIN
 router.delete('/users/:id', protegerRuta, soloAdministrador, deleteUserPermanently);
 

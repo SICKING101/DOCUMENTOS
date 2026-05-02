@@ -1344,17 +1344,10 @@ export const createUserWithRole = async (req, res) => {
         const { usuario, correo, password, rol } = req.body;
 
         console.log('\n📝 ===== CREANDO NUEVO USUARIO =====');
-        console.log('Datos recibidos:', { 
-            usuario, 
-            correo, 
-            rol, 
-            password: password ? '***' : 'NO',
-            timestamp: new Date().toISOString()
-        });
+        console.log('Datos recibidos:', { usuario, correo, rol, password: password ? '***' : 'NO' });
+        console.log('🏫 School ID:', req.schoolId);
 
-        // =========================================================================
-        // VALIDACIONES BÁSICAS
-        // =========================================================================
+        // Validaciones básicas
         if (!usuario || !correo || !password || !rol) {
             const missing = [];
             if (!usuario) missing.push('usuario');
@@ -1362,247 +1355,54 @@ export const createUserWithRole = async (req, res) => {
             if (!password) missing.push('password');
             if (!rol) missing.push('rol');
             
-            console.log('❌ Campos faltantes:', missing.join(', '));
-            
-            // =======================================================================
-            // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'USER_CREATE',
-                actionType: 'CREATE',
-                actionCategory: 'USERS',
-                targetId: null,
-                targetModel: 'User',
-                targetName: usuario || 'Nuevo usuario',
-                description: `Intento fallido - Campos faltantes: ${missing.join(', ')}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    missingFields: missing,
-                    usuario,
-                    correo,
-                    rol
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            return res.status(400).json({
-                success: false,
-                message: 'Todos los campos son requeridos',
-                missingFields: missing
-            });
+            return res.status(400).json({ success: false, message: 'Todos los campos son requeridos', missingFields: missing });
         }
 
         // Validar formato de correo
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(correo)) {
-            console.log(`❌ Correo inválido: ${correo}`);
-            
-            await AuditService.log(req, {
-                action: 'USER_CREATE',
-                actionType: 'CREATE',
-                actionCategory: 'USERS',
-                targetId: null,
-                targetModel: 'User',
-                targetName: usuario,
-                description: `Intento fallido - Correo inválido: ${correo}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    usuario,
-                    correo,
-                    reason: 'invalid_email'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            return res.status(400).json({
-                success: false,
-                message: 'Formato de correo electrónico inválido'
-            });
+            return res.status(400).json({ success: false, message: 'Formato de correo electrónico inválido' });
         }
 
         // Validar longitud de contraseña
         if (password.length < 6) {
-            console.log('❌ Contraseña demasiado corta');
-            
-            await AuditService.log(req, {
-                action: 'USER_CREATE',
-                actionType: 'CREATE',
-                actionCategory: 'USERS',
-                targetId: null,
-                targetModel: 'User',
-                targetName: usuario,
-                description: `Intento fallido - Contraseña demasiado corta`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    usuario,
-                    correo,
-                    passwordLength: password.length
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            return res.status(400).json({
-                success: false,
-                message: 'La contraseña debe tener al menos 6 caracteres'
-            });
+            return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres' });
         }
 
-        // =========================================================================
-        // VALIDACIÓN DINÁMICA DE ROLES
-        // =========================================================================
-        console.log('🔍 Validando rol:', rol);
-        
-        // Casos especiales: administrador y desactivado (siempre válidos)
-        if (rol === 'administrador' || rol === 'desactivado') {
-            console.log(`✅ Rol especial válido: ${rol}`);
-        } else {
-            // Verificar que el rol exista en la colección de roles dinámicos
+        // Validación dinámica de roles
+        if (rol !== 'administrador' && rol !== 'desactivado') {
             const Role = mongoose.model('Role');
             const roleExists = await Role.exists({ name: rol });
-            
             if (!roleExists) {
-                console.log(`❌ Rol inválido (no existe en BD): ${rol}`);
-                
-                // Obtener lista de roles válidos para el mensaje de error
                 const allRoles = await Role.find().select('name -_id').lean();
                 const validRoles = allRoles.map(r => r.name);
                 validRoles.push('administrador', 'desactivado');
-                
-                // =======================================================================
-                // REGISTRAR INTENTO FALLIDO EN AUDITORÍA
-                // =======================================================================
-                await AuditService.log(req, {
-                    action: 'USER_CREATE',
-                    actionType: 'CREATE',
-                    actionCategory: 'USERS',
-                    targetId: null,
-                    targetModel: 'User',
-                    targetName: usuario,
-                    description: `Intento fallido - Rol inválido: ${rol}`,
-                    severity: 'WARNING',
-                    status: 'FAILED',
-                    metadata: {
-                        usuario,
-                        correo,
-                        rolInvalido: rol,
-                        rolesValidos: validRoles
-                    }
-                }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-                
-                return res.status(400).json({
-                    success: false,
-                    message: `Rol inválido. Los roles disponibles son: ${validRoles.join(', ')}`
-                });
+                return res.status(400).json({ success: false, message: `Rol inválido. Roles disponibles: ${validRoles.join(', ')}` });
             }
-            console.log(`✅ Rol dinámico válido: ${rol}`);
         }
 
-        // =========================================================================
-        // VALIDACIONES DE UNICIDAD
-        // =========================================================================
-        
-        // Verificar que no se intente crear otro administrador si ya existe uno activo
+        // Verificar administrador único
         if (rol === 'administrador') {
-            const existingAdmin = await User.findOne({ 
-                rol: 'administrador', 
-                activo: true 
-            });
-            
+            const existingAdmin = await User.findOne({ rol: 'administrador', activo: true });
             if (existingAdmin) {
-                console.log('❌ Ya existe un administrador activo:', existingAdmin.usuario);
-                
-                await AuditService.log(req, {
-                    action: 'USER_CREATE',
-                    actionType: 'CREATE',
-                    actionCategory: 'USERS',
-                    targetId: null,
-                    targetModel: 'User',
-                    targetName: usuario,
-                    description: `Intento fallido - Ya existe un administrador activo`,
-                    severity: 'WARNING',
-                    status: 'FAILED',
-                    metadata: {
-                        usuario,
-                        correo,
-                        existingAdmin: existingAdmin.usuario
-                    }
-                }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-                
-                return res.status(400).json({
-                    success: false,
-                    message: 'Ya existe un administrador activo en el sistema. No se puede crear otro.',
-                    existingAdmin: existingAdmin.usuario
-                });
+                return res.status(400).json({ success: false, message: 'Ya existe un administrador activo. No se puede crear otro.', existingAdmin: existingAdmin.usuario });
             }
         }
 
-        // Verificar email duplicado
+        // Verificar duplicados
         const trimmedCorreo = correo.toLowerCase().trim();
         const existingByEmail = await User.findOne({ correo: trimmedCorreo });
-        
         if (existingByEmail) {
-            console.log(`❌ Email ya existe: ${trimmedCorreo} (usuario: ${existingByEmail.usuario})`);
-            
-            await AuditService.log(req, {
-                action: 'USER_CREATE',
-                actionType: 'CREATE',
-                actionCategory: 'USERS',
-                targetId: null,
-                targetModel: 'User',
-                targetName: usuario,
-                description: `Intento fallido - Correo ya registrado: ${trimmedCorreo}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    usuario,
-                    correo: trimmedCorreo,
-                    existingUser: existingByEmail.usuario,
-                    reason: 'email_exists'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            return res.status(400).json({
-                success: false,
-                message: 'Ya existe un usuario con ese correo electrónico',
-                existingUser: existingByEmail.usuario
-            });
+            return res.status(400).json({ success: false, message: 'Ya existe un usuario con ese correo electrónico', existingUser: existingByEmail.usuario });
         }
 
-        // Verificar usuario duplicado
         const trimmedUsuario = usuario.trim();
         const existingByUser = await User.findOne({ usuario: trimmedUsuario });
-        
         if (existingByUser) {
-            console.log(`❌ Usuario ya existe: ${trimmedUsuario}`);
-            
-            await AuditService.log(req, {
-                action: 'USER_CREATE',
-                actionType: 'CREATE',
-                actionCategory: 'USERS',
-                targetId: null,
-                targetModel: 'User',
-                targetName: usuario,
-                description: `Intento fallido - Usuario ya existe: ${trimmedUsuario}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    usuario: trimmedUsuario,
-                    correo: trimmedCorreo,
-                    reason: 'username_exists'
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            return res.status(400).json({
-                success: false,
-                message: 'Ya existe un usuario con ese nombre de usuario'
-            });
+            return res.status(400).json({ success: false, message: 'Ya existe un usuario con ese nombre de usuario' });
         }
 
-        console.log('✅ Validaciones pasadas - creando usuario...');
-
-        // =========================================================================
-        // CREAR USUARIO
-        // =========================================================================
+        // ✅ Crear usuario con schoolId
         const newUser = await User.create({
             usuario: trimmedUsuario,
             correo: trimmedCorreo,
@@ -1611,160 +1411,45 @@ export const createUserWithRole = async (req, res) => {
             activo: true,
             ultimoAcceso: new Date(),
             createdBy: req.user?._id || null,
-            metadata: {
-                createdFrom: 'admin_panel',
-                createdAt: new Date().toISOString(),
-                createdBy: req.user?.usuario || 'system'
-            }
+            schoolId: req.schoolId || 'superadmin'
         });
 
-        console.log('✅✅✅ USUARIO CREADO EXITOSAMENTE ✅✅✅');
-        console.log('Detalles:', {
-            id: newUser._id,
-            usuario: newUser.usuario,
-            correo: newUser.correo,
-            rol: newUser.rol,
-            activo: newUser.activo,
-            timestamp: new Date().toISOString()
-        });
+        console.log('✅ Usuario creado:', newUser.usuario, '| schoolId:', newUser.schoolId);
 
-        // =========================================================================
-        // REGISTRAR CREACIÓN DE USUARIO EN AUDITORÍA
-        // =========================================================================
-        await AuditService.log(req, {
+        // Notificación
+        try {
+            await NotificationService.usuarioCreado(newUser, req.user?.usuario || 'Administrador', req.schoolId);
+        } catch (notifError) {
+            console.warn('⚠️ No se pudo crear notificación:', notifError.message);
+        }
+
+        // Auditoría
+        AuditService.log(req, {
             action: 'USER_CREATE',
             actionType: 'CREATE',
             actionCategory: 'USERS',
             targetId: newUser._id,
             targetModel: 'User',
             targetName: newUser.usuario,
-            description: `Usuario creado con rol ${rol}: ${newUser.usuario} (${newUser.correo})`,
+            description: `Usuario creado con rol ${rol}: ${newUser.usuario}`,
             severity: 'INFO',
             status: 'SUCCESS',
-            metadata: {
-                userId: newUser._id,
-                usuario: newUser.usuario,
-                correo: newUser.correo,
-                rol: newUser.rol,
-                activo: newUser.activo,
-                creadoPor: req.user?.usuario || 'system',
-                creadoPorId: req.user?._id
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            metadata: { userId: newUser._id, usuario: newUser.usuario, correo: newUser.correo, rol: newUser.rol, creadoPor: req.user?.usuario || 'system' }
+        }).catch(err => console.error('❌ Error en auditoría:', err.message));
 
-        // =========================================================================
-        // OPCIONAL: NOTIFICACIÓN AL NUEVO USUARIO
-        // =========================================================================
-        try {
-            // Si tienes un servicio de notificaciones, puedes enviar un email
-            // await sendWelcomeEmail(newUser.correo, newUser.usuario, password);
-            console.log('📧 Notificación al nuevo usuario:', newUser.correo);
-        } catch (notifyError) {
-            console.warn('⚠️ No se pudo enviar notificación:', notifyError.message);
-        }
-
-        // =========================================================================
-        // RESPUESTA EXITOSA
-        // =========================================================================
         return res.status(201).json({
             success: true,
             message: `✅ Usuario creado exitosamente con rol "${rol}"`,
-            user: {
-                id: newUser._id,
-                usuario: newUser.usuario,
-                correo: newUser.correo,
-                rol: newUser.rol,
-                activo: newUser.activo,
-                ultimoAcceso: newUser.ultimoAcceso,
-                createdAt: newUser.createdAt
-            },
-            debug: process.env.NODE_ENV === 'development' ? {
-                passwordLength: password.length,
-                userId: newUser._id
-            } : undefined
+            user: { id: newUser._id, usuario: newUser.usuario, correo: newUser.correo, rol: newUser.rol, activo: newUser.activo, schoolId: newUser.schoolId }
         });
 
     } catch (error) {
-        console.error('\n🔥 ERROR CRÍTICO CREANDO USUARIO:');
-        console.error('📌 Mensaje:', error.message);
-        console.error('📌 Stack:', error.stack);
-        console.error('📌 Nombre del error:', error.name);
-        console.error('📌 Timestamp:', new Date().toISOString());
-
-        // Manejar error de índice duplicado (MongoDB error 11000)
+        console.error('🔥 ERROR creando usuario:', error);
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern)[0];
-            const value = error.keyValue[field];
-            
-            console.log(`❌ Error de duplicado: ${field} = ${value}`);
-            
-            let message = '';
-            if (field === 'usuario') message = 'Ya existe un usuario con ese nombre';
-            else if (field === 'correo') message = 'Ya existe un usuario con ese correo';
-            else message = `El campo ${field} ya está en uso`;
-            
-            // =======================================================================
-            // REGISTRAR ERROR DE DUPLICADO EN AUDITORÍA
-            // =======================================================================
-            await AuditService.log(req, {
-                action: 'USER_CREATE',
-                actionType: 'CREATE',
-                actionCategory: 'USERS',
-                targetId: null,
-                targetModel: 'User',
-                targetName: req.body?.usuario || 'Nuevo usuario',
-                description: `Error de duplicado: ${field} = ${value}`,
-                severity: 'WARNING',
-                status: 'FAILED',
-                metadata: {
-                    error: 'duplicate_key',
-                    field,
-                    value,
-                    requestBody: req.body
-                }
-            }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-            
-            return res.status(400).json({
-                success: false,
-                message,
-                field,
-                value
-            });
+            return res.status(400).json({ success: false, message: `El ${field} ya está en uso`, field });
         }
-
-        // =======================================================================
-        // REGISTRAR ERROR GENÉRICO EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
-            action: 'USER_CREATE',
-            actionType: 'CREATE',
-            actionCategory: 'USERS',
-            targetId: null,
-            targetModel: 'User',
-            targetName: req.body?.usuario || 'Nuevo usuario',
-            description: `Error al crear usuario: ${error.message}`,
-            severity: 'ERROR',
-            status: 'FAILED',
-            metadata: {
-                error: error.message,
-                stack: error.stack,
-                requestBody: {
-                    usuario: req.body?.usuario,
-                    correo: req.body?.correo,
-                    rol: req.body?.rol
-                }
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Error del servidor al crear usuario',
-            error: process.env.NODE_ENV === 'development' ? {
-                message: error.message,
-                stack: error.stack
-            } : undefined,
-            timestamp: new Date().toISOString()
-        });
+        return res.status(500).json({ success: false, message: 'Error del servidor al crear usuario' });
     }
 };
 
@@ -1778,23 +1463,22 @@ export const updateUser = async (req, res) => {
         const { usuario, correo, rol, activo } = req.body || {};
 
         console.log('\n📝 ===== ACTUALIZANDO USUARIO =====');
-        console.log('ID:', id);
-        console.log('Datos:', { usuario, correo, rol, activo });
+        console.log('ID:', id, '| schoolId:', req.schoolId);
 
-        const user = await User.findById(id);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        // ✅ Buscar solo dentro de la escuela del admin
+        const filter = { _id: id };
+        if (req.schoolId) {
+            filter.schoolId = req.schoolId;
         }
 
-        // Guardar estado anterior para auditoría
-        const beforeState = {
-            usuario: user.usuario,
-            correo: user.correo,
-            rol: user.rol,
-            activo: user.activo
-        };
+        const user = await User.findOne(filter);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Usuario no encontrado o no pertenece a tu escuela' });
+        }
 
-        // No permitir que el admin se modifique a sí mismo (excepto cosas básicas)
+        const beforeState = { usuario: user.usuario, correo: user.correo, rol: user.rol, activo: user.activo };
+
+        // No permitir que el admin se modifique a sí mismo
         const isSelf = String(req.user?.id) === String(user._id);
         if (isSelf) {
             if (rol && rol !== 'administrador') {
@@ -1805,146 +1489,69 @@ export const updateUser = async (req, res) => {
             }
         }
 
-        // =====================================================================
-        // VALIDACIÓN DINÁMICA DE ROLES - CONSULTA A LA BASE DE DATOS
-        // =====================================================================
+        // Validación dinámica de roles
         if (rol !== undefined && rol !== null) {
-            
-            // Casos especiales: administrador y desactivado (siempre válidos)
-            if (rol === 'administrador' || rol === 'desactivado') {
-                // Son válidos por defecto
-                console.log(`✅ Rol especial válido: ${rol}`);
-            } else {
-                // Verificar que el rol exista en la colección de roles dinámicos
+            if (rol !== 'administrador' && rol !== 'desactivado') {
                 const Role = mongoose.model('Role');
                 const roleExists = await Role.exists({ name: rol });
-                
                 if (!roleExists) {
-                    console.log(`❌ Rol inválido (no existe en BD): ${rol}`);
-                    
-                    // Obtener lista de roles válidos para el mensaje de error
                     const allRoles = await Role.find().select('name -_id').lean();
                     const validRoles = allRoles.map(r => r.name);
                     validRoles.push('administrador', 'desactivado');
-                    
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: `Rol inválido. Los roles disponibles son: ${validRoles.join(', ')}` 
-                    });
+                    return res.status(400).json({ success: false, message: `Rol inválido. Roles disponibles: ${validRoles.join(', ')}` });
                 }
-                console.log(`✅ Rol dinámico válido: ${rol}`);
             }
             
-            // Si se está asignando rol de administrador, verificar que no haya otro
             if (rol === 'administrador' && user.rol !== 'administrador') {
-                const existingAdmin = await User.findOne({ 
-                    rol: 'administrador', 
-                    activo: true,
-                    _id: { $ne: user._id }
-                });
+                const existingAdmin = await User.findOne({ rol: 'administrador', activo: true, _id: { $ne: user._id } });
                 if (existingAdmin) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: 'Ya existe un administrador activo. No se puede asignar este rol.' 
-                    });
+                    return res.status(400).json({ success: false, message: 'Ya existe un administrador activo.' });
                 }
             }
             
             user.rol = rol;
         }
 
-        // Validar unicidad si se cambia usuario
+        // Validar unicidad usuario
         if (usuario !== undefined && usuario !== null) {
             const trimmedUsuario = usuario.trim();
             if (trimmedUsuario && trimmedUsuario !== user.usuario) {
-                const existingByUser = await User.findOne({ 
-                    usuario: trimmedUsuario, 
-                    _id: { $ne: user._id } 
-                });
-                if (existingByUser) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: 'Ya existe un usuario con ese nombre de usuario' 
-                    });
-                }
+                const existing = await User.findOne({ usuario: trimmedUsuario, _id: { $ne: user._id } });
+                if (existing) return res.status(400).json({ success: false, message: 'Ya existe un usuario con ese nombre' });
                 user.usuario = trimmedUsuario;
             }
         }
 
-        // Validar unicidad si se cambia correo
+        // Validar unicidad correo
         if (correo !== undefined && correo !== null) {
             const trimmedCorreo = correo.toLowerCase().trim();
             if (trimmedCorreo && trimmedCorreo !== user.correo) {
-                const existingByEmail = await User.findOne({ 
-                    correo: trimmedCorreo, 
-                    _id: { $ne: user._id } 
-                });
-                if (existingByEmail) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: 'Ya existe un usuario con ese correo' 
-                    });
-                }
+                const existing = await User.findOne({ correo: trimmedCorreo, _id: { $ne: user._id } });
+                if (existing) return res.status(400).json({ success: false, message: 'Ya existe un usuario con ese correo' });
                 user.correo = trimmedCorreo;
             }
         }
 
         // Actualizar estado activo
         if (activo !== undefined && activo !== null) {
-            // Si se está desactivando y es administrador, verificar
             if (activo === false && user.rol === 'administrador') {
-                const adminCount = await User.countDocuments({ 
-                    rol: 'administrador', 
-                    activo: true 
-                });
-                if (adminCount <= 1) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: 'No se puede desactivar al último administrador' 
-                    });
-                }
+                const adminCount = await User.countDocuments({ rol: 'administrador', activo: true });
+                if (adminCount <= 1) return res.status(400).json({ success: false, message: 'No se puede desactivar al último administrador' });
             }
-            
             user.activo = activo;
-            if (!activo) {
-                user.deactivatedAt = new Date();
-                // Si se desactiva, cambiar rol a desactivado
-                user.rol = 'desactivado';
-            } else {
-                // Si se reactiva, asegurarse de que no sea desactivado
-                user.deactivatedAt = null;
-            }
+            if (!activo) { user.deactivatedAt = new Date(); user.rol = 'desactivado'; }
+            else { user.deactivatedAt = null; }
         }
 
         await user.save();
 
-        // Estado después para auditoría
-        const afterState = {
-            usuario: user.usuario,
-            correo: user.correo,
-            rol: user.rol,
-            activo: user.activo
-        };
+        const afterState = { usuario: user.usuario, correo: user.correo, rol: user.rol, activo: user.activo };
+        const camposModificados = Object.keys(beforeState).filter(k => beforeState[k] !== afterState[k]);
 
-        // Calcular campos modificados
-        const camposModificados = [];
-        for (const key in beforeState) {
-            if (beforeState[key] !== afterState[key]) {
-                camposModificados.push(key);
-            }
-        }
+        console.log('✅ Usuario actualizado:', user.usuario);
 
-        console.log('✅ Usuario actualizado exitosamente:', {
-            id: user._id,
-            usuario: user.usuario,
-            rol: user.rol,
-            activo: user.activo
-        });
-
-        // =======================================================================
-        // REGISTRAR ACTUALIZACIÓN EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
+        // Auditoría
+        AuditService.log(req, {
             action: 'USER_UPDATE',
             actionType: 'UPDATE',
             actionCategory: 'USERS',
@@ -1953,56 +1560,14 @@ export const updateUser = async (req, res) => {
             targetName: user.usuario,
             description: `Usuario actualizado - Campos: ${camposModificados.join(', ')}`,
             severity: 'INFO',
-            changes: {
-                before: beforeState,
-                after: afterState
-            },
-            metadata: {
-                camposModificados,
-                usuario: user.usuario,
-                correo: user.correo,
-                rol: user.rol,
-                activo: user.activo,
-                actualizadoPor: req.user?.usuario
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
+            changes: { before: beforeState, after: afterState },
+            metadata: { camposModificados, usuario: user.usuario, correo: user.correo, rol: user.rol, activo: user.activo, actualizadoPor: req.user?.usuario }
+        }).catch(err => console.error('❌ Error en auditoría:', err.message));
 
-        return res.json({
-            success: true,
-            message: 'Usuario actualizado correctamente',
-            user: {
-                id: user._id,
-                usuario: user.usuario,
-                correo: user.correo,
-                rol: user.rol,
-                activo: user.activo
-            }
-        });
+        return res.json({ success: true, message: 'Usuario actualizado correctamente', user: { id: user._id, usuario: user.usuario, correo: user.correo, rol: user.rol, activo: user.activo } });
     } catch (error) {
         console.error('❌ Error actualizando usuario:', error);
-        
-        // =======================================================================
-        // REGISTRAR ERROR EN AUDITORÍA
-        // =======================================================================
-        await AuditService.log(req, {
-            action: 'USER_UPDATE',
-            actionType: 'UPDATE',
-            actionCategory: 'USERS',
-            targetId: req.params.id,
-            targetModel: 'User',
-            targetName: 'Usuario',
-            description: `Error al actualizar usuario: ${error.message}`,
-            severity: 'ERROR',
-            status: 'FAILED',
-            metadata: {
-                error: error.message
-            }
-        }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
-        
-        return res.status(500).json({
-            success: false,
-            message: 'Error del servidor al actualizar usuario: ' + error.message
-        });
+        return res.status(500).json({ success: false, message: 'Error del servidor al actualizar usuario: ' + error.message });
     }
 };
 
@@ -2012,13 +1577,17 @@ export const updateUser = async (req, res) => {
 
 export const getUsers = async (req, res) => {
     try {
-        const users = await User.find()
-            .select('_id usuario correo rol activo createdAt updatedAt ultimoAcceso deactivatedAt')
+        // ✅ Filtro por escuela
+        const filter = {};
+        if (req.schoolId) {
+            filter.schoolId = req.schoolId;
+        }
+        
+        const users = await User.find(filter)
+            .select('_id usuario correo rol activo createdAt updatedAt ultimoAcceso deactivatedAt schoolId')
             .sort({ createdAt: -1 });
 
-        // =======================================================================
-        // REGISTRAR CONSULTA EN AUDITORÍA (SOLO SI HAY MUCHOS USUARIOS)
-        // =======================================================================
+        // Auditoría (solo si hay muchos usuarios)
         if (users.length > 50) {
             AuditService.log(req, {
                 action: 'USER_LIST_VIEW',
@@ -2030,22 +1599,14 @@ export const getUsers = async (req, res) => {
                 description: `Consultó lista de usuarios (${users.length} usuarios)`,
                 severity: 'INFO',
                 status: 'SUCCESS',
-                metadata: {
-                    userCount: users.length
-                }
+                metadata: { userCount: users.length }
             }).catch(err => console.error('❌ Error registrando auditoría:', err.message));
         }
 
-        return res.json({
-            success: true,
-            users
-        });
+        return res.json({ success: true, users });
     } catch (error) {
         console.error('Error listando usuarios:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Error del servidor al obtener usuarios'
-        });
+        return res.status(500).json({ success: false, message: 'Error del servidor al obtener usuarios' });
     }
 };
 

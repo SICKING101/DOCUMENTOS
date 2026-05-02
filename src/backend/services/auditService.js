@@ -107,7 +107,10 @@ class AuditService {
                 
                 // Severidad y estado
                 severity: data.severity || actionConfig.severity || 'INFO',
-                status: data.status || 'SUCCESS'
+                status: data.status || 'SUCCESS',
+                
+                // ✅ School ID del admin que realiza la acción
+                schoolId: data.schoolId || req?.schoolId || req?.user?.schoolId || null
             };
 
             // Validar que tenemos userId
@@ -115,6 +118,15 @@ class AuditService {
                 console.warn('⚠️ Auditoría sin userId, usando ID por defecto');
                 auditData.userId = new mongoose.Types.ObjectId();
             }
+
+            // 🔍 DEBUGGING TEMPORAL
+            console.log('🔍 DEBUG AUDIT LOG:');
+            console.log('  - Acción:', auditData.action);
+            console.log('  - Usuario:', auditData.username);
+            console.log('  - req.schoolId:', req?.schoolId);
+            console.log('  - req.user?.schoolId:', req?.user?.schoolId);
+            console.log('  - data.schoolId:', data.schoolId);
+            console.log('  - auditData.schoolId FINAL:', auditData.schoolId);
 
             // Registrar
             return await AuditLog.log(auditData);
