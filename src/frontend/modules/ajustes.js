@@ -77,8 +77,9 @@ class SettingsManager {
     /**
      * Cargar ajustes desde localStorage
      */
-    loadSettings() {
-        const savedSettings = localStorage.getItem('cbtis051_settings');
+        loadSettings() {
+        const storageKey = this.getStorageKey();
+        const savedSettings = localStorage.getItem(storageKey);
         if (savedSettings) {
             try {
                 const parsedSettings = JSON.parse(savedSettings);
@@ -90,6 +91,15 @@ class SettingsManager {
                 this.saveSettings();
             }
         } else {
+            // Intentar migrar ajustes antiguos
+            const oldSettings = localStorage.getItem('cbtis051_settings');
+            if (oldSettings) {
+                try {
+                    const parsed = JSON.parse(oldSettings);
+                    this.settings = this.mergeSettings(this.settings, parsed);
+                    localStorage.removeItem('cbtis051_settings');
+                } catch(e) {}
+            }
             this.saveSettings();
             this.log('📝 Configuración por defecto guardada');
         }
@@ -148,7 +158,7 @@ class SettingsManager {
     /**
      * Guardar ajustes en localStorage
      */
-    saveSettings() {
+        saveSettings() {
         try {
             if (this.settings.appearance.theme === 'auto') {
                 this.calculateAndSetTheme();
@@ -156,14 +166,17 @@ class SettingsManager {
             
             this.validateSettings();
             
-            localStorage.setItem('cbtis051_settings', JSON.stringify(this.settings));
-            this.log('💾 Ajustes guardados');
+            const storageKey = this.getStorageKey();
+            localStorage.setItem(storageKey, JSON.stringify(this.settings));
+            this.log('💾 Ajustes guardados en: ' + storageKey);
             
+            // Guardar tema en clave con schoolId
             if (this.settings.appearance.currentTheme) {
-                // Guardar en ambas claves para compatibilidad
-                localStorage.setItem('theme', this.settings.appearance.currentTheme);
-                localStorage.setItem('cbtis051_current_theme', this.settings.appearance.currentTheme);
+                localStorage.setItem(`${storageKey}_theme`, this.settings.appearance.currentTheme);
             }
+            
+            // Sincronizar con BD
+            this._syncThemeToDB();
             
             window.dispatchEvent(new CustomEvent('settingsChanged', { 
                 detail: { settings: this.settings }
@@ -675,33 +688,24 @@ collectFormData() {
      * Aplicar tema seleccionado
      */
     applyTheme() {
-    const body = document.body;
-    body.classList.remove('light-theme', 'dark-theme');
-    
-    // PRIORIDAD de lectura:
-    // 1. Nuevo sistema (MongoDB): localStorage['theme']
-    // 2. Antiguo sistema (local): localStorage['cbtis051_current_theme']
-    // 3. Settings del objeto: appearance.theme o appearance.currentTheme
-    // 4. Default: 'light'
-    
-    const savedThemeNewSystem = localStorage.getItem('theme'); // Nuevo sistema
-    const savedThemeOldSystem = localStorage.getItem('cbtis051_current_theme'); // Sistema antiguo
-    const themeFromSettings = this.settings.appearance.theme !== 'auto' 
-        ? this.settings.appearance.theme 
-        : this.settings.appearance.currentTheme;
-    
-    // Usar la clave correcta con prioridad
-    const themeToApply = savedThemeNewSystem || savedThemeOldSystem || themeFromSettings || 'light';
-    
-    body.classList.add(`${themeToApply}-theme`);
-    body.setAttribute('data-theme', themeToApply);
-    
-    // Actualizar el estado interno
-    this.settings.appearance.currentTheme = themeToApply;
-    
-    this.log(`🎨 Tema aplicado: ${themeToApply} (New: ${savedThemeNewSystem}, Old: ${savedThemeOldSystem})`);
-    this.saveThemeInMultiplePlaces();
-}
+        const body = document.body;
+        body.classList.remove('light-theme', 'dark-theme');
+        
+        const storageKey = this.getStorageKey();
+        const savedThemeFromSettings = localStorage.getItem(`${storageKey}_theme`);
+        const themeFromSettings = this.settings.appearance.theme !== 'auto' 
+            ? this.settings.appearance.theme 
+            : this.settings.appearance.currentTheme;
+        
+        const themeToApply = savedThemeFromSettings || themeFromSettings || 'light';
+        
+        body.classList.add(`${themeToApply}-theme`);
+        body.setAttribute('data-theme', themeToApply);
+        this.settings.appearance.currentTheme = themeToApply;
+        localStorage.setItem(`${storageKey}_theme`, themeToApply);
+        
+        this.log(`🎨 Tema aplicado: ${themeToApply}`);
+    }
 
     /**
      * Guardar el tema actual en múltiples lugares
@@ -1334,6 +1338,33 @@ updateForm() {
                 this.calculateAndSetTheme() : this.settings.appearance.theme);
     }
 
+        getStorageKey() {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            return `cbtis051_settings_${user.schoolId || 'global'}`;
+        } catch {
+            return 'cbtis051_settings_global';
+        }
+    }
+
+    _syncThemeToDB() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token || !this.settings.appearance.currentTheme) return;
+            
+            const theme = this.settings.appearance.currentTheme;
+            
+            fetch('/api/user/theme', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ theme })
+            }).catch(() => {});
+        } catch {}
+    }
+
     /**
      * Actualizar ajustes específicos
      */
@@ -1444,15 +1475,19 @@ const settingsManager = new SettingsManager();
 
 // Función auxiliar para verificar el tema al cargar la página
 (function checkThemeOnLoad() {
-    // Leer de ambas claves: primero el nuevo sistema, luego el antiguo
-    const savedThemeNewSystem = localStorage.getItem('theme');
-    const savedThemeOldSystem = localStorage.getItem('cbtis051_current_theme');
-    const savedTheme = savedThemeNewSystem || savedThemeOldSystem;
-    
-    if (savedTheme) {
-        document.body.classList.add(`${savedTheme}-theme`);
-        document.body.setAttribute('data-theme', savedTheme);
-        console.log(`🎨 Tema persistente aplicado al cargar: ${savedTheme} (New: ${savedThemeNewSystem}, Old: ${savedThemeOldSystem})`);
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const storageKey = `cbtis051_settings_${user.schoolId || 'global'}`;
+        const savedTheme = localStorage.getItem(`${storageKey}_theme`);
+        if (savedTheme) {
+            document.body.classList.add(`${savedTheme}-theme`);
+            document.body.setAttribute('data-theme', savedTheme);
+        } else {
+            // Fallback: leer de BD (se aplica en app.js _loadThemeFromDB)
+            document.body.classList.add('light-theme');
+        }
+    } catch {
+        document.body.classList.add('light-theme');
     }
 })();
 
