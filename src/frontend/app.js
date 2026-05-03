@@ -438,6 +438,15 @@ async function _loadInitialData() {
 // 7. TEMA OSCURO / CLARO - Sincronizado con MongoDB
 // =============================================================================
 
+const _getStorageKey = () => {
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        return `cbtis051_settings_${user.schoolId || 'global'}`;
+    } catch {
+        return 'cbtis051_settings_global';
+    }
+};
+
 /**
  * Obtiene el tema preferido del usuario desde la base de datos
  * Si no está disponible, usa localStorage como fallback y luego 'light'
@@ -445,17 +454,16 @@ async function _loadInitialData() {
 const _loadThemeFromDB = async () => {
   try {
     console.log('🌐 [THEME DEBUG] Iniciando fetch de tema desde BD...');
-    const res = await fetch(`${CONFIG.API_BASE_URL}/api/user/theme`);
+    const res = await fetch('/api/user/theme');
     if (!res.ok) throw new Error('Error al obtener tema');
-    const { theme } = await res.json();
-    console.log('✅ [THEME DEBUG] Tema obtenido de BD:', theme);
-    return theme || 'light';
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || 'Error');
+    console.log('✅ [THEME DEBUG] Tema obtenido de BD:', data.theme);
+    return data.theme || 'light';
   } catch (error) {
-    console.warn('⚠️ [THEME DEBUG] Error cargando tema de BD, usando fallback:', error);
-    // Fallback a localStorage si la API falla
-    const fallbackTheme = localStorage.getItem('theme') || 'light';
-    console.log('✅ [THEME DEBUG] Usando fallback de localStorage:', fallbackTheme);
-    return fallbackTheme;
+    console.warn('⚠️ [THEME DEBUG] Error cargando tema de BD, usando fallback:', error.message);
+    const storageKey = _getStorageKey();
+    return localStorage.getItem(`${storageKey}_theme`) || localStorage.getItem('theme') || 'light';
   }
 };
 
@@ -536,20 +544,28 @@ const _toggleTheme = async () => {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
-    // Guardar en BD
-    const res = await fetch(`${CONFIG.API_BASE_URL}/api/user/theme`, {
+    const res = await fetch('/api/user/theme', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ theme: nextTheme })
     });
 
     if (!res.ok) throw new Error('Error al guardar tema');
-    const { theme } = await res.json();
-    _applyTheme(theme);
-    console.log('✅ Tema guardado:', theme);
+    const data = await res.json();
+    _applyTheme(data.theme);
+    
+    // Guardar en localStorage con schoolId
+    const storageKey = _getStorageKey();
+    localStorage.setItem(`${storageKey}_theme`, data.theme);
+    
+    console.log('✅ Tema guardado:', data.theme);
   } catch (error) {
     console.error('❌ Error al cambiar tema:', error);
-    showAlert('Error al cambiar el tema', 'error');
+    // Fallback: aplicar localmente
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    _applyTheme(nextTheme);
+    showAlert('Error al guardar tema en el servidor', 'warning');
   }
 };
 
