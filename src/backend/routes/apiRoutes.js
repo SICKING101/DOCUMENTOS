@@ -131,10 +131,10 @@ router.put('/tasks/:id', protegerRuta, TaskController.update);
 router.patch('/tasks/:id/complete', protegerRuta, TaskController.complete);
 router.delete('/tasks/:id', protegerRuta, TaskController.delete);
 
-// ─── REPORTES ─────────────────────────────────────────────────
-router.post('/reports/excel', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateExcel);
-router.post('/reports/pdf', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generatePDF);
-router.post('/reports/csv', protegerRuta, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateCSV);
+// ─── REPORTES (AISLADOS POR ESCUELA) ────────────────────────────
+router.post('/reports/excel', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateExcel);
+router.post('/reports/pdf', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generatePDF);
+router.post('/reports/csv', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateCSV);
 
 // ─── NOTIFICACIONES (AISLADAS POR ESCUELA) ─────────────────────
 router.get('/notifications', protegerRuta, inyectarSchoolId, NotificationController.getAll);
