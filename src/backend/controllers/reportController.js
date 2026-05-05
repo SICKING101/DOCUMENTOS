@@ -8,11 +8,17 @@ import NotificationService from '../services/notificationService.js';
 
 class ReportController {
   // Función estática para filtrar documentos según parámetros
-  static async filterDocuments(filters) {
+  static async filterDocuments(filters, schoolId = null) {
     try {
       console.log('🔍 ReportController.filterDocuments - Iniciando filtrado con:', filters);
+      console.log('🏫 schoolId:', schoolId || 'superadmin (sin filtro)');
       
       let query = { activo: true };
+      
+      // ✅ Filtro por escuela
+      if (schoolId) {
+        query.schoolId = schoolId;
+      }
       
       // Aplicar filtros según el tipo de reporte
       if (filters.reportType === 'byCategory' && filters.category) {
@@ -20,7 +26,7 @@ class ReportController {
       }
 
       if (filters.reportType === 'byPerson' && filters.person) {
-        query['persona_id._id'] = filters.person; // Ajustar según tu esquema
+        query['persona_id._id'] = filters.person;
       }
 
       if (filters.reportType === 'expiring' && filters.days) {
@@ -38,7 +44,6 @@ class ReportController {
         query.fecha_vencimiento = { $lt: now };
       }
 
-      // Filtrar por rango de fechas si está presente
       if (filters.dateFrom || filters.dateTo) {
         query.fecha_subida = {};
         if (filters.dateFrom) query.fecha_subida.$gte = new Date(filters.dateFrom);
@@ -47,15 +52,12 @@ class ReportController {
 
       console.log('📝 Query de búsqueda:', JSON.stringify(query, null, 2));
       
-      // Buscar documentos con el query construido
       let documents = await Document.find(query)
         .populate('persona_id', 'nombre email departamento puesto')
         .sort({ fecha_subida: -1 });
 
       console.log(`✅ Encontrados ${documents.length} documentos`);
 
-      // Para el filtro por persona, necesitamos hacer un filtro adicional en memoria
-      // porque el query con populate no funciona directamente con _id en string
       if (filters.reportType === 'byPerson' && filters.person) {
         documents = documents.filter(doc => {
           return doc.persona_id && doc.persona_id._id.toString() === filters.person;
@@ -76,9 +78,10 @@ class ReportController {
     try {
       console.log('📊 ReportController.generateExcel - Iniciando...');
       console.log('📋 Filtros recibidos:', req.body);
+      console.log('🏫 schoolId:', req.schoolId || 'superadmin');
       
-      // CORRECCIÓN: Usar ReportController.filterDocuments en lugar de this.filterDocuments
-      const documents = await ReportController.filterDocuments(req.body);
+      // ✅ Pasar schoolId al filtro
+      const documents = await ReportController.filterDocuments(req.body, req.schoolId);
 
       if (documents.length === 0) {
         return res.status(404).json({
@@ -87,14 +90,12 @@ class ReportController {
         });
       }
 
-      // Crear libro de Excel
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'CBTIS051';
       workbook.created = new Date();
 
       const worksheet = workbook.addWorksheet('Documentos');
 
-      // Estilos para el encabezado
       const headerStyle = {
         font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 },
         fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } },
@@ -107,7 +108,6 @@ class ReportController {
         }
       };
 
-      // Título del reporte
       worksheet.mergeCells('A1:H1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = `Reporte de Documentos - CBTIS051`;
@@ -122,7 +122,6 @@ class ReportController {
 
       worksheet.addRow([]);
 
-      // Encabezados de columnas
       const headers = ['Nombre del Documento', 'Tipo', 'Tamaño', 'Categoría', 'Persona Asignada', 'Fecha de Subida', 'Fecha de Vencimiento', 'Estado'];
       const headerRow = worksheet.addRow(headers);
       headerRow.height = 25;
@@ -130,24 +129,17 @@ class ReportController {
         cell.style = headerStyle;
       });
 
-      // Datos
       documents.forEach((doc, index) => {
         const person = doc.persona_id ? doc.persona_id.nombre : 'No asignado';
         const vencimiento = doc.fecha_vencimiento ? FileService.formatDate(doc.fecha_vencimiento) : 'Sin vencimiento';
         
         let estado = 'Activo';
-        let estadoColor = 'FF10B981'; // Verde por defecto
         if (doc.fecha_vencimiento) {
           const now = new Date();
           const vencimientoDate = new Date(doc.fecha_vencimiento);
           const diff = Math.ceil((vencimientoDate - now) / (1000 * 60 * 60 * 24));
-          if (diff <= 0) {
-            estado = 'Vencido';
-            estadoColor = 'FFEF4444'; // Rojo
-          } else if (diff <= 7) {
-            estado = 'Por vencer';
-            estadoColor = 'FFF59E0B'; // Amarillo
-          }
+          if (diff <= 0) estado = 'Vencido';
+          else if (diff <= 7) estado = 'Por vencer';
         }
 
         const row = worksheet.addRow([
@@ -161,7 +153,6 @@ class ReportController {
           estado
         ]);
 
-        // Colorear filas según estado
         if (estado === 'Vencido') {
           row.eachCell((cell) => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFECACA' } };
@@ -181,52 +172,38 @@ class ReportController {
           };
         });
         
-        // Mostrar progreso cada 50 documentos
         if (index % 50 === 0) {
           console.log(`📄 Procesando documento ${index + 1} de ${documents.length}`);
         }
       });
 
-      // Ajustar ancho de columnas
       worksheet.columns = [
-        { width: 40 },
-        { width: 10 },
-        { width: 12 },
-        { width: 20 },
-        { width: 25 },
-        { width: 20 },
-        { width: 20 },
-        { width: 15 }
+        { width: 40 }, { width: 10 }, { width: 12 }, { width: 20 },
+        { width: 25 }, { width: 20 }, { width: 20 }, { width: 15 }
       ];
 
-      // Agregar estadísticas al final
       worksheet.addRow([]);
       const statsRow = worksheet.addRow(['Total de documentos:', documents.length]);
       statsRow.getCell(1).font = { bold: true };
       statsRow.getCell(1).alignment = { horizontal: 'right' };
       statsRow.getCell(2).font = { bold: true };
 
-      // Enviar archivo
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.xlsx`);
 
-      console.log('💾 Guardando archivo Excel...');
       await workbook.xlsx.write(res);
       res.end();
 
       console.log(`✅ Reporte Excel generado exitosamente con ${documents.length} documentos`);
 
-      // Crear notificación de reporte generado
       try {
-        await NotificationService.reporteGenerado(req.body.reportType, 'excel', documents.length);
+        await NotificationService.reporteGenerado(req.body.reportType, 'excel', documents.length, req.schoolId);
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
 
     } catch (error) {
       console.error('❌ Error generando reporte Excel:', error);
-      console.error('📋 Stack trace:', error.stack);
-      
       res.status(500).json({ 
         success: false, 
         message: 'Error al generar reporte Excel: ' + error.message,
@@ -240,8 +217,8 @@ class ReportController {
     try {
       console.log('📊 ReportController.generatePDF - Iniciando...');
       
-      // CORRECCIÓN: Usar ReportController.filterDocuments
-      const documents = await ReportController.filterDocuments(req.body);
+      // ✅ Pasar schoolId al filtro
+      const documents = await ReportController.filterDocuments(req.body, req.schoolId);
 
       if (documents.length === 0) {
         return res.status(404).json({
@@ -250,16 +227,13 @@ class ReportController {
         });
       }
 
-      // Crear documento PDF
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
-      // Headers para descarga
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.pdf`);
 
       doc.pipe(res);
 
-      // Encabezado del reporte
       doc.fontSize(20)
         .fillColor('#4F46E5')
         .text('Sistema de Gestión de Documentos', { align: 'center' })
@@ -272,7 +246,6 @@ class ReportController {
         .text(`Reporte generado el ${FileService.formatDate(new Date())}`, { align: 'center' })
         .moveDown(1);
 
-      // Información del reporte
       let reportTitle = 'Reporte General';
       if (req.body.reportType === 'byCategory') reportTitle = `Reporte por Categoría${req.body.category ? ': ' + req.body.category : ''}`;
       if (req.body.reportType === 'byPerson') reportTitle = 'Reporte por Persona';
@@ -284,21 +257,17 @@ class ReportController {
         .text(reportTitle, { underline: true })
         .moveDown(1);
 
-      // Estadísticas generales
       doc.fontSize(11)
         .fillColor('#000000')
         .text(`Total de documentos en este reporte: ${documents.length}`, { continued: false })
         .moveDown(0.5);
 
-      // Línea separadora
       doc.moveTo(50, doc.y)
         .lineTo(545, doc.y)
         .stroke()
         .moveDown(1);
 
-      // Lista de documentos
       documents.forEach((document, index) => {
-        // Verificar si hay espacio suficiente, si no, agregar nueva página
         if (doc.y > 700) {
           doc.addPage();
         }
@@ -312,16 +281,10 @@ class ReportController {
           const now = new Date();
           const vencimientoDate = new Date(document.fecha_vencimiento);
           const diff = Math.ceil((vencimientoDate - now) / (1000 * 60 * 60 * 24));
-          if (diff <= 0) {
-            estado = 'Vencido';
-            estadoColor = '#EF4444';
-          } else if (diff <= 7) {
-            estado = 'Por vencer';
-            estadoColor = '#F59E0B';
-          }
+          if (diff <= 0) { estado = 'Vencido'; estadoColor = '#EF4444'; }
+          else if (diff <= 7) { estado = 'Por vencer'; estadoColor = '#F59E0B'; }
         }
 
-        // Número de documento
         doc.fontSize(10)
           .fillColor('#6B7280')
           .text(`${index + 1}.`, 50, doc.y, { continued: true })
@@ -342,34 +305,26 @@ class ReportController {
           .moveDown(0.8);
       });
 
-      // Obtener el rango de páginas
       const range = doc.bufferedPageRange();
       const pageCount = range.count;
-      
-      console.log(`📄 Total de páginas generadas: ${pageCount}`);
 
-      // Agregar pie de página en cada página
       for (let i = 0; i < pageCount; i++) {
         doc.switchToPage(i);
-        
         doc.fontSize(8)
           .fillColor('#6B7280')
           .text(
             `Página ${i + 1} de ${pageCount} - Sistema de Gestión de Documentos CBTIS051`,
-            50,
-            doc.page.height - 50,
+            50, doc.page.height - 50,
             { align: 'center', lineBreak: false }
           );
       }
 
-      // Finalizar documento
       doc.end();
 
       console.log(`✅ Reporte PDF generado exitosamente con ${documents.length} documentos`);
 
-      // Crear notificación de reporte generado
       try {
-        await NotificationService.reporteGenerado(req.body.reportType, 'pdf', documents.length);
+        await NotificationService.reporteGenerado(req.body.reportType, 'pdf', documents.length, req.schoolId);
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
@@ -388,8 +343,8 @@ class ReportController {
     try {
       console.log('📊 ReportController.generateCSV - Iniciando...');
       
-      // CORRECCIÓN: Usar ReportController.filterDocuments
-      const documents = await ReportController.filterDocuments(req.body);
+      // ✅ Pasar schoolId al filtro
+      const documents = await ReportController.filterDocuments(req.body, req.schoolId);
 
       if (documents.length === 0) {
         return res.status(404).json({
@@ -398,8 +353,7 @@ class ReportController {
         });
       }
 
-      // Crear CSV
-      let csv = '\uFEFF'; // BOM para UTF-8
+      let csv = '\uFEFF';
       csv += 'Nombre del Documento,Tipo,Tamaño,Categoría,Persona Asignada,Departamento,Puesto,Fecha de Subida,Fecha de Vencimiento,Estado\n';
 
       documents.forEach((doc, index) => {
@@ -417,7 +371,6 @@ class ReportController {
           else if (diff <= 7) estado = 'Por vencer';
         }
 
-        // Escapar comillas y comas en los valores
         const escapeCSV = (value) => {
           if (value === null || value === undefined) return '';
           const valueStr = String(value);
@@ -429,22 +382,19 @@ class ReportController {
 
         csv += `${escapeCSV(doc.nombre_original)},${doc.tipo_archivo ? doc.tipo_archivo.toUpperCase() : 'DESCONOCIDO'},${FileService.formatFileSize(doc.tamano_archivo || 0)},${escapeCSV(doc.categoria)},${escapeCSV(person)},${escapeCSV(departamento)},${escapeCSV(puesto)},${FileService.formatDate(doc.fecha_subida || doc.createdAt)},${escapeCSV(vencimiento)},${escapeCSV(estado)}\n`;
         
-        // Mostrar progreso cada 100 documentos
         if (index % 100 === 0) {
           console.log(`📄 Procesando documento ${index + 1} de ${documents.length}`);
         }
       });
 
-      // Enviar archivo
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename=reporte_documentos_${Date.now()}.csv`);
       res.send(csv);
 
       console.log(`✅ Reporte CSV generado exitosamente con ${documents.length} documentos`);
 
-      // Crear notificación de reporte generado
       try {
-        await NotificationService.reporteGenerado(req.body.reportType, 'csv', documents.length);
+        await NotificationService.reporteGenerado(req.body.reportType, 'csv', documents.length, req.schoolId);
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
