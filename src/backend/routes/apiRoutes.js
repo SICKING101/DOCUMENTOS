@@ -119,14 +119,14 @@ router.delete('/documents/:id', protegerRuta, inyectarSchoolId, requirePermissio
 router.patch('/documents/:id/approve', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.approve);
 router.patch('/documents/:id/reject', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.reject);
 
-// ─── TAREAS ───────────────────────────────────────────────────
-router.get('/tasks/assignable-users', protegerRuta, TaskController.getAssignableUsers);
-router.get('/tasks', protegerRuta, TaskController.getUserTasks);
-router.get('/tasks/stats', protegerRuta, TaskController.getUserStats);
-router.get('/tasks/high-priority', protegerRuta, TaskController.getHighPriority);
-router.get('/tasks/today', protegerRuta, TaskController.getTodayTasks);
+// ─── TAREAS (AISLADAS POR ESCUELA) ──────────────────────────────
+router.get('/tasks/assignable-users', protegerRuta, inyectarSchoolId, TaskController.getAssignableUsers);
+router.get('/tasks', protegerRuta, inyectarSchoolId, TaskController.getUserTasks);
+router.get('/tasks/stats', protegerRuta, inyectarSchoolId, TaskController.getUserStats);
+router.get('/tasks/high-priority', protegerRuta, inyectarSchoolId, TaskController.getHighPriority);
+router.get('/tasks/today', protegerRuta, inyectarSchoolId, TaskController.getTodayTasks);
 router.get('/tasks/:id', protegerRuta, TaskController.getById);
-router.post('/tasks', protegerRuta, TaskController.create);
+router.post('/tasks', protegerRuta, inyectarSchoolId, TaskController.create);
 router.put('/tasks/:id', protegerRuta, TaskController.update);
 router.patch('/tasks/:id/complete', protegerRuta, TaskController.complete);
 router.delete('/tasks/:id', protegerRuta, TaskController.delete);
