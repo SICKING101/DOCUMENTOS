@@ -15,7 +15,6 @@ function escapeHtml(t) { if (!t) return ''; const d = document.createElement('di
 export async function initAvisosModule() {
     console.log('📢 Inicializando módulo de avisos...');
     createAvisosModal();
-    setupTopbarButton();
     
     await cargarAvisos();
     
@@ -80,27 +79,6 @@ function createAvisosModal() {
     document.getElementById('cerrarAvisosBtn').addEventListener('click', closeAvisosModal);
     avisosModal.querySelector('.modal__overlay').addEventListener('click', closeAvisosModal);
     document.getElementById('marcarTodosVistosBtn')?.addEventListener('click', marcarTodosVistos);
-}
-
-function setupTopbarButton() {
-    const topbar = document.querySelector('.topbar__actions');
-    if (!topbar || document.getElementById('avisosBtn')) return;
-    const btn = document.createElement('button');
-    btn.id = 'avisosBtn'; 
-    btn.className = 'topbar__action'; 
-    btn.title = 'Avisos';
-    btn.innerHTML = `<i class="fas fa-bullhorn"></i><span class="topbar__badge" id="avisosBadge" style="display:none;">0</span>`;
-    const suggestions = document.getElementById('suggestionsBtn');
-    suggestions ? topbar.insertBefore(btn, suggestions) : topbar.appendChild(btn);
-    
-    // CAMBIAR: Redirigir a la sección de avisos en lugar de abrir modal
-    btn.addEventListener('click', () => {
-        if (typeof window.switchTab === 'function') {
-            window.switchTab('avisos');
-        }
-    });
-    
-    badgeElement = document.getElementById('avisosBadge');
 }
 
 function updateBadge(count) {
