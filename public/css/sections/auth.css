@@ -1269,3 +1269,93 @@
         gap: 0.5rem;
     }
 }
+
+    /* ── Estilos adicionales para el panel de token ───────────────────────── */
+    .token-panel {
+      display: none;
+    }
+    .token-panel.active {
+      display: block;
+    }
+    .login-form-panel {
+      display: block;
+    }
+    .login-form-panel.hidden-form {
+      display: none;
+    }
+
+    .invite-token-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border, #e5e7eb);
+      text-align: center;
+    }
+    .invite-token-section p {
+      color: var(--text-secondary, #6b7280);
+      font-size: 0.875rem;
+      margin-bottom: 12px;
+    }
+    .invite-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #4F46E5;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 8px 16px;
+      border: 2px solid #4F46E5;
+      border-radius: 8px;
+      transition: all 0.2s;
+      background: transparent;
+    }
+    .invite-link-btn:hover {
+      background: #4F46E5;
+      color: white;
+    }
+
+    /* Panel de validación de token */
+    .token-validate-container {
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .token-input-display {
+      font-family: 'Courier New', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .back-to-login {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary, #6b7280);
+      cursor: pointer;
+      font-size: 0.875rem;
+      margin-bottom: 20px;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .back-to-login:hover { color: #4F46E5; }
+
+    .token-info-box {
+      background: #F5F3FF;
+      border: 1px solid #DDD6FE;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: #5B21B6;
+      line-height: 1.6;
+    }
+    .token-info-box i {
+      color: #4F46E5;
+    }

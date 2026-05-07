@@ -534,11 +534,6 @@ const _initTheme = async () => {
     console.error('❌ [THEME DEBUG] Error inicializando tema:', error);
     _applyTheme('light'); // Fallback final
   }
-
-  // Guardar como fallback en localStorage
-  localStorage.setItem('theme', theme);
-  console.log(`🎨 [THEME DEBUG] Guardado en localStorage['theme']: ${theme}`);
-  console.log(`🎨 [THEME DEBUG] Tema aplicado completamente: ${appliedTheme}`);
 };
 
 /**
