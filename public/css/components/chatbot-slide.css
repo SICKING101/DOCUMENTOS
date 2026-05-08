@@ -1,0 +1,145 @@
+/* ============================================================
+   chatbot-slide.css — ARIA Slide Panel v4.0
+   CBTIS051 — Mecanismo de deslizamiento lateral
+   ============================================================ */
+
+/* Variables locales para el slide */
+:root {
+    --aria-slide-width: 390px;
+    --aria-slide-handle-size: 32px;
+    --aria-slide-transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── CONTENEDOR PRINCIPAL ──────────────────────────────────── */
+#ariaSlideContainer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: var(--aria-slide-width);
+    height: 100vh;
+    z-index: calc(var(--aria-z, 9999) + 1);
+    
+    /* Oculto a la derecha por defecto */
+    transform: translateX(100%);
+    transition: var(--aria-slide-transition);
+    pointer-events: none;
+}
+
+#ariaSlideContainer.open {
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+/* ─── PANEL DEL CHAT ────────────────────────────────────────── */
+.aria-slide-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--aria-bg, #0a0f1e);
+    border-left: 1px solid var(--aria-border, rgba(99, 102, 241, 0.18));
+    box-shadow: var(--aria-shadow-xl, 0 25px 80px rgba(0, 0, 0, 0.75));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ─── TIRADOR (FLECHA) ──────────────────────────────────────── */
+.aria-slide-handle {
+    position: absolute;
+    left: -36px;
+    top: 50%;
+    transform: translateY(-50%);
+    
+    width: var(--aria-slide-handle-size);
+    height: 70px;
+    
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.85) 0%, rgba(79, 70, 229, 0.95) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.5);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.aria-slide-handle:hover {
+    background: linear-gradient(180deg, rgba(129, 140, 248, 0.95) 0%, rgba(99, 102, 241, 1) 100%);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+}
+
+/* ─── FLECHA ANIMADA ────────────────────────────────────────── */
+.aria-slide-arrow {
+    color: #fff;
+    font-size: 18px;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Panel abierto: flecha gira para apuntar a la derecha */
+#ariaSlideContainer.open .aria-slide-arrow {
+    transform: rotate(180deg);
+    animation: none;
+}
+
+@keyframes aria-arrow-bounce {
+    0%, 100% { transform: translateX(0); }
+    50%      { transform: translateX(-5px); }
+}
+
+/* ─── AJUSTE DE LA VENTANA INTERNA DE ARIA ──────────────────── */
+/* La ventana original debe ocupar todo el panel sin estilos de widget */
+#ariaSlidePanel .aria-window {
+    position: relative !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transition: none !important;
+}
+
+/* Asegurar que la ventana nunca esté "cerrada" dentro del slide */
+#ariaSlidePanel .aria-window.aria-window--closed {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+}
+
+/* ─── OCULTAR EN FULLSCREEN ─────────────────────────────────── */
+body.fullscreen-chatbot-active #ariaSlideContainer {
+    display: none;
+}
+
+/* ─── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    :root {
+        --aria-slide-width: calc(100vw - 40px);
+    }
+    
+    .aria-slide-handle {
+        left: -30px;
+        height: 60px;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   OCULTAR TOGGLE ORIGINAL (reemplazado por slide)
+   ────────────────────────────────────────────────────────────── */
+#ariaToggle {
+    display: none !important;
+}

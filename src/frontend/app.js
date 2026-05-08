@@ -23,6 +23,19 @@ import SupportModule from './modules/soporte.js';
 import { api } from './services/api.js';
 import { initAvisosModule } from './modules/avisos.js';
 
+// ═════════════════════════════════════════════════════════════════════════
+// SISTEMA REACTIVO — Actualización automática de UI
+// ═════════════════════════════════════════════════════════════════════════
+import { eventBus, APP_EVENTS, emit } from '/src/frontend/events/eventBus.js';
+import { reactiveState } from '/src/frontend/state/reactiveState.js';
+import { autoRenderer, setupAutoRenderingSystem } from '/src/frontend/render/autoRenderer.js';
+
+// Exponer globalmente para debugging
+window.eventBus = eventBus;
+window.reactiveState = reactiveState;
+window.autoRenderer = autoRenderer;
+window.APP_EVENTS = APP_EVENTS;
+
 // =============================================================================
 // IMPORTAR TODOS LOS MÓDULOS ORGANIZADOS
 // =============================================================================
@@ -312,7 +325,6 @@ function _setupEventListeners() {
   console.log('🔧 Configurando event listeners...');
 
   // ── Dashboard ──
-  DOM.refreshDashboard?.addEventListener('click', () => handleRefreshDashboard(appState));
   DOM.addFirstDocument?.addEventListener('click', () => documentos.openDocumentModal());
   DOM.quickActions?.forEach((action) => {
     action.addEventListener('click', _handleQuickAction);

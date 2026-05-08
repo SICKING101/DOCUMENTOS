@@ -41,6 +41,7 @@ class SettingsManager {
         this.isUserActive = true;
         this.inactivityTimeout = null;
         this.warningTimeout = null;
+        this.autoSaveTimer = null;
         this.log('🔧 Constructor SettingsManager inicializado');
         
         this.initialize();
@@ -394,7 +395,30 @@ class SettingsManager {
             });
         });
         
+        // Auto-save on any input/change within the form (debounced)
+        form.addEventListener('input', () => this.scheduleAutoSave());
+        form.addEventListener('change', () => this.scheduleAutoSave());
+        
         this.log('✅ Listeners en tiempo real configurados');
+    }
+
+    /**
+     * Programar guardado automático (debounced)
+     */
+    scheduleAutoSave(delay = 700) {
+        if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+        this.autoSaveTimer = setTimeout(() => {
+            try {
+                this.collectFormData();
+                if (this.settings.appearance.theme === 'auto') {
+                    this.calculateAndSetTheme();
+                }
+                const success = this.saveSettings();
+                if (success) this.log('🟢 Auto-guardado completado');
+            } catch (error) {
+                this.log('❌ Error en auto-guardado:', error);
+            }
+        }, delay);
     }
 
     /**
@@ -562,9 +586,11 @@ class SettingsManager {
         this.log('💾 Iniciando guardado de ajustes...');
         
         const saveBtn = document.getElementById('save-btn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-        saveBtn.disabled = true;
+        const originalText = saveBtn ? saveBtn.innerHTML : null;
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            saveBtn.disabled = true;
+        }
 
         try {
             this.collectFormData();
@@ -580,18 +606,24 @@ class SettingsManager {
                 
                 setTimeout(() => {
                     this.showModal();
-                    saveBtn.innerHTML = originalText;
-                    saveBtn.disabled = false;
+                    if (saveBtn) {
+                        saveBtn.innerHTML = originalText;
+                        saveBtn.disabled = false;
+                    }
                     this.log('✅ Ajustes guardados exitosamente');
                 }, 500);
             } else {
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalText;
+                    saveBtn.disabled = false;
+                }
             }
         } catch (error) {
             this.log('❌ Error en handleSave:', error);
-            saveBtn.innerHTML = originalText;
-            saveBtn.disabled = false;
+            if (saveBtn) {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
             showAlert('Error al guardar ajustes', 'error');
         }
     }

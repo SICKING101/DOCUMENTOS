@@ -134,16 +134,6 @@ export async function updateTrashBadge() {
 }
 
 function setupEventListeners() {
-    // Botón de actualizar
-    const refreshBtn = document.getElementById('refreshTrash');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', async () => {
-            refreshBtn.classList.add('rotating');
-            await loadTrashDocuments();
-            setTimeout(() => refreshBtn.classList.remove('rotating'), 500);
-        });
-    }
-
     // Botones de selección
     const selectAllBtn = document.querySelector('#selectAllTrash');
     if (selectAllBtn) {

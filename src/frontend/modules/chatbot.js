@@ -1242,9 +1242,6 @@ class ChatbotAssistant {
                     </div>
                 </div>
                 <div class="aria-fullscreen-actions">
-                    <button class="aria-fullscreen-btn" id="ariaFsRefresh" title="Actualizar stats">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
                     <button class="aria-fullscreen-btn" id="ariaFsHistory" title="Cargar historial">
                         <i class="fas fa-history"></i>
                     </button>
@@ -1410,12 +1407,6 @@ class ChatbotAssistant {
         this._fullscreenVoice?.addEventListener('click', () => this._toggleVoice());
 
         // Botones de cabecera
-        document.getElementById('ariaFsRefresh')?.addEventListener('click', async () => {
-            this._setFullscreenStatus('Actualizando...');
-            await this._loadStats(true);
-            this._setFullscreenStatus('En línea');
-            showAlert('Estadísticas actualizadas', 'success', 2000);
-        });
         document.getElementById('ariaFsHistory')?.addEventListener('click', () => this._loadFromServer());
         document.getElementById('ariaFsClear')?.addEventListener('click', () => this._clearChat());
         document.getElementById('ariaFsExport')?.addEventListener('click', () => this._exportChat());

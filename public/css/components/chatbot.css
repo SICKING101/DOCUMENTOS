@@ -100,66 +100,6 @@
     line-height: 1.5;
 }
 
-/* ──────────────────────────────────────────────────────────────
-   BOTÓN FLOTANTE (TOGGLE)
-   ────────────────────────────────────────────────────────────── */
-.aria-toggle {
-    position: relative;
-    width:    60px;
-    height:   60px;
-    border-radius: 50%;
-    border:   none;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
-    color:    #fff;
-    font-size: 22px;
-    cursor:   pointer;
-    box-shadow: 0 6px 24px rgba(99, 102, 241, 0.50), var(--aria-shadow-sm);
-    transition:
-        transform  var(--aria-t-normal) var(--aria-ease-spring),
-        box-shadow var(--aria-t-normal) var(--aria-ease);
-    display: flex;
-    align-items:     center;
-    justify-content: center;
-    outline: none;
-}
-
-.aria-toggle:hover {
-    transform:  translateY(-3px) scale(1.06);
-    box-shadow: 0 10px 32px rgba(99, 102, 241, 0.55), var(--aria-shadow-md);
-}
-
-.aria-toggle:active {
-    transform: scale(0.94);
-}
-
-.aria-toggle--open {
-    background: linear-gradient(135deg, #374151, #1f2937);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-}
-
-.aria-toggle__icon {
-    display: flex;
-    align-items:     center;
-    justify-content: center;
-    transition: transform var(--aria-t-normal) var(--aria-ease-spring);
-}
-
-.aria-toggle--open .aria-toggle__icon {
-    transform: rotate(20deg) scale(0.9);
-}
-
-/* Pulso animado */
-.aria-toggle__pulse {
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%);
-    animation: aria-pulse 2.8s ease-in-out infinite;
-    pointer-events: none;
-}
-
-.aria-toggle--open .aria-toggle__pulse { display: none; }
-
 @keyframes aria-pulse {
     0%, 100% { transform: scale(0.85); opacity: 0.8; }
     50%       { transform: scale(1.20); opacity: 0; }
@@ -969,32 +909,6 @@
 
 @media (min-height: 800px) {
     .aria-window      { --aria-h: 640px; }
-}
-
-/* ──────────────────────────────────────────────────────────────
-   ACCESIBILIDAD
-   ────────────────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-    .aria-toggle__pulse,
-    .aria-avatar::after,
-    .aria-typing__dots span,
-    .aria-report-preloader__spinner {
-        animation: none;
-    }
-    .aria-msg           { animation: none; }
-    .aria-window        { transition: opacity var(--aria-t-normal) var(--aria-ease); }
-    .aria-badge         { animation: none; }
-}
-
-/* Foco para teclado */
-.aria-toggle:focus-visible,
-.aria-btn-icon:focus-visible,
-.aria-send-btn:focus-visible,
-.aria-voice-btn:focus-visible,
-.aria-chip:focus-visible,
-.aria-action-btn:focus-visible {
-    outline:        2px solid var(--aria-primary);
-    outline-offset: 2px;
 }
 
 /* ============================================================
