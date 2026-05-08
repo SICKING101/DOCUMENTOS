@@ -1,0 +1,535 @@
+/* ===== 3. SIDEBAR COMPONENTS - VERSIÓN MEJORADA ===== */
+
+/* Variables adicionales para mejorar el diseño */
+:root {
+    --sidebar-width: 280px;
+    --sidebar-header-height: 80px;
+    --sidebar-transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    --sidebar-nav-height: calc(100vh - 80px);
+}
+
+/* Barra lateral fija con navegación y controles */
+.sidebar {
+    width: var(--sidebar-width);
+    background: linear-gradient(180deg, 
+        var(--sidebar-bg) 0%, 
+        rgba(15, 23, 42, 0.98) 100%);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transition: var(--transition);
+    box-shadow: 5px 0 30px rgba(0, 0, 0, 0.2);
+    border-right: 1px solid rgba(220, 38, 38, 0.1);
+    overflow: hidden;
+}
+
+/* Cabecera del sidebar simplificada (solo título de sección) */
+.sidebar__header {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    min-height: var(--sidebar-header-height);
+    height: var(--sidebar-header-height);
+    position: relative;
+    background: linear-gradient(135deg, 
+        rgba(220, 38, 38, 0.1) 0%, 
+        rgba(220, 38, 38, 0.05) 100%);
+    border-bottom: 1px solid rgba(220, 38, 38, 0.15);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.sidebar__header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+        var(--primary) 0%, 
+        var(--primary-dark) 50%, 
+        var(--primary) 100%);
+    z-index: 2;
+}
+
+/* Título de la sección en el sidebar */
+.sidebar__section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.9) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.sidebar__section-title i {
+    -webkit-text-fill-color: initial;
+    background: none;
+    color: var(--primary);
+}
+
+/* Separador decorativo */
+.sidebar__divider {
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(220, 38, 38, 0.3) 50%, 
+        transparent 100%);
+    margin: 0 var(--spacing-xl);
+    flex-shrink: 0;
+}
+
+/* Navegación principal del sidebar */
+.sidebar__nav {
+    flex: 1;
+    padding: var(--spacing-lg) var(--spacing-md);
+    overflow-y: auto;
+    scrollbar-color: var(--primary) transparent;
+    overflow-x: hidden;
+    height: var(--sidebar-nav-height);
+    min-height: 500px;
+}
+
+/* Grupos de navegación con mejor espaciado */
+.sidebar__nav-group {
+    margin-bottom: var(--spacing-xl);
+}
+
+.sidebar__nav-group:last-child {
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Título de grupo */
+.sidebar__nav-group-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 600;
+    margin: 0 0 var(--spacing-md) var(--spacing-md);
+    padding-left: var(--spacing-sm);
+    border-left: 2px solid var(--primary);
+}
+
+/* Enlaces de navegación del sidebar */
+.sidebar__nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: 0.875rem var(--spacing-lg);
+    color: var(--sidebar-text);
+    text-decoration: none;
+    border-radius: var(--radius-lg);
+    margin-bottom: 6px;
+    transition: var(--sidebar-transition);
+    font-weight: 500;
+    position: relative;
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+.sidebar__nav-link:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(220, 38, 38, 0.1);
+    transform: translateX(5px);
+    color: white;
+}
+
+/* Contenedor de iconos */
+.sidebar__nav-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+}
+
+.sidebar__nav-link:hover .sidebar__nav-icon-wrapper {
+    background: rgba(220, 38, 38, 0.2);
+    transform: scale(1.1);
+}
+
+/* Iconos dentro de los enlaces de navegación */
+.sidebar__nav-link i {
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.7);
+    transition: var(--transition);
+}
+
+.sidebar__nav-link:hover i {
+    color: white;
+}
+
+/* Texto del enlace */
+.sidebar__nav-text {
+    flex: 1;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+/* Estado activo para enlaces de navegación */
+.sidebar__nav-link--active {
+    background: linear-gradient(135deg, 
+        rgba(220, 38, 38, 0.2) 0%, 
+        rgba(220, 38, 38, 0.1) 100%);
+    color: white;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.2);
+}
+
+.sidebar__nav-link--active .sidebar__nav-icon-wrapper {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.sidebar__nav-link--active i {
+    color: white;
+}
+
+.sidebar__nav-link--active .sidebar__nav-text {
+    font-weight: 600;
+}
+
+/* Indicador de activo */
+.sidebar__nav-active-indicator {
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 24px;
+    background: var(--primary);
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 10px var(--primary);
+}
+
+/* Ocultar opción extra de administración en sidebar (se gestiona dentro de la pestaña Admin) */
+#admin-dropdown {
+    display: none !important;
+}
+
+/* Responsive para tablets */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 260px;
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+}
+
+/* Estilos específicos para pantallas más pequeñas */
+@media (max-height: 800px) {
+    .sidebar__header {
+        padding: var(--spacing-md) var(--spacing-xl);
+    }
+    
+    .sidebar__nav-group {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .sidebar__nav-link {
+        padding: 0.75rem var(--spacing-lg);
+        margin-bottom: 4px;
+    }
+}
+
+/* Menú desplegable del usuario (posicionado desde topbar) */
+.user-menu {
+    position: absolute;
+    top: 70px;
+    right: 2rem;
+    width: 320px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 1002;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.user-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* Header del menú con información del usuario */
+.user-menu__header {
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, 
+        rgba(220, 38, 38, 0.1) 0%, 
+        rgba(220, 38, 38, 0.05) 100%);
+    position: relative;
+    border-bottom: 1px solid rgba(220, 38, 38, 0.1);
+}
+
+.user-menu__status-indicator {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+
+.user-menu__avatar {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-md);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+}
+
+.user-menu__info {
+    text-align: left;
+}
+
+.user-menu__name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.user-menu__email {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.user-menu__status {
+    font-size: 0.75rem;
+    color: #10b981;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.user-menu__status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Divisor del menú */
+.user-menu__divider {
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(220, 38, 38, 0.2) 50%, 
+        transparent 100%);
+    margin: var(--spacing-sm) 0;
+}
+
+/* Opciones del menú */
+.user-menu__option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    position: relative;
+    text-decoration: none;
+}
+
+.user-menu__option:hover {
+    background: rgba(220, 38, 38, 0.05);
+    padding-left: var(--spacing-xl);
+}
+
+.user-menu__option i {
+    font-size: 1.125rem;
+    width: 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.user-menu__option:hover i {
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+.user-menu__option-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(220, 38, 38, 0.1);
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+}
+
+.user-menu__option:hover .user-menu__option-icon {
+    background: rgba(220, 38, 38, 0.2);
+}
+
+/* Badges en opciones del menú */
+.user-menu__badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+/* Opción con advertencia */
+.user-menu__option--warning {
+    color: #f59e0b;
+}
+
+.user-menu__option--warning:hover {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.user-menu__option--warning i {
+    color: #f59e0b;
+}
+
+/* Opción peligrosa */
+.user-menu__option--danger {
+    color: var(--danger);
+}
+
+.user-menu__option--danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.user-menu__option--danger i {
+    color: var(--danger);
+}
+
+/* Pie del menú */
+.user-menu__footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    text-align: center;
+    background: rgba(0, 0, 0, 0.02);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.user-menu__version {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.user-menu__copyright {
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+    opacity: 0.7;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .topbar__menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .topbar__logo-title {
+        font-size: 1rem;
+    }
+    
+    .topbar__logo-subtitle {
+        display: none;
+    }
+    
+    .user-menu {
+        right: 1rem;
+        width: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .topbar {
+        padding: 0.75rem 1rem;
+    }
+    
+    .topbar__logo-img {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .topbar__logo-title {
+        font-size: 0.875rem;
+    }
+    
+    .topbar__user-name {
+        display: none;
+    }
+    
+    .topbar__user-role {
+        display: none;
+    }
+    
+    .topbar__user {
+        padding: 0.5rem;
+    }
+    
+    .user-menu {
+        top: 60px;
+        right: 0.5rem;
+        width: calc(100% - 1rem);
+        max-width: 320px;
+    }
+}

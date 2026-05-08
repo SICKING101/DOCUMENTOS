@@ -1,0 +1,80 @@
+/* =============================================================================
+ * 5. PRELOADER PARA CARGA INICIAL DE MODAL
+ * ============================================================================= */
+
+.modal-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, 
+        rgba(247, 250, 252, 0.98) 0%, 
+        rgba(237, 242, 247, 0.98) 100%);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    border-radius: inherit;
+}
+
+.modal-loading-content {
+    text-align: center;
+    max-width: 280px;
+    width: 90%;
+}
+
+.document-loading-spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+}
+
+.document-loading-spinner__disk {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: diskSpin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.document-loading-spinner__doc {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: #667eea;
+    animation: docBounce 1s ease-in-out infinite;
+}
+
+.modal-loading-text {
+    font-size: 1rem;
+    color: #4a5568;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.modal-loading-subtext {
+    font-size: 0.85rem;
+    color: #718096;
+}
+
+@keyframes diskSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes docBounce {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -60%) scale(1.1);
+    }
+}

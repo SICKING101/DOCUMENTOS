@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin — CBTIS051</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/sections/super-admin.css">
+</head>
+
+<body>
+    <div class="sa-shell">
+
+        <!-- PARTÍCULAS DE FONDO -->
+        <canvas id="bgCanvas" class="bg-canvas"></canvas>
+
+        <!-- SIDEBAR -->
+        <aside class="sa-sidebar" id="sidebar">
+            <div class="sa-sidebar__inner">
+
+                <!-- Logo -->
+                <div class="sa-brand">
+                    <div class="sa-brand__icon">
+                        <svg viewBox="0 0 40 40" fill="none">
+                            <polygon points="20,4 36,12 36,28 20,36 4,28 4,12" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                            <polygon points="20,10 30,15 30,25 20,30 10,25 10,15" stroke="currentColor" stroke-width="1" fill="none" opacity="0.5"/>
+                            <circle cx="20" cy="20" r="3" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <div class="sa-brand__text">
+                        <span class="sa-brand__name">SUPER<em>ADMIN</em></span>
+                        <span class="sa-brand__sub">Sistema Documental</span>
+                    </div>
+                </div>
+
+                <!-- Badge -->
+                <div class="sa-role-badge">
+                    <span class="sa-role-badge__dot"></span>
+                    <i class="fas fa-shield-halved"></i>
+                    Super Administrador
+                </div>
+
+                <!-- Nav -->
+                <nav class="sa-nav">
+                    <div class="sa-nav__label">MÓDULOS</div>
+
+                    <button class="sa-nav__item active" data-section="versions">
+                        <span class="sa-nav__item-icon">
+                            <i class="fas fa-code-branch"></i>
+                        </span>
+                        <span class="sa-nav__item-text">Panel de Versiones</span>
+                        <span class="sa-nav__item-arrow"><i class="fas fa-chevron-right"></i></span>
+                    </button>
+
+                    <button class="sa-nav__item" data-section="avisos">
+                        <span class="sa-nav__item-icon">
+                            <i class="fas fa-bullhorn"></i>
+                        </span>
+                        <span class="sa-nav__item-text">Avisos</span>
+                        <span class="sa-nav__item-arrow"><i class="fas fa-chevron-right"></i></span>
+                    </button>
+
+                    <button class="sa-nav__item" data-section="sugerencias">
+                        <span class="sa-nav__item-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </span>
+                        <span class="sa-nav__item-text">Sugerencias</span>
+                        <span class="sa-nav__item-arrow"><i class="fas fa-chevron-right"></i></span>
+                    </button>
+
+                    <button class="sa-nav__item" data-section="invitations">
+                        <span class="sa-nav__item-icon">
+                            <i class="fas fa-envelope-open-text"></i>
+                        </span>
+                        <span class="sa-nav__item-text">Invitaciones</span>
+                        <span class="sa-nav__item-arrow"><i class="fas fa-chevron-right"></i></span>
+                    </button>
+
+                    <div class="sa-nav__divider"></div>
+                    <div class="sa-nav__label">SISTEMA</div>
+
+                    <button class="sa-nav__item sa-nav__item--danger" data-section="shutdown">
+                        <span class="sa-nav__item-icon">
+                            <i class="fas fa-power-off"></i>
+                        </span>
+                        <span class="sa-nav__item-text">Control de Acceso</span>
+                        <span class="sa-nav__item-arrow"><i class="fas fa-chevron-right"></i></span>
+                    </button>
+                </nav>
+
+                <!-- User -->
+                <div class="sa-user">
+                    <div class="sa-user__avatar">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="sa-user__info">
+                        <span class="sa-user__name" id="userName">Super Admin</span>
+                        <span class="sa-user__status"><span class="sa-user__dot"></span>En línea</span>
+                    </div>
+                    <button class="sa-user__logout" onclick="logout()" title="Cerrar sesión">
+                        <i class="fas fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="sa-main" id="saMain">
+
+            <!-- TOPBAR -->
+            <header class="sa-topbar">
+                <div class="sa-topbar__left">
+                    <button class="sa-menu-toggle" id="menuToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="sa-breadcrumb">
+                        <span class="sa-breadcrumb__root"><i class="fas fa-crown"></i> Admin</span>
+                        <i class="fas fa-chevron-right sa-breadcrumb__sep"></i>
+                        <span class="sa-breadcrumb__current" id="pageTitle">Panel de Versiones</span>
+                    </div>
+                </div>
+                <div class="sa-topbar__right">
+                    <div class="sa-clock" id="clockDisplay"></div>
+                    <div class="sa-topbar__divider"></div>
+                    <span class="sa-topbar__session">
+                        <i class="fas fa-circle-check"></i>
+                        Sesión activa
+                    </span>
+                </div>
+            </header>
+
+            <!-- PAGE HERO -->
+            <div class="sa-page-hero">
+                <div class="sa-page-hero__content">
+                    <h1 class="sa-page-hero__title" id="heroTitle">Panel de Versiones</h1>
+                    <p class="sa-page-hero__desc" id="pageDescription">Gestiona las versiones del sistema y publica actualizaciones</p>
+                </div>
+                <div class="sa-page-hero__deco">
+                    <div class="sa-page-hero__deco-ring"></div>
+                    <div class="sa-page-hero__deco-ring sa-page-hero__deco-ring--2"></div>
+                    <i class="fas fa-code-branch sa-page-hero__deco-icon" id="heroIcon"></i>
+                </div>
+            </div>
+
+            <!-- CONTENT WRAPPER -->
+            <div class="sa-content-wrap">
+
+                <!-- ═══════════════════════════════════════ -->
+                <!-- SECCIÓN: VERSIONES -->
+                <!-- ═══════════════════════════════════════ -->
+                <div id="versionsSection" class="sa-section">
+                    <div class="sa-section__toolbar">
+                        <button class="sa-btn sa-btn--primary" onclick="openCreateVersionModal()">
+                            <i class="fas fa-plus"></i>
+                            Publicar Nueva Versión
+                        </button>
+                    </div>
+                    <div id="versionsList" class="sa-versions-grid">
+                        <div class="sa-loader"><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════ -->
+                <!-- SECCIÓN: AVISOS -->
+                <!-- ═══════════════════════════════════════ -->
+                <div id="avisosSection" class="sa-section sa-section--hidden">
+                    <div class="sa-section__toolbar">
+                        <div class="sa-filters">
+                            <div class="sa-filter-group">
+                                <label>Estado</label>
+                                <select id="filterAvisoActivo" class="sa-select" onchange="loadAvisos(1)">
+                                    <option value="">Todos</option>
+                                    <option value="true">Activos</option>
+                                    <option value="false">Inactivos</option>
+                                </select>
+                            </div>
+                            <div class="sa-filter-group">
+                                <label>Tipo</label>
+                                <select id="filterAvisoTipo" class="sa-select" onchange="loadAvisos(1)">
+                                    <option value="">Todos</option>
+                                    <option value="general">📢 General</option>
+                                    <option value="mantenimiento">🔧 Mantenimiento</option>
+                                    <option value="importante">⭐ Importante</option>
+                                    <option value="actualizacion">🔄 Actualización</option>
+                                    <option value="evento">📅 Evento</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="sa-btn sa-btn--primary" onclick="openAvisoModal()">
+                            <i class="fas fa-plus"></i>
+                            Nuevo Aviso
+                        </button>
+                    </div>
+                    <div id="avisosList" class="sa-versions-grid">
+                        <div class="sa-loader"><span></span><span></span><span></span></div>
+                    </div>
+                    <div id="avisosPagination" class="sa-pagination"></div>
+                </div>
+
+                <!-- ═══════════════════════════════════════ -->
+                <!-- SECCIÓN: SUGERENCIAS -->
+                <!-- ═══════════════════════════════════════ -->
+                <div id="sugerenciasSection" class="sa-section sa-section--hidden">
+
+                    <!-- Stats Row -->
+                    <div class="sa-stats-row" id="sugerenciasStats">
+                        <div class="sa-stat-card sa-stat-card--total">
+                            <div class="sa-stat-card__icon"><i class="fas fa-inbox"></i></div>
+                            <div class="sa-stat-card__body">
+                                <div class="sa-stat-card__value" id="statTotal">—</div>
+                                <div class="sa-stat-card__label">Total</div>
+                            </div>
+                            <div class="sa-stat-card__glow"></div>
+                        </div>
+                        <div class="sa-stat-card sa-stat-card--pending">
+                            <div class="sa-stat-card__icon"><i class="fas fa-hourglass-half"></i></div>
+                            <div class="sa-stat-card__body">
+                                <div class="sa-stat-card__value" id="statPendientes">—</div>
+                                <div class="sa-stat-card__label">Pendientes</div>
+                            </div>
+                            <div class="sa-stat-card__glow"></div>
+                        </div>
+                        <div class="sa-stat-card sa-stat-card--viewed">
+                            <div class="sa-stat-card__icon"><i class="fas fa-eye"></i></div>
+                            <div class="sa-stat-card__body">
+                                <div class="sa-stat-card__value" id="statVistas">—</div>
+                                <div class="sa-stat-card__label">Vistas</div>
+                            </div>
+                            <div class="sa-stat-card__glow"></div>
+                        </div>
+                        <div class="sa-stat-card sa-stat-card--done">
+                            <div class="sa-stat-card__icon"><i class="fas fa-circle-check"></i></div>
+                            <div class="sa-stat-card__body">
+                                <div class="sa-stat-card__value" id="statImplementadas">—</div>
+                                <div class="sa-stat-card__label">Implementadas</div>
+                            </div>
+                            <div class="sa-stat-card__glow"></div>
+                        </div>
+                    </div>
+
+                    <div class="sa-section__toolbar">
+                        <div class="sa-filters">
+                            <div class="sa-filter-group">
+                                <label>Estado</label>
+                                <select id="filterEstado" class="sa-select">
+                                    <option value="todos">Todos</option>
+                                    <option value="pendiente">Pendientes</option>
+                                    <option value="vista">Vistas</option>
+                                    <option value="considerando">En consideración</option>
+                                    <option value="implementada">Implementadas</option>
+                                    <option value="rechazada">Rechazadas</option>
+                                </select>
+                            </div>
+                            <div class="sa-filter-group">
+                                <label>Categoría</label>
+                                <select id="filterCategoria" class="sa-select">
+                                    <option value="todas">Todas</option>
+                                    <option value="mejora">✨ Mejora</option>
+                                    <option value="nueva_funcionalidad">🚀 Nueva funcionalidad</option>
+                                    <option value="reporte_error">🐛 Reporte de error</option>
+                                    <option value="experiencia_usuario">🎨 Experiencia de usuario</option>
+                                    <option value="rendimiento">⚡ Rendimiento</option>
+                                    <option value="seguridad">🔒 Seguridad</option>
+                                    <option value="otros">📌 Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sugerencias-list" id="sugerenciasList"></div>
+                    <div class="sa-pagination" id="sugerenciasPagination"></div>
+                </div>
+
+                <!-- ═══════════════════════════════════════ -->
+                <!-- SECCIÓN: INVITACIONES -->
+                <!-- ═══════════════════════════════════════ -->
+                <div id="invitationsSection" class="sa-section sa-section--hidden">
+                    <div class="sa-section__toolbar">
+                        <div class="sa-filters">
+                            <div class="sa-filter-group">
+                                <label>Estado</label>
+                                <select id="filterInvitationStatus" class="sa-select" onchange="loadInvitations()">
+                                    <option value="">Todas</option>
+                                    <option value="pending">Pendientes</option>
+                                    <option value="used">Usadas</option>
+                                    <option value="expired">Expiradas</option>
+                                    <option value="revoked">Revocadas</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="sa-btn sa-btn--primary" onclick="openInvitationModal()">
+                            <i class="fas fa-paper-plane"></i>
+                            Nueva Invitación
+                        </button>
+                    </div>
+                    <div id="invitationsList" class="sa-versions-grid">
+                        <div class="sa-loader"><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════ -->
+                <!-- SECCIÓN: CIERRE DEL SISTEMA -->
+                <!-- ═══════════════════════════════════════ -->
+                <div id="shutdownSection" class="sa-section sa-section--hidden">
+                    <div class="sa-shutdown-layout">
+
+                        <!-- Control Card -->
+                        <div class="sa-shutdown-card">
+                            <div class="sa-shutdown-card__header">
+                                <div class="sa-shutdown-card__icon">
+                                    <i class="fas fa-server"></i>
+                                </div>
+                                <div>
+                                    <h3>Estado del Sistema</h3>
+                                    <p>Controla la disponibilidad para usuarios finales</p>
+                                </div>
+                            </div>
+
+                            <div class="sa-shutdown-status" id="systemStatus"></div>
+
+                            <div class="sa-shutdown-controls">
+                                <div class="sa-field">
+                                    <label class="sa-label">Motivo del cambio</label>
+                                    <textarea id="shutdownReason" class="sa-textarea" rows="3"
+                                        placeholder="Ej: Mantenimiento programado, actualización del sistema…"></textarea>
+                                </div>
+                                <div class="sa-shutdown-actions" id="shutdownButtons"></div>
+                            </div>
+                        </div>
+
+                        <!-- History Card -->
+                        <div class="sa-history-card">
+                            <div class="sa-history-card__header">
+                                <i class="fas fa-timeline"></i>
+                                <h4>Historial de Cambios</h4>
+                            </div>
+                            <div id="shutdownHistory" class="sa-history-list"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div><!-- /sa-content-wrap -->
+        </main>
+    </div><!-- /sa-shell -->
+
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!--  MODALES                                                -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
+    <!-- MODAL: DETALLE SUGERENCIA -->
+    <div id="suggestionDetailModal" class="sa-modal" style="display:none;">
+        <div class="sa-modal__backdrop" onclick="closeSuggestionDetailModal()"></div>
+        <div class="sa-modal__dialog sa-modal__dialog--lg">
+            <div class="sa-modal__header">
+                <div class="sa-modal__header-icon"><i class="fas fa-lightbulb"></i></div>
+                <h3>Detalle de Sugerencia</h3>
+                <button class="sa-modal__close" onclick="closeSuggestionDetailModal()">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="sa-modal__body" id="suggestionDetailContent"></div>
+            <div class="sa-modal__footer">
+                <button class="sa-btn sa-btn--ghost" onclick="closeSuggestionDetailModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AVISO -->
+    <div id="avisoModal" class="sa-modal" style="display:none;">
+        <div class="sa-modal__backdrop" onclick="closeAvisoModal()"></div>
+        <div class="sa-modal__dialog">
+            <div class="sa-modal__header">
+                <div class="sa-modal__header-icon"><i class="fas fa-bullhorn"></i></div>
+                <h3 id="avisoModalTitle">Nuevo Aviso</h3>
+                <button class="sa-modal__close" onclick="closeAvisoModal()">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="sa-modal__body">
+                <form id="avisoForm" onsubmit="event.preventDefault()">
+                    <div class="sa-field">
+                        <label class="sa-label">Título <span class="sa-required">*</span></label>
+                        <input type="text" id="avisoTitulo" class="sa-input" placeholder="Ej: Mantenimiento programado" maxlength="200">
+                    </div>
+                    <div class="sa-field">
+                        <label class="sa-label">Descripción <span class="sa-required">*</span></label>
+                        <textarea id="avisoDescripcion" class="sa-textarea" rows="5" placeholder="Describe el aviso en detalle…" maxlength="5000"></textarea>
+                    </div>
+                    <div class="sa-field-row">
+                        <div class="sa-field">
+                            <label class="sa-label">Tipo</label>
+                            <select id="avisoTipo" class="sa-select">
+                                <option value="general">📢 General</option>
+                                <option value="mantenimiento">🔧 Mantenimiento</option>
+                                <option value="importante">⭐ Importante</option>
+                                <option value="actualizacion">🔄 Actualización</option>
+                                <option value="evento">📅 Evento</option>
+                            </select>
+                        </div>
+                        <div class="sa-field">
+                            <label class="sa-label">Prioridad</label>
+                            <select id="avisoPrioridad" class="sa-select">
+                                <option value="baja">🟢 Baja</option>
+                                <option value="media" selected>🟡 Media</option>
+                                <option value="alta">🟠 Alta</option>
+                                <option value="critica">🔴 Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="sa-field-row">
+                        <div class="sa-field">
+                            <label class="sa-label">Fecha inicio <span class="sa-required">*</span></label>
+                            <input type="date" id="avisoFechaInicio" class="sa-input" required>
+                        </div>
+                        <div class="sa-field">
+                            <label class="sa-label">Fecha fin <span class="sa-required">*</span></label>
+                            <input type="date" id="avisoFechaFin" class="sa-input" required>
+                        </div>
+                    </div>
+                    <div class="sa-toggle-field">
+                        <label class="sa-toggle">
+                            <input type="checkbox" id="avisoActivo" checked>
+                            <span class="sa-toggle__track"></span>
+                        </label>
+                        <span class="sa-toggle-label">Activo — visible para usuarios</span>
+                    </div>
+                </form>
+            </div>
+            <div class="sa-modal__footer">
+                <button class="sa-btn sa-btn--ghost" onclick="closeAvisoModal()">Cancelar</button>
+                <button class="sa-btn sa-btn--primary" onclick="saveAviso()">
+                    <i class="fas fa-floppy-disk"></i> Guardar Aviso
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: INVITACIÓN -->
+    <div id="invitationModal" class="sa-modal" style="display:none;">
+        <div class="sa-modal__backdrop" onclick="closeInvitationModal()"></div>
+        <div class="sa-modal__dialog">
+            <div class="sa-modal__header">
+                <div class="sa-modal__header-icon"><i class="fas fa-envelope"></i></div>
+                <h3>Nueva Invitación</h3>
+                <button class="sa-modal__close" onclick="closeInvitationModal()">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="sa-modal__body">
+                <form id="invitationForm" onsubmit="event.preventDefault(); sendInvitation();">
+                    <div class="sa-field">
+                        <label class="sa-label">Email del administrador <span class="sa-required">*</span></label>
+                        <input type="email" id="inviteEmail" class="sa-input"
+                               placeholder="admin@escuela.edu.mx" required>
+                    </div>
+                    <div class="sa-field">
+                        <label class="sa-label">Nombre de la escuela <span class="sa-required">*</span></label>
+                        <input type="text" id="inviteSchoolName" class="sa-input"
+                               placeholder="Ej: CBTIS 051" required>
+                    </div>
+                    <div class="sa-info-box">
+                        <i class="fas fa-circle-info"></i>
+                        <p>Se enviará un email con token único. El destinatario tendrá <strong>48 horas</strong> para completar su registro.</p>
+                    </div>
+                </form>
+            </div>
+            <div class="sa-modal__footer">
+                <button class="sa-btn sa-btn--ghost" onclick="closeInvitationModal()">Cancelar</button>
+                <button class="sa-btn sa-btn--primary" onclick="sendInvitation()">
+                    <i class="fas fa-paper-plane"></i> Enviar Invitación
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!--  MODAL DE CONFIRMACIÓN (REEMPLAZA confirm() NATIVO)     -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="confirmModal" class="sa-modal" style="display:none;">
+        <div class="sa-modal__backdrop" onclick="closeConfirmModal(false)"></div>
+        <div class="sa-modal__dialog" style="max-width: 440px;">
+            <div class="sa-modal__header">
+                <div class="sa-modal__header-icon" id="confirmModalIcon"><i class="fas fa-triangle-exclamation"></i></div>
+                <h3 id="confirmModalTitle">Confirmar acción</h3>
+                <button class="sa-modal__close" onclick="closeConfirmModal(false)">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="sa-modal__body">
+                <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--sp-4);">
+                    <div id="confirmModalIconBig" style="
+                        width: 64px; height: 64px;
+                        border-radius: 50%;
+                        background: var(--col-amber-dim);
+                        border: 2px solid rgba(251,191,36,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <i class="fas fa-question" style="font-size:1.5rem;color:var(--col-amber);"></i>
+                    </div>
+                    <div>
+                        <p id="confirmModalMessage" style="font-size:0.95rem;color:var(--col-text-2);line-height:1.6;margin:0;"></p>
+                        <p id="confirmModalSubtext" style="font-size:0.8rem;color:var(--col-text-3);margin-top:var(--sp-2);"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="sa-modal__footer" style="justify-content:center;gap:var(--sp-3);">
+                <button class="sa-btn sa-btn--ghost" onclick="closeConfirmModal(false)" style="min-width:100px;">
+                    <i class="fas fa-xmark"></i> Cancelar
+                </button>
+                <button id="confirmModalBtn" class="sa-btn sa-btn--primary" onclick="closeConfirmModal(true)" style="min-width:100px;">
+                    <i class="fas fa-check"></i> Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/frontend/modules/auth/super-admin.js"></script>
+</body>
+</html>

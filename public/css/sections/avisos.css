@@ -1,0 +1,100 @@
+/* avisos.css */
+.avisos-container {
+    padding: 20px;
+}
+
+.avisos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.aviso-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.2s ease;
+}
+
+.aviso-card--visto {
+    opacity: 0.8;
+    background: var(--bg-tertiary);
+}
+
+.aviso-card__header {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.aviso-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.aviso-card__title {
+    flex: 1;
+}
+
+.aviso-card__title h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.aviso-card__badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    margin-right: 8px;
+}
+
+.aviso-card__seen {
+    color: #10b981;
+    font-size: 12px;
+}
+
+.aviso-card__body {
+    margin-bottom: 15px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.aviso-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
+.aviso-card__date {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.marcar-visto-btn {
+    background: none;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.marcar-visto-btn:hover {
+    background: var(--primary);
+    color: white;
+}

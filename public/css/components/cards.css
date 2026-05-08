@@ -1,0 +1,197 @@
+/* ===== 8. FORM COMPONENTS ===== */
+
+/* Grupo de formulario con margen inferior */
+.form__group {
+    margin-bottom: 1.5rem;
+}
+
+/* Etiqueta para inputs de formulario */
+.form__label {
+    display: block;
+    margin-bottom: 0.5rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Inputs, selects y textareas con estilo consistente */
+.form__input,
+.form__select,
+.form__textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    transition: var(--transition);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Estilo para inputs en estado de foco */
+.form__input:focus,
+.form__select:focus,
+.form__textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* Diseño en fila para grupos de formulario */
+.form__row {
+    display: flex;
+    gap: 20px;
+}
+
+/* Grupos de formulario dentro de filas */
+.form__row .form__group {
+    flex: 1;
+}
+
+/* Input específico para selección de color */
+.form__input--color {
+    height: 50px;
+    padding: 5px;
+}
+
+/* Grupos de formulario compactos para filtros */
+.form__group--compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.form__group--compact .form__label {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Inputs de fecha compactos para filtros */
+.form__input--date {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--primary-dark);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form__input--date:focus {
+    outline: none;
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Selects compactos para filtros */
+.form__select {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    padding-right: 2rem;
+    border: 1px solid var(--primary-dark);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form__select:focus {
+    outline: none;
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Contenedor compacto para rango de fechas */
+.date-range-container {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.date-range-container span {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    text-align: center;
+    min-width: 1.5rem;
+}
+
+/* Barra de búsqueda compacta con icono */
+.search-with-icon {
+    position: relative;
+}
+
+.search-with-icon i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+}
+
+.search-with-icon input {
+    width: 100%;
+    padding: 0.625rem 0.75rem 0.625rem 2.25rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.search-with-icon input:focus {
+    outline: none;
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Texto de ayuda para opciones de formulario */
+.form__hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    margin-left: 24px;
+}
+
+/* Campo de búsqueda */
+.search-input {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    min-width: 200px;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* Select para ordenar */
+.sort-select {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--bg-primary);
+    cursor: pointer;
+}

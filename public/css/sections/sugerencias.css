@@ -1,0 +1,511 @@
+/* public/css/components/sugerencias.css */
+
+/* ============================================================ */
+/* BOTÓN FLOTANTE DE SUGERENCIAS - Posición ajustada */
+/* ============================================================ */
+.suggestion-fab {
+    position: fixed;
+    bottom: 30px;
+    right: 100px; /* Cambiado de 30px a 100px para no chocar con el chatbot */
+    z-index: 9998; /* Un nivel menos que el chatbot si es necesario */
+}
+
+.suggestion-fab__btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    transform: translateY(8%);
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.suggestion-fab__btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(245, 158, 11, 0.5);
+}
+
+.suggestion-fab__tooltip {
+    position: absolute;
+    right: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    white-space: nowrap;
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border);
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.suggestion-fab__btn:hover .suggestion-fab__tooltip {
+    opacity: 1;
+    visibility: visible;
+    right: 75px;
+}
+
+/* ============================================================ */
+/* MODAL DE SUGERENCIA - Centrado correctamente */
+/* ============================================================ */
+#suggestionModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+#suggestionModal .modal__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+#suggestionModal .modal__content {
+    position: relative;
+    background: var(--bg-primary);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    transform: translateX(0%);
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: modalSlideIn 0.3s ease-out;
+    z-index: 10001;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+#suggestionModal .modal__header {
+    padding: 1.5rem 1.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-primary);
+}
+
+#suggestionModal .modal__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#suggestionModal .modal__title i {
+    color: #f59e0b;
+    font-size: 1.3rem;
+}
+
+#suggestionModal .modal__close {
+    background: var(--bg-tertiary);
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+#suggestionModal .modal__close:hover {
+    background: #ef4444;
+    color: white;
+    transform: rotate(90deg);
+}
+
+#suggestionModal .modal__body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(85vh - 140px);
+}
+
+#suggestionModal .modal__footer {
+    padding: 1rem 1.5rem 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-primary);
+}
+
+/* ============================================================ */
+/* FORMULARIO DE SUGERENCIA */
+/* ============================================================ */
+#suggestionForm .form__group {
+    margin-bottom: 1.25rem;
+}
+
+#suggestionForm .form__label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+#suggestionForm .form__input,
+#suggestionForm .form__select,
+#suggestionForm .form__textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+#suggestionForm .form__input:focus,
+#suggestionForm .form__select:focus,
+#suggestionForm .form__textarea:focus {
+    outline: none;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+#suggestionForm .form__textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Área de upload */
+.suggestion-file-upload {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--bg-tertiary);
+}
+
+.suggestion-file-upload:hover,
+.suggestion-file-upload.drag-over {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.suggestion-file-upload i {
+    font-size: 2rem;
+    color: #f59e0b;
+    margin-bottom: 0.75rem;
+}
+
+.suggestion-file-upload p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.suggestion-file-hint {
+    font-size: 0.7rem;
+    margin-top: 0.5rem;
+    color: var(--text-tertiary);
+}
+
+/* Lista de archivos */
+.suggestion-file-list {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.suggestion-file-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.suggestion-file-item i {
+    color: #f59e0b;
+    font-size: 0.9rem;
+}
+
+.suggestion-file-remove {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0 0.25rem;
+    transition: all 0.2s;
+}
+
+.suggestion-file-remove:hover {
+    color: #dc2626;
+    transform: scale(1.1);
+}
+
+/* Alertas */
+#suggestionForm .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #3b82f6;
+    margin-top: 1rem;
+}
+
+#suggestionForm .alert i {
+    color: #3b82f6;
+    font-size: 1.1rem;
+    margin-top: 0.1rem;
+}
+
+#suggestionForm .alert div {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Botones */
+#suggestionForm .btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+#suggestionForm .btn--outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+#suggestionForm .btn--outline:hover {
+    background: var(--bg-tertiary);
+}
+
+#suggestionForm .btn--primary {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+#suggestionForm .btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+#suggestionForm .btn--primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.required {
+    color: #ef4444;
+}
+
+/* Toast notifications */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    z-index: 10002;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .suggestion-fab {
+        bottom: 20px;
+        right: 80px;
+    }
+    
+    .suggestion-fab__btn {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+    
+    #suggestionModal .modal__content {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    #suggestionModal .modal__header {
+        padding: 1rem;
+    }
+    
+    #suggestionModal .modal__body {
+        padding: 1rem;
+    }
+    
+    #suggestionModal .modal__footer {
+        padding: 0.75rem 1rem 1rem;
+    }
+    
+    .suggestion-file-upload {
+        padding: 1.5rem;
+    }
+}
+
+/* Botón de sugerencias - efecto glow */
+.topbar__action .fa-lightbulb {
+    color: #fbbf24;
+    transition: all 0.3s ease;
+}
+
+.topbar__action:hover .fa-lightbulb {
+    color: #f59e0b;
+    text-shadow: 0 0 15px #fbbf24, 0 0 30px #f59e0b;
+    animation: bulb-pulse 0.6s ease-in-out;
+}
+
+@keyframes bulb-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+.suggestion-file-upload {
+        border: 2px dashed var(--border, #cbd5e1);
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--bg-secondary, #f8fafc);
+    }
+    
+    .suggestion-file-upload:hover {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.05);
+    }
+    
+    .suggestion-file-upload.drag-over {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+    }
+    
+    .suggestion-file-upload i {
+        font-size: 40px;
+        color: #f59e0b;
+        margin-bottom: 10px;
+    }
+    
+    .suggestion-file-hint {
+        font-size: 12px;
+        color: var(--text-tertiary, #64748b);
+        margin-top: 8px;
+    }
+    
+    .suggestion-file-list {
+        margin-top: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .suggestion-file-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 15px;
+        background: var(--bg-tertiary, #e2e8f0);
+        border-radius: 8px;
+        font-size: 13px;
+    }
+    
+    .suggestion-file-item i {
+        color: #f59e0b;
+    }
+    
+    .suggestion-file-item small {
+        color: var(--text-tertiary, #64748b);
+        margin-left: auto;
+    }
+    
+    .suggestion-file-remove {
+        background: none;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    
+    .suggestion-file-remove:hover {
+        background: rgba(239, 68, 68, 0.1);
+    }
+    
+    .form__char-count {
+        text-align: right;
+        font-size: 12px;
+        color: var(--text-tertiary, #64748b);
+        margin-top: 5px;
+    }

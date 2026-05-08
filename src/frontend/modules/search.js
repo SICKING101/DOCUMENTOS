@@ -1,0 +1,339 @@
+import { DOM } from '../dom.js';
+import { showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
+
+// =============================================================================
+// 1. BÚSQUEDA BÁSICA DE DOCUMENTOS
+// =============================================================================
+
+/**
+ * 1.1 Buscar documentos por término general
+ * Realiza búsqueda de documentos por nombre, descripción o categoría
+ * y actualiza la tabla de resultados.
+ */
+function searchDocuments(query) {
+    console.log('🔍 Buscando documentos con query:', query);
+    
+    window.appState.currentSearchQuery = query;
+    window.renderDocumentsTable();
+    
+    showAlert(`Se encontraron ${getFilteredDocuments().length} documentos para "${query}"`, 'success');
+}
+
+// =============================================================================
+// 2. FILTRADO DE DOCUMENTOS
+// =============================================================================
+
+/**
+ * 2.1 Obtener documentos filtrados según criterios actuales
+ * Aplica todos los filtros activos (búsqueda, categoría, tipo, fecha, estado)
+ * para obtener la lista de documentos que cumplan con todos los criterios.
+ */
+function getFilteredDocuments() {
+    let documents = window.appState.documents;
+    
+    // Aplicar búsqueda si existe
+    if (window.appState.currentSearchQuery) {
+        const query = window.appState.currentSearchQuery.toLowerCase();
+        documents = documents.filter(doc => 
+            doc.nombre_original.toLowerCase().includes(query) ||
+            (doc.descripcion && doc.descripcion.toLowerCase().includes(query)) ||
+            doc.categoria.toLowerCase().includes(query)
+        );
+    }
+    
+    // Aplicar filtros
+    if (window.appState.filters.category) {
+        documents = documents.filter(doc => doc.categoria === window.appState.filters.category);
+    }
+    
+    if (window.appState.filters.type) {
+        documents = documents.filter(doc => doc.tipo_archivo.toLowerCase() === window.appState.filters.type.toLowerCase());
+    }
+    
+    if (window.appState.filters.date) {
+        const now = new Date();
+        let startDate;
+        
+        switch(window.appState.filters.date) {
+            case 'today':
+                startDate = new Date(now.setHours(0, 0, 0, 0));
+                break;
+            case 'week':
+                startDate = new Date(now.setDate(now.getDate() - 7));
+                break;
+            case 'month':
+                startDate = new Date(now.setMonth(now.getMonth() - 1));
+                break;
+        }
+        
+        documents = documents.filter(doc => {
+            const docDate = new Date(doc.fecha_subida);
+            return docDate >= startDate;
+        });
+    }
+    
+    if (window.appState.filters.status) {
+        const now = new Date();
+        documents = documents.filter(doc => {
+            if (!doc.fecha_vencimiento) return window.appState.filters.status === 'active';
+            
+            const fechaVencimiento = new Date(doc.fecha_vencimiento);
+            const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
+            
+            switch(window.appState.filters.status) {
+                case 'active':
+                    return diferenciaDias > 7;
+                case 'expiring':
+                    return diferenciaDias <= 7 && diferenciaDias > 0;
+                case 'expired':
+                    return diferenciaDias <= 0;
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    return documents;
+}
+
+// =============================================================================
+// 3. MANEJO DEL MODAL DE BÚSQUEDA AVANZADA
+// =============================================================================
+
+/**
+ * 3.1 Mostrar modal de búsqueda avanzada
+ * Abre el formulario con múltiples criterios de búsqueda para filtrado preciso.
+ */
+function showAdvancedSearch() {
+    console.log('🔍 Abriendo búsqueda avanzada...');
+    
+    DOM.searchModal.style.display = 'flex';
+}
+
+/**
+ * 3.2 Cerrar modal de búsqueda avanzada
+ * Oculta el formulario de búsqueda avanzada.
+ */
+function closeSearchModal() {
+    console.log('❌ Cerrando modal de búsqueda avanzada');
+    DOM.searchModal.style.display = 'none';
+}
+
+// =============================================================================
+// 4. BÚSQUEDA AVANZADA
+// =============================================================================
+
+/**
+ * 4.1 Realizar búsqueda avanzada
+ * Ejecuta búsqueda con múltiples criterios: palabras clave, categoría,
+ * fechas, persona asignada y estado de vencimiento.
+ */
+function performAdvancedSearch() {
+    console.log('🔍 Realizando búsqueda avanzada...');
+    
+    const keyword = DOM.searchKeyword.value.trim();
+    const category = DOM.searchCategory.value;
+    const dateFrom = DOM.searchDateFrom.value;
+    const dateTo = DOM.searchDateTo.value;
+    const person = DOM.searchPerson.value;
+    const status = DOM.searchStatus.value;
+    
+    // Construir objeto de búsqueda
+    const searchCriteria = {
+        keyword,
+        category,
+        dateFrom,
+        dateTo,
+        person,
+        status
+    };
+    
+    console.log('Criterios de búsqueda:', searchCriteria);
+    
+    // Realizar búsqueda
+    let results = window.appState.documents;
+    
+    if (keyword) {
+        results = results.filter(doc => 
+            doc.nombre_original.toLowerCase().includes(keyword.toLowerCase()) ||
+            (doc.descripcion && doc.descripcion.toLowerCase().includes(keyword.toLowerCase()))
+        );
+    }
+    
+    if (category) {
+        results = results.filter(doc => doc.categoria === category);
+    }
+    
+    if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        results = results.filter(doc => new Date(doc.fecha_subida) >= fromDate);
+    }
+    
+    if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999); // Fin del día
+        results = results.filter(doc => new Date(doc.fecha_subida) <= toDate);
+    }
+    
+    if (person) {
+        results = results.filter(doc => doc.persona_id && doc.persona_id._id === person);
+    }
+    
+    if (status) {
+        const now = new Date();
+        results = results.filter(doc => {
+            if (!doc.fecha_vencimiento) return status === 'active';
+            
+            const fechaVencimiento = new Date(doc.fecha_vencimiento);
+            const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
+            
+            switch(status) {
+                case 'active':
+                    return diferenciaDias > 7;
+                case 'expiring':
+                    return diferenciaDias <= 7 && diferenciaDias > 0;
+                case 'expired':
+                    return diferenciaDias <= 0;
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    // Mostrar resultados
+    displaySearchResults(results);
+    
+    showAlert(`Se encontraron ${results.length} documentos con los criterios especificados`, 'success');
+}
+
+/**
+ * 4.2 Mostrar resultados de búsqueda avanzada
+ * Renderiza los documentos encontrados en formato detallado dentro del modal.
+ */
+function displaySearchResults(results) {
+    if (!DOM.searchResultsList) return;
+    
+    DOM.searchResultsList.innerHTML = '';
+    
+    if (results.length === 0) {
+        DOM.searchResultsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search empty-state__icon"></i>
+                <h3 class="empty-state__title">No se encontraron documentos</h3>
+                <p class="empty-state__description">Intenta con otros criterios de búsqueda</p>
+            </div>
+        `;
+        return;
+    }
+    
+    results.forEach(doc => {
+        const person = doc.persona_id ? doc.persona_id : { nombre: 'No asignado' };
+        const fileSize = formatFileSize(doc.tamano_archivo);
+        const uploadDate = formatDate(doc.fecha_subida);
+        
+        const resultItem = document.createElement('div');
+        resultItem.className = 'search-result-item';
+        
+        resultItem.innerHTML = `
+            <div class="search-result-item__icon">
+                <i class="fas fa-file-${getFileIcon(doc.tipo_archivo)}"></i>
+            </div>
+            <div class="search-result-item__content">
+                <h4 class="search-result-item__title">${doc.nombre_original}</h4>
+                <p class="search-result-item__meta">
+                    <span class="badge badge--info">${doc.tipo_archivo.toUpperCase()}</span>
+                    <span>${fileSize}</span>
+                    <span>${person.nombre}</span>
+                    <span>${doc.categoria}</span>
+                    <span>${uploadDate}</span>
+                </p>
+                ${doc.descripcion ? `<p class="search-result-item__description">${doc.descripcion}</p>` : ''}
+            </div>
+            <div class="search-result-item__actions">
+                <button class="btn btn--sm btn--outline" onclick="downloadDocument('${doc._id}')" title="Descargar">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="btn btn--sm btn--outline" onclick="previewDocument('${doc._id}')" title="Vista previa">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        `;
+        
+        DOM.searchResultsList.appendChild(resultItem);
+    });
+}
+
+// =============================================================================
+// 5. HANDLERS/CONTROLADORES DE BÚSQUEDA
+// =============================================================================
+
+/**
+ * 5.1 Handler para búsqueda de documentos
+ * Captura el término de búsqueda del input principal y ejecuta la búsqueda.
+ */
+function handleDocumentSearch() {
+    const query = DOM.documentSearch.value.trim();
+    console.log('🔍 Buscando documentos:', query);
+    
+    if (query) {
+        searchDocuments(query);
+    } else {
+        showAlert('Por favor ingresa un término de búsqueda', 'warning');
+    }
+}
+
+/**
+ * 5.2 Handler para limpiar búsqueda
+ * Remueve todos los términos de búsqueda y restaura la vista completa de documentos.
+ */
+function handleClearSearch() {
+    console.log('🧹 Limpiando búsqueda...');
+    DOM.documentSearch.value = '';
+    window.appState.currentSearchQuery = '';
+    window.renderDocumentsTable();
+}
+
+/**
+ * 5.3 Handler para cambio de filtros
+ * Actualiza el estado global cuando se modifican los filtros de la barra lateral.
+ */
+function handleFilterChange() {
+    const filterType = this.id.replace('filter', '').toLowerCase();
+    const value = this.value;
+    
+    console.log(`🔍 Filtro ${filterType} cambiado a: ${value}`);
+    window.appState.filters[filterType] = value;
+    applyFilters();
+}
+
+/**
+ * 5.4 Aplicar filtros activos
+ * Refresca la tabla de documentos aplicando todos los filtros configurados.
+ */
+function applyFilters() {
+    console.log('🔍 Aplicando filtros...', window.appState.filters);
+    window.renderDocumentsTable();
+}
+
+/**
+ * 5.5 Handler para búsqueda avanzada
+ * Ejecuta la búsqueda avanzada desde el botón del modal.
+ */
+function handleAdvancedSearch() {
+    console.log('🔍 Realizando búsqueda avanzada...');
+    performAdvancedSearch();
+}
+
+export { 
+    searchDocuments, 
+    getFilteredDocuments, 
+    showAdvancedSearch, 
+    closeSearchModal, 
+    performAdvancedSearch, 
+    displaySearchResults, 
+    handleDocumentSearch, 
+    handleClearSearch, 
+    handleFilterChange, 
+    applyFilters, 
+    handleAdvancedSearch 
+};

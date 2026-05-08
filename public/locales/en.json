@@ -1,0 +1,1217 @@
+{
+  "app": {
+    "title": "Document Management System - CBTIS051",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "filter": "Filter",
+    "view": "View",
+    "download": "Download",
+    "upload": "Upload",
+    "refresh": "Refresh",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "to": "to",
+    "view_all": "View all",
+    "save_changes": "Save changes"
+  },
+  
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "people": "People",
+    "documents": "Documents",
+    "tasks": "Tasks",
+    "history": "History",
+    "calendar": "Calendar",
+    "trash": "Trash",
+    "settings": "Settings",
+    "reports": "Reports",
+    "support": "Support",
+    "navigation": "Main Navigation",
+    "tools": "Tools",
+    "configuration": "Configuration",
+    "user": "User",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "administrator": "Administrator",
+    "system_administrator": "System Administrator",
+    "online": "Online"
+  },
+  
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "System overview",
+    "registered_people": "Registered People",
+    "total_documents": "Total Documents",
+    "active_categories": "Active Categories",
+    "expiring_soon": "Expiring Soon",
+    "quick_actions": "Quick Actions",
+    "upload_document": "Upload Document",
+    "add_person": "Add Person",
+    "recent_documents": "Recent Documents",
+    "no_recent_documents": "No recent documents",
+    "upload_first_document": "Upload your first document to start",
+    "upload_document_desc": "Upload new documents to the system",
+    "add_person_desc": "Add new people to the registry"
+  },
+  
+  "settings": {
+    "title": "System Configuration",
+    "subtitle": "Customize your experience according to your preferences",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_auto": "Auto",
+    "auto_schedule": "Auto-change schedule",
+    "auto_dark_time": "Switch to dark at:",
+    "auto_light_time": "Switch to light at:",
+    "theme_auto_description": "Theme will change automatically according to configured time",
+    "interface_density": "Interface density",
+    "density_compact": "Compact",
+    "density_comfortable": "Comfortable",
+    "density_spacious": "Spacious",
+    "preferences": "Preferences",
+    "language": "Language",
+    "spanish": "Español",
+    "english": "English (Beta)",
+    "accessibility": "Accessibility",
+    "high_contrast": "High contrast",
+    "high_contrast_desc": "Improves text readability",
+    "large_font": "Large text",
+    "large_font_desc": "Increases font size",
+    "reduce_motion": "Reduce animations",
+    "reduce_motion_desc": "Minimizes animations and transitions",
+    "font_size": "Font size",
+    "small": "Small",
+    "normal": "Normal",
+    "large": "Large",
+    "privacy_security": "Privacy and Security",
+    "auto_logout": "Auto-logout",
+    "auto_logout_desc": "Automatically logs out after inactivity",
+    "auto_logout_time": "Auto-logout time",
+    "logout_5_min": "5 minutes",
+    "logout_15_min": "15 minutes",
+    "logout_30_min": "30 minutes",
+    "logout_60_min": "1 hour",
+    "logout_security_note": "For security, the session will close automatically",
+    "export_data": "Export my data",
+    "clear_data": "Clear local data",
+    "save_changes": "Save changes",
+    "saved_changes": "Changes saved",
+    "reload_page": "Reload now",
+    "later": "Later",
+    "saved_message": "Changes have been saved successfully",
+    "reload_message": "Page reload is required to apply some changes"
+  },
+  
+  "login": {
+    "title": "Login",
+    "subtitle": "CBTIS051 Document Management System",
+    "username": "Username or Email",
+    "username_placeholder": "Enter your username or email",
+    "password": "Password",
+    "password_placeholder": "Enter your password",
+    "forgot_password": "Forgot your password?",
+    "register": "First time?",
+    "register_link": "Register administrator",
+    "back_to_login": "Back to Login",
+    "login_button": "Login",
+    "register_button": "Register Administrator",
+    "password_hint": "Minimum 6 characters"
+  },
+  
+  "forgot_password": {
+    "step1_title": "Recover Password",
+    "step1_subtitle": "Enter your registered email to receive a verification code",
+    "email": "Email Address",
+    "email_placeholder": "example@cbtis051.edu.mx",
+    "send_code": "Send Code",
+    "code_sent": "We'll send a 6-digit code to this email.",
+    "code_expires": "The code expires in 15 minutes.",
+    "back_to_login": "Back to login",
+    
+    "step2_title": "Verification Code",
+    "step2_subtitle": "Enter the 6-digit code we sent to:",
+    "verify_code": "Verify Code",
+    "resend_code": "Didn't receive the code?",
+    "resend_link": "Resend code",
+    "change_email": "Change email address",
+    
+    "step3_title": "New Password",
+    "step3_subtitle": "Create a new secure password for your account",
+    "new_password": "New Password",
+    "new_password_placeholder": "Minimum 6 characters",
+    "confirm_password": "Confirm Password",
+    "confirm_password_placeholder": "Repeat your password",
+    "change_password": "Change Password"
+  },
+  
+  "admin_change": {
+    "title": "Administrator Change",
+    "subtitle": "CBTIS051 Document Management System",
+    "request_details": "Request Details",
+    "important_warning": "IMPORTANT WARNING",
+    "warning_text": "By accepting this request, the current administrator will be <strong>permanently deactivated</strong> and you will gain full control of the system. This action <strong>CANNOT BE UNDONE</strong> automatically and requires manual intervention to reverse.",
+    "security_confirmation": "Security confirmation",
+    "confirmation_placeholder": "Write 'ACCEPT' to confirm",
+    "confirmation_hint": "You must write exactly 'ACCEPT' in uppercase",
+    "expires_in": "This request expires in:",
+    "reject": "Reject",
+    "accept": "Accept Administration",
+    "processing": "Processing request..."
+  },
+  
+  "modals": {
+    "add_person": "Add Person",
+    "edit_person": "Edit Person",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "department": "Department",
+    "position": "Position",
+    "description": "Description",
+    "category": "Category",
+    "expiration_date": "Expiration Date",
+    "assign_to_person": "Assign to Person",
+    "upload_document": "Upload Document",
+    "single_upload": "Single Upload",
+    "multiple_upload": "Multiple Upload",
+    "drag_drop": "Drag and drop your file here",
+    "or": "or",
+    "select_file": "Select File",
+    "file": "File",
+    "size": "Size",
+    "edit_document": "Edit Document",
+    "current_file": "Current File",
+    "replace_file": "Replace file",
+    "select_new_file": "Select new file",
+    "document_info": "Document Information",
+    "upload_date": "Upload date:",
+    "type": "Type:",
+    "uploaded_by": "Uploaded by:",
+    "new_category": "New Category",
+    "color": "Color",
+    "icon": "Icon",
+    "new_department": "New Department",
+    "advanced_search": "Advanced Search",
+    "keyword": "Keyword",
+    "date_from": "Date from",
+    "date_to": "Date to",
+    "status": "Status",
+    "all_statuses": "All statuses",
+    "active": "Active",
+    "expired": "Expired",
+    "expiring": "Expiring",
+    "search_results": "Search Results",
+    "new_task": "New Task",
+    "edit_task": "Edit Task",
+    "task_title": "Title",
+    "priority": "Priority",
+    "due_date": "Due Date",
+    "due_time": "Due Time",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "pending": "Pending",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "bulk_delete": "Bulk Delete Documents",
+    "total": "Total",
+    "filtered": "Filtered",
+    "selected": "Selected",
+    "all": "All",
+    "none": "None",
+    "selection_filters": "Selection filters",
+    "clear": "Clear",
+    "available_documents": "Available documents",
+    "compact_view": "Compact view",
+    "delete_confirmation": "Confirm deletion",
+    "move_to_trash": "Move to trash",
+    "change_admin": "Change Administrator",
+    "security_action": "Security action:",
+    "security_note": "A verification email with a confirmation link will be sent. This action requires authorization.",
+    "new_user": "New User",
+    "new_email": "Email Address",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "secure_password": "Secure password",
+    "repeat_password": "Repeat password",
+    "send_request": "Send Request",
+    "confirm_action": "Confirm action",
+    "are_you_sure": "Are you sure you want to perform this action?",
+    "calendar_event": "New Event",
+    "event_title": "Event Title",
+    "event_type": "Event Type",
+    "academic": "Academic",
+    "meeting": "Meeting",
+    "deadline": "Deadline",
+    "holiday": "Holiday",
+    "personal": "Personal",
+    "start_date": "Start date",
+    "start_time": "Start time",
+    "end_date": "End date",
+    "end_time": "End time",
+    "recurrence": "Recurrence",
+    "no_repeat": "No repeat",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "location": "Location",
+    "reminder": "Reminder",
+    "no_reminder": "No reminder",
+    "minutes_before": "minutes before",
+    "hour_before": "hour before",
+    "day_before": "day before",
+    "new_ticket": "New Support Ticket",
+    "subject": "Subject",
+    "ticket_category": "Category",
+    "technical": "Technical Problem",
+    "usage": "System Usage",
+    "document_management": "Document Management",
+    "people_management": "People Management",
+    "reports": "Reports",
+    "security": "Security",
+    "other": "Other",
+    "detailed_description": "Detailed Description",
+    "attachments": "Attachments",
+    "drag_files": "Drag files here or click to select",
+    "allowed_files": "Allowed files: images, PDF, documents (max 5MB each)",
+    "note": "Note:",
+    "ticket_note": "A copy of this ticket will be sent to the email and you will receive updates by email.",
+    "submit_ticket": "Submit Ticket",
+    "ticket_details": "Ticket Details",
+    "updates": "Updates",
+    "reopen_ticket": "Reopen Ticket",
+    "close_ticket": "Close Ticket",
+    "select_or_create_department": "Select or create department",
+    "select_category": "Select category",
+    "multiple_upload_title": "Upload multiple documents",
+    "multiple_upload_subtitle": "Select multiple files to upload simultaneously",
+    "drag_drop_multiple": "Drag and drop multiple files here",
+    "select_multiple_files": "Select multiple files",
+    "max_file_size": "Maximum file size: 50MB",
+    "common_configuration": "Common configuration for all files",
+    "category_for_all": "Category for all files",
+    "select_common_category": "Select a common category",
+    "select_person": "Select person",
+    "days_until_expiration": "Days until expiration",
+    "selected_files": "Selected files",
+    "no_files_selected": "No files selected",
+    "total_files": "Total files",
+    "estimated_time": "Estimated time",
+    "advanced_options": "Advanced options",
+    "auto_generate_descriptions": "Generate descriptions automatically",
+    "auto_description_hint": "Based on file names and metadata",
+    "upload_strategy": "Upload strategy",
+    "sequential_upload": "Sequential upload (slower)",
+    "parallel_upload": "Parallel upload (faster)",
+    "batch_upload": "Batch upload (balanced)",
+    "upload_all": "Upload all",
+    "new_file": "New file",
+    "system": "System",
+    "folder": "Folder",
+    "contract": "Contract",
+    "id_card": "ID Card",
+    "certificate": "Certificate",
+    "report": "Report",
+    "invoice": "Invoice",
+    "medical": "Medical",
+    "work": "Work",
+    "building": "Building",
+    "team": "Team",
+    "briefcase": "Briefcase",
+    "operations": "Operations",
+    "sales": "Sales",
+    "maintenance": "Maintenance",
+    "health": "Health",
+    "it": "IT",
+    "legal": "Legal",
+    "finance": "Finance",
+    "person": "Person",
+    "save_task": "Save task",
+    "all_categories": "All categories",
+    "all_types": "All types",
+    "image": "Image",
+    "confirm_delete_message": "Are you sure you want to delete these documents?",
+    "documents_to_trash": "documents will be moved to trash",
+    "delete_reversible": "This action can be undone from trash",
+    "confirm": "Confirm",
+    "selected_documents_preview": "Selected documents preview",
+    "confirm_selection": "Confirm selection",
+    "clear_search": "Clear search",
+    "description_placeholder": "Document description...",
+    "department_description_placeholder": "Department description...",
+    "keyword_placeholder": "Search keywords...",
+    "task_description_placeholder": "Task description...",
+    "task_category_placeholder": "Task category...",
+    "new_user_placeholder": "Username or email...",
+    "email_placeholder": "email@example.com",
+    "loading_departments": "Loading departments...",
+    "all_people": "All people"
+  },
+  
+  "trash": {
+    "title": "Recycle Bin",
+    "subtitle": "Deleted documents - Automatically deleted after 30 days",
+    "documents_in_trash": "Documents in Trash",
+    "total_space": "Total space",
+    "expiring_soon": "Expiring soon",
+    "expiring_soon_subtitle": "(≤ 7 days)",
+    "upcoming": "Upcoming",
+    "upcoming_subtitle": "(8-14 days)",
+    "search_trash": "Search in trash...",
+    "grid_view": "Grid view",
+    "list_view": "List view",
+    "sort_by": "Sort by",
+    "newest_first": "Newest first",
+    "oldest_first": "Oldest first",
+    "least_days": "Least days remaining",
+    "most_days": "Most days remaining",
+    "name_asc": "Name (A-Z)",
+    "name_desc": "Name (Z-A)",
+    "largest_size": "Largest size",
+    "smallest_size": "Smallest size",
+    "select_all": "Select All",
+    "deselect": "Deselect",
+    "selected": "selected",
+    "restore_selected": "Restore Selected",
+    "delete_selected": "Delete Selected",
+    "empty_trash": "Trash is empty",
+    "empty_trash_message": "Deleted documents will appear here for 30 days",
+    "tip_auto_delete": "Documents are automatically deleted after 30 days",
+    "tip_restore": "You can restore documents before they are permanently deleted",
+    "processing": "Processing..."
+  },
+  
+  "history": {
+    "title": "System History",
+    "subtitle": "Complete record of all activities",
+    "clear_history": "Clear History",
+    "export": "Export",
+    "search_filters": "Search Filters",
+    "date_range": "Date range",
+    "from": "From",
+    "to": "To",
+    "activity_type": "Activity type",
+    "all_types": "All types",
+    "document_uploaded": "Document uploaded",
+    "document_deleted": "Document deleted",
+    "document_expiring": "Document expiring",
+    "document_expired": "Document expired",
+    "person_added": "Person added",
+    "person_deleted": "Person deleted",
+    "category_added": "Category added",
+    "report_generated": "Report generated",
+    "system_started": "System started",
+    "system_error": "System error",
+    "priority_level": "Priority level",
+    "all_priorities": "All priorities",
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "read_status": "Read status",
+    "all_statuses": "All statuses",
+    "read": "Read",
+    "unread": "Unread",
+    "results_per_page": "Results per page",
+    "records": "records",
+    "total_records": "Total records",
+    "unread_records": "Unread",
+    "today": "Today",
+    "critical_records": "Critical",
+    "date": "Date",
+    "message": "Message",
+    "actions": "Actions",
+    "no_history": "No history available",
+    "no_history_desc": "No activities have been recorded yet"
+  },
+  
+  "people": {
+    "title": "People Management",
+    "subtitle": "Manage users, students and staff",
+    "add_person": "Add Person",
+    "departments": "Departments",
+    "add_department": "New Department",
+    "search_people": "Search people...",
+    "all_positions": "All positions",
+    "sort_by_name_asc": "Sort by name (A-Z)",
+    "sort_by_name_desc": "Sort by name (Z-A)",
+    "no_people": "No people registered",
+    "add_first_person": "Add the first person to start"
+  },
+  
+  "documents": {
+    "title": "Document Management",
+    "subtitle": "Organize and manage all system documents",
+    "advanced_search": "Advanced Search",
+    "bulk_delete": "Bulk Delete",
+    "upload_document": "Upload Document",
+    "available_categories": "Available Categories",
+    "new_category": "New Category",
+    "filter_documents": "Filter Documents",
+    "clear_filters": "Clear Filters",
+    "all_categories": "All categories",
+    "all_statuses": "All statuses",
+    "no_expiration": "No expiration",
+    "search_placeholder": "Search by name, category, description...",
+    "documents": "documents",
+    "select_all_page": "Select all on this page",
+    "deselect_all": "Deselect all",
+    "document": "Document",
+    "type": "Type",
+    "person": "Person",
+    "status": "Status",
+    "selected_documents": "Selected documents",
+    "category": "Category",
+    "expired_documents_desc": "Documents that have expired their expiration date"
+  },
+  
+  "tasks": {
+    "title": "Task Management",
+    "subtitle": "Organize your tasks and activities",
+    "new_task": "New Task",
+    "search_tasks": "Search tasks...",
+    "all_priorities": "All priorities",
+    "high_priority": "High priority",
+    "medium_priority": "Medium priority",
+    "low_priority": "Low priority",
+    "total_tasks": "Total tasks",
+    "pending": "Pending",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "no_tasks": "No tasks registered",
+    "create_first_task": "Create your first task to start"
+  },
+  
+  "calendar": {
+    "title": "Calendar",
+    "today": "Today:",
+    "all": "All",
+    "academic": "Academic",
+    "meetings": "Meetings",
+    "deadlines": "Deadlines",
+    "holidays": "Holidays",
+    "print": "Print",
+    "new_event": "New Event",
+    "reset": "Reset",
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "upcoming_events": "Upcoming Events",
+    "mon_short": "Mon",
+    "tue_short": "Tue",
+    "wed_short": "Wed",
+    "thu_short": "Thu",
+    "fri_short": "Fri",
+    "sat_short": "Sat",
+    "sun_short": "Sun"
+  },
+  
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Generate and download customized system reports",
+    "report_type": "Report Type",
+    "general_report": "General Report",
+    "by_category": "By Category",
+    "by_person": "By Person",
+    "expiring": "Documents Expiring",
+    "expired": "Expired Documents",
+    "format": "Format",
+    "excel": "Excel",
+    "csv": "CSV",
+    "preview": "Report Preview",
+    "generate_report": "Generate Report",
+    "report_generation": "This report will include a complete summary of the system",
+    "category_details": "Category Details:",
+    "category": "Category",
+    "category_help": "Select a category or All",
+    "all_categories": "All Categories",
+    "general_report_note": "This report will include a complete summary of the system",
+    "preview_category_title": "Preview report by category",
+    "preview_general_title": "Preview general report",
+    "total_documents": "Total Documents",
+    "total_persons": "Total Persons",
+    "total_categories": "Total Categories",
+    "expiring_30_days": "Documents Expiring in 30 days"
+  },
+  
+  "support": {
+    "title": "Support Center",
+    "subtitle": "Help, guides and support tickets for the system",
+    "new_ticket": "New Ticket",
+    "system_guide": "Complete System Guide",
+    "dashboard_guide": "Main Dashboard",
+    "dashboard_subtitle": "Control panel and statistics",
+    "people_guide": "People Management",
+    "people_subtitle": "Users, roles and permissions",
+    "documents_guide": "Document Management",
+    "documents_subtitle": "Files, folders and versions",
+    "tasks_guide": "Task Management",
+    "tasks_subtitle": "Assignment and tracking",
+    "history_guide": "Activity History",
+    "history_subtitle": "Audit and tracking",
+    "calendar_guide": "Event Calendar",
+    "calendar_subtitle": "Scheduling and reminders",
+    "settings_guide": "Configuration",
+    "settings_subtitle": "System customization",
+    "reports_guide": "Reports and Analysis",
+    "reports_subtitle": "Statistics and metrics",
+    "admin_guide": "Administrative Panel",
+    "admin_subtitle": "Advanced control and configuration",
+    "dark_mode_guide": "Dark Mode",
+    "dark_mode_subtitle": "Visual fatigue reduction",
+    "trash_guide": "Recycle Bin",
+    "trash_subtitle": "Element recovery",
+    "notifications_guide": "Notification System",
+    "notifications_subtitle": "Alerts and reminders",
+    "sections_available": "sections available",
+    "system_status": "System Status",
+    "main_system": "Main System",
+    "database": "Database",
+    "cloud_storage": "Cloud Storage",
+    "email_service": "Email Service",
+    "operational": "Operational",
+    "connected": "Connected",
+    "active": "Active",
+    "configured": "Configured",
+    "all_systems_operational": "All systems operational",
+    "updated": "Updated:",
+    "faq": "Frequently Asked Questions (FAQ)",
+    "guide_subtitle": "Tutorials and complete documentation",
+    "guide_sections": "Available sections",
+    "guide_navigate": "Navigate through sections",
+    "search_results": "Search results",
+    "ticket_description_hint": "Include steps to reproduce the problem, screenshots or any relevant information.",
+    "view_guide_dashboard": "View Dashboard guide",
+    "view_guide_people": "View People guide",
+    "view_guide_documents": "View Documents guide",
+    "view_guide_tasks": "View Tasks guide",
+    "view_guide_history": "View History guide",
+    "view_guide_calendar": "View Calendar guide",
+    "view_guide_settings": "View Settings guide",
+    "view_guide_reports": "View Reports guide",
+    "view_guide_admin": "View Administration guide",
+    "view_guide_dark_mode": "View Dark Mode guide",
+    "view_guide_trash": "View Trash guide",
+    "view_guide_notifications": "View Notifications guide"
+  },
+
+  "system_status": {
+    "refreshing": "Updating system status...",
+    "retrying": "Retrying...",
+    "checking": "Checking...",
+    "updating": "Updating...",
+    "connection_error": "Connection error",
+    "error": "Error",
+    "server_unavailable": "Server unavailable",
+    "verification_error": "Verification error",
+    "last_error": "Last error",
+    "system_unavailable": "System unavailable",
+    "unknown_status": "Unknown status",
+    "status": "Status",
+    "details": "Details",
+    "updated": "Updated",
+    "recent": "recent",
+    "seconds_ago": "{seconds} seconds ago",
+    "minutes_ago": "{minutes} minutes ago",
+    "full_date": "Full date",
+    "timestamp_error": "Error in timestamp",
+    "technical_details": "Technical Details",
+    "recommendations": "Recommendations",
+    "refresh_status": "Refresh Status",
+    "refreshing_system": "Updating system status...",
+    "errors_count": "{count} error(s)",
+    "warnings_count": "{count} warning(s)",
+    "maintenance_count": "{count} in maintenance",
+    "system_warnings": "System with warnings ({count})",
+    "system_problems": "System with problems ({count} errors)",
+    "system_maintenance": "In maintenance ({count} services)",
+    "all_services_working": "All services are working correctly",
+    "system_with_warnings": "System with warnings",
+    "services_need_attention": "{count} service(s) need attention",
+    "system_with_problems": "System with problems",
+    "services_with_errors": "{count} service(s) with critical errors",
+    "under_maintenance": "Under maintenance",
+    "services_in_maintenance": "{count} service(s) in scheduled maintenance",
+    "cannot_determine_status": "Cannot determine system status",
+    "data_exported": "Exported status data",
+    "module_restarted": "MModule restarted",
+    "init_error": "Error initializing status module",
+    "retry": "Retry"
+},
+
+"guide": {
+  "dashboard": {
+    "description": "The dashboard is the control center from where you can monitor the two main activities of the system.",
+    "overview": "From here you can view real-time statistics, quick access to the most used functions, and the 5 most recent files.",
+    "steps": {
+      "1": {
+        "title": "Statistics",
+        "description": "Observe the 4 key statistics of the system at the top."
+      },
+      "2": {
+        "title": "Quick Access",
+        "description": "Quickly access the most used functions with the quick access buttons."
+      },
+      "3": {
+        "title": "Recent Files",
+        "description": "Review the most recent files uploaded to the system."
+      }
+    },
+    "tips": {
+      "1": "You can click the refresh button to refresh the dashboard data.",
+      "2": "Click on any recent files option to perform the action.",
+      "3": "Observe the 4 key statistics, they will help you monitor the system."
+    },
+    "features": {
+      "1": {
+        "title": "General Overview",
+        "desc": "Complete view of system status"
+      },
+      "2": {
+        "title": "Recent Activity",
+        "desc": "Latest actions performed"
+      },
+      "3": {
+        "title": "Quick Actions",
+        "desc": "Documents and people section at first glance"
+      },
+      "4": {
+        "title": "Notifications",
+        "desc": "Important notifications"
+      }
+    }
+  },
+  "people": {
+    "description": "Manage people, departments, positions and all people information.",
+    "overview": "This module allows you to manage all aspects related to people in the system, from creating people to assigning positions and information.",
+    "steps": {
+      "1": {
+        "title": "Add Person",
+        "description": "Add new people to the system by completing the registration form."
+      },
+      "2": {
+        "title": "Assign Position and Departments",
+        "description": "Define what each person can do by assigning specific positions and departments."
+      },
+      "3": {
+        "title": "Manage Departments",
+        "description": "Organize people into departments for better administration."
+      },
+      "4": {
+        "title": "Person Actions",
+        "description": "If you made a mistake with a person, you can delete or edit them, same for departments."
+      }
+    },
+    "tips": {
+      "1": "Use filters to search for people more accurately.",
+      "2": "Use the search function to search for people by name, position, department, etc."
+    },
+    "features": {
+      "1": {
+        "title": "People Management",
+        "desc": "Complete CRUD of people"
+      },
+      "2": {
+        "title": "Position Control",
+        "desc": "Position and department system"
+      },
+      "3": {
+        "title": "Complete Profiles",
+        "desc": "Detailed information of each registered person"
+      },
+      "4": {
+        "title": "Department Management",
+        "desc": "Organize people into departments"
+      }
+    }
+  },
+  "documents": {
+    "description": "Complete system for uploading, organizing, deleting, searching and performing actions on documents.",
+    "overview": "Centralize all your organization's documentation in one place. Upload, categorize, control and access versions of important documents.",
+    "steps": {
+      "1": {
+        "title": "Upload Documents",
+        "description": "Drag and drop files or use the upload button to add documents with the option to upload a single file or multiple files."
+      },
+      "2": {
+        "title": "Organize into Categories",
+        "description": "Create document structures to keep documents organized."
+      },
+      "3": {
+        "title": "Relate to People",
+        "description": "Relate specific documents to people."
+      },
+      "4": {
+        "title": "Action Control",
+        "description": "If you made a mistake with a document, you can delete or edit it, as well as download or view it."
+      }
+    },
+    "tips": {
+      "1": "Use tags (filters) to facilitate document search.",
+      "2": "If filters are complicated for you, switch to advanced search.",
+      "3": "Use document actions to perform actions on documents or verify."
+    },
+    "features": {
+      "1": {
+        "title": "Multiple Upload",
+        "desc": "Upload multiple files at once"
+      },
+      "2": {
+        "title": "Advanced Search",
+        "desc": "Find documents by name, content, tags and more"
+      },
+      "3": {
+        "title": "Categories",
+        "desc": "Organize documents into categories"
+      }
+    }
+  },
+  "tasks": {
+    "description": "Task management system with board to organize and track activity progress.",
+    "overview": "Organize and manage your tasks efficiently with our task management system based on tables as a board.",
+    "steps": {
+      "1": {
+        "title": "Create Tasks",
+        "description": "Create new tasks with a simple click."
+      },
+      "2": {
+        "title": "Organize Tasks",
+        "description": "Organize your tasks in columns to maintain a progress record."
+      },
+      "3": {
+        "title": "Track Tasks",
+        "description": "Track task progress with a board to see the status of each task."
+      }
+    },
+    "tips": {
+      "1": "Use tags to categorize your tasks.",
+      "2": "Assign priorities to better manage your time.",
+      "3": "Regularly review tasks nearing expiration."
+    },
+    "features": {
+      "1": {
+        "title": "Kanban Board",
+        "desc": "Visualize tasks in columns by status"
+      },
+      "2": {
+        "title": "Prioritization",
+        "desc": "Assign priority levels to each task"
+      },
+      "3": {
+        "title": "Tracking",
+        "desc": "Monitor progress in real time"
+      }
+    }
+  },
+  "history": {
+    "description": "Complete record of all system activities and events.",
+    "overview": "Keep a detailed record of all actions performed in the system, with advanced filters for auditing and tracking.",
+    "steps": {
+      "1": {
+        "title": "View Complete Record",
+        "description": "Access the complete history of system activities."
+      },
+      "2": {
+        "title": "Filter Activities",
+        "description": "Use advanced filters to find specific activities."
+      },
+      "3": {
+        "title": "Export History",
+        "description": "Export history in different formats for external analysis."
+      },
+      "4": {
+        "title": "Clean History",
+        "description": "Manage space by deleting old records when necessary."
+      }
+    },
+    "tips": {
+      "1": "Use date filters to find specific activities.",
+      "2": "Regularly export history to maintain backups.",
+      "3": "Review history to detect unusual activities."
+    },
+    "features": {
+      "1": {
+        "title": "Complete Record",
+        "desc": "All system activities recorded"
+      },
+      "2": {
+        "title": "Advanced Filters",
+        "desc": "Search by type, date, priority and status"
+      },
+      "3": {
+        "title": "Export",
+        "desc": "Export data in multiple formats"
+      },
+      "4": {
+        "title": "Statistics",
+        "desc": "Metrics and activity analysis"
+      }
+    }
+  },
+  "calendar": {
+    "description": "Complete calendar system for managing events, meetings and important deadlines.",
+    "overview": "Organize and schedule all important organization events in an intuitive calendar with reminders and categorization.",
+    "steps": {
+      "1": {
+        "title": "View Monthly Calendar",
+        "description": "Navigate through months to see all scheduled events."
+      },
+      "2": {
+        "title": "Create New Events",
+        "description": "Add academic events, meetings, deadlines and holidays."
+      },
+      "3": {
+        "title": "Filter by Category",
+        "description": "Use filters to view only certain types of events."
+      },
+      "4": {
+        "title": "Configure Reminders",
+        "description": "Set alerts to not forget important events."
+      }
+    },
+    "tips": {
+      "1": "Use different colors for each event type.",
+      "2": "Configure reminders with sufficient advance notice.",
+      "3": "Share important events with other users."
+    },
+    "features": {
+      "1": {
+        "title": "Monthly View",
+        "desc": "Complete calendar with monthly view"
+      },
+      "2": {
+        "title": "Multiple Categories",
+        "desc": "Academic events, meetings, deadlines and holidays"
+      },
+      "3": {
+        "title": "Reminders",
+        "desc": "Customizable alerts per event"
+      },
+      "4": {
+        "title": "Mini Calendar",
+        "desc": "Quick view of upcoming events"
+      }
+    }
+  },
+  "settings": {
+    "description": "Customize and configure all aspects of the system according to your needs.",
+    "overview": "Adjust system preferences, configure general parameters and customize user experience.",
+    "steps": {
+      "1": {
+        "title": "General Configuration",
+        "description": "Adjust basic system parameters."
+      },
+      "2": {
+        "title": "User Preferences",
+        "description": "Customize your user experience."
+      },
+      "3": {
+        "title": "Notification Settings",
+        "description": "Control how and when to receive notifications."
+      },
+      "4": {
+        "title": "Security Settings",
+        "description": "Manage permissions and security policies."
+      }
+    },
+    "tips": {
+      "1": "Regularly review security configuration.",
+      "2": "Customize notifications to avoid distractions.",
+      "3": "Save configuration backups."
+    },
+    "features": {
+      "1": {
+        "title": "Customization",
+        "desc": "Adjust appearance and behavior"
+      },
+      "2": {
+        "title": "Security",
+        "desc": "Configure permissions and access policies"
+      },
+      "3": {
+        "title": "Notifications",
+        "desc": "Full control over alerts and reminders"
+      },
+      "4": {
+        "title": "Backups",
+        "desc": "Configuration backup management"
+      }
+    }
+  },
+  "reports": {
+    "description": "Generate detailed reports and statistical analysis of the system.",
+    "overview": "Create customized reports about documents, people, activities and system metrics for informed decision making.",
+    "steps": {
+      "1": {
+        "title": "Select Report Type",
+        "description": "Choose between general reports, by category, by person or document reports."
+      },
+      "2": {
+        "title": "Configure Filters",
+        "description": "Apply specific filters to obtain precise data."
+      },
+      "3": {
+        "title": "Select Format",
+        "description": "Choose between Excel or CSV for export."
+      },
+      "4": {
+        "title": "Generate and Download",
+        "description": "Generate the report and download it in the selected format."
+      }
+    },
+    "tips": {
+      "1": "Use specific filters for more relevant reports.",
+      "2": "Schedule recurring reports for periodic analysis.",
+      "3": "Compare reports from different periods to identify trends."
+    },
+    "features": {
+      "1": {
+        "title": "Customized Reports",
+        "desc": "Create reports with specific criteria"
+      },
+      "2": {
+        "title": "Multiple Formats",
+        "desc": "Export in Excel, CSV and other formats"
+      },
+      "3": {
+        "title": "Preview",
+        "desc": "View report before downloading"
+      },
+      "4": {
+        "title": "Scheduling",
+        "desc": "Configure automatic recurring reports"
+      }
+    }
+  },
+  "admin": {
+    "description": "Advanced administration and system control tools.",
+    "overview": "Access advanced administrative functions to manage users, permissions, audits and system configuration.",
+    "steps": {
+      "1": {
+        "title": "User Management",
+        "description": "Manage user accounts and permissions."
+      },
+      "2": {
+        "title": "System Configuration",
+        "description": "Adjust advanced system parameters."
+      },
+      "3": {
+        "title": "Audit and Logs",
+        "description": "Review system logs and user activities."
+      },
+      "4": {
+        "title": "Change Administrator",
+        "description": "Transfer administrative privileges to another user."
+      }
+    },
+    "tips": {
+      "1": "Perform regular activity audits.",
+      "2": "Maintain configuration backups.",
+      "3": "Periodically review system logs."
+    },
+    "features": {
+      "1": {
+        "title": "User Control",
+        "desc": "Complete account and permission management"
+      },
+      "2": {
+        "title": "Advanced Configuration",
+        "desc": "Detailed system settings"
+      },
+      "3": {
+        "title": "Audit",
+        "desc": "Complete activity record"
+      },
+      "4": {
+        "title": "Security",
+        "desc": "Advanced security tools"
+      }
+    }
+  },
+  "dark_mode": {
+    "description": "Visual alternative to reduce eye strain in low light conditions.",
+    "overview": "Activate dark mode for a more comfortable visual experience during night or in low light environments.",
+    "steps": {
+      "1": {
+        "title": "Activate Dark Mode",
+        "description": "Click on the theme change button in the sidebar."
+      },
+      "2": {
+        "title": "Adjust Brightness",
+        "description": "Configure brightness level according to your preferences."
+      },
+      "3": {
+        "title": "Schedule Changes",
+        "description": "Configure automatic changes according to time of day."
+      }
+    },
+    "tips": {
+      "1": "Use dark mode in low light environments.",
+      "2": "Adjust your screen brightness for greater comfort.",
+      "3": "Schedule automatic changes at sunset."
+    },
+    "features": {
+      "1": {
+        "title": "Fatigue Reduction",
+        "desc": "Less visual stress in low light conditions"
+      },
+      "2": {
+        "title": "Energy Saving",
+        "desc": "Consumes less energy on OLED/AMOLED screens"
+      },
+      "3": {
+        "title": "Scheduling",
+        "desc": "Automatic changes according to schedule"
+      },
+      "4": {
+        "title": "Customization",
+        "desc": "Adjust colors and contrasts"
+      }
+    }
+  },
+  "trash": {
+    "description": "Document and deleted item recovery system.",
+    "overview": "Recover accidentally deleted documents. Items remain in the trash for 30 days before being permanently deleted.",
+    "steps": {
+      "1": {
+        "title": "View Deleted Items",
+        "description": "Review all documents in the trash."
+      },
+      "2": {
+        "title": "Restore Items",
+        "description": "Recover accidentally deleted documents."
+      },
+      "3": {
+        "title": "Permanently Delete",
+        "description": "Delete items from trash before 30 days."
+      },
+      "4": {
+        "title": "Empty Trash",
+        "description": "Delete all items from trash."
+      }
+    },
+    "tips": {
+      "1": "Check trash before permanent deletions.",
+      "2": "Documents are automatically deleted after 30 days.",
+      "3": "Use search to find specific documents."
+    },
+    "features": {
+      "1": {
+        "title": "Recovery",
+        "desc": "Restore deleted documents"
+      },
+      "2": {
+        "title": "Time Limited",
+        "desc": "30 days to recover items"
+      },
+      "3": {
+        "title": "Search",
+        "desc": "Find specific documents"
+      },
+      "4": {
+        "title": "Bulk Management",
+        "desc": "Restore or delete multiple documents"
+      }
+    }
+  },
+  "notifications": {
+    "description": "Complete alert and reminder system to keep you informed.",
+    "overview": "Receive important notifications about documents nearing expiration, system activities, updates and scheduled events.",
+    "steps": {
+      "1": {
+        "title": "View Notifications",
+        "description": "Access notifications panel from the top bar."
+      },
+      "2": {
+        "title": "Configure Preferences",
+        "description": "Define what notifications you want to receive and how."
+      },
+      "3": {
+        "title": "Mark as Read",
+        "description": "Manage your notification status."
+      },
+      "4": {
+        "title": "Configure Alerts",
+        "description": "Set alerts for important events."
+      }
+    },
+    "tips": {
+      "1": "Regularly review your notifications.",
+      "2": "Configure alerts for documents nearing expiration.",
+      "3": "Disable non-essential notifications to reduce distractions."
+    },
+    "features": {
+      "1": {
+        "title": "Real-Time Notifications",
+        "desc": "Immediate alerts of important activities"
+      },
+      "2": {
+        "title": "Customization",
+        "desc": "Full control over notification types"
+      },
+      "3": {
+        "title": "History",
+        "desc": "Complete notification record"
+      },
+      "4": {
+        "title": "Multiple Alerts",
+        "desc": "Notifications in system, email and push"
+      }
+    }
+  },
+
+  "progress1": "Section 1 of 12",
+  "progress2": "Section 2 of 12",
+  "progress3": "Section 3 of 12",
+  "progress4": "Section 4 of 12",
+  "progress5": "Section 5 of 12",
+  "progress6": "Section 6 of 12",
+  "progress7": "Section 7 of 12",
+  "progress8": "Section 8 of 12",
+  "progress9": "Section 9 of 12",
+  "progress10": "Section 10 of 12",
+  "progress11": "Section 11 of 12",
+  "progress12": "Section 12 of 12",
+
+  "image_caption_dashboard": "Main dashboard with widgets and real-time statistics",
+  "image_caption_people": "People management module with advanced search and list",
+  "image_caption_documents": "Documents management module with advanced search and categories",
+  "image_caption_calendar": "Calendar management module with advanced search and events",
+  "image_caption_reports": "Reports management module with advanced search and reports",
+  "image_caption_admin": "Administration management module with advanced search and users",
+  "image_caption_settings": "Settings management module with advanced search and preferences",
+  "image_caption_trash": "Trash management module with advanced search and documents",
+  "image_caption_notifications": "Notifications management module with advanced search and notifications",
+  "image_caption_tasks": "Tasks management module with advanced search and board",
+  "image_caption_history": "History management module with advanced search and history",
+  "image_caption_dark-mode": "Dark mode interface for better visibility",
+
+  "overview": "Overview",
+
+  "main_features": "Main features",
+
+  "how_to_use": "How to Use Step by Step",
+
+  "practical_tips": "Practical tips",
+
+  "view_detail": "View detail"
+}
+}
