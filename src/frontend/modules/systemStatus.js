@@ -24,16 +24,6 @@ class SystemStatusModule {
     setupEventListeners() {
         console.log('🔧 SystemStatusModule: Configurando event listeners REALES');
         
-        // Botón de actualización manual
-        const refreshBtn = document.querySelector('.system-status-refresh');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                console.log('🔄 Actualizando estado del sistema manualmente');
-                this.loadSystemStatus();
-                this.showToast('Estado del sistema actualizado', 'info');
-            });
-        }
-        
         // Configurar para mostrar detalles al hacer clic en un servicio
         document.addEventListener('click', (e) => {
             if (e.target.closest('.status-item')) {

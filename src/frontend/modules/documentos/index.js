@@ -513,28 +513,7 @@ export function initializeDocumentosModule() {
         // 11. Configurar funciones globales
         setupGlobalFunctions();
 
-        // 12. Botón "Actualizar"
-        const refreshBtn = document.getElementById('refreshDocumentsBtn');
-        if (refreshBtn && !refreshBtn.dataset.listenerBound) {
-            refreshBtn.dataset.listenerBound = 'true';
-            refreshBtn.addEventListener('click', async () => {
-                refreshBtn.disabled = true;
-                try {
-                    if (window.refreshDocumentsView) {
-                        await window.refreshDocumentsView();
-                    } else if (window.loadDocuments) {
-                        await window.loadDocuments();
-                    }
-                } catch (e) {
-                    console.error('Error al actualizar documentos:', e);
-                    showAlert('Error al actualizar documentos', 'error');
-                } finally {
-                    refreshBtn.disabled = false;
-                }
-            });
-        }
-
-        // 13. Inicializar panel de documentos vencidos
+        // 12. Inicializar panel de documentos vencidos
         const viewAllBtn = document.getElementById('viewAllExpiredBtn');
         const modeSelect = document.getElementById('expiredViewMode');
 

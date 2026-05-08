@@ -749,9 +749,6 @@ export async function renderAuditoria() {
                     <p class="audit-subtitle">Registro detallado de todas las acciones críticas del sistema</p>
                 </div>
                 <div class="audit-header__right">
-                    <button class="btn btn--primary" id="refreshAuditBtn" title="Actualizar">
-                        <i class="fas fa-sync-alt"></i> Actualizar
-                    </button>
                     ${state.isAdmin ? `
                         <div class="audit-actions">
                             <button class="btn btn--danger" id="cleanupAuditBtn" title="Limpiar logs antiguos">
@@ -891,12 +888,6 @@ export async function renderAuditoria() {
 }
 
 function setupEventListeners() {
-    // Refresh
-    document.getElementById('refreshAuditBtn')?.addEventListener('click', () => {
-        loadLogs(1);
-        if (state.isAdmin) loadStats();
-    });
-
     // Aplicar filtros
     document.getElementById('applyFiltersBtn')?.addEventListener('click', applyFilters);
 

@@ -1196,9 +1196,6 @@ export async function renderAgregarAdministrador() {
               <i class="fas fa-search"></i>
               <input type="text" id="adminSearchInput" placeholder="Buscar usuarios...">
             </div>
-            <button class="btn btn--primary btn--sm" id="refreshUsersBtn" title="Actualizar">
-              <i class="fas fa-sync-alt"></i>
-            </button>
           </div>
         </div>
 
@@ -1349,7 +1346,6 @@ export async function renderAgregarAdministrador() {
     // ══════════════════════════════════════════════════════
     const listEl   = document.getElementById('adminUsersList');
     const searchEl = document.getElementById('adminSearchInput');
-    const refBtn   = document.getElementById('refreshUsersBtn');
     const form     = document.getElementById('adminCreateUserForm');
     const resetBtn = document.getElementById('adminResetFormBtn');
 
@@ -1366,7 +1362,6 @@ export async function renderAgregarAdministrador() {
         : `<tr><td colspan="6" class="empty-state"><div class="empty-state__icon"><i class="fas fa-search"></i></div><h3 class="empty-state__title">Sin resultados</h3></td></tr>`;
     });
 
-    refBtn?.addEventListener('click', () => { rolesEventsAttached = false; renderAgregarAdministrador(); });
     resetBtn?.addEventListener('click', () => {
       if (form) {
         form.reset();
