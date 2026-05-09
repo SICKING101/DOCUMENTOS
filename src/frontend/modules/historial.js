@@ -41,7 +41,6 @@ class HistorialManager {
 
     bindEvents() {
         // Botones de acción con preloader
-        document.getElementById('refreshHistoryBtn')?.addEventListener('click', () => this.loadHistorial());
         document.getElementById('clearHistoryBtn')?.addEventListener('click', () => this.clearHistorial());
         document.getElementById('exportHistoryBtn')?.addEventListener('click', () => this.exportHistorial());
         

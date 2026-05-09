@@ -1,11 +1,9 @@
+// src/backend/controllers/authController.js
+
 import User from '../models/User.js';
 import crypto from 'crypto';
 import AuditService from '../services/auditService.js';
 import emailService from '../services/emailService.js';
-
-// ELIMINADO TODO EL CÓDIGO DE NODEMAILER Y GMAIL
-// ELIMINADA LA CONFIGURACIÓN DE TRANSPORTER
-// ELIMINADA LA FUNCIÓN enviarEmailGmail
 
 // =============================================================================
 // FUNCIONES AUXILIARES

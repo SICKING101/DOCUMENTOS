@@ -431,16 +431,78 @@ export function initializeDocumentosModule() {
         // 2. Configurar drag and drop
         setupFileDragAndDrop();
         
-        // 3. Cargar estado de filtros si existe
-        loadFilterState();
+        // 3. ✅ LIMPIAR localStorage si tiene filtros corruptos
+        try {
+            const savedFilters = localStorage.getItem('documentFilters');
+            if (savedFilters) {
+                const parsed = JSON.parse(savedFilters);
+                // Si solo tiene status='active' sin categoría, es el filtro por defecto corrupto
+                if (parsed.status === 'active' && !parsed.category && !parsed.type && !parsed.date) {
+                    console.log('🧹 Detectado filtro corrupto (status=active sin categoría), limpiando localStorage...');
+                    localStorage.removeItem('documentFilters');
+                    localStorage.removeItem('documentSearchQuery');
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ Error limpiando filtros viejos:', e.message);
+            localStorage.removeItem('documentFilters');
+            localStorage.removeItem('documentSearchQuery');
+        }
         
-        // 4. Inicializar filtros de tabla
+        // 4. ✅ Inicializar appState con filtros LIMPIOS
+        if (!window.appState) {
+            window.appState = {};
+        }
+        if (!window.appState.documents) {
+            window.appState.documents = [];
+        }
+        window.appState.filters = {
+            category: '',
+            type: '',
+            date: '',
+            status: ''  // ✅ SIEMPRE inicia en "Todos los estados"
+        };
+        window.appState.currentSearchQuery = '';
+        window.appState.filteredDocuments = null;
+        
+        console.log('📊 Estado inicial de filtros:', window.appState.filters);
+        
+        // 5. Inicializar filtros de tabla (con los valores limpios)
         initializeTableFilters();
         
-        // 5. Inicializar modal de eliminación múltiple
+        // 6. ✅ Establecer el select de estado a '' explícitamente
+        const filterStatus = document.getElementById('filterStatus');
+        if (filterStatus) {
+            filterStatus.value = '';
+            console.log('🎯 Filtro de estado establecido a: (Todos)');
+        }
+        
+        const filterCategory = document.getElementById('filterCategory');
+        if (filterCategory) {
+            filterCategory.value = '';
+        }
+        
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
+        // 7. Ahora SÍ cargar estado guardado (si hay algo válido)
+        loadFilterState();
+        
+        // 8. ✅ DESPUÉS de loadFilterState, verificar que no haya status='active' corrupto
+        if (window.appState.filters && window.appState.filters.status === 'active' && 
+            !window.appState.filters.category && !window.appState.filters.type && !window.appState.filters.date) {
+            console.log('🧹 loadFilterState restauró filtro corrupto, limpiando de nuevo...');
+            window.appState.filters.status = '';
+            if (filterStatus) filterStatus.value = '';
+            localStorage.removeItem('documentFilters');
+        }
+        
+        // 9. Inicializar modal de eliminación múltiple
         bulkDeleteModal.init();
         
-        // 6. Inicializar modal de edición de documentos
+        // 10. Inicializar modal de edición de documentos
         import('./modals/editDocumentModal.js').then(module => {
             module.initEditDocumentModal();
             console.log('✅ Modal de edición inicializado');
@@ -448,37 +510,16 @@ export function initializeDocumentosModule() {
             console.error('❌ Error cargando modal de edición:', err);
         });
         
-        // 7. Configurar funciones globales
+        // 11. Configurar funciones globales
         setupGlobalFunctions();
 
-        // 7.1 Botón "Actualizar" (recargar lista + filtros + categorías)
-        const refreshBtn = document.getElementById('refreshDocumentsBtn');
-        if (refreshBtn && !refreshBtn.dataset.listenerBound) {
-            refreshBtn.dataset.listenerBound = 'true';
-            refreshBtn.addEventListener('click', async () => {
-                refreshBtn.disabled = true;
-                try {
-                    if (window.refreshDocumentsView) {
-                        await window.refreshDocumentsView();
-                    } else if (window.loadDocuments) {
-                        await window.loadDocuments();
-                    }
-                } catch (e) {
-                    console.error('Error al actualizar documentos:', e);
-                    showAlert('Error al actualizar documentos', 'error');
-                } finally {
-                    refreshBtn.disabled = false;
-                }
-            });
-        }
-
-        // 8. Inicializar panel de documentos vencidos
+        // 12. Inicializar panel de documentos vencidos
         const viewAllBtn = document.getElementById('viewAllExpiredBtn');
         const modeSelect = document.getElementById('expiredViewMode');
 
         if (modeSelect) {
             modeSelect.addEventListener('change', () => {
-                try { renderExpiredDocuments(); } catch (e) { console.error('Error re-renderizando panel vencidos tras cambio de modo:', e); }
+                try { renderExpiredDocuments(); } catch (e) { console.error('Error re-renderizando panel vencidos:', e); }
             });
         }
 
@@ -495,14 +536,12 @@ export function initializeDocumentosModule() {
                 if (statusSelect) {
                     statusSelect.value = statusValue;
                     statusSelect.dispatchEvent(new Event('change'));
-                    // Scroll to table for better UX
                     const table = document.getElementById('documentosTableBody');
                     if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
         }
 
-        // Exponer la función para compatibilidad y llamarla ahora
         window.renderExpiredDocuments = renderExpiredDocuments;
         try {
             renderExpiredDocuments();
@@ -511,6 +550,7 @@ export function initializeDocumentosModule() {
         }
         
         console.log('✅ Módulo de documentos inicializado correctamente');
+        console.log('📋 Estado final de filtros:', window.appState.filters);
         console.log('📋 Funcionalidades disponibles:');
         console.table({
             'Subida múltiple': '✓',

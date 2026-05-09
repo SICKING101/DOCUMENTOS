@@ -1,3 +1,5 @@
+// models/Document.js
+
 import mongoose from 'mongoose';
 
 const documentSchema = new mongoose.Schema({
@@ -12,7 +14,7 @@ const documentSchema = new mongoose.Schema({
   cloudinary_url: { type: String, required: true },
   public_id: { type: String, required: true },
   resource_type: { type: String, required: true },
-  // Flujo de revisión/aprobación (compatibilidad: si falta, asumir "approved")
+  // Flujo de revisión/aprobación
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
@@ -25,9 +27,33 @@ const documentSchema = new mongoose.Schema({
   // Campos para papelera
   isDeleted: { type: Boolean, default: false },
   deletedAt: { type: Date, default: null },
-  deletedBy: { type: String, default: null }
+  deletedBy: { type: String, default: null },
+  // ===== 🆕 NUEVO: Identificador de escuela =====
+  schoolId: { 
+    type: String, 
+    required: true, 
+    index: true 
+  },
+  
+  // ===== 🆕 NUEVO: Quién subió el documento =====
+  uploadedBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User',
+    default: null 
+  },
 }, { timestamps: true });
 
-// Usar export default
+// Índices existentes + nuevo
+documentSchema.index({ schoolId: 1, fecha_subida: -1 });
+documentSchema.index({ schoolId: 1, categoria: 1 });
+documentSchema.index({ schoolId: 1, isDeleted: 1 });
+
+// Índices para optimizar consultas frecuentes
+documentSchema.index({ persona_id: 1 });
+documentSchema.index({ categoria: 1 });
+documentSchema.index({ fecha_subida: -1 });
+documentSchema.index({ status: 1 });
+documentSchema.index({ isDeleted: 1 });
+
 const Document = mongoose.model('Document', documentSchema);
 export default Document;

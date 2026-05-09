@@ -455,7 +455,7 @@
 }
 
 /* Ensure empty-state inside expired panel does not produce a floating white box */
-.expired-documents-list .empty-state {
+.expired-documents-list {
   background: transparent !important;
   box-shadow: none !important;
   border-radius: 0 !important;
@@ -464,7 +464,7 @@
   color: var(--text-secondary);
 }
 
-body.dark-theme .expired-documents-list .empty-state {
+body.dark-theme .expired-documents-list {
   color: var(--text-secondary);
 }
 
@@ -533,40 +533,6 @@ body.dark-theme .expired-documents-list .empty-state {
         width: 100%;
     }
 }
-
-/* Estado vacío */
-.empty-state {
-    padding: 4rem 2rem;
-    text-align: center;
-}
-
-.empty-state__icon {
-    font-size: 3.5rem;
-    color: var(--text-tertiary);
-    margin-bottom: var(--spacing-md);
-    opacity: 0.5;
-}
-
-.empty-state__title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-sm);
-}
-
-.empty-state__description {
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-lg);
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-
-
-/* Animaciones */
-
-
 
 /* Responsive */
 @media (max-width: 768px) {

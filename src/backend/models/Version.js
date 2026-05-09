@@ -86,7 +86,7 @@ const versionSchema = new mongoose.Schema(
 );
 
 // Índices
-versionSchema.index({ numero: 1 });
+// NOTA: El campo 'numero' ya tiene unique: true, lo que crea un índice automáticamente
 versionSchema.index({ esActual: 1 });
 versionSchema.index({ fechaLanzamiento: -1 });
 

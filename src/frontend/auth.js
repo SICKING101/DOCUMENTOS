@@ -326,6 +326,7 @@ export async function handleLogin(e) {
         const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // IMPORTANTE: para cookies
             body: JSON.stringify({
                 usuarioOCorreo,
                 password: document.getElementById('loginPassword')?.value || ''
@@ -335,14 +336,21 @@ export async function handleLogin(e) {
         const data = await response.json();
 
         if (data.success) {
+            // ═════════════════════════════════════════════════════
+            // GUARDAR TOKENS CORRECTAMENTE
+            // ═════════════════════════════════════════════════════
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-
+            
+            // Si es super admin, guardar token especial
             if (data.user.isSuperAdmin) {
+                localStorage.setItem('superAdminToken', data.token);
                 console.log('🛡️ Superadmin autenticado - Redirigiendo a panel especial');
-                // Puedes redirigir a un dashboard especial o al mismo dashboard
-                window.location.href = '/superadmin-dashboard.html'; // Opcional
+                window.location.href = '/superadmin-dashboard.html';
             } else {
+                // Asegurar que no quede superAdminToken residual
+                localStorage.removeItem('superAdminToken');
+                console.log('✅ Login exitoso → redirigiendo al dashboard principal');
                 window.location.href = '/';
             }
         } else {
@@ -487,29 +495,38 @@ export async function handleRegister(e) {
 
 export async function logout() {
     try {
-        // Limpiar localStorage
+        // Marcar que estamos cerrando sesión
+        sessionStorage.setItem('loggingOut', 'true');
+        
+        const token = localStorage.getItem('token');
+        const superAdminToken = localStorage.getItem('superAdminToken');
+        
+        // Limpiar localStorage INMEDIATAMENTE
         localStorage.removeItem('token');
         localStorage.removeItem('superAdminToken');
         localStorage.removeItem('user');
         
-        // Llamar al endpoint de logout del backend para limpiar cookies
-        await fetch(`${API_URL}/api/auth/logout`, { 
-            method: 'POST', 
-            credentials: 'include' 
-        });
-        
-        // También llamar al logout de superadmin por si acaso
-        await fetch(`${API_URL}/api/superadmin/logout`, { 
-            method: 'POST', 
-            credentials: 'include' 
-        }).catch(() => {});
+        // Llamar a los endpoints de logout en paralelo
+        await Promise.allSettled([
+            fetch(`${API_URL}/api/auth/logout`, { 
+                method: 'POST', 
+                credentials: 'include',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            }),
+            fetch(`${API_URL}/api/superadmin/logout`, { 
+                method: 'POST', 
+                credentials: 'include',
+                headers: superAdminToken ? { 'Authorization': `Bearer ${superAdminToken}` } : {}
+            })
+        ]);
         
     } catch (e) {
         console.error('Error en logout:', e);
+    } finally {
+        sessionStorage.removeItem('loggingOut');
+        // Redirigir al login
+        window.location.href = '/login.html';
     }
-    
-    // Redirigir al login
-    window.location.href = '/login.html';
 }
 
 // =============================================================================

@@ -120,3 +120,97 @@ body.dark-theme #singleUploadPreloader.preloader-overlay--dark {
     height: 24px;
     border-width: 3px;
 }
+
+/* ============================================================================
+   PRELOADER PRINCIPAL (Carga de tareas)
+   ============================================================================ */
+
+.tasks-preloader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    min-height: 300px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+}
+
+.tasks-preloader__spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1rem;
+    border: 4px solid var(--border);
+    border-top-color: var(--primary);
+    border-right-color: var(--secondary);
+    border-radius: 50%;
+    animation: taskSpin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tasks-preloader__text {
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    animation: taskPulse 1.5s ease-in-out infinite;
+}
+
+/* Spinner elegante con 3 anillos */
+.elegant-spinner {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 1.5rem;
+}
+
+.elegant-spinner__ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-radius: 50%;
+    animation: taskRingSpin 1s linear infinite;
+}
+
+.elegant-spinner__ring:nth-child(1) {
+    border-top-color: var(--primary);
+    border-left-color: var(--primary);
+    animation-duration: 0.8s;
+}
+
+.elegant-spinner__ring:nth-child(2) {
+    width: 70%;
+    height: 70%;
+    top: 15%;
+    left: 15%;
+    border-top-color: var(--secondary);
+    border-right-color: var(--secondary);
+    animation-duration: 1.2s;
+    animation-direction: reverse;
+}
+
+.elegant-spinner__ring:nth-child(3) {
+    width: 40%;
+    height: 40%;
+    top: 30%;
+    left: 30%;
+    border-bottom-color: var(--accent);
+    border-left-color: var(--accent);
+    animation-duration: 1.6s;
+}
+
+.tasks-preloader__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: var(--text-primary);
+}
+
+.tasks-preloader__subtitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}

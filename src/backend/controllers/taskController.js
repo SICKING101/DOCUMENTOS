@@ -59,22 +59,11 @@ class TaskController {
   static async getUserTasks(req, res) {
     try {
       console.log('🔍 [getUserTasks] Iniciando...');
-      
       const userId = req.user?.id;
-      
-      if (!userId) {
-        console.error('❌ [getUserTasks] No userId en request');
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
-      }
-      
-      console.log(`📋 [getUserTasks] Usuario ID: ${userId}`);
+      if (!userId) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       
       const { estado, prioridad, tipo, search } = req.query;
       
-      // Construir query
       const query = {
         activo: true,
         $or: [
@@ -83,11 +72,12 @@ class TaskController {
         ]
       };
       
-      // Aplicar filtros
+      // ✅ Filtro por escuela
+      if (req.schoolId) query.schoolId = req.schoolId;
+      
       if (estado && estado !== 'all') query.estado = estado;
       if (prioridad && prioridad !== 'all') query.prioridad = prioridad;
       if (tipo && tipo !== 'all') query.tipo = tipo;
-      
       if (search && search.trim()) {
         query.$or = [
           { titulo: { $regex: search, $options: 'i' } },
@@ -95,50 +85,26 @@ class TaskController {
         ];
       }
       
-      console.log(`🔍 [getUserTasks] Ejecutando query...`);
-      
-      // Ejecutar consulta - USAMOS lean() pero luego usamos funciones auxiliares
       const tasks = await Task.find(query)
         .sort({ fecha_limite: 1, prioridad: -1 })
         .populate('asignado_a', 'usuario correo')
         .populate('creado_por', 'usuario correo')
         .lean();
       
-      console.log(`✅ [getUserTasks] Tareas encontradas: ${tasks.length}`);
-      
-      // Enriquecer con permisos usando FUNCIONES AUXILIARES (NO métodos del modelo)
       const userIdStr = userId.toString();
-      const enrichedTasks = tasks.map(task => {
-        // Calcular permisos usando las funciones auxiliares
-        const permisos = {
+      const enrichedTasks = tasks.map(task => ({
+        ...task,
+        permisos: {
           puedeCompletar: canCompleteTask(task, userIdStr),
           puedeEditar: canEditTask(task, userIdStr),
           puedeEliminar: canDeleteTask(task, userIdStr)
-        };
-        
-        console.log(`   📌 Tarea: "${task.titulo}" - Permisos:`, permisos);
-        
-        return {
-          ...task,
-          permisos
-        };
-      });
+        }
+      }));
       
-      res.json({
-        success: true,
-        tasks: enrichedTasks,
-        count: enrichedTasks.length
-      });
-      
+      res.json({ success: true, tasks: enrichedTasks, count: enrichedTasks.length });
     } catch (error) {
       console.error('❌ [getUserTasks] Error:', error);
-      console.error('📋 Stack:', error.stack);
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener tareas',
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+      res.status(500).json({ success: false, message: 'Error al obtener tareas', error: error.message });
     }
   }
   
@@ -148,15 +114,7 @@ class TaskController {
   static async getUserStats(req, res) {
     try {
       const userId = req.user?.id;
-      
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
-      }
-      
-      console.log(`📊 [getUserStats] Usuario: ${userId}`);
+      if (!userId) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       
       const query = {
         activo: true,
@@ -166,6 +124,9 @@ class TaskController {
         ]
       };
       
+      // ✅ Filtro por escuela
+      if (req.schoolId) query.schoolId = req.schoolId;
+      
       const [total, pendientes, enProgreso, completadas] = await Promise.all([
         Task.countDocuments(query),
         Task.countDocuments({ ...query, estado: 'pendiente' }),
@@ -173,22 +134,10 @@ class TaskController {
         Task.countDocuments({ ...query, estado: 'completada' })
       ]);
       
-      const stats = { total, pendientes, enProgreso, completadas };
-      
-      console.log(`✅ [getUserStats] Stats:`, stats);
-      
-      res.json({
-        success: true,
-        stats
-      });
-      
+      res.json({ success: true, stats: { total, pendientes, enProgreso, completadas } });
     } catch (error) {
       console.error('❌ [getUserStats] Error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener estadísticas',
-        error: error.message
-      });
+      res.status(500).json({ success: false, message: 'Error al obtener estadísticas', error: error.message });
     }
   }
   
@@ -199,45 +148,18 @@ class TaskController {
     try {
       const userId = req.user?.id;
       const userName = req.user?.usuario;
+      if (!userId) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
-      }
+      const { titulo, descripcion, prioridad, estado, categoria, fecha_limite, hora_limite, recordatorio, tipo, asignado_a } = req.body;
       
-      const {
-        titulo,
-        descripcion,
-        prioridad,
-        estado,
-        categoria,
-        fecha_limite,
-        hora_limite,
-        recordatorio,
-        tipo,
-        asignado_a
-      } = req.body;
+      if (!titulo || !titulo.trim()) return res.status(400).json({ success: false, message: 'El título es obligatorio' });
       
-      console.log(`📝 [create] Creando tarea: "${titulo}" para ${userName}`);
-      
-      if (!titulo || !titulo.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: 'El título es obligatorio'
-        });
-      }
-      
-      // Validar usuarios asignados
       let usuariosAsignados = [];
       if (asignado_a && asignado_a.length > 0) {
-        const usuarios = await User.find({
-          _id: { $in: asignado_a },
-          activo: true,
-          rol: { $ne: 'desactivado' }
-        }).select('_id');
-        
+        const userFilter = { _id: { $in: asignado_a }, activo: true, rol: { $ne: 'desactivado' } };
+        // ✅ Solo asignar usuarios de la misma escuela
+        if (req.schoolId) userFilter.schoolId = req.schoolId;
+        const usuarios = await User.find(userFilter).select('_id');
         usuariosAsignados = usuarios.map(u => u._id);
       }
       
@@ -253,32 +175,21 @@ class TaskController {
         tipo: tipo || (asignado_a?.length > 0 ? 'asignada' : 'personal'),
         asignado_a: usuariosAsignados,
         creado_por: userId,
-        creado_por_nombre: userName || 'Usuario'
+        creado_por_nombre: userName || 'Usuario',
+        schoolId: req.schoolId || 'superadmin'
       });
       
       await nuevaTarea.save();
       
-      console.log(`✅ [create] Tarea creada ID: ${nuevaTarea._id}`);
-      
-      // Obtener tarea con datos poblados
       const tareaConDatos = await Task.findById(nuevaTarea._id)
         .populate('asignado_a', 'usuario correo')
         .populate('creado_por', 'usuario correo')
         .lean();
       
-      res.json({
-        success: true,
-        message: 'Tarea creada correctamente',
-        task: tareaConDatos
-      });
-      
+      res.json({ success: true, message: 'Tarea creada correctamente', task: tareaConDatos });
     } catch (error) {
       console.error('❌ [create] Error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al crear tarea',
-        error: error.message
-      });
+      res.status(500).json({ success: false, message: 'Error al crear tarea', error: error.message });
     }
   }
   
@@ -505,32 +416,16 @@ class TaskController {
   // ===========================================================================
   static async getAssignableUsers(req, res) {
     try {
-      console.log(`👥 [getAssignableUsers] Obteniendo usuarios...`);
+      const filter = { activo: true, rol: { $ne: 'desactivado' } };
+      // ✅ Solo usuarios de la misma escuela
+      if (req.schoolId) filter.schoolId = req.schoolId;
       
-      const users = await User.find({
-        activo: true,
-        rol: { $ne: 'desactivado' }
-      }).select('usuario correo rol');
+      const users = await User.find(filter).select('usuario correo rol');
       
-      console.log(`✅ [getAssignableUsers] ${users.length} usuarios encontrados`);
-      
-      res.json({
-        success: true,
-        users: users.map(u => ({
-          id: u._id,
-          usuario: u.usuario,
-          correo: u.correo,
-          rol: u.rol
-        }))
-      });
-      
+      res.json({ success: true, users: users.map(u => ({ id: u._id, usuario: u.usuario, correo: u.correo, rol: u.rol })) });
     } catch (error) {
       console.error('❌ [getAssignableUsers] Error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener usuarios',
-        error: error.message
-      });
+      res.status(500).json({ success: false, message: 'Error al obtener usuarios', error: error.message });
     }
   }
   
@@ -540,15 +435,9 @@ class TaskController {
   static async getHighPriority(req, res) {
     try {
       const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
-      }
-      
-      const tasks = await Task.find({
+      const query = {
         activo: true,
         prioridad: { $in: ['alta', 'critica'] },
         estado: { $ne: 'completada' },
@@ -556,31 +445,25 @@ class TaskController {
           { creado_por: new mongoose.Types.ObjectId(userId) },
           { asignado_a: new mongoose.Types.ObjectId(userId) }
         ]
-      })
-      .sort({ prioridad: -1, fecha_limite: 1 })
-      .limit(5)
-      .populate('asignado_a', 'usuario')
-      .populate('creado_por', 'usuario')
-      .lean();
+      };
+      
+      // ✅ Filtro por escuela
+      if (req.schoolId) query.schoolId = req.schoolId;
+      
+      const tasks = await Task.find(query)
+        .sort({ prioridad: -1, fecha_limite: 1 })
+        .limit(5)
+        .populate('asignado_a', 'usuario')
+        .populate('creado_por', 'usuario')
+        .lean();
       
       const userIdStr = userId.toString();
-      const enrichedTasks = tasks.map(task => ({
-        ...task,
-        puedeCompletar: canCompleteTask(task, userIdStr)
-      }));
+      const enrichedTasks = tasks.map(task => ({ ...task, puedeCompletar: canCompleteTask(task, userIdStr) }));
       
-      res.json({
-        success: true,
-        tasks: enrichedTasks
-      });
-      
+      res.json({ success: true, tasks: enrichedTasks });
     } catch (error) {
       console.error('❌ [getHighPriority] Error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener tareas de alta prioridad',
-        error: error.message
-      });
+      res.status(500).json({ success: false, message: 'Error al obtener tareas', error: error.message });
     }
   }
   
@@ -590,21 +473,12 @@ class TaskController {
   static async getTodayTasks(req, res) {
     try {
       const userId = req.user?.id;
+      if (!userId) return res.status(401).json({ success: false, message: 'Usuario no autenticado' });
       
-      if (!userId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado'
-        });
-      }
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const manana = new Date(hoy); manana.setDate(manana.getDate()+1);
       
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      
-      const manana = new Date(hoy);
-      manana.setDate(manana.getDate() + 1);
-      
-      const tasks = await Task.find({
+      const query = {
         activo: true,
         estado: { $ne: 'completada' },
         fecha_limite: { $gte: hoy, $lt: manana },
@@ -612,31 +486,25 @@ class TaskController {
           { creado_por: new mongoose.Types.ObjectId(userId) },
           { asignado_a: new mongoose.Types.ObjectId(userId) }
         ]
-      })
-      .sort({ prioridad: -1, hora_limite: 1 })
-      .limit(5)
-      .populate('asignado_a', 'usuario')
-      .populate('creado_por', 'usuario')
-      .lean();
+      };
+      
+      // ✅ Filtro por escuela
+      if (req.schoolId) query.schoolId = req.schoolId;
+      
+      const tasks = await Task.find(query)
+        .sort({ prioridad: -1, hora_limite: 1 })
+        .limit(5)
+        .populate('asignado_a', 'usuario')
+        .populate('creado_por', 'usuario')
+        .lean();
       
       const userIdStr = userId.toString();
-      const enrichedTasks = tasks.map(task => ({
-        ...task,
-        puedeCompletar: canCompleteTask(task, userIdStr)
-      }));
+      const enrichedTasks = tasks.map(task => ({ ...task, puedeCompletar: canCompleteTask(task, userIdStr) }));
       
-      res.json({
-        success: true,
-        tasks: enrichedTasks
-      });
-      
+      res.json({ success: true, tasks: enrichedTasks });
     } catch (error) {
       console.error('❌ [getTodayTasks] Error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al obtener tareas para hoy',
-        error: error.message
-      });
+      res.status(500).json({ success: false, message: 'Error al obtener tareas', error: error.message });
     }
   }
   

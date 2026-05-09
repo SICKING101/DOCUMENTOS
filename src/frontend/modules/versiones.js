@@ -54,9 +54,6 @@ function buildShell() {
           <button class="ver-filter-btn" data-filter="desarrollo">Desarrollo</button>
           <button class="ver-filter-btn" data-filter="deprecada">Deprecadas</button>
         </div>
-        <button class="ver-refresh-btn" id="verRefreshBtn" title="Actualizar">
-          <i class="fas fa-sync-alt"></i>
-        </button>
       </div>
 
       <div id="verList"></div>
@@ -331,19 +328,6 @@ function setupEvents() {
       _busqueda = e.target.value.trim();
       renderList();
     }, 220);
-  });
-
-  document.getElementById('verRefreshBtn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('verRefreshBtn');
-    if (btn) {
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      btn.disabled  = true;
-    }
-    await loadVersions();
-    if (btn) {
-      btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-      btn.disabled  = false;
-    }
   });
 }
 

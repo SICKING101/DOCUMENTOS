@@ -1,3 +1,5 @@
+// src/backend/models/AdminChangeRequest.js
+
 import mongoose from 'mongoose';
 
 const adminChangeRequestSchema = new mongoose.Schema({
@@ -15,7 +17,7 @@ const adminChangeRequestSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
-    currentAdminName: {  // ¡IMPORTANTE: AÑADIDO!
+    currentAdminName: {
         type: String,
         required: true,
         trim: true
@@ -35,7 +37,7 @@ const adminChangeRequestSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
-    newAdminPassword: {  // ¡ESTE ES EL CAMPO CRÍTICO!
+    newAdminPassword: {
         type: String,
         required: true
     },
@@ -58,14 +60,14 @@ const adminChangeRequestSchema = new mongoose.Schema({
     // =========================================================================
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'expired', 'pending_no_email'], // ¡AÑADIDO 'pending_no_email'!
+        enum: ['pending', 'approved', 'rejected', 'expired', 'pending_no_email'],
         default: 'pending'
     },
     
     // =========================================================================
     // REFERENCIAS A USUARIOS
     // =========================================================================
-    newAdminId: {  // ¡IMPORTANTE: AÑADIDO!
+    newAdminId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
@@ -85,14 +87,14 @@ const adminChangeRequestSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    emailError: {  // ¡IMPORTANTE: AÑADIDO!
+    emailError: {
         type: String
     },
     
     // =========================================================================
     // METADATA PARA DEBUGGING
     // =========================================================================
-    metadata: {  // ¡IMPORTANTE: AÑADIDO!
+    metadata: {
         passwordLength: Number,
         requestTimestamp: Date,
         clientInfo: {
@@ -133,12 +135,12 @@ const adminChangeRequestSchema = new mongoose.Schema({
 // =============================================================================
 // ÍNDICES PARA OPTIMIZACIÓN
 // =============================================================================
-adminChangeRequestSchema.index({ verificationToken: 1 });
+// NOTA: verificationToken ya tiene unique: true, lo que crea un índice automáticamente
 adminChangeRequestSchema.index({ status: 1 });
 adminChangeRequestSchema.index({ tokenExpires: 1 });
 adminChangeRequestSchema.index({ currentAdminId: 1 });
-adminChangeRequestSchema.index({ newAdminEmail: 1 });  // ¡NUEVO!
-adminChangeRequestSchema.index({ 'metadata.requestTimestamp': 1 });  // ¡NUEVO!
+adminChangeRequestSchema.index({ newAdminEmail: 1 });
+adminChangeRequestSchema.index({ 'metadata.requestTimestamp': 1 });
 
 // =============================================================================
 // MÉTODOS
@@ -151,7 +153,7 @@ adminChangeRequestSchema.methods.isTokenValid = function() {
            this.verificationAttempts < 5;
 };
 
-// Método para incrementar intentos (mantenido para compatibilidad)
+// Método para incrementar intentos
 adminChangeRequestSchema.methods.incrementAttempts = function() {
     this.verificationAttempts += 1;
     this.lastVerificationAttempt = new Date();

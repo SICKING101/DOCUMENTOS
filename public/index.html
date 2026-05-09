@@ -5,7 +5,7 @@
     <!-- SECCIÓN 1: METADATOS Y CONFIGURACIÓN HEAD -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de Documentos - CBTIS051</title>
+    <title>Sistema de Gestión de Documentos</title>
 
     <!-- Fuentes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -100,13 +100,6 @@
                 <!-- Grupo 2: Herramientas -->
                 <div class="sidebar__nav-group">
                     <p class="sidebar__nav-group-title">Herramientas</p>
-                    <a href="#" class="sidebar__nav-link" data-tab="chatbot" data-section="chatbot">
-                        <div class="sidebar__nav-icon-wrapper">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <span class="sidebar__nav-text">ARIA</span>
-                        <div class="sidebar__nav-active-indicator"></div>
-                    </a>
                     <a href="#" class="sidebar__nav-link" data-tab="calendario" data-section="calendario">
                         <div class="sidebar__nav-icon-wrapper">
                             <i class="fas fa-calendar-alt"></i>
@@ -199,7 +192,7 @@
                     <div class="topbar__logo">
                         <img class="topbar__logo-img" src="/assets/images/cbtis051.png" alt="CBTIS051">
                         <div class="topbar__logo-text">
-                            <h1 class="topbar__logo-title">CBTIS 051</h1>
+                            <h1 class="topbar__logo-title">CBTIS</h1>
                             <span class="topbar__logo-subtitle">Sistema de Gestión Documental</span>
                         </div>
                     </div>
@@ -207,6 +200,11 @@
 
                 <div class="topbar__right">
                     <div class="topbar__actions">
+                        <button class="topbar__action" id="avisosBtn" title="Avisos"
+                            onclick="if(window.switchTab) window.switchTab('avisos')">
+                            <i class="fas fa-bullhorn"></i>
+                            <span class="topbar__badge" id="avisosBadge" style="display:none;">0</span>
+                        </button>
                         <button class="topbar__action" id="notificationsBtn" title="Notificaciones">
                             <i class="fas fa-bell"></i>
                             <span class="topbar__badge">3</span>
@@ -240,7 +238,7 @@
                             </div>
                             <div class="user-menu__info">
                                 <p class="user-menu__name">Usuario del Sistema</p>
-                                <p class="user-menu__email" id="userEmail">admin@cbtis051.edu.mx</p>
+                                <p class="user-menu__email" id="userEmail">admin@cbtis.edu.mx</p>
                             </div>
                         </div>
 
@@ -261,7 +259,7 @@
                         </button>
 
                         <div class="user-menu__footer">
-                            <p class="user-menu__version">v1.5.0 (DEV)</p>
+                            <p class="user-menu__version">v1.6.0 (BETA)</p>
                         </div>
                     </div>
                 </div>
@@ -738,12 +736,6 @@
                     </div>
                 </section>
 
-                <!-- Sección ARIA - Chatbot Fullscreen -->
-                <section id="chatbot" class="tab-content"
-                    style="display: none; padding: 0; height: calc(100vh - 80px);">
-                    <div id="ariaFullscreenContainer" class="aria-fullscreen-container" style="height: 100%;"></div>
-                </section>
-
                 <!-- Sección de Avisos -->
                 <section id="avisos" class="tab-content" style="display: none;">
                     <div class="section__header">
@@ -957,97 +949,151 @@
 
                 <!-- SECCIÓN 4.2.6: PESTAÑA TAREAS - VERSIÓN 2.0 MINI CLASSROOM -->
                 <section id="tareas" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title">
-                                <i class="fas fa-tasks"></i> Gestión de Tareas
-                            </h2>
-                            <p class="section__subtitle">Organiza, asigna y da seguimiento a tus tareas</p>
-                        </div>
-                        <button class="btn btn--primary" id="addTaskBtn">
-                            <i class="fas fa-plus"></i> Nueva Tarea
-                        </button>
-                    </div>
-
-                    <!-- Filtros avanzados -->
-                    <div class="filters-bar">
-                        <div class="filters-bar__search">
-                            <i class="fas fa-search"></i>
-                            <input type="text" placeholder="Buscar tareas por título, descripción..." id="tasksSearch">
-                        </div>
-                        <select class="filters-bar__select" id="filterEstado">
-                            <option value="all">Todos los estados</option>
-                            <option value="pendiente">Pendientes</option>
-                            <option value="en-progreso">En progreso</option>
-                            <option value="completada">Completadas</option>
-                            <option value="cancelada">Canceladas</option>
-                        </select>
-                        <select class="filters-bar__select" id="filterPrioridad">
-                            <option value="all">Todas las prioridades</option>
-                            <option value="critica">Crítica</option>
-                            <option value="alta">Alta</option>
-                            <option value="media">Media</option>
-                            <option value="baja">Baja</option>
-                        </select>
-                        <select class="filters-bar__select" id="filterTipo">
-                            <option value="all">Todos los tipos</option>
-                            <option value="personal">Personales</option>
-                            <option value="asignada">Asignadas a mí</option>
-                            <option value="grupal">Grupales</option>
-                            <option value="clase">Clase</option>
-                        </select>
-                    </div>
-
-                    <!-- Resumen de tareas -->
-                    <div class="tasks-summary">
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--total">
-                                <i class="fas fa-tasks"></i>
-                            </div>
-                            <div class="summary-card__content">
-                                <h3 class="summary-card__value" id="totalTasks">0</h3>
-                                <p class="summary-card__label">Total de tareas</p>
+                    <!-- ── ESTADÍSTICAS SUPERIORES ──────────────────────────────────────────── -->
+                    <div class="tasks-stats-bar">
+                        <div class="tasks-stat-card tasks-stat-card--total">
+                            <div class="tasks-stat-icon"><i class="fas fa-list-check"></i></div>
+                            <div class="tasks-stat-content">
+                                <p class="tasks-stat-value" id="statTotal">—</p>
+                                <p class="tasks-stat-label">Total tareas</p>
                             </div>
                         </div>
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--pending">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="summary-card__content">
-                                <h3 class="summary-card__value" id="pendingTasks">0</h3>
-                                <p class="summary-card__label">Pendientes</p>
+                        <div class="tasks-stat-card tasks-stat-card--pending">
+                            <div class="tasks-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                            <div class="tasks-stat-content">
+                                <p class="tasks-stat-value" id="statPending">—</p>
+                                <p class="tasks-stat-label">Pendientes</p>
                             </div>
                         </div>
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--progress">
-                                <i class="fas fa-spinner"></i>
-                            </div>
-                            <div class="summary-card__content">
-                                <h3 class="summary-card__value" id="progressTasks">0</h3>
-                                <p class="summary-card__label">En progreso</p>
+                        <div class="tasks-stat-card tasks-stat-card--progress">
+                            <div class="tasks-stat-icon"><i class="fas fa-spinner"></i></div>
+                            <div class="tasks-stat-content">
+                                <p class="tasks-stat-value" id="statProgress">—</p>
+                                <p class="tasks-stat-label">En progreso</p>
                             </div>
                         </div>
-                        <div class="summary-card">
-                            <div class="summary-card__icon summary-card__icon--completed">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="summary-card__content">
-                                <h3 class="summary-card__value" id="completedTasks">0</h3>
-                                <p class="summary-card__label">Completadas</p>
+                        <div class="tasks-stat-card tasks-stat-card--done">
+                            <div class="tasks-stat-icon"><i class="fas fa-circle-check"></i></div>
+                            <div class="tasks-stat-content">
+                                <p class="tasks-stat-value" id="statCompleted">—</p>
+                                <p class="tasks-stat-label">Completadas</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Contenedor de tareas -->
-                    <div class="tasks-container" id="tasksContainer">
-                        <div class="empty-state">
-                            <i class="fas fa-clipboard-list empty-state__icon"></i>
-                            <h3 class="empty-state__title">No hay tareas registradas</h3>
-                            <p class="empty-state__description">Crea tu primera tarea para comenzar</p>
-                            <button class="btn btn--primary" id="addFirstTask">
-                                <i class="fas fa-plus"></i> Crear Tarea
-                            </button>
+                    <!-- ══════════════════════════════════════════════════════════════════════
+         APARTADO 1: MIS TAREAS PERSONALES (post-it)
+         ══════════════════════════════════════════════════════════════════════ -->
+                    <div class="tasks-block tasks-block--personal">
+
+                        <div class="tasks-block__header">
+                            <div class="tasks-block__header-left">
+                                <div class="tasks-block__icon">
+                                    <i class="fas fa-note-sticky"></i>
+                                </div>
+                                <div>
+                                    <h2 class="tasks-block__title">Mis tareas personales</h2>
+                                    <p class="tasks-block__subtitle">Notas y pendientes solo para ti</p>
+                                </div>
+                            </div>
+                            <div class="tasks-block__actions">
+                                <span class="tasks-block__count" id="personalCount">— notas</span>
+                                <button class="btn-add-task btn-add-task--personal" id="addPersonalTaskBtn"
+                                    data-action-section="tareas" title="Nueva tarea personal">
+                                    <i class="fas fa-plus"></i> Nueva nota
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- Board de post-its -->
+                        <div id="postitBoard" class="postit-board">
+                            <!-- Renderizado dinámico por TaskManager -->
+                            <div class="tasks-preloader tasks-preloader--postit">
+                                <div class="tasks-preloader__ring"></div>
+                                <span class="tasks-preloader__text">Cargando mis notas...</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ══════════════════════════════════════════════════════════════════════
+         APARTADO 2: TAREAS ASIGNADAS A OTROS (requiere permiso)
+         ══════════════════════════════════════════════════════════════════════ -->
+                    <div class="tasks-block tasks-block--assign" id="assignBlock">
+
+                        <div class="tasks-block__header">
+                            <div class="tasks-block__header-left">
+                                <div class="tasks-block__icon">
+                                    <i class="fas fa-people-group"></i>
+                                </div>
+                                <div>
+                                    <h2 class="tasks-block__title">Tareas asignadas</h2>
+                                    <p class="tasks-block__subtitle">Gestiona las tareas que has delegado a tu equipo
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="tasks-block__actions">
+                                <span class="tasks-block__count" id="assignCount">— tareas</span>
+                                <button class="btn-add-task btn-add-task--assign" id="addAssignTaskBtn"
+                                    data-action-section="tareas" title="Asignar nueva tarea">
+                                    <i class="fas fa-plus"></i> Asignar tarea
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Barra de filtros -->
+                        <div class="assign-toolbar">
+                            <div class="assign-toolbar__search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="assignSearch" placeholder="Buscar tarea o responsable..."
+                                    autocomplete="off">
+                            </div>
+                            <select class="assign-toolbar__filter" id="assignEstado" aria-label="Filtrar por estado">
+                                <option value="all">Todos los estados</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en-progreso">En progreso</option>
+                                <option value="completada">Completada</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                            <select class="assign-toolbar__filter" id="assignPrioridad"
+                                aria-label="Filtrar por prioridad">
+                                <option value="all">Todas las prioridades</option>
+                                <option value="baja">Baja</option>
+                                <option value="media">Media</option>
+                                <option value="alta">Alta</option>
+                                <option value="critica">Crítica</option>
+                            </select>
+                        </div>
+
+                        <!-- Tabla de tareas asignadas -->
+                        <div class="assign-board">
+                            <div class="assign-table-wrap">
+                                <table class="assign-table" aria-label="Tareas asignadas">
+                                    <thead>
+                                        <tr>
+                                            <th>Tarea</th>
+                                            <th class="col-assignees">Asignado a</th>
+                                            <th class="col-type">Tipo</th>
+                                            <th>Prioridad</th>
+                                            <th>Estado</th>
+                                            <th>Fecha límite</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="assignTableBody">
+                                        <tr>
+                                            <td colspan="7">
+                                                <div class="tasks-preloader">
+                                                    <div class="tasks-preloader__ring"></div>
+                                                    <span class="tasks-preloader__text">Cargando...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 </section>
 
@@ -1144,115 +1190,204 @@
 
                 <!-- SECCIÓN 4.2.7: PESTAÑA CALENDARIO -->
                 <section id="calendario" class="tab-content active">
-                    <div class="calendar-section">
-                        <!-- Encabezado del calendario -->
-                        <div class="calendar__header">
-                            <div class="calendar__header-left">
-                                <h2 class="calendar__title">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Calendario
-                                </h2>
+                    <div class="cal-container">
+                        <!-- TOOLBAR -->
+                        <div id="cal-toolbar">
+                            <!-- Grupo de navegación -->
+                            <button class="cal-nav-btn" id="calPrevBtn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="cal-nav-btn today" id="calTodayBtn">Hoy</button>
+                            <button class="cal-nav-btn" id="calNextBtn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+
+                            <!-- Etiqueta del mes -->
+                            <span class="cal-month-label" id="calMonthLabel">Febrero 2026</span>
+
+                            <!-- Selector de vista -->
+                            <div class="cal-view-group" id="calViewSwitcher">
+                                <button class="cal-view-btn is-active" data-view="month">Mes</button>
+                                <button class="cal-view-btn" data-view="week">Semana</button>
+                                <button class="cal-view-btn" data-view="agenda">Agenda</button>
                             </div>
 
-                            <div class="calendar__header-right">
-                                <div class="calendar__controls">
-                                    <button class="calendar__nav-btn" id="prevYear">
-                                        <i class="fas fa-angle-double-left"></i>
-                                    </button>
+                            <!-- Filtros -->
+                            <div class="cal-filter-pill is-active" data-filter="all">Todos</div>
+                            <div class="cal-filter-pill" data-filter="academic">Académicos</div>
+                            <div class="cal-filter-pill" data-filter="meetings">Reuniones</div>
+                            <div class="cal-filter-pill" data-filter="deadlines">Plazos</div>
+                            <div class="cal-filter-pill" data-filter="holidays">Festivos</div>
 
-                                    <div class="calendar__current-month" id="currentMonth">
-                                        Febrero 2024
-                                    </div>
+                            <!-- Espaciador flexible -->
+                            <div style="flex:1;"></div>
 
-                                    <button class="calendar__nav-btn" id="nextYear">
-                                        <i class="fas fa-angle-double-right"></i>
-                                    </button>
-                                </div>
-
-                                <div class="calendar__current-date">
-                                    <span id="currentDate">Hoy: 7 de Febrero 2024</span>
-                                </div>
-                            </div>
+                            <!-- Acciones principales -->
+                            <button class="cal-nav-btn" id="calSearchBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button class="cal-nav-btn" id="calPrintBtn">
+                                <i class="fas fa-print"></i>
+                            </button>
+                            <button class="cal-nav-btn add" id="calAddEventBtn">
+                                <i class="fas fa-plus"></i> Nuevo
+                            </button>
+                            <button class="cal-nav-btn" id="calResetBtn">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
 
-                        <!-- Barra de herramientas -->
-                        <div class="calendar__toolbar">
-                            <div class="calendar__filters">
-                                <button class="calendar__filter-btn active" data-filter="all">
-                                    <i class="fas fa-layer-group"></i>
-                                    Todos
-                                </button>
-                                <button class="calendar__filter-btn" data-filter="academic">
-                                    <i class="fas fa-graduation-cap"></i>
-                                    Académicos
-                                </button>
-                                <button class="calendar__filter-btn" data-filter="meetings">
-                                    <i class="fas fa-users"></i>
-                                    Reuniones
-                                </button>
-                                <button class="calendar__filter-btn" data-filter="deadlines">
-                                    <i class="fas fa-clock"></i>
-                                    Plazos
-                                </button>
-                                <button class="calendar__filter-btn" data-filter="holidays">
-                                    <i class="fas fa-umbrella-beach"></i>
-                                    Festivos
-                                </button>
+                        <!-- CUERPO PRINCIPAL: SIDEBAR + MAIN -->
+                        <div class="cal-body">
+                            <!-- SIDEBAR -->
+                            <div id="cal-sidebar">
+                                <!-- Mini calendario -->
+                                <div>
+                                    <div class="cal-mini-header">
+                                        <span class="cal-mini-month-label" id="calMiniMonthLabel">Feb 2026</span>
+                                        <div class="cal-mini-nav-row">
+                                            <button class="cal-nav-btn" id="calMiniPrevBtn"
+                                                style="padding:0.2rem 0.4rem;">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </button>
+                                            <button class="cal-nav-btn" id="calMiniNextBtn"
+                                                style="padding:0.2rem 0.4rem;">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="cal-mini-grid" id="calMiniGrid">
+                                        <!-- Días de la semana -->
+                                        <span class="cal-mini-day-label">D</span>
+                                        <span class="cal-mini-day-label">L</span>
+                                        <span class="cal-mini-day-label">M</span>
+                                        <span class="cal-mini-day-label">X</span>
+                                        <span class="cal-mini-day-label">J</span>
+                                        <span class="cal-mini-day-label">V</span>
+                                        <span class="cal-mini-day-label">S</span>
+                                        <!-- Los días se generan dinámicamente -->
+                                    </div>
+                                </div>
+
+                                <!-- Sección de búsqueda -->
+                                <div>
+                                    <div class="cal-sidebar-label">Buscar</div>
+                                    <input type="text" class="cal-search-input" id="calSearchInput"
+                                        placeholder="Buscar eventos...">
+                                </div>
+
+                                <!-- Próximos eventos -->
+                                <div>
+                                    <div class="cal-sidebar-label">
+                                        <i class="fas fa-clock" style="margin-right:4px;"></i>Próximos
+                                    </div>
+                                    <div id="calUpcomingList">
+                                        <!-- Se llena dinámicamente -->
+                                        <div class="cal-upcoming-item">
+                                            <div class="cal-upcoming-item-date" style="color:#6366f1;">Hoy, 14:00</div>
+                                            <div class="cal-upcoming-item-title">Reunión de departamento</div>
+                                            <div class="cal-upcoming-item-location">Sala A-101</div>
+                                        </div>
+                                        <div class="cal-upcoming-item">
+                                            <div class="cal-upcoming-item-date" style="color:#10b981;">Mañana, 09:30
+                                            </div>
+                                            <div class="cal-upcoming-item-title">Entrega de notas</div>
+                                            <div class="cal-upcoming-item-location">Plataforma virtual</div>
+                                        </div>
+                                        <div class="cal-upcoming-item">
+                                            <div class="cal-upcoming-item-date" style="color:#f59e0b;">22 Feb, 11:00
+                                            </div>
+                                            <div class="cal-upcoming-item-title">Consejo académico</div>
+                                            <div class="cal-upcoming-item-location">Sala de juntas</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Estadísticas -->
+                                <div>
+                                    <div class="cal-sidebar-label">Resumen</div>
+                                    <div class="cal-stat-grid">
+                                        <div class="cal-stat-card" style="background:rgba(99,102,241,0.08);">
+                                            <div class="cal-stat-value" style="color:#6366f1;">12</div>
+                                            <div class="cal-stat-label">Eventos este mes</div>
+                                        </div>
+                                        <div class="cal-stat-card" style="background:rgba(16,185,129,0.06);">
+                                            <div class="cal-stat-value" style="color:#10b981;">3</div>
+                                            <div class="cal-stat-label">Esta semana</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Leyenda de tipos -->
+                                <div>
+                                    <div class="cal-sidebar-label">Tipos</div>
+                                    <div class="cal-type-row">
+                                        <span class="cal-type-dot" style="background:#6366f1;"></span>
+                                        <span class="cal-type-name">Académicos</span>
+                                        <span class="cal-type-count" id="calTypeCountAcademic">5</span>
+                                    </div>
+                                    <div class="cal-type-row">
+                                        <span class="cal-type-dot" style="background:#f59e0b;"></span>
+                                        <span class="cal-type-name">Reuniones</span>
+                                        <span class="cal-type-count" id="calTypeCountMeetings">3</span>
+                                    </div>
+                                    <div class="cal-type-row">
+                                        <span class="cal-type-dot" style="background:#ef4444;"></span>
+                                        <span class="cal-type-name">Plazos</span>
+                                        <span class="cal-type-count" id="calTypeCountDeadlines">2</span>
+                                    </div>
+                                    <div class="cal-type-row">
+                                        <span class="cal-type-dot" style="background:#10b981;"></span>
+                                        <span class="cal-type-name">Festivos</span>
+                                        <span class="cal-type-count" id="calTypeCountHolidays">1</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="calendar__actions">
-                                <button class="calendar__action-btn calendar__action-btn--secondary" id="printCalendar">
-                                    <i class="fas fa-print"></i>
-                                    Imprimir
-                                </button>
-                                <button class="calendar__action-btn" id="addEvent">
-                                    <i class="fas fa-plus"></i>
-                                    Nuevo Evento
-                                </button>
-                                <button id="resetCalendar" class="btn btn--danger">
-                                    <i class="fas fa-trash-alt"></i> Reiniciar
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Contenedor principal del calendario -->
-                        <div class="calendar__main-container">
-                            <!-- Calendario principal -->
-                            <div class="calendar__main-view">
-                                <div class="calendar__month-view active">
-                                    <div class="calendar__weekdays">
-                                        <div class="calendar__weekday">Dom</div>
-                                        <div class="calendar__weekday">Lun</div>
-                                        <div class="calendar__weekday">Mar</div>
-                                        <div class="calendar__weekday">Mié</div>
-                                        <div class="calendar__weekday">Jue</div>
-                                        <div class="calendar__weekday">Vie</div>
-                                        <div class="calendar__weekday weekend">Sáb</div>
+                            <!-- ÁREA PRINCIPAL -->
+                            <div id="cal-main">
+                                <!-- Vista Mensual -->
+                                <div class="cal-month-wrap" id="calMonthView">
+                                    <!-- Cabecera de días de la semana -->
+                                    <div class="cal-weekday-row">
+                                        <div class="cal-weekday-cell">Dom</div>
+                                        <div class="cal-weekday-cell">Lun</div>
+                                        <div class="cal-weekday-cell">Mar</div>
+                                        <div class="cal-weekday-cell">Mié</div>
+                                        <div class="cal-weekday-cell">Jue</div>
+                                        <div class="cal-weekday-cell">Vie</div>
+                                        <div class="cal-weekday-cell is-weekend">Sáb</div>
                                     </div>
 
-                                    <div class="calendar__days-grid" id="calendarGrid">
+                                    <!-- Grid de días -->
+                                    <div class="cal-days-grid" id="calDaysGrid">
                                         <!-- Los días se generan dinámicamente con JavaScript -->
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Panel lateral de eventos próximos -->
-                            <div class="calendar__sidebar">
-                                <div class="calendar__upcoming">
-                                    <div class="calendar__upcoming-header">
-                                        <h3 class="calendar__upcoming-title">
-                                            <i class="fas fa-clock"></i>
-                                            Próximos Eventos
-                                        </h3>
-                                        <span class="calendar__upcoming-count" id="upcomingCount">3</span>
+                                <!-- Vista Semanal (oculta por defecto) -->
+                                <div class="cal-week-wrap" id="calWeekView" style="display:none;">
+                                    <div class="cal-week-header-row">
+                                        <div class="cal-week-header-corner"></div>
+                                        <!-- Días de la semana se generan dinámicamente -->
                                     </div>
-                                    <div class="calendar__upcoming-list" id="upcomingEvents">
-                                        <!-- Los eventos próximos se cargan dinámicamente -->
+                                    <div class="cal-week-scroll" id="calWeekScroll">
+                                        <div class="cal-week-grid" id="calWeekGrid">
+                                            <!-- Filas de tiempo y celdas se generan dinámicamente -->
+                                        </div>
                                     </div>
+                                </div>
+
+                                <!-- Vista Agenda (oculta por defecto) -->
+                                <div class="cal-agenda-wrap" id="calAgendaView" style="display:none;">
+                                    <!-- Lista de eventos en formato agenda -->
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- CONTENEDOR DE TOASTS -->
+                    <div id="cal-toast-container"></div>
                 </section>
 
                 <!-- SECCIÓN 4.2.8: PESTAÑA AJUSTES (MEJORADA) -->
@@ -2587,121 +2722,231 @@
         </article>
     </dialog>
 
-    <!-- MODAL PARA TAREAS - VERSIÓN 2.0 MINI CLASSROOM -->
-    <dialog id="taskModal" class="modal">
-        <article class="modal__content modal__content--lg">
-            <header class="modal__header">
-                <h3 class="modal__title" id="taskModalTitle">
-                    <i class="fas fa-tasks"></i> Nueva Tarea
-                </h3>
-                <button class="modal__close" id="closeTaskModal">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="taskForm" class="task-form">
-                    <input type="hidden" id="taskId">
+    <!-- =============================================================================
+     MODAL: NUEVA / EDITAR TAREA PERSONAL (post-it)
+     ============================================================================= -->
+    <div class="task-modal-overlay" id="personalModal" role="dialog" aria-modal="true"
+        aria-labelledby="personalModalTitle">
+        <div class="task-modal task-modal--postit">
+
+            <div class="task-modal__header">
+                <h3 id="personalModalTitle"><i class="fas fa-note-sticky"></i> Nueva nota personal</h3>
+                <button class="task-modal__close" id="closePersonalModal" aria-label="Cerrar modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="task-modal__body">
+                <form class="task-form" id="personalTaskForm" novalidate>
+                    <input type="hidden" id="personalTaskId">
 
                     <!-- Título -->
                     <div class="form-group">
-                        <label for="taskTitulo">Título <span class="required">*</span></label>
-                        <input type="text" id="taskTitulo" class="form-control"
-                            placeholder="Ingresa el título de la tarea">
+                        <label for="personalTitulo">¿Qué necesitas hacer? <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="personalTitulo" placeholder="Escribe tu tarea..."
+                            maxlength="200" autocomplete="off">
                     </div>
 
                     <!-- Descripción -->
                     <div class="form-group">
-                        <label for="taskDescripcion">Descripción</label>
-                        <textarea id="taskDescripcion" class="form-control" rows="3"
-                            placeholder="Describe la tarea en detalle..."></textarea>
+                        <label for="personalDescripcion">Detalles / notas</label>
+                        <textarea class="form-control" id="personalDescripcion"
+                            placeholder="Agrega contexto, pasos, recursos..." rows="3" maxlength="2000"></textarea>
                     </div>
 
-                    <!-- Fila: Prioridad y Estado -->
+                    <!-- Prioridad + Categoría -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="taskPrioridad">Prioridad</label>
-                            <select id="taskPrioridad" class="form-control">
+                            <label for="personalPrioridad">Prioridad</label>
+                            <select class="form-control" id="personalPrioridad">
                                 <option value="baja">🟢 Baja</option>
-                                <option value="media">🟡 Media</option>
+                                <option value="media" selected>🟡 Media</option>
                                 <option value="alta">🔴 Alta</option>
-                                <option value="critica">⚫ Crítica</option>
+                                <option value="critica">🟣 Crítica</option>
                             </select>
                         </div>
-
                         <div class="form-group">
-                            <label for="taskEstado">Estado</label>
-                            <select id="taskEstado" class="form-control">
-                                <option value="pendiente">⏳ Pendiente</option>
-                                <option value="en-progreso">🔄 En progreso</option>
-                                <option value="completada">✅ Completada</option>
-                                <option value="cancelada">❌ Cancelada</option>
-                            </select>
+                            <label for="personalCategoria">Categoría</label>
+                            <input type="text" class="form-control" id="personalCategoria"
+                                placeholder="ej. Trabajo, Casa..." maxlength="60">
                         </div>
                     </div>
 
-                    <!-- Fila: Tipo y Categoría -->
+                    <!-- Fecha + Hora -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="taskTipo">Tipo de tarea</label>
-                            <select id="taskTipo" class="form-control">
-                                <option value="personal">👤 Personal (solo para mí)</option>
-                                <option value="asignada">📌 Asignada (asignar a usuario)</option>
-                                <option value="grupal">👥 Grupal (varios usuarios)</option>
-                                <option value="clase">🏫 Clase (todos los usuarios)</option>
-                            </select>
+                            <label for="personalDueDate">Fecha límite</label>
+                            <input type="date" class="form-control" id="personalDueDate">
                         </div>
-
                         <div class="form-group">
-                            <label for="taskCategoria">Categoría</label>
-                            <input type="text" id="taskCategoria" class="form-control"
-                                placeholder="Ej: Desarrollo, Reunión, Estudio">
-                        </div>
-                    </div>
-
-                    <!-- Asignar a usuarios -->
-                    <div class="form-group assignees-container">
-                        <label for="taskAssignees">
-                            <i class="fas fa-users"></i> Asignar a usuarios
-                        </label>
-                        <select id="taskAssignees" class="form-control" multiple size="4">
-                            <option value="">Seleccionar usuarios (opcional)</option>
-                            <!-- Cargado dinámicamente desde JavaScript -->
-                        </select>
-                        <small class="form-text">
-                            <i class="fas fa-info-circle"></i>
-                            Presiona <kbd>Ctrl</kbd> (Windows) o <kbd>Cmd</kbd> (Mac) para seleccionar múltiples
-                            usuarios
-                        </small>
-                    </div>
-
-                    <!-- Fila: Fecha y Hora límite -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="taskDueDate">Fecha límite</label>
-                            <input type="date" id="taskDueDate" class="form-control">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="taskTime">Hora límite</label>
-                            <input type="time" id="taskTime" class="form-control">
+                            <label for="personalTime">Hora</label>
+                            <input type="time" class="form-control" id="personalTime">
                         </div>
                     </div>
 
                     <!-- Recordatorio -->
                     <div class="form-check">
-                        <input type="checkbox" id="taskReminder" class="form-check-input">
-                        <label for="taskReminder" class="form-check-label">
-                            <i class="fas fa-bell"></i> Recordatorio (recibir notificación)
+                        <input type="checkbox" class="form-check-input" id="personalReminder">
+                        <label class="form-check-label" for="personalReminder">
+                            <i class="fas fa-bell" style="color:var(--warning);"></i> Activar recordatorio
                         </label>
                     </div>
+
                 </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelTaskBtn">Cancelar</button>
-                <button class="btn btn--primary" id="saveTaskBtn">
-                    <i class="fas fa-save"></i> Guardar Tarea
+            </div>
+
+            <div class="task-modal__footer">
+                <button class="btn-modal-cancel" id="cancelPersonalBtn">Cancelar</button>
+                <button class="btn-modal-save btn-modal-save--postit" id="savePersonalBtn">
+                    <i class="fas fa-thumbtack"></i> Guardar nota
                 </button>
-            </footer>
-        </article>
-    </dialog>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- =============================================================================
+     MODAL: NUEVA / EDITAR TAREA ASIGNADA (a otras personas)
+     ============================================================================= -->
+    <div class="task-modal-overlay" id="assignModal" role="dialog" aria-modal="true" aria-labelledby="assignModalTitle">
+        <div class="task-modal task-modal--assign">
+
+            <div class="task-modal__header">
+                <h3 id="assignModalTitle"><i class="fas fa-people-group"></i> Asignar nueva tarea</h3>
+                <button class="task-modal__close" id="closeAssignModal" aria-label="Cerrar modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="task-modal__body">
+                <form class="task-form" id="assignTaskForm" novalidate>
+                    <input type="hidden" id="assignTaskId">
+
+                    <!-- Título -->
+                    <div class="form-group">
+                        <label for="assignTitulo">Título de la tarea <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="assignTitulo"
+                            placeholder="Describe la tarea a realizar..." maxlength="200" autocomplete="off">
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="form-group">
+                        <label for="assignDescripcion">Descripción / instrucciones</label>
+                        <textarea class="form-control" id="assignDescripcion"
+                            placeholder="Explica qué se debe hacer, cómo y por qué..." rows="3"
+                            maxlength="2000"></textarea>
+                    </div>
+
+                    <!-- Asignados -->
+                    <div class="form-group">
+                        <label for="assignAssignees">Asignar a <span class="required">*</span></label>
+                        <select class="form-control" id="assignAssignees" multiple size="5">
+                            <!-- Poblado dinámicamente por TaskManager -->
+                        </select>
+                        <span class="form-text"><i class="fas fa-info-circle"></i> Mantén <kbd>Ctrl</kbd> para
+                            seleccionar varios usuarios</span>
+                    </div>
+
+                    <!-- Tipo + Prioridad -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignTipoForm">Tipo</label>
+                            <select class="form-control" id="assignTipoForm">
+                                <option value="asignada">Asignada (1 persona)</option>
+                                <option value="grupal">Grupal (equipo)</option>
+                                <option value="clase">Clase / departamento</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="assignPrioridadForm">Prioridad</label>
+                            <select class="form-control" id="assignPrioridadForm">
+                                <option value="baja">🟢 Baja</option>
+                                <option value="media" selected>🟡 Media</option>
+                                <option value="alta">🔴 Alta</option>
+                                <option value="critica">🟣 Crítica</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Estado + Categoría -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignEstadoForm">Estado inicial</label>
+                            <select class="form-control" id="assignEstadoForm">
+                                <option value="pendiente" selected>Pendiente</option>
+                                <option value="en-progreso">En progreso</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="assignCategoria">Categoría</label>
+                            <input type="text" class="form-control" id="assignCategoria"
+                                placeholder="ej. Administrativo..." maxlength="60">
+                        </div>
+                    </div>
+
+                    <!-- Fecha + Hora -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="assignDueDate">Fecha límite</label>
+                            <input type="date" class="form-control" id="assignDueDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="assignTime">Hora límite</label>
+                            <input type="time" class="form-control" id="assignTime">
+                        </div>
+                    </div>
+
+                    <!-- Recordatorio -->
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="assignReminder">
+                        <label class="form-check-label" for="assignReminder">
+                            <i class="fas fa-bell" style="color:var(--warning);"></i> Notificar a los asignados
+                        </label>
+                    </div>
+
+                </form>
+            </div>
+
+            <div class="task-modal__footer">
+                <button class="btn-modal-cancel" id="cancelAssignBtn">Cancelar</button>
+                <button class="btn-modal-save btn-modal-save--assign" id="saveAssignBtn">
+                    <i class="fas fa-paper-plane"></i> Asignar tarea
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- =============================================================================
+     MODAL: CONFIRMACIÓN (eliminar / completar)
+     ============================================================================= -->
+    <div class="task-modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="task-modal confirm-modal">
+
+            <div class="task-modal__header" style="border-bottom:none;padding-bottom:0;">
+                <button class="task-modal__close" id="closeConfirmModal" aria-label="Cerrar"
+                    onclick="window.taskManager?._closeModal('confirmModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="confirm-modal__body">
+                <div class="confirm-modal__icon-wrap confirm-modal__icon-wrap--delete" id="confirmIconWrap">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <h3 class="confirm-modal__title" id="confirmTitle">Confirmar acción</h3>
+                <p class="confirm-modal__msg" id="confirmMsg">¿Estás seguro?</p>
+            </div>
+
+            <div class="task-modal__footer" style="justify-content:center;gap:1rem;">
+                <button class="btn-modal-cancel" id="cancelConfirmBtn">Cancelar</button>
+                <button class="btn-confirm-delete" id="confirmActionBtn">Confirmar</button>
+            </div>
+
+        </div>
+    </div>
 
     <!-- Modal para eliminar múltiples documentos -->
     <div class="modal advanced-modal modal-bulk-delete" id="bulkDeleteModal" style="display: none;">
@@ -3301,6 +3546,7 @@
     <script type="module" src="/src/frontend/modules/ajustes.js"></script>
     <script type="module" src="/src/frontend/modules/calendario.js"></script>
     <script type="module" src="/src/frontend/authGuard.js"></script>
+    <script type="module" src="/src/frontend/chatbot-slide.js"></script>
     <script type="module" src="/src/frontend/app.js"></script>
 </body>
 

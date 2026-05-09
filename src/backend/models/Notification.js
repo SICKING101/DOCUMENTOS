@@ -66,7 +66,13 @@ const notificationSchema = new mongoose.Schema({
   fecha_creacion: {
     type: Date,
     default: Date.now
-  }
+  },
+  // ===== 🆕 NUEVO: Identificador de escuela =====
+  schoolId: { 
+    type: String, 
+    index: true,
+    default: null 
+  },
 }, {
   timestamps: true
 });
@@ -76,6 +82,8 @@ notificationSchema.index({ fecha_creacion: -1 });
 notificationSchema.index({ leida: 1, fecha_creacion: -1 });
 notificationSchema.index({ tipo: 1, fecha_creacion: -1 });
 notificationSchema.index({ prioridad: 1, leida: 1 });
+notificationSchema.index({ schoolId: 1, fecha_creacion: -1 });
+notificationSchema.index({ schoolId: 1, leida: 1 });
 
 // Métodos
 notificationSchema.methods.marcarLeida = async function() {
@@ -96,26 +104,25 @@ notificationSchema.statics.limpiarAntiguas = async function(dias = 30) {
   return resultado.deletedCount;
 };
 
-notificationSchema.statics.obtenerEstadisticas = async function() {
-  const total = await this.countDocuments();
-  const noLeidas = await this.countDocuments({ leida: false });
+notificationSchema.statics.obtenerEstadisticas = async function(schoolId = null) {
+  const query = {};
+  if (schoolId) {
+    query.$or = [
+      { schoolId: schoolId },
+      { schoolId: { $exists: false } },
+      { schoolId: null }
+    ];
+  }
+  
+  const total = await this.countDocuments(query);
+  const noLeidas = await this.countDocuments({ ...query, leida: false });
   const porTipo = await this.aggregate([
-    {
-      $group: {
-        _id: '$tipo',
-        count: { $sum: 1 }
-      }
-    }
+    { $match: query },
+    { $group: { _id: '$tipo', count: { $sum: 1 } } }
   ]);
   
-  return {
-    total,
-    leidas: total - noLeidas,
-    noLeidas,
-    porTipo
-  };
+  return { total, leidas: total - noLeidas, noLeidas, porTipo };
 };
 
 const Notification = mongoose.model('Notification', notificationSchema);
-
 export default Notification;

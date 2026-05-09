@@ -25,6 +25,7 @@
 @import url('components/chatbot.css');
 
 @import url('components/preloader/bulk-delete.css');
+@import url('components/preloader/login-preloader.css');
 @import url('components/preloader/buttons.css');
 @import url('components/preloader/confirmation.css');
 @import url('components/preloader/details.css');
@@ -54,6 +55,7 @@
 @import url('components/preloader/reports.css');
 @import url('components/status.css');
 @import url('components/topbar.css');
+@import url('components/chatbot-slide.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');
@@ -72,7 +74,6 @@
 @import url('sections/auditoria.css');
 @import url('sections/roles.css');
 @import url('sections/versiones.css');
-@import url('sections/super-admin.css');
 @import url('sections/sugerencias.css');
 @import url('sections/avisos.css');
 

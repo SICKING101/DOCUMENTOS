@@ -31,6 +31,7 @@ class AuditController {
             console.log('📋 Filtros aplicados:', {
                 page, limit, username, action, actionCategory, severity, status, targetModel, startDate, endDate, search
             });
+            console.log('🏫 schoolId:', req.schoolId || 'superadmin');
 
             const filters = {
                 username,
@@ -48,6 +49,11 @@ class AuditController {
             Object.keys(filters).forEach(key => 
                 filters[key] === undefined && delete filters[key]
             );
+
+            // ✅ Agregar schoolId al filtro
+            if (req.schoolId) {
+                filters.schoolId = req.schoolId;
+            }
 
             const result = await AuditLog.getFilteredLogs(
                 filters,
@@ -125,7 +131,10 @@ class AuditController {
         try {
             const { days = 30 } = req.query;
 
-            const stats = await AuditLog.getStats(parseInt(days));
+            console.log('📊 Obteniendo estadísticas - schoolId:', req.schoolId || 'superadmin');
+            
+            // ✅ Pasar schoolId a getStats
+            const stats = await AuditLog.getStats(parseInt(days), req.schoolId || null);
 
             res.json({
                 success: true,
@@ -159,6 +168,15 @@ class AuditController {
             }
             if (actionCategory) query.actionCategory = actionCategory;
             if (severity) query.severity = severity;
+            
+            // ✅ Filtro por escuela
+            if (req.schoolId) {
+                query.$or = [
+                    { schoolId: req.schoolId },
+                    { schoolId: { $exists: false } },
+                    { schoolId: null }
+                ];
+            }
 
             // Límite razonable para exportación
             const logs = await AuditLog.find(query)
@@ -173,7 +191,6 @@ class AuditController {
             await AuditService.logAuditExport(req, format, logs.length, filters);
 
             if (format === 'csv') {
-                // Generar CSV
                 const headers = ['Fecha', 'Usuario', 'Rol', 'Acción', 'Categoría', 'Descripción', 'Severidad', 'IP'];
                 const csvRows = [headers.join(',')];
 
@@ -195,7 +212,6 @@ class AuditController {
                 res.setHeader('Content-Disposition', `attachment; filename=audit-logs-${Date.now()}.csv`);
                 res.send(csvRows.join('\n'));
             } else {
-                // JSON
                 res.setHeader('Content-Type', 'application/json');
                 res.setHeader('Content-Disposition', `attachment; filename=audit-logs-${Date.now()}.json`);
                 res.send(JSON.stringify(logs, null, 2));

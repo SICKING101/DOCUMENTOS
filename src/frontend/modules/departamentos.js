@@ -276,20 +276,31 @@ async function saveDepartment() {
     }
 }
 
-/**
- * 2.3 Cargar lista de departamentos - CORREGIDO
- */
 async function loadDepartments() {
-    // Verificar permiso de vista
     if (!canView('departamentos')) {
         console.log('🔒 Sin permiso para ver departamentos');
 
         if (DOM.departmentsStats) {
+            // Forzar display block para ocupar todo el ancho
+            DOM.departmentsStats.style.display = 'block';
+            DOM.departmentsStats.style.gridTemplateColumns = 'none';
+            
             DOM.departmentsStats.innerHTML = `
-                <div class="empty-state error-state">
-                    <div class="error-state__icon"><i class="fas fa-lock"></i></div>
+                <div class="empty-state empty-state--department empty-state--locked empty-state--full-width">
+                    <div class="empty-state__illustration empty-state__illustration--locked">
+                        <div class="empty-state__lock-icon">
+                            <i class="fas fa-lock"></i>
+                            <div class="empty-state__lock-shackle"></div>
+                        </div>
+                    </div>
                     <h3 class="empty-state__title">Acceso Restringido</h3>
-                    <p class="empty-state__description">No tienes permisos para ver los departamentos.</p>
+                    <p class="empty-state__description">
+                        No cuentas con los permisos necesarios para visualizar los departamentos
+                    </p>
+                    <div class="empty-state__help">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Solicita acceso al administrador del sistema</span>
+                    </div>
                 </div>
             `;
         }
@@ -297,10 +308,16 @@ async function loadDepartments() {
         if (DOM.departamentosTableBody) {
             DOM.departamentosTableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty-state error-state">
-                        <div class="error-state__icon"><i class="fas fa-lock"></i></div>
-                        <h3 class="empty-state__title">Acceso Restringido</h3>
-                        <p class="empty-state__description">No tienes permisos para ver la lista de departamentos.</p>
+                    <td colspan="6" style="padding: 0;">
+                        <div class="empty-state empty-state--department empty-state--locked empty-state--compact empty-state--full-width">
+                            <div class="empty-state__illustration--small">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <h4 class="empty-state__title empty-state__title--sm">Acceso Restringido</h4>
+                            <p class="empty-state__description empty-state__description--sm">
+                                No tienes permisos para ver la lista de departamentos
+                            </p>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -312,15 +329,12 @@ async function loadDepartments() {
     try {
         console.log('🏢 Cargando departamentos...');
         
-        // Mostrar skeleton cards con tiempo mínimo
         showDepartmentSkeletonCards(3);
         
-        // Tiempo mínimo para mostrar skeleton: 1 segundo
         await showDepartmentPreloader('Cargando departamentos...', 1000);
         
         const data = await api.call('/departments');
         
-        // Tiempo adicional para simular procesamiento
         await new Promise(resolve => setTimeout(resolve, 600));
         
         if (data.success) {
@@ -337,13 +351,29 @@ async function loadDepartments() {
         showAlert('Error al cargar departamentos: ' + error.message, 'error');
         
         if (DOM.departmentsStats) {
+            // Forzar display block para ocupar todo el ancho
+            DOM.departmentsStats.style.display = 'block';
+            DOM.departmentsStats.style.gridTemplateColumns = 'none';
+            
             DOM.departmentsStats.innerHTML = `
-                <article class="empty-state">
-                    <i class="fas fa-exclamation-triangle empty-state__icon"></i>
-                    <h3 class="empty-state__title">Error al cargar departamentos</h3>
-                    <p class="empty-state__description">${error.message}</p>
-                    <button class="btn btn--primary" onclick="loadDepartments()">Reintentar</button>
-                </article>
+                <div class="empty-state empty-state--department empty-state--error empty-state--full-width">
+                    <div class="empty-state__illustration empty-state__illustration--error">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <div class="empty-state__error-pulse"></div>
+                    </div>
+                    <h3 class="empty-state__title">Error de conexión</h3>
+                    <p class="empty-state__description">
+                        ${error.message || 'No pudimos cargar los departamentos. Verifica tu conexión.'}
+                    </p>
+                    <div class="empty-state__actions">
+                        <button class="btn btn--primary" onclick="loadDepartments()">
+                            <i class="fas fa-redo-alt"></i> Reintentar
+                        </button>
+                        <button class="btn btn--outline" onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt"></i> Recargar página
+                        </button>
+                    </div>
+                </div>
             `;
         }
     }
@@ -442,9 +472,6 @@ async function deleteDepartment(id) {
 // 3. RENDERIZADO DE INTERFAZ
 // =============================================================================
 
-/**
- * 3.1 Renderizar departamentos en la interfaz
- */
 function renderDepartments() {
     if (!DOM.departmentsStats) return;
 
@@ -453,22 +480,43 @@ function renderDepartments() {
     DOM.departmentsStats.innerHTML = '';
 
     if (window.appState.departments.length === 0) {
+        // Forzar display block para ocupar todo el ancho
+        DOM.departmentsStats.style.display = 'block';
+        DOM.departmentsStats.style.gridTemplateColumns = 'none';
+        
         DOM.departmentsStats.innerHTML = `
-            <article class="empty-state">
-                <i class="fas fa-building empty-state__icon"></i>
-                <h3 class="empty-state__title">No hay departamentos creados</h3>
-                <p class="empty-state__description">Crea el primer departamento para organizar las personas</p>
+            <div class="empty-state empty-state--department empty-state--full-width">
+                <div class="empty-state__illustration">
+                    <div class="empty-state__illustration-circle">
+                        <i class="fas fa-building empty-state__illustration-icon"></i>
+                    </div>
+                    <div class="empty-state__illustration-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+                <h3 class="empty-state__title">No hay departamentos aún</h3>
+                <p class="empty-state__description">
+                    Crea departamentos para organizar y clasificar a las personas por áreas
+                </p>
                 ${canEdit ? `
-                    <button class="btn btn--primary" onclick="openDepartmentModal()">
-                        <i class="fas fa-plus"></i> Crear Departamento
+                    <button class="btn btn--primary empty-state__action" onclick="openDepartmentModal()">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Crear mi primer departamento</span>
                     </button>
                 ` : `
-                    <p class="empty-state__description">No tienes permisos para crear departamentos.</p>
+                    <div class="empty-state__permission-hint">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Contacta al administrador para crear departamentos</span>
+                    </div>
                 `}
-            </article>
+            </div>
         `;
         return;
     }
+
+    // Restaurar el grid cuando hay elementos
+    DOM.departmentsStats.style.display = '';
+    DOM.departmentsStats.style.gridTemplateColumns = '';
 
     window.appState.departments.forEach(department => {
         const departmentCard = document.createElement('article');

@@ -20,6 +20,14 @@ import {
   openSystem,
   getSuperAdminSystemStatus,
 } from '../controllers/systemStateController.js';
+import {
+  createInvitation,
+  validateInvitationToken,
+  registerWithInvitation,
+  getInvitations,
+  revokeInvitation,
+  resendInvitation,
+} from '../controllers/invitationController.js';
 import SystemState from '../models/SystemState.js';
 
 const router = express.Router();
@@ -41,13 +49,13 @@ router.post('/login', (req, res) => {
     const resultado = loginSuperAdmin(usuario, password);
 
     if (!resultado.success) {
-      setTimeout(() => {
+      // Delay deliberado para dificultar fuerza bruta
+      return setTimeout(() => {
         res.status(401).json({
           success: false,
           message: 'Credenciales inválidas.',
         });
       }, 800);
-      return;
     }
 
     setSuperAdminCookie(res, resultado.token);
@@ -57,10 +65,10 @@ router.post('/login', (req, res) => {
       message: 'Autenticación exitosa.',
       token: resultado.token,
       user: {
-        usuario: usuario,
+        usuario,
         rol: 'superadmin',
-        isSuperAdmin: true
-      }
+        isSuperAdmin: true,
+      },
     });
   } catch (err) {
     console.error('❌ [SuperAdmin] Error en login:', err.message);
@@ -72,55 +80,47 @@ router.post('/login', (req, res) => {
 // LOGOUT DEL SUPERADMIN
 // =============================================================================
 router.post('/logout', (req, res) => {
-    res.cookie('superadmin_token', 'none', {
-        httpOnly: true,
-        expires: new Date(Date.now() + 5000),
-        path: '/'
-    });
-    
-    res.cookie('token', 'none', {
-        httpOnly: true,
-        expires: new Date(Date.now() + 5000),
-        path: '/'
-    });
-    
-    console.log('🛡️ Superadmin sesión cerrada');
-    res.json({ success: true, message: 'Sesión cerrada.' });
+  res.cookie('superadmin_token', 'none', {
+    httpOnly: true,
+    expires: new Date(Date.now() + 5000),
+    path: '/',
+  });
+  res.cookie('token', 'none', {
+    httpOnly: true,
+    expires: new Date(Date.now() + 5000),
+    path: '/',
+  });
+  console.log('🛡️ Superadmin sesión cerrada');
+  res.json({ success: true, message: 'Sesión cerrada.' });
 });
 
 // =============================================================================
 // REFRESH TOKEN - Mantener sesión activa
 // =============================================================================
 router.post('/refresh', protegerSuperAdmin, (req, res) => {
-    try {
-        const secret = process.env.SUPER_ADMIN_JWT_SECRET || (process.env.JWT_SECRET + '_SUPER');
-        
-        const newToken = jwt.sign(
-            { 
-                rol: 'superadmin', 
-                usuario: req.superAdmin.usuario,
-                email: req.superAdmin.email,
-                isSuperAdmin: true,
-                type: 'superadmin'
-            },
-            secret,
-            { expiresIn: '8h' }
-        );
-        
-        setSuperAdminCookie(res, newToken);
-        
-        res.json({
-            success: true,
-            token: newToken,
-            expiresIn: 8 * 60 * 60 * 1000
-        });
-    } catch (err) {
-        console.error('❌ Error refrescando token:', err);
-        res.status(500).json({
-            success: false,
-            message: 'Error al refrescar token'
-        });
-    }
+  try {
+    const secret = process.env.SUPER_ADMIN_JWT_SECRET || (process.env.JWT_SECRET + '_SUPER');
+    const newToken = jwt.sign(
+      {
+        rol: 'superadmin',
+        usuario: req.superAdmin.usuario,
+        email: req.superAdmin.email,
+        isSuperAdmin: true,
+        type: 'superadmin',
+      },
+      secret,
+      { expiresIn: '8h' }
+    );
+    setSuperAdminCookie(res, newToken);
+    res.json({
+      success: true,
+      token: newToken,
+      expiresIn: 8 * 60 * 60 * 1000,
+    });
+  } catch (err) {
+    console.error('❌ Error refrescando token:', err);
+    res.status(500).json({ success: false, message: 'Error al refrescar token' });
+  }
 });
 
 // =============================================================================
@@ -135,7 +135,7 @@ router.get('/verify', protegerSuperAdmin, (req, res) => {
 });
 
 // =============================================================================
-// CRUD DE VERSIONES — Solo superadmin (ESCRITURA)
+// CRUD DE VERSIONES — Solo superadmin
 // =============================================================================
 router.post('/versions', protegerSuperAdmin, createVersion);
 router.put('/versions/:id', protegerSuperAdmin, updateVersion);
@@ -143,31 +143,41 @@ router.delete('/versions/:id', protegerSuperAdmin, deleteVersion);
 router.patch('/versions/:id/set-current', protegerSuperAdmin, setCurrentVersion);
 
 // =============================================================================
-// CIERRE DEL SISTEMA — Solo superadmin
+// INVITACIONES
 // =============================================================================
 
-// Cerrar sistema para clientes
+// ── Rutas protegidas (superadmin) ──────────────────────────────────────────
+router.post('/invitations', protegerSuperAdmin, createInvitation);
+router.get('/invitations', protegerSuperAdmin, getInvitations);
+router.delete('/invitations/:id', protegerSuperAdmin, revokeInvitation);
+router.post('/invitations/:id/resend', protegerSuperAdmin, resendInvitation);
+
+// ── Rutas PÚBLICAS de invitación (no requieren auth) ──────────────────────
+// Validar token: el usuario lo introduce en la página de login
+router.get('/invitations/validate/:token', validateInvitationToken);
+
+// Registrar con token validado
+router.post('/invitations/register', registerWithInvitation);
+
+// =============================================================================
+// CIERRE DEL SISTEMA — Solo superadmin
+// =============================================================================
 router.post('/system/shutdown', protegerSuperAdmin, closeSystem);
-
-// Reabrir sistema para clientes
 router.post('/system/open', protegerSuperAdmin, openSystem);
-
-// Obtener estado completo del sistema (con historial)
 router.get('/system/status', protegerSuperAdmin, getSuperAdminSystemStatus);
 
-// Obtener historial completo
 router.get('/system/history', protegerSuperAdmin, async (req, res) => {
-    try {
-        const instance = await SystemState.getInstance();
-        res.json({
-            success: true,
-            history: instance.history,
-            total: instance.history.length
-        });
-    } catch (err) {
-        console.error('❌ Error obteniendo historial:', err);
-        res.status(500).json({ success: false, message: err.message });
-    }
+  try {
+    const instance = await SystemState.getInstance();
+    res.json({
+      success: true,
+      history: instance.history,
+      total: instance.history.length,
+    });
+  } catch (err) {
+    console.error('❌ Error obteniendo historial:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 export default router;
