@@ -488,9 +488,21 @@ class BulkDeleteManager {
             await updateTrashBadge();
         }
         
-        // Actualizar dashboard si está activo
-        if (window.appState?.currentTab === 'dashboard' && window.loadDashboardData) {
-            await window.loadDashboardData();
+        // Actualizar dashboard
+        try {
+            const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+            if (typeof dashboardLoader === 'function') {
+                await dashboardLoader(window.appState);
+            } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                window.dashboard.updateDashboardStats(window.appState);
+            }
+        } catch (e) {
+            console.warn('No se pudo actualizar dashboard tras eliminación masiva:', e);
+        }
+        try {
+            window.dispatchEvent(new CustomEvent('documentDeleted', { detail: { ids: deletedIds } }));
+        } catch (e) {
+            console.warn('No se pudo disparar evento documentDeleted tras eliminación masiva:', e);
         }
         
         console.log(`✅ ${successCount} documentos procesados correctamente`);

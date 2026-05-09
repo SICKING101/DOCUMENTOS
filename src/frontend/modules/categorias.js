@@ -285,6 +285,23 @@ async function saveCategory() {
             showAlert(data.message, 'success');
             await loadCategories();
             closeCategoryModal();
+            try {
+                const eventName = DOM.categoryId?.value ? 'categoryUpdated' : 'categoryCreated';
+                window.dispatchEvent(new CustomEvent(eventName, { detail: { category: data.category || data } }));
+            } catch (e) {
+                console.warn('No se pudo disparar evento categoryCreated/categoryUpdated:', e);
+            }
+            // Actualizar dashboard (número de categorías)
+            try {
+                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                if (typeof dashboardLoader === 'function') {
+                    await dashboardLoader(window.appState);
+                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                    window.dashboard.updateDashboardStats(window.appState);
+                }
+            } catch (e) {
+                console.warn('No se pudo actualizar dashboard tras guardar categoría:', e);
+            }
         } else {
             throw new Error(data.message || 'Error desconocido al guardar');
         }

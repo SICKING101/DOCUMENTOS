@@ -877,6 +877,51 @@ setTimeout(() => {
 console.log('✅ app.js cargado correctamente');
 
 // =============================================================================
+// Helpers de prueba (DEBUG) - permiten simular eventos desde la consola
+// =============================================================================
+
+function _dispatchTestEvent(name, detail = {}) {
+  try {
+    window.dispatchEvent(new CustomEvent(name, { detail }));
+    console.log(`🔔 Evento disparado: ${name}`, detail);
+  } catch (e) {
+    console.warn(`No se pudo disparar evento ${name}:`, e);
+  }
+}
+
+window.forceDashboardReload = async function () {
+  const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+  try {
+    if (typeof dashboardLoader === 'function') {
+      await dashboardLoader(window.appState);
+      console.log('✅ Dashboard recargado (loader)');
+    } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+      window.dashboard.updateDashboardStats(window.appState);
+      console.log('✅ Dashboard recargado (updateDashboardStats)');
+    } else {
+      console.warn('No se encontró loader de dashboard disponible');
+    }
+  } catch (e) {
+    console.error('Error forzando recarga de dashboard:', e);
+  }
+};
+
+window.testFireEvents = async function (waitMs = 700) {
+  console.group('🔬 testFireEvents — simulación rápida');
+  _dispatchTestEvent('documentCreated', { document: { _id: 'test-doc-created' } });
+  await new Promise((r) => setTimeout(r, waitMs));
+  _dispatchTestEvent('documentUpdated', { documentId: 'test-doc-created', success: true });
+  await new Promise((r) => setTimeout(r, waitMs));
+  _dispatchTestEvent('documentDeleted', { id: 'test-doc-created' });
+  await new Promise((r) => setTimeout(r, waitMs));
+  _dispatchTestEvent('personCreated', { person: { _id: 'test-person-1' } });
+  await new Promise((r) => setTimeout(r, waitMs));
+  _dispatchTestEvent('categoryCreated', { category: { _id: 'test-cat-1' } });
+  console.groupEnd();
+  console.log('✅ Simulación completada — revisa la consola y las tarjetas del dashboard');
+};
+
+// =============================================================================
 // 14. EXPORTACIONES DE MÓDULO
 // =============================================================================
 

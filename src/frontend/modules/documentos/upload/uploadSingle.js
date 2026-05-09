@@ -227,6 +227,12 @@ export async function handleUploadDocument() {
                             
                             hideSingleUploadPreloader();
                             showAlert(data.message, 'success');
+                            // Disparar evento global indicando nuevo documento creado
+                            try {
+                                window.dispatchEvent(new CustomEvent('documentCreated', { detail: { document: data.document || data } }));
+                            } catch (e) {
+                                console.warn('No se pudo disparar evento documentCreated:', e);
+                            }
                             
                             // Cargar documentos/categorías actualizados
                             if (window.refreshDocumentsView) {
@@ -234,15 +240,31 @@ export async function handleUploadDocument() {
                             } else if (window.loadDocuments) {
                                 await window.loadDocuments();
                             }
-                            
+
                             // Cerrar modal
                             if (window.closeDocumentModal) {
                                 window.closeDocumentModal();
                             }
-                            
-                            // Recargar dashboard si es necesario
-                            if (window.appState.currentTab === 'dashboard' && window.loadDashboardData) {
-                                await window.loadDashboardData();
+
+                            // Re-render panel de documentos vencidos si existe
+                            try {
+                                if (typeof window.renderExpiredDocuments === 'function') {
+                                    window.renderExpiredDocuments();
+                                }
+                            } catch (e) {
+                                console.warn('Error re-renderizando panel vencidos:', e);
+                            }
+
+                            // Actualizar dashboard (total documentos, próximos a vencer)
+                            try {
+                                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                                if (typeof dashboardLoader === 'function') {
+                                    await dashboardLoader(window.appState);
+                                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                                    window.dashboard.updateDashboardStats(window.appState);
+                                }
+                            } catch (e) {
+                                console.warn('No se pudo actualizar dashboard tras subir documento:', e);
                             }
                             
                             resolve(data);

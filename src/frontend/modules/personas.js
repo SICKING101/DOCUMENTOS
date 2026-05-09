@@ -847,54 +847,59 @@ function addRealTimeValidation() {
     // Remove previous listeners if they exist
     removeRealTimeValidation();
 
-    // Helper function to display validation message below the input field
+    // Helper function to display or update a single validation message below the input field
     function displayValidationMessage(inputElement, message, isValid) {
-        let messageElement = inputElement.nextElementSibling;
-        if (!messageElement || !messageElement.classList.contains('validation-message')) {
+        const parent = inputElement.parentNode;
+        if (!parent) return;
+        let messageElement = parent.querySelector('.validation-message');
+        if (!messageElement) {
             messageElement = document.createElement('div');
             messageElement.className = 'validation-message';
-            inputElement.parentNode.insertBefore(messageElement, inputElement.nextSibling);
+            parent.appendChild(messageElement);
         }
         messageElement.textContent = message;
         messageElement.style.color = isValid ? 'green' : 'red';
     }
 
+    // Store handler references so they can be removed later
+    if (!window._personValidationHandlers) window._personValidationHandlers = {};
+
     // Validate name
-    DOM.personName.addEventListener('input', function() {
+    window._personValidationHandlers.name = function () {
         const validation = validateName(this.value);
         updateFieldValidation(this, validation);
-        displayValidationMessage(this, validation.alertMessage, validation.isValid);
-    });
+    };
+    DOM.personName.addEventListener('input', window._personValidationHandlers.name);
 
     // Validate email
-    DOM.personEmail.addEventListener('input', function() {
+    window._personValidationHandlers.email = function () {
         const validation = validateEmail(this.value);
         updateFieldValidation(this, validation);
-        displayValidationMessage(this, validation.alertMessage, validation.isValid);
-    });
+    };
+    DOM.personEmail.addEventListener('input', window._personValidationHandlers.email);
 
     // Validate phone
-    DOM.personPhone.addEventListener('input', function() {
+    window._personValidationHandlers.phone = function () {
         const validation = validatePhone(this.value);
         updateFieldValidation(this, validation);
-        displayValidationMessage(this, validation.alertMessage, validation.isValid);
-    });
+    };
+    DOM.personPhone.addEventListener('input', window._personValidationHandlers.phone);
 
     // Validate position
-    DOM.personPosition.addEventListener('input', function() {
+    window._personValidationHandlers.position = function () {
         const validation = validatePosition(this.value);
         updateFieldValidation(this, validation);
-        displayValidationMessage(this, validation.alertMessage, validation.isValid);
-    });
+    };
+    DOM.personPosition.addEventListener('input', window._personValidationHandlers.position);
 
     // Validate department
     const departmentSelect = document.getElementById('personDepartment');
     if (departmentSelect) {
-        departmentSelect.addEventListener('change', function() {
+        window._personValidationHandlers.department = function () {
             const validation = validateDepartment(this.value);
             updateFieldValidation(this, validation);
-            displayValidationMessage(this, validation.alertMessage, validation.isValid);
-        });
+        };
+        departmentSelect.addEventListener('change', window._personValidationHandlers.department);
     }
 }
 
@@ -902,14 +907,19 @@ function addRealTimeValidation() {
  * 3.7 Remover validación en tiempo real
  */
 function removeRealTimeValidation() {
-    DOM.personName.removeEventListener('input', () => {});
-    DOM.personEmail.removeEventListener('input', () => {});
-    DOM.personPhone.removeEventListener('input', () => {});
-    DOM.personPosition.removeEventListener('input', () => {});
-    
-    const departmentSelect = document.getElementById('personDepartment');
-    if (departmentSelect) {
-        departmentSelect.removeEventListener('change', () => {});
+    if (window._personValidationHandlers) {
+        try {
+            if (DOM.personName && window._personValidationHandlers.name) DOM.personName.removeEventListener('input', window._personValidationHandlers.name);
+            if (DOM.personEmail && window._personValidationHandlers.email) DOM.personEmail.removeEventListener('input', window._personValidationHandlers.email);
+            if (DOM.personPhone && window._personValidationHandlers.phone) DOM.personPhone.removeEventListener('input', window._personValidationHandlers.phone);
+            if (DOM.personPosition && window._personValidationHandlers.position) DOM.personPosition.removeEventListener('input', window._personValidationHandlers.position);
+            const departmentSelect = document.getElementById('personDepartment');
+            if (departmentSelect && window._personValidationHandlers.department) departmentSelect.removeEventListener('change', window._personValidationHandlers.department);
+        } catch (e) {
+            console.warn('Error removing validation handlers:', e);
+        }
+        // Clear stored handlers
+        window._personValidationHandlers = {};
     }
 }
 
@@ -1439,11 +1449,31 @@ async function savePerson() {
             
             // Mostrar notificación de éxito global
             showAlert(data.message, 'success');
-            
-            // Actualizar dashboard si existe la función
+            // Disparar evento global para que otros módulos puedan reaccionar
             try {
-                if (typeof window.loadDashboardData === 'function') {
-                    await window.loadDashboardData();
+                const eventName = DOM.personId.value ? 'personUpdated' : 'personCreated';
+                window.dispatchEvent(new CustomEvent(eventName, { detail: { person: data.person || data } }));
+            } catch (e) {
+                console.warn('No se pudo disparar evento personCreated/personUpdated:', e);
+            }
+            
+            // Actualizar secciones relacionadas: departamentos y dashboard
+            try {
+                if (typeof window.loadDepartments === 'function') {
+                    await window.loadDepartments();
+                }
+            } catch (deptError) {
+                console.warn('No se pudo actualizar departamentos:', deptError);
+            }
+
+            try {
+                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                if (typeof dashboardLoader === 'function') {
+                    await dashboardLoader(window.appState);
+                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                    window.dashboard.updateDashboardStats(window.appState);
+                } else {
+                    console.log('No se encontró cargador de dashboard para actualizar.');
                 }
             } catch (dashboardError) {
                 console.log('Dashboard no disponible o error al actualizar:', dashboardError);
@@ -1866,6 +1896,13 @@ async function deletePerson(id) {
           setTimeout(async () => {
             // Eliminar del estado global
             window.appState.persons = window.appState.persons.filter(p => p._id !== id);
+
+            // Disparar evento global de persona eliminada
+            try {
+                window.dispatchEvent(new CustomEvent('personDeleted', { detail: { personId: id } }));
+            } catch (e) {
+                console.warn('No se pudo disparar evento personDeleted:', e);
+            }
             
             // Actualizar tabla
             renderPersonsTable();
@@ -1880,27 +1917,49 @@ async function deletePerson(id) {
             // Mostrar notificación flotante de éxito
             showFloatingNotification('Persona eliminada permanentemente del sistema', 'success');
             
-            // Actualizar dashboard si existe
-            try {
-              if (typeof window.loadDashboardData === 'function') {
-                await window.loadDashboardData();
-              }
-            } catch (dashboardError) {
-              console.log('Dashboard no disponible:', dashboardError);
-            }
+                        // Actualizar departamentos y dashboard si existen
+                        try {
+                            if (typeof window.loadDepartments === 'function') {
+                                await window.loadDepartments();
+                            }
+                        } catch (deptError) {
+                            console.warn('No se pudo actualizar departamentos:', deptError);
+                        }
+
+                        try {
+                            const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                            if (typeof dashboardLoader === 'function') {
+                                await dashboardLoader(window.appState);
+                            } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                                window.dashboard.updateDashboardStats(window.appState);
+                            }
+                        } catch (dashboardError) {
+                            console.log('Dashboard no disponible:', dashboardError);
+                        }
           }, 500);
         }, 1000);
       } else {
         // Si no se encontró la fila, recargar normalmente
         await loadPersons();
         
-        try {
-          if (typeof window.loadDashboardData === 'function') {
-            await window.loadDashboardData();
-          }
-        } catch (dashboardError) {
-          console.log('Dashboard no disponible:', dashboardError);
-        }
+                try {
+                    if (typeof window.loadDepartments === 'function') {
+                        await window.loadDepartments();
+                    }
+                } catch (deptError) {
+                    console.warn('No se pudo actualizar departamentos:', deptError);
+                }
+
+                try {
+                    const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                    if (typeof dashboardLoader === 'function') {
+                        await dashboardLoader(window.appState);
+                    } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                        window.dashboard.updateDashboardStats(window.appState);
+                    }
+                } catch (dashboardError) {
+                    console.log('Dashboard no disponible:', dashboardError);
+                }
       }
     } else {
       throw new Error(data.message || 'Error desconocido al eliminar');
