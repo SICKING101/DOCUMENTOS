@@ -285,8 +285,20 @@ export async function deleteDocument(id) {
                         await updateTrashBadge();
                     }
                     
-                    if (window.appState && window.appState.currentTab === 'dashboard' && window.loadDashboardData) {
-                        await window.loadDashboardData();
+                    try {
+                        const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                        if (typeof dashboardLoader === 'function') {
+                            await dashboardLoader(window.appState);
+                        } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                            window.dashboard.updateDashboardStats(window.appState);
+                        }
+                    } catch (e) {
+                        console.warn('No se pudo actualizar dashboard tras mover documento a papelera:', e);
+                    }
+                    try {
+                        window.dispatchEvent(new CustomEvent('documentDeleted', { detail: { id: data.id || null } }));
+                    } catch (e) {
+                        console.warn('No se pudo disparar evento documentDeleted:', e);
                     }
                     
                     showAlert(data.message || 'Documento movido a la papelera', 'success');
@@ -599,6 +611,16 @@ export async function approveDocument(documentId, comment = '') {
             } else if (typeof loadDocuments === 'function') {
                 await loadDocuments();
             }
+            try {
+                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                if (typeof dashboardLoader === 'function') {
+                    await dashboardLoader(window.appState);
+                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                    window.dashboard.updateDashboardStats(window.appState);
+                }
+            } catch (e) {
+                console.warn('No se pudo actualizar dashboard tras aprobar documento:', e);
+            }
         } else {
             showAlert(response?.message || 'No se pudo aprobar', 'error');
         }
@@ -626,6 +648,16 @@ export async function rejectDocument(documentId, comment = '') {
                 await refreshDocumentsView();
             } else if (typeof loadDocuments === 'function') {
                 await loadDocuments();
+            }
+            try {
+                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                if (typeof dashboardLoader === 'function') {
+                    await dashboardLoader(window.appState);
+                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                    window.dashboard.updateDashboardStats(window.appState);
+                }
+            } catch (e) {
+                console.warn('No se pudo actualizar dashboard tras rechazar documento:', e);
             }
         } else {
             showAlert(response?.message || 'No se pudo rechazar', 'error');

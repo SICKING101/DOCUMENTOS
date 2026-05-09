@@ -768,6 +768,36 @@ if (typeof window !== 'undefined') {
         openTasksTab,
         openTaskById
     };
+
+    // Compatibilidad: alias globales para código que espera `window.loadDashboardData`
+    try {
+        window.loadDashboardData = (appState) => loadDashboardData(appState || window.appState);
+        window.updateDashboardStats = (appState) => updateDashboardStats(appState || window.appState);
+    } catch (e) {
+        console.warn('No se pudo crear alias global de dashboard:', e);
+    }
+
+    // Escuchar eventos globales relacionados con documentos/personas
+    window.addEventListener('documentUpdated', async () => {
+        try { await loadDashboardData(window.appState); } catch (e) { console.warn('Error actualizando dashboard (documentUpdated):', e); }
+    });
+    window.addEventListener('documentCreated', async () => {
+        try { await loadDashboardData(window.appState); } catch (e) { console.warn('Error actualizando dashboard (documentCreated):', e); }
+    });
+    window.addEventListener('documentDeleted', async () => {
+        try { await loadDashboardData(window.appState); } catch (e) { console.warn('Error actualizando dashboard (documentDeleted):', e); }
+    });
+    // Cuando se crea/edita una persona, refrescar departamentos y dashboard
+    window.addEventListener('personCreated', async () => {
+        try {
+            if (typeof window.loadDepartments === 'function') {
+                await window.loadDepartments();
+            }
+            await loadDashboardData(window.appState);
+        } catch (e) {
+            console.warn('Error al actualizar departamentos/dashboard tras personCreated:', e);
+        }
+    });
 }
 
 export { loadDashboardData, updateDashboardStats, loadRecentDocuments, handleRefreshDashboard, updateDashboardTasks };

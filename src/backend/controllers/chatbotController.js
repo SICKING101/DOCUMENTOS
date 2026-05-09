@@ -1,5 +1,5 @@
 // ============================================================
-// chatbotController.js — Motor IA ARIA v4.0
+// chatbotController.js — Motor IA ARIA v1.0
 // CBTIS051 — Mejoras masivas: NLP, analytics, auto-diagnóstico
 // ============================================================
 

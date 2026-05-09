@@ -121,7 +121,14 @@ taskSchema.methods.addAttachment = async function(fileData) {
 
 taskSchema.methods.toJSON = function() {
   const obj = this.toObject();
-  if (obj.fecha_limite) obj.fecha_limite_formateada = obj.fecha_limite.toISOString().split('T')[0];
+  if (obj.fecha_limite) {
+    // Usar fecha LOCAL, no UTC, para evitar desfase de 1 día por zona horaria
+    const d = new Date(obj.fecha_limite);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    obj.fecha_limite_formateada = `${year}-${month}-${day}`;
+  }
   obj.comentarios_count = obj.comentarios?.length || 0;
   obj.archivos_count = obj.archivos?.length || 0;
   obj.tiene_nuevos_comentarios = false;

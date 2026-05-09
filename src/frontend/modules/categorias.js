@@ -285,6 +285,24 @@ async function saveCategory() {
             showAlert(data.message, 'success');
             await loadCategories();
             closeCategoryModal();
+
+            try {
+                const eventName = DOM.categoryId?.value ? 'categoryUpdated' : 'categoryCreated';
+                window.dispatchEvent(new CustomEvent(eventName, { detail: { category: data.category || data } }));
+            } catch (e) {
+                console.warn('No se pudo disparar evento categoryCreated/categoryUpdated:', e);
+            }
+            // Actualizar dashboard (número de categorías)
+            try {
+                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                if (typeof dashboardLoader === 'function') {
+                    await dashboardLoader(window.appState);
+                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                    window.dashboard.updateDashboardStats(window.appState);
+                }
+            } catch (e) {
+                console.warn('No se pudo actualizar dashboard tras guardar categoría:', e);
+            }
         } else {
             throw new Error(data.message || 'Error desconocido al guardar');
         }
@@ -433,13 +451,19 @@ async function deleteCategory(id) {
     const category = window.appState.categories.find(c => c._id === id);
     if (!category) return;
     
-    // Mostrar modal de confirmación personalizado
+    // ⚠️ CERRAR cualquier modal previo
+    const prevConfirm = document.getElementById('confirmModal');
+    if (prevConfirm) prevConfirm.remove();
+    
+    const prevAction = document.querySelector('[data-modal-type="action"]');
+    if (prevAction) prevAction.remove();
+    
+    // Mostrar modal de confirmación
     showConfirmModal({
         title: 'Eliminar Categoría',
-        message: `¿Estás seguro de eliminar la categoría "${category.nombre}"?<br>
+        message: `¿Estás seguro de eliminar la categoría "<strong>${category.nombre}</strong>"?<br>
                  <small class="text-warning">Los documentos asociados quedarán sin categoría.</small>`,
-        icon: 'trash',
-        iconClass: 'fas fa-trash text-danger',
+        type: 'danger',
         confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         onConfirm: async () => {
@@ -448,25 +472,20 @@ async function deleteCategory(id) {
             try {
                 console.log('🗑️ Eliminando categoría:', id);
                 
-                // Mostrar overlay preloader para eliminación
                 preloader = showCategoryOverlayPreloader(
                     'Eliminando categoría...',
                     'Esto puede tomar algunos segundos'
                 );
                 
-                // Tiempo mínimo de preloader: 1.2 segundos
                 await new Promise(resolve => setTimeout(resolve, 1200));
                 
                 const data = await api.deleteCategory(id);
                 
-                // Tiempo adicional para simular procesamiento
                 await new Promise(resolve => setTimeout(resolve, 600));
                 
+                if (preloader) preloader.hide();
+                
                 if (data.success) {
-                    // Ocultar preloader
-                    if (preloader) preloader.hide();
-                    
-                    // Mostrar modal de éxito
                     showActionModal({
                         type: 'success',
                         title: '¡Eliminado!',
@@ -482,10 +501,8 @@ async function deleteCategory(id) {
             } catch (error) {
                 console.error('❌ Error eliminando categoría:', error);
                 
-                // Ocultar preloader si existe
                 if (preloader) preloader.hide();
                 
-                // Mostrar modal de error
                 showActionModal({
                     type: 'error',
                     title: 'Error',

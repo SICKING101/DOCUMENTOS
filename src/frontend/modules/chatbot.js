@@ -12,43 +12,43 @@ import { showAlert } from '../utils.js';
 const ARIA_DEBUG = true;
 
 const log = {
-    info:   (...a) => ARIA_DEBUG && console.log('%c[ARIA v1]',        'color:#818cf8;font-weight:bold', ...a),
-    warn:   (...a) => ARIA_DEBUG && console.warn('%c[ARIA-WARN]',     'color:#f59e0b;font-weight:bold', ...a),
-    error:  (...a) => console.error('%c[ARIA-ERROR]',                  'color:#ef4444;font-weight:bold', ...a),
-    action: (...a) => ARIA_DEBUG && console.log('%c[ARIA-ACTION]',    'color:#34d399;font-weight:bold', ...a),
-    nav:    (...a) => ARIA_DEBUG && console.log('%c[ARIA-NAV]',       'color:#60a5fa;font-weight:bold', ...a),
-    voice:  (...a) => ARIA_DEBUG && console.log('%c[ARIA-VOICE]',     'color:#f59e0b;font-weight:bold', ...a),
-    report: (...a) => ARIA_DEBUG && console.log('%c[ARIA-REPORT]',    'color:#10b981;font-weight:bold', ...a),
-    nlp:    (...a) => ARIA_DEBUG && console.log('%c[ARIA-NLP]',       'color:#c084fc;font-weight:bold', ...a),
-    task:   (...a) => ARIA_DEBUG && console.log('%c[ARIA-TASK]',      'color:#fb923c;font-weight:bold', ...a),
-    settings:(...a)=> ARIA_DEBUG && console.log('%c[ARIA-SETTINGS]',  'color:#f472b6;font-weight:bold', ...a),
+    info: (...a) => ARIA_DEBUG && console.log('%c[ARIA v1]', 'color:#818cf8;font-weight:bold', ...a),
+    warn: (...a) => ARIA_DEBUG && console.warn('%c[ARIA-WARN]', 'color:#f59e0b;font-weight:bold', ...a),
+    error: (...a) => console.error('%c[ARIA-ERROR]', 'color:#ef4444;font-weight:bold', ...a),
+    action: (...a) => ARIA_DEBUG && console.log('%c[ARIA-ACTION]', 'color:#34d399;font-weight:bold', ...a),
+    nav: (...a) => ARIA_DEBUG && console.log('%c[ARIA-NAV]', 'color:#60a5fa;font-weight:bold', ...a),
+    voice: (...a) => ARIA_DEBUG && console.log('%c[ARIA-VOICE]', 'color:#f59e0b;font-weight:bold', ...a),
+    report: (...a) => ARIA_DEBUG && console.log('%c[ARIA-REPORT]', 'color:#10b981;font-weight:bold', ...a),
+    nlp: (...a) => ARIA_DEBUG && console.log('%c[ARIA-NLP]', 'color:#c084fc;font-weight:bold', ...a),
+    task: (...a) => ARIA_DEBUG && console.log('%c[ARIA-TASK]', 'color:#fb923c;font-weight:bold', ...a),
+    settings: (...a) => ARIA_DEBUG && console.log('%c[ARIA-SETTINGS]', 'color:#f472b6;font-weight:bold', ...a),
 };
 
 // ──────────────────────────────────────────────────────────────
 // CONSTANTES
 // ──────────────────────────────────────────────────────────────
 const NAV_MAP = {
-    dashboard:      { hash: '#/dashboard',      label: 'Dashboard',      icon: 'fa-tachometer-alt',  tabId: 'dashboard' },
-    documentos:     { hash: '#/documentos',     label: 'Documentos',     icon: 'fa-file-alt',        tabId: 'documentos' },
-    personas:       { hash: '#/personas',       label: 'Personas',       icon: 'fa-users',           tabId: 'personas' },
-    tareas:         { hash: '#/tareas',         label: 'Tareas',         icon: 'fa-check-square',    tabId: 'tareas' },
-    reportes:       { hash: '#/reportes',       label: 'Reportes',       icon: 'fa-chart-bar',       tabId: 'reportes' },
-    papelera:       { hash: '#/papelera',       label: 'Papelera',       icon: 'fa-trash-alt',       tabId: 'papelera' },
-    notificaciones: { hash: '#/notificaciones', label: 'Notificaciones', icon: 'fa-bell',            tabId: 'notificaciones' },
-    ajustes:        { hash: '#/ajustes',        label: 'Ajustes',        icon: 'fa-cog',             tabId: 'ajustes' },
-    soporte:        { hash: '#/soporte',        label: 'Soporte',        icon: 'fa-life-ring',       tabId: 'soporte' },
-    categorias:     { hash: '#/categorias',     label: 'Categorías',     icon: 'fa-folder',          tabId: 'categorias' },
-    departamentos:  { hash: '#/departamentos',  label: 'Departamentos',  icon: 'fa-building',        tabId: 'departamentos' },
-    chatbot:        { hash: '#/chatbot',        label: 'ARIA',           icon: 'fa-robot',           tabId: 'chatbot' },
+    dashboard: { hash: '#/dashboard', label: 'Dashboard', icon: 'fa-tachometer-alt', tabId: 'dashboard' },
+    documentos: { hash: '#/documentos', label: 'Documentos', icon: 'fa-file-alt', tabId: 'documentos' },
+    personas: { hash: '#/personas', label: 'Personas', icon: 'fa-users', tabId: 'personas' },
+    tareas: { hash: '#/tareas', label: 'Tareas', icon: 'fa-check-square', tabId: 'tareas' },
+    reportes: { hash: '#/reportes', label: 'Reportes', icon: 'fa-chart-bar', tabId: 'reportes' },
+    papelera: { hash: '#/papelera', label: 'Papelera', icon: 'fa-trash-alt', tabId: 'papelera' },
+    notificaciones: { hash: '#/notificaciones', label: 'Notificaciones', icon: 'fa-bell', tabId: 'notificaciones' },
+    ajustes: { hash: '#/ajustes', label: 'Ajustes', icon: 'fa-cog', tabId: 'ajustes' },
+    soporte: { hash: '#/soporte', label: 'Soporte', icon: 'fa-life-ring', tabId: 'soporte' },
+    categorias: { hash: '#/categorias', label: 'Categorías', icon: 'fa-folder', tabId: 'categorias' },
+    departamentos: { hash: '#/departamentos', label: 'Departamentos', icon: 'fa-building', tabId: 'departamentos' },
+    chatbot: { hash: '#/chatbot', label: 'ARIA', icon: 'fa-robot', tabId: 'chatbot' },
 };
 
 const MODAL_LABELS = {
-    upload:         'Subir Documento',
-    addPerson:      'Agregar Persona',
-    addTask:        'Nueva Tarea',
-    addCategory:    'Nueva Categoría',
-    addDepartment:  'Nuevo Departamento',
-    search:         'Búsqueda Avanzada',
+    upload: 'Subir Documento',
+    addPerson: 'Agregar Persona',
+    addTask: 'Nueva Tarea',
+    addCategory: 'Nueva Categoría',
+    addDepartment: 'Nuevo Departamento',
+    search: 'Búsqueda Avanzada',
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -309,20 +309,20 @@ function detectSettingCommand(message) {
 // PARSEO DE FECHAS AVANZADO
 // ──────────────────────────────────────────────────────────────
 const MESES = {
-    'enero':0,'febrero':1,'marzo':2,'abril':3,'mayo':4,'junio':5,
-    'julio':6,'agosto':7,'septiembre':8,'octubre':9,'noviembre':10,'diciembre':11,
-    'ene':0,'feb':1,'mar':2,'abr':3,'may':4,'jun':5,
-    'jul':6,'ago':7,'sep':8,'oct':9,'nov':10,'dic':11,
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+    'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+    'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
+    'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
 };
 
 function parseDateFromText(text) {
     const patterns = [
-        { regex: /(\d{1,2})\s+de\s+([a-záéíóúñ]+)(?:\s+de?\s*(\d{4}))?/i, handler: 'dayMonth' },
+        { regex: /(\d{1,2})\s+de\s+([a-záéíóúñ]+)(?:\s+(?:de\s+)?(\d{4}))?/i, handler: 'dayMonth' },
         { regex: /(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{4}))?/, handler: 'numeric' },
         { regex: /\bpasado\s+mañana\b/i, handler: 'pasadoMañana' },
         { regex: /\bmañana\b/i, handler: 'mañana' },
         { regex: /en\s+(\d+)\s+d[ií]as?/i, handler: 'days' },
-        { regex: /\b(pr[oó]xima?\s+semana|próximos?\s+7\s+d[ií]as?)\b/i, handler: 'nextWeek' },
+        { regex: /\b(pr[oó]xima?\s+semana|pr[oó]ximos?\s+7\s+d[ií]as?)\b/i, handler: 'nextWeek' },
         { regex: /\b(pr[oó]ximo?\s+mes|mes\s+que\s+viene)\b/i, handler: 'nextMonth' },
         { regex: /fin\s+de\s+(esta\s+)?semana/i, handler: 'weekend' },
     ];
@@ -337,27 +337,55 @@ function parseDateFromText(text) {
                 const day = parseInt(match[1]);
                 const month = MESES[match[2].toLowerCase()];
                 if (month === undefined) break;
+                // Si NO se especificó año, usar año ACTUAL (sin forzar +1)
                 const year = match[3] ? parseInt(match[3]) : now.getFullYear();
+                // Crear fecha LOCAL exacta: año, mes, día, 23:59:59
                 const d = new Date(year, month, day, 23, 59, 59, 999);
-                if (d < now && year === now.getFullYear()) d.setFullYear(year + 1);
+                log.nlp(`Fecha parseada: ${day}/${month + 1}/${year} → ${d.toISOString()}`);
                 return d;
             }
             case 'numeric': {
+                // dd/mm o dd/mm/aaaa
                 const year = match[3] ? parseInt(match[3]) : now.getFullYear();
                 const d = new Date(year, parseInt(match[2]) - 1, parseInt(match[1]), 23, 59, 59, 999);
-                if (d < now && !match[3]) d.setFullYear(year + 1);
                 return d;
             }
-            case 'mañana': { const d = new Date(); d.setDate(d.getDate()+1); d.setHours(23,59,59,999); return d; }
-            case 'pasadoMañana': { const d = new Date(); d.setDate(d.getDate()+2); d.setHours(23,59,59,999); return d; }
-            case 'days': { const d = new Date(); d.setDate(d.getDate()+parseInt(match[1])); d.setHours(23,59,59,999); return d; }
-            case 'nextWeek': { const d = new Date(); d.setDate(d.getDate()+7); d.setHours(23,59,59,999); return d; }
-            case 'nextMonth': { const d = new Date(); d.setMonth(d.getMonth()+1); d.setHours(23,59,59,999); return d; }
+            case 'mañana': {
+                const d = new Date();
+                d.setDate(d.getDate() + 1);
+                d.setHours(23, 59, 59, 999);
+                return d;
+            }
+            case 'pasadoMañana': {
+                const d = new Date();
+                d.setDate(d.getDate() + 2);
+                d.setHours(23, 59, 59, 999);
+                return d;
+            }
+            case 'days': {
+                const d = new Date();
+                d.setDate(d.getDate() + parseInt(match[1]));
+                d.setHours(23, 59, 59, 999);
+                return d;
+            }
+            case 'nextWeek': {
+                const d = new Date();
+                d.setDate(d.getDate() + 7);
+                d.setHours(23, 59, 59, 999);
+                return d;
+            }
+            case 'nextMonth': {
+                const d = new Date();
+                d.setMonth(d.getMonth() + 1);
+                d.setHours(23, 59, 59, 999);
+                return d;
+            }
             case 'weekend': {
                 const d = new Date();
                 const daysUntilFri = (5 - d.getDay() + 7) % 7;
                 d.setDate(d.getDate() + (daysUntilFri || 7));
-                d.setHours(23,59,59,999); return d;
+                d.setHours(23, 59, 59, 999);
+                return d;
             }
         }
     }
@@ -368,48 +396,256 @@ function parseDateFromText(text) {
 // DETECCIÓN NLP DE COMANDOS
 // ──────────────────────────────────────────────────────────────
 function detectTaskCreation(message) {
-    const patterns = [
-        /(?:crea(?:r)?|nueva?|agrega(?:r)?|a[ñn]ade?|registra(?:r)?)\s+(?:una?\s+)?tarea\s*:?\s+(.+?)(?:\s+(?:para|que|con fecha|antes del?|antes de|vence)\s+.+)?$/i,
-        /tarea\s*:\s+(.+?)(?:\s+(?:para|que|con fecha)\s+.+)?$/i,
-        /(?:necesito|quiero)\s+(?:una?\s+)?tarea\s+(?:llamada?\s+)?["']?(.+?)["']?(?:\s+(?:para|que).+)?$/i,
-        /(?:pon|añade?|registra)\s+(?:en\s+tareas?\s+)?["']?(.+?)["']?\s+(?:como\s+tarea|en\s+mis\s+tareas)/i,
+    const original = message.trim();
+    const q = original.toLowerCase().trim();
+
+    const hasCreateVerb = /\b(crea(?:r)?|nueva?|agrega(?:r)?|a[ñn]ade?|registra(?:r)?|pon(?:er)?|haz|elabora|genera|creame|crear)\s+(?:una?\s+)?(?:nueva\s+)?tarea\b/i.test(q);
+    if (!hasCreateVerb) return { detected: false };
+
+    let title = '';
+    let description = '';
+    let priority = 'media';
+    let category = '';
+    let dueDate = null;
+    let hourLimit = null;
+
+    let rest = original.replace(/(?:crea(?:r)?|nueva?|agrega(?:r)?|a[ñn]ade?|registra(?:r)?|pon(?:er)?|haz|elabora|genera|creame|crear)\s+(?:una?\s+)?(?:nueva\s+)?tarea\s*/i, '').trim();
+
+    log.nlp('Texto después del verbo de tarea:', rest.substring(0, 120));
+
+    // Extraer título
+    const llamadaMatch = rest.match(/^(?:llamada|llamado|titulada|titulado|nombrada|nombrado|con\s+titulo|con\s+título)\s+["']?(.+?)["']?\s*(?:,|\.|que|con|cuya|su|y|$)/i);
+    if (llamadaMatch) {
+        title = llamadaMatch[1].trim();
+        rest = rest.substring(llamadaMatch[0].length).trim();
+        log.nlp('Título vía "llamada":', title);
+    } else {
+        const separators = [
+            /\s*,\s*que\s+su\b/i, /\s*,\s*que\b/i, /\s*,\s*con\s+fecha\b/i,
+            /\s*,\s*con\b/i, /\s*,\s*cuya\b/i, /\s*,\s*su\b/i,
+            /\s*,\s*para\b/i, /\s*\.\s*que\b/i, /\s*\.\s*su\b/i, /\s*\.\s*la\b/i,
+        ];
+        let titleEndIndex = rest.length;
+        for (const sep of separators) {
+            const match = rest.match(sep);
+            if (match && match.index < titleEndIndex) titleEndIndex = match.index;
+        }
+        title = titleEndIndex < rest.length ? rest.substring(0, titleEndIndex).trim() : rest;
+        rest = titleEndIndex < rest.length ? rest.substring(titleEndIndex).trim() : '';
+        log.nlp('Título vía separadores:', title);
+    }
+
+    title = title.replace(/^["']|["']$/g, '').replace(/^[,.\s]+|[,.\s]+$/g, '').trim();
+    if (!title || title.length < 2 || title.length > 200) {
+        log.nlp('Título inválido:', title);
+        return { detected: false };
+    }
+
+    // Extraer descripción
+    const descPatterns = [
+        /(?:que\s+)?su\s+descripci[oó]n\s+(?:sea|es|ser[aá]|ser[ií]a)\s+["']?(.+?[^"'])["']?(?:\s*(?:,|\.|que|con|cuya|su|y|a\s+las|$))/i,
+        /descripci[oó]n\s*:\s*["']?(.+?[^"'])["']?(?:\s*(?:,|\.|que|con|cuya|su|y|$))/i,
+        /con\s+descripci[oó]n\s+["']?(.+?[^"'])["']?(?:\s*(?:,|\.|que|con|cuya|su|y|$))/i,
+    ];
+    for (const pattern of descPatterns) {
+        const match = rest.match(pattern) || q.match(pattern);
+        if (match?.[1]) {
+            description = match[1].trim().replace(/^["']|["']$/g, '').replace(/[,.\s]+$/g, '').replace(/\s+a\s+las\s+.*$/i, '').trim();
+            log.nlp('Descripción detectada:', description);
+            break;
+        }
+    }
+
+    // Extraer categoría
+    const catPatterns = [
+        /(?:que\s+)?su\s+categor[ií]a\s+(?:sea|es|ser[aá]|ser[ií]a)\s+["']?(.+?[^"'])["']?(?:\s*(?:,|\.|que|con|cuya|su|y|a\s+las|$))/i,
+        /categor[ií]a\s*:\s*["']?(.+?[^"'])["']?(?:\s*(?:,|\.|que|con|cuya|su|y|$))/i,
+        /(?:que\s+)?su\s+categor[ií]a\s+["']?(.+?[^"'])["']?(?:\s*(?:,|\.|que|con|cuya|su|y|a\s+las|$))/i,
+    ];
+    for (const pattern of catPatterns) {
+        const match = rest.match(pattern) || q.match(pattern);
+        if (match?.[1]) {
+            category = match[1].trim().replace(/^["']|["']$/g, '').replace(/[,.\s]+$/g, '').replace(/\s+a\s+las\s+.*$/i, '').trim();
+            log.nlp('Categoría detectada:', category);
+            break;
+        }
+    }
+
+    // Extraer prioridad
+    if (/(?:su\s+)?prioridad\s+(?:es|sea|ser[aá])\s+(alta|cr[ií]tica|media|baja)/i.test(q)) {
+        const m = q.match(/(?:su\s+)?prioridad\s+(?:es|sea|ser[aá])\s+(alta|cr[ií]tica|media|baja)/i);
+        if (m) { const p = m[1].toLowerCase(); priority = p === 'crítica' || p === 'critica' ? 'critica' : p; }
+    } else if (/prioridad\s+(alta|cr[ií]tica|media|baja)/i.test(q)) {
+        const m = q.match(/prioridad\s+(alta|cr[ií]tica|media|baja)/i);
+        if (m) { const p = m[1].toLowerCase(); priority = p === 'crítica' || p === 'critica' ? 'critica' : p; }
+    }
+    log.nlp('Prioridad detectada:', priority);
+
+    // Extraer hora (ej: "a las 11:00 AM", "a las 3pm", "11:00")
+    const timePatterns = [
+        /a\s+las?\s+(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/i,
+        /a\s+las?\s+(\d{1,2})\s*(am|pm|AM|PM)?/i,
+        /hora\s+(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/i,
+    ];
+    for (const pattern of timePatterns) {
+        const match = original.match(pattern);
+        if (match) {
+            let hours = parseInt(match[1]);
+            const minutes = match[2] ? parseInt(match[2]) : 0;
+            const meridiem = (match[2] || match[3] || '').toLowerCase();
+            if (meridiem === 'pm' && hours < 12) hours += 12;
+            if (meridiem === 'am' && hours === 12) hours = 0;
+            hourLimit = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            log.nlp('Hora detectada:', hourLimit);
+            break;
+        }
+    }
+
+    // Extraer fecha
+    dueDate = parseDateFromText(original);
+    if (dueDate) {
+        log.nlp('Fecha detectada:', dueDate.toLocaleDateString('es-MX'));
+    }
+
+    return { detected: true, title, description, priority, category, dueDate, hourLimit };
+}
+
+// ──────────────────────────────────────────────────────────────
+// DETECCIÓN DE ELIMINAR / COMPLETAR TAREAS
+// ──────────────────────────────────────────────────────────────
+function detectTaskAction(message) {
+    const q = message.toLowerCase().trim();
+    const original = message.trim();
+
+    // ═══════════════════════════════════════════════════════════
+    // ELIMINAR TAREA
+    // ═══════════════════════════════════════════════════════════
+    const deletePatterns = [
+        // "elimina la tarea X", "borra la tarea X"
+        /(?:elimina|borra|quita|remover|suprime|eliminar|borrar|quitar)\s+(?:la\s+)?tarea\s+(?:llamada|titulada|nombrada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
+        // "borrame la tarea X"
+        /(?:borrame|eliminame|quitame)\s+(?:la\s+)?tarea\s+(?:llamada|titulada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
     ];
 
-    for (const pattern of patterns) {
-        const match = message.match(pattern);
+    for (const pattern of deletePatterns) {
+        const match = original.match(pattern);
         if (match?.[1]) {
-            let title = match[1].trim().replace(/^["']|["']$/g, '');
-            title = title
-                .replace(/\s+(para el|para|que venza|antes del?|antes de|con fecha|el día|vence el?).*$/i, '')
-                .replace(/\s+(\d{1,2}\/\d{1,2}|mañana|pasado mañana|esta semana).*$/i, '')
-                .trim();
-
-            if (title.length >= 3 && title.length <= 200) {
-                const dueDate = parseDateFromText(message);
-                log.nlp('Tarea detectada:', { title, dueDate: dueDate?.toLocaleDateString('es-MX') });
-                return { detected: true, title, dueDate };
+            let taskName = match[1].trim();
+            // Quitar "llamada", "titulada" si están al inicio
+            taskName = taskName.replace(/^(?:llamada|titulada|nombrada|de)\s+/i, '');
+            taskName = taskName.replace(/^["']|["']$/g, '').trim();
+            if (taskName.length >= 2) {
+                return { detected: true, action: 'delete', taskName };
             }
         }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // COMPLETAR TAREA
+    // ═══════════════════════════════════════════════════════════
+    const completePatterns = [
+        /(?:completa|completar|marca|marcar|termina|terminar|finaliza|finalizar)\s+(?:la\s+)?tarea\s+(?:llamada|titulada|nombrada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
+        /(?:completame|marcame|terminame)\s+(?:la\s+)?tarea\s+(?:llamada|titulada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
+        /tarea\s+(?:completada|terminada|finalizada|hecha|lista)\s*:?\s*["']?(.+?)["']?\s*$/i,
+    ];
+
+    for (const pattern of completePatterns) {
+        const match = original.match(pattern);
+        if (match?.[1]) {
+            let taskName = match[1].trim();
+            taskName = taskName.replace(/^(?:llamada|titulada|nombrada|de)\s+/i, '');
+            taskName = taskName.replace(/^["']|["']$/g, '').trim();
+            if (taskName.length >= 2) {
+                return { detected: true, action: 'complete', taskName };
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // EDITAR TAREA
+    // ═══════════════════════════════════════════════════════════
+    const editPatterns = [
+        // "cambia el título de la tarea X a Y"
+        /(?:cambia|cambiar|modifica|modificar|edita|editar|actualiza|actualizar|renombra|renombrar)\s+(?:el\s+)?(?:t[ií]tulo|nombre|descripci[oó]n|prioridad|fecha)\s+(?:de\s+)?(?:la\s+)?tarea\s+(?:llamada|titulada|nombrada|de\s+)?\s*["']?(.+?)["']?\s+(?:a|por|para)\s+["']?(.+?)["']?\s*$/i,
+        // "cambia la tarea X a Y"
+        /(?:cambia|cambiar|modifica|modificar|edita|editar|renombra|renombrar)\s+(?:la\s+)?tarea\s+(?:llamada|titulada|nombrada|de\s+)?\s*["']?(.+?)["']?\s+(?:a|por|para)\s+["']?(.+?)["']?\s*$/i,
+        // "ponle fecha X a la tarea Y"
+        /(?:pon(?:le)?|asigna(?:le)?|cambia(?:le)?)\s+(?:el\s+)?(?:t[ií]tulo|nombre|descripci[oó]n|prioridad|fecha|fecha\s+l[ií]mite|fecha\s+de\s+vencimiento)\s+(?:a|de|para)\s+(?:la\s+)?tarea\s+(?:llamada|titulada|nombrada|de\s+)?\s*["']?(.+?)["']?\s+(?:a|como|con|por|para)\s+["']?(.+?)["']?\s*$/i,
+    ];
+
+    for (const pattern of editPatterns) {
+        const match = original.match(pattern);
+        if (match?.[2]) {
+            let taskName = match[1].trim();
+            taskName = taskName.replace(/^(?:llamada|titulada|nombrada|de)\s+/i, '');
+            taskName = taskName.replace(/^["']|["']$/g, '').trim();
+            const newValue = match[2].trim().replace(/^["']|["']$/g, '');
+
+            // Detectar qué campo se está editando
+            let field = 'titulo'; // por defecto
+            if (/descripci[oó]n/i.test(q)) field = 'descripcion';
+            else if (/prioridad/i.test(q)) field = 'prioridad';
+            else if (/fecha/i.test(q)) field = 'fecha_limite';
+
+            if (taskName.length >= 2 && newValue.length >= 1) {
+                return { detected: true, action: 'edit', taskName, field, newValue };
+            }
+        }
+    }
+
     return { detected: false };
 }
 
 function detectReportCommand(message) {
     const q = message.toLowerCase().trim();
-    if (!/\b(reporte|reportes?|generar|exportar|descargar)\b/i.test(q)) return { detected: false };
+
+    // ⛔ REGLA #1: Si el usuario quiere NAVEGAR a reportes, NO generar reporte
+    // Verbos de navegación explícitos
+    const navVerbs = /\b(ir|ve|vamos|navega|navegar|abre|abr[ií]|mostrame|mu[eé]strame|ll[ée]vame|llevame|ver|revisar|checar|consultar|acceder|cambiar\s+a|switch|mover\s+a|mu[eé]strame|ens[eé][ñn]ame|mostr[aá])\b/i;
+
+    // Palabras de sección de reportes
+    const reportSection = /\b(reportes?|informes?|estad[ií]sticas?|gr[aá]ficas?|anal[ií]ticas?|an[aá]lisis)\b/i;
+
+    // Preposiciones de dirección
+    const toPreposition = /\b(a|al|hacia|en|para)\b/i;
+
+    // Si hay verbo de navegación + sección de reportes → NAVEGACIÓN
+    if (navVerbs.test(q) && reportSection.test(q)) {
+        log.nlp('⛔ detectReportCommand: Detectada NAVEGACIÓN a reportes, NO generación');
+        return { detected: false };
+    }
+
+    // "Quiero ver reportes", "Necesito revisar informes" → NAVEGACIÓN
+    if (/(?:quiero|necesito|deseo|quisiera|me\s+gustar[ií]a)\s+(?:ir\s+a\s+)?(?:ver|revisar|checar|consultar|mirar|acceder\s+a)\s+(?:los\s+)?(?:reportes|informes|estad[ií]sticas)/i.test(q)) {
+        log.nlp('⛔ detectReportCommand: Frase de consulta de reportes, NO generación');
+        return { detected: false };
+    }
+
+    // ⛔ REGLA #2: Solo detectar generación si hay verbo de CREAR/EXPORTAR
+    const generationVerbs = /\b(genera(?:r)?|crea(?:r)?|exporta(?:r)?|descarga(?:r)?|obt[eé]n|haz|elabora|producir|sacar|emitir|realiza(?:r)?|hacer|preparar)\b/i;
+
+    if (!generationVerbs.test(q)) {
+        // Si no hay verbo de generación, verificar si al menos menciona formato + reporte
+        const formats = /\b(excel|xlsx|csv|pdf|archivo|descargable|formato)\b/i;
+        const hasReport = /\b(reporte|informe)\b/i;
+        if (!formats.test(q) || !hasReport.test(q)) {
+            log.nlp('⛔ detectReportCommand: Sin verbo de generación ni formato explícito con reporte');
+            return { detected: false };
+        }
+    }
 
     const typeMap = [
-        { pattern: /\b(general|completo|todos?)\b/,                              type: 'general',     label: 'General' },
-        { pattern: /\b(por\s+categor[ií]a|por\s+categorías?|categorías?)\b/,    type: 'byCategory',  label: 'por Categoría' },
-        { pattern: /\b(por\s+persona|por\s+usuario|personas?)\b/,               type: 'byPerson',    label: 'por Persona' },
-        { pattern: /\b(por\s+vencer|próximos?\s+a\s+vencer|vencen\s+pronto)\b/, type: 'expiring',    label: 'Por Vencer' },
-        { pattern: /\b(vencidos?|expirados?)\b/,                                 type: 'expired',     label: 'Vencidos' },
+        { pattern: /\b(general|completo|todos?)\b/, type: 'general', label: 'General' },
+        { pattern: /\b(por\s+categor[ií]a|por\s+categor[ií]as?|categor[ií]as?)\b/, type: 'byCategory', label: 'por Categoría' },
+        { pattern: /\b(por\s+persona|por\s+usuario|personas?)\b/, type: 'byPerson', label: 'por Persona' },
+        { pattern: /\b(por\s+vencer|pr[oó]ximos?\s+a\s+vencer|vencen\s+pronto)\b/, type: 'expiring', label: 'Por Vencer' },
+        { pattern: /\b(vencidos?|expirados?)\b/, type: 'expired', label: 'Vencidos' },
     ];
 
     const fmtMap = [
         { pattern: /\b(excel|xlsx)\b/, format: 'excel', label: 'Excel' },
-        { pattern: /\b(csv)\b/,        format: 'csv',   label: 'CSV' },
-        { pattern: /\b(pdf)\b/,        format: 'pdf',   label: 'PDF' },
+        { pattern: /\b(csv)\b/, format: 'csv', label: 'CSV' },
+        { pattern: /\b(pdf)\b/, format: 'pdf', label: 'PDF' },
     ];
 
     let reportType = 'general', typeLabel = 'General';
@@ -425,7 +661,62 @@ function detectReportCommand(message) {
     const daysMatch = q.match(/(\d+)\s*d[ií]as?/i);
     const days = daysMatch ? Math.min(parseInt(daysMatch[1]), 365) : 30;
 
+    log.nlp(`✅ detectReportCommand: Generación detectada - tipo:${reportType}, formato:${format}`);
     return { detected: true, reportType, format, formatLabel, typeLabel, days };
+}
+
+// ──────────────────────────────────────────────────────────────
+// DETECCIÓN DE NAVEGACIÓN — Prioridad MÁXIMA
+// ──────────────────────────────────────────────────────────────
+function detectNavigationCommand(message) {
+    const q = message.toLowerCase().trim();
+
+    // Mapeo de sinónimos a secciones del sistema
+    const sectionMap = {
+        'dashboard': ['dashboard', 'inicio', 'principal', 'home', 'panel', 'escritorio', 'pantalla principal', 'menú principal'],
+        'documentos': ['documentos', 'documento', 'archivos', 'archivo', 'docs', 'expedientes', 'expediente'],
+        'personas': ['personas', 'persona', 'usuarios', 'usuario', 'empleados', 'personal', 'contactos', 'gente'],
+        'tareas': ['tareas', 'tarea', 'actividades', 'pendientes', 'to-do', 'todo', 'lista de tareas', 'mis tareas'],
+        'reportes': ['reportes', 'reporte', 'informes', 'informe', 'estadísticas', 'estadística', 'gráficas', 'análisis', 'analíticas'],
+        'papelera': ['papelera', 'eliminados', 'trash', 'reciclaje', 'basura', 'borrados'],
+        'notificaciones': ['notificaciones', 'notificación', 'alertas', 'alerta', 'avisos', 'aviso', 'campana', 'notificaciones'],
+        'ajustes': ['ajustes', 'ajuste', 'configuración', 'configuraciones', 'settings', 'preferencias', 'opciones'],
+        'soporte': ['soporte', 'ayuda', 'help', 'asistencia', 'faq', 'preguntas', 'asistente'],
+        'categorias': ['categorías', 'categoría', 'categorias', 'categoria', 'clasificaciones', 'tipos'],
+        'departamentos': ['departamentos', 'departamento', 'áreas', 'área', 'secciones', 'sección', 'divisiones'],
+    };
+
+    // Verbos de navegación explícitos
+    const navVerbs = /\b(ir|ve|vamos|navega|navegar|abre|abr[ií]|mostrame|mu[eé]strame|ll[ée]vame|llevame|ver|revisar|checar|consultar|acceder|cambiar\s+a|switch|mover\s+a|mu[eé]strame|ens[eé][ñn]ame|mostr[aá]|ense[ñn]ar)\b/i;
+
+    // Si no hay verbo de navegación, no es navegación
+    if (!navVerbs.test(q)) {
+        return { detected: false };
+    }
+
+    // Buscar la sección mencionada en el mensaje
+    for (const [section, keywords] of Object.entries(sectionMap)) {
+        for (const keyword of keywords) {
+            // Escapar caracteres especiales para regex
+            const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pattern = new RegExp(`\\b${escaped}\\b`, 'i');
+            if (pattern.test(q)) {
+                log.nav(`✅ Navegación detectada: "${section}" (palabra clave: "${keyword}")`);
+                // Verificar que no sea una creación disfrazada
+                if (section === 'tareas' && /\b(crea|nueva|agrega|a[ñn]ade)\s+(?:una\s+)?tarea/i.test(q)) {
+                    log.nav('⛔ Es creación de tarea, no navegación');
+                    continue;
+                }
+                if (section === 'reportes' && /\b(genera|crea|exporta|descarga)\s+(?:un\s+)?(?:reporte|informe)/i.test(q)) {
+                    log.nav('⛔ Es generación de reporte, no navegación');
+                    continue;
+                }
+                return { detected: true, target: section, label: NAV_MAP[section]?.label || section };
+            }
+        }
+    }
+
+    return { detected: false };
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -434,29 +725,29 @@ function detectReportCommand(message) {
 class ChatbotAssistant {
 
     constructor() {
-        this.isOpen       = false;
-        this.isLoading    = false;
-        this.messages     = [];
-        this.systemStats  = null;
-        this.userContext  = null;
-        this._els         = {};
+        this.isOpen = false;
+        this.isLoading = false;
+        this.messages = [];
+        this.systemStats = null;
+        this.userContext = null;
+        this._els = {};
         this._currentFormat = 'excel';
         this._reportProgressInterval = null;
         this._lastStatsLoad = 0;
 
         // Estado fullscreen
-        this._inChatbotTab  = false;
-        this._fullscreenMessages   = null;
-        this._fullscreenInput      = null;
-        this._fullscreenSend       = null;
-        this._fullscreenVoice      = null;
-        this._fullscreenCharCount  = null;
-        this._fullscreenStatus     = null;
-        this._fullscreenSuggestions= null;
+        this._inChatbotTab = false;
+        this._fullscreenMessages = null;
+        this._fullscreenInput = null;
+        this._fullscreenSend = null;
+        this._fullscreenVoice = null;
+        this._fullscreenCharCount = null;
+        this._fullscreenStatus = null;
+        this._fullscreenSuggestions = null;
 
         // Voice
-        this.recognition  = null;
-        this.isListening  = false;
+        this.recognition = null;
+        this.isListening = false;
 
         this.quickSuggestions = [
             'Resumen del sistema',
@@ -465,7 +756,7 @@ class ChatbotAssistant {
             'Documentos que vencen pronto',
             'Cambiar a tema oscuro',
             'Ver ajustes actuales',
-            'Generar reporte en Excel',
+            'Ir a reportes',
             '¿Qué puedes hacer?',
         ];
 
@@ -509,9 +800,9 @@ class ChatbotAssistant {
             const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
             const user = raw ? JSON.parse(raw) : {};
             this.userContext = {
-                id:     user._id || user.id,
+                id: user._id || user.id,
                 nombre: user.usuario || user.name || user.nombre || 'Usuario',
-                rol:    user.rol || user.role || 'usuario',
+                rol: user.rol || user.role || 'usuario',
             };
             log.info('Contexto:', this.userContext);
         } catch (e) {
@@ -546,34 +837,48 @@ class ChatbotAssistant {
         return d;
     }
 
-    async _createTaskDirectly(title, dueDate = null) {
-        log.task('Creando tarea:', { title });
+    async _createTaskDirectly(title, dueDate = null, description = '', priority = 'media', category = '', hourLimit = null) {
+        log.task('Creando tarea:', { title, description: description?.substring(0, 50), priority, category, hourLimit, dueDate });
 
-        if (!title?.trim() || title.trim().length < 3)
-            return { success: false, message: '❌ El título debe tener al menos 3 caracteres.' };
+        if (!title?.trim() || title.trim().length < 2)
+            return { success: false, message: '❌ El título debe tener al menos 2 caracteres.' };
         if (title.length > 200)
             return { success: false, message: '❌ El título no puede exceder los 200 caracteres.' };
 
         try {
             this._setStatus('Creando tarea...');
 
-            let fechaLimite = dueDate || this._getDefaultDueDate();
-            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-            if (fechaLimite < hoy) fechaLimite = this._getDefaultDueDate();
+            let fechaLimite;
+            if (!dueDate || isNaN(new Date(dueDate).getTime())) {
+                fechaLimite = this._getDefaultDueDate();
+            } else {
+                // ⚠️ CORRECCIÓN CRÍTICA: Enviar la fecha como string LOCAL "YYYY-MM-DD"
+                // para evitar el offset UTC de MongoDB que cambia el día
+                const d = new Date(dueDate);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                fechaLimite = `${year}-${month}-${day}`;
+                log.task('Fecha límite como string local:', fechaLimite);
+            }
 
             const taskData = {
-                titulo:              title.trim(),
-                descripcion:         `Tarea creada por ARIA: "${title.trim()}"`,
-                prioridad:           'media',
-                estado:              'pendiente',
-                tipo:                'personal',
-                asignado_a:          this.userContext?.id ? [this.userContext.id] : [],
-                creado_por:          this.userContext?.id || null,
-                creado_por_nombre:   this.userContext?.nombre || 'ARIA',
-                fecha_limite:        fechaLimite,
-                recordatorio:        false,
-                activo:              true,
+                titulo: title.trim(),
+                descripcion: description?.trim() || '',
+                prioridad: priority || 'media',
+                estado: 'pendiente',
+                tipo: 'personal',
+                categoria: category?.trim() || '',
+                asignado_a: this.userContext?.id ? [this.userContext.id] : [],
+                creado_por: this.userContext?.id || null,
+                creado_por_nombre: this.userContext?.nombre || 'ARIA',
+                fecha_limite: fechaLimite,
+                hora_limite: hourLimit || null,
+                recordatorio: false,
+                activo: true,
             };
+
+            log.task('Datos a enviar:', JSON.stringify(taskData, null, 2));
 
             const response = await api.call('/tasks', { method: 'POST', body: taskData });
 
@@ -581,12 +886,21 @@ class ChatbotAssistant {
                 const task = response.data || response;
                 await this._syncAfterTaskCreate(task);
 
-                const fechaStr = fechaLimite.toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' });
-                return {
-                    success: true,
-                    message: `✅ **Tarea creada exitosamente**\n\n📌 **"${title.trim()}"**\n\n📅 **Fecha límite:** ${fechaStr}\n🎯 **Prioridad:** Media\n📋 **Estado:** Pendiente`,
-                    task,
-                };
+                const fechaStr = typeof fechaLimite === 'string'
+                    ? fechaLimite
+                    : new Date(fechaLimite).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+                const prioridadStr = { alta: '🔴 Alta', critica: '🔴 Crítica', media: '🟡 Media', baja: '🟢 Baja' }[priority] || '🟡 Media';
+
+                let mensaje = `✅ **Tarea creada exitosamente**\n\n`;
+                mensaje += `📌 **Título:** "${title.trim()}"\n`;
+                if (taskData.descripcion) mensaje += `📝 **Descripción:** ${taskData.descripcion}\n`;
+                if (taskData.categoria) mensaje += `📁 **Categoría:** ${taskData.categoria}\n`;
+                mensaje += `🎯 **Prioridad:** ${prioridadStr}\n`;
+                mensaje += `📅 **Fecha límite:** ${fechaStr}`;
+                if (taskData.hora_limite) mensaje += ` a las ${taskData.hora_limite}`;
+                mensaje += `\n📋 **Estado:** Pendiente`;
+
+                return { success: true, message: mensaje, task };
             }
 
             throw new Error(response?.message || 'Respuesta inválida del servidor');
@@ -604,12 +918,75 @@ class ChatbotAssistant {
             window.appState.updateTasksStats?.();
         }
         if (window.taskManager?.loadTasks) {
-            try { await window.taskManager.loadTasks(); } catch (_) {}
+            try { await window.taskManager.loadTasks(); } catch (_) { }
         }
         window.dispatchEvent(new CustomEvent('taskCreated', { detail: { task } }));
         window.dispatchEvent(new CustomEvent('tasks:updated', { detail: { task } }));
         window.dispatchEvent(new CustomEvent('tasks:reload'));
         await this._loadStats(true);
+    }
+
+    async _deleteTaskDirectly(taskId) {
+        log.task('Eliminando tarea:', taskId);
+        try {
+            this._setStatus('Eliminando tarea...');
+            const response = await api.call(`/tasks/${taskId}`, { method: 'DELETE' });
+
+            if (response?.success) {
+                window.dispatchEvent(new CustomEvent('tasks:updated'));
+                window.dispatchEvent(new CustomEvent('tasks:reload'));
+                await this._loadStats(true);
+                return { success: true, message: '✅ **Tarea eliminada exitosamente.**' };
+            }
+            throw new Error(response?.message || 'Error al eliminar');
+        } catch (error) {
+            log.error('Error eliminando tarea:', error.message);
+            return { success: false, message: `❌ **No pude eliminar la tarea**\n\n${error.message}` };
+        } finally {
+            this._setStatus('En línea');
+        }
+    }
+
+    async _completeTaskDirectly(taskId) {
+        log.task('Completando tarea:', taskId);
+        try {
+            this._setStatus('Completando tarea...');
+            const response = await api.call(`/tasks/${taskId}/complete`, { method: 'PATCH' });
+
+            if (response?.success) {
+                window.dispatchEvent(new CustomEvent('tasks:updated'));
+                window.dispatchEvent(new CustomEvent('tasks:reload'));
+                await this._loadStats(true);
+                return { success: true, message: '✅ **Tarea completada.** ¡Buen trabajo! 🎉' };
+            }
+            throw new Error(response?.message || 'Error al completar');
+        } catch (error) {
+            log.error('Error completando tarea:', error.message);
+            return { success: false, message: `❌ **No pude completar la tarea**\n\n${error.message}` };
+        } finally {
+            this._setStatus('En línea');
+        }
+    }
+
+    async _updateTaskDirectly(taskId, updates) {
+        log.task('Actualizando tarea:', taskId, updates);
+        try {
+            this._setStatus('Actualizando tarea...');
+            const response = await api.call(`/tasks/${taskId}`, { method: 'PUT', body: updates });
+
+            if (response?.success) {
+                window.dispatchEvent(new CustomEvent('tasks:updated'));
+                window.dispatchEvent(new CustomEvent('tasks:reload'));
+                await this._loadStats(true);
+                return { success: true, message: '✅ **Tarea actualizada exitosamente.**' };
+            }
+            throw new Error(response?.message || 'Error al actualizar');
+        } catch (error) {
+            log.error('Error actualizando tarea:', error.message);
+            return { success: false, message: `❌ **No pude actualizar la tarea**\n\n${error.message}` };
+        } finally {
+            this._setStatus('En línea');
+        }
     }
 
     async _generateReportDirectly(cmd) {
@@ -623,19 +1000,19 @@ class ChatbotAssistant {
 
             const body = { reportType, days, timestamp: new Date().toISOString() };
             const endpoint = format === 'csv' ? '/reports/csv' : '/reports/excel';
-            const fullUrl  = `${window.CONFIG?.API_BASE_URL || '/api'}${endpoint}`;
+            const fullUrl = `${window.CONFIG?.API_BASE_URL || '/api'}${endpoint}`;
 
             const controller = new AbortController();
-            const timeoutId  = setTimeout(() => controller.abort(), 60000);
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-            const token    = localStorage.getItem('token') || '';
+            const token = localStorage.getItem('token') || '';
             const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                 },
-                body:   JSON.stringify(body),
+                body: JSON.stringify(body),
                 signal: controller.signal,
             });
 
@@ -644,7 +1021,7 @@ class ChatbotAssistant {
 
             if (!response.ok) {
                 let errMsg = `Error ${response.status}`;
-                try { const j = await response.json(); errMsg = j.message || errMsg; } catch (_) {}
+                try { const j = await response.json(); errMsg = j.message || errMsg; } catch (_) { }
                 throw new Error(errMsg);
             }
 
@@ -652,9 +1029,9 @@ class ChatbotAssistant {
             if (blob.size === 0) throw new Error('El reporte está vacío.');
 
             const url = URL.createObjectURL(blob);
-            const a   = Object.assign(document.createElement('a'), {
-                href:     url,
-                download: `reporte_${reportType}_${new Date().toISOString().slice(0,10)}.${format === 'csv' ? 'csv' : 'xlsx'}`,
+            const a = Object.assign(document.createElement('a'), {
+                href: url,
+                download: `reporte_${reportType}_${new Date().toISOString().slice(0, 10)}.${format === 'csv' ? 'csv' : 'xlsx'}`,
             });
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
@@ -679,9 +1056,70 @@ class ChatbotAssistant {
 
     _formatBytes(bytes) {
         if (!bytes) return '0 B';
-        const k = 1024, sizes = ['B','KB','MB','GB'];
+        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+    }
+
+    async _findTaskByName(taskName) {
+        const q = taskName.toLowerCase().trim();
+        log.task('Buscando tarea:', q);
+
+        try {
+            const res = await api.call('/tasks', { method: 'GET' });
+            if (res?.success && (res.tasks || res.data?.tasks)) {
+                const tasks = res.tasks || res.data?.tasks || [];
+                log.task(`Buscando entre ${tasks.length} tareas...`);
+
+                // Buscar coincidencia exacta primero
+                let task = tasks.find(t =>
+                    t.titulo?.toLowerCase().trim() === q
+                );
+
+                // Luego coincidencia parcial
+                if (!task) {
+                    task = tasks.find(t =>
+                        t.titulo?.toLowerCase().includes(q)
+                    );
+                }
+
+                // También buscar sin la palabra "llamada" si está presente
+                if (!task && q.includes('llamada')) {
+                    const cleanName = q.replace(/^llamada\s+/i, '').trim();
+                    task = tasks.find(t =>
+                        t.titulo?.toLowerCase().includes(cleanName)
+                    );
+                }
+
+                if (task) {
+                    log.task('Tarea encontrada:', task.titulo);
+                    return {
+                        found: true,
+                        task: task,
+                        message: `✅ Encontré la tarea **"${task.titulo}"**.`
+                    };
+                }
+
+                // Mostrar sugerencias
+                const suggestions = tasks
+                    .filter(t => t.estado !== 'completada' && t.estado !== 'cancelada')
+                    .slice(0, 5)
+                    .map(t => `• "${t.titulo}"`)
+                    .join('\n');
+
+                return {
+                    found: false,
+                    message: `❌ No encontré una tarea llamada **"${taskName}"**.\n\n${suggestions ? '**Tareas activas que tienes:**\n' + suggestions : 'No tienes tareas activas.'}`
+                };
+            }
+        } catch (e) {
+            log.warn('Error buscando tarea:', e.message);
+        }
+
+        return {
+            found: false,
+            message: `❌ No pude buscar la tarea **"${taskName}"**. Error de conexión.`
+        };
     }
 
     // ─── ENVÍO DE MENSAJES ────────────────────────────────────
@@ -703,11 +1141,36 @@ class ChatbotAssistant {
         this.isLoading = true;
         this._updateSendBtn();
 
-        // ── 1. Comando de ajustes ─────────────────────────────
+        // ═══════════════════════════════════════════════════════
+        // MOTOR DE INTENCIONES — ORDEN CORRECTO DE PRIORIDAD
+        // ═══════════════════════════════════════════════════════
+
+        // ── PRIORIDAD 1: Navegación Explícita ─────────────────
+        const navCmd = detectNavigationCommand(text);
+        if (navCmd.detected) {
+            log.nav(`Navegación prioritaria: ${navCmd.target}`);
+            this._showTyping(true);
+            await new Promise(r => setTimeout(r, 400));
+            this._showTyping(false);
+
+            const navInfo = NAV_MAP[navCmd.target];
+            if (navInfo) {
+                this._appendBotMessage(`📍 **Navegando a ${navInfo.label}...**`, {
+                    suggestions: ['Ver mis tareas', 'Dashboard', 'Documentos urgentes'],
+                    isNavigation: true,
+                });
+                // Cerrar ventana y navegar
+                setTimeout(() => this._doNavigate(navCmd.target), 500);
+            }
+            this._finishLoading();
+            return;
+        }
+
+        // ── PRIORIDAD 2: Comando de ajustes ───────────────────
         const settingCmd = detectSettingCommand(text);
         if (settingCmd.detected) {
             this._showTyping(true);
-            await new Promise(r => setTimeout(r, 300)); // micro delay para UX
+            await new Promise(r => setTimeout(r, 300));
             this._showTyping(false);
             const result = executeSettingAction(settingCmd.action);
             this._appendBotMessage(result.message, {
@@ -721,28 +1184,126 @@ class ChatbotAssistant {
             return;
         }
 
-        // ── 2. Creación de tareas ─────────────────────────────
+        // ── PRIORIDAD 3: Creación de tareas ───────────────────
         const taskCmd = detectTaskCreation(text);
         if (taskCmd.detected) {
             this._showTyping(true);
             this._setStatus('Creando tarea...');
-            const result = await this._createTaskDirectly(taskCmd.title, taskCmd.dueDate);
+            const result = await this._createTaskDirectly(
+                taskCmd.title,
+                taskCmd.dueDate,
+                taskCmd.description,
+                taskCmd.priority,
+                taskCmd.category,
+                taskCmd.hourLimit
+            );
             this._showTyping(false);
             this._appendBotMessage(result.message, {
                 suggestions: result.success
                     ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas']
                     : ['Intentar de nuevo', 'Ir a Tareas'],
                 isTaskResult: true,
-                taskCreated:  result.success,
+                taskCreated: result.success,
             });
             if (result.success) showAlert('✅ Tarea creada', 'success', 3000);
             this._finishLoading();
             return;
         }
 
-        // ── 3. Reportes ───────────────────────────────────────
+        // ── PRIORIDAD 3.5: Acciones sobre tareas (eliminar/completar/editar) ──
+        const taskActionCmd = detectTaskAction(text);
+        if (taskActionCmd.detected) {
+            this._showTyping(true);
+            this._setStatus('Procesando...');
+
+            if (taskActionCmd.action === 'delete') {
+                const match = await this._findTaskByName(taskActionCmd.taskName);
+                this._showTyping(false);
+                if (match.found) {
+                    const result = await this._deleteTaskDirectly(match.task._id);
+                    this._appendBotMessage(result.message, {
+                        suggestions: result.success
+                            ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas']
+                            : ['Intentar de nuevo', 'Ver mis tareas'],
+                    });
+                    if (result.success) showAlert('🗑️ Tarea eliminada', 'success', 2500);
+                } else {
+                    this._appendBotMessage(match.message, {
+                        suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
+                    });
+                }
+                this._finishLoading();
+                return;
+            }
+
+            if (taskActionCmd.action === 'complete') {
+                const match = await this._findTaskByName(taskActionCmd.taskName);
+                this._showTyping(false);
+                if (match.found) {
+                    const result = await this._completeTaskDirectly(match.task._id);
+                    this._appendBotMessage(result.message, {
+                        suggestions: result.success
+                            ? ['Ver mis tareas', 'Tarea más urgente', 'Ir a Tareas']
+                            : ['Intentar de nuevo', 'Ver mis tareas'],
+                    });
+                    if (result.success) showAlert('✅ Tarea completada', 'success', 2500);
+                } else {
+                    this._appendBotMessage(match.message, {
+                        suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
+                    });
+                }
+                this._finishLoading();
+                return;
+            }
+
+            if (taskActionCmd.action === 'edit') {
+                const match = await this._findTaskByName(taskActionCmd.taskName);
+                this._showTyping(false);
+                if (match.found) {
+                    const updates = {};
+                    if (taskActionCmd.field === 'titulo') updates.titulo = taskActionCmd.newValue;
+                    else if (taskActionCmd.field === 'descripcion') updates.descripcion = taskActionCmd.newValue;
+                    else if (taskActionCmd.field === 'prioridad') {
+                        const p = taskActionCmd.newValue.toLowerCase();
+                        updates.prioridad = ['alta', 'critica', 'media', 'baja'].includes(p) ? p : 'media';
+                    } else if (taskActionCmd.field === 'fecha_limite') {
+                        const parsedDate = parseDateFromText(taskActionCmd.newValue);
+                        if (parsedDate) {
+                            parsedDate.setHours(23, 59, 59, 999);
+                            updates.fecha_limite = parsedDate;
+                        }
+                    }
+
+                    if (Object.keys(updates).length > 0) {
+                        const result = await this._updateTaskDirectly(match.task._id, updates);
+                        this._appendBotMessage(result.message, {
+                            suggestions: result.success
+                                ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas']
+                                : ['Intentar de nuevo', 'Ver mis tareas'],
+                        });
+                        if (result.success) showAlert('✏️ Tarea actualizada', 'success', 2500);
+                    } else {
+                        this._appendBotMessage('❌ No pude entender qué campo actualizar.', {
+                            suggestions: ['Ver mis tareas', '¿Qué puedes hacer?'],
+                        });
+                    }
+                } else {
+                    this._appendBotMessage(match.message, {
+                        suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
+                    });
+                }
+                this._finishLoading();
+                return;
+            }
+
+            this._finishLoading();
+            return;
+        }
+
+        // ── PRIORIDAD 4: Generación de Reportes (con verbo explícito) ──
         const reportCmd = detectReportCommand(text);
         if (reportCmd.detected) {
+            log.report('Generación de reporte detectada');
             this._showTyping(true);
             this._setStatus('Generando reporte...');
             const result = await this._generateReportDirectly(reportCmd);
@@ -758,7 +1319,7 @@ class ChatbotAssistant {
             return;
         }
 
-        // ── 4. IA (Groq / rule-based backend) ────────────────
+        // ── 5. IA (Groq / rule-based backend) ────────────────
         this._showTyping(true);
         this._setStatus('ARIA está pensando...');
 
@@ -798,17 +1359,17 @@ class ChatbotAssistant {
 
     _appendBotMessage(content, opts = {}) {
         const msg = {
-            role:            'assistant',
+            role: 'assistant',
             content,
-            timestamp:       new Date().toISOString(),
-            actions:         opts.actions         || [],
-            suggestions:     opts.suggestions     || [],
-            latency:         opts.latency         || null,
-            isError:         opts.isError         || false,
-            isTaskResult:    opts.isTaskResult    || false,
-            isReportResult:  opts.isReportResult  || false,
+            timestamp: new Date().toISOString(),
+            actions: opts.actions || [],
+            suggestions: opts.suggestions || [],
+            latency: opts.latency || null,
+            isError: opts.isError || false,
+            isTaskResult: opts.isTaskResult || false,
+            isReportResult: opts.isReportResult || false,
             isSettingResult: opts.isSettingResult || false,
-            taskCreated:     opts.taskCreated     || false,
+            taskCreated: opts.taskCreated || false,
         };
         this.messages.push(msg);
         this._appendMessage(msg);
@@ -829,10 +1390,10 @@ class ChatbotAssistant {
         if (!action?.action) return false;
         log.action('Ejecutando:', JSON.stringify(action));
         switch (action.action) {
-            case 'navigate':  return this._doNavigate(action.target);
+            case 'navigate': return this._doNavigate(action.target);
             case 'openModal': return this._doOpenModal(action.target);
-            case 'search':    return this._doSearch(action.query, action.section);
-            default:          log.warn('Acción desconocida:', action.action); return false;
+            case 'search': return this._doSearch(action.query, action.section);
+            default: log.warn('Acción desconocida:', action.action); return false;
         }
     }
 
@@ -847,7 +1408,7 @@ class ChatbotAssistant {
         await new Promise(r => setTimeout(r, 250));
 
         if (typeof window.switchTab === 'function') {
-            try { await window.switchTab(nav.tabId); this._setStatus('En línea'); return true; } catch (_) {}
+            try { await window.switchTab(nav.tabId); this._setStatus('En línea'); return true; } catch (_) { }
         }
         const link = document.querySelector(`[data-tab="${nav.tabId}"]`);
         if (link?.offsetParent) { link.click(); this._setStatus('En línea'); return true; }
@@ -864,23 +1425,23 @@ class ChatbotAssistant {
         await new Promise(r => setTimeout(r, 200));
 
         const fnMap = {
-            upload:        ['openDocumentModal', 'openUploadModal'],
-            addPerson:     ['openPersonModal', 'showPersonModal'],
-            addTask:       ['openTaskModal', 'showTaskModal'],
-            addCategory:   ['openCategoryModal', 'showCategoryModal'],
+            upload: ['openDocumentModal', 'openUploadModal'],
+            addPerson: ['openPersonModal', 'showPersonModal'],
+            addTask: ['openTaskModal', 'showTaskModal'],
+            addCategory: ['openCategoryModal', 'showCategoryModal'],
             addDepartment: ['openDepartmentModal', 'showDeptModal'],
         };
         for (const fn of (fnMap[target] || [])) {
             if (typeof window[fn] === 'function') {
-                try { window[fn](); this._setStatus('En línea'); return true; } catch (_) {}
+                try { window[fn](); this._setStatus('En línea'); return true; } catch (_) { }
             }
         }
 
         const btnMap = {
-            upload:        ['#uploadDocumentBtn', '#addDocumentBtn'],
-            addPerson:     ['#addPersonBtn'],
-            addTask:       ['#addTaskBtn', '#newTaskBtn'],
-            addCategory:   ['#addCategoryBtn'],
+            upload: ['#uploadDocumentBtn', '#addDocumentBtn'],
+            addPerson: ['#addPersonBtn'],
+            addTask: ['#addTaskBtn', '#newTaskBtn'],
+            addCategory: ['#addCategoryBtn'],
             addDepartment: ['#addDepartmentBtn'],
         };
         for (const sel of (btnMap[target] || [])) {
@@ -904,7 +1465,7 @@ class ChatbotAssistant {
             const input = document.querySelector(sel);
             if (input?.offsetParent) {
                 input.value = query;
-                ['input','change'].forEach(ev => input.dispatchEvent(new Event(ev, { bubbles: true })));
+                ['input', 'change'].forEach(ev => input.dispatchEvent(new Event(ev, { bubbles: true })));
                 input.focus();
                 this._setStatus('En línea');
                 return true;
@@ -934,12 +1495,12 @@ class ChatbotAssistant {
         el.className = [
             'aria-msg',
             isUser ? 'aria-msg--user' : 'aria-msg--bot',
-            msg.isError   ? 'aria-msg--error'   : '',
-            msg.isWelcome ? 'aria-msg--welcome'  : '',
+            msg.isError ? 'aria-msg--error' : '',
+            msg.isWelcome ? 'aria-msg--welcome' : '',
         ].filter(Boolean).join(' ');
 
         const contentHtml = this._parseMarkdown(msg.content);
-        const timeStr     = this._formatTime(msg.timestamp);
+        const timeStr = this._formatTime(msg.timestamp);
 
         let actionHtml = '';
         if (msg.actions?.length) {
@@ -998,9 +1559,9 @@ class ChatbotAssistant {
         if (!text) return '';
         let html = this._escapeHtml(text);
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        html = html.replace(/\*(.+?)\*/g,     '<em>$1</em>');
-        html = html.replace(/`([^`]+)`/g,     '<code class="aria-inline-code">$1</code>');
-        html = html.replace(/\n/g,            '<br>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        html = html.replace(/`([^`]+)`/g, '<code class="aria-inline-code">$1</code>');
+        html = html.replace(/\n/g, '<br>');
         return html;
     }
 
@@ -1010,7 +1571,7 @@ class ChatbotAssistant {
             const res = await api.call('/chatbot/history?limit=12', { method: 'GET' });
             if (res?.success && res.data?.length > 0) {
                 this.messages = res.data.flatMap(h => [
-                    { role: 'user',      content: h.userMessage, timestamp: h.timestamp },
+                    { role: 'user', content: h.userMessage, timestamp: h.timestamp },
                     { role: 'assistant', content: h.botResponse, timestamp: h.timestamp },
                 ]);
                 this._renderAll();
@@ -1031,7 +1592,7 @@ class ChatbotAssistant {
                     return;
                 }
             }
-        } catch (_) {}
+        } catch (_) { }
 
         this._showWelcome();
     }
@@ -1042,7 +1603,7 @@ class ChatbotAssistant {
             const res = await api.call('/chatbot/history?limit=30', { method: 'GET' });
             if (res?.success && res.data?.length > 0) {
                 this.messages = res.data.flatMap(h => [
-                    { role: 'user',      content: h.userMessage, timestamp: h.timestamp },
+                    { role: 'user', content: h.userMessage, timestamp: h.timestamp },
                     { role: 'assistant', content: h.botResponse, timestamp: h.timestamp },
                 ]);
                 this._renderAll();
@@ -1058,7 +1619,7 @@ class ChatbotAssistant {
 
     async _clearChat() {
         if (!confirm('¿Borrar toda la conversación?')) return;
-        try { await api.call('/chatbot/history', { method: 'DELETE' }); } catch (_) {}
+        try { await api.call('/chatbot/history', { method: 'DELETE' }); } catch (_) { }
         this.messages = [];
         localStorage.removeItem('aria_history_v4');
         this._showWelcome();
@@ -1068,19 +1629,19 @@ class ChatbotAssistant {
     _exportChat() {
         if (!this.messages.length) { showAlert('No hay conversación', 'warning'); return; }
         const data = {
-            exportado:    new Date().toLocaleString('es-MX'),
-            usuario:      this.userContext?.nombre,
-            total:        this.messages.length,
+            exportado: new Date().toLocaleString('es-MX'),
+            usuario: this.userContext?.nombre,
+            total: this.messages.length,
             conversacion: this.messages.map(m => ({
-                rol:     m.role === 'user' ? 'Usuario' : 'ARIA',
+                rol: m.role === 'user' ? 'Usuario' : 'ARIA',
                 mensaje: m.content,
-                hora:    m.timestamp ? new Date(m.timestamp).toLocaleString('es-MX') : '',
+                hora: m.timestamp ? new Date(m.timestamp).toLocaleString('es-MX') : '',
             })),
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url  = URL.createObjectURL(blob);
-        const a    = Object.assign(document.createElement('a'), {
-            href:     url,
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), {
+            href: url,
             download: `aria_chat_${new Date().toISOString().slice(0, 10)}.json`,
         });
         a.click(); URL.revokeObjectURL(url);
@@ -1088,11 +1649,11 @@ class ChatbotAssistant {
     }
 
     _showWelcome() {
-        const stats  = this.systemStats || {};
+        const stats = this.systemStats || {};
         const nombre = this.userContext?.nombre || 'usuario';
-        const hora   = new Date().getHours();
+        const hora = new Date().getHours();
         const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
-        const s = stats.stats  || {};
+        const s = stats.stats || {};
         const t = stats.tareas || {};
 
         const lines = [
@@ -1107,11 +1668,11 @@ class ChatbotAssistant {
         ].join('\n');
 
         this.messages = [{
-            role:        'assistant',
-            content:     lines,
-            timestamp:   new Date().toISOString(),
+            role: 'assistant',
+            content: lines,
+            timestamp: new Date().toISOString(),
             suggestions: this.quickSuggestions.slice(0, 6),
-            isWelcome:   true,
+            isWelcome: true,
         }];
         this._renderAll();
         this._saveLocal();
@@ -1122,7 +1683,7 @@ class ChatbotAssistant {
         if (!this.isOpen && !localStorage.getItem(key)) {
             if (this._els.badge) {
                 this._els.badge.style.display = 'flex';
-                this._els.badge.textContent   = '1.0';
+                this._els.badge.textContent = '1.0';
                 localStorage.setItem(key, '1');
                 setTimeout(() => {
                     if (!this.isOpen && this._els.badge) this._els.badge.style.display = 'none';
@@ -1209,12 +1770,12 @@ class ChatbotAssistant {
         this.isOpen = false;
 
         // Limpiar referencias fullscreen
-        this._fullscreenMessages    = null;
-        this._fullscreenInput       = null;
-        this._fullscreenSend        = null;
-        this._fullscreenVoice       = null;
-        this._fullscreenCharCount   = null;
-        this._fullscreenStatus      = null;
+        this._fullscreenMessages = null;
+        this._fullscreenInput = null;
+        this._fullscreenSend = null;
+        this._fullscreenVoice = null;
+        this._fullscreenCharCount = null;
+        this._fullscreenStatus = null;
         this._fullscreenSuggestions = null;
     }
 
@@ -1293,14 +1854,14 @@ class ChatbotAssistant {
         container.appendChild(wrapper);
 
         // Cache referencias
-        this._fullscreenMessages    = document.getElementById('ariaFsMessages');
-        this._fullscreenInput       = document.getElementById('ariaFsInput');
-        this._fullscreenSend        = document.getElementById('ariaFsSend');
-        this._fullscreenVoice       = document.getElementById('ariaFsVoice');
-        this._fullscreenCharCount   = document.getElementById('ariaFsCharCount');
-        this._fullscreenStatus      = document.getElementById('ariaFullscreenStatus');
+        this._fullscreenMessages = document.getElementById('ariaFsMessages');
+        this._fullscreenInput = document.getElementById('ariaFsInput');
+        this._fullscreenSend = document.getElementById('ariaFsSend');
+        this._fullscreenVoice = document.getElementById('ariaFsVoice');
+        this._fullscreenCharCount = document.getElementById('ariaFsCharCount');
+        this._fullscreenStatus = document.getElementById('ariaFullscreenStatus');
         this._fullscreenSuggestions = document.getElementById('ariaFsSuggestions');
-        this._fullscreenTyping      = document.getElementById('ariaFsTyping');
+        this._fullscreenTyping = document.getElementById('ariaFsTyping');
 
         // Renderizar mensajes existentes
         this._renderMessagesToFullscreen();
@@ -1331,11 +1892,11 @@ class ChatbotAssistant {
             'aria-msg',
             isUser ? 'aria-msg--user' : 'aria-msg--bot',
             msg.isWelcome ? 'aria-msg--welcome' : '',
-            msg.isError   ? 'aria-msg--error'   : '',
+            msg.isError ? 'aria-msg--error' : '',
         ].filter(Boolean).join(' ');
 
         const content = this._parseMarkdown(msg.content);
-        const time    = this._formatTime(msg.timestamp);
+        const time = this._formatTime(msg.timestamp);
 
         let actionsHtml = '';
         if (msg.actions?.length) {
@@ -1354,7 +1915,7 @@ class ChatbotAssistant {
                     }
                     return '';
                 }).filter(Boolean).join('')
-            + `</div>`;
+                + `</div>`;
         }
 
         el.innerHTML = `
@@ -1390,7 +1951,7 @@ class ChatbotAssistant {
         // Input
         this._fullscreenInput?.addEventListener('input', () => {
             const val = this._fullscreenInput.value;
-            if (this._fullscreenSend)      this._fullscreenSend.disabled = !val.trim() || this.isLoading;
+            if (this._fullscreenSend) this._fullscreenSend.disabled = !val.trim() || this.isLoading;
             if (this._fullscreenCharCount) this._fullscreenCharCount.textContent = `${val.length} / 2000`;
             this._fullscreenInput.style.height = 'auto';
             this._fullscreenInput.style.height = Math.min(this._fullscreenInput.scrollHeight, 150) + 'px';
@@ -1459,7 +2020,23 @@ class ChatbotAssistant {
     }
 
     async _processMessageFullscreen(text) {
-        // ── 1. Ajustes ────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════
+        // PRIORIDAD 1: Navegación Explícita
+        // ═══════════════════════════════════════════════════════
+        const navCmd = detectNavigationCommand(text);
+        if (navCmd.detected) {
+            await new Promise(r => setTimeout(r, 300));
+            const navInfo = NAV_MAP[navCmd.target];
+            if (navInfo) {
+                this._appendFullscreenBotMessage(`📍 **Navegando a ${navInfo.label}...**`, {
+                    suggestions: ['Dashboard', 'Mis tareas', 'Ver ajustes'],
+                });
+                setTimeout(() => this._doNavigate(navCmd.target), 500);
+            }
+            return;
+        }
+
+        // ── PRIORIDAD 2: Ajustes ─────────────────────────────
         const settingCmd = detectSettingCommand(text);
         if (settingCmd.detected) {
             await new Promise(r => setTimeout(r, 250));
@@ -1473,11 +2050,18 @@ class ChatbotAssistant {
             return;
         }
 
-        // ── 2. Tareas ─────────────────────────────────────────
+        // ── PRIORIDAD 3: Tareas ──────────────────────────────
         const taskCmd = detectTaskCreation(text);
         if (taskCmd.detected) {
             this._setFullscreenStatus('Creando tarea...');
-            const result = await this._createTaskDirectly(taskCmd.title, taskCmd.dueDate);
+            const result = await this._createTaskDirectly(
+                taskCmd.title,
+                taskCmd.dueDate,
+                taskCmd.description,
+                taskCmd.priority,
+                taskCmd.category,
+                taskCmd.hourLimit
+            );
             this._appendFullscreenBotMessage(result.message, {
                 suggestions: result.success
                     ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas']
@@ -1487,7 +2071,7 @@ class ChatbotAssistant {
             return;
         }
 
-        // ── 3. Reportes ───────────────────────────────────────
+        // ── PRIORIDAD 4: Reportes ────────────────────────────
         const reportCmd = detectReportCommand(text);
         if (reportCmd.detected) {
             this._setFullscreenStatus('Generando reporte...');
@@ -1501,15 +2085,15 @@ class ChatbotAssistant {
             return;
         }
 
-        // ── 4. IA backend ─────────────────────────────────────
+        // ── PRIORIDAD 5: IA backend ──────────────────────────
         try {
             const res = await api.call('/chatbot/message', { method: 'POST', body: { message: text } });
             if (res?.success && res.data) {
                 const cleanMsg = this._cleanJSON(res.data.message);
                 this._appendFullscreenBotMessage(cleanMsg, {
-                    actions:     res.data.actions,
+                    actions: res.data.actions,
                     suggestions: res.data.suggestions,
-                    latency:     res.data.latency,
+                    latency: res.data.latency,
                 });
                 if (res.data.actions?.length) {
                     setTimeout(async () => {
@@ -1526,13 +2110,13 @@ class ChatbotAssistant {
 
     _appendFullscreenBotMessage(content, opts = {}) {
         const msg = {
-            role:        'assistant',
+            role: 'assistant',
             content,
-            timestamp:   new Date().toISOString(),
-            actions:     opts.actions     || [],
+            timestamp: new Date().toISOString(),
+            actions: opts.actions || [],
             suggestions: opts.suggestions || [],
-            latency:     opts.latency     || null,
-            isError:     opts.isError     || false,
+            latency: opts.latency || null,
+            isError: opts.isError || false,
         };
         this.messages.push(msg);
         if (this._fullscreenMessages) {
@@ -1595,7 +2179,7 @@ class ChatbotAssistant {
     _saveLocal() {
         try {
             localStorage.setItem('aria_history_v4', JSON.stringify(this.messages.slice(-40)));
-        } catch (_) {}
+        } catch (_) { }
     }
 
     _cleanJSON(text) {
@@ -1655,11 +2239,11 @@ class ChatbotAssistant {
             this.recognition = new SR();
             this.recognition.lang = 'es-MX';
             this.recognition.interimResults = false;
-            this.recognition.continuous     = false;
+            this.recognition.continuous = false;
 
-            this.recognition.onstart  = () => { this.isListening = true;  this._updateVoiceUI(true); };
-            this.recognition.onend    = () => this._stopVoice();
-            this.recognition.onerror  = (ev) => { log.error('Voice error:', ev.error); this._stopVoice(); };
+            this.recognition.onstart = () => { this.isListening = true; this._updateVoiceUI(true); };
+            this.recognition.onend = () => this._stopVoice();
+            this.recognition.onerror = (ev) => { log.error('Voice error:', ev.error); this._stopVoice(); };
             this.recognition.onresult = (ev) => {
                 const text = ev.results[0][0].transcript;
                 const activeInput = this._inChatbotTab ? this._fullscreenInput : this._els.input;
@@ -1685,7 +2269,7 @@ class ChatbotAssistant {
     }
 
     _stopVoice() {
-        try { if (this.isListening && this.recognition) this.recognition.stop(); } catch (_) {}
+        try { if (this.isListening && this.recognition) this.recognition.stop(); } catch (_) { }
         this.isListening = false;
         this._updateVoiceUI(false);
     }
@@ -1714,7 +2298,7 @@ class ChatbotAssistant {
     _createUI() {
         if (document.getElementById('ariaContainer')) { this._cacheEls(); return; }
         const c = document.createElement('div');
-        c.id        = 'ariaContainer';
+        c.id = 'ariaContainer';
         c.className = 'aria-container';
         c.innerHTML = this._getTemplate();
         document.body.appendChild(c);
@@ -1723,17 +2307,17 @@ class ChatbotAssistant {
 
     _cacheEls() {
         this._els = {
-            toggle:    document.getElementById('ariaToggle'),
-            window:    document.getElementById('ariaWindow'),
-            messages:  document.getElementById('ariaMessages'),
-            input:     document.getElementById('ariaInput'),
-            send:      document.getElementById('ariaSend'),
-            badge:     document.getElementById('ariaBadge'),
-            status:    document.getElementById('ariaStatus'),
-            typing:    document.getElementById('ariaTyping'),
+            toggle: document.getElementById('ariaToggle'),
+            window: document.getElementById('ariaWindow'),
+            messages: document.getElementById('ariaMessages'),
+            input: document.getElementById('ariaInput'),
+            send: document.getElementById('ariaSend'),
+            badge: document.getElementById('ariaBadge'),
+            status: document.getElementById('ariaStatus'),
+            typing: document.getElementById('ariaTyping'),
             suggestions: document.getElementById('ariaSuggestions'),
             charCount: document.getElementById('ariaCharCount'),
-            voiceBtn:  document.getElementById('ariaVoice'),
+            voiceBtn: document.getElementById('ariaVoice'),
         };
     }
 
@@ -1842,7 +2426,7 @@ class ChatbotAssistant {
             if (ev.key === 'Escape' && this.isOpen) this.close();
         });
 
-        window.addEventListener('taskCreated',   () => this._loadStats(true));
+        window.addEventListener('taskCreated', () => this._loadStats(true));
         window.addEventListener('tasks:updated', () => this._loadStats(true));
     }
 
@@ -1880,9 +2464,9 @@ export function initChatbot() {
     if (ARIA_DEBUG) {
         window.__ariaDebug = () => {
             console.group('%c[ARIA v1.0] Debug', 'color:#818cf8');
-            console.log('Abierto:',     _instance.isOpen);
-            console.log('Fullscreen:',  _instance._inChatbotTab);
-            console.log('Mensajes:',    _instance.messages.length);
+            console.log('Abierto:', _instance.isOpen);
+            console.log('Fullscreen:', _instance._inChatbotTab);
+            console.log('Mensajes:', _instance.messages.length);
             console.log('Window display:', _instance._els.window?.style.display);
             console.log('Window classes:', _instance._els.window?.className);
             console.groupEnd();
