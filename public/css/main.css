@@ -25,6 +25,7 @@
 @import url('components/chatbot.css');
 
 @import url('components/preloader/bulk-delete.css');
+@import url('components/preloader/login-preloader.css');
 @import url('components/preloader/buttons.css');
 @import url('components/preloader/confirmation.css');
 @import url('components/preloader/details.css');

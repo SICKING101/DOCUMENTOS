@@ -38,6 +38,7 @@ import upload from '../config/multerConfig.js';
 import auditRoutes from './auditRoutes.js';
 import roleRoutes from './roleRoutes.js';
 import suggestionRoutes from './suggestionRoutes.js';
+import settingsRoutes from './settingsRoutes.js';
 
 // ─── AVISOS ──────────────────────────────────────────────────
 import avisoRoutes from './avisoRoutes.js';
@@ -176,6 +177,9 @@ router.get('/versions/:id',     protegerRuta, getVersionById);
 
 // ─── SUGERENCIAS ────────────────────────────────────────────────
 router.use('/suggestions', suggestionRoutes);
+
+// ─── AJUSTES DEL USUARIO ──────────────────────────────────────
+router.use('/user/settings', settingsRoutes);
 
 // ─── TEMA DEL USUARIO ──────────────────────────────────────────────
 router.get('/user/theme', protegerRuta, async (req, res) => {

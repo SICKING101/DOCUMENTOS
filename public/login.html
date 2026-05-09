@@ -10,6 +10,22 @@
 </head>
 
 <body>
+
+  <!-- PRELOADER DE LOGIN -->
+<div class="login-preloader-overlay" id="loginPreloader">
+  <div class="login-preloader-content">
+    <div class="login-preloader-logo">
+      <i class="fas fa-graduation-cap"></i>
+    </div>
+    <div class="login-preloader-spinner"></div>
+    <h2 class="login-preloader-title">SISTEMA DE GESTIÓN DOCUMENTAL</h2>
+    <p class="login-preloader-subtitle">Preparando sistema...</p>
+    <div class="login-preloader-progress">
+      <div class="login-preloader-progress-bar" id="preloaderProgressBar"></div>
+    </div>
+  </div>
+</div>
+
   <!-- login.html -->
   <div class="auth-wrapper">
 
@@ -303,6 +319,86 @@
     let invitationData = null;     // Datos devueltos por la API tras validar
 
     // ── Utilidades ────────────────────────────────────────────────────────────
+
+    // =============================================================================
+// LOGIN PRELOADER - 4 segundos obligatorios al cargar login.html
+// =============================================================================
+
+(function() {
+  'use strict';
+
+  const PRELOADER_DURATION = 4000; // 4 segundos
+  const preloader = document.getElementById('loginPreloader');
+  const progressBar = document.getElementById('preloaderProgressBar');
+
+  if (!preloader) return;
+
+  const startTime = Date.now();
+
+  // ── Animación de la barra de progreso ──────────────────────────────
+  function updateProgress() {
+    if (!progressBar) return;
+    
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min((elapsed / PRELOADER_DURATION) * 100, 100);
+    progressBar.style.width = progress + '%';
+
+    if (elapsed < PRELOADER_DURATION) {
+      requestAnimationFrame(updateProgress);
+    }
+  }
+
+  requestAnimationFrame(updateProgress);
+
+  // ── Ocultar preloader después del tiempo definido ──────────────────
+  setTimeout(() => {
+    preloader.classList.add('hidden');
+    
+    setTimeout(() => {
+      if (preloader.parentNode) {
+        preloader.remove();
+      }
+    }, 500);
+    
+    console.log('✅ Login listo - sesiones previas limpiadas');
+  }, PRELOADER_DURATION);
+
+  // ── Funciones globales para mostrar/ocultar durante procesos ─────
+  window.showLoginProcessPreloader = function(message = 'Procesando...') {
+    let processPreloader = document.getElementById('loginProcessPreloader');
+    
+    if (!processPreloader) {
+      processPreloader = document.createElement('div');
+      processPreloader.id = 'loginProcessPreloader';
+      processPreloader.className = 'login-preloader-overlay';
+      processPreloader.innerHTML = `
+        <div class="login-preloader-content">
+          <div class="login-preloader-spinner"></div>
+          <h2 class="login-preloader-title">CBTIS 051</h2>
+          <p class="login-preloader-subtitle" id="loginProcessMessage">${message}</p>
+        </div>
+      `;
+      document.body.appendChild(processPreloader);
+    } else {
+      const msg = document.getElementById('loginProcessMessage');
+      if (msg) msg.textContent = message;
+      processPreloader.classList.remove('hidden');
+    }
+  };
+
+  window.hideLoginProcessPreloader = function() {
+    const processPreloader = document.getElementById('loginProcessPreloader');
+    if (processPreloader) {
+      processPreloader.classList.add('hidden');
+      setTimeout(() => {
+        if (processPreloader.parentNode) {
+          processPreloader.remove();
+        }
+      }, 500);
+    }
+  };
+
+})();
 
     function setLoading(show) {
       loading.classList.toggle('hidden', !show);

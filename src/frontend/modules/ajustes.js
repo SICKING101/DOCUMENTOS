@@ -2,50 +2,51 @@
 import { showAlert, showConfirmModal, showConfirmation } from '../utils.js';
 
 class SettingsManager {
-    constructor() {
-        this.settings = {
-            appearance: {
-                theme: 'auto',
-                interfaceDensity: 'comfortable',
-                autoDarkTime: '18:00',
-                autoLightTime: '06:00',
-                currentTheme: null
-            },
-            preferences: {
-                language: 'es',
-                timezone: 'America/Mexico_City',
-                dateFormat: 'dd/mm/yyyy',
-            },
-            notifications: {
-                emailNotifications: true,
-                pushNotifications: true,
-                taskReminders: true,
-                documentAlerts: true,
-            },
-            accessibility: {
-                highContrast: false,
-                largeFont: false,
-                reducedMotion: false,
-                fontSize: 16,
-            },
-            privacy: {
-                autoLogout: true,
-                autoLogoutTime: 30, // minutos (2, 5, 15, 30, 60) - 2 minutos agregado para pruebas
-                cookieConsent: false,
-                autoLogoutTimer: null,
-                lastActivity: Date.now() // Para rastrear actividad del usuario
-            }
-        };
-        
-        this.debugMode = true;
-        this.isUserActive = true;
-        this.inactivityTimeout = null;
-        this.warningTimeout = null;
-        this.autoSaveTimer = null;
-        this.log('🔧 Constructor SettingsManager inicializado');
-        
-        this.initialize();
-    }
+constructor() {
+    this.settings = {
+        appearance: {
+            theme: 'auto',
+            interfaceDensity: 'comfortable',
+            autoDarkTime: '18:00',
+            autoLightTime: '06:00',
+            currentTheme: null
+        },
+        preferences: {
+            language: 'es',
+            timezone: 'America/Mexico_City',
+            dateFormat: 'dd/mm/yyyy',
+        },
+        notifications: {
+            emailNotifications: true,
+            pushNotifications: true,
+            taskReminders: true,
+            documentAlerts: true,
+        },
+        accessibility: {
+            highContrast: false,
+            largeFont: false,
+            reducedMotion: false,
+            fontSize: 16,
+        },
+        privacy: {
+            autoLogout: true,
+            autoLogoutTime: 30,
+            cookieConsent: false,
+            autoLogoutTimer: null,
+            lastActivity: Date.now()
+        }
+    };
+    
+    this.debugMode = true;
+    this.isUserActive = true;
+    this.inactivityTimeout = null;
+    this.warningTimeout = null;
+    this.autoSaveTimer = null;
+    this.initialized = false; // 🆕 Flag para evitar doble inicialización
+    this.log('🔧 Constructor SettingsManager inicializado');
+    
+    // ⚠️ NO llamar a this.initialize() aquí
+}
 
     /**
      * Logging con timestamp para debugging
@@ -61,26 +62,44 @@ class SettingsManager {
     /**
      * Inicializar el gestor de ajustes
      */
-    initialize() {
-        this.log('Inicializando SettingsManager...');
-        this.loadSettings();
-       // this.calculateAndSetTheme();
-        this.setupEventListeners();
-        this.applySettings();
-        this.updateForm();
-        this.startThemeChecker();
-        this.log('✅ SettingsManager inicializado correctamente');
-        
-        // Iniciar monitor de inactividad
-        this.startInactivityMonitor();
+async initialize() {
+    if (this.initialized) {
+        this.log('⚠️ SettingsManager ya estaba inicializado, omitiendo...');
+        return;
     }
+    
+    this.initialized = true;
+    this.log('🚀 Inicializando SettingsManager...');
+    
+    await this.loadSettings();
+    this.setupEventListeners();
+    this.applySettings();
+    this.updateForm();
+    this.startThemeChecker();
+    this.log('✅ SettingsManager inicializado correctamente');
+    
+    this.startInactivityMonitor();
+}
 
     /**
      * Cargar ajustes desde localStorage
      */
-        loadSettings() {
+// Reemplazar el método loadSettings() existente por este:
+async loadSettings() {
+    this.log('📂 Cargando ajustes...');
+    
+    // Intentar cargar desde MongoDB primero
+    const serverSettings = await this._loadFromServer();
+    
+    if (serverSettings) {
+        this.settings = this.mergeSettings(this.settings, serverSettings);
+        this.validateSettings();
+        this.log('✅ Ajustes cargados desde MongoDB');
+    } else {
+        // Fallback a localStorage
         const storageKey = this.getStorageKey();
         const savedSettings = localStorage.getItem(storageKey);
+        
         if (savedSettings) {
             try {
                 const parsedSettings = JSON.parse(savedSettings);
@@ -92,19 +111,40 @@ class SettingsManager {
                 this.saveSettings();
             }
         } else {
-            // Intentar migrar ajustes antiguos
-            const oldSettings = localStorage.getItem('cbtis051_settings');
-            if (oldSettings) {
-                try {
-                    const parsed = JSON.parse(oldSettings);
-                    this.settings = this.mergeSettings(this.settings, parsed);
-                    localStorage.removeItem('cbtis051_settings');
-                } catch(e) {}
-            }
             this.saveSettings();
             this.log('📝 Configuración por defecto guardada');
         }
     }
+}
+
+/**
+ * Cargar ajustes desde el servidor
+ */
+async _loadFromServer() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        
+        const response = await fetch('/api/user/settings', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        
+        if (data.success && data.settings) {
+            return data.settings;
+        }
+        
+        return null;
+    } catch (error) {
+        this.log('⚠️ No se pudo cargar desde servidor:', error.message);
+        return null;
+    }
+}
 
     /**
      * Merge de ajustes (para compatibilidad)
@@ -156,135 +196,149 @@ class SettingsManager {
         }
     }
 
-    /**
-     * Guardar ajustes en localStorage
-     */
-        saveSettings() {
-        try {
-            if (this.settings.appearance.theme === 'auto') {
-                this.calculateAndSetTheme();
-            }
-            
-            this.validateSettings();
-            
-            const storageKey = this.getStorageKey();
-            localStorage.setItem(storageKey, JSON.stringify(this.settings));
-            this.log('💾 Ajustes guardados en: ' + storageKey);
-            
-            // Guardar tema en clave con schoolId
-            if (this.settings.appearance.currentTheme) {
-                localStorage.setItem(`${storageKey}_theme`, this.settings.appearance.currentTheme);
-            }
-            
-            // Sincronizar con BD
-            this._syncThemeToDB();
-            
-            window.dispatchEvent(new CustomEvent('settingsChanged', { 
-                detail: { settings: this.settings }
-            }));
-            
-            return true;
-        } catch (error) {
-            this.log('❌ Error guardando ajustes:', error);
-            showAlert('Error al guardar ajustes', 'error');
-            return false;
+// Reemplazar el método saveSettings() existente por este:
+async saveSettings() {
+    try {
+        if (this.settings.appearance.theme === 'auto') {
+            this.calculateAndSetTheme();
         }
+        
+        this.validateSettings();
+        
+        // Guardar en localStorage como respaldo
+        const storageKey = this.getStorageKey();
+        localStorage.setItem(storageKey, JSON.stringify(this.settings));
+        
+        // Guardar tema en localStorage
+        if (this.settings.appearance.currentTheme) {
+            localStorage.setItem(`${storageKey}_theme`, this.settings.appearance.currentTheme);
+            localStorage.setItem('theme', this.settings.appearance.currentTheme);
+        }
+        
+        // Guardar en MongoDB (asíncrono, no bloqueante)
+        this._saveToServer();
+        
+        window.dispatchEvent(new CustomEvent('settingsChanged', { 
+            detail: { settings: this.settings }
+        }));
+        
+        return true;
+    } catch (error) {
+        this.log('❌ Error guardando ajustes:', error);
+        return false;
     }
+}
+
+/**
+ * Guardar ajustes en el servidor
+ */
+async _saveToServer() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        await fetch('/api/user/settings', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ settings: this.settings })
+        });
+        
+        this.log('💾 Ajustes sincronizados con MongoDB');
+    } catch (error) {
+        this.log('⚠️ No se pudo sincronizar con servidor:', error.message);
+    }
+}
 
     /**
      * Configurar event listeners
      */
-    setupEventListeners() {
-        this.log('🔌 Configurando event listeners...');
-        
-        // Formulario de ajustes
-        const settingsForm = document.getElementById('settings-form');
-        if (settingsForm) {
-            settingsForm.addEventListener('submit', (e) => this.handleSave(e));
-        }
+setupEventListeners() {
+    this.log('🔌 Configurando event listeners...');
+    
+    // ⚠️ QUITAR ESTO - Ya no hay botón de guardar
+    // const settingsForm = document.getElementById('settings-form');
+    // if (settingsForm) {
+    //     settingsForm.addEventListener('submit', (e) => this.handleSave(e));
+    // }
 
-        // Botón de restablecer
-        const resetBtn = document.getElementById('reset-btn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => this.handleReset());
-        }
-
-        // Selector de densidad
-        const densityBtns = document.querySelectorAll('.density-btn');
-        densityBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleDensityChange(e));
-        });
-
-        // Control de tamaño de fuente
-        const decreaseBtn = document.querySelector('.font-size-btn.decrease');
-        const increaseBtn = document.querySelector('.font-size-btn.increase');
-        const fontPresets = document.querySelectorAll('.font-size-preset');
-        
-        if (decreaseBtn && increaseBtn) {
-            decreaseBtn.addEventListener('click', () => this.changeFontSize(-2));
-            increaseBtn.addEventListener('click', () => this.changeFontSize(2));
-        }
-        
-        if (fontPresets.length > 0) {
-            fontPresets.forEach(preset => {
-                preset.addEventListener('click', (e) => {
-                    const size = parseInt(e.currentTarget.dataset.size);
-                    this.setFontSize(size);
-                });
-            });
-        }
-
-        // Botón exportar datos
-        const exportBtn = document.getElementById('export-data');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => this.handleExportData());
-        }
-
-        // Botones del modal
-        const modalReload = document.getElementById('modal-reload');
-        const modalLater = document.getElementById('modal-later');
-        const modalClose = document.querySelector('.modal-close');
-        
-        if (modalReload) {
-            modalReload.addEventListener('click', () => window.location.reload());
-        }
-        if (modalLater) {
-            modalLater.addEventListener('click', () => this.hideModal());
-        }
-        if (modalClose) {
-            modalClose.addEventListener('click', () => this.hideModal());
-        }
-
-        // Mostrar/ocultar config de horario automático
-        const themeInputs = document.querySelectorAll('input[name="theme"]');
-        themeInputs.forEach(input => {
-            input.addEventListener('change', (e) => {
-                this.toggleAutoThemeSettings(e.target.value === 'auto');
-            });
-        });
-
-        // Detectar cambios en tiempo real
-        this.setupRealTimeListeners();
-        
-        // IMPORTANTE: Eventos para monitorear actividad del usuario
-        this.setupActivityListeners();
-        
-        // ⚠️ COMENTADO: El tema ya se inicializa en app.js DOMContentLoaded con _initTheme()
-        // Ejecutar applyTheme() aquí en window.load causaba que reseteara el tema
-        // window.addEventListener('load', () => {
-        //     this.log('📄 Página completamente cargada, aplicando tema persistente');
-        //     this.applyTheme();
-        // });
-        
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                this.log('👁️ Página visible nuevamente, verificando tema');
-                this.checkAndApplyAutoTheme(true);
-            }
-        });
-        
-        this.log('✅ Event listeners configurados');
+    // Botón de restablecer
+    const resetBtn = document.getElementById('reset-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => this.handleReset());
     }
+
+    // Selector de densidad
+    const densityBtns = document.querySelectorAll('.density-btn');
+    densityBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => this.handleDensityChange(e));
+    });
+
+    // Control de tamaño de fuente
+    const decreaseBtn = document.querySelector('.font-size-btn.decrease');
+    const increaseBtn = document.querySelector('.font-size-btn.increase');
+    const fontPresets = document.querySelectorAll('.font-size-preset');
+    
+    if (decreaseBtn && increaseBtn) {
+        decreaseBtn.addEventListener('click', () => this.changeFontSize(-2));
+        increaseBtn.addEventListener('click', () => this.changeFontSize(2));
+    }
+    
+    if (fontPresets.length > 0) {
+        fontPresets.forEach(preset => {
+            preset.addEventListener('click', (e) => {
+                const size = parseInt(e.currentTarget.dataset.size);
+                this.setFontSize(size);
+            });
+        });
+    }
+
+    // Botón exportar datos
+    const exportBtn = document.getElementById('export-data');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => this.handleExportData());
+    }
+
+    // Botones del modal
+    const modalReload = document.getElementById('modal-reload');
+    const modalLater = document.getElementById('modal-later');
+    const modalClose = document.querySelector('.modal-close');
+    
+    if (modalReload) {
+        modalReload.addEventListener('click', () => window.location.reload());
+    }
+    if (modalLater) {
+        modalLater.addEventListener('click', () => this.hideModal());
+    }
+    if (modalClose) {
+        modalClose.addEventListener('click', () => this.hideModal());
+    }
+
+    // Mostrar/ocultar config de horario automático
+    const themeInputs = document.querySelectorAll('input[name="theme"]');
+    themeInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+            this.toggleAutoThemeSettings(e.target.value === 'auto');
+        });
+    });
+
+    // Detectar cambios en tiempo real
+    this.setupRealTimeListeners();
+    
+    // Monitorear actividad del usuario
+    this.setupActivityListeners();
+    
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            this.log('👁️ Página visible nuevamente, verificando tema');
+            this.checkAndApplyAutoTheme(true);
+        }
+    });
+    
+    this.log('✅ Event listeners configurados');
+}
 
     /**
      * Configurar listeners de actividad del usuario
@@ -310,164 +364,169 @@ class SettingsManager {
     /**
      * Configurar listeners para cambios en tiempo real
      */
-    setupRealTimeListeners() {
-        this.log('🎯 Configurando listeners en tiempo real...');
-        
-        const form = document.getElementById('settings-form');
-        if (!form) {
-            this.log('❌ Formulario no encontrado');
-            return;
-        }
-
-        // Tema con detección de cambios
-        const themeInputs = form.querySelectorAll('input[name="theme"]');
-        themeInputs.forEach(input => {
-            input.addEventListener('change', (e) => {
-                this.settings.appearance.theme = e.target.value;
-                this.log('🎨 Tema cambiado a:', e.target.value);
-                
-                if (e.target.value === 'auto') {
-                    this.calculateAndSetTheme();
-                } else {
-                    this.settings.appearance.currentTheme = e.target.value;
-                    this.saveSettings();
-                }
-                
-                this.applyTheme();
-            });
-        });
-
-        // Horas para tema automático
-        const darkTimeInput = document.getElementById('auto-dark-time');
-        const lightTimeInput = document.getElementById('auto-light-time');
-        
-        if (darkTimeInput) {
-            darkTimeInput.addEventListener('change', (e) => {
-                this.settings.appearance.autoDarkTime = e.target.value;
-                this.log('🌙 Hora oscuro actualizada:', e.target.value);
-                
-                if (this.settings.appearance.theme === 'auto') {
-                    this.calculateAndSetTheme();
-                    this.saveSettings();
-                    this.applyTheme();
-                }
-                
-                this.startThemeChecker();
-            });
-        }
-        
-        if (lightTimeInput) {
-            lightTimeInput.addEventListener('change', (e) => {
-                this.settings.appearance.autoLightTime = e.target.value;
-                this.log('☀️ Hora claro actualizada:', e.target.value);
-                
-                if (this.settings.appearance.theme === 'auto') {
-                    this.calculateAndSetTheme();
-                    this.saveSettings();
-                    this.applyTheme();
-                }
-                
-                this.startThemeChecker();
-            });
-        }
-
-        // Switches
-        const switches = form.querySelectorAll('input[type="checkbox"]');
-        switches.forEach(switchEl => {
-            switchEl.addEventListener('change', (e) => {
-                const name = e.target.name;
-                const value = e.target.checked;
-                this.log(`🔘 Switch ${name}: ${value}`);
-                
-                this.updateSettingFromSwitch(name, value);
-            });
-        });
-
-        // Selects
-        const selects = form.querySelectorAll('select');
-        selects.forEach(select => {
-            select.addEventListener('change', (e) => {
-                const name = e.target.name;
-                const value = e.target.value;
-                this.log(`📋 Select ${name}: ${value}`);
-                
-                this.updateSettingFromSelect(name, value);
-            });
-        });
-        
-        // Auto-save on any input/change within the form (debounced)
-        form.addEventListener('input', () => this.scheduleAutoSave());
-        form.addEventListener('change', () => this.scheduleAutoSave());
-        
-        this.log('✅ Listeners en tiempo real configurados');
+setupRealTimeListeners() {
+    this.log('🎯 Configurando listeners en tiempo real...');
+    
+    const form = document.getElementById('settings-form');
+    if (!form) {
+        this.log('❌ Formulario no encontrado');
+        return;
     }
+
+    // Tema con detección de cambios
+    const themeInputs = form.querySelectorAll('input[name="theme"]');
+    themeInputs.forEach(input => {
+        input.addEventListener('change', async (e) => {
+            this.settings.appearance.theme = e.target.value;
+            this.log('🎨 Tema cambiado a:', e.target.value);
+            
+            if (e.target.value === 'auto') {
+                this.calculateAndSetTheme();
+            } else {
+                this.settings.appearance.currentTheme = e.target.value;
+            }
+            
+            await this.saveSettings(); // 🆕 Guardar inmediatamente
+            this.applyTheme();
+        });
+    });
+
+    // Horas para tema automático
+    const darkTimeInput = document.getElementById('auto-dark-time');
+    const lightTimeInput = document.getElementById('auto-light-time');
+    
+    if (darkTimeInput) {
+        darkTimeInput.addEventListener('change', async (e) => {
+            this.settings.appearance.autoDarkTime = e.target.value;
+            this.log('🌙 Hora oscuro actualizada:', e.target.value);
+            
+            if (this.settings.appearance.theme === 'auto') {
+                this.calculateAndSetTheme();
+                await this.saveSettings();
+                this.applyTheme();
+            } else {
+                await this.saveSettings(); // 🆕 Guardar aunque no sea auto
+            }
+            
+            this.startThemeChecker();
+        });
+    }
+    
+    if (lightTimeInput) {
+        lightTimeInput.addEventListener('change', async (e) => {
+            this.settings.appearance.autoLightTime = e.target.value;
+            this.log('☀️ Hora claro actualizada:', e.target.value);
+            
+            if (this.settings.appearance.theme === 'auto') {
+                this.calculateAndSetTheme();
+                await this.saveSettings();
+                this.applyTheme();
+            } else {
+                await this.saveSettings(); // 🆕 Guardar aunque no sea auto
+            }
+            
+            this.startThemeChecker();
+        });
+    }
+
+    // Switches
+    const switches = form.querySelectorAll('input[type="checkbox"]');
+    switches.forEach(switchEl => {
+        switchEl.addEventListener('change', (e) => {
+            const name = e.target.name;
+            const value = e.target.checked;
+            this.log(`🔘 Switch ${name}: ${value}`);
+            
+            this.updateSettingFromSwitch(name, value);
+            this.scheduleAutoSave(100); // 🆕 Guardar casi inmediato (100ms)
+        });
+    });
+
+    // Selects
+    const selects = form.querySelectorAll('select');
+    selects.forEach(select => {
+        select.addEventListener('change', (e) => {
+            const name = e.target.name;
+            const value = e.target.value;
+            this.log(`📋 Select ${name}: ${value}`);
+            
+            this.updateSettingFromSelect(name, value);
+            this.scheduleAutoSave(100); // 🆕 Guardar casi inmediato (100ms)
+        });
+    });
+    
+    this.log('✅ Listeners en tiempo real configurados');
+}
 
     /**
      * Programar guardado automático (debounced)
      */
-    scheduleAutoSave(delay = 700) {
-        if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
-        this.autoSaveTimer = setTimeout(() => {
-            try {
-                this.collectFormData();
-                if (this.settings.appearance.theme === 'auto') {
-                    this.calculateAndSetTheme();
-                }
-                const success = this.saveSettings();
-                if (success) this.log('🟢 Auto-guardado completado');
-            } catch (error) {
-                this.log('❌ Error en auto-guardado:', error);
+// Reemplazar scheduleAutoSave:
+scheduleAutoSave(delay = 700) {
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+    this.autoSaveTimer = setTimeout(async () => {
+        try {
+            this.collectFormData();
+            if (this.settings.appearance.theme === 'auto') {
+                this.calculateAndSetTheme();
             }
-        }, delay);
-    }
+            const success = await this.saveSettings(); // <-- Ahora es async
+            if (success) this.log('🟢 Auto-guardado completado');
+        } catch (error) {
+            this.log('❌ Error en auto-guardado:', error);
+        }
+    }, delay);
+}
 
     /**
      * Actualizar ajuste desde switch
      */
-    updateSettingFromSwitch(name, value) {
-        switch(name) {
-            case 'highContrast':
-            case 'largeFont':
-            case 'reducedMotion':
-                this.settings.accessibility[name] = value;
-                this.applyAccessibility();
-                break;
-            case 'autoLogout':
-                this.settings.privacy[name] = value;
-                if (value) {
-                    this.setupAutoLogout(this.settings.privacy.autoLogoutTime);
-                } else {
-                    this.clearAutoLogout();
-                }
-                this.log(`🔒 Auto-logout ${value ? 'activado' : 'desactivado'}`);
-                break;
-            case 'emailNotifications':
-            case 'pushNotifications':
-            case 'taskReminders':
-            case 'documentAlerts':
-                this.settings.notifications[name] = value;
-                break;
-        }
+updateSettingFromSwitch(name, value) {
+    switch(name) {
+        case 'highContrast':
+        case 'largeFont':
+        case 'reducedMotion':
+            this.settings.accessibility[name] = value;
+            this.applyAccessibility();
+            break;
+        case 'autoLogout':
+            this.settings.privacy[name] = value;
+            if (value) {
+                this.setupAutoLogout(this.settings.privacy.autoLogoutTime);
+            } else {
+                this.clearAutoLogout();
+            }
+            this.log(`🔒 Auto-logout ${value ? 'activado' : 'desactivado'}`);
+            break;
+        case 'emailNotifications':
+        case 'pushNotifications':
+        case 'taskReminders':
+        case 'documentAlerts':
+            this.settings.notifications[name] = value;
+            break;
     }
+    this.scheduleAutoSave(100); // 🆕 Guardar inmediatamente
+}
 
     /**
      * Actualizar ajuste desde select
      */
-    updateSettingFromSelect(name, value) {
-        switch(name) {
-            case 'language':
-                this.settings.preferences.language = value;
-                break;
-            case 'autoLogoutTime':
-                const timeValue = parseInt(value);
-                this.settings.privacy[name] = timeValue;
-                if (this.settings.privacy.autoLogout) {
-                    this.setupAutoLogout(timeValue);
-                }
-                this.log(`⏱️ Tiempo de auto-logout actualizado a: ${timeValue} minutos`);
-                break;
-        }
+updateSettingFromSelect(name, value) {
+    switch(name) {
+        case 'language':
+            this.settings.preferences.language = value;
+            break;
+        case 'autoLogoutTime':
+            const timeValue = parseInt(value);
+            this.settings.privacy[name] = timeValue;
+            if (this.settings.privacy.autoLogout) {
+                this.setupAutoLogout(timeValue);
+            }
+            this.log(`⏱️ Tiempo de auto-logout actualizado a: ${timeValue} minutos`);
+            break;
     }
+    this.scheduleAutoSave(100); // 🆕 Guardar inmediatamente
+}
 
     /**
      * Mostrar/ocultar configuración de horario automático
@@ -1159,6 +1218,12 @@ updateForm() {
         // Establecer el valor
         autoLogoutSelect.value = this.settings.privacy.autoLogoutTime || 30;
     }
+
+        // 🆕 Ocultar botón de guardar si existe
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) {
+        saveBtn.style.display = 'none';
+    }
     
     this.log('✅ Formulario actualizado');
 }
@@ -1166,19 +1231,20 @@ updateForm() {
     /**
      * Manejar cambio de densidad
      */
-    handleDensityChange(e) {
-        const density = e.currentTarget.dataset.density;
-        this.log(`📏 Cambiando densidad a: ${density}`);
-        
-        document.querySelectorAll('.density-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        e.currentTarget.classList.add('active');
-        
-        document.getElementById('interface-density').value = density;
-        this.settings.appearance.interfaceDensity = density;
-        this.applyDensity();
-    }
+handleDensityChange(e) {
+    const density = e.currentTarget.dataset.density;
+    this.log(`📏 Cambiando densidad a: ${density}`);
+    
+    document.querySelectorAll('.density-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    e.currentTarget.classList.add('active');
+    
+    document.getElementById('interface-density').value = density;
+    this.settings.appearance.interfaceDensity = density;
+    this.applyDensity();
+    this.scheduleAutoSave(100); // 🆕 Guardar inmediatamente
+}
 
     /**
      * Cambiar tamaño de fuente
@@ -1197,35 +1263,36 @@ updateForm() {
     /**
      * Establecer tamaño de fuente específico
      */
-    setFontSize(size) {
-        const validSizes = [14, 16, 18];
-        
-        if (!validSizes.includes(size)) {
-            this.log(`⚠️ Tamaño de fuente inválido: ${size}, usando 16`);
-            size = 16;
-        }
-        
-        this.log(`🔠 Cambiando tamaño de fuente a: ${size}px`);
-        this.settings.accessibility.fontSize = size;
-        
-        const fontSizeInput = document.getElementById('font-size');
-        const fontSizeDisplay = document.querySelector('.current-size');
-        const fontPresets = document.querySelectorAll('.font-size-preset');
-        
-        if (fontSizeInput && fontSizeDisplay) {
-            fontSizeInput.value = size;
-            fontSizeDisplay.textContent = `${size}px`;
-            
-            fontPresets.forEach(preset => {
-                preset.classList.remove('active');
-                if (parseInt(preset.dataset.size) === size) {
-                    preset.classList.add('active');
-                }
-            });
-        }
-        
-        this.applyAccessibility();
+setFontSize(size) {
+    const validSizes = [14, 16, 18];
+    
+    if (!validSizes.includes(size)) {
+        this.log(`⚠️ Tamaño de fuente inválido: ${size}, usando 16`);
+        size = 16;
     }
+    
+    this.log(`🔠 Cambiando tamaño de fuente a: ${size}px`);
+    this.settings.accessibility.fontSize = size;
+    
+    const fontSizeInput = document.getElementById('font-size');
+    const fontSizeDisplay = document.querySelector('.current-size');
+    const fontPresets = document.querySelectorAll('.font-size-preset');
+    
+    if (fontSizeInput && fontSizeDisplay) {
+        fontSizeInput.value = size;
+        fontSizeDisplay.textContent = `${size}px`;
+        
+        fontPresets.forEach(preset => {
+            preset.classList.remove('active');
+            if (parseInt(preset.dataset.size) === size) {
+                preset.classList.add('active');
+            }
+        });
+    }
+    
+    this.applyAccessibility();
+    this.scheduleAutoSave(100); // 🆕 Guardar inmediatamente
+}
 
     /**
      * Manejar restablecimiento de valores
@@ -1502,26 +1569,17 @@ updateForm() {
     }
 }
 
-// Crear y exportar instancia singleton
+// ═══════════════════════════════════════════════════════════════
+// INICIALIZACIÓN ÚNICA
+// ═══════════════════════════════════════════════════════════════
 const settingsManager = new SettingsManager();
 
-// Función auxiliar para verificar el tema al cargar la página
-(function checkThemeOnLoad() {
-    try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const storageKey = `cbtis051_settings_${user.schoolId || 'global'}`;
-        const savedTheme = localStorage.getItem(`${storageKey}_theme`);
-        if (savedTheme) {
-            document.body.classList.add(`${savedTheme}-theme`);
-            document.body.setAttribute('data-theme', savedTheme);
-        } else {
-            // Fallback: leer de BD (se aplica en app.js _loadThemeFromDB)
-            document.body.classList.add('light-theme');
-        }
-    } catch {
-        document.body.classList.add('light-theme');
-    }
-})();
+// Inicializar UNA SOLA VEZ cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => settingsManager.initialize());
+} else {
+    settingsManager.initialize();
+}
 
 // Exportar para uso global
 window.SettingsManager = SettingsManager;

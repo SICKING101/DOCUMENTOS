@@ -8,7 +8,7 @@
 //   • Esto permite asignar roles creados dinámicamente desde el panel de Admin.
 
 import mongoose from 'mongoose';
-import bcrypt   from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 
 const DEBUG = true;
 function ulog(...args) { if (DEBUG) console.log('👤 [User]', ...args); }
@@ -17,26 +17,26 @@ const userSchema = new mongoose.Schema(
   {
     // ─── Identidad ─────────────────────────────────────────────────────────
     usuario: {
-      type:      String,
-      required:  [true, 'El usuario es requerido'],
-      unique:    true,
-      trim:      true,
-      minlength: [3,  'El usuario debe tener al menos 3 caracteres'],
+      type: String,
+      required: [true, 'El usuario es requerido'],
+      unique: true,
+      trim: true,
+      minlength: [3, 'El usuario debe tener al menos 3 caracteres'],
       maxlength: [30, 'El usuario no puede superar 30 caracteres'],
     },
     correo: {
-      type:     String,
+      type: String,
       required: [true, 'El correo es requerido'],
-      unique:   true,
-      trim:     true,
+      unique: true,
+      trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'Formato de correo inválido'],
     },
     password: {
-      type:     String,
+      type: String,
       required: [true, 'La contraseña es requerida'],
       minlength: [6, 'La contraseña debe tener al menos 6 caracteres'],
-      select:   false, // No se devuelve en queries por defecto
+      select: false, // No se devuelve en queries por defecto
     },
 
     // ─── Rol ───────────────────────────────────────────────────────────────
@@ -48,54 +48,54 @@ const userSchema = new mongoose.Schema(
     //   cualquier otro  → rol dinámico, permisos en colección roles
     //
     rol: {
-      type:    String,
+      type: String,
       default: 'desactivado',
-      trim:    true,
+      trim: true,
     },
 
     // ─── Estado ────────────────────────────────────────────────────────────
     activo: {
-      type:    Boolean,
+      type: Boolean,
       default: true,
     },
 
     // ─── Metadatos ─────────────────────────────────────────────────────────
     ultimoAcceso: {
-      type:    Date,
+      type: Date,
       default: null,
     },
     createdBy: {
-      type:    mongoose.Schema.Types.ObjectId,
-      ref:     'User',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       default: null,
     },
-     // ===== 🆕 NUEVO: Identificador de escuela =====
+    // ===== 🆕 NUEVO: Identificador de escuela =====
     schoolId: {
       type: String,
       index: true,
       default: null,  // null para superadmin
     },
-     // ===== CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA =====
+    // ===== CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA =====
     // Token para recuperación (código de 6 dígitos hasheado)
     resetPasswordToken: {
       type: String,
       select: false,  // No se devuelve en consultas normales por seguridad
       index: true
     },
-    
+
     // Fecha de expiración del token de recuperación
     resetPasswordExpires: {
       type: Date,
       select: false
     },
-    
+
     // Token para cambio de contraseña (después de verificar código)
     changePasswordToken: {
       type: String,
       select: false,
       index: true
     },
-    
+
     // Fecha de expiración del token de cambio
     changePasswordExpires: {
       type: Date,
@@ -108,6 +108,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['light', 'dark', 'system'],
       default: 'light'
+    },
+    // ─── AJUSTES DEL USUARIO ─────────────────────────────────────────────────
+    settings: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
     },
   },
   {
@@ -178,14 +183,14 @@ userSchema.methods.registrarAcceso = async function () {
  */
 userSchema.methods.toPublicJSON = function () {
   return {
-    id:           this._id,
-    usuario:      this.usuario,
-    correo:       this.correo,
-    rol:          this.rol,
-    activo:       this.activo,
+    id: this._id,
+    usuario: this.usuario,
+    correo: this.correo,
+    rol: this.rol,
+    activo: this.activo,
     ultimoAcceso: this.ultimoAcceso,
-    createdAt:    this.createdAt,
-    updatedAt:    this.updatedAt,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt,
   };
 };
 
@@ -203,7 +208,7 @@ userSchema.statics.findByCredentials = async function (usuarioOCorreo, password)
     const user = await this.findOne({
       $or: [
         { usuario: usuarioOCorreo.trim() },
-        { correo:  usuarioOCorreo.trim().toLowerCase() },
+        { correo: usuarioOCorreo.trim().toLowerCase() },
       ],
     }).select('+password'); // Incluir password para la comparación
 
@@ -234,7 +239,7 @@ userSchema.statics.findByCredentials = async function (usuarioOCorreo, password)
 userSchema.statics.countByRole = async function () {
   const result = await this.aggregate([
     { $group: { _id: '$rol', count: { $sum: 1 } } },
-    { $sort:  { count: -1 } },
+    { $sort: { count: -1 } },
   ]);
   const map = {};
   result.forEach(r => { map[r._id] = r.count; });
