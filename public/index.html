@@ -561,173 +561,251 @@
                     </div>
                 </section>
 
-                <!-- SECCIÓN 4.2.3: PESTAÑA HISTORIAL -->
+                <!-- =====================================================================
+     SECCIÓN 4.2.3: PESTAÑA HISTORIAL — DISEÑO "LUMINOUS CHRONICLE"
+     Todos los IDs funcionales conservados; solo rediseño visual.
+     ===================================================================== -->
                 <section id="historial" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title">Historial del Sistema</h2>
-                            <p class="section__subtitle">Registro completo de todas las actividades</p>
+
+                    <!-- ── 1. CABECERA ── -->
+                    <div class="historial__header">
+                        <div class="historial__header-left">
+                            <div class="historial__icon-wrap">
+                                <i class="fas fa-stream"></i>
+                            </div>
+                            <div>
+                                <h2 class="historial__title">Registro de Actividad</h2>
+                                <p class="historial__subtitle">Seguimiento completo de todas las acciones del sistema
+                                </p>
+                            </div>
                         </div>
-                        <div class="historial__actions">
-                            <button class="btn btn--outline" id="clearHistoryBtn" data-action-section="historial">
-                                <i class="fas fa-trash"></i> Limpiar Historial
+                        <div class="historial__header-actions">
+                            <button class="btn--ghost-danger" id="clearHistoryBtn" data-action-section="historial">
+                                <i class="fas fa-trash-alt"></i>
+                                <span>Limpiar</span>
                             </button>
-                            <button class="btn btn--outline" id="exportHistoryBtn" data-action-section="historial">
-                                <i class="fas fa-download"></i> Exportar
+                            <button class="btn--primary-outline" id="exportHistoryBtn" data-action-section="historial">
+                                <i class="fas fa-download"></i>
+                                <span>Exportar CSV</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Filtros avanzados de historial -->
-                    <div class="historial-filters">
-                        <div class="historial-filters__title">
-                            <i class="fas fa-filter"></i>
-                            <span>Filtros de Búsqueda</span>
-                        </div>
-
-                        <div class="filters__row">
-                            <div class="form__group form__group--inline">
-                                <label for="filterDateFrom" class="form__label">Rango de fechas</label>
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <input type="date" id="filterDateFrom" class="form__input form__input--date"
-                                        placeholder="Desde">
-                                    <span>a</span>
-                                    <input type="date" id="filterDateTo" class="form__input form__input--date"
-                                        placeholder="Hasta">
-                                </div>
-                            </div>
-
-                            <div class="form__group form__group--inline">
-                                <label for="filterType" class="form__label">Tipo de actividad</label>
-                                <select id="filterType" class="form__select">
-                                    <option value="all">Todos los tipos</option>
-                                    <option value="documento_subido">Documento subido</option>
-                                    <option value="documento_eliminado">Documento eliminado</option>
-                                    <option value="documento_proximo_vencer">Documento por vencer</option>
-                                    <option value="documento_vencido">Documento vencido</option>
-                                    <option value="persona_agregada">Persona agregada</option>
-                                    <option value="persona_eliminada">Persona eliminada</option>
-                                    <option value="categoria_agregada">Categoría agregada</option>
-                                    <option value="reporte_generado">Reporte generado</option>
-                                    <option value="sistema_iniciado">Sistema iniciado</option>
-                                    <option value="error_sistema">Error del sistema</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="filters__row">
-                            <div class="form__group form__group--inline">
-                                <label for="filterPriority" class="form__label">Nivel de prioridad</label>
-                                <select id="filterPriority" class="form__select">
-                                    <option value="all">Todas las prioridades</option>
-                                    <option value="critica">Crítica</option>
-                                    <option value="alta">Alta</option>
-                                    <option value="media">Media</option>
-                                    <option value="baja">Baja</option>
-                                </select>
-                            </div>
-
-                            <div class="form__group form__group--inline">
-                                <label for="filterRead" class="form__label">Estado de lectura</label>
-                                <select id="filterRead" class="form__select">
-                                    <option value="all">Todos los estados</option>
-                                    <option value="read">Leídos</option>
-                                    <option value="unread">No leídos</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="filters__row">
-                            <div class="form__group form__group--inline">
-                                <label for="itemsPerPage" class="form__label">Resultados por página</label>
-                                <select id="itemsPerPage" class="form__select">
-                                    <option value="10">10 registros</option>
-                                    <option value="25" selected>25 registros</option>
-                                    <option value="50">50 registros</option>
-                                    <option value="100">100 registros</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Estadísticas de historial -->
+                    <!-- ── 2. TARJETAS DE ESTADÍSTICAS ── -->
                     <div class="historial-stats">
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--history">
-                                <i class="fas fa-history"></i>
+
+                        <div class="hstat-card hstat-card--total">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-layer-group"></i>
                             </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="totalHistory">0</h3>
-                                <p class="stat-card__label">Registros totales</p>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="totalHistory">0</span>
+                                <span class="hstat-card__label">Total registros</span>
                             </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--unread">
-                                <i class="fas fa-exclamation-circle"></i>
-                            </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="unreadHistory">0</h3>
-                                <p class="stat-card__label">No leídos</p>
+                            <div class="hstat-card__trend">
+                                <i class="fas fa-infinity"></i>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--today">
-                                <i class="fas fa-calendar-day"></i>
+
+                        <div class="hstat-card hstat-card--unread">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-bell"></i>
                             </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="todayHistory">0</h3>
-                                <p class="stat-card__label">Hoy</p>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="unreadHistory">0</span>
+                                <span class="hstat-card__label">Sin leer</span>
+                            </div>
+                            <div class="hstat-card__trend">
+                                <i class="fas fa-eye-slash"></i>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--critical">
+
+                        <div class="hstat-card hstat-card--today">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="todayHistory">0</span>
+                                <span class="hstat-card__label">Hoy</span>
+                            </div>
+                            <div class="hstat-card__trend">
+                                <i class="fas fa-sun"></i>
+                            </div>
+                        </div>
+
+                        <div class="hstat-card hstat-card--critical">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="criticalHistory">0</span>
+                                <span class="hstat-card__label">Críticos</span>
+                            </div>
+                            <div class="hstat-card__trend">
                                 <i class="fas fa-fire"></i>
                             </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="criticalHistory">0</h3>
-                                <p class="stat-card__label">Críticos</p>
+                        </div>
+
+                    </div>
+
+                    <!-- ── 3. PANEL DE FILTROS (Acordeón) ── -->
+                    <div class="hfilter-panel" id="hfilterPanel">
+
+                        <div class="hfilter-panel__header" id="filterPanelToggle">
+                            <div class="hfilter-panel__header-left">
+                                <div class="hfilter-panel__filter-icon">
+                                    <i class="fas fa-sliders-h"></i>
+                                </div>
+                                <span class="hfilter-panel__title">Filtros y Búsqueda</span>
+                                <!-- Badge de filtros activos (se muestra dinámicamente) -->
+                                <span class="hfilter-active-badge" id="activeFiltersCount" style="display:none">0</span>
+                            </div>
+                            <button class="hfilter-panel__toggle-btn" type="button" aria-label="Expandir filtros">
+                                <i class="fas fa-chevron-down" id="filterChevron"></i>
+                            </button>
+                        </div>
+
+                        <div class="hfilter-panel__body" id="filterPanelBody">
+                            <div class="hfilter-grid">
+
+                                <!-- Rango de fechas -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterDateFrom">
+                                        <i class="fas fa-calendar-alt"></i> Rango de fechas
+                                    </label>
+                                    <div class="hfilter-date-range">
+                                        <input type="date" id="filterDateFrom" class="hfilter-input"
+                                            placeholder="Desde">
+                                        <div class="hfilter-date-sep"><i class="fas fa-arrow-right"></i></div>
+                                        <input type="date" id="filterDateTo" class="hfilter-input" placeholder="Hasta">
+                                    </div>
+                                </div>
+
+                                <!-- Tipo de actividad -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterType">
+                                        <i class="fas fa-tag"></i> Tipo de actividad
+                                    </label>
+                                    <select id="filterType" class="hfilter-select">
+                                        <option value="all">Todos los tipos</option>
+                                        <option value="documento_subido">Documento subido</option>
+                                        <option value="documento_eliminado">Documento eliminado</option>
+                                        <option value="documento_proximo_vencer">Documento por vencer</option>
+                                        <option value="documento_vencido">Documento vencido</option>
+                                        <option value="persona_agregada">Persona agregada</option>
+                                        <option value="persona_eliminada">Persona eliminada</option>
+                                        <option value="categoria_agregada">Categoría agregada</option>
+                                        <option value="reporte_generado">Reporte generado</option>
+                                        <option value="sistema_iniciado">Sistema iniciado</option>
+                                        <option value="error_sistema">Error del sistema</option>
+                                    </select>
+                                </div>
+
+                                <!-- Prioridad -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterPriority">
+                                        <i class="fas fa-signal"></i> Prioridad
+                                    </label>
+                                    <select id="filterPriority" class="hfilter-select">
+                                        <option value="all">Todas las prioridades</option>
+                                        <option value="critica">Crítica</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="media">Media</option>
+                                        <option value="baja">Baja</option>
+                                    </select>
+                                </div>
+
+                                <!-- Estado de lectura -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterRead">
+                                        <i class="fas fa-envelope"></i> Estado de lectura
+                                    </label>
+                                    <select id="filterRead" class="hfilter-select">
+                                        <option value="all">Todos los estados</option>
+                                        <option value="read">Leídos</option>
+                                        <option value="unread">No leídos</option>
+                                    </select>
+                                </div>
+
+                                <!-- Resultados por página -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="itemsPerPage">
+                                        <i class="fas fa-list-ol"></i> Resultados por página
+                                    </label>
+                                    <select id="itemsPerPage" class="hfilter-select">
+                                        <option value="10">10 registros</option>
+                                        <option value="25" selected>25 registros</option>
+                                        <option value="50">50 registros</option>
+                                        <option value="100">100 registros</option>
+                                    </select>
+                                </div>
+
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tabla de historial -->
-                    <div class="table-container">
-                        <table class="table table--history">
-                            <thead>
-                                <tr>
-                                    <th class="table__header">Fecha</th>
-                                    <th class="table__header">Tipo</th>
-                                    <th class="table__header">Mensaje</th>
-                                    <th class="table__header">Prioridad</th>
-                                    <th class="table__header">Estado</th>
-                                    <th class="table__header">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyTableBody">
-                                <tr>
-                                    <td colspan="7" class="empty-state">
-                                        <i class="fas fa-history empty-state__icon"></i>
-                                        <h3 class="empty-state__title">No hay registros de historial</h3>
-                                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí
-                                        </p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- ── 4. LOG DE HISTORIAL ── -->
+                    <div class="historial-log">
+
+                        <div class="historial-log__header">
+                            <span class="historial-log__label">
+                                <i class="fas fa-stream"></i> Actividad reciente
+                            </span>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="table table--history">
+                                <thead>
+                                    <tr>
+                                        <th class="table__header">Fecha y hora</th>
+                                        <th class="table__header">Tipo</th>
+                                        <th class="table__header">Mensaje</th>
+                                        <th class="table__header">Prioridad</th>
+                                        <th class="table__header">Estado</th>
+                                        <th class="table__header">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <!-- Estado vacío inicial -->
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="history-empty">
+                                                <div class="history-empty__icon">
+                                                    <i class="fas fa-stream"></i>
+                                                </div>
+                                                <h3 class="history-empty__title">No hay registros de actividad</h3>
+                                                <p class="history-empty__desc">Las acciones del sistema aparecerán aquí
+                                                    automáticamente</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
                     </div>
 
-                    <!-- Paginación del historial -->
-                    <div class="pagination" id="historyPagination">
-                        <button class="pagination__btn pagination__btn--prev" disabled>
-                            <i class="fas fa-chevron-left"></i> Anterior
+                    <!-- ── 5. PAGINACIÓN ── -->
+                    <div class="hpagination" id="historyPagination">
+                        <button class="hpagination__btn hpagination__btn--prev pagination__btn--prev" type="button"
+                            disabled>
+                            <i class="fas fa-chevron-left"></i>
+                            <span>Anterior</span>
                         </button>
-                        <div class="pagination__info">
+                        <div class="hpagination__info">
                             <span id="paginationInfo">Página 1 de 1</span>
                         </div>
-                        <button class="pagination__btn pagination__btn--next" disabled>
-                            Siguiente <i class="fas fa-chevron-right"></i>
+                        <button class="hpagination__btn hpagination__btn--next pagination__btn--next" type="button"
+                            disabled>
+                            <span>Siguiente</span>
+                            <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
+
                 </section>
 
                 <!-- Sección de Avisos -->

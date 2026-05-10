@@ -3,13 +3,6 @@
    CBTIS051 — Mecanismo de deslizamiento lateral
    ============================================================ */
 
-/* Variables locales para el slide */
-:root {
-    --aria-slide-width: 390px;
-    --aria-slide-handle-size: 32px;
-    --aria-slide-transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 /* ─── CONTENEDOR PRINCIPAL ──────────────────────────────────── */
 #ariaSlideContainer {
     position: fixed;

@@ -22,7 +22,6 @@
 @import url('components/empty-states.css');
 @import url('components/sidebar.css');
 @import url('components/admin-tabs.css');
-@import url('components/chatbot.css');
 
 @import url('components/preloader/bulk-delete.css');
 @import url('components/preloader/login-preloader.css');
@@ -76,6 +75,7 @@
 @import url('sections/versiones.css');
 @import url('sections/sugerencias.css');
 @import url('sections/avisos.css');
+@import url('sections/chatbot.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');
