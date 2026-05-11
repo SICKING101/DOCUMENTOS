@@ -321,6 +321,7 @@ function parseDateFromText(text) {
         { regex: /(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{4}))?/, handler: 'numeric' },
         { regex: /\bpasado\s+mañana\b/i, handler: 'pasadoMañana' },
         { regex: /\bmañana\b/i, handler: 'mañana' },
+        { regex: /\b(hoy|para\s+hoy|el\s+d[ií]a\s+de\s+hoy)\b/i, handler: 'hoy' },
         { regex: /en\s+(\d+)\s+d[ií]as?/i, handler: 'days' },
         { regex: /\b(pr[oó]xima?\s+semana|pr[oó]ximos?\s+7\s+d[ií]as?)\b/i, handler: 'nextWeek' },
         { regex: /\b(pr[oó]ximo?\s+mes|mes\s+que\s+viene)\b/i, handler: 'nextMonth' },
@@ -337,15 +338,12 @@ function parseDateFromText(text) {
                 const day = parseInt(match[1]);
                 const month = MESES[match[2].toLowerCase()];
                 if (month === undefined) break;
-                // Si NO se especificó año, usar año ACTUAL (sin forzar +1)
                 const year = match[3] ? parseInt(match[3]) : now.getFullYear();
-                // Crear fecha LOCAL exacta: año, mes, día, 23:59:59
                 const d = new Date(year, month, day, 23, 59, 59, 999);
                 log.nlp(`Fecha parseada: ${day}/${month + 1}/${year} → ${d.toISOString()}`);
                 return d;
             }
             case 'numeric': {
-                // dd/mm o dd/mm/aaaa
                 const year = match[3] ? parseInt(match[3]) : now.getFullYear();
                 const d = new Date(year, parseInt(match[2]) - 1, parseInt(match[1]), 23, 59, 59, 999);
                 return d;
@@ -360,6 +358,12 @@ function parseDateFromText(text) {
                 const d = new Date();
                 d.setDate(d.getDate() + 2);
                 d.setHours(23, 59, 59, 999);
+                return d;
+            }
+            case 'hoy': {
+                const d = new Date();
+                d.setHours(23, 59, 59, 999);
+                log.nlp('Fecha detectada: hoy');
                 return d;
             }
             case 'days': {
@@ -850,10 +854,15 @@ class ChatbotAssistant {
 
             let fechaLimite;
             if (!dueDate || isNaN(new Date(dueDate).getTime())) {
-                fechaLimite = this._getDefaultDueDate();
+                // Si no se especifica fecha, usar MAÑANA (día siguiente)
+                const manana = new Date();
+                manana.setDate(manana.getDate() + 1);
+                const year = manana.getFullYear();
+                const month = String(manana.getMonth() + 1).padStart(2, '0');
+                const day = String(manana.getDate()).padStart(2, '0');
+                fechaLimite = `${year}-${month}-${day}`;
+                log.task('Fecha por defecto (mañana):', fechaLimite);
             } else {
-                // ⚠️ CORRECCIÓN CRÍTICA: Enviar la fecha como string LOCAL "YYYY-MM-DD"
-                // para evitar el offset UTC de MongoDB que cambia el día
                 const d = new Date(dueDate);
                 const year = d.getFullYear();
                 const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -903,10 +912,38 @@ class ChatbotAssistant {
                 return { success: true, message: mensaje, task };
             }
 
-            throw new Error(response?.message || 'Respuesta inválida del servidor');
+            // ⚠️ ERROR DEL BACKEND: Mostrar mensaje amigable sin JSON crudo
+            const errorMsg = response?.message || 'Error desconocido del servidor';
+            log.error('Backend rechazó la tarea:', errorMsg);
+            
+            // Si el error es de validación de fecha, dar un mensaje más claro
+            if (errorMsg.includes('fecha_limite') || errorMsg.includes('Cast to date failed')) {
+                return { 
+                    success: false, 
+                    message: `❌ **No pude crear la tarea**\n\nLa fecha proporcionada no es válida. Intenta con un formato como "11 de abril" o "mañana".` 
+                };
+            }
+            
+            return { 
+                success: false, 
+                message: `❌ **No pude crear la tarea**\n\n${errorMsg}\n\nPuedo ayudarte con:\n• Crear tareas con título y fecha\n• Ver tus tareas\n• Gestionar documentos` 
+            };
+
         } catch (error) {
             log.error('Error creando tarea:', error.message);
-            return { success: false, message: `❌ **No pude crear la tarea**\n\n${error.message}` };
+            
+            // Si es error de red o timeout
+            if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('timeout')) {
+                return { 
+                    success: false, 
+                    message: `❌ **No pude crear la tarea**\n\nError de conexión con el servidor. Verifica tu internet e intenta de nuevo.` 
+                };
+            }
+            
+            return { 
+                success: false, 
+                message: `❌ **No pude crear la tarea**\n\n${error.message}\n\nPuedo ayudarte con:\n• Intentar de nuevo\n• Ver tus tareas\n• Ir a la sección de Tareas` 
+            };
         } finally {
             this._setStatus('En línea');
         }
