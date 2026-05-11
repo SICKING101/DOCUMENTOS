@@ -137,6 +137,12 @@ router.post('/reports/excel', protegerRuta, inyectarSchoolId, requirePermission(
 router.post('/reports/pdf', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generatePDF);
 router.post('/reports/csv', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), ReportController.generateCSV);
 
+router.get('/reports/chart-data', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), (req, res) => ReportController.getChartData(req, res));
+router.get('/reports/time-series', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), (req, res) => ReportController.getTimeSeriesData(req, res));
+router.get('/reports/comparison', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), (req, res) => ReportController.getComparisonData(req, res));
+router.get('/reports/summary', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), (req, res) => ReportController.getReportsSummary(req, res));
+router.post('/reports/excel-with-chart', protegerRuta, inyectarSchoolId, requirePermission(PERMISSIONS.GENERATE_REPORTS), (req, res) => ReportController.generateExcelWithChart(req, res));
+
 // ─── NOTIFICACIONES (AISLADAS POR ESCUELA) ─────────────────────
 router.get('/notifications', protegerRuta, inyectarSchoolId, NotificationController.getAll);
 router.get('/notifications/unread', protegerRuta, inyectarSchoolId, NotificationController.getUnread);

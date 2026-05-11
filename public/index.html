@@ -17,6 +17,9 @@
     <!-- Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Chart.js para gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <!-- Estilos -->
     <link rel="stylesheet" href="css/main.css">
 </head>
@@ -1231,6 +1234,177 @@
                                     </div>
                                 </div>
                             </form>
+
+                            <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                            <!-- SECCIÓN DE GRÁFICAS - DISEÑO RENOVADO -->
+                            <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                            <div class="charts-section">
+
+                                <!-- Encabezado de sección -->
+                                <div class="charts-header">
+                                    <div class="charts-header__left">
+                                        <div class="charts-header__icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <div class="charts-header__text">
+                                            <h3>Visualización Gráfica</h3>
+                                            <p>Análisis visual de documentos del sistema</p>
+                                        </div>
+                                    </div>
+                                    <div class="charts-header__badge" id="chartsBadge">
+                                        <i class="fas fa-sync-alt fa-spin"></i>
+                                        <span>Cargando...</span>
+                                    </div>
+                                </div>
+
+                                <!-- Panel de configuración -->
+                                <div class="charts-config">
+                                    <div class="charts-config__grid">
+                                        <!-- Tipo de gráfico -->
+                                        <div class="charts-field">
+                                            <label class="charts-field__label">
+                                                <span class="charts-field__icon">
+                                                    <i class="fas fa-chart-pie"></i>
+                                                </span>
+                                                Tipo de gráfico
+                                            </label>
+                                            <div class="charts-field__select-wrap">
+                                                <select id="chartType" class="charts-field__select">
+                                                    <option value="category">📂 Por Categoría</option>
+                                                    <option value="status">📊 Por Estado</option>
+                                                    <option value="person">👤 Por Persona</option>
+                                                    <option value="type">📄 Por Tipo de Archivo</option>
+                                                    <option value="timeline">📈 Línea de Tiempo</option>
+                                                    <option value="comparison">🔄 Comparativa</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Período -->
+                                        <div class="charts-field">
+                                            <label class="charts-field__label">
+                                                <span class="charts-field__icon">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </span>
+                                                Período de tiempo
+                                            </label>
+                                            <div class="charts-field__select-wrap">
+                                                <select id="chartPeriod" class="charts-field__select">
+                                                    <option value="7d">Últimos 7 días</option>
+                                                    <option value="30d" selected>Últimos 30 días</option>
+                                                    <option value="90d">Últimos 90 días</option>
+                                                    <option value="1y">Último año</option>
+                                                    <option value="all">Todo el tiempo</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Estilo visual -->
+                                        <div class="charts-field">
+                                            <label class="charts-field__label">
+                                                <span class="charts-field__icon">
+                                                    <i class="fas fa-paint-brush"></i>
+                                                </span>
+                                                Estilo visual
+                                            </label>
+                                            <div class="charts-field__select-wrap">
+                                                <select id="chartStyle" class="charts-field__select">
+                                                    <option value="bar">📊 Barras</option>
+                                                    <option value="doughnut">🍩 Dona</option>
+                                                    <option value="pie">🥧 Pastel</option>
+                                                    <option value="polarArea">🌐 Área Polar</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Área del gráfico -->
+                                <div class="charts-canvas-wrapper">
+                                    <div class="charts-canvas-container" id="chartContainer">
+                                        <canvas id="reportChart"></canvas>
+
+                                        <!-- Estado: Cargando -->
+                                        <div class="charts-state charts-state--loading" id="chartLoading">
+                                            <div class="charts-state__spinner"></div>
+                                            <p class="charts-state__text">Preparando gráfica...</p>
+                                            <span class="charts-state__hint">Esto tomará solo un momento</span>
+                                        </div>
+
+                                        <!-- Estado: Error -->
+                                        <div class="charts-state charts-state--error" id="chartError">
+                                            <div class="charts-state__icon-wrap">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </div>
+                                            <p class="charts-state__text" id="chartErrorMessage">No se pudo cargar la
+                                                gráfica</p>
+                                            <button class="charts-state__retry" onclick="window.loadReportChart()">
+                                                <i class="fas fa-redo"></i> Intentar de nuevo
+                                            </button>
+                                        </div>
+
+                                        <!-- Estado: Vacío -->
+                                        <div class="charts-state charts-state--empty" id="chartEmpty">
+                                            <div class="charts-state__icon-wrap">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </div>
+                                            <p class="charts-state__text">Sin datos disponibles</p>
+                                            <span class="charts-state__hint">Prueba cambiando el tipo de gráfico o el
+                                                período</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Resumen de métricas -->
+                                    <div class="charts-metrics" id="chartInfo">
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--total">
+                                                <i class="fas fa-database"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value">—</span>
+                                                <span class="charts-metric__label">Total registros</span>
+                                            </div>
+                                        </div>
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--items">
+                                                <i class="fas fa-layer-group"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value">—</span>
+                                                <span class="charts-metric__label">Elementos</span>
+                                            </div>
+                                        </div>
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--top">
+                                                <i class="fas fa-trophy"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value">—</span>
+                                                <span class="charts-metric__label">Mayor categoría</span>
+                                            </div>
+                                        </div>
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--period">
+                                                <i class="fas fa-clock"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value" id="chartsPeriodLabel">30 días</span>
+                                                <span class="charts-metric__label">Período</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Acción -->
+                                <div class="charts-action">
+                                    <button class="charts-action__btn" onclick="window.exportToExcel()">
+                                        <i class="fas fa-file-excel"></i>
+                                        <span>Descargar Excel con Gráfico</span>
+                                    </button>
+                                </div>
+
+                            </div>
+                            
                         </div>
 
                         <!-- Vista Previa del Reporte -->

@@ -55,6 +55,7 @@
 @import url('components/status.css');
 @import url('components/topbar.css');
 @import url('components/chatbot-slide.css');
+@import url('components/charts.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');

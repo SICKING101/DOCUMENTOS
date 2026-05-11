@@ -6,6 +6,7 @@ import { DOM } from '../dom.js';
 import { CONFIG } from '../config.js';
 import { setLoadingState, showAlert } from '../utils.js';
 import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
+import { initChartsModule, loadReportChart } from './chartsManager.js';
 
 // Variables para seguimiento de estado
 let reportGenerationInProgress = false;
@@ -20,7 +21,7 @@ let currentReportToken = null;
  */
 function generateReport() {
     console.group('📊 generateReport - Abriendo generador de reportes');
-    
+
     try {
         if (!canView('reportes')) {
             showNoPermissionAlert('reportes');
@@ -33,26 +34,26 @@ function generateReport() {
             showAlert('Los datos del sistema no están disponibles. Intente recargar la página.', 'warning');
             return;
         }
-        
+
         console.log('✅ Datos disponibles:', {
             documentos: window.appState.documents?.length || 0,
             personas: window.appState.persons?.length || 0,
             categorias: window.appState.categories?.length || 0
         });
-        
+
         const reportType = DOM.reportType.value || 'general';
         updateReportFilters(reportType);
-        
+
         // Mostrar la sección de reportes si está en un modal
         if (DOM.reportModal) {
             DOM.reportModal.style.display = 'flex';
             console.log('✅ Modal de reportes abierto');
-            
+
             setTimeout(() => {
                 DOM.reportType?.focus();
             }, 100);
         }
-        
+
     } catch (error) {
         console.error('❌ Error abriendo modal de reportes:', error);
         showAlert('Error al abrir el generador de reportes: ' + error.message, 'error');
@@ -66,11 +67,11 @@ function generateReport() {
  */
 function closeReportModal() {
     console.log('❌ closeReportModal - Cerrando modal de reportes');
-    
+
     try {
         reportGenerationInProgress = false;
         currentReportToken = null;
-        
+
         if (DOM.reportPreviewContent) {
             DOM.reportPreviewContent.innerHTML = `
                 <div class="reportes-preview-placeholder">
@@ -79,13 +80,13 @@ function closeReportModal() {
                 </div>
             `;
         }
-        
+
         if (DOM.reportModal) {
             DOM.reportModal.style.display = 'none';
         }
-        
+
         console.log('✅ Modal cerrado exitosamente');
-        
+
     } catch (error) {
         console.error('❌ Error cerrando modal:', error);
     }
@@ -100,16 +101,16 @@ function closeReportModal() {
  */
 function updateReportFilters(reportType) {
     console.group(`📊 updateReportFilters - Actualizando para: ${reportType}`);
-    
+
     try {
         if (!DOM.reportSpecificFilters) {
             console.error('❌ Elemento DOM.reportSpecificFilters no encontrado');
             return;
         }
-        
+
         DOM.reportSpecificFilters.innerHTML = '';
-        
-        switch(reportType) {
+
+        switch (reportType) {
             case 'byCategory':
                 console.log('🔧 Configurando filtros por categoría');
                 if (!window.appState.categories || window.appState.categories.length === 0) {
@@ -131,16 +132,16 @@ function updateReportFilters(reportType) {
                             <div class="reportes-select__wrapper">
                                 <select id="reportCategory" class="reportes-select">
                                     <option value="">Todas las categorías</option>
-                                    ${window.appState.categories.map(cat => 
-                                        `<option value="${cat.nombre}">${cat.nombre}</option>`
-                                    ).join('')}
+                                    ${window.appState.categories.map(cat =>
+                        `<option value="${cat.nombre}">${cat.nombre}</option>`
+                    ).join('')}
                                 </select>
                                 <i class="fas fa-chevron-down reportes-select__arrow"></i>
                             </div>
                             <small class="reportes-form__help">Seleccione una categoría específica o "Todas"</small>
                         </div>
                     `;
-                    
+
                     setTimeout(() => {
                         const categorySelect = document.getElementById('reportCategory');
                         if (categorySelect) {
@@ -150,7 +151,7 @@ function updateReportFilters(reportType) {
                     }, 100);
                 }
                 break;
-                
+
             case 'byPerson':
                 console.log('🔧 Configurando filtros por persona');
                 if (!window.appState.persons || window.appState.persons.length === 0) {
@@ -172,16 +173,16 @@ function updateReportFilters(reportType) {
                             <div class="reportes-select__wrapper">
                                 <select id="reportPerson" class="reportes-select">
                                     <option value="">Todas las personas</option>
-                                    ${window.appState.persons.map(person => 
-                                        `<option value="${person._id}">${person.nombre} (${person.email || 'Sin email'})</option>`
-                                    ).join('')}
+                                    ${window.appState.persons.map(person =>
+                        `<option value="${person._id}">${person.nombre} (${person.email || 'Sin email'})</option>`
+                    ).join('')}
                                 </select>
                                 <i class="fas fa-chevron-down reportes-select__arrow"></i>
                             </div>
                             <small class="reportes-form__help">Seleccione una persona específica o "Todas"</small>
                         </div>
                     `;
-                    
+
                     setTimeout(() => {
                         const personSelect = document.getElementById('reportPerson');
                         if (personSelect) {
@@ -191,7 +192,7 @@ function updateReportFilters(reportType) {
                     }, 100);
                 }
                 break;
-                
+
             case 'expiring':
                 console.log('🔧 Configurando filtros por vencimiento');
                 DOM.reportSpecificFilters.innerHTML = `
@@ -204,7 +205,7 @@ function updateReportFilters(reportType) {
                         <small class="reportes-form__help">Documentos que vencen en los próximos N días</small>
                     </div>
                 `;
-                
+
                 setTimeout(() => {
                     const daysInput = document.getElementById('reportDays');
                     if (daysInput) {
@@ -213,7 +214,7 @@ function updateReportFilters(reportType) {
                     }
                 }, 100);
                 break;
-                
+
             case 'expired':
                 console.log('🔧 Configurando filtros para documentos vencidos');
                 DOM.reportSpecificFilters.innerHTML = `
@@ -225,7 +226,7 @@ function updateReportFilters(reportType) {
                     </div>
                 `;
                 break;
-                
+
             case 'general':
             default:
                 console.log('🔧 Configurando filtros para reporte general');
@@ -239,10 +240,10 @@ function updateReportFilters(reportType) {
                 `;
                 break;
         }
-        
+
         console.log('✅ Filtros actualizados exitosamente');
         updateReportPreview();
-        
+
     } catch (error) {
         console.error('❌ Error actualizando filtros:', error);
     } finally {
@@ -255,29 +256,29 @@ function updateReportFilters(reportType) {
  */
 function updateReportPreview() {
     console.group('📋 updateReportPreview - Actualizando vista previa');
-    
+
     try {
         if (!DOM.reportPreviewContent) {
             console.error('❌ Elemento DOM.reportPreviewContent no encontrado');
             return;
         }
-        
+
         const reportType = DOM.reportType?.value || 'general';
         const documents = window.appState?.documents || [];
         const persons = window.appState?.persons || [];
         const categories = window.appState?.categories || [];
-        
+
         console.log('📊 Datos para vista previa:', {
             tipoReporte: reportType,
             totalDocumentos: documents.length,
             totalPersonas: persons.length,
             totalCategorias: categories.length
         });
-        
+
         let previewContent = '';
         let estimatedRecords = 0;
-        
-        switch(reportType) {
+
+        switch (reportType) {
             case 'general':
                 console.log('📋 Generando vista previa para reporte general');
                 estimatedRecords = documents.length;
@@ -298,12 +299,12 @@ function updateReportPreview() {
                         <div class="reportes-stat">
                             <span class="reportes-stat__label">Por Vencer (30 días)</span>
                             <span class="reportes-stat__value">${documents.filter(doc => {
-                                if (!doc.fecha_vencimiento) return false;
-                                const fechaVencimiento = new Date(doc.fecha_vencimiento);
-                                const hoy = new Date();
-                                const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
-                                return diferenciaDias <= 30 && diferenciaDias > 0;
-                            }).length}</span>
+                    if (!doc.fecha_vencimiento) return false;
+                    const fechaVencimiento = new Date(doc.fecha_vencimiento);
+                    const hoy = new Date();
+                    const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                    return diferenciaDias <= 30 && diferenciaDias > 0;
+                }).length}</span>
                         </div>
                     </div>
                     <div class="reportes-preview__details">
@@ -320,16 +321,16 @@ function updateReportPreview() {
                     </div>
                 `;
                 break;
-                
+
             case 'byCategory':
                 const selectedCategory = document.getElementById('reportCategory')?.value || '';
                 console.log('📋 Generando vista previa para reporte por categoría:', selectedCategory);
-                
+
                 if (selectedCategory) {
                     const categoryDocs = documents.filter(doc => doc.categoria === selectedCategory);
                     estimatedRecords = categoryDocs.length;
                     const category = window.appState.categories?.find(cat => cat.nombre === selectedCategory);
-                    
+
                     previewContent = `
                         <div class="reportes-preview__stats">
                             <div class="reportes-stat">
@@ -338,10 +339,10 @@ function updateReportPreview() {
                             </div>
                             <div class="reportes-stat">
                                 <span class="reportes-stat__label">Última actualización</span>
-                                <span class="reportes-stat__value">${categoryDocs.length > 0 
-                                    ? new Date(Math.max(...categoryDocs.map(d => new Date(d.updatedAt || d.createdAt).getTime())))
-                                        .toLocaleDateString('es-MX')
-                                    : 'N/A'}</span>
+                                <span class="reportes-stat__value">${categoryDocs.length > 0
+                            ? new Date(Math.max(...categoryDocs.map(d => new Date(d.updatedAt || d.createdAt).getTime())))
+                                .toLocaleDateString('es-MX')
+                            : 'N/A'}</span>
                             </div>
                         </div>
                         <div class="reportes-preview__details">
@@ -353,14 +354,14 @@ function updateReportPreview() {
                                 </li>
                                 <li>
                                     <strong>Tamaño total:</strong> 
-                                    <span>${(categoryDocs.reduce((sum, doc) => sum + (doc.size || 0), 0) / (1024*1024)).toFixed(2)} MB</span>
+                                    <span>${(categoryDocs.reduce((sum, doc) => sum + (doc.size || 0), 0) / (1024 * 1024)).toFixed(2)} MB</span>
                                 </li>
                                 <li>
                                     <strong>Documentos vencidos:</strong> 
                                     <span>${categoryDocs.filter(doc => {
-                                        if (!doc.fecha_vencimiento) return false;
-                                        return new Date(doc.fecha_vencimiento) < new Date();
-                                    }).length}</span>
+                                if (!doc.fecha_vencimiento) return false;
+                                return new Date(doc.fecha_vencimiento) < new Date();
+                            }).length}</span>
                                 </li>
                                 ${category?.descripcion ? `
                                 <li>
@@ -376,7 +377,7 @@ function updateReportPreview() {
                         const catDocs = documents.filter(doc => doc.categoria === cat.nombre);
                         return { name: cat.nombre, count: catDocs.length };
                     }).sort((a, b) => b.count - a.count);
-                    
+
                     previewContent = `
                         <div class="reportes-preview__stats">
                             <div class="reportes-stat">
@@ -391,12 +392,12 @@ function updateReportPreview() {
                         <div class="reportes-preview__details">
                             <h5><i class="fas fa-chart-pie"></i> Distribución por categoría</h5>
                             <ul class="reportes-list">
-                                ${categoryDistribution.map(cat => 
-                                    `<li>
+                                ${categoryDistribution.map(cat =>
+                        `<li>
                                         <strong>${cat.name}:</strong> 
                                         <span>${cat.count} documentos</span>
                                     </li>`
-                                ).join('')}
+                    ).join('')}
                             </ul>
                         </div>
                         <div class="reportes-preview__note reportes-preview__note--info">
@@ -406,16 +407,16 @@ function updateReportPreview() {
                     `;
                 }
                 break;
-                
+
             case 'byPerson':
                 const selectedPersonId = document.getElementById('reportPerson')?.value || '';
                 console.log('📋 Generando vista previa para reporte por persona:', selectedPersonId);
-                
+
                 if (selectedPersonId) {
                     const person = persons.find(p => p._id === selectedPersonId);
                     const personDocs = documents.filter(doc => doc.persona_id && doc.persona_id._id === selectedPersonId);
                     estimatedRecords = personDocs.length;
-                    
+
                     previewContent = `
                         <div class="reportes-preview__stats">
                             <div class="reportes-stat">
@@ -424,10 +425,10 @@ function updateReportPreview() {
                             </div>
                             <div class="reportes-stat">
                                 <span class="reportes-stat__label">Última actualización</span>
-                                <span class="reportes-stat__value">${personDocs.length > 0 
-                                    ? new Date(Math.max(...personDocs.map(d => new Date(d.updatedAt || d.createdAt).getTime())))
-                                        .toLocaleDateString('es-MX')
-                                    : 'N/A'}</span>
+                                <span class="reportes-stat__value">${personDocs.length > 0
+                            ? new Date(Math.max(...personDocs.map(d => new Date(d.updatedAt || d.createdAt).getTime())))
+                                .toLocaleDateString('es-MX')
+                            : 'N/A'}</span>
                             </div>
                         </div>
                         <div class="reportes-preview__details">
@@ -444,9 +445,9 @@ function updateReportPreview() {
                                 <li>
                                     <strong>Documentos vencidos:</strong> 
                                     <span>${personDocs.filter(doc => {
-                                        if (!doc.fecha_vencimiento) return false;
-                                        return new Date(doc.fecha_vencimiento) < new Date();
-                                    }).length}</span>
+                                if (!doc.fecha_vencimiento) return false;
+                                return new Date(doc.fecha_vencimiento) < new Date();
+                            }).length}</span>
                                 </li>
                                 <li>
                                     <strong>Departamento:</strong> 
@@ -456,11 +457,11 @@ function updateReportPreview() {
                         </div>
                     `;
                 } else {
-                    const personsWithDocs = persons.filter(person => 
+                    const personsWithDocs = persons.filter(person =>
                         documents.some(doc => doc.persona_id && doc.persona_id._id === person._id)
                     );
                     estimatedRecords = documents.filter(doc => doc.persona_id).length;
-                    
+
                     previewContent = `
                         <div class="reportes-preview__stats">
                             <div class="reportes-stat">
@@ -476,23 +477,23 @@ function updateReportPreview() {
                             <h5><i class="fas fa-users"></i> Distribución por persona</h5>
                             <ul class="reportes-list">
                                 ${personsWithDocs.map(person => {
-                                    const personDocs = documents.filter(doc => doc.persona_id && doc.persona_id._id === person._id);
-                                    if (personDocs.length === 0) return '';
-                                    return `<li>
+                        const personDocs = documents.filter(doc => doc.persona_id && doc.persona_id._id === person._id);
+                        if (personDocs.length === 0) return '';
+                        return `<li>
                                         <strong>${person.nombre}:</strong> 
                                         <span>${personDocs.length} documentos</span>
                                     </li>`;
-                                }).filter(Boolean).join('') || '<li style="text-align: center; padding: 1rem; color: var(--text-tertiary);">No hay documentos asignados a personas</li>'}
+                    }).filter(Boolean).join('') || '<li style="text-align: center; padding: 1rem; color: var(--text-tertiary);">No hay documentos asignados a personas</li>'}
                             </ul>
                         </div>
                     `;
                 }
                 break;
-                
+
             case 'expiring':
                 const days = parseInt(document.getElementById('reportDays')?.value) || 30;
                 console.log('📋 Generando vista previa para documentos que vencen en:', days, 'días');
-                
+
                 const expiringDocs = documents.filter(doc => {
                     if (!doc.fecha_vencimiento) return false;
                     const fechaVencimiento = new Date(doc.fecha_vencimiento);
@@ -501,12 +502,12 @@ function updateReportPreview() {
                     return diferenciaDias <= days && diferenciaDias > 0;
                 });
                 estimatedRecords = expiringDocs.length;
-                
+
                 const categoryDist = {};
                 expiringDocs.forEach(doc => {
                     categoryDist[doc.categoria] = (categoryDist[doc.categoria] || 0) + 1;
                 });
-                
+
                 previewContent = `
                     <div class="reportes-preview__stats">
                         <div class="reportes-stat">
@@ -515,21 +516,21 @@ function updateReportPreview() {
                         </div>
                         <div class="reportes-stat">
                             <span class="reportes-stat__label">Próximo a vencer</span>
-                            <span class="reportes-stat__value">${expiringDocs.length > 0 
-                                ? new Date(Math.min(...expiringDocs.map(d => new Date(d.fecha_vencimiento).getTime())))
-                                    .toLocaleDateString('es-MX')
-                                : 'N/A'}</span>
+                            <span class="reportes-stat__value">${expiringDocs.length > 0
+                        ? new Date(Math.min(...expiringDocs.map(d => new Date(d.fecha_vencimiento).getTime())))
+                            .toLocaleDateString('es-MX')
+                        : 'N/A'}</span>
                         </div>
                     </div>
                     <div class="reportes-preview__details">
                         <h5><i class="fas fa-calendar-alt"></i> Distribución por categoría (próximos ${days} días)</h5>
                         <ul class="reportes-list">
-                            ${Object.entries(categoryDist).map(([categoria, count]) => 
-                                `<li>
+                            ${Object.entries(categoryDist).map(([categoria, count]) =>
+                            `<li>
                                     <strong>${categoria}:</strong> 
                                     <span>${count} documentos</span>
                                 </li>`
-                            ).join('') || '<li style="text-align: center; padding: 1rem; color: var(--text-tertiary);">No hay documentos por vencer</li>'}
+                        ).join('') || '<li style="text-align: center; padding: 1rem; color: var(--text-tertiary);">No hay documentos por vencer</li>'}
                         </ul>
                     </div>
                     <div class="reportes-preview__note reportes-preview__note--danger">
@@ -538,7 +539,7 @@ function updateReportPreview() {
                     </div>
                 `;
                 break;
-                
+
             case 'expired':
                 console.log('📋 Generando vista previa para documentos vencidos');
                 const expiredDocs = documents.filter(doc => {
@@ -546,12 +547,12 @@ function updateReportPreview() {
                     return new Date(doc.fecha_vencimiento) < new Date();
                 });
                 estimatedRecords = expiredDocs.length;
-                
+
                 const expiredCategoryDist = {};
                 expiredDocs.forEach(doc => {
                     expiredCategoryDist[doc.categoria] = (expiredCategoryDist[doc.categoria] || 0) + 1;
                 });
-                
+
                 previewContent = `
                     <div class="reportes-preview__stats">
                         <div class="reportes-stat reportes-stat--danger">
@@ -560,21 +561,21 @@ function updateReportPreview() {
                         </div>
                         <div class="reportes-stat">
                             <span class="reportes-stat__label">Más antiguo</span>
-                            <span class="reportes-stat__value">${expiredDocs.length > 0 
-                                ? new Date(Math.min(...expiredDocs.map(d => new Date(d.fecha_vencimiento).getTime())))
-                                    .toLocaleDateString('es-MX')
-                                : 'N/A'}</span>
+                            <span class="reportes-stat__value">${expiredDocs.length > 0
+                        ? new Date(Math.min(...expiredDocs.map(d => new Date(d.fecha_vencimiento).getTime())))
+                            .toLocaleDateString('es-MX')
+                        : 'N/A'}</span>
                         </div>
                     </div>
                     <div class="reportes-preview__details">
                         <h5><i class="fas fa-exclamation-circle"></i> Distribución por categoría</h5>
                         <ul class="reportes-list">
-                            ${Object.entries(expiredCategoryDist).map(([categoria, count]) => 
-                                `<li>
+                            ${Object.entries(expiredCategoryDist).map(([categoria, count]) =>
+                            `<li>
                                     <strong>${categoria}:</strong> 
                                     <span>${count} documentos</span>
                                 </li>`
-                            ).join('') || '<li style="text-align: center; padding: 1rem; color: var(--text-tertiary);">No hay documentos vencidos</li>'}
+                        ).join('') || '<li style="text-align: center; padding: 1rem; color: var(--text-tertiary);">No hay documentos vencidos</li>'}
                         </ul>
                     </div>
                     <div class="reportes-preview__note reportes-preview__note--danger">
@@ -583,7 +584,7 @@ function updateReportPreview() {
                     </div>
                 `;
                 break;
-                
+
             default:
                 console.warn('⚠️ Tipo de reporte no reconocido:', reportType);
                 previewContent = `
@@ -594,27 +595,27 @@ function updateReportPreview() {
                 `;
                 break;
         }
-        
+
         DOM.reportPreviewContent.innerHTML = previewContent;
-        
+
         if (DOM.generateReportBtn) {
             const format = DOM.reportFormat?.value || 'excel';
-            
+
             let buttonText = `Generar Reporte ${format.toUpperCase()} (${estimatedRecords} registros)`;
-            
+
             DOM.generateReportBtn.innerHTML = `
                 <i class="fas fa-file-${format === 'excel' ? 'excel' : 'csv'}"></i>
                 <span>${buttonText}</span>
             `;
-            
+
             DOM.generateReportBtn.title = `Generar reporte ${format.toUpperCase()} con ${estimatedRecords} registros`;
         }
-        
+
         console.log('✅ Vista previa actualizada:', {
             tipoReporte: reportType,
             registrosEstimados: estimatedRecords
         });
-        
+
     } catch (error) {
         console.error('❌ Error actualizando vista previa:', error);
         if (DOM.reportPreviewContent) {
@@ -639,7 +640,7 @@ function updateReportPreview() {
  */
 async function handleGenerateReport() {
     console.group('📄 handleGenerateReport - Iniciando generación de reporte');
-    
+
     try {
         if (!canAction('reportes')) {
             showNoPermissionAlert('reportes');
@@ -651,31 +652,31 @@ async function handleGenerateReport() {
             showAlert('Ya hay una generación en curso. Espere por favor.', 'warning');
             return;
         }
-        
+
         if (!window.appState || !window.appState.documents) {
             showAlert('Los datos no están disponibles. Recargue la página.', 'error');
             return;
         }
-        
+
         const documentsCount = window.appState.documents.length;
         if (documentsCount === 0) {
             showAlert('No hay documentos para generar reporte.', 'warning');
             return;
         }
-        
+
         // Generar token único
         currentReportToken = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         reportGenerationInProgress = true;
-        
+
         // Mostrar preloader con animación mejorada
         showReportPreloader();
-        
+
         // Pequeño retraso para que se vea el preloader
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
         // Llamar directamente a la función de generación
         await generateReportDownload();
-        
+
     } catch (error) {
         console.error('❌ Error en handleGenerateReport:', error);
         showAlert('Error al iniciar reporte: ' + error.message, 'error');
@@ -720,9 +721,9 @@ function showReportPreloader() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(preloader);
-    
+
     // Animar los detalles secuencialmente
     setTimeout(() => {
         const details = preloader.querySelectorAll('.reportes-preloader__detail');
@@ -743,7 +744,7 @@ function hideReportPreloader() {
         // Animar salida
         preloader.style.opacity = '0';
         preloader.style.transform = 'translateY(20px)';
-        
+
         setTimeout(() => {
             if (preloader.parentNode) {
                 preloader.parentNode.removeChild(preloader);
@@ -757,10 +758,10 @@ function hideReportPreloader() {
  */
 async function generateReportDownload() {
     console.group('📊 GENERACIÓN DE REPORTE - PROCESO COMPLETO');
-    
+
     const generationToken = currentReportToken;
     let progressInterval;
-    
+
     try {
         if (!canAction('reportes')) {
             showNoPermissionAlert('reportes');
@@ -793,7 +794,7 @@ async function generateReportDownload() {
 
         console.log('✅ Formato validado correctamente');
         console.time('⏱️ Tiempo total de generación');
-        
+
         // Preparar datos del reporte
         const reportData = {
             reportType: reportType,
@@ -854,23 +855,23 @@ async function generateReportDownload() {
 
         // Hacer la solicitud con timeout
         console.log('🚀 Enviando solicitud al servidor...');
-        
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutos
-        
+
         // Iniciar animación de progreso
         startProgressAnimation();
-        
+
         try {
             updatePreloaderStage(3, 'Procesando datos en el servidor...');
-            
+
             const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Report-Token': generationToken,
-                    'Accept': format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 
-                              'text/csv'
+                    'Accept': format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+                        'text/csv'
                 },
                 body: JSON.stringify(reportData),
                 signal: controller.signal
@@ -887,11 +888,11 @@ async function generateReportDownload() {
 
             if (!response.ok) {
                 let errorMessage = `Error del servidor (${response.status}): ${response.statusText}`;
-                
+
                 // Leer el error del servidor
                 const errorText = await response.text();
                 console.error('❌ Error texto del servidor:', errorText.substring(0, 500));
-                
+
                 // Intentar parsear como JSON si parece JSON
                 if (errorText.trim().startsWith('{') || errorText.trim().startsWith('[')) {
                     try {
@@ -905,14 +906,14 @@ async function generateReportDownload() {
                 } else {
                     errorMessage = `Error: ${errorText.substring(0, 200)}`;
                 }
-                
+
                 throw new Error(errorMessage);
             }
 
             console.log('✅ Respuesta OK, obteniendo blob...');
-            
+
             updatePreloaderStage(4, 'Descargando archivo...');
-            
+
             // Obtener el blob de la respuesta
             const blob = await response.blob();
             console.log('📦 Blob recibido:', {
@@ -920,60 +921,60 @@ async function generateReportDownload() {
                 type: blob.type,
                 sizeFormatted: formatBytes(blob.size)
             });
-            
+
             if (blob.size === 0) {
                 throw new Error('El archivo generado está vacío (0 bytes). Verifique que hay datos para el reporte.');
             }
-            
+
             // Crear URL temporal para descarga
             console.log('🔗 Creando URL temporal...');
             const url = window.URL.createObjectURL(blob);
             console.log('✅ URL creada exitosamente');
-            
+
             const a = document.createElement('a');
             a.href = url;
-            
+
             // Determinar nombre y extensión del archivo
             let fileName = `reporte_${reportType}_${new Date().toISOString().split('T')[0]}_${Date.now()}`;
             let extension = format === 'excel' ? 'xlsx' : 'csv';
             const fullFileName = `${fileName}.${extension}`;
             a.download = fullFileName;
-            
+
             console.log('📄 Nombre del archivo:', fullFileName);
-            
+
             // Pequeño retraso para que se vea la última etapa
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             // Descargar archivo
             console.log('➕ Agregando enlace al DOM...');
             document.body.appendChild(a);
-            
+
             console.log('🖱️ Ejecutando click para descarga...');
             a.click();
-            
+
             console.log('➖ Removiendo enlace del DOM...');
             document.body.removeChild(a);
-            
+
             // Limpiar
             console.log('🧹 Revocando URL temporal...');
             window.URL.revokeObjectURL(url);
 
             console.timeEnd('⏱️ Tiempo total de generación');
             console.log('✅ Reporte descargado exitosamente');
-            
+
             // Actualizar preloader para éxito
             updatePreloaderSuccess(`Reporte ${format.toUpperCase()} generado exitosamente (${formatBytes(blob.size)})`);
-            
+
             // Esperar un momento para mostrar el mensaje de éxito
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             // Mostrar mensaje de éxito
             const successMessage = format === 'excel'
                 ? `✅ Reporte Excel generado exitosamente (${formatBytes(blob.size)})`
                 : `✅ Reporte CSV generado exitosamente (${formatBytes(blob.size)})`;
-            
+
             showAlert(successMessage, 'success');
-            
+
             // Opcional: cerrar modal si existe
             if (DOM.reportModal && DOM.reportModal.style.display === 'flex') {
                 console.log('🚪 Cerrando modal...');
@@ -983,7 +984,7 @@ async function generateReportDownload() {
         } catch (fetchError) {
             clearTimeout(timeoutId);
             stopProgressAnimation();
-            
+
             if (fetchError.name === 'AbortError') {
                 console.error('❌ Timeout en la generación del reporte (2 minutos)');
                 throw new Error('La generación del reporte tomó demasiado tiempo. Intente con menos datos o contacte al administrador.');
@@ -1000,26 +1001,26 @@ async function generateReportDownload() {
             token: generationToken,
             timestamp: new Date().toISOString()
         });
-        
+
         updatePreloaderError(`Error: ${error.message}`);
-        
+
         // Esperar para mostrar el error en el preloader
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
         showAlert(`Error al generar reporte: ${error.message}`, 'error');
-        
+
     } finally {
         // Solo resetear si es la misma generación
         if (currentReportToken === generationToken) {
             reportGenerationInProgress = false;
             currentReportToken = null;
         }
-        
+
         // Ocultar preloader con retraso
         setTimeout(() => {
             hideReportPreloader();
         }, 1000);
-        
+
         console.groupEnd();
     }
 }
@@ -1034,9 +1035,9 @@ async function generateReportDownload() {
 function updatePreloaderStage(stage, message) {
     const preloader = document.getElementById('reportPreloader');
     if (!preloader) return;
-    
+
     const details = preloader.querySelectorAll('.reportes-preloader__detail');
-    
+
     // Actualizar todas las etapas
     details.forEach((detail, index) => {
         if (index < stage) {
@@ -1049,7 +1050,7 @@ function updatePreloaderStage(stage, message) {
             detail.classList.remove('reportes-preloader__detail--active', 'reportes-preloader__detail--current');
         }
     });
-    
+
     // Actualizar mensaje
     const textElement = preloader.querySelector('.reportes-preloader__text p');
     if (textElement) {
@@ -1063,7 +1064,7 @@ function updatePreloaderStage(stage, message) {
 function updatePreloaderSuccess(message) {
     const preloader = document.getElementById('reportPreloader');
     if (!preloader) return;
-    
+
     const content = preloader.querySelector('.reportes-preloader__content');
     content.innerHTML = `
         <div class="reportes-preloader__success">
@@ -1080,7 +1081,7 @@ function updatePreloaderSuccess(message) {
             </div>
         </div>
     `;
-    
+
     content.classList.add('reportes-preloader__content--success');
 }
 
@@ -1090,7 +1091,7 @@ function updatePreloaderSuccess(message) {
 function updatePreloaderError(message) {
     const preloader = document.getElementById('reportPreloader');
     if (!preloader) return;
-    
+
     const content = preloader.querySelector('.reportes-preloader__content');
     content.innerHTML = `
         <div class="reportes-preloader__error">
@@ -1107,7 +1108,7 @@ function updatePreloaderError(message) {
             </div>
         </div>
     `;
-    
+
     content.classList.add('reportes-preloader__content--error');
 }
 
@@ -1117,14 +1118,14 @@ function updatePreloaderError(message) {
 function startProgressAnimation() {
     const preloader = document.getElementById('reportPreloader');
     if (!preloader) return;
-    
+
     const progressBar = document.createElement('div');
     progressBar.className = 'reportes-preloader__progress';
     progressBar.innerHTML = '<div class="reportes-preloader__progress-bar"></div>';
-    
+
     const content = preloader.querySelector('.reportes-preloader__content');
     content.appendChild(progressBar);
-    
+
     // Animar la barra de progreso
     setTimeout(() => {
         const progressBarInner = progressBar.querySelector('.reportes-preloader__progress-bar');
@@ -1140,7 +1141,7 @@ function startProgressAnimation() {
 function stopProgressAnimation() {
     const preloader = document.getElementById('reportPreloader');
     if (!preloader) return;
-    
+
     const progressBar = preloader.querySelector('.reportes-preloader__progress');
     if (progressBar) {
         progressBar.remove();
@@ -1178,7 +1179,7 @@ function handleReportTypeChange() {
 function handleReportFormatChange() {
     const format = this.value;
     console.log(`📄 handleReportFormatChange - Cambiando formato a: ${format}`);
-    
+
     // Actualizar vista previa
     updateReportPreview();
 }
@@ -1188,13 +1189,13 @@ function handleReportFormatChange() {
  */
 function generateLocalCSV(reportData) {
     console.log('📝 Generando CSV local...');
-    
+
     try {
         const documents = window.appState?.documents || [];
         let filteredDocs = [...documents];
-        
+
         // Aplicar filtros según tipo de reporte
-        switch(reportData.reportType) {
+        switch (reportData.reportType) {
             case 'byCategory':
                 if (reportData.category) {
                     filteredDocs = filteredDocs.filter(doc => doc.categoria === reportData.category);
@@ -1221,13 +1222,13 @@ function generateLocalCSV(reportData) {
                 });
                 break;
         }
-        
+
         if (filteredDocs.length === 0) {
             console.warn('⚠️ No hay documentos después de aplicar filtros');
             showAlert('No hay documentos que coincidan con los criterios seleccionados.', 'warning');
             return false;
         }
-        
+
         // Crear contenido CSV
         const headers = [
             'ID',
@@ -1244,15 +1245,15 @@ function generateLocalCSV(reportData) {
             'Fecha Vencimiento ISO',
             'URL Archivo'
         ];
-        
+
         const rows = filteredDocs.map(doc => {
-            const fechaVencimiento = doc.fecha_vencimiento ? 
+            const fechaVencimiento = doc.fecha_vencimiento ?
                 new Date(doc.fecha_vencimiento).toLocaleDateString() : 'No especificada';
-            
-            const estado = doc.fecha_vencimiento ? 
-                (new Date(doc.fecha_vencimiento) < new Date() ? 'VENCIDO' : 'VIGENTE') : 
+
+            const estado = doc.fecha_vencimiento ?
+                (new Date(doc.fecha_vencimiento) < new Date() ? 'VENCIDO' : 'VIGENTE') :
                 'SIN FECHA';
-            
+
             return [
                 doc._id || '',
                 doc.nombre_archivo || '',
@@ -1275,9 +1276,9 @@ function generateLocalCSV(reportData) {
                 return cellStr;
             }).join(',');
         });
-        
+
         const csvContent = [headers.join(','), ...rows].join('\n');
-        
+
         // Crear y descargar archivo
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -1288,10 +1289,10 @@ function generateLocalCSV(reportData) {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
         console.log(`✅ CSV local generado con ${filteredDocs.length} registros`);
         return true;
-        
+
     } catch (error) {
         console.error('❌ Error generando CSV local:', error);
         showAlert('Error al generar CSV local: ' + error.message, 'error');
@@ -1308,7 +1309,7 @@ function generateLocalCSV(reportData) {
  */
 export function initReportsModule() {
     console.group('🚀 initReportsModule - Inicializando módulo de reportes');
-    
+
     try {
         if (!canView('reportes')) {
             console.log('⛔ Sin permiso de vista para reportes: omitiendo initReportsModule');
@@ -1320,35 +1321,43 @@ export function initReportsModule() {
             DOM.reportType.addEventListener('change', handleReportTypeChange);
             console.log('✅ Listener agregado a reportType');
         }
-        
+
         if (DOM.reportFormat) {
             DOM.reportFormat.addEventListener('change', handleReportFormatChange);
             console.log('✅ Listener agregado a reportFormat');
         }
-        
+
         if (DOM.generateReportBtn) {
             DOM.generateReportBtn.addEventListener('click', handleGenerateReport);
             console.log('✅ Listener agregado a generateReportBtn');
         }
-        
+
         if (DOM.closeReportModalBtn) {
             DOM.closeReportModalBtn.addEventListener('click', closeReportModal);
             console.log('✅ Listener agregado a closeReportModalBtn');
         }
-        
+
         // Establecer Excel como formato por defecto
         if (DOM.reportFormat) {
             DOM.reportFormat.value = 'excel';
             console.log('✅ Formato por defecto establecido a Excel');
         }
-        
+
+        // Inicializar módulo de gráficos
+        if (typeof initChartsModule === 'function') {
+            initChartsModule();
+            console.log('✅ Módulo de gráficos integrado en reportes');
+        } else {
+        console.warn('⚠️ initChartsModule no es una función');
+    }
+
         // Inicializar vista previa por defecto
         setTimeout(() => {
             updateReportFilters('general');
         }, 500);
-        
+
         console.log('✅ Módulo de reportes inicializado correctamente');
-        
+
     } catch (error) {
         console.error('❌ Error inicializando módulo de reportes:', error);
     } finally {
@@ -1360,13 +1369,13 @@ export function initReportsModule() {
 // 6. EXPORTACIONES (MANTENIDAS)
 // =============================================================================
 
-export { 
-    generateReport, 
-    closeReportModal, 
-    updateReportFilters, 
-    updateReportPreview, 
-    handleGenerateReport, 
-    generateReportDownload, 
+export {
+    generateReport,
+    closeReportModal,
+    updateReportFilters,
+    updateReportPreview,
+    handleGenerateReport,
+    generateReportDownload,
     handleReportTypeChange,
     handleReportFormatChange,
     generateLocalCSV

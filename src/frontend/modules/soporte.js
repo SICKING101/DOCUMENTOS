@@ -156,6 +156,8 @@ class SupportModule {
                         title: 'Crear Tareas',
                         description: 'Crea nuevas tareas con un simple click.'
                     },
+                    { title: 'Asigna tareas', 
+                      description: 'Asigna tareas a otros usuarios para que puedan verlas y completarlas (si tienes permisos).' },
                     {
                         title: 'Organizar Tareas',
                         description: 'Organiza tus tareas en columnas para mantener un registro de progreso.'
@@ -296,7 +298,7 @@ class SupportModule {
                 steps: [
                     {
                         title: 'Seleccionar tipo de reporte',
-                        description: 'Elige entre reportes generales, por categoría, por persona o de documentos.'
+                        description: 'Elige entre reportes generales, por categoría, por persona o de documentos, grafica.'
                     },
                     {
                         title: 'Configurar filtros',
@@ -313,6 +315,7 @@ class SupportModule {
                 ],
                 tips: [
                     'Usa filtros específicos para reportes más relevantes.',
+                    'Elige la opcion de reporte grafico para visualizar los datos.',
                     'Programa reportes recurrentes para análisis periódicos.',
                     'Compara reportes de diferentes periodos para identificar tendencias.'
                 ],
@@ -320,12 +323,13 @@ class SupportModule {
                     { title: 'Reportes Personalizados', desc: 'Crea reportes con criterios específicos' },
                     { title: 'Múltiples Formatos', desc: 'Exporta en Excel, CSV y otros formatos' },
                     { title: 'Vista Previa', desc: 'Visualiza el reporte antes de descargarlo' },
-                    { title: 'Programación', desc: 'Configura reportes automáticos recurrentes' }
+                    { title: 'Graficar', desc: 'Genera gráficos personalizados' }
                 ],
                 videoUrl: null,
                 images: [
                     '/assets/images/guides/reports-guide.png',
-                    '/assets/images/guides/reports2-guide.png'
+                    '/assets/images/guides/reports2-guide.png',
+                    '/assets/images/guides/reports3-guide.png'
                 ],
                 imageUrl: '/assets/images/guides/reports-guide.png'
             },
@@ -474,7 +478,7 @@ class SupportModule {
                 ],
                 videoUrl: null,
                 imageUrl: '/assets/images/guides/notifications-guide.png'
-            }
+            },
         };
 
         // Nota: init() se llama desde navigation.js cuando el usuario entra a la pestaña.
