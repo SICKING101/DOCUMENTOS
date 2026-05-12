@@ -600,6 +600,159 @@ function detectTaskAction(message) {
     return { detected: false };
 }
 
+// ──────────────────────────────────────────────────────────────
+// DETECCIÓN DE CREACIÓN DE PERSONAS
+// ──────────────────────────────────────────────────────────────
+function detectPersonCreation(message) {
+    const original = message.trim();
+    const q = original.toLowerCase().trim();
+
+    const hasCreateVerb = /\b(crea(?:r)?|nueva?|agrega(?:r)?|a[ñn]ade?|registra(?:r)?|pon(?:er)?|haz|elabora|genera|creame|crear|dar\s+de\s+alta)\s+(?:una?\s+)?(?:nueva\s+)?persona\b/i.test(q);
+    if (!hasCreateVerb) return { detected: false };
+
+    let nombre = '';
+    let email = '';
+    let telefono = '';
+    let departamento = '';
+    let puesto = '';
+
+    // Extraer nombre
+    const nombrePatterns = [
+        /(?:llamada|llamado|nombrada|nombrado|nombre|con\s+nombre)\s+["']?(.+?)["']?(?:\s*(?:,|\.|que|con|cuya|su|y|email|correo|$))/i,
+        /nombre\s*:?\s*["']?(.+?)["']?(?:\s*(?:,|\.|que|con|cuya|su|y|email|correo|$))/i,
+    ];
+    for (const pattern of nombrePatterns) {
+        const match = original.match(pattern);
+        if (match?.[1]) {
+            nombre = match[1].trim().replace(/^["']|["']$/g, '').replace(/[,.\s]+$/g, '');
+            log.nlp('Nombre detectado:', nombre);
+            break;
+        }
+    }
+
+    // Extraer email
+    const emailMatch = original.match(/(?:email|correo|e-mail)\s+(?:es\s+)?["']?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})["']?/i);
+    if (emailMatch) {
+        email = emailMatch[1].trim();
+        log.nlp('Email detectado:', email);
+    }
+
+    // Extraer teléfono
+    const phonePatterns = [
+        /(?:tel[eé]fono|phone|celular|m[oó]vil|n[uú]mero)\s+(?:es\s+)?["']?(\d{8,10})["']?/i,
+        /(?:tel[eé]fono|phone|celular|m[oó]vil|n[uú]mero)\s*:?\s*["']?(\d{8,10})["']?/i,
+    ];
+    for (const pattern of phonePatterns) {
+        const match = original.match(pattern);
+        if (match?.[1]) {
+            telefono = match[1].trim();
+            log.nlp('Teléfono detectado:', telefono);
+            break;
+        }
+    }
+
+    // Extraer departamento
+    const deptPatterns = [
+        /(?:departamento|departamento|depto|área|area)\s+(?:es\s+)?["']?(.+?)["']?(?:\s*(?:,|\.|que|con|cuya|su|y|email|correo|tel[eé]fono|puesto|$))/i,
+        /(?:departamento|departamento|depto|área|area)\s*:?\s*["']?(.+?)["']?(?:\s*(?:,|\.|que|con|cuya|su|y|email|correo|tel[eé]fono|puesto|$))/i,
+    ];
+    for (const pattern of deptPatterns) {
+        const match = original.match(pattern);
+        if (match?.[1]) {
+            departamento = match[1].trim().replace(/^["']|["']$/g, '').replace(/[,.\s]+$/g, '');
+            log.nlp('Departamento detectado:', departamento);
+            break;
+        }
+    }
+
+    // Extraer puesto
+    const puestoPatterns = [
+        /(?:puesto|cargo|rol|posici[oó]n|trabaja\s+como)\s+(?:es\s+)?["']?(.+?)["']?(?:\s*(?:,|\.|que|con|cuya|su|y|email|correo|tel[eé]fono|departamento|$))/i,
+        /(?:puesto|cargo|rol|posici[oó]n)\s*:?\s*["']?(.+?)["']?(?:\s*(?:,|\.|que|con|cuya|su|y|email|correo|tel[eé]fono|departamento|$))/i,
+    ];
+    for (const pattern of puestoPatterns) {
+        const match = original.match(pattern);
+        if (match?.[1]) {
+            puesto = match[1].trim().replace(/^["']|["']$/g, '').replace(/[,.\s]+$/g, '');
+            log.nlp('Puesto detectado:', puesto);
+            break;
+        }
+    }
+
+    // Determinar campos faltantes
+    const missing = [];
+    if (!nombre) missing.push('nombre');
+    if (!email) missing.push('email');
+    if (!telefono) missing.push('teléfono');
+    if (!departamento) missing.push('departamento');
+    if (!puesto) missing.push('puesto');
+
+    return {
+        detected: true,
+        nombre,
+        email,
+        telefono,
+        departamento,
+        puesto,
+        missing,
+        hasAllRequired: nombre && email && departamento
+    };
+}
+
+// ──────────────────────────────────────────────────────────────
+// DETECCIÓN DE ACCIONES SOBRE PERSONAS (eliminar/editar/ver)
+// ──────────────────────────────────────────────────────────────
+function detectPersonAction(message) {
+    const q = message.toLowerCase().trim();
+    const original = message.trim();
+
+    // ELIMINAR persona
+    const deletePatterns = [
+        /(?:elimina|borra|quita|remover|suprime|eliminar|borrar|quitar|dar\s+de\s+baja)\s+(?:a\s+)?(?:la\s+)?persona\s+(?:llamada|nombrada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
+        /(?:borrame|eliminame|quitame)\s+(?:a\s+)?(?:la\s+)?persona\s+(?:llamada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
+    ];
+    for (const pattern of deletePatterns) {
+        const match = original.match(pattern);
+        if (match?.[1]) {
+            let personName = match[1].trim().replace(/^(?:llamada|nombrada|a|de)\s+/i, '').replace(/^["']|["']$/g, '').trim();
+            if (personName.length >= 2) return { detected: true, action: 'delete', personName };
+        }
+    }
+
+    // VER persona
+    const viewPatterns = [
+        /(?:mu[eé]strame|ver|visualiza|visualizar|mostrar|consulta|consultar|busca|buscar|dame\s+info\s+de)\s+(?:a\s+)?(?:la\s+)?persona\s+(?:llamada|nombrada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
+        /(?:qu[ií]en\s+es|info\s+de|datos\s+de)\s+(?:la\s+)?persona\s+(?:llamada|nombrada|de\s+)?\s*["']?(.+?)["']?\s*$/i,
+    ];
+    for (const pattern of viewPatterns) {
+        const match = original.match(pattern);
+        if (match?.[1]) {
+            let personName = match[1].trim().replace(/^(?:llamada|nombrada|a|de)\s+/i, '').replace(/^["']|["']$/g, '').trim();
+            if (personName.length >= 2) return { detected: true, action: 'view', personName };
+        }
+    }
+
+    // EDITAR persona
+    const editPatterns = [
+        /(?:edita|editar|modifica|modificar|actualiza|actualizar|cambia|cambiar)\s+(?:el\s+)?(?:email|correo|tel[eé]fono|departamento|puesto|nombre)\s+(?:de\s+)?(?:la\s+)?persona\s+(?:llamada|nombrada|de\s+)?\s*["']?(.+?)["']?\s+(?:a|por|para)\s+["']?(.+?)["']?\s*$/i,
+    ];
+    for (const pattern of editPatterns) {
+        const match = original.match(pattern);
+        if (match?.[2]) {
+            let personName = match[1].trim().replace(/^(?:llamada|nombrada|de)\s+/i, '').replace(/^["']|["']$/g, '').trim();
+            const newValue = match[2].trim().replace(/^["']|["']$/g, '');
+            let field = 'nombre';
+            if (/email|correo/i.test(q)) field = 'email';
+            else if (/tel[eé]fono/i.test(q)) field = 'telefono';
+            else if (/departamento/i.test(q)) field = 'departamento';
+            else if (/puesto/i.test(q)) field = 'puesto';
+            if (personName.length >= 2) return { detected: true, action: 'edit', personName, field, newValue };
+        }
+    }
+
+    return { detected: false };
+}
+
 function detectReportCommand(message) {
     const q = message.toLowerCase().trim();
 
@@ -762,6 +915,7 @@ class ChatbotAssistant {
             'Ver ajustes actuales',
             'Ir a reportes',
             '¿Qué puedes hacer?',
+            'Crear persona: nombre Juan Perez, email juan@example.com, departamento Sistemas',
         ];
 
         this._init();
@@ -915,34 +1069,34 @@ class ChatbotAssistant {
             // ⚠️ ERROR DEL BACKEND: Mostrar mensaje amigable sin JSON crudo
             const errorMsg = response?.message || 'Error desconocido del servidor';
             log.error('Backend rechazó la tarea:', errorMsg);
-            
+
             // Si el error es de validación de fecha, dar un mensaje más claro
             if (errorMsg.includes('fecha_limite') || errorMsg.includes('Cast to date failed')) {
-                return { 
-                    success: false, 
-                    message: `❌ **No pude crear la tarea**\n\nLa fecha proporcionada no es válida. Intenta con un formato como "11 de abril" o "mañana".` 
+                return {
+                    success: false,
+                    message: `❌ **No pude crear la tarea**\n\nLa fecha proporcionada no es válida. Intenta con un formato como "11 de abril" o "mañana".`
                 };
             }
-            
-            return { 
-                success: false, 
-                message: `❌ **No pude crear la tarea**\n\n${errorMsg}\n\nPuedo ayudarte con:\n• Crear tareas con título y fecha\n• Ver tus tareas\n• Gestionar documentos` 
+
+            return {
+                success: false,
+                message: `❌ **No pude crear la tarea**\n\n${errorMsg}\n\nPuedo ayudarte con:\n• Crear tareas con título y fecha\n• Ver tus tareas\n• Gestionar documentos`
             };
 
         } catch (error) {
             log.error('Error creando tarea:', error.message);
-            
+
             // Si es error de red o timeout
             if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('timeout')) {
-                return { 
-                    success: false, 
-                    message: `❌ **No pude crear la tarea**\n\nError de conexión con el servidor. Verifica tu internet e intenta de nuevo.` 
+                return {
+                    success: false,
+                    message: `❌ **No pude crear la tarea**\n\nError de conexión con el servidor. Verifica tu internet e intenta de nuevo.`
                 };
             }
-            
-            return { 
-                success: false, 
-                message: `❌ **No pude crear la tarea**\n\n${error.message}\n\nPuedo ayudarte con:\n• Intentar de nuevo\n• Ver tus tareas\n• Ir a la sección de Tareas` 
+
+            return {
+                success: false,
+                message: `❌ **No pude crear la tarea**\n\n${error.message}\n\nPuedo ayudarte con:\n• Intentar de nuevo\n• Ver tus tareas\n• Ir a la sección de Tareas`
             };
         } finally {
             this._setStatus('En línea');
@@ -978,7 +1132,7 @@ class ChatbotAssistant {
             throw new Error(response?.message || 'Error al eliminar');
         } catch (error) {
             log.error('Error eliminando tarea:', error.message);
-            return { success: false, message: `❌ **No pude eliminar la tarea**\n\n${error.message}` };
+            return { success: false, message: `❌ **No pude eliminar la tarea**\n\n${this._cleanErrorMessage(error)}` };
         } finally {
             this._setStatus('En línea');
         }
@@ -999,7 +1153,7 @@ class ChatbotAssistant {
             throw new Error(response?.message || 'Error al completar');
         } catch (error) {
             log.error('Error completando tarea:', error.message);
-            return { success: false, message: `❌ **No pude completar la tarea**\n\n${error.message}` };
+            return { success: false, message: `❌ **No pude completar la tarea**\n\n${this._cleanErrorMessage(error)}` };
         } finally {
             this._setStatus('En línea');
         }
@@ -1020,7 +1174,7 @@ class ChatbotAssistant {
             throw new Error(response?.message || 'Error al actualizar');
         } catch (error) {
             log.error('Error actualizando tarea:', error.message);
-            return { success: false, message: `❌ **No pude actualizar la tarea**\n\n${error.message}` };
+            return { success: false, message: `❌ **No pude actualizar la tarea**\n\n${this._cleanErrorMessage(error)}` };
         } finally {
             this._setStatus('En línea');
         }
@@ -1157,6 +1311,252 @@ class ChatbotAssistant {
             found: false,
             message: `❌ No pude buscar la tarea **"${taskName}"**. Error de conexión.`
         };
+    }
+
+    async _findPersonByName(personName) {
+        const q = personName.toLowerCase().trim();
+        log.task('Buscando persona:', q);
+
+        try {
+            const res = await api.call('/persons', { method: 'GET' });
+            if (res?.success && (res.persons || res.data?.persons)) {
+                const persons = res.persons || res.data?.persons || [];
+
+                let person = persons.find(p => p.nombre?.toLowerCase().trim() === q);
+                if (!person) person = persons.find(p => p.nombre?.toLowerCase().includes(q));
+
+                if (person) {
+                    return { found: true, person, message: `✅ Encontré a **${person.nombre}**.` };
+                }
+
+                const suggestions = persons.slice(0, 5).map(p => `• "${p.nombre}"`).join('\n');
+                return { found: false, message: `❌ No encontré una persona llamada **"${personName}"**.\n\n${suggestions ? '**Personas registradas:**\n' + suggestions : 'No hay personas registradas.'}` };
+            }
+        } catch (e) {
+            log.warn('Error buscando persona:', e.message);
+        }
+        return { found: false, message: `❌ No pude buscar a **"${personName}"**. Error de conexión.` };
+    }
+
+    async _createPersonDirectly(personData) {
+        log.task('Creando persona:', personData);
+        try {
+            this._setStatus('Creando persona...');
+            
+            // Verificar si el departamento existe antes de crear la persona
+            if (personData.departamento && personData.departamento.trim()) {
+                const deptExists = await this._checkDepartmentExists(personData.departamento);
+                if (!deptExists) {
+                    log.task(`Departamento "${personData.departamento}" no existe, creándolo...`);
+                    const deptCreated = await this._createDepartmentIfNotExists(personData.departamento);
+                    if (!deptCreated) {
+                        return { 
+                            success: false, 
+                            message: `❌ **No pude crear la persona**\n\nEl departamento **"${personData.departamento}"** no existe y no pude crearlo automáticamente.` 
+                        };
+                    }
+                    // ⚠️ Recargar departamentos para que el nuevo aparezca en los selects
+                    await this._reloadDepartments();
+                }
+            }
+            
+            const response = await api.call('/persons', { method: 'POST', body: personData });
+
+            if (response?.success) {
+                // ⚠️ FORZAR recarga inmediata de personas en el frontend
+                await this._reloadPersons();
+                // ⚠️ También recargar stats para reflejar el cambio en dashboard
+                await this._loadStats(true);
+                
+                window.dispatchEvent(new CustomEvent('personCreated', { detail: { person: response.person || response } }));
+                
+                return {
+                    success: true,
+                    message: `✅ **Persona creada exitosamente**\n\n👤 **Nombre:** ${personData.nombre}\n📧 **Email:** ${personData.email}\n📞 **Teléfono:** ${personData.telefono || 'No especificado'}\n🏢 **Departamento:** ${personData.departamento || 'No especificado'}\n💼 **Puesto:** ${personData.puesto || 'No especificado'}`
+                };
+            }
+            
+            throw new Error(response?.message || 'Error del servidor');
+        } catch (error) {
+            log.error('Error creando persona:', error.message);
+            
+            let cleanMessage = error.message || 'Error desconocido';
+            if (cleanMessage.includes('{')) {
+                try {
+                    const jsonStart = cleanMessage.indexOf('{');
+                    const jsonStr = cleanMessage.substring(jsonStart);
+                    const parsed = JSON.parse(jsonStr);
+                    cleanMessage = parsed.message || cleanMessage;
+                } catch (_) {
+                    cleanMessage = cleanMessage.replace(/Error HTTP \d+: /g, '');
+                }
+            }
+            
+            if (cleanMessage.includes('ya existe') || cleanMessage.includes('duplicate')) {
+                return { success: false, message: `❌ **No pude crear la persona**\n\nYa existe una persona con ese email. Usa un email diferente.` };
+            }
+            
+            return { success: false, message: `❌ **No pude crear la persona**\n\n${cleanMessage}` };
+        } finally {
+            this._setStatus('En línea');
+        }
+    }
+
+    async _reloadPersons() {
+        try {
+            // Intentar recargar usando el módulo de personas si está disponible
+            if (window.taskManager?.loadTasks) {
+                // No es taskManager, verificar si hay módulo de personas
+            }
+            if (typeof window.loadPersons === 'function') {
+                await window.loadPersons();
+                log.task('✅ Lista de personas recargada vía loadPersons()');
+                return;
+            }
+            if (window.personasModule?.loadPersons) {
+                await window.personasModule.loadPersons();
+                log.task('✅ Lista de personas recargada vía personasModule');
+                return;
+            }
+            // Fallback: disparar evento para que el módulo de personas reaccione
+            window.dispatchEvent(new CustomEvent('persons:reload'));
+            log.task('📡 Evento persons:reload disparado');
+        } catch (e) {
+            log.warn('Error recargando personas:', e.message);
+        }
+    }
+
+    async _reloadDepartments() {
+        try {
+            if (typeof window.loadDepartments === 'function') {
+                await window.loadDepartments();
+                log.task('✅ Departamentos recargados vía loadDepartments()');
+                return;
+            }
+            window.dispatchEvent(new CustomEvent('departments:reload'));
+            log.task('📡 Evento departments:reload disparado');
+        } catch (e) {
+            log.warn('Error recargando departamentos:', e.message);
+        }
+    }
+
+    async _checkDepartmentExists(departmentName) {
+        try {
+            const res = await api.call('/departments', { method: 'GET' });
+            if (res?.success && (res.departments || res.data?.departments)) {
+                const depts = res.departments || res.data?.departments || [];
+                return depts.some(d => d.nombre?.toLowerCase().trim() === departmentName.toLowerCase().trim());
+            }
+        } catch (_) { }
+        return false;
+    }
+
+    async _createDepartmentIfNotExists(departmentName) {
+        try {
+            const res = await api.call('/departments', {
+                method: 'POST',
+                body: {
+                    nombre: departmentName.trim(),
+                    descripcion: `Departamento creado automáticamente por ARIA`,
+                    color: '#3b82f6',
+                    icon: 'building'
+                }
+            });
+            if (res?.success) {
+                log.task(`✅ Departamento "${departmentName}" creado automáticamente`);
+                window.dispatchEvent(new CustomEvent('departmentCreated'));
+                return true;
+            }
+        } catch (e) {
+            log.warn(`No se pudo crear departamento "${departmentName}":`, e.message);
+        }
+        return false;
+    }
+
+    async _deletePersonDirectly(personId) {
+        log.task('Eliminando persona:', personId);
+        try {
+            this._setStatus('Eliminando persona...');
+            const response = await api.call(`/persons/${personId}`, { method: 'DELETE' });
+            if (response?.success) {
+                // ⚠️ Recargar inmediatamente
+                await this._reloadPersons();
+                await this._loadStats(true);
+                window.dispatchEvent(new CustomEvent('personDeleted'));
+                return { success: true, message: '✅ **Persona eliminada exitosamente.**' };
+            }
+            throw new Error(response?.message || 'Error al eliminar');
+        } catch (error) {
+            log.error('Error eliminando persona:', error.message);
+            return { success: false, message: `❌ **No pude eliminar la persona**\n\n${this._cleanErrorMessage(error)}` };
+        } finally {
+            this._setStatus('En línea');
+        }
+    }
+
+    async _updatePersonDirectly(personId, updates) {
+        log.task('Actualizando persona:', personId, updates);
+        try {
+            this._setStatus('Actualizando persona...');
+            const response = await api.call(`/persons/${personId}`, { method: 'PUT', body: updates });
+            if (response?.success) {
+                // ⚠️ Recargar inmediatamente
+                await this._reloadPersons();
+                await this._loadStats(true);
+                window.dispatchEvent(new CustomEvent('personUpdated'));
+                return { success: true, message: `✅ **Persona actualizada exitosamente.**\n\n${Object.keys(updates).map(k => `• ${k}: ${updates[k]}`).join('\n')}` };
+            }
+            throw new Error(response?.message || 'Error al actualizar');
+        } catch (error) {
+            log.error('Error actualizando persona:', error.message);
+            return { success: false, message: `❌ **No pude actualizar la persona**\n\n${this._cleanErrorMessage(error)}` };
+        } finally {
+            this._setStatus('En línea');
+        }
+    }
+
+    _validateEmail(email) {
+        if (!email || !email.includes('@')) return { valid: false, message: 'El email debe contener un @' };
+        const parts = email.split('@');
+        if (parts.length !== 2) return { valid: false, message: 'El email debe tener exactamente un @' };
+        if (!parts[1].includes('.')) return { valid: false, message: 'El dominio debe tener un punto (ej: gmail.com)' };
+        if (parts[1].split('.').pop().length < 2) return { valid: false, message: 'La extensión del dominio es muy corta' };
+        return { valid: true, message: 'Email válido' };
+    }
+
+    _validatePhone(phone) {
+        if (!phone) return { valid: true, message: 'Teléfono opcional' };
+        const clean = phone.replace(/[+\s\-()]/g, '');
+        if (!/^\d+$/.test(clean)) return { valid: false, message: 'El teléfono solo puede contener números' };
+        if (clean.length > 10) return { valid: false, message: 'El teléfono no puede tener más de 10 dígitos' };
+        if (clean.length < 8) return { valid: false, message: 'El teléfono debe tener al menos 8 dígitos' };
+        return { valid: true, message: 'Teléfono válido' };
+    }
+
+    _validateName(name) {
+        if (!name || name.trim().length < 2) return { valid: false, message: 'El nombre debe tener al menos 2 caracteres' };
+        if (name.trim().length > 100) return { valid: false, message: 'El nombre no puede exceder los 100 caracteres' };
+        return { valid: true, message: 'Nombre válido' };
+    }
+
+    _cleanErrorMessage(error) {
+        if (!error) return 'Error desconocido';
+        let msg = typeof error === 'string' ? error : (error.message || 'Error desconocido');
+
+        // Remover prefijos HTTP
+        msg = msg.replace(/Error HTTP \d+: /g, '');
+
+        // Intentar extraer JSON del backend
+        if (msg.includes('{')) {
+            try {
+                const jsonStart = msg.indexOf('{');
+                const jsonStr = msg.substring(jsonStart);
+                const parsed = JSON.parse(jsonStr);
+                msg = parsed.message || msg;
+            } catch (_) { }
+        }
+
+        return msg;
     }
 
     // ─── ENVÍO DE MENSAJES ────────────────────────────────────
@@ -1328,6 +1728,171 @@ class ChatbotAssistant {
                     this._appendBotMessage(match.message, {
                         suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
                     });
+                }
+                this._finishLoading();
+                return;
+            }
+
+            this._finishLoading();
+            return;
+        }
+
+        // ── PRIORIDAD 3.6: Creación de personas ───────────────
+        const personCmd = detectPersonCreation(text);
+        if (personCmd.detected) {
+            this._showTyping(true);
+
+            // Si faltan campos, preguntar por ellos
+            if (personCmd.missing.length > 0 && !personCmd.hasAllRequired) {
+                this._showTyping(false);
+
+                // Construir lista de campos faltantes
+                const faltantes = personCmd.missing.map(f => `• ${f}`).join('\n');
+                const yaProporcionados = [];
+                if (personCmd.nombre) yaProporcionados.push(`👤 Nombre: **${personCmd.nombre}**`);
+                if (personCmd.email) yaProporcionados.push(`📧 Email: **${personCmd.email}**`);
+                if (personCmd.telefono) yaProporcionados.push(`📞 Teléfono: **${personCmd.telefono}**`);
+                if (personCmd.departamento) yaProporcionados.push(`🏢 Departamento: **${personCmd.departamento}**`);
+                if (personCmd.puesto) yaProporcionados.push(`💼 Puesto: **${personCmd.puesto}**`);
+
+                let mensaje = `⚠️ **Faltan datos para crear la persona**\n\n`;
+                if (yaProporcionados.length > 0) {
+                    mensaje += `✅ **Datos que ya tengo:**\n${yaProporcionados.join('\n')}\n\n`;
+                }
+                mensaje += `❌ **Falta:**\n${faltantes}\n\n`;
+                mensaje += `Por favor, dime los datos faltantes. Ejemplo:\n_"El email es juan@example.com, su teléfono es 5512345678 y su puesto es Profesor"_`;
+
+                this._appendBotMessage(mensaje, {
+                    suggestions: ['Cancelar creación', 'Ver personas existentes', 'Intentar de nuevo'],
+                });
+            } else {
+                // Validar email
+                const emailValidation = this._validateEmail(personCmd.email);
+                if (!emailValidation.valid) {
+                    this._showTyping(false);
+                    this._appendBotMessage(`❌ **${emailValidation.message}**\n\nProporcionaste: _${personCmd.email}_\n\nIntenta de nuevo con un email válido.`, {
+                        suggestions: ['Intentar de nuevo', 'Cancelar creación'],
+                    });
+                    this._finishLoading();
+                    return;
+                }
+
+                // Validar teléfono
+                const phoneValidation = this._validatePhone(personCmd.telefono);
+                if (!phoneValidation.valid) {
+                    this._showTyping(false);
+                    this._appendBotMessage(`❌ **${phoneValidation.message}**\n\nProporcionaste: _${personCmd.telefono}_\n\nIntenta de nuevo.`, {
+                        suggestions: ['Intentar de nuevo', 'Cancelar creación'],
+                    });
+                    this._finishLoading();
+                    return;
+                }
+
+                // Validar nombre
+                const nameValidation = this._validateName(personCmd.nombre);
+                if (!nameValidation.valid) {
+                    this._showTyping(false);
+                    this._appendBotMessage(`❌ **${nameValidation.message}**`, {
+                        suggestions: ['Intentar de nuevo', 'Cancelar creación'],
+                    });
+                    this._finishLoading();
+                    return;
+                }
+
+                this._setStatus('Creando persona...');
+                const result = await this._createPersonDirectly({
+                    nombre: personCmd.nombre,
+                    email: personCmd.email,
+                    telefono: personCmd.telefono || '',
+                    departamento: personCmd.departamento || '',
+                    puesto: personCmd.puesto || ''
+                });
+                this._showTyping(false);
+                this._appendBotMessage(result.message, {
+                    suggestions: result.success
+                        ? ['Ver todas las personas', 'Crear otra persona', 'Ir a Personas']
+                        : ['Intentar de nuevo', 'Ir a Personas'],
+                });
+                if (result.success) showAlert('👤 Persona creada', 'success', 3000);
+            }
+            this._finishLoading();
+            return;
+        }
+
+        // ── PRIORIDAD 3.7: Acciones sobre personas (eliminar/ver/editar) ──
+        const personActionCmd = detectPersonAction(text);
+        if (personActionCmd.detected) {
+            this._showTyping(true);
+            this._setStatus('Procesando...');
+
+            if (personActionCmd.action === 'delete') {
+                const match = await this._findPersonByName(personActionCmd.personName);
+                this._showTyping(false);
+                if (match.found) {
+                    const result = await this._deletePersonDirectly(match.person._id);
+                    this._appendBotMessage(result.message, {
+                        suggestions: result.success
+                            ? ['Ver todas las personas', 'Crear nueva persona', 'Ir a Personas']
+                            : ['Intentar de nuevo', 'Ir a Personas'],
+                    });
+                    if (result.success) showAlert('🗑️ Persona eliminada', 'success', 2500);
+                } else {
+                    this._appendBotMessage(match.message, { suggestions: ['Ver todas las personas', 'Ir a Personas'] });
+                }
+                this._finishLoading();
+                return;
+            }
+
+            if (personActionCmd.action === 'view') {
+                const match = await this._findPersonByName(personActionCmd.personName);
+                this._showTyping(false);
+                if (match.found) {
+                    const p = match.person;
+                    const info = `👤 **${p.nombre}**\n\n📧 **Email:** ${p.email}\n📞 **Teléfono:** ${p.telefono || 'No especificado'}\n🏢 **Departamento:** ${p.departamento || 'No especificado'}\n💼 **Puesto:** ${p.puesto || 'No especificado'}`;
+                    this._appendBotMessage(info, { suggestions: ['Ver todas las personas', 'Editar persona', 'Ir a Personas'] });
+                } else {
+                    this._appendBotMessage(match.message, { suggestions: ['Ver todas las personas', 'Ir a Personas'] });
+                }
+                this._finishLoading();
+                return;
+            }
+
+            if (personActionCmd.action === 'edit') {
+                const match = await this._findPersonByName(personActionCmd.personName);
+                this._showTyping(false);
+                if (match.found) {
+                    const updates = {};
+                    updates[personActionCmd.field] = personActionCmd.newValue;
+
+                    // Validar email si se está editando
+                    if (personActionCmd.field === 'email') {
+                        const emailValidation = this._validateEmail(personActionCmd.newValue);
+                        if (!emailValidation.valid) {
+                            this._appendBotMessage(`❌ **${emailValidation.message}**`, { suggestions: ['Intentar de nuevo'] });
+                            this._finishLoading();
+                            return;
+                        }
+                    }
+
+                    // Validar teléfono
+                    if (personActionCmd.field === 'telefono') {
+                        const phoneValidation = this._validatePhone(personActionCmd.newValue);
+                        if (!phoneValidation.valid) {
+                            this._appendBotMessage(`❌ **${phoneValidation.message}**`, { suggestions: ['Intentar de nuevo'] });
+                            this._finishLoading();
+                            return;
+                        }
+                    }
+
+                    const result = await this._updatePersonDirectly(match.person._id, updates);
+                    this._appendBotMessage(result.message, {
+                        suggestions: result.success
+                            ? ['Ver todas las personas', 'Ir a Personas']
+                            : ['Intentar de nuevo', 'Ir a Personas'],
+                    });
+                    if (result.success) showAlert('✏️ Persona actualizada', 'success', 2500);
+                } else {
+                    this._appendBotMessage(match.message, { suggestions: ['Ver todas las personas', 'Ir a Personas'] });
                 }
                 this._finishLoading();
                 return;
@@ -2105,6 +2670,57 @@ class ChatbotAssistant {
                     : ['Intentar de nuevo', 'Ir a Tareas'],
             });
             if (result.success) showAlert('✅ Tarea creada', 'success', 3000);
+            return;
+        }
+
+        // ── PRIORIDAD 3.6: Creación de personas ───────────────
+        const personCmd = detectPersonCreation(text);
+        if (personCmd.detected) {
+            if (personCmd.missing.length > 0 && !personCmd.hasAllRequired) {
+                const faltantes = personCmd.missing.map(f => `• ${f}`).join('\n');
+                this._appendFullscreenBotMessage(`⚠️ **Faltan datos para crear la persona**\n\n❌ **Falta:**\n${faltantes}\n\nDime los datos faltantes.`, {
+                    suggestions: ['Cancelar creación', 'Ver personas existentes'],
+                });
+                return;
+            }
+            this._setFullscreenStatus('Creando persona...');
+            const result = await this._createPersonDirectly({
+                nombre: personCmd.nombre,
+                email: personCmd.email,
+                telefono: personCmd.telefono || '',
+                departamento: personCmd.departamento || '',
+                puesto: personCmd.puesto || ''
+            });
+            this._appendFullscreenBotMessage(result.message, {
+                suggestions: result.success ? ['Ver todas las personas', 'Ir a Personas'] : ['Intentar de nuevo'],
+            });
+            if (result.success) showAlert('👤 Persona creada', 'success', 3000);
+            return;
+        }
+
+        // ── PRIORIDAD 3.7: Acciones sobre personas ────────────
+        const personActionCmd = detectPersonAction(text);
+        if (personActionCmd.detected) {
+            if (personActionCmd.action === 'delete') {
+                const match = await this._findPersonByName(personActionCmd.personName);
+                if (match.found) {
+                    const result = await this._deletePersonDirectly(match.person._id);
+                    this._appendFullscreenBotMessage(result.message, { suggestions: ['Ver todas las personas', 'Ir a Personas'] });
+                } else {
+                    this._appendFullscreenBotMessage(match.message, { suggestions: ['Ver todas las personas'] });
+                }
+                return;
+            }
+            if (personActionCmd.action === 'view') {
+                const match = await this._findPersonByName(personActionCmd.personName);
+                if (match.found) {
+                    const p = match.person;
+                    this._appendFullscreenBotMessage(`👤 **${p.nombre}**\n\n📧 ${p.email}\n📞 ${p.telefono || 'N/A'}\n🏢 ${p.departamento || 'N/A'}\n💼 ${p.puesto || 'N/A'}`, { suggestions: ['Ver todas las personas'] });
+                } else {
+                    this._appendFullscreenBotMessage(match.message, { suggestions: ['Ver todas las personas'] });
+                }
+                return;
+            }
             return;
         }
 

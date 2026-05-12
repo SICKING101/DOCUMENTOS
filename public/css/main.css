@@ -77,6 +77,8 @@
 @import url('sections/sugerencias.css');
 @import url('sections/avisos.css');
 @import url('sections/chatbot.css');
+@import url('sections/departamentos.css');
+@import url('sections/personas.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');

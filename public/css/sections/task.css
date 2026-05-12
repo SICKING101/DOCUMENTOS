@@ -1128,10 +1128,6 @@
    MODAL DE CONFIRMACIÓN
    ============================================================================= */
 
-.confirm-modal {
-    max-width: 420px;
-}
-
 .confirm-modal__icon-wrap {
     width: 64px;
     height: 64px;
