@@ -47,96 +47,279 @@ class ApiService {
         return false; // Por defecto, asumir producción
     }
 
-    // =========================================================================
-    // FUNCIÓN PRINCIPAL DE LLAMADAS A LA API (MEJORADA CON MANEJO DE 403)
-    // =========================================================================
-    async call(endpoint, options = {}) {
+// =========================================================================
+// FUNCIÓN PRINCIPAL DE LLAMADAS A LA API (MEJORADA CON MANEJO DE 503)
+// =========================================================================
+async call(endpoint, options = {}) {
+    try {
+        console.log(`📡 API Call: ${this.baseURL}${endpoint}`, options.method || 'GET');
+
+        const headers = {
+            ...(options.headers || {})
+        };
+
+        // Adjuntar JWT si existe (localStorage) y no viene en headers.
         try {
-            console.log(`📡 API Call: ${this.baseURL}${endpoint}`, options.method || 'GET');
-
-            const headers = {
-                ...(options.headers || {})
-            };
-
-            // Adjuntar JWT si existe (localStorage) y no viene en headers.
-            // Mantiene compatibilidad con cookie httpOnly (credentials: include).
-            try {
-                if (typeof window !== 'undefined') {
-                    const token = window.localStorage?.getItem('token');
-                    if (token && !headers.Authorization && !headers.authorization) {
-                        headers.Authorization = `Bearer ${token}`;
-                    }
+            if (typeof window !== 'undefined') {
+                const token = window.localStorage?.getItem('token');
+                if (token && !headers.Authorization && !headers.authorization) {
+                    headers.Authorization = `Bearer ${token}`;
                 }
-            } catch (e) {
-                // no-op
             }
-
-            const isFormData = options.body instanceof FormData;
-            if (!isFormData && !headers['Content-Type'] && !headers['content-type']) {
-                headers['Content-Type'] = 'application/json';
-            }
-
-            const finalOptions = {
-                ...options,
-                headers,
-                credentials: options.credentials || 'include'
-            };
-
-            if (
-                finalOptions.body &&
-                typeof finalOptions.body === 'object' &&
-                !isFormData
-            ) {
-                finalOptions.body = JSON.stringify(finalOptions.body);
-            }
-
-            const response = await fetch(`${this.baseURL}${endpoint}`, finalOptions);
-            console.log(`📥 API Response: ${response.status} ${response.statusText}`);
-
-            // =================================================================
-            // MANEJO ESPECIAL PARA ERROR 403 (PERMISOS DENEGADOS)
-            // =================================================================
-            if (response.status === 403) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('❌ Acceso denegado (403):', errorData);
-
-                // Disparar evento global para que el sistema de permisos reaccione
-                if (typeof window !== 'undefined') {
-                    const event = new CustomEvent('auth:permission-denied', {
-                        detail: {
-                            endpoint,
-                            requiredPermission: errorData.requiredPermission,
-                            message: errorData.message || 'No tienes permisos para realizar esta acción'
-                        }
-                    });
-                    window.dispatchEvent(event);
-                }
-
-                throw new Error(errorData.message || 'No tienes permisos para realizar esta acción');
-            }
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ API Error:', errorText);
-
-                // Si es un error 404 y estamos en desarrollo, mostrar mensaje más claro
-                if (response.status === 404 && this.isDevelopment) {
-                    console.warn(`⚠️ Endpoint no encontrado: ${endpoint}. Verifica las rutas en apiRoutes.js`);
-                }
-
-                throw new Error(`Error HTTP ${response.status}: ${errorText}`);
-            }
-
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return await response.json();
-            }
-            return response;
-        } catch (error) {
-            console.error('💥 Error en API call:', error);
-            throw error;
+        } catch (e) {
+            // no-op
         }
+
+        const isFormData = options.body instanceof FormData;
+        if (!isFormData && !headers['Content-Type'] && !headers['content-type']) {
+            headers['Content-Type'] = 'application/json';
+        }
+
+        const finalOptions = {
+            ...options,
+            headers,
+            credentials: options.credentials || 'include'
+        };
+
+        if (
+            finalOptions.body &&
+            typeof finalOptions.body === 'object' &&
+            !isFormData
+        ) {
+            finalOptions.body = JSON.stringify(finalOptions.body);
+        }
+
+        const response = await fetch(`${this.baseURL}${endpoint}`, finalOptions);
+        console.log(`📥 API Response: ${response.status} ${response.statusText}`);
+
+        // ═══════════════════════════════════════════════════════════════
+        // NUEVO: MANEJO DE SISTEMA CERRADO (503)
+        // ═══════════════════════════════════════════════════════════════
+        if (response.status === 503) {
+            const errorData = await response.json().catch(() => ({}));
+            
+            if (errorData.accessDenied) {
+                console.log('🔒 [API] Sistema cerrado detectado en:', endpoint);
+                
+                // Mostrar modal de sistema cerrado (solo una vez)
+                this.showSystemClosedModal(errorData);
+                
+                // Retornar un objeto silencioso que no rompa el código
+                // Esto evita que dashboard.js y otros módulos muestren errores
+                return {
+                    success: false,
+                    accessDenied: true,
+                    silent: true,
+                    type: errorData.type,
+                    reason: errorData.reason,
+                    stats: {},           // Para que dashboard no falle
+                    recent_documents: [], // Para que dashboard no falle
+                    tasks: [],           // Para que tareas no falle
+                    documents: [],       // Para que documentos no falle
+                    persons: [],         // Para que personas no falle
+                    categories: [],      // Para que categorías no falle
+                };
+            }
+            
+            // Si no es accessDenied, es otro tipo de 503
+            const errorText = await response.text().catch(() => 'Service Unavailable');
+            throw new Error(`Servicio no disponible: ${errorText}`);
+        }
+        // ═══════════════════════════════════════════════════════════════
+
+        // =================================================================
+        // MANEJO ESPECIAL PARA ERROR 403 (PERMISOS DENEGADOS)
+        // =================================================================
+        if (response.status === 403) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('❌ Acceso denegado (403):', errorData);
+
+            if (typeof window !== 'undefined') {
+                const event = new CustomEvent('auth:permission-denied', {
+                    detail: {
+                        endpoint,
+                        requiredPermission: errorData.requiredPermission,
+                        message: errorData.message || 'No tienes permisos para realizar esta acción'
+                    }
+                });
+                window.dispatchEvent(event);
+            }
+
+            throw new Error(errorData.message || 'No tienes permisos para realizar esta acción');
+        }
+
+        // =================================================================
+        // MANEJO PARA OTROS ERRORES HTTP
+        // =================================================================
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error:', errorText);
+
+            if (response.status === 404 && this.isDevelopment) {
+                console.warn(`⚠️ Endpoint no encontrado: ${endpoint}. Verifica las rutas en apiRoutes.js`);
+            }
+
+            throw new Error(`Error HTTP ${response.status}: ${errorText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+        }
+        return response;
+    } catch (error) {
+        // ═══════════════════════════════════════════════════════════════
+        // NUEVO: Si el error es de sistema cerrado, silenciarlo
+        // ═══════════════════════════════════════════════════════════════
+        if (error.systemClosed || error.message?.includes('SISTEMA_CERRADO')) {
+            console.log('🔒 [API] Error de sistema cerrado silenciado');
+            return {
+                success: false,
+                accessDenied: true,
+                silent: true,
+                stats: {},
+                recent_documents: [],
+                tasks: [],
+                documents: [],
+                persons: [],
+                categories: [],
+            };
+        }
+        // ═══════════════════════════════════════════════════════════════
+        
+        console.error('💥 Error en API call:', error);
+        throw error;
     }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MÉTODO: Mostrar modal de sistema cerrado (USANDO CLASES DEL SISTEMA)
+// ═══════════════════════════════════════════════════════════════
+showSystemClosedModal(data) {
+    // Evitar mostrar múltiples veces
+    if (this._systemClosedModalShown) return;
+    this._systemClosedModalShown = true;
+    
+    // Remover modal existente si hay uno
+    const existing = document.getElementById('systemClosedModal');
+    if (existing) existing.remove();
+    
+    const isSchoolClosed = data.type === 'school_closed';
+    
+    const modalHTML = `
+        <div class="modal" id="systemClosedModal" open style="display: flex; z-index: 10000;">
+            <div class="modal__content modal__content--sm" style="text-align: center; max-width: 480px;">
+                
+                <!-- Cabecera -->
+                <div class="modal__header" style="justify-content: center; border-bottom: none;">
+                    <h3 class="modal__title" style="text-align: center; width: 100%;">
+                        <i class="fas fa-lock" style="color: var(--warning-color, #f59e0b); margin-right: 0.5rem;"></i>
+                        ${isSchoolClosed ? 'Acceso Suspendido' : 'Sistema Cerrado'}
+                    </h3>
+                </div>
+                
+                <!-- Cuerpo -->
+                <div class="modal__body" style="text-align: center; padding-top: 0;">
+                    
+                    <!-- Icono grande -->
+                    <div class="action-modal__content">
+                        <div class="action-modal__icon action-modal__icon--warning">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        
+                        <p class="action-modal__message" style="margin-bottom: 1.25rem;">
+                            ${isSchoolClosed 
+                                ? 'El acceso para tu escuela ha sido <strong>temporalmente suspendido</strong> por el Super Administrador.'
+                                : 'El sistema ha sido <strong>cerrado temporalmente</strong> por el Super Administrador.<br>Todos los usuarios y administradores han sido desconectados.'
+                            }
+                        </p>
+                        
+                        ${data.reason ? `
+                            <div style="
+                                background: var(--bg-tertiary, #fffbeb);
+                                border: 1px solid var(--border, #fde68a);
+                                border-radius: var(--radius-lg, 10px);
+                                padding: 1rem 1.25rem;
+                                margin-bottom: 1.25rem;
+                                text-align: left;
+                            ">
+                                <strong style="font-size: 0.8rem; color: var(--text-secondary, #92400e); display: block; margin-bottom: 0.35rem;">
+                                    <i class="fas fa-clipboard-list"></i> Motivo del cierre:
+                                </strong>
+                                <p style="margin: 0; font-size: 0.9rem; color: var(--text-primary, #78350f); line-height: 1.5;">
+                                    ${data.reason}
+                                </p>
+                                ${data.closedAt ? `
+                                    <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: var(--text-secondary, #a16207); opacity: 0.8;">
+                                        <i class="fas fa-clock"></i> Desde: ${new Date(data.closedAt).toLocaleString('es-MX')}
+                                    </p>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                        
+                        <p style="font-size: 0.8rem; color: var(--text-secondary, #94a3b8); margin: 0 0 0.5rem;">
+                            <i class="fas fa-info-circle"></i>
+                            Serás redirigido al inicio de sesión.
+                        </p>
+                    </div>
+                    
+                </div>
+                
+                <!-- Footer -->
+                <div class="modal__footer modal__footer--centered" style="border-top: none; padding-top: 0;">
+                    <button onclick="window.location.href='/login.html'" 
+                            class="btn btn--primary" 
+                            style="min-width: 200px; padding: 0.75rem 1.5rem; font-size: 0.95rem;">
+                        <i class="fas fa-sign-in-alt"></i> Ir al Inicio de Sesión
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+    
+    // Cerrar con Escape
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            // No permitir cerrar con Escape, solo redirigir
+            window.location.href = '/login.html';
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    // Limpiar localStorage después de mostrar el modal
+    setTimeout(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('superAdminToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userRole');
+    }, 500);
+}
+
+// Método para resetear el estado del modal (cuando se reabre el sistema)
+resetSystemClosedState() {
+    this._systemClosedModalShown = false;
+    const modal = document.getElementById('systemClosedModal');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = '';
+    }
+}
+
+// Método para resetear el estado del modal (cuando se reabre el sistema)
+resetSystemClosedState() {
+    this._systemClosedModalShown = false;
+    const modal = document.getElementById('systemClosedModal');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = '';
+    }
+}
 
     // =========================================================================
     // FUNCIONES PARA ESTADO DEL SISTEMA (REAL - NO PRUEBA)

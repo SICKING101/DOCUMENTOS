@@ -996,6 +996,31 @@ export function confirmAction({
   });
 }
 
+/**
+ * Función fetch segura que maneja el cierre del sistema
+ * En lugar de mostrar errores, simplemente detiene la ejecución
+ */
+export async function safeFetch(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
+        
+        // Si es 503, simplemente retornar un objeto vacío
+        // El modal ya fue mostrado por el interceptor en authGuard.js
+        if (response.status === 503) {
+            return { success: false, accessDenied: true, silent: true };
+        }
+        
+        return response;
+    } catch (error) {
+        // Si es error de sistema cerrado, silenciarlo
+        if (error.systemClosed) {
+            return { success: false, accessDenied: true, silent: true };
+        }
+        throw error;
+    }
+}
+
+
 (function () {
             try {
                 const savedTheme = localStorage.getItem('theme');

@@ -161,16 +161,6 @@
     box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
 }
 
-/* =============================================================================
-   ██████╗  ██████╗ ███████╗████████╗    ██╗████████╗
-   ██╔══██╗██╔═══██╗██╔════╝╚══██╔══╝    ██║╚══██╔══╝
-   ██████╔╝██║   ██║███████╗   ██║       ██║   ██║
-   ██╔═══╝ ██║   ██║╚════██║   ██║       ██║   ██║
-   ██║     ╚██████╔╝███████║   ██║       ██║   ██║
-   ╚═╝      ╚═════╝ ╚══════╝   ╚═╝       ╚═╝   ╚═╝
-   APARTADO 1: TAREAS PERSONALES — ESTILO POST-IT
-   ============================================================================= */
-
 .postit-board {
     padding: 1.75rem 2rem;
     background:
@@ -199,18 +189,6 @@
     flex-direction: column;
     min-height: 190px;
     user-select: none;
-}
-
-/* Efecto de "papel doblado" en la esquina superior derecha */
-.postit-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    border-style: solid;
-    border-width: 0 20px 20px 0;
-    border-color: transparent;
-    transition: var(--transition);
 }
 
 .postit-card:hover {

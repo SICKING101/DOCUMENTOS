@@ -1,9 +1,12 @@
 // src/backend/controllers/authController.js
+// Agregar esta función de login COMPLETA al archivo
 
 import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import AuditService from '../services/auditService.js';
 import emailService from '../services/emailService.js';
+import SystemState from '../models/SystemState.js'; // <-- NUEVO IMPORT
 
 // =============================================================================
 // FUNCIONES AUXILIARES
@@ -11,6 +14,217 @@ import emailService from '../services/emailService.js';
 
 const generarCodigoVerificacion = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// =============================================================================
+// LOGIN DE USUARIO (COMPLETO - CON VERIFICACIÓN DE SISTEMA CERRADO)
+// =============================================================================
+export const login = async (req, res) => {
+    try {
+        console.log('\n🔐 ========== INTENTO DE LOGIN ==========');
+        
+        const { usuarioOCorreo, password } = req.body;
+
+        if (!usuarioOCorreo || !password) {
+            console.log('⚠️ Campos incompletos');
+            return res.status(400).json({
+                success: false,
+                message: 'Usuario/correo y contraseña son requeridos.'
+            });
+        }
+
+        console.log(`👤 Intento de login: ${usuarioOCorreo}`);
+
+        // Buscar usuario por correo o nombre de usuario
+        const user = await User.findOne({
+            $or: [
+                { correo: usuarioOCorreo.toLowerCase() },
+                { usuario: usuarioOCorreo }
+            ],
+            activo: true
+        }).select('+password');
+
+        if (!user) {
+            console.log('❌ Usuario no encontrado');
+            
+            await AuditService.log(req, {
+                action: 'LOGIN_ATTEMPT',
+                actionType: 'READ',
+                actionCategory: 'AUTH',
+                targetId: null,
+                targetModel: 'User',
+                description: `Intento de login fallido - Usuario no encontrado: ${usuarioOCorreo}`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: { usuarioOCorreo, motivo: 'user_not_found' }
+            }).catch(err => console.error('❌ Error en auditoría:', err.message));
+            
+            return res.status(401).json({
+                success: false,
+                message: 'Credenciales inválidas.'
+            });
+        }
+
+        // Verificar contraseña
+        const passwordValido = await user.compararPassword(password);
+        
+        if (!passwordValido) {
+            console.log('❌ Contraseña incorrecta');
+            
+            await AuditService.log(req, {
+                action: 'LOGIN_ATTEMPT',
+                actionType: 'READ',
+                actionCategory: 'AUTH',
+                targetId: user._id,
+                targetModel: 'User',
+                targetName: user.usuario,
+                description: `Intento de login fallido - Contraseña incorrecta`,
+                severity: 'WARNING',
+                status: 'FAILED',
+                metadata: { usuarioOCorreo, motivo: 'wrong_password' }
+            }).catch(err => console.error('❌ Error en auditoría:', err.message));
+            
+            return res.status(401).json({
+                success: false,
+                message: 'Credenciales inválidas.'
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // VERIFICAR SI EL SISTEMA ESTÁ CERRADO (SOLO PARA NO-SUPERADMINS)
+        // ═══════════════════════════════════════════════════════════════
+        if (user.rol !== 'superadmin') {
+            const systemState = await SystemState.getInstance();
+
+            // 1. Verificar cierre global
+            if (systemState.currentState.isClosed) {
+                console.log(`🚫 Login bloqueado - Sistema cerrado globalmente para: ${user.usuario}`);
+                
+                await AuditService.log(req, {
+                    action: 'LOGIN_BLOCKED',
+                    actionType: 'READ',
+                    actionCategory: 'AUTH',
+                    targetId: user._id,
+                    targetModel: 'User',
+                    targetName: user.usuario,
+                    description: `Login bloqueado - Sistema cerrado globalmente`,
+                    severity: 'WARNING',
+                    status: 'BLOCKED',
+                    metadata: { 
+                        motivo: 'system_closed_global',
+                        reason: systemState.currentState.reason 
+                    }
+                }).catch(err => console.error('❌ Error en auditoría:', err.message));
+                
+                return res.status(503).json({
+                    success: false,
+                    accessDenied: true,
+                    type: 'system_closed',
+                    message: 'El sistema está temporalmente cerrado.',
+                    reason: systemState.currentState.reason || 'Mantenimiento programado',
+                    closedAt: systemState.currentState.closedAt
+                });
+            }
+
+            // 2. Verificar cierre por escuela (si el usuario tiene schoolId)
+            if (user.schoolId) {
+                const schoolClosure = systemState.currentState.closedSchools.find(
+                    s => s.schoolId === user.schoolId
+                );
+
+                if (schoolClosure) {
+                    console.log(`🚫 Login bloqueado - Escuela cerrada: ${user.schoolId} para: ${user.usuario}`);
+                    
+                    await AuditService.log(req, {
+                        action: 'LOGIN_BLOCKED',
+                        actionType: 'READ',
+                        actionCategory: 'AUTH',
+                        targetId: user._id,
+                        targetModel: 'User',
+                        targetName: user.usuario,
+                        description: `Login bloqueado - Escuela cerrada: ${user.schoolId}`,
+                        severity: 'WARNING',
+                        status: 'BLOCKED',
+                        metadata: { 
+                            motivo: 'school_closed',
+                            schoolId: user.schoolId,
+                            reason: schoolClosure.reason 
+                        }
+                    }).catch(err => console.error('❌ Error en auditoría:', err.message));
+                    
+                    return res.status(503).json({
+                        success: false,
+                        accessDenied: true,
+                        type: 'school_closed',
+                        message: 'El acceso para tu escuela está temporalmente suspendido.',
+                        reason: schoolClosure.reason || 'Sin motivo especificado',
+                        schoolId: user.schoolId
+                    });
+                }
+            }
+        }
+        // ═══════════════════════════════════════════════════════════════
+
+        // Actualizar último acceso
+        user.ultimoAcceso = new Date();
+        await user.save({ validateBeforeSave: false });
+
+        // Generar JWT
+        const token = jwt.sign(
+            {
+                id: user._id,
+                usuario: user.usuario,
+                correo: user.correo,
+                rol: user.rol,
+                schoolId: user.schoolId,
+                isSuperAdmin: user.rol === 'superadmin'
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        console.log(`✅ Login exitoso: ${user.usuario} (${user.rol})`);
+
+        await AuditService.log(req, {
+            action: 'LOGIN_SUCCESS',
+            actionType: 'READ',
+            actionCategory: 'AUTH',
+            targetId: user._id,
+            targetModel: 'User',
+            targetName: user.usuario,
+            description: `Login exitoso`,
+            severity: 'INFO',
+            status: 'SUCCESS',
+            metadata: { 
+                rol: user.rol,
+                schoolId: user.schoolId,
+                isSuperAdmin: user.rol === 'superadmin'
+            }
+        }).catch(err => console.error('❌ Error en auditoría:', err.message));
+
+        // Respuesta exitosa
+        res.json({
+            success: true,
+            message: 'Inicio de sesión exitoso',
+            token,
+            user: {
+                id: user._id,
+                usuario: user.usuario,
+                correo: user.correo,
+                rol: user.rol,
+                nombre: user.nombre || user.usuario,
+                schoolId: user.schoolId,
+                isSuperAdmin: user.rol === 'superadmin'
+            }
+        });
+
+    } catch (error) {
+        console.error('🔥 ERROR en login:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error del servidor al iniciar sesión.'
+        });
+    }
 };
 
 // =============================================================================
@@ -481,6 +695,157 @@ export const estadoEmail = async (req, res) => {
             success: false,
             message: 'Error al obtener estado',
             error: error.message
+        });
+    }
+};
+
+// =============================================================================
+// VERIFICAR SI EXISTE ADMIN (para primer registro)
+// =============================================================================
+export const checkAdminExists = async (req, res) => {
+    try {
+        const adminCount = await User.countDocuments({ 
+            rol: 'administrador', 
+            activo: true 
+        });
+        
+        res.json({
+            success: true,
+            adminExists: adminCount > 0
+        });
+    } catch (error) {
+        console.error('🔥 ERROR en checkAdminExists:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al verificar administrador'
+        });
+    }
+};
+
+// =============================================================================
+// REGISTRO DEL PRIMER ADMINISTRADOR
+// =============================================================================
+export const registerFirstAdmin = async (req, res) => {
+    try {
+        const { usuario, correo, password } = req.body;
+
+        // Verificar si ya existe un admin
+        const adminExists = await User.countDocuments({ 
+            rol: 'administrador', 
+            activo: true 
+        });
+
+        if (adminExists > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Ya existe un administrador registrado.'
+            });
+        }
+
+        // Validaciones básicas
+        if (!usuario || !correo || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Todos los campos son requeridos.'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'La contraseña debe tener al menos 6 caracteres.'
+            });
+        }
+
+        // Verificar si el correo ya existe
+        const existingEmail = await User.findOne({ correo: correo.toLowerCase() });
+        if (existingEmail) {
+            return res.status(400).json({
+                success: false,
+                message: 'El correo ya está registrado.'
+            });
+        }
+
+        // Verificar si el usuario ya existe
+        const existingUser = await User.findOne({ usuario });
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: 'El nombre de usuario ya está en uso.'
+            });
+        }
+
+        // Crear el administrador
+        const newAdmin = new User({
+            usuario,
+            correo: correo.toLowerCase(),
+            password,
+            rol: 'administrador',
+            activo: true,
+            primerInicio: false
+        });
+
+        await newAdmin.save();
+
+        // Generar token
+        const token = jwt.sign(
+            {
+                id: newAdmin._id,
+                usuario: newAdmin.usuario,
+                correo: newAdmin.correo,
+                rol: newAdmin.rol,
+                isSuperAdmin: false
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        console.log(`✅ Primer administrador creado: ${usuario}`);
+
+        await AuditService.log(req, {
+            action: 'FIRST_ADMIN_REGISTER',
+            actionType: 'CREATE',
+            actionCategory: 'AUTH',
+            targetId: newAdmin._id,
+            targetModel: 'User',
+            targetName: newAdmin.usuario,
+            description: `Primer administrador registrado`,
+            severity: 'INFO',
+            status: 'SUCCESS'
+        }).catch(err => console.error('❌ Error en auditoría:', err.message));
+
+        res.status(201).json({
+            success: true,
+            message: 'Administrador registrado exitosamente',
+            token,
+            user: {
+                id: newAdmin._id,
+                usuario: newAdmin.usuario,
+                correo: newAdmin.correo,
+                rol: newAdmin.rol,
+                isSuperAdmin: false
+            }
+        });
+
+    } catch (error) {
+        console.error('🔥 ERROR en registerFirstAdmin:', error);
+        
+        // Manejar error de duplicado
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            const messages = {
+                correo: 'El correo ya está registrado.',
+                usuario: 'El nombre de usuario ya está en uso.'
+            };
+            return res.status(400).json({
+                success: false,
+                message: messages[field] || 'Dato duplicado.'
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Error del servidor al registrar administrador.'
         });
     }
 };

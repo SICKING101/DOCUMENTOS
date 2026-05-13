@@ -433,6 +433,74 @@
       });
     }
 
+    // ── Función para escapar HTML ──────────────────────────────────
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ── Función para mostrar modal de sistema cerrado ──────────────
+    function showSystemClosedModal(type, reason) {
+      const existing = document.getElementById('systemClosedModal');
+      if (existing) existing.remove();
+
+      const modalHTML = `
+        <div class="sa-modal" id="systemClosedModal" style="display:flex;z-index:10000;">
+          <div class="sa-modal__backdrop" onclick="document.getElementById('systemClosedModal').remove()"></div>
+          <div class="sa-modal__dialog" style="max-width:480px;text-align:center;">
+            <div class="sa-modal__header" style="justify-content:center;border-bottom:none;">
+              <div class="sa-modal__header-icon" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);">
+                <i class="fas fa-triangle-exclamation" style="color:#f59e0b;"></i>
+              </div>
+            </div>
+            <div class="sa-modal__body">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;padding:1rem 0;">
+                <div style="width:72px;height:72px;border-radius:50%;background:rgba(251,191,36,0.15);border:2px solid rgba(251,191,36,0.3);display:flex;align-items:center;justify-content:center;">
+                  <i class="fas fa-lock" style="font-size:2rem;color:#f59e0b;"></i>
+                </div>
+                <h3 style="font-family:'Syne',sans-serif;font-size:1.3rem;color:#2d3748;margin:0;">
+                  ${type === 'system_closed' ? 'Sistema Cerrado' : 'Acceso Suspendido'}
+                </h3>
+                <p style="color:#6b7280;font-size:.95rem;line-height:1.6;margin:0;">
+                  ${type === 'system_closed'
+                    ? 'El sistema se encuentra temporalmente cerrado por mantenimiento.'
+                    : 'El acceso para tu escuela ha sido temporalmente suspendido.'
+                  }
+                </p>
+                ${reason ? `
+                  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;width:100%;text-align:left;">
+                    <strong style="font-size:.8rem;color:#9ca3af;">Motivo:</strong>
+                    <p style="margin:.25rem 0 0 0;font-size:.85rem;color:#6b7280;">${escapeHtml(reason)}</p>
+                  </div>
+                ` : ''}
+                <p style="font-size:.8rem;color:#9ca3af;margin:0;">
+                  <i class="fas fa-circle-info"></i>
+                  Intenta nuevamente más tarde o contacta al administrador.
+                </p>
+              </div>
+            </div>
+            <div class="sa-modal__footer" style="justify-content:center;border-top:none;">
+              <button class="sa-btn sa-btn--primary" onclick="document.getElementById('systemClosedModal').remove()">
+                <i class="fas fa-check"></i> Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          document.getElementById('systemClosedModal')?.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+    }
+
     // ── Navegación entre paneles ──────────────────────────────────────────────
 
     function showPanel(panel) {
@@ -491,7 +559,7 @@
     togglePasswordVisibility('registerPasswordConfirm', 'toggleRegisterConfirm');
 
     // =========================================================================
-    // FORMULARIO 1: LOGIN
+    // FORMULARIO 1: LOGIN (COMPLETO - CON MANEJO DE SISTEMA CERRADO)
     // =========================================================================
 
     loginForm.addEventListener('submit', async (e) => {
@@ -520,6 +588,19 @@
         });
 
         const data = await response.json();
+
+        // ═══════════════════════════════════════════════════════
+        // MANEJO DE SISTEMA CERRADO
+        // ═══════════════════════════════════════════════════════
+        if (response.status === 503 && data.accessDenied) {
+          console.log(`🚫 Login bloqueado: ${data.type} - ${data.reason}`);
+          showSystemClosedModal(data.type, data.reason);
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
+          setLoading(false);
+          return;
+        }
+        // ═══════════════════════════════════════════════════════
 
         if (data.success) {
           localStorage.setItem('token', data.token);
