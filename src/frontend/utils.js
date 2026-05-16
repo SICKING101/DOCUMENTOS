@@ -25,7 +25,6 @@ function getFileIcon(fileType) {
     return 'file'; // default
 }
 
-// utils.js - Agrega esta función
 export function showConfirmModal(options) {
     const {
         title = 'Confirmación',
@@ -37,9 +36,15 @@ export function showConfirmModal(options) {
         onCancel = () => {}
     } = options;
 
+    // ⚠️ LIMPIAR cualquier modal de confirmación previo
+    const prevModal = document.getElementById('confirmModal');
+    if (prevModal) {
+        prevModal.remove();
+    }
+
     // Crear el modal
     const modalHTML = `
-        <div class="modal" id="confirmModal" style="display: flex;">
+        <div class="modal" id="confirmModal" style="display: flex; opacity: 1; visibility: visible;">
             <div class="modal__content modal__content--sm">
                 <div class="modal__header">
                     <h2 class="modal__title">
@@ -77,54 +82,64 @@ export function showConfirmModal(options) {
     const cancelBtn = document.getElementById('cancelConfirmBtn');
     const closeBtn = document.getElementById('closeConfirmModalBtn');
 
-    // Función para cerrar y limpiar
-    const closeModal = () => {
-        if (modal) {
-            modal.style.opacity = '0';
-            modal.style.visibility = 'hidden';
-            setTimeout(() => {
+    // ⚠️ CORRECCIÓN: Función para cerrar y ELIMINAR completamente
+    const closeModal = (confirmed = false) => {
+        if (!modal) return;
+        
+        // Ocultar con animación
+        modal.style.opacity = '0';
+        modal.style.visibility = 'hidden';
+        
+        setTimeout(() => {
+            // Forzar display none y remover del DOM
+            modal.style.display = 'none';
+            if (modal.parentNode) {
                 modal.remove();
-            }, 300);
-        }
+            }
+            // Remover event listener de Escape
+            document.removeEventListener('keydown', handleEscape);
+            
+            // Ejecutar callback correspondiente
+            if (confirmed) {
+                onConfirm();
+            } else {
+                onCancel();
+            }
+        }, 300);
     };
 
     // Event listeners
     confirmBtn.addEventListener('click', () => {
-        closeModal();
-        onConfirm();
+        closeModal(true);
     });
 
     cancelBtn.addEventListener('click', () => {
-        closeModal();
-        onCancel();
+        closeModal(false);
     });
 
-    closeBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', () => {
+        closeModal(false);
+    });
 
     // Cerrar al hacer clic fuera del modal
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            closeModal();
-            onCancel();
+            closeModal(false);
         }
     });
 
     // Cerrar con tecla Escape
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.style.display === 'flex') {
-            closeModal();
-            onCancel();
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeModal(false);
         }
-    });
-
-    // Animación de entrada
-    setTimeout(() => {
-        modal.style.opacity = '1';
-        modal.style.visibility = 'visible';
-    }, 10);
+    };
+    document.addEventListener('keydown', handleEscape);
 
     // Enfocar el botón de cancelar por defecto
-    cancelBtn.focus();
+    setTimeout(() => {
+        cancelBtn?.focus();
+    }, 100);
 }
 
 // Helper para obtener icono según tipo
@@ -980,6 +995,31 @@ export function confirmAction({
     modal.addEventListener('click', handleClose);
   });
 }
+
+/**
+ * Función fetch segura que maneja el cierre del sistema
+ * En lugar de mostrar errores, simplemente detiene la ejecución
+ */
+export async function safeFetch(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
+        
+        // Si es 503, simplemente retornar un objeto vacío
+        // El modal ya fue mostrado por el interceptor en authGuard.js
+        if (response.status === 503) {
+            return { success: false, accessDenied: true, silent: true };
+        }
+        
+        return response;
+    } catch (error) {
+        // Si es error de sistema cerrado, silenciarlo
+        if (error.systemClosed) {
+            return { success: false, accessDenied: true, silent: true };
+        }
+        throw error;
+    }
+}
+
 
 (function () {
             try {

@@ -1,5 +1,6 @@
 // =============================================================================
 // src/frontend/modules/documentos/table/tableRenderer.js
+// CORREGIDO - Compatible con el nuevo CSS category--*
 // =============================================================================
 
 import { DOM } from '../../../dom.js';
@@ -87,7 +88,8 @@ function syncDocumentsTableHeader() {
     const table = DOM.documentosTableBody.closest('table');
     if (!table) return;
 
-    table.classList.toggle('documents-table--selection', !!bulkDeleteState.isSelectionMode);
+    // Usar la nueva clase is-selection-mode
+    table.classList.toggle('is-selection-mode', !!bulkDeleteState.isSelectionMode);
 
     const headerRow = table.querySelector('thead tr');
     if (!headerRow) return;
@@ -99,6 +101,8 @@ function syncDocumentsTableHeader() {
             const th = document.createElement('th');
             th.setAttribute('data-selection-column', 'true');
             th.setAttribute('aria-label', 'Selección');
+            th.className = 'category--th';
+            th.style.width = '5%';
             headerRow.insertBefore(th, headerRow.firstChild);
         }
     } else if (existing) {
@@ -108,8 +112,6 @@ function syncDocumentsTableHeader() {
 
 /**
  * Renderiza la tabla de documentos con filtros y búsqueda aplicados.
- * Muestra estado, acciones y formatos los datos apropiadamente.
- * Ahora incluye soporte para selección múltiple.
  */
 export function renderDocumentsTable() {
     console.log('🔄 Renderizando tabla de documentos...');
@@ -125,77 +127,51 @@ export function renderDocumentsTable() {
     
     const pagination = ensureDocumentsPaginationState();
 
-    // Fuente de datos (prioridad): override -> filteredDocuments -> documents
-    // Mantiene compatibilidad con tableFilters.applyFilters() que llama renderDocumentsTable(filteredDocuments)
     const documentsOverride = arguments.length > 0 ? arguments[0] : undefined;
     let documentsToShow = Array.isArray(documentsOverride)
         ? documentsOverride
         : (window.appState.filteredDocuments || window.appState.documents || []);
     console.log(`📊 Documentos totales: ${documentsToShow.length}`);
     
-    // Actualizar estado con total de documentos
     if (bulkDeleteState.setTotalDocuments) {
         bulkDeleteState.setTotalDocuments(documentsToShow.length);
     }
     
-    // Nota: si llega documentsOverride o appState.filteredDocuments, asumimos que ya vienen filtrados.
-    // Solo aplicamos búsqueda/filtros aquí si NO hay override y NO hay filteredDocuments.
     const shouldApplyLocalFilters = !Array.isArray(documentsOverride) && !window.appState.filteredDocuments;
     if (shouldApplyLocalFilters) {
-        // Aplicar búsqueda si existe
         if (window.appState.currentSearchQuery) {
             const query = window.appState.currentSearchQuery.toLowerCase();
-            const initialCount = documentsToShow.length;
-
             documentsToShow = documentsToShow.filter(doc =>
                 doc.nombre_original.toLowerCase().includes(query) ||
                 (doc.descripcion && doc.descripcion.toLowerCase().includes(query)) ||
                 doc.categoria.toLowerCase().includes(query)
             );
-
-            console.log(`🔍 Búsqueda "${query}": ${initialCount} → ${documentsToShow.length} documentos`);
         }
 
-        // Aplicar filtros
         if (window.appState.filters?.category) {
-            const initialCount = documentsToShow.length;
             documentsToShow = documentsToShow.filter(doc => doc.categoria === window.appState.filters.category);
-            console.log(`🎯 Filtro categoría "${window.appState.filters.category}": ${initialCount} → ${documentsToShow.length}`);
         }
 
         if (window.appState.filters?.type) {
-            const initialCount = documentsToShow.length;
             documentsToShow = documentsToShow.filter(doc => doc.tipo_archivo.toLowerCase() === window.appState.filters.type.toLowerCase());
-            console.log(`🎯 Filtro tipo "${window.appState.filters.type}": ${initialCount} → ${documentsToShow.length}`);
         }
 
         if (window.appState.filters?.status) {
-            const initialCount = documentsToShow.length;
             const now = new Date();
-
             documentsToShow = documentsToShow.filter(doc => {
                 if (!doc.fecha_vencimiento) return window.appState.filters.status === 'active';
-
                 const fechaVencimiento = new Date(doc.fecha_vencimiento);
                 const diferenciaDias = Math.ceil((fechaVencimiento - now) / (1000 * 60 * 60 * 24));
-
                 switch (window.appState.filters.status) {
-                    case 'active':
-                        return diferenciaDias > 7;
-                    case 'expiring':
-                        return diferenciaDias <= 7 && diferenciaDias > 0;
-                    case 'expired':
-                        return diferenciaDias <= 0;
-                    default:
-                        return true;
+                    case 'active': return diferenciaDias > 7;
+                    case 'expiring': return diferenciaDias <= 7 && diferenciaDias > 0;
+                    case 'expired': return diferenciaDias <= 0;
+                    default: return true;
                 }
             });
-
-            console.log(`🎯 Filtro estado "${window.appState.filters.status}": ${initialCount} → ${documentsToShow.length}`);
         }
     }
     
-    // Paginación (15 por página)
     const totalFiltered = documentsToShow.length;
     const itemsPerPage = pagination.itemsPerPage;
     const totalPages = Math.max(1, Math.ceil(totalFiltered / itemsPerPage));
@@ -203,7 +179,6 @@ export function renderDocumentsTable() {
     const startIndex = (pagination.currentPage - 1) * itemsPerPage;
     const pageDocuments = documentsToShow.slice(startIndex, startIndex + itemsPerPage);
 
-    // Guardar IDs visibles para selección múltiple ("esta página")
     const visibleIds = pageDocuments.map(doc => doc._id || doc.id).filter(id => id);
     if (bulkDeleteState.setFilteredIds) {
         bulkDeleteState.setFilteredIds(visibleIds);
@@ -211,8 +186,6 @@ export function renderDocumentsTable() {
     
     // Manejar estado vacío
     if (documentsToShow.length === 0) {
-        console.log('📭 No hay documentos para mostrar');
-        
         const emptyMessage = window.appState.currentSearchQuery || 
                            window.appState.filters?.category || 
                            window.appState.filters?.type || 
@@ -220,35 +193,29 @@ export function renderDocumentsTable() {
             ? 'No hay documentos que coincidan con la búsqueda o filtros aplicados' 
             : 'Sube tu primer documento para comenzar';
         
-        // Calcular columnas correctamente
-        const numColumns = bulkDeleteState.isSelectionMode ? 7 : 6;
+        const numColumns = bulkDeleteState.isSelectionMode ? 6 : 5;
         
         DOM.documentosTableBody.innerHTML = `
             <tr>
-                <td colspan="${numColumns}" class="empty-state">
-                    <div class="empty-state__container">
-                        <i class="fas fa-file-alt empty-state__icon"></i>
-                        <h3 class="empty-state__title">No hay documentos</h3>
-                        <p class="empty-state__description">${emptyMessage}</p>
-                    </div>
+                <td colspan="${numColumns}" class="category--table-empty">
+                    <i class="fas fa-file-alt category--table-empty-icon"></i>
+                    <h3 class="category--table-empty-title">No hay documentos</h3>
+                    <p class="category--table-empty-desc">${emptyMessage}</p>
                 </td>
             </tr>
         `;
         
-        // Si no hay documentos, limpiar selección
         if (bulkDeleteState.clearSelection) {
             bulkDeleteState.clearSelection();
         }
         updateBulkSelectionUI();
-
         renderDocumentsPagination(0, 1);
-        
         return;
     }
     
     console.log(`✅ Mostrando página ${pagination.currentPage}/${totalPages} (${pageDocuments.length} de ${documentsToShow.length})`);
     
-    // Renderizar cada documento (solo los de la página)
+    // Renderizar cada documento
     pageDocuments.forEach(doc => {
         const row = createDocumentRow(doc);
         if (row) {
@@ -256,13 +223,9 @@ export function renderDocumentsTable() {
         }
     });
 
-    // Renderizar controles de paginación
     renderDocumentsPagination(totalPages, pagination.currentPage);
-    
-    // Actualizar UI de selección múltiple
     updateBulkSelectionUI();
     
-    // Configurar event listeners para checkboxes si está en modo selección
     if (bulkDeleteState.isSelectionMode) {
         setTimeout(() => {
             setupCheckboxEventListeners();
@@ -273,7 +236,64 @@ export function renderDocumentsTable() {
 }
 
 /**
- * CREAR FILA DE DOCUMENTO
+ * Obtiene la clase CSS para el icono según el tipo de archivo.
+ */
+function getFileIconClass(extension) {
+    const ext = (extension || '').toLowerCase();
+    const iconMap = {
+        'pdf': 'category--doc-file-icon--pdf',
+        'doc': 'category--doc-file-icon--word',
+        'docx': 'category--doc-file-icon--word',
+        'xls': 'category--doc-file-icon--excel',
+        'xlsx': 'category--doc-file-icon--excel',
+        'jpg': 'category--doc-file-icon--image',
+        'jpeg': 'category--doc-file-icon--image',
+        'png': 'category--doc-file-icon--image',
+        'gif': 'category--doc-file-icon--image',
+        'webp': 'category--doc-file-icon--image',
+        'bmp': 'category--doc-file-icon--image',
+        'ppt': 'category--doc-file-icon--ppt',
+        'pptx': 'category--doc-file-icon--ppt',
+        'txt': 'category--doc-file-icon--txt',
+        'csv': 'category--doc-file-icon--txt',
+        'json': 'category--doc-file-icon--txt',
+        'xml': 'category--doc-file-icon--txt',
+    };
+    return iconMap[ext] || 'category--doc-file-icon--other';
+}
+
+/**
+ * Obtiene el icono de Font Awesome según el tipo de archivo.
+ */
+function getFileFaIcon(extension) {
+    const ext = (extension || '').toLowerCase();
+    const iconMap = {
+        'pdf': 'fa-file-pdf',
+        'doc': 'fa-file-word',
+        'docx': 'fa-file-word',
+        'xls': 'fa-file-excel',
+        'xlsx': 'fa-file-excel',
+        'jpg': 'fa-file-image',
+        'jpeg': 'fa-file-image',
+        'png': 'fa-file-image',
+        'gif': 'fa-file-image',
+        'webp': 'fa-file-image',
+        'bmp': 'fa-file-image',
+        'ppt': 'fa-file-powerpoint',
+        'pptx': 'fa-file-powerpoint',
+        'txt': 'fa-file-alt',
+        'csv': 'fa-file-csv',
+        'json': 'fa-file-code',
+        'xml': 'fa-file-code',
+        'html': 'fa-file-code',
+        'zip': 'fa-file-archive',
+        'rar': 'fa-file-archive',
+    };
+    return iconMap[ext] || 'fa-file';
+}
+
+/**
+ * CREAR FILA DE DOCUMENTO - CORREGIDA con las nuevas clases CSS
  */
 function createDocumentRow(doc) {
     if (!doc || (!doc._id && !doc.id)) {
@@ -282,83 +302,70 @@ function createDocumentRow(doc) {
     }
     
     const person = doc.persona_id ? doc.persona_id : { nombre: 'No asignado' };
-    
-    // Determinar estado de vencimiento
     const { vencimientoClass, vencimientoText, statusBadgeClass } = getDocumentStatus(doc);
     
-    // Determinar si se puede previsualizar
     const fileExtension = doc.nombre_original?.split('.').pop().toLowerCase() || 'file';
     const previewInfo = canPreviewDocument(fileExtension);
-    const fileIcon = getFileIcon(doc.tipo_archivo || 'file');
+    const fileIconClass = getFileIconClass(fileExtension);
+    const fileFaIcon = getFileFaIcon(fileExtension);
     
-    // Crear botones de acciones
     const actionButtons = createActionButtons(doc, previewInfo.canPreview);
     
-    // Crear tooltips
-    const nameTooltip = doc.nombre_original && doc.nombre_original.length > 40 ? `title="${doc.nombre_original}"` : '';
-    const descTooltip = doc.descripcion && doc.descripcion.length > 40 ? `title="${doc.descripcion}"` : '';
-    const statusTooltip = vencimientoText && vencimientoText.length > 15 ? `title="${vencimientoText}"` : '';
-    const personTooltip = person.nombre && person.nombre.length > 20 ? `title="${person.nombre}"` : '';
-    const categoryTooltip = doc.categoria && doc.categoria.length > 15 ? `title="${doc.categoria}"` : '';
-    
-    // Determinar si la fila está seleccionada
     const docId = doc._id || doc.id;
     const isSelected = bulkDeleteState.isSelected ? bulkDeleteState.isSelected(docId) : false;
-    const rowClass = `table__row ${isSelected ? 'document-row--selected' : ''}`;
     
     const row = document.createElement('tr');
-    row.className = rowClass;
+    row.className = isSelected ? 'doc-row--selected' : '';
     row.setAttribute('data-document-id', docId);
     
-    // Crear HTML de la fila
     let rowHTML = '';
     
     // Columna de selección (solo en modo selección)
     if (bulkDeleteState.isSelectionMode) {
         rowHTML += `
-            <td class="table__cell table__cell--select">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" 
-                           class="document-select-checkbox"
-                           data-document-id="${docId}"
-                           ${isSelected ? 'checked' : ''}
-                           aria-label="Seleccionar documento">
-                </div>
+            <td class="category--checkbox-cell">
+                <input type="checkbox" 
+                       class="category--select-checkbox document-select-checkbox"
+                       data-document-id="${docId}"
+                       ${isSelected ? 'checked' : ''}
+                       aria-label="Seleccionar documento">
             </td>
         `;
     }
     
-    // Resto de las columnas
+    // Nombre del documento con icono
+    const docName = doc.nombre_original || 'Documento sin nombre';
+    const docDesc = doc.descripcion || '';
+    const truncatedName = docName.length > 35 ? docName.substring(0, 35) + '...' : docName;
+    const truncatedDesc = docDesc.length > 40 ? docDesc.substring(0, 40) + '...' : docDesc;
+    
     rowHTML += `
-        <td class="table__cell">
-            <div class="documents__info documents__info--inline">
-                <div class="documents__icon documents__icon--sm">
-                    <i class="fas fa-file-${fileIcon}"></i>
+        <td>
+            <div class="category--doc-cell">
+                <div class="category--doc-file-icon ${fileIconClass}">
+                    <i class="fas ${fileFaIcon}"></i>
                 </div>
-                <div>
-                    <div class="documents__details-name" ${nameTooltip}>
-                        ${doc.nombre_original || 'Documento sin nombre'}
-                    </div>
-                    ${doc.descripcion ? `<div class="documents__details-description" ${descTooltip}>${doc.descripcion}</div>` : ''}
+                <div class="category--doc-info">
+                    <span class="category--doc-name" title="${docName}">${truncatedName}</span>
+                    ${docDesc ? `<span class="category--doc-desc" title="${docDesc}">${truncatedDesc}</span>` : ''}
                 </div>
             </div>
         </td>
-        <td class="table__cell">
-            <span class="badge badge--info">${(doc.tipo_archivo || 'file').toUpperCase()}</span>
+        <td>
+            <span class="category--type-badge">${(doc.tipo_archivo || 'file').toUpperCase()}</span>
         </td>
-        <td class="table__cell" ${personTooltip}>
-            ${person.nombre || 'No asignado'}
+        <td title="${person.nombre || 'No asignado'}">
+            ${(person.nombre || 'No asignado').length > 20 
+                ? (person.nombre || 'No asignado').substring(0, 20) + '...' 
+                : (person.nombre || 'No asignado')}
         </td>
-        <td class="table__cell">
-            <span class="badge badge--info" ${categoryTooltip}>${doc.categoria || 'General'}</span>
-        </td>
-        <td class="table__cell">
-            <span class="badge ${statusBadgeClass} document-status ${vencimientoClass}" ${statusTooltip}>
+        <td>
+            <span class="category--status-badge ${statusBadgeClass}">
                 ${vencimientoText}
             </span>
         </td>
-        <td class="table__cell table__cell--actions">
-            <div class="action-buttons">
+        <td>
+            <div class="category--doc-actions">
                 ${actionButtons}
             </div>
         </td>
@@ -372,9 +379,8 @@ function createDocumentRow(doc) {
  * OBTENER ESTADO DEL DOCUMENTO
  */
 function getDocumentStatus(doc) {
-    let vencimientoClass = '';
     let vencimientoText = '';
-    let statusBadgeClass = 'badge--info';
+    let statusBadgeClass = 'category--status-badge--none';
     
     if (doc.fecha_vencimiento) {
         try {
@@ -383,41 +389,33 @@ function getDocumentStatus(doc) {
             const diferenciaDias = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
             
             if (diferenciaDias <= 0) {
-                vencimientoClass = 'vencido';
                 vencimientoText = 'Vencido';
-                statusBadgeClass = 'badge--danger';
+                statusBadgeClass = 'category--status-badge--expired';
             } else if (diferenciaDias <= 7) {
-                vencimientoClass = 'por-vencer';
                 vencimientoText = `Vence en ${diferenciaDias} días`;
-                statusBadgeClass = 'badge--warning';
+                statusBadgeClass = 'category--status-badge--expiring';
             } else if (diferenciaDias <= 30) {
-                vencimientoClass = 'activo';
                 vencimientoText = `Vence en ${diferenciaDias} días`;
-                statusBadgeClass = 'badge--info';
+                statusBadgeClass = 'category--status-badge--active';
             } else {
-                vencimientoClass = 'activo';
                 vencimientoText = 'Activo';
-                statusBadgeClass = 'badge--info';
+                statusBadgeClass = 'category--status-badge--active';
             }
         } catch (error) {
-            console.error('❌ Error calculando estado del documento:', error);
-            vencimientoClass = 'sin-vencimiento';
             vencimientoText = 'Fecha inválida';
-            statusBadgeClass = 'badge--info';
+            statusBadgeClass = 'category--status-badge--none';
         }
     } else {
-        vencimientoClass = 'sin-vencimiento';
         vencimientoText = 'Sin vencimiento';
-        statusBadgeClass = 'badge--info';
+        statusBadgeClass = 'category--status-badge--none';
     }
     
-    return { vencimientoClass, vencimientoText, statusBadgeClass };
+    return { vencimientoText, statusBadgeClass };
 }
 
 /**
- * CREAR BOTONES DE ACCIONES
+ * CREAR BOTONES DE ACCIONES - CORREGIDO con nuevas clases
  */
-// Solo mostrar los botones de Renovar y Eliminar para documentos vencidos
 function createActionButtons(doc, canPreview) {
     const docId = doc._id || doc.id;
     if (!docId) return '';
@@ -426,63 +424,49 @@ function createActionButtons(doc, canPreview) {
     const canView = hasPermission(PERMISSIONS.VIEW_DOCUMENTS);
     const canEdit = hasPermission(PERMISSIONS.EDIT_DOCUMENTS);
     const canDelete = hasPermission(PERMISSIONS.DELETE_DOCUMENTS);
-    const canApprove = hasPermission(PERMISSIONS.APPROVE_DOCUMENTS);
 
-    // Si el documento está vencido, solo mostrar Renovar y Eliminar
     let buttons = '';
 
+    // Botón Descargar
     if (canDownload) {
         buttons += `
-            <button class=\"btn btn--sm btn--outline btn--download\" 
-                    onclick=\"if (window.downloadDocument) window.downloadDocument('${docId}')\" 
-                    title=\"Descargar\">
-                <i class=\"fas fa-download\"></i>
+            <button class="category--action-btn category--action-btn--download" 
+                    onclick="if(window.downloadDocument)window.downloadDocument('${docId}')" 
+                    title="Descargar" aria-label="Descargar documento">
+                <i class="fas fa-download"></i>
             </button>
         `;
     }
 
+    // Botón Ver / Vista previa
     if (canPreview && canView) {
         buttons += `
-            <button class=\"btn btn--sm btn--outline btn--view\" 
-                    onclick=\"if (window.previewDocument) window.previewDocument('${docId}')\" 
-                    title=\"Vista previa\">
-                <i class=\"fas fa-eye\"></i>
+            <button class="category--action-btn category--action-btn--view" 
+                    onclick="if(window.previewDocument)window.previewDocument('${docId}')" 
+                    title="Vista previa" aria-label="Ver documento">
+                <i class="fas fa-eye"></i>
             </button>
         `;
     }
 
-    // Revisión: solo si está pendiente
-    if (canApprove && doc.status === 'pending') {
-        buttons += `
-            <button class=\"btn btn--sm btn--outline\" 
-                    onclick=\"if (window.approveDocument) window.approveDocument('${docId}')\" 
-                    title=\"Aprobar\">
-                <i class=\"fas fa-check\"></i>
-            </button>
-            <button class=\"btn btn--sm btn--outline\" 
-                    onclick=\"if (window.rejectDocument) window.rejectDocument('${docId}')\" 
-                    title=\"Rechazar\">
-                <i class=\"fas fa-times\"></i>
-            </button>
-        `;
-    }
-
+    // Botón Editar
     if (canEdit) {
         buttons += `
-            <button class=\"btn btn--sm btn--outline btn--edit\" 
-                    onclick=\"if (window.editDocument) window.editDocument('${docId}')\" 
-                    title=\"Editar documento\">
-                <i class=\"fas fa-edit\"></i>
+            <button class="category--action-btn category--action-btn--edit" 
+                    onclick="if(window.editDocument)window.editDocument('${docId}')" 
+                    title="Editar documento" aria-label="Editar documento">
+                <i class="fas fa-edit"></i>
             </button>
         `;
     }
 
+    // Botón Eliminar
     if (canDelete) {
         buttons += `
-            <button class=\"btn btn--sm btn--outline btn--delete\" 
-                    onclick=\"if (window.deleteDocument) window.deleteDocument('${docId}')\" 
-                    title=\"Eliminar\">
-                <i class=\"fas fa-trash\"></i>
+            <button class="category--action-btn category--action-btn--delete" 
+                    onclick="if(window.deleteDocument)window.deleteDocument('${docId}')" 
+                    title="Eliminar" aria-label="Eliminar documento">
+                <i class="fas fa-trash"></i>
             </button>
         `;
     }
@@ -496,14 +480,10 @@ function createActionButtons(doc, canPreview) {
 function setupCheckboxEventListeners() {
     const checkboxes = document.querySelectorAll('.document-select-checkbox');
     
-    console.log(`🎯 Configurando ${checkboxes.length} checkboxes`);
-    
     checkboxes.forEach(checkbox => {
-        // Remover listeners anteriores para evitar duplicados
         checkbox.replaceWith(checkbox.cloneNode(true));
     });
     
-    // Re-seleccionar checkboxes después de clonar
     const newCheckboxes = document.querySelectorAll('.document-select-checkbox');
     
     newCheckboxes.forEach(checkbox => {
@@ -511,22 +491,18 @@ function setupCheckboxEventListeners() {
             const documentId = this.getAttribute('data-document-id');
             const isChecked = this.checked;
             
-            console.log(`📝 Checkbox cambio: ${documentId} = ${isChecked ? 'checked' : 'unchecked'}`);
-            
-            // Actualizar estado
             if (isChecked) {
                 if (bulkDeleteState.addDocument) {
                     bulkDeleteState.addDocument(documentId);
                 }
-                this.closest('tr').classList.add('document-row--selected');
+                this.closest('tr').classList.add('doc-row--selected');
             } else {
                 if (bulkDeleteState.removeDocument) {
                     bulkDeleteState.removeDocument(documentId);
                 }
-                this.closest('tr').classList.remove('document-row--selected');
+                this.closest('tr').classList.remove('doc-row--selected');
             }
             
-            // Actualizar UI
             updateBulkSelectionUI();
         });
     });
@@ -536,11 +512,8 @@ function setupCheckboxEventListeners() {
  * ACTUALIZAR UI DE SELECCIÓN MÚLTIPLE
  */
 function updateBulkSelectionUI() {
-    console.log('🔄 Actualizando UI de selección múltiple');
-    
     const selectedCount = bulkDeleteState.getSelectedCount ? bulkDeleteState.getSelectedCount() : 0;
     
-    // Actualizar contadores
     const badge = document.getElementById('selectedCountBadge');
     const text = document.getElementById('selectedCountText');
     const modalCount = document.getElementById('bulkDeleteCount');
@@ -549,38 +522,27 @@ function updateBulkSelectionUI() {
         badge.textContent = selectedCount;
         badge.style.display = selectedCount > 0 ? 'inline-block' : 'none';
     }
+    if (text) text.textContent = selectedCount;
+    if (modalCount) modalCount.textContent = selectedCount;
     
-    if (text) {
-        text.textContent = selectedCount;
-    }
-    
-    if (modalCount) {
-        modalCount.textContent = selectedCount;
-    }
-    
-    // Mostrar/ocultar barra de información y botones
     const selectionBar = document.getElementById('selectionInfoBar');
     const bulkActions = document.getElementById('bulkActionsContainer');
     
     if (selectionBar) {
-        selectionBar.style.display = bulkDeleteState.isSelectionMode ? 'block' : 'none';
+        selectionBar.style.display = bulkDeleteState.isSelectionMode ? 'flex' : 'none';
     }
-    
     if (bulkActions) {
         bulkActions.style.display = selectedCount > 0 ? 'flex' : 'none';
     }
     
-    // Actualizar botón de eliminación masiva
     const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
     if (bulkDeleteBtn) {
         bulkDeleteBtn.disabled = selectedCount === 0;
     }
     
-    // Actualizar checkbox "seleccionar todos"
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     if (selectAllCheckbox) {
         const totalCheckboxes = document.querySelectorAll('.document-select-checkbox').length;
-        
         if (selectedCount === 0) {
             selectAllCheckbox.checked = false;
             selectAllCheckbox.indeterminate = false;
@@ -592,193 +554,107 @@ function updateBulkSelectionUI() {
             selectAllCheckbox.indeterminate = true;
         }
     }
-    
-    console.log(`✅ UI actualizada: ${selectedCount} seleccionados, modo: ${bulkDeleteState.isSelectionMode}`);
 }
 
-/**
- * REFRESCAR TABLA CON ESTADO ACTUAL
- */
 export function refreshTable() {
-    console.log('🔄 Refrescando tabla...');
     renderDocumentsTable();
 }
 
-/**
- * ACTIVAR MODO SELECCIÓN
- */
 export function enableSelectionMode() {
-    console.log('🎯 Activando modo selección desde tableRenderer');
     if (bulkDeleteState.enableSelectionMode) {
         bulkDeleteState.enableSelectionMode();
     }
     renderDocumentsTable();
 }
 
-/**
- * DESACTIVAR MODO SELECCIÓN
- */
 export function disableSelectionMode() {
-    console.log('🎯 Desactivando modo selección desde tableRenderer');
     if (bulkDeleteState.disableSelectionMode) {
         bulkDeleteState.disableSelectionMode();
     }
     renderDocumentsTable();
 }
 
-/**
- * SELECCIONAR TODOS LOS DOCUMENTOS VISIBLES
- */
 export function selectAllVisible() {
-    console.log('📋 Seleccionando todos los documentos visibles');
-    
     const visibleIds = bulkDeleteState.currentFilteredIds || [];
-    
-    if (visibleIds.length === 0) {
-        console.warn('⚠️ No hay documentos visibles para seleccionar');
-        return;
-    }
+    if (visibleIds.length === 0) return;
     
     if (bulkDeleteState.selectAllVisible) {
         bulkDeleteState.selectAllVisible(visibleIds);
     }
     
-    // Marcar checkboxes visualmente
     const checkboxes = document.querySelectorAll('.document-select-checkbox');
     checkboxes.forEach(checkbox => {
         const docId = checkbox.getAttribute('data-document-id');
         if (bulkDeleteState.isSelected && bulkDeleteState.isSelected(docId)) {
             checkbox.checked = true;
-            checkbox.closest('tr').classList.add('document-row--selected');
+            checkbox.closest('tr').classList.add('doc-row--selected');
         }
     });
     
     updateBulkSelectionUI();
-    console.log(`✅ ${visibleIds.length} documentos seleccionados`);
 }
 
-/**
- * DESELECCIONAR TODOS LOS DOCUMENTOS
- */
 export function deselectAll() {
-    console.log('📋 Deseleccionando todos los documentos');
-    
     if (bulkDeleteState.deselectAll) {
         bulkDeleteState.deselectAll();
     }
     
-    // Desmarcar checkboxes visualmente
     const checkboxes = document.querySelectorAll('.document-select-checkbox');
-    const selectedRows = document.querySelectorAll('.document-row--selected');
+    checkboxes.forEach(checkbox => { checkbox.checked = false; });
     
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    
-    selectedRows.forEach(row => {
-        row.classList.remove('document-row--selected');
+    document.querySelectorAll('.doc-row--selected').forEach(row => {
+        row.classList.remove('doc-row--selected');
     });
     
     updateBulkSelectionUI();
-    console.log('✅ Todos los documentos deseleccionados');
 }
 
-/**
- * DEBUG: MOSTRAR ESTADO DE SELECCIÓN
- */
 export function debugSelection() {
     console.group('🐛 DEBUG - Selección de documentos');
-    
     const state = bulkDeleteState.getState ? bulkDeleteState.getState() : {};
     console.log('📊 Estado:', state);
-    
     console.log('👁️ Elementos UI:');
     console.table({
         'Checkboxes en tabla': document.querySelectorAll('.document-select-checkbox').length,
-        'Filas seleccionadas': document.querySelectorAll('.document-row--selected').length,
+        'Filas seleccionadas': document.querySelectorAll('.doc-row--selected').length,
         'Barra de selección visible': document.getElementById('selectionInfoBar')?.style.display !== 'none',
-        'Botones masivos visibles': document.getElementById('bulkActionsContainer')?.style.display !== 'none'
     });
-    
-    console.log('📋 Documentos en appState:', window.appState?.documents?.length || 0);
-    
-    if (window.appState?.documents) {
-        console.log('🔍 Primeros 5 documentos:');
-        window.appState.documents.slice(0, 5).forEach((doc, index) => {
-            const docId = doc._id || doc.id;
-            const isSelected = bulkDeleteState.isSelected ? bulkDeleteState.isSelected(docId) : false;
-            console.log(`${index + 1}. ${doc.nombre_original} (ID: ${docId}) - Seleccionado: ${isSelected}`);
-        });
-    }
-    
     console.groupEnd();
     
-    // Mostrar alerta para el usuario
     if (window.showAlert) {
         window.showAlert('Debug completado. Revisa la consola.', 'info');
     }
 }
 
-/**
- * TEST: SIMULAR SELECCIÓN DE DOCUMENTOS
- */
 export function testSelection() {
     console.group('🧪 TEST - Selección múltiple');
     
-    // Activar modo selección si no está activo
     if (!bulkDeleteState.isSelectionMode) {
         enableSelectionMode();
-        console.log('✅ Modo selección activado para test');
     }
     
-    // Obtener primeros 3 documentos
     const documents = window.appState?.documents || [];
     if (documents.length >= 3) {
-        const testIds = documents.slice(0, 3)
-            .map(doc => doc._id || doc.id)
-            .filter(id => id);
+        const testIds = documents.slice(0, 3).map(doc => doc._id || doc.id).filter(id => id);
         
-        console.log('🎯 IDs de prueba:', testIds);
-        
-        // Seleccionar documentos
         testIds.forEach(docId => {
-            if (bulkDeleteState.addDocument) {
-                bulkDeleteState.addDocument(docId);
-            }
-            
-            // Marcar visualmente
+            if (bulkDeleteState.addDocument) bulkDeleteState.addDocument(docId);
             const checkbox = document.querySelector(`.document-select-checkbox[data-document-id="${docId}"]`);
             const row = document.querySelector(`tr[data-document-id="${docId}"]`);
-            
-            if (checkbox) {
-                checkbox.checked = true;
-            }
-            
-            if (row) {
-                row.classList.add('document-row--selected');
-            }
+            if (checkbox) checkbox.checked = true;
+            if (row) row.classList.add('doc-row--selected');
         });
         
-        // Actualizar UI
         updateBulkSelectionUI();
         
-        console.log('✅ Test configurado: 3 documentos seleccionados');
-        
         if (window.showAlert) {
-            window.showAlert('Test configurado: 3 documentos seleccionados. Usa el botón de eliminación masiva.', 'info');
-        }
-    } else {
-        console.warn('⚠️ No hay suficientes documentos para el test');
-        
-        if (window.showAlert) {
-            window.showAlert('Necesitas al menos 3 documentos para probar la selección múltiple', 'warning');
+            window.showAlert('Test: 3 documentos seleccionados', 'info');
         }
     }
     
     console.groupEnd();
 }
 
-// Exportar funciones de selección
 export {
     bulkDeleteState,
     updateBulkSelectionUI

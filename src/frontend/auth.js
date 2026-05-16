@@ -302,7 +302,92 @@ function setupRegisterValidation() {
 }
 
 // =============================================================================
-// LOGIN HANDLER
+// FUNCIÓN AUXILIAR: Mostrar modal de sistema cerrado
+// =============================================================================
+
+function showSystemClosedModal(type, reason) {
+    // Remover modal existente si hay uno
+    const existing = document.getElementById('systemClosedModal');
+    if (existing) existing.remove();
+
+    const modalHTML = `
+        <div class="sa-modal" id="systemClosedModal" style="display:flex;z-index:10000;">
+            <div class="sa-modal__backdrop" onclick="document.getElementById('systemClosedModal').remove()"></div>
+            <div class="sa-modal__dialog" style="max-width:480px;text-align:center;">
+                <div class="sa-modal__header" style="justify-content:center;border-bottom:none;">
+                    <div class="sa-modal__header-icon" style="background:var(--col-amber-dim, rgba(251,191,36,0.15));border:1px solid rgba(251,191,36,0.3);">
+                        <i class="fas fa-triangle-exclamation" style="color:var(--col-amber, #f59e0b);"></i>
+                    </div>
+                </div>
+                <div class="sa-modal__body">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;padding:1rem 0;">
+                        <div style="
+                            width:72px;height:72px;
+                            border-radius:50%;
+                            background:var(--col-amber-dim, rgba(251,191,36,0.15));
+                            border:2px solid rgba(251,191,36,0.3);
+                            display:flex;align-items:center;justify-content:center;
+                        ">
+                            <i class="fas fa-lock" style="font-size:2rem;color:var(--col-amber, #f59e0b);"></i>
+                        </div>
+                        <h3 style="font-family:var(--font-heading, 'Syne', sans-serif);font-size:1.3rem;color:var(--col-text, #2d3748);margin:0;">
+                            ${type === 'system_closed' ? 'Sistema Cerrado' : 'Acceso Suspendido'}
+                        </h3>
+                        <p style="color:var(--col-text-2, #6b7280);font-size:.95rem;line-height:1.6;margin:0;">
+                            ${type === 'system_closed'
+                                ? 'El sistema se encuentra temporalmente cerrado por mantenimiento.'
+                                : 'El acceso para tu escuela ha sido temporalmente suspendido.'
+                            }
+                        </p>
+                        ${reason ? `
+                            <div style="
+                                background:var(--col-surface, #f9fafb);
+                                border:1px solid var(--col-border, #e5e7eb);
+                                border-radius:8px;
+                                padding:1rem;
+                                width:100%;
+                                text-align:left;
+                            ">
+                                <strong style="font-size:.8rem;color:var(--col-text-3, #9ca3af);">Motivo:</strong>
+                                <p style="margin:.25rem 0 0 0;font-size:.85rem;color:var(--col-text-2, #6b7280);">${escapeHtml(reason)}</p>
+                            </div>
+                        ` : ''}
+                        <p style="font-size:.8rem;color:var(--col-text-3, #9ca3af);margin:0;">
+                            <i class="fas fa-circle-info"></i>
+                            Intenta nuevamente más tarde o contacta al administrador.
+                        </p>
+                    </div>
+                </div>
+                <div class="sa-modal__footer" style="justify-content:center;border-top:none;">
+                    <button class="sa-btn sa-btn--primary" onclick="document.getElementById('systemClosedModal').remove()">
+                        <i class="fas fa-check"></i> Entendido
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Cerrar con Escape
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            document.getElementById('systemClosedModal')?.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// =============================================================================
+// LOGIN HANDLER (COMPLETO - CON MANEJO DE SISTEMA CERRADO)
 // =============================================================================
 
 export async function handleLogin(e) {
@@ -334,6 +419,26 @@ export async function handleLogin(e) {
         });
 
         const data = await response.json();
+
+        // ═══════════════════════════════════════════════════════════
+        // MANEJO DE SISTEMA CERRADO (NUEVO)
+        // ═══════════════════════════════════════════════════════════
+        if (response.status === 503 && data.accessDenied) {
+            logAuthEvent('login_failed', {
+                usuario: usuarioOCorreo,
+                motivo: data.type === 'system_closed' ? 'Sistema cerrado globalmente' : 'Escuela cerrada',
+                reason: data.reason
+            });
+
+            showSystemClosedModal(data.type, data.reason);
+
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
+            }
+            return;
+        }
+        // ═══════════════════════════════════════════════════════════
 
         if (data.success) {
             // ═════════════════════════════════════════════════════

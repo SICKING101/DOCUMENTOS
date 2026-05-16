@@ -2,13 +2,13 @@
 // src/frontend/modules/documentos/compatibility.js
 // =============================================================================
 
-import { api } from '../../services/api.js';           
-import { showAlert, formatFileSize } from '../../utils.js'; 
+import { api } from '../../services/api.js';
+import { showAlert, formatFileSize } from '../../utils.js';
 import { updateTrashBadge } from '../papelera.js';
 import { hasPermission, PERMISSIONS } from '../../permissions.js';
 
 // Importar TODO desde progressManager.js en una sola línea
-import { 
+import {
     updateOverallProgress,
     showUploadProgressContainer,
     hideUploadProgressContainer,
@@ -27,7 +27,7 @@ function createDeleteConfirmationModal() {
     modal.className = 'modal';
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('role', 'dialog');
-    
+
     modal.innerHTML = `
         <div class="modal__content modal__content--sm">
             <div class="modal__header">
@@ -69,7 +69,7 @@ function createDeleteConfirmationModal() {
             </div>
         </div>
     `;
-    
+
     return modal;
 }
 
@@ -79,9 +79,9 @@ function createDeleteConfirmationModal() {
 async function getDocumentInfo(documentId) {
     try {
         console.log('📋 Obteniendo información del documento:', documentId);
-        
-        const data = await api.call(`/documents/${documentId}`);
-        
+
+        const data = await api.call(`/documents/${documentId}/info`);
+
         if (data.success && data.document) {
             return {
                 name: data.document.original_filename || data.document.filename || 'Documento sin nombre',
@@ -94,7 +94,7 @@ async function getDocumentInfo(documentId) {
     } catch (error) {
         console.error('❌ Error obteniendo información del documento:', error);
     }
-    
+
     // Valores por defecto
     return {
         name: 'Documento',
@@ -110,9 +110,9 @@ async function getDocumentInfo(documentId) {
  */
 function getFileIcon(fileType) {
     if (!fileType) return 'fa-file';
-    
+
     const type = fileType.toLowerCase();
-    
+
     if (type.includes('pdf')) return 'fa-file-pdf';
     if (type.includes('word') || type.includes('doc')) return 'fa-file-word';
     if (type.includes('excel') || type.includes('xls')) return 'fa-file-excel';
@@ -122,7 +122,7 @@ function getFileIcon(fileType) {
     if (type.includes('text') || type.includes('txt')) return 'fa-file-alt';
     if (type.includes('video')) return 'fa-file-video';
     if (type.includes('audio')) return 'fa-file-audio';
-    
+
     return 'fa-file';
 }
 
@@ -136,45 +136,45 @@ export async function deleteDocument(id) {
         showAlert('No tienes permisos para eliminar documentos', 'error');
         return;
     }
-    
+
     // Crear y mostrar el modal
     const modal = createDeleteConfirmationModal();
     document.body.appendChild(modal);
-    
+
     // Mostrar modal con animación
     modal.style.display = 'flex';
     requestAnimationFrame(() => {
         modal.setAttribute('open', '');
     });
-    
+
     // Obtener información del documento
     const documentInfo = await getDocumentInfo(id);
-    
+
     // Actualizar información del documento en el modal
     const nameElement = modal.querySelector('.document-name');
     const sizeElement = modal.querySelector('.document-size');
     const dateElement = modal.querySelector('.document-date');
     const iconElement = modal.querySelector('.document-icon i');
-    
+
     if (nameElement) nameElement.textContent = documentInfo.name;
     if (sizeElement) sizeElement.textContent = documentInfo.size;
     if (dateElement) dateElement.textContent = documentInfo.date;
     if (iconElement) {
         iconElement.className = `fas ${documentInfo.icon}`;
     }
-    
+
     // Configurar eventos
     let isProcessing = false;
-    
+
     const closeModal = () => {
         modal.style.animation = 'modalOverlayFadeOut 0.3s ease-out';
         modal.querySelector('.modal__content').style.animation = 'modalContentSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-        
+
         setTimeout(() => {
             modal.remove();
         }, 300);
     };
-    
+
     // Animaciones de salida
     const style = document.createElement('style');
     style.textContent = `
@@ -189,22 +189,22 @@ export async function deleteDocument(id) {
         }
     `;
     document.head.appendChild(style);
-    
+
     // Botón de cerrar
     const closeButton = modal.querySelector('.modal__close');
     closeButton.addEventListener('click', closeModal);
-    
+
     // Botón cancelar
     const cancelButton = modal.querySelector('.btn-cancel');
     cancelButton.addEventListener('click', closeModal);
-    
+
     // Cerrar al hacer clic fuera del contenido
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             closeModal();
         }
     });
-    
+
     // Cerrar con Escape
     const handleEscape = (e) => {
         if (e.key === 'Escape' && !isProcessing) {
@@ -212,14 +212,14 @@ export async function deleteDocument(id) {
         }
     };
     document.addEventListener('keydown', handleEscape);
-    
+
     // Botón confirmar
     const confirmButton = modal.querySelector('.btn-confirm');
     confirmButton.addEventListener('click', async () => {
         if (isProcessing) return;
-        
+
         isProcessing = true;
-        
+
         // Cambiar estado del botón
         const originalText = confirmButton.innerHTML;
         confirmButton.innerHTML = `
@@ -228,15 +228,15 @@ export async function deleteDocument(id) {
         `;
         confirmButton.disabled = true;
         cancelButton.disabled = true;
-        
+
         try {
             console.log('🗑️ Moviendo documento a la papelera:', id);
             console.log('📡 Haciendo llamada DELETE a:', `/documents/${id}`);
-            
+
             const data = await api.call(`/documents/${id}`, { method: 'DELETE' });
-            
+
             console.log('📦 Respuesta del servidor:', data);
-            
+
             if (data.success) {
                 // Mostrar mensaje de éxito en el modal
                 const modalBody = modal.querySelector('.modal__body');
@@ -258,7 +258,7 @@ export async function deleteDocument(id) {
                         </div>
                     </div>
                 `;
-                
+
                 // Actualizar footer
                 const modalFooter = modal.querySelector('.modal__footer');
                 modalFooter.innerHTML = `
@@ -267,38 +267,25 @@ export async function deleteDocument(id) {
                         Cerrar
                     </button>
                 `;
-                
+
                 // Configurar botón de cerrar éxito
                 const closeSuccessButton = modal.querySelector('.btn-close-success');
                 closeSuccessButton.addEventListener('click', async () => {
                     closeModal();
-                    
-                    // Cargar documentos actualizados
-                    if (window.refreshDocumentsView) {
-                        await window.refreshDocumentsView();
-                    } else if (window.loadDocuments) {
-                        await window.loadDocuments();
-                    }
-                    
-                    // Actualizar badge de papelera
-                    if (updateTrashBadge) {
-                        await updateTrashBadge();
-                    }
-                    
-                    if (window.appState && window.appState.currentTab === 'dashboard' && window.loadDashboardData) {
-                        await window.loadDashboardData();
-                    }
-                    
+                    await window.loadDocuments();
+                    if (updateTrashBadge) await updateTrashBadge();
+                    await window.loadCategories();
+                    window.refreshCategoryTree();
                     showAlert(data.message || 'Documento movido a la papelera', 'success');
                 });
-                
+
             } else {
                 throw new Error(data.message);
             }
-            
+
         } catch (error) {
             console.error('❌ Error moviendo documento a papelera:', error);
-            
+
             // Mostrar mensaje de error en el modal
             const modalBody = modal.querySelector('.modal__body');
             modalBody.innerHTML = `
@@ -319,7 +306,7 @@ export async function deleteDocument(id) {
                     </div>
                 </div>
             `;
-            
+
             // Actualizar footer
             const modalFooter = modal.querySelector('.modal__footer');
             modalFooter.innerHTML = `
@@ -332,11 +319,11 @@ export async function deleteDocument(id) {
                     Cerrar
                 </button>
             `;
-            
+
             // Configurar botón de cerrar error
             const closeErrorButton = modal.querySelector('.btn-close-error');
             closeErrorButton.addEventListener('click', closeModal);
-            
+
             // Re-enable cancel button
             cancelButton.disabled = false;
         } finally {
@@ -352,21 +339,22 @@ export async function deleteDocument(id) {
 export async function loadDocuments() {
     try {
         console.log('📄 Cargando documentos...');
-        
+
         const data = await api.call('/documents');
-        
+
         if (data.success) {
             window.appState.documents = (data.documents || []).map(doc => ({
                 ...doc,
                 url_cloudinary: doc.url_cloudinary || doc.cloudinary_url
             }));
-            
-            // Renderizar tabla si la función está disponible
+
+            // LIMPIAR filteredDocuments para forzar re-filtrado con datos frescos
+            window.appState.filteredDocuments = null;
+
             if (window.renderDocumentsTable) {
                 window.renderDocumentsTable();
             }
 
-            // Renderizar panel de documentos vencidos si está disponible
             if (window.renderExpiredDocuments) {
                 try {
                     window.renderExpiredDocuments();
@@ -417,20 +405,20 @@ export async function refreshDocumentsView({ reloadCategories = true, refreshFil
  */
 export function debugMultipleUpload() {
     console.group('🐛 DIAGNÓSTICO DE SUBIDA MÚLTIPLE (Compatibilidad)');
-    
+
     if (!multipleUploadState) {
         console.error('❌ Estado de subida múltiple no disponible');
         console.groupEnd();
         return;
     }
-    
+
     console.log('📊 Estado actual:', {
         modo: window.appState?.uploadMode || 'no definido',
         archivosSeleccionados: multipleUploadState.files.length,
         subiendo: multipleUploadState.isUploading,
         tamañoTotal: formatFileSize(multipleUploadState.totalSize)
     });
-    
+
     console.log('📋 Archivos individuales:');
     multipleUploadState.files.forEach((fileObj, index) => {
         console.log(`${index + 1}. ${fileObj.file.name}`, {
@@ -440,7 +428,7 @@ export function debugMultipleUpload() {
             error: fileObj.error
         });
     });
-    
+
     // Estadísticas
     const stats = multipleUploadState.getStats();
     console.table({
@@ -452,9 +440,9 @@ export function debugMultipleUpload() {
         'Tamaño Total': formatFileSize(stats.totalSize),
         'Tamaño Subido': formatFileSize(stats.uploadedSize)
     });
-    
+
     console.groupEnd();
-    
+
     showAlert('Diagnóstico de subida múltiple completado. Revisa la consola.', 'info');
 }
 
@@ -463,7 +451,7 @@ export function debugMultipleUpload() {
  */
 export function testMultipleUploadWithMockFiles() {
     console.group('🧪 TEST CON ARCHIVOS DE PRUEBA (Compatibilidad)');
-    
+
     // Crear archivos de prueba
     const mockFiles = [];
     const fileNames = [
@@ -471,34 +459,34 @@ export function testMultipleUploadWithMockFiles() {
         'imagen_prueba_1.jpg',
         'texto_prueba_1.txt'
     ];
-    
+
     fileNames.forEach((fileName, index) => {
         const blob = new Blob([`Contenido de prueba ${index + 1}`], { type: 'text/plain' });
         const file = new File([blob], fileName, {
             type: fileName.endsWith('.pdf') ? 'application/pdf' :
-                  fileName.endsWith('.jpg') ? 'image/jpeg' :
-                  'text/plain',
+                fileName.endsWith('.jpg') ? 'image/jpeg' :
+                    'text/plain',
             lastModified: Date.now()
         });
-        
+
         mockFiles.push(file);
     });
-    
+
     console.log(`📁 ${mockFiles.length} archivos de prueba creados`);
-    
+
     // Cambiar a modo múltiple si no está
     if (window.appState?.uploadMode !== 'multiple' && window.switchUploadMode) {
         window.switchUploadMode('multiple');
     }
-    
+
     // Agregar archivos de prueba
     if (window.handleMultipleFiles) {
         window.handleMultipleFiles(mockFiles);
     }
-    
+
     console.log('✅ Test configurado. Archivos listos para subir.');
     console.groupEnd();
-    
+
     showAlert('Test de subida múltiple configurado. Revisa los archivos de prueba.', 'info');
 }
 
@@ -544,10 +532,10 @@ export function updateUploadProgress() {
  */
 export function setupCompatibilityGlobals() {
     console.log('🔧 Configurando funciones globales de compatibilidad...');
-    
+
     // Solo configurar si window está disponible
     if (typeof window === 'undefined') return;
-    
+
     // Asignar funciones esenciales
     window.deleteDocument = deleteDocument;
     window.loadDocuments = loadDocuments;
@@ -558,7 +546,7 @@ export function setupCompatibilityGlobals() {
     window.showUploadProgress = showUploadProgress;
     window.hideUploadProgress = hideUploadProgress;
     window.updateUploadProgress = updateUploadProgress;
-    
+
     // Agregar función de editar documento
     window.editDocument = async (documentId) => {
         if (!hasPermission(PERMISSIONS.EDIT_DOCUMENTS)) {
@@ -572,7 +560,7 @@ export function setupCompatibilityGlobals() {
     // Aprobación/Rechazo (Revisor/Moderador/Admin)
     window.approveDocument = approveDocument;
     window.rejectDocument = rejectDocument;
-    
+
     console.log('✅ Funciones globales de compatibilidad configuradas');
 }
 
@@ -598,6 +586,16 @@ export async function approveDocument(documentId, comment = '') {
                 await refreshDocumentsView();
             } else if (typeof loadDocuments === 'function') {
                 await loadDocuments();
+            }
+            try {
+                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                if (typeof dashboardLoader === 'function') {
+                    await dashboardLoader(window.appState);
+                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                    window.dashboard.updateDashboardStats(window.appState);
+                }
+            } catch (e) {
+                console.warn('No se pudo actualizar dashboard tras aprobar documento:', e);
             }
         } else {
             showAlert(response?.message || 'No se pudo aprobar', 'error');
@@ -626,6 +624,16 @@ export async function rejectDocument(documentId, comment = '') {
                 await refreshDocumentsView();
             } else if (typeof loadDocuments === 'function') {
                 await loadDocuments();
+            }
+            try {
+                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+                if (typeof dashboardLoader === 'function') {
+                    await dashboardLoader(window.appState);
+                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                    window.dashboard.updateDashboardStats(window.appState);
+                }
+            } catch (e) {
+                console.warn('No se pudo actualizar dashboard tras rechazar documento:', e);
             }
         } else {
             showAlert(response?.message || 'No se pudo rechazar', 'error');

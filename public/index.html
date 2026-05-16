@@ -17,6 +17,9 @@
     <!-- Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Chart.js para gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <!-- Estilos -->
     <link rel="stylesheet" href="css/main.css">
 </head>
@@ -275,9 +278,6 @@
                             <h2 class="section__title">Dashboard</h2>
                             <p class="section__subtitle">Resumen general del sistema</p>
                         </div>
-                        <button class="btn btn--primary" id="refreshDashboard">
-                            <i class="fas fa-sync-alt"></i> Actualizar
-                        </button>
                     </div>
 
                     <!-- Tarjetas de estadísticas -->
@@ -564,176 +564,251 @@
                     </div>
                 </section>
 
-                <!-- SECCIÓN 4.2.3: PESTAÑA HISTORIAL -->
+                <!-- =====================================================================
+     SECCIÓN 4.2.3: PESTAÑA HISTORIAL — DISEÑO "LUMINOUS CHRONICLE"
+     Todos los IDs funcionales conservados; solo rediseño visual.
+     ===================================================================== -->
                 <section id="historial" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title">Historial del Sistema</h2>
-                            <p class="section__subtitle">Registro completo de todas las actividades</p>
+
+                    <!-- ── 1. CABECERA ── -->
+                    <div class="historial__header">
+                        <div class="historial__header-left">
+                            <div class="historial__icon-wrap">
+                                <i class="fas fa-stream"></i>
+                            </div>
+                            <div>
+                                <h2 class="historial__title">Registro de Actividad</h2>
+                                <p class="historial__subtitle">Seguimiento completo de todas las acciones del sistema
+                                </p>
+                            </div>
                         </div>
-                        <div class="historial__actions">
-                            <button class="btn btn--outline" id="clearHistoryBtn" data-action-section="historial">
-                                <i class="fas fa-trash"></i> Limpiar Historial
+                        <div class="historial__header-actions">
+                            <button class="btn--ghost-danger" id="clearHistoryBtn" data-action-section="historial">
+                                <i class="fas fa-trash-alt"></i>
+                                <span>Limpiar</span>
                             </button>
-                            <button class="btn btn--outline" id="exportHistoryBtn" data-action-section="historial">
-                                <i class="fas fa-download"></i> Exportar
-                            </button>
-                            <button class="btn btn--primary" id="refreshHistoryBtn">
-                                <i class="fas fa-sync-alt"></i> Actualizar
+                            <button class="btn--primary-outline" id="exportHistoryBtn" data-action-section="historial">
+                                <i class="fas fa-download"></i>
+                                <span>Exportar CSV</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Filtros avanzados de historial -->
-                    <div class="historial-filters">
-                        <div class="historial-filters__title">
-                            <i class="fas fa-filter"></i>
-                            <span>Filtros de Búsqueda</span>
-                        </div>
-
-                        <div class="filters__row">
-                            <div class="form__group form__group--inline">
-                                <label for="filterDateFrom" class="form__label">Rango de fechas</label>
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <input type="date" id="filterDateFrom" class="form__input form__input--date"
-                                        placeholder="Desde">
-                                    <span>a</span>
-                                    <input type="date" id="filterDateTo" class="form__input form__input--date"
-                                        placeholder="Hasta">
-                                </div>
-                            </div>
-
-                            <div class="form__group form__group--inline">
-                                <label for="filterType" class="form__label">Tipo de actividad</label>
-                                <select id="filterType" class="form__select">
-                                    <option value="all">Todos los tipos</option>
-                                    <option value="documento_subido">Documento subido</option>
-                                    <option value="documento_eliminado">Documento eliminado</option>
-                                    <option value="documento_proximo_vencer">Documento por vencer</option>
-                                    <option value="documento_vencido">Documento vencido</option>
-                                    <option value="persona_agregada">Persona agregada</option>
-                                    <option value="persona_eliminada">Persona eliminada</option>
-                                    <option value="categoria_agregada">Categoría agregada</option>
-                                    <option value="reporte_generado">Reporte generado</option>
-                                    <option value="sistema_iniciado">Sistema iniciado</option>
-                                    <option value="error_sistema">Error del sistema</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="filters__row">
-                            <div class="form__group form__group--inline">
-                                <label for="filterPriority" class="form__label">Nivel de prioridad</label>
-                                <select id="filterPriority" class="form__select">
-                                    <option value="all">Todas las prioridades</option>
-                                    <option value="critica">Crítica</option>
-                                    <option value="alta">Alta</option>
-                                    <option value="media">Media</option>
-                                    <option value="baja">Baja</option>
-                                </select>
-                            </div>
-
-                            <div class="form__group form__group--inline">
-                                <label for="filterRead" class="form__label">Estado de lectura</label>
-                                <select id="filterRead" class="form__select">
-                                    <option value="all">Todos los estados</option>
-                                    <option value="read">Leídos</option>
-                                    <option value="unread">No leídos</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="filters__row">
-                            <div class="form__group form__group--inline">
-                                <label for="itemsPerPage" class="form__label">Resultados por página</label>
-                                <select id="itemsPerPage" class="form__select">
-                                    <option value="10">10 registros</option>
-                                    <option value="25" selected>25 registros</option>
-                                    <option value="50">50 registros</option>
-                                    <option value="100">100 registros</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Estadísticas de historial -->
+                    <!-- ── 2. TARJETAS DE ESTADÍSTICAS ── -->
                     <div class="historial-stats">
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--history">
-                                <i class="fas fa-history"></i>
+
+                        <div class="hstat-card hstat-card--total">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-layer-group"></i>
                             </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="totalHistory">0</h3>
-                                <p class="stat-card__label">Registros totales</p>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="totalHistory">0</span>
+                                <span class="hstat-card__label">Total registros</span>
                             </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--unread">
-                                <i class="fas fa-exclamation-circle"></i>
-                            </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="unreadHistory">0</h3>
-                                <p class="stat-card__label">No leídos</p>
+                            <div class="hstat-card__trend">
+                                <i class="fas fa-infinity"></i>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--today">
-                                <i class="fas fa-calendar-day"></i>
+
+                        <div class="hstat-card hstat-card--unread">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-bell"></i>
                             </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="todayHistory">0</h3>
-                                <p class="stat-card__label">Hoy</p>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="unreadHistory">0</span>
+                                <span class="hstat-card__label">Sin leer</span>
+                            </div>
+                            <div class="hstat-card__trend">
+                                <i class="fas fa-eye-slash"></i>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-card__icon stat-card__icon--critical">
+
+                        <div class="hstat-card hstat-card--today">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="todayHistory">0</span>
+                                <span class="hstat-card__label">Hoy</span>
+                            </div>
+                            <div class="hstat-card__trend">
+                                <i class="fas fa-sun"></i>
+                            </div>
+                        </div>
+
+                        <div class="hstat-card hstat-card--critical">
+                            <div class="hstat-card__glow"></div>
+                            <div class="hstat-card__icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="hstat-card__body">
+                                <span class="hstat-card__value" id="criticalHistory">0</span>
+                                <span class="hstat-card__label">Críticos</span>
+                            </div>
+                            <div class="hstat-card__trend">
                                 <i class="fas fa-fire"></i>
                             </div>
-                            <div class="stat-card__content">
-                                <h3 class="stat-card__value" id="criticalHistory">0</h3>
-                                <p class="stat-card__label">Críticos</p>
+                        </div>
+
+                    </div>
+
+                    <!-- ── 3. PANEL DE FILTROS (Acordeón) ── -->
+                    <div class="hfilter-panel" id="hfilterPanel">
+
+                        <div class="hfilter-panel__header" id="filterPanelToggle">
+                            <div class="hfilter-panel__header-left">
+                                <div class="hfilter-panel__filter-icon">
+                                    <i class="fas fa-sliders-h"></i>
+                                </div>
+                                <span class="hfilter-panel__title">Filtros y Búsqueda</span>
+                                <!-- Badge de filtros activos (se muestra dinámicamente) -->
+                                <span class="hfilter-active-badge" id="activeFiltersCount" style="display:none">0</span>
+                            </div>
+                            <button class="hfilter-panel__toggle-btn" type="button" aria-label="Expandir filtros">
+                                <i class="fas fa-chevron-down" id="filterChevron"></i>
+                            </button>
+                        </div>
+
+                        <div class="hfilter-panel__body" id="filterPanelBody">
+                            <div class="hfilter-grid">
+
+                                <!-- Rango de fechas -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterDateFrom">
+                                        <i class="fas fa-calendar-alt"></i> Rango de fechas
+                                    </label>
+                                    <div class="hfilter-date-range">
+                                        <input type="date" id="filterDateFrom" class="hfilter-input"
+                                            placeholder="Desde">
+                                        <div class="hfilter-date-sep"><i class="fas fa-arrow-right"></i></div>
+                                        <input type="date" id="filterDateTo" class="hfilter-input" placeholder="Hasta">
+                                    </div>
+                                </div>
+
+                                <!-- Tipo de actividad -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterType">
+                                        <i class="fas fa-tag"></i> Tipo de actividad
+                                    </label>
+                                    <select id="filterType" class="hfilter-select">
+                                        <option value="all">Todos los tipos</option>
+                                        <option value="documento_subido">Documento subido</option>
+                                        <option value="documento_eliminado">Documento eliminado</option>
+                                        <option value="documento_proximo_vencer">Documento por vencer</option>
+                                        <option value="documento_vencido">Documento vencido</option>
+                                        <option value="persona_agregada">Persona agregada</option>
+                                        <option value="persona_eliminada">Persona eliminada</option>
+                                        <option value="categoria_agregada">Categoría agregada</option>
+                                        <option value="reporte_generado">Reporte generado</option>
+                                        <option value="sistema_iniciado">Sistema iniciado</option>
+                                        <option value="error_sistema">Error del sistema</option>
+                                    </select>
+                                </div>
+
+                                <!-- Prioridad -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterPriority">
+                                        <i class="fas fa-signal"></i> Prioridad
+                                    </label>
+                                    <select id="filterPriority" class="hfilter-select">
+                                        <option value="all">Todas las prioridades</option>
+                                        <option value="critica">Crítica</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="media">Media</option>
+                                        <option value="baja">Baja</option>
+                                    </select>
+                                </div>
+
+                                <!-- Estado de lectura -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="filterRead">
+                                        <i class="fas fa-envelope"></i> Estado de lectura
+                                    </label>
+                                    <select id="filterRead" class="hfilter-select">
+                                        <option value="all">Todos los estados</option>
+                                        <option value="read">Leídos</option>
+                                        <option value="unread">No leídos</option>
+                                    </select>
+                                </div>
+
+                                <!-- Resultados por página -->
+                                <div class="hfilter-group">
+                                    <label class="hfilter-label" for="itemsPerPage">
+                                        <i class="fas fa-list-ol"></i> Resultados por página
+                                    </label>
+                                    <select id="itemsPerPage" class="hfilter-select">
+                                        <option value="10">10 registros</option>
+                                        <option value="25" selected>25 registros</option>
+                                        <option value="50">50 registros</option>
+                                        <option value="100">100 registros</option>
+                                    </select>
+                                </div>
+
                             </div>
                         </div>
                     </div>
 
-                    <!-- Tabla de historial -->
-                    <div class="table-container">
-                        <table class="table table--history">
-                            <thead>
-                                <tr>
-                                    <th class="table__header">Fecha</th>
-                                    <th class="table__header">Tipo</th>
-                                    <th class="table__header">Mensaje</th>
-                                    <th class="table__header">Prioridad</th>
-                                    <th class="table__header">Estado</th>
-                                    <th class="table__header">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyTableBody">
-                                <tr>
-                                    <td colspan="7" class="empty-state">
-                                        <i class="fas fa-history empty-state__icon"></i>
-                                        <h3 class="empty-state__title">No hay registros de historial</h3>
-                                        <p class="empty-state__description">Las actividades del sistema aparecerán aquí
-                                        </p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- ── 4. LOG DE HISTORIAL ── -->
+                    <div class="historial-log">
+
+                        <div class="historial-log__header">
+                            <span class="historial-log__label">
+                                <i class="fas fa-stream"></i> Actividad reciente
+                            </span>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="table table--history">
+                                <thead>
+                                    <tr>
+                                        <th class="table__header">Fecha y hora</th>
+                                        <th class="table__header">Tipo</th>
+                                        <th class="table__header">Mensaje</th>
+                                        <th class="table__header">Prioridad</th>
+                                        <th class="table__header">Estado</th>
+                                        <th class="table__header">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                    <!-- Estado vacío inicial -->
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="history-empty">
+                                                <div class="history-empty__icon">
+                                                    <i class="fas fa-stream"></i>
+                                                </div>
+                                                <h3 class="history-empty__title">No hay registros de actividad</h3>
+                                                <p class="history-empty__desc">Las acciones del sistema aparecerán aquí
+                                                    automáticamente</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
                     </div>
 
-                    <!-- Paginación del historial -->
-                    <div class="pagination" id="historyPagination">
-                        <button class="pagination__btn pagination__btn--prev" disabled>
-                            <i class="fas fa-chevron-left"></i> Anterior
+                    <!-- ── 5. PAGINACIÓN ── -->
+                    <div class="hpagination" id="historyPagination">
+                        <button class="hpagination__btn hpagination__btn--prev pagination__btn--prev" type="button"
+                            disabled>
+                            <i class="fas fa-chevron-left"></i>
+                            <span>Anterior</span>
                         </button>
-                        <div class="pagination__info">
+                        <div class="hpagination__info">
                             <span id="paginationInfo">Página 1 de 1</span>
                         </div>
-                        <button class="pagination__btn pagination__btn--next" disabled>
-                            Siguiente <i class="fas fa-chevron-right"></i>
+                        <button class="hpagination__btn hpagination__btn--next pagination__btn--next" type="button"
+                            disabled>
+                            <span>Siguiente</span>
+                            <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
+
                 </section>
 
                 <!-- Sección de Avisos -->
@@ -818,134 +893,679 @@
                     </div>
                 </section>
 
-                <!-- SECCIÓN 4.2.5: PESTAÑA DOCUMENTOS -->
+                <!-- ╔══════════════════════════════════════════════════════════════════╗ -->
+                <!-- ║          SECCIÓN DOCUMENTOS — REDISEÑO COMPLETO               ║ -->
+                <!-- ║  Navegación por carpetas con soporte de subcategorías          ║ -->
+                <!-- ╚══════════════════════════════════════════════════════════════════╝ -->
                 <section id="documentos" class="tab-content">
-                    <!-- Encabezado principal -->
-                    <div class="documents-header">
-                        <div>
-                            <h2 class="documents-header__title">
-                                <i class="fas fa-folder-open"></i>
-                                Gestión de Documentos
-                            </h2>
-                            <p class="documents-header__subtitle">Organiza y administra todos los documentos del sistema
-                            </p>
+
+                    <!-- ══════════════════════════════════════════════════════════
+         TOOLBAR FIJA (SIEMPRE VISIBLE, NUNCA SE MUEVE)
+         ══════════════════════════════════════════════════════════ -->
+                    <div class="category--toolbar" id="documentsToolbar">
+                        <div class="category--toolbar-left">
+                            <!-- Breadcrumb dinámico de navegación -->
+                            <nav class="category--breadcrumb" aria-label="Ruta de navegación"
+                                id="categoryBreadcrumbNav">
+                                <ol class="category--breadcrumb-list" id="categoryBreadcrumbList">
+                                    <li class="category--breadcrumb-item category--breadcrumb-item--root category--breadcrumb-item--active"
+                                        data-level="0" id="breadcrumbRoot" title="Ir al inicio" tabindex="0"
+                                        role="button" aria-label="Raíz — Documentos">
+                                        <i class="fas fa-home category--breadcrumb-icon"></i>
+                                        <span class="category--breadcrumb-label">Documentos</span>
+                                    </li>
+                                </ol>
+                            </nav>
                         </div>
-                        <div class="documents-header__actions">
-                            <button class="btn btn--secondary" onclick="showAdvancedSearch()">
+                        <div class="category--toolbar-right">
+                            <!-- Los 3 botones siempre visibles -->
+                            <button class="category--btn category--btn--ghost" id="advancedSearchBtn"
+                                onclick="showAdvancedSearch && showAdvancedSearch()" title="Búsqueda avanzada">
                                 <i class="fas fa-search"></i>
                                 <span>Búsqueda Avanzada</span>
                             </button>
-                            <button class="btn btn--secondary" id="refreshDocumentsBtn" type="button">
-                                <i class="fas fa-sync-alt"></i>
-                                <span>Actualizar</span>
-                            </button>
-                            <button class="btn btn--danger" id="bulkDeleteTriggerBtn">
+                            <button class="category--btn category--btn--danger" id="bulkDeleteTriggerBtn"
+                                title="Eliminar múltiples documentos">
                                 <i class="fas fa-trash-alt"></i>
                                 <span>Eliminar Múltiple</span>
                             </button>
-                            <button class="btn btn--primary" id="addDocumentBtn">
+                            <button class="category--btn category--btn--primary" id="addDocumentBtn"
+                                title="Subir nuevo documento">
                                 <i class="fas fa-file-upload"></i>
                                 <span>Subir Documento</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Vista rápida de categorías -->
-                    <div class="categories-overview">
-                        <div class="categories-overview__header">
-                            <h3 class="categories-overview__title">
-                                <i class="fas fa-tags"></i>
-                                Categorías Disponibles
-                            </h3>
-                            <button class="btn btn--primary btn--sm" onclick="openCategoryModal()">
-                                <i class="fas fa-plus"></i>
-                                Nueva Categoría
-                            </button>
-                        </div>
-                        <div class="compact-categories-grid" id="categoriesStats">
-                            <div class="loading-state">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Cargando categorías...</p>
+                    <!-- ══════════════════════════════════════════════════════════
+         EXPLORADOR DE CATEGORÍAS (Vista de carpetas)
+         Se oculta cuando se entra a una carpeta sin subcategorías
+         ══════════════════════════════════════════════════════════ -->
+                    <div class="category--explorer" id="categoryExplorer">
+
+                        <!-- Cabecera del explorador: info del nivel + buscador -->
+                        <div class="category--explorer-header">
+                            <!-- Panel de info del nivel actual (oculto en raíz) -->
+                            <div class="category--level-banner" id="categoryLevelBanner" style="display:none">
+                                <div class="category--level-banner-icon" id="levelBannerIcon">
+                                    <i class="fas fa-folder-open"></i>
+                                </div>
+                                <div class="category--level-banner-info">
+                                    <h3 class="category--level-banner-name" id="levelBannerName">—</h3>
+                                    <p class="category--level-banner-desc" id="levelBannerDesc">—</p>
+                                </div>
+                                <div class="category--level-banner-actions">
+                                    <button class="category--btn category--btn--outline category--btn--sm"
+                                        id="addSubcategoryBtn" title="Agregar subcategoría en este nivel">
+                                        <i class="fas fa-folder-plus"></i>
+                                        <span>Nueva Subcarpeta</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Barra de búsqueda de categorías -->
+                            <div class="category--search-bar">
+                                <div class="category--searchbox" id="categorySearchBox">
+                                    <i class="fas fa-search category--searchbox-icon"></i>
+                                    <input type="text" id="categorySearchInput" class="category--searchbox-input"
+                                        placeholder="Buscar carpetas en este nivel..." autocomplete="off"
+                                        spellcheck="false" aria-label="Buscar categorías">
+                                    <button class="category--searchbox-clear" id="clearCategorySearch"
+                                        style="display:none" aria-label="Limpiar búsqueda">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="category--search-stats" id="categorySearchStats" style="display:none">
+                                    <span id="categorySearchCount">0 resultados</span>
+                                </div>
+                                <!-- Nueva carpeta (raíz) — solo visible en el nivel raíz -->
+                                <button class="category--btn category--btn--primary category--btn--sm"
+                                    id="newRootCategoryBtn" onclick="openCategoryModal()"
+                                    title="Crear nueva categoría en la raíz">
+                                    <i class="fas fa-folder-plus"></i>
+                                    <span>Nueva Carpeta</span>
+                                </button>
                             </div>
                         </div>
+
+                        <!-- Estado de carga skeleton -->
+                        <div class="category--skeleton-grid" id="categorySkeletonGrid" style="display:none">
+                            <div class="category--skeleton-card">
+                                <div class="category--skeleton-icon"></div>
+                                <div class="category--skeleton-line category--skeleton-line--name"></div>
+                                <div class="category--skeleton-line category--skeleton-line--meta"></div>
+                            </div>
+                            <div class="category--skeleton-card">
+                                <div class="category--skeleton-icon"></div>
+                                <div class="category--skeleton-line category--skeleton-line--name"></div>
+                                <div class="category--skeleton-line category--skeleton-line--meta"></div>
+                            </div>
+                            <div class="category--skeleton-card">
+                                <div class="category--skeleton-icon"></div>
+                                <div class="category--skeleton-line category--skeleton-line--name"></div>
+                                <div class="category--skeleton-line category--skeleton-line--meta"></div>
+                            </div>
+                            <div class="category--skeleton-card">
+                                <div class="category--skeleton-icon"></div>
+                                <div class="category--skeleton-line category--skeleton-line--name"></div>
+                                <div class="category--skeleton-line category--skeleton-line--meta"></div>
+                            </div>
+                            <div class="category--skeleton-card">
+                                <div class="category--skeleton-icon"></div>
+                                <div class="category--skeleton-line category--skeleton-line--name"></div>
+                                <div class="category--skeleton-line category--skeleton-line--meta"></div>
+                            </div>
+                            <div class="category--skeleton-card">
+                                <div class="category--skeleton-icon"></div>
+                                <div class="category--skeleton-line category--skeleton-line--name"></div>
+                                <div class="category--skeleton-line category--skeleton-line--meta"></div>
+                            </div>
+                        </div>
+
+                        <!-- Grid de carpetas/subcarpetas -->
+                        <div class="category--grid" id="categoryGrid" role="list" aria-label="Carpetas de documentos">
+                            <!-- Renderizado dinámico por categoryNavigation.js -->
+                        </div>
+
+                        <!-- Estado vacío del explorador -->
+                        <div class="category--empty-state" id="categoryEmptyState" style="display:none">
+                            <div class="category--empty-illustration">
+                                <div class="category--empty-folder">
+                                    <i class="fas fa-folder-open"></i>
+                                    <div class="category--empty-folder-shine"></div>
+                                </div>
+                            </div>
+                            <h3 class="category--empty-title" id="categoryEmptyTitle">Sin carpetas aquí</h3>
+                            <p class="category--empty-desc" id="categoryEmptyDesc">Crea la primera carpeta para
+                                organizar tus documentos</p>
+                            <button class="category--btn category--btn--primary" id="categoryEmptyActionBtn"
+                                onclick="openCategoryModal()">
+                                <i class="fas fa-folder-plus"></i>
+                                Crear primera carpeta
+                            </button>
+                        </div>
+
                     </div>
 
-                    <!-- Barra de información de selección -->
-                    <div class="selection-info-bar" id="selectionInfoBar" style="display: none;">
-                        <div class="selection-info-content">
-                            <i class="fas fa-check-circle"></i>
-                            <span id="selectedCountText">0</span> documentos seleccionados
-                            <button class="btn btn--link btn--sm" id="selectAllBtn">
-                                <i class="far fa-square"></i>
-                                Seleccionar todos en esta página
-                            </button>
-                            <button class="btn btn--link btn--sm" id="deselectAllBtn">
-                                <i class="fas fa-ban"></i>
-                                Deseleccionar todos
-                            </button>
-                        </div>
-                    </div>
+                    <!-- ══════════════════════════════════════════════════════════
+         VISTA DE DOCUMENTOS (Aparece al entrar en carpeta final)
+         Solo visible cuando la carpeta no tiene subcarpetas
+         ══════════════════════════════════════════════════════════ -->
+                    <div class="category--doc-view" id="documentView" style="display:none">
 
-                    <!-- Filtros avanzados de documentos -->
-                    <div class="documents-filters">
-                        <div class="filters-header">
-                            <h3 class="filters-title">Filtrar Documentos</h3>
-                            <button id="clearAllFilters" class="btn btn--secondary btn--sm">Limpiar Filtros</button>
-                        </div>
-                        <div class="filters-grid">
-                            <div class="filter-group">
-                                <label for="filterCategory">Categoría</label>
-                                <select class="filter-select" id="filterCategory">
-                                    <option value="">Todas las categorías</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="filterStatus">Estado</label>
-                                <select class="filter-select" id="filterStatus">
-                                    <option value="">Todos los estados</option>
-                                    <option value="active">Activos</option>
-                                    <option value="expiring">Por vencer (≤7 días)</option>
-                                    <option value="expired">Vencidos</option>
-                                    <option value="no_expiration">Sin vencimiento</option>
-                                </select>
-                            </div>
-                            <div class="filter-group full-width">
-                                <label for="searchInput">Buscar</label>
-                                <div class="search-wrapper">
-                                    <input type="text" class="search-input" id="searchInput"
-                                        placeholder="Buscar por nombre, categoría, descripción...">
-                                    <button class="search-clear" id="clearSearch">×</button>
+                        <!-- Barra de selección múltiple -->
+                        <div class="category--selection-bar" id="selectionInfoBar" style="display:none">
+                            <div class="category--selection-content">
+                                <i class="fas fa-check-circle category--selection-icon"></i>
+                                <strong><span id="selectedCountText">0</span></strong> documentos seleccionados
+                                <div class="category--selection-actions">
+                                    <button class="category--btn category--btn--ghost category--btn--xs"
+                                        id="selectAllBtn">
+                                        <i class="far fa-check-square"></i> Todos en esta página
+                                    </button>
+                                    <button class="category--btn category--btn--ghost category--btn--xs"
+                                        id="deselectAllBtn">
+                                        <i class="fas fa-ban"></i> Deseleccionar
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="filters-footer">
-                            <span id="resultsCount">0 documentos</span>
-                            <span id="activeFiltersBadge" class="badge badge-primary" style="display: none;">0</span>
+
+                        <!-- Panel de filtros -->
+                        <div class="category--filters-panel" id="documentFiltersPanel">
+                            <div class="category--filters-head">
+                                <div class="category--filters-label">
+                                    <i class="fas fa-filter"></i>
+                                    <span>Filtros</span>
+                                </div>
+                                <div class="category--filters-right">
+                                    <span class="category--results-label" id="resultsCount">0 documentos</span>
+                                    <span class="category--badge-active" id="activeFiltersBadge"
+                                        style="display:none">0</span>
+                                    <button id="clearAllFilters"
+                                        class="category--btn category--btn--ghost category--btn--xs"
+                                        title="Limpiar todos los filtros">
+                                        <i class="fas fa-times-circle"></i> Limpiar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="category--filters-body">
+                                <!-- Filtro oculto de categoría (usado internamente) -->
+                                <select id="filterCategory" style="display:none">
+                                    <option value="">Todas las categorías</option>
+                                </select>
+                                <div class="category--filter-group">
+                                    <label class="category--filter-label" for="filterStatus">Estado</label>
+                                    <div class="category--filter-select-wrapper">
+                                        <select class="category--filter-select" id="filterStatus">
+                                            <option value="">Todos los estados</option>
+                                            <option value="active">Activos</option>
+                                            <option value="expiring">Por vencer (≤7 días)</option>
+                                            <option value="expired">Vencidos</option>
+                                            <option value="no_expiration">Sin vencimiento</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="category--filter-group category--filter-group--wide">
+                                    <label class="category--filter-label" for="searchInput">Buscar documento</label>
+                                    <div class="category--searchbox">
+                                        <i class="fas fa-search category--searchbox-icon"></i>
+                                        <input type="text" id="searchInput" class="category--searchbox-input"
+                                            placeholder="Nombre, descripción..." autocomplete="off">
+                                        <button class="category--searchbox-clear" id="clearSearch" style="display:none"
+                                            aria-label="Limpiar">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de documentos -->
+                        <div class="category--table-wrapper">
+                            <table class="category--table" id="documentsMainTable">
+                                <thead class="category--table-head">
+                                    <tr id="documentsTableHeadRow">
+                                        <th class="category--th">Documento</th>
+                                        <th class="category--th">Tipo</th>
+                                        <th class="category--th">Persona</th>
+                                        <th class="category--th">Estado</th>
+                                        <th class="category--th category--th--actions">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documentosTableBody">
+                                    <!-- Renderizado dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginación -->
+                        <div id="documentsPagination" class="category--pagination"></div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- ════════════════════════════════════════════════════════════════════
+     MODAL: CREAR / EDITAR CATEGORÍA
+     Clases con prefijo category--modal-*
+     ════════════════════════════════════════════════════════════════════ -->
+                <dialog id="categoryModal" class="category--modal-overlay">
+                    <div class="category--modal-box" role="dialog" aria-modal="true"
+                        aria-labelledby="categoryModalHeading">
+
+                        <!-- Header -->
+                        <div class="category--modal-header">
+                            <div class="category--modal-header-icon" id="categoryModalIconPreview">
+                                <i class="fas fa-folder" id="categoryModalIconDisplay"></i>
+                            </div>
+                            <div class="category--modal-header-info">
+                                <h3 class="category--modal-title" id="categoryModalTitle">Nueva Carpeta</h3>
+                                <p class="category--modal-subtitle" id="categoryModalSubtitle">Organiza tus documentos
+                                    en carpetas</p>
+                            </div>
+                            <button class="category--modal-close" id="closeCategoryModalBtn" aria-label="Cerrar modal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="category--modal-body">
+                            <form id="categoryForm" novalidate>
+                                <input type="hidden" id="categoryId">
+                                <input type="hidden" id="categoryParentId">
+
+                                <!-- Nombre -->
+                                <div class="category--form-group" id="categoryNameGroup">
+                                    <label class="category--form-label" for="categoryName">
+                                        Nombre de la carpeta <span class="category--form-required">*</span>
+                                    </label>
+                                    <input type="text" id="categoryName" class="category--form-input"
+                                        placeholder="Ej: Contratos, Reconocimientos..." maxlength="50"
+                                        autocomplete="off" required>
+                                    <div class="category--form-error" id="categoryNameError" style="display:none"></div>
+                                    <span class="category--form-hint">
+                                        <span id="categoryNameCounter">0</span>/50 caracteres
+                                    </span>
+                                </div>
+
+                                <!-- Descripción -->
+                                <div class="category--form-group">
+                                    <label class="category--form-label" for="categoryDescription">Descripción</label>
+                                    <textarea id="categoryDescription" class="category--form-textarea" rows="2"
+                                        placeholder="¿Qué tipo de documentos contiene esta carpeta?"
+                                        maxlength="200"></textarea>
+                                    <span class="category--form-hint">
+                                        <span id="categoryDescCounter">0</span>/200 caracteres
+                                    </span>
+                                </div>
+
+                                <!-- Color e Icono -->
+                                <div class="category--form-row">
+                                    <div class="category--form-group">
+                                        <label class="category--form-label" for="categoryColor">Color</label>
+                                        <div class="category--color-picker">
+                                            <input type="color" id="categoryColor" class="category--color-input"
+                                                value="#dc2626">
+                                            <div class="category--color-swatches" id="categoryColorSwatches">
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#dc2626" style="background:#dc2626"
+                                                    title="Rojo"></button>
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#2563eb" style="background:#2563eb"
+                                                    title="Azul"></button>
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#059669" style="background:#059669"
+                                                    title="Verde"></button>
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#d97706" style="background:#d97706"
+                                                    title="Ámbar"></button>
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#7c3aed" style="background:#7c3aed"
+                                                    title="Violeta"></button>
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#db2777" style="background:#db2777"
+                                                    title="Rosa"></button>
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#0891b2" style="background:#0891b2"
+                                                    title="Cian"></button>
+                                                <button type="button" class="category--color-swatch"
+                                                    data-color="#475569" style="background:#475569"
+                                                    title="Gris"></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="category--form-group">
+                                        <label class="category--form-label" for="categoryIcon">Ícono</label>
+                                        <div class="category--icon-selector" id="categoryIconSelector">
+                                            <div class="category--icon-preview" id="categoryIconPreview">
+                                                <i class="fas fa-folder"></i>
+                                            </div>
+                                            <select id="categoryIcon" class="category--form-select">
+                                                <option value="folder">📁 Carpeta</option>
+                                                <option value="file-contract">📝 Contrato</option>
+                                                <option value="id-card">🪪 Identificación</option>
+                                                <option value="certificate">🏆 Certificado</option>
+                                                <option value="chart-line">📈 Reporte</option>
+                                                <option value="file-invoice">🧾 Factura</option>
+                                                <option value="file-medical">🏥 Médico</option>
+                                                <option value="graduation-cap">🎓 Académico</option>
+                                                <option value="briefcase">💼 Laboral</option>
+                                                <option value="home">🏠 Personal</option>
+                                                <option value="star">⭐ Destacado</option>
+                                                <option value="award">🥇 Premio</option>
+                                                <option value="shield-alt">🛡️ Legal</option>
+                                                <option value="users">👥 Personal</option>
+                                                <option value="building">🏢 Institucional</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Previsualización de la tarjeta -->
+                                <div class="category--form-group">
+                                    <label class="category--form-label">Vista previa</label>
+                                    <div class="category--card-preview-wrapper">
+                                        <div class="category--card category--card-preview" id="categoryCardPreview">
+                                            <div class="category--card-folder-icon" id="previewCardIcon"
+                                                style="background: linear-gradient(135deg, #dc2626, #b91c1c)">
+                                                <i class="fas fa-folder" id="previewIcon"></i>
+                                            </div>
+                                            <div class="category--card-body">
+                                                <h4 class="category--card-name" id="previewCardName">Nombre carpeta</h4>
+                                                <p class="category--card-meta" id="previewCardDesc">Sin descripción</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="category--modal-footer">
+                            <button type="button" class="category--btn category--btn--ghost" id="cancelCategoryBtn">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="button" class="category--btn category--btn--primary" id="saveCategoryBtn">
+                                <i class="fas fa-save"></i>
+                                <span id="saveCategoryBtnLabel">Guardar carpeta</span>
+                            </button>
+                        </div>
+
+                        <!-- Loader interno del modal -->
+                        <div class="category--modal-loader" id="categoryModalLoader" style="display:none">
+                            <div class="category--modal-loader-spinner">
+                                <i class="fas fa-folder"></i>
+                            </div>
+                            <p class="category--modal-loader-text" id="categoryModalLoaderText">Guardando...</p>
                         </div>
                     </div>
+                </dialog>
 
-                    <!-- Tabla de documentos -->
-                    <div class="documents-table-container">
-                        <table class="documents-table">
-                            <thead>
-                                <tr>
-                                    <th>Documento</th>
-                                    <th>Tipo</th>
-                                    <th>Persona</th>
-                                    <th>Categoría</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="documentosTableBody">
-                                <!-- Documentos se cargarán aquí dinámicamente -->
-                            </tbody>
-                        </table>
-                    </div>
 
-                    <!-- Paginación de documentos (15 por página) -->
-                    <div id="documentsPagination" class="pagination-container"></div>
-                </section>
+                <!-- ════════════════════════════════════════════════════════════════════
+     MODAL: SUBIR DOCUMENTOS (mantiene estructura, clases actualizadas)
+     ════════════════════════════════════════════════════════════════════ -->
+                <dialog id="documentModal" class="modal">
+                    <article class="modal__content">
+                        <header class="modal__header">
+                            <h3 class="modal__title">
+                                <i class="fas fa-file-upload" style="color: var(--primary); margin-right: .5rem;"></i>
+                                Subir Documento
+                            </h3>
+                            <button class="modal__close" aria-label="Cerrar">&times;</button>
+                        </header>
+                        <section class="modal__body">
+                            <form id="documentForm">
+                                <!-- Pestañas modo único/múltiple -->
+                                <div class="upload__tabs">
+                                    <button type="button" class="upload__tab upload__tab--active" data-mode="single">
+                                        <i class="fas fa-file-upload"></i> Subir Único
+                                    </button>
+                                    <button type="button" class="upload__tab" data-mode="multiple">
+                                        <i class="fas fa-folder-open"></i> Subir Múltiple
+                                    </button>
+                                </div>
+
+                                <!-- Modo único -->
+                                <div id="singleUploadContainer" class="upload__container upload__mode--active">
+                                    <div class="upload__dropzone" id="fileUploadContainer">
+                                        <i class="fas fa-cloud-upload-alt upload__icon"></i>
+                                        <h3>Arrastra y suelta tu archivo aquí</h3>
+                                        <p>o</p>
+                                        <button type="button" class="btn btn--primary" id="browseFilesBtn">
+                                            <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                                        </button>
+                                        <input type="file" id="fileInput" class="upload__input"
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                                        <div class="upload__info" id="fileInfo">
+                                            <p><strong>Archivo:</strong> <span id="fileName"></span></p>
+                                            <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
+                                        </div>
+                                    </div>
+                                    <div class="form__group">
+                                        <label for="documentDescription" class="form__label">Descripción</label>
+                                        <textarea id="documentDescription" class="form__textarea" rows="3"></textarea>
+                                    </div>
+                                    <div class="form__row">
+                                        <div class="form__group">
+                                            <label for="documentCategory" class="form__label">Categoría</label>
+                                            <select id="documentCategory" class="form__select">
+                                                <option value="">Seleccionar categoría</option>
+                                            </select>
+                                        </div>
+                                        <div class="form__group">
+                                            <label for="documentExpiration" class="form__label">Fecha de
+                                                Vencimiento</label>
+                                            <input type="date" id="documentExpiration" class="form__input">
+                                        </div>
+                                    </div>
+                                    <div class="form__group">
+                                        <label for="documentPerson" class="form__label">Asignar a Persona</label>
+                                        <select id="documentPerson" class="form__select">
+                                            <option value="">Seleccionar persona</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Modo múltiple -->
+                                <div id="multipleUploadContainer" class="upload__container">
+                                    <div class="multiple-upload__header">
+                                        <i class="fas fa-layer-group"></i>
+                                        <h3>Subir Múltiples Documentos</h3>
+                                        <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos
+                                            juntos</p>
+                                    </div>
+                                    <div class="multiple-upload__dropzone" id="multipleFileUploadContainer">
+                                        <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
+                                        <h3>Arrastra y suelta múltiples archivos aquí</h3>
+                                        <p>o</p>
+                                        <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
+                                            <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
+                                        </button>
+                                        <input type="file" id="multipleFileInput" class="upload__input" multiple
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                                        <p class="upload__hint">Tamaño máximo por archivo: 1 GB</p>
+                                    </div>
+                                    <div class="multiple-upload__config">
+                                        <h4><i class="fas fa-cog"></i> Configuración Común</h4>
+                                        <div class="form__row">
+                                            <div class="form__group">
+                                                <label for="multipleDocumentCategory" class="form__label">Categoría para
+                                                    Todos</label>
+                                                <select id="multipleDocumentCategory" class="form__select">
+                                                    <option value="">Seleccionar categoría común</option>
+                                                </select>
+                                            </div>
+                                            <div class="form__group">
+                                                <label for="multipleDocumentPerson" class="form__label">Asignar a
+                                                    Persona</label>
+                                                <select id="multipleDocumentPerson" class="form__select">
+                                                    <option value="">Seleccionar persona</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form__group">
+                                            <label for="multipleExpirationDays" class="form__label">Días hasta
+                                                Vencimiento (opcional)</label>
+                                            <input type="number" id="multipleExpirationDays" class="form__input" min="0"
+                                                placeholder="Ej: 30">
+                                        </div>
+                                    </div>
+                                    <div class="multiple-upload__files" id="multipleFilesList">
+                                        <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span
+                                                id="selectedFilesCount">0</span>)</h4>
+                                        <div class="files__list" id="filesListContainer">
+                                            <div class="files__empty">
+                                                <i class="fas fa-file-alt"></i>
+                                                <p>No hay archivos seleccionados</p>
+                                            </div>
+                                        </div>
+                                        <div class="files__summary" id="filesSummary">
+                                            <div class="summary__item"><i class="fas fa-file"></i><span>Total archivos:
+                                                    <strong>0</strong></span></div>
+                                            <div class="summary__item"><i class="fas fa-hdd"></i><span>Tamaño: <strong>0
+                                                        MB</strong></span></div>
+                                            <div class="summary__item"><i class="fas fa-clock"></i><span>Tiempo
+                                                    estimado: <strong>0s</strong></span></div>
+                                        </div>
+                                    </div>
+                                    <div class="multiple-upload__advanced">
+                                        <button type="button" class="btn btn--sm btn--outline"
+                                            id="toggleAdvancedOptions">
+                                            <i class="fas fa-sliders-h"></i> Opciones Avanzadas
+                                        </button>
+                                        <div class="advanced__options" id="advancedOptions" style="display: none;">
+                                            <div class="form__group">
+                                                <label class="form__label">
+                                                    <input type="checkbox" id="autoGenerateDescriptions">
+                                                    Generar descripciones automáticamente
+                                                </label>
+                                                <p class="form__hint">Usa el nombre del archivo como descripción</p>
+                                            </div>
+                                            <div class="form__group">
+                                                <label for="uploadStrategy" class="form__label">Estrategia de
+                                                    Subida</label>
+                                                <select id="uploadStrategy" class="form__select">
+                                                    <option value="sequential">Secuencial (más estable)</option>
+                                                    <option value="parallel">Paralelo (más rápido)</option>
+                                                    <option value="batch">Por lotes (equilibrado)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </section>
+                        <footer class="modal__footer">
+                            <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
+                            <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
+                                <i class="fas fa-upload"></i> Subir Documento
+                            </button>
+                            <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
+                                <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
+                            </button>
+                        </footer>
+                    </article>
+                </dialog>
+
+
+                <!-- ════════════════════════════════════════════════════════════════════
+     MODAL: EDITAR DOCUMENTO
+     ════════════════════════════════════════════════════════════════════ -->
+                <div id="editDocumentModal" class="modal">
+                    <article class="modal__content">
+                        <header class="modal__header">
+                            <h3 class="modal__title">
+                                <i class="fas fa-edit" style="color: var(--primary); margin-right: .5rem;"></i>
+                                Editar Documento
+                            </h3>
+                            <button class="modal__close" id="closeEditDocumentModal"
+                                aria-label="Cerrar">&times;</button>
+                        </header>
+                        <section class="modal__body">
+                            <form id="editDocumentForm">
+                                <input type="hidden" id="editDocumentId">
+                                <div class="form__group">
+                                    <label class="form__label">Documento Actual</label>
+                                    <div class="current-file-info">
+                                        <i class="fas fa-file-alt"></i>
+                                        <div>
+                                            <span id="currentFileName" class="file-name"></span>
+                                            <span class="file-meta" id="currentFileSize"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form__group">
+                                    <label class="form__label">
+                                        <input type="checkbox" id="replaceFileCheck">
+                                        Reemplazar archivo
+                                    </label>
+                                </div>
+                                <div id="newFileContainer" class="file-upload-container" style="display: none;">
+                                    <div class="upload__dropzone" id="editFileUploadContainer">
+                                        <i class="fas fa-cloud-upload-alt upload__icon"></i>
+                                        <h4>Selecciona el nuevo archivo</h4>
+                                        <button type="button" class="btn btn--outline btn--sm" id="browseEditFileBtn">
+                                            <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                                        </button>
+                                        <input type="file" id="editFileInput" class="upload__input"
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
+                                        <div class="upload__info" id="editFileInfo" style="display: none;">
+                                            <p><strong>Nuevo archivo:</strong> <span id="newFileName"></span></p>
+                                            <p><strong>Tamaño:</strong> <span id="newFileSize"></span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form__group">
+                                    <label for="editDocumentDescription" class="form__label">Descripción</label>
+                                    <textarea id="editDocumentDescription" class="form__textarea" rows="3"
+                                        placeholder="Descripción del documento..."></textarea>
+                                </div>
+                                <div class="form__row">
+                                    <div class="form__group">
+                                        <label for="editDocumentCategory" class="form__label">Categoría *</label>
+                                        <select id="editDocumentCategory" class="form__select" required>
+                                            <option value="">Seleccionar categoría</option>
+                                        </select>
+                                    </div>
+                                    <div class="form__group">
+                                        <label for="editDocumentExpiration" class="form__label">Fecha de
+                                            Vencimiento</label>
+                                        <input type="date" id="editDocumentExpiration" class="form__input">
+                                    </div>
+                                </div>
+                                <div class="form__group">
+                                    <label for="editDocumentPerson" class="form__label">Asignar a Persona</label>
+                                    <select id="editDocumentPerson" class="form__select">
+                                        <option value="">Seleccionar persona</option>
+                                    </select>
+                                </div>
+                                <div class="form__group">
+                                    <label class="form__label">Información del documento</label>
+                                    <div class="document-info-grid">
+                                        <div class="info-item"><span class="info-label">Fecha de subida:</span><span
+                                                id="editDocumentUploadDate" class="info-value"></span></div>
+                                        <div class="info-item"><span class="info-label">Tipo:</span><span
+                                                id="editDocumentType" class="info-value"></span></div>
+                                        <div class="info-item"><span class="info-label">Tamaño:</span><span
+                                                id="editDocumentFileSize" class="info-value"></span></div>
+                                        <div class="info-item"><span class="info-label">Subido por:</span><span
+                                                id="editDocumentUploadedBy" class="info-value">Sistema</span></div>
+                                    </div>
+                                </div>
+                            </form>
+                        </section>
+                        <footer class="modal__footer">
+                            <button class="btn btn--outline" id="cancelEditDocumentBtn">Cancelar</button>
+                            <button class="btn btn--primary" id="saveEditDocumentBtn">
+                                <i class="fas fa-save"></i> Guardar Cambios
+                            </button>
+                        </footer>
+                    </article>
+                </div>
 
                 <!-- SECCIÓN 4.2.6: PESTAÑA TAREAS - VERSIÓN 2.0 MINI CLASSROOM -->
                 <section id="tareas" class="tab-content">
@@ -1163,6 +1783,177 @@
                                     </div>
                                 </div>
                             </form>
+
+                            <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                            <!-- SECCIÓN DE GRÁFICAS - DISEÑO RENOVADO -->
+                            <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+                            <div class="charts-section">
+
+                                <!-- Encabezado de sección -->
+                                <div class="charts-header">
+                                    <div class="charts-header__left">
+                                        <div class="charts-header__icon">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <div class="charts-header__text">
+                                            <h3>Visualización Gráfica</h3>
+                                            <p>Análisis visual de documentos del sistema</p>
+                                        </div>
+                                    </div>
+                                    <div class="charts-header__badge" id="chartsBadge">
+                                        <i class="fas fa-sync-alt fa-spin"></i>
+                                        <span>Cargando...</span>
+                                    </div>
+                                </div>
+
+                                <!-- Panel de configuración -->
+                                <div class="charts-config">
+                                    <div class="charts-config__grid">
+                                        <!-- Tipo de gráfico -->
+                                        <div class="charts-field">
+                                            <label class="charts-field__label">
+                                                <span class="charts-field__icon">
+                                                    <i class="fas fa-chart-pie"></i>
+                                                </span>
+                                                Tipo de gráfico
+                                            </label>
+                                            <div class="charts-field__select-wrap">
+                                                <select id="chartType" class="charts-field__select">
+                                                    <option value="category">📂 Por Categoría</option>
+                                                    <option value="status">📊 Por Estado</option>
+                                                    <option value="person">👤 Por Persona</option>
+                                                    <option value="type">📄 Por Tipo de Archivo</option>
+                                                    <option value="timeline">📈 Línea de Tiempo</option>
+                                                    <option value="comparison">🔄 Comparativa</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Período -->
+                                        <div class="charts-field">
+                                            <label class="charts-field__label">
+                                                <span class="charts-field__icon">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </span>
+                                                Período de tiempo
+                                            </label>
+                                            <div class="charts-field__select-wrap">
+                                                <select id="chartPeriod" class="charts-field__select">
+                                                    <option value="7d">Últimos 7 días</option>
+                                                    <option value="30d" selected>Últimos 30 días</option>
+                                                    <option value="90d">Últimos 90 días</option>
+                                                    <option value="1y">Último año</option>
+                                                    <option value="all">Todo el tiempo</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Estilo visual -->
+                                        <div class="charts-field">
+                                            <label class="charts-field__label">
+                                                <span class="charts-field__icon">
+                                                    <i class="fas fa-paint-brush"></i>
+                                                </span>
+                                                Estilo visual
+                                            </label>
+                                            <div class="charts-field__select-wrap">
+                                                <select id="chartStyle" class="charts-field__select">
+                                                    <option value="bar">📊 Barras</option>
+                                                    <option value="doughnut">🍩 Dona</option>
+                                                    <option value="pie">🥧 Pastel</option>
+                                                    <option value="polarArea">🌐 Área Polar</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Área del gráfico -->
+                                <div class="charts-canvas-wrapper">
+                                    <div class="charts-canvas-container" id="chartContainer">
+                                        <canvas id="reportChart"></canvas>
+
+                                        <!-- Estado: Cargando -->
+                                        <div class="charts-state charts-state--loading" id="chartLoading">
+                                            <div class="charts-state__spinner"></div>
+                                            <p class="charts-state__text">Preparando gráfica...</p>
+                                            <span class="charts-state__hint">Esto tomará solo un momento</span>
+                                        </div>
+
+                                        <!-- Estado: Error -->
+                                        <div class="charts-state charts-state--error" id="chartError">
+                                            <div class="charts-state__icon-wrap">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </div>
+                                            <p class="charts-state__text" id="chartErrorMessage">No se pudo cargar la
+                                                gráfica</p>
+                                            <button class="charts-state__retry" onclick="window.loadReportChart()">
+                                                <i class="fas fa-redo"></i> Intentar de nuevo
+                                            </button>
+                                        </div>
+
+                                        <!-- Estado: Vacío -->
+                                        <div class="charts-state charts-state--empty" id="chartEmpty">
+                                            <div class="charts-state__icon-wrap">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </div>
+                                            <p class="charts-state__text">Sin datos disponibles</p>
+                                            <span class="charts-state__hint">Prueba cambiando el tipo de gráfico o el
+                                                período</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Resumen de métricas -->
+                                    <div class="charts-metrics" id="chartInfo">
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--total">
+                                                <i class="fas fa-database"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value">—</span>
+                                                <span class="charts-metric__label">Total registros</span>
+                                            </div>
+                                        </div>
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--items">
+                                                <i class="fas fa-layer-group"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value">—</span>
+                                                <span class="charts-metric__label">Elementos</span>
+                                            </div>
+                                        </div>
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--top">
+                                                <i class="fas fa-trophy"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value">—</span>
+                                                <span class="charts-metric__label">Mayor categoría</span>
+                                            </div>
+                                        </div>
+                                        <div class="charts-metric">
+                                            <div class="charts-metric__icon charts-metric__icon--period">
+                                                <i class="fas fa-clock"></i>
+                                            </div>
+                                            <div class="charts-metric__data">
+                                                <span class="charts-metric__value" id="chartsPeriodLabel">30 días</span>
+                                                <span class="charts-metric__label">Período</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Acción -->
+                                <div class="charts-action">
+                                    <button class="charts-action__btn" onclick="window.exportToExcel()">
+                                        <i class="fas fa-file-excel"></i>
+                                        <span>Descargar Excel con Gráfico</span>
+                                    </button>
+                                </div>
+
+                            </div>
+
                         </div>
 
                         <!-- Vista Previa del Reporte -->
@@ -1616,14 +2407,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Botones de acción -->
-                            <div class="settings-actions">
-                                <button type="submit" class="btn" id="save-btn">
-                                    <i class="fas fa-save"></i>
-                                    Guardar cambios
-                                </button>
-                            </div>
                         </form>
 
                         <!-- Modal de confirmación -->
@@ -2040,11 +2823,6 @@
                                         <i class="fas fa-server"></i>
                                         Estado del Sistema
                                     </h3>
-                                    <div class="header-controls">
-                                        <button class="system-status-refresh" title="Actualizar estado">
-                                            <i class="fas fa-sync-alt"></i>
-                                        </button>
-                                    </div>
                                 </div>
 
                                 <div class="system-status">
@@ -2269,336 +3047,6 @@
             <footer class="modal__footer">
                 <button class="btn btn--outline" id="cancelPersonBtn">Cancelar</button>
                 <button class="btn btn--primary" id="savePersonBtn">Guardar</button>
-            </footer>
-        </article>
-    </dialog>
-
-    <!-- Modal para subir documentos -->
-    <dialog id="documentModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Subir Documento</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="documentForm">
-                    <!-- Pestañas para modo único/múltiple -->
-                    <div class="upload__tabs">
-                        <button type="button" class="upload__tab upload__tab--active" data-mode="single">
-                            <i class="fas fa-file-upload"></i> Subir Único
-                        </button>
-                        <button type="button" class="upload__tab" data-mode="multiple">
-                            <i class="fas fa-folder-open"></i> Subir Múltiple
-                        </button>
-                    </div>
-
-                    <!-- Contenedor para modo único -->
-                    <div id="singleUploadContainer" class="upload__container upload__mode--active">
-                        <div class="upload__dropzone" id="fileUploadContainer">
-                            <i class="fas fa-cloud-upload-alt upload__icon"></i>
-                            <h3>Arrastra y suelta tu archivo aquí</h3>
-                            <p>o</p>
-                            <button type="button" class="btn btn--primary" id="browseFilesBtn">
-                                <i class="fas fa-folder-open"></i> Seleccionar Archivo
-                            </button>
-                            <input type="file" id="fileInput" class="upload__input"
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                            <div class="upload__info" id="fileInfo">
-                                <p><strong>Archivo:</strong> <span id="fileName"></span></p>
-                                <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
-                            </div>
-                        </div>
-
-                        <div class="form__group">
-                            <label for="documentDescription" class="form__label">Descripción</label>
-                            <textarea id="documentDescription" class="form__textarea" rows="3"></textarea>
-                        </div>
-
-                        <div class="form__row">
-                            <div class="form__group">
-                                <label for="documentCategory" class="form__label">Categoría</label>
-                                <select id="documentCategory" class="form__select">
-                                    <option value="">Seleccionar categoría</option>
-                                </select>
-                            </div>
-                            <div class="form__group">
-                                <label for="documentExpiration" class="form__label">Fecha de Vencimiento</label>
-                                <input type="date" id="documentExpiration" class="form__input">
-                            </div>
-                        </div>
-
-                        <div class="form__group">
-                            <label for="documentPerson" class="form__label">Asignar a Persona</label>
-                            <select id="documentPerson" class="form__select">
-                                <option value="">Seleccionar persona</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Contenedor para modo múltiple -->
-                    <div id="multipleUploadContainer" class="upload__container">
-                        <div class="multiple-upload__header">
-                            <i class="fas fa-layer-group"></i>
-                            <h3>Subir Múltiples Documentos</h3>
-                            <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos juntos</p>
-                        </div>
-
-                        <div class="multiple-upload__dropzone" id="multipleFileUploadContainer">
-                            <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
-                            <h3>Arrastra y suelta múltiples archivos aquí</h3>
-                            <p>o</p>
-                            <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
-                                <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
-                            </button>
-                            <input type="file" id="multipleFileInput" class="upload__input" multiple
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                            <p class="upload__hint">Tamaño total permitido por archivo: 1 GB</p>
-                        </div>
-
-                        <!-- Configuración común para múltiples archivos -->
-                        <div class="multiple-upload__config">
-                            <h4><i class="fas fa-cog"></i> Configuración Común</h4>
-
-                            <div class="form__row">
-                                <div class="form__group">
-                                    <label for="multipleDocumentCategory" class="form__label">Categoría para
-                                        Todos</label>
-                                    <select id="multipleDocumentCategory" class="form__select">
-                                        <option value="">Seleccionar categoría común</option>
-                                    </select>
-                                </div>
-                                <div class="form__group">
-                                    <label for="multipleDocumentPerson" class="form__label">Asignar a Persona</label>
-                                    <select id="multipleDocumentPerson" class="form__select">
-                                        <option value="">Seleccionar persona</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="form__group">
-                                <label for="multipleExpirationDays" class="form__label">Días hasta Vencimiento
-                                    (opcional)</label>
-                                <input type="number" id="multipleExpirationDays" class="form__input" min="0"
-                                    placeholder="Ej: 30 (días desde hoy)">
-                            </div>
-                        </div>
-
-                        <!-- Lista de archivos seleccionados -->
-                        <div class="multiple-upload__files" id="multipleFilesList">
-                            <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span
-                                    id="selectedFilesCount">0</span>)</h4>
-                            <div class="files__list" id="filesListContainer">
-                                <div class="files__empty">
-                                    <i class="fas fa-file-alt"></i>
-                                    <p>No hay archivos seleccionados</p>
-                                </div>
-                            </div>
-
-                            <!-- Resumen -->
-                            <div class="files__summary" id="filesSummary">
-                                <div class="summary__item">
-                                    <i class="fas fa-file"></i>
-                                    <span>Total archivos: <strong>0</strong></span>
-                                </div>
-                                <div class="summary__item">
-                                    <i class="fas fa-hdd"></i>
-                                    <span>Tamaño: <strong>0 MB</strong></span>
-                                </div>
-                                <div class="summary__item">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Tiempo estimado: <strong>0s</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Opciones avanzadas -->
-                        <div class="multiple-upload__advanced">
-                            <button type="button" class="btn btn--sm btn--outline" id="toggleAdvancedOptions">
-                                <i class="fas fa-sliders-h"></i> Opciones Avanzadas
-                            </button>
-
-                            <div class="advanced__options" id="advancedOptions" style="display: none;">
-                                <div class="form__group">
-                                    <label class="form__label">
-                                        <input type="checkbox" id="autoGenerateDescriptions">
-                                        Generar descripciones automáticamente
-                                    </label>
-                                    <p class="form__hint">Usa el nombre del archivo como descripción</p>
-                                </div>
-
-                                <div class="form__group">
-                                    <label for="uploadStrategy" class="form__label">Estrategia de Subida</label>
-                                    <select id="uploadStrategy" class="form__select">
-                                        <option value="sequential">Secuencial (más estable)</option>
-                                        <option value="parallel">Paralelo (más rápido)</option>
-                                        <option value="batch">Por lotes (equilibrado)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
-                <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
-                    <i class="fas fa-upload"></i> Subir Documento
-                </button>
-                <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
-                    <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
-                </button>
-            </footer>
-        </article>
-    </dialog>
-
-    <!-- Modal para editar documentos -->
-    <div id="editDocumentModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title">Editar Documento</h3>
-                <button class="modal__close" id="closeEditDocumentModal">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="editDocumentForm">
-                    <input type="hidden" id="editDocumentId">
-
-                    <div class="form__group">
-                        <label class="form__label">Documento Actual</label>
-                        <div class="current-file-info">
-                            <i class="fas fa-file-alt"></i>
-                            <div>
-                                <span id="currentFileName" class="file-name"></span>
-                                <span class="file-meta" id="currentFileSize"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form__group">
-                        <label class="form__label">
-                            <input type="checkbox" id="replaceFileCheck">
-                            Reemplazar archivo
-                        </label>
-                    </div>
-
-                    <div id="newFileContainer" class="file-upload-container" style="display: none;">
-                        <div class="upload__dropzone" id="editFileUploadContainer">
-                            <i class="fas fa-cloud-upload-alt upload__icon"></i>
-                            <h4>Selecciona el nuevo archivo</h4>
-                            <button type="button" class="btn btn--outline btn--sm" id="browseEditFileBtn">
-                                <i class="fas fa-folder-open"></i> Seleccionar Archivo
-                            </button>
-                            <input type="file" id="editFileInput" class="upload__input"
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                            <div class="upload__info" id="editFileInfo" style="display: none;">
-                                <p><strong>Nuevo archivo:</strong> <span id="newFileName"></span></p>
-                                <p><strong>Tamaño:</strong> <span id="newFileSize"></span></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form__group">
-                        <label for="editDocumentDescription" class="form__label">Descripción</label>
-                        <textarea id="editDocumentDescription" class="form__textarea" rows="3"
-                            placeholder="Descripción del documento..."></textarea>
-                    </div>
-
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="editDocumentCategory" class="form__label">Categoría *</label>
-                            <select id="editDocumentCategory" class="form__select" required>
-                                <option value="">Seleccionar categoría</option>
-                            </select>
-                        </div>
-                        <div class="form__group">
-                            <label for="editDocumentExpiration" class="form__label">Fecha de Vencimiento</label>
-                            <input type="date" id="editDocumentExpiration" class="form__input">
-                        </div>
-                    </div>
-
-                    <div class="form__group">
-                        <label for="editDocumentPerson" class="form__label">Asignar a Persona</label>
-                        <select id="editDocumentPerson" class="form__select">
-                            <option value="">Seleccionar persona</option>
-                        </select>
-                    </div>
-
-                    <div class="form__group">
-                        <label class="form__label">Información del documento</label>
-                        <div class="document-info-grid">
-                            <div class="info-item">
-                                <span class="info-label">Fecha de subida:</span>
-                                <span id="editDocumentUploadDate" class="info-value"></span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Tipo:</span>
-                                <span id="editDocumentType" class="info-value"></span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Tamaño:</span>
-                                <span id="editDocumentFileSize" class="info-value"></span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Subido por:</span>
-                                <span id="editDocumentUploadedBy" class="info-value">Sistema</span>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelEditDocumentBtn">Cancelar</button>
-                <button class="btn btn--primary" id="saveEditDocumentBtn">
-                    <i class="fas fa-save"></i> Guardar Cambios
-                </button>
-            </footer>
-        </article>
-    </div>
-
-    <!-- Modal para agregar/editar categorías -->
-    <dialog id="categoryModal" class="modal">
-        <article class="modal__content">
-            <header class="modal__header">
-                <h3 class="modal__title" id="categoryModalTitle">Nueva Categoría</h3>
-                <button class="modal__close">&times;</button>
-            </header>
-            <section class="modal__body">
-                <form id="categoryForm">
-                    <input type="hidden" id="categoryId">
-                    <div class="form__group">
-                        <label for="categoryName" class="form__label">Nombre *</label>
-                        <input type="text" id="categoryName" class="form__input" required>
-                    </div>
-                    <div class="form__group">
-                        <label for="categoryDescription" class="form__label">Descripción</label>
-                        <textarea id="categoryDescription" class="form__textarea" rows="3"></textarea>
-                    </div>
-                    <div class="form__row">
-                        <div class="form__group">
-                            <label for="categoryColor" class="form__label">Color</label>
-                            <input type="color" id="categoryColor" class="form__input form__input--color"
-                                value="#4f46e5">
-                        </div>
-                        <div class="form__group">
-                            <label for="categoryIcon" class="form__label">Icono</label>
-                            <select id="categoryIcon" class="form__select">
-                                <option value="folder">Carpeta</option>
-                                <option value="file-contract">Contrato</option>
-                                <option value="id-card">Identificación</option>
-                                <option value="certificate">Certificado</option>
-                                <option value="chart-line">Reporte</option>
-                                <option value="file-invoice">Factura</option>
-                                <option value="file-medical">Médico</option>
-                                <option value="graduation-cap">Académico</option>
-                                <option value="briefcase">Laboral</option>
-                                <option value="home">Personal</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal__footer">
-                <button class="btn btn--outline" id="cancelCategoryBtn">Cancelar</button>
-                <button class="btn btn--primary" id="saveCategoryBtn">Guardar</button>
             </footer>
         </article>
     </dialog>

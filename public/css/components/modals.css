@@ -1176,3 +1176,69 @@
 .modal__task {
     padding: 1.5rem;
 }
+
+/* Modal de sistema cerrado */
+#systemClosedModal {
+    animation: fadeIn 0.3s ease;
+}
+
+#systemClosedModal .sa-modal__dialog {
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.sa-btn--primary {
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.sa-btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.sa-modal__backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.sa-modal__dialog {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+    transform: translate(135%, -110%);
+}
+
+.sa-modal__body {
+    padding: 1rem 0;
+}

@@ -17,35 +17,41 @@ import {
 } from '../controllers/adminController.js';
 import { protegerRuta, soloAdministrador, inyectarSchoolId } from '../middleware/auth.js';
 
+// ═══════════════════════════════════════════════════════════════
+// NUEVO: Importar middleware de verificación de sistema
+// ═══════════════════════════════════════════════════════════════
+import verificarAccesoSistema from '../middleware/systemAccess.js';
+
 const router = express.Router();
 
 // =============================================================================
-// RUTAS PROTEGIDAS
+// RUTAS PROTEGIDAS (con verificación de sistema cerrado)
 // =============================================================================
 
-router.post('/request-change', protegerRuta, soloAdministrador, requestAdminChange);
-router.get('/pending-requests', protegerRuta, soloAdministrador, getPendingRequests);
+// AGREGAR verificarAccesoSistema a TODAS las rutas protegidas
+router.post('/request-change', protegerRuta, verificarAccesoSistema, soloAdministrador, requestAdminChange);
+router.get('/pending-requests', protegerRuta, verificarAccesoSistema, soloAdministrador, getPendingRequests);
 
-// Crear usuarios con rol - SOLO ADMIN (AISLADO POR ESCUELA)
-router.post('/users', protegerRuta, inyectarSchoolId, soloAdministrador, createUserWithRole);
+// Crear usuarios con rol - SOLO ADMIN
+router.post('/users', protegerRuta, verificarAccesoSistema, inyectarSchoolId, soloAdministrador, createUserWithRole);
 
-// Listar usuarios - SOLO ADMIN (AISLADO POR ESCUELA)
-router.get('/users', protegerRuta, inyectarSchoolId, soloAdministrador, getUsers);
+// Listar usuarios - SOLO ADMIN
+router.get('/users', protegerRuta, verificarAccesoSistema, inyectarSchoolId, soloAdministrador, getUsers);
 
-// ACTUALIZAR usuario - SOLO ADMIN (AISLADO POR ESCUELA)
-router.patch('/users/:id', protegerRuta, inyectarSchoolId, soloAdministrador, updateUser);
+// ACTUALIZAR usuario - SOLO ADMIN
+router.patch('/users/:id', protegerRuta, verificarAccesoSistema, inyectarSchoolId, soloAdministrador, updateUser);
 
 // DESACTIVAR usuario - SOLO ADMIN
-router.patch('/users/:id/deactivate', protegerRuta, soloAdministrador, deactivateUser);
+router.patch('/users/:id/deactivate', protegerRuta, verificarAccesoSistema, soloAdministrador, deactivateUser);
 
 // REACTIVAR usuario - SOLO ADMIN
-router.patch('/users/:id/reactivate', protegerRuta, soloAdministrador, reactivateUser);
+router.patch('/users/:id/reactivate', protegerRuta, verificarAccesoSistema, soloAdministrador, reactivateUser);
 
 // ELIMINAR PERMANENTEMENTE usuario - SOLO ADMIN
-router.delete('/users/:id', protegerRuta, soloAdministrador, deleteUserPermanently);
+router.delete('/users/:id', protegerRuta, verificarAccesoSistema, soloAdministrador, deleteUserPermanently);
 
 // =============================================================================
-// RUTAS PÚBLICAS
+// RUTAS PÚBLICAS (sin verificación de sistema - son para cambio de contraseña)
 // =============================================================================
 
 router.get('/verify-token/:token', verifyAdminChangeToken);
@@ -53,11 +59,11 @@ router.post('/confirm-change', confirmAdminChange);
 router.post('/reject-change', rejectAdminChange);
 
 // =============================================================================
-// RUTAS DE DIAGNÓSTICO Y DEBUG
+// RUTAS DE DIAGNÓSTICO Y DEBUG (con verificación)
 // =============================================================================
 
-router.get('/request-status/:requestId', getRequestStatus);
+router.get('/request-status/:requestId', protegerRuta, verificarAccesoSistema, getRequestStatus);
 router.get('/test', testAdminChange);
-router.get('/debug/:requestId', debugPasswordStorage);
+router.get('/debug/:requestId', protegerRuta, verificarAccesoSistema, debugPasswordStorage);
 
 export default router;

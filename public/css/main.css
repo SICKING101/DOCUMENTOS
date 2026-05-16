@@ -22,7 +22,6 @@
 @import url('components/empty-states.css');
 @import url('components/sidebar.css');
 @import url('components/admin-tabs.css');
-@import url('components/chatbot.css');
 
 @import url('components/preloader/bulk-delete.css');
 @import url('components/preloader/login-preloader.css');
@@ -56,6 +55,7 @@
 @import url('components/status.css');
 @import url('components/topbar.css');
 @import url('components/chatbot-slide.css');
+@import url('components/charts.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');
@@ -76,6 +76,9 @@
 @import url('sections/versiones.css');
 @import url('sections/sugerencias.css');
 @import url('sections/avisos.css');
+@import url('sections/chatbot.css');
+@import url('sections/departamentos.css');
+@import url('sections/personas.css');
 
 @import url('themes/light.css');
 @import url('themes/dark.css');

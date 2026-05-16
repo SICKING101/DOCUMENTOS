@@ -7,11 +7,21 @@ import { setupFileDragAndDrop } from './upload/dragAndDrop.js';
 import { loadFilterState } from './table/tableFilters.js';
 import { initializeTableFilters } from './table/tableFilters.js';
 import { MultipleUploadState } from './core/MultipleUploadState.js';
-import { formatFileSize, getFileIcon } from '../../utils.js';
+import { formatFileSize, getFileIcon, showAlert } from '../../utils.js';
 
 // IMPORTAR NUEVO MODAL DE ELIMINACIÓN MÚLTIPLE
 import { bulkDeleteModal } from './modals/bulkDeleteModal.js';
 import { bulkDeleteState } from './core/BulkDeleteState.js';
+
+// IMPORTAR NAVEGACIÓN POR CATEGORÍAS
+import {
+    initCategoryNavigation,
+    navigateToRoot,
+    openCategoryModal,
+    closeCategoryModal,
+    saveCategory,
+    refreshCategoryTree 
+} from './categoryNavigation.js';
 
 // =============================================================================
 // Re-exportaciones
@@ -24,16 +34,16 @@ export * from './core/constants.js';
 
 // Upload
 export { handleFile, handleFileSelect, handleUploadDocument } from './upload/uploadSingle.js';
-export { 
-    multipleUploadState, 
-    handleMultipleFiles, 
-    handleMultipleFileSelect, 
-    handleUploadMultipleDocuments 
+export {
+    multipleUploadState,
+    handleMultipleFiles,
+    handleMultipleFileSelect,
+    handleUploadMultipleDocuments
 } from './upload/uploadMultiple.js';
 export { setupFileDragAndDrop } from './upload/dragAndDrop.js';
-export { 
-    showUploadProgressContainer, 
-    hideUploadProgressContainer, 
+export {
+    showUploadProgressContainer,
+    hideUploadProgressContainer,
     cancelMultipleUpload,
     showUploadResults,
     updateOverallProgress
@@ -41,58 +51,60 @@ export {
 
 // Preview
 export { previewDocument, canPreviewDocument } from './preview/previewManager.js';
-export { 
-    showImagePreviewModal, 
-    showPDFPreviewModal 
+export {
+    showImagePreviewModal,
+    showPDFPreviewModal
 } from './preview/previewModals.js';
-export { 
-    showTextPreviewModal 
+export {
+    showTextPreviewModal
 } from './preview/textPreview.js';
-export { 
+export {
     showOfficePreviewModal,
     canPreviewOfficeDocument,
-    getOfficePreviewInfo 
+    getOfficePreviewInfo
 } from './preview/officePreview.js';
 
 // Download
 export { downloadDocument, downloadDocumentFromPreview } from './download/downloadManager.js';
 export { downloadDocumentSimple, downloadDocumentAlternative } from './download/downloadMethods.js';
-export { 
+export {
     debugDocumentDownload,
     testAllDownloads,
-    testDownloadMethod 
+    testDownloadMethod
 } from './download/downloadDiagnostics.js';
 
 // Table
 export { renderDocumentsTable } from './table/tableRenderer.js';
 export { changeDocumentsPage } from './table/tableRenderer.js';
-export { 
+export {
     initializeTableFilters,
     applyFilters,
     loadFilterState,
     clearAllFilters,
     getFilteredDocumentStats,
-    exportFilteredToCSV 
+    exportFilteredToCSV
 } from './table/tableFilters.js';
 
 // Modals
 export { openDocumentModal, closeDocumentModal, switchUploadMode } from './modals/documentModal.js';
-export { 
-    populateDocumentCategorySelect, 
-    populateMultipleCategorySelect, 
-    populateFileCategorySelect, 
+export {
+    populateDocumentCategorySelect,
+    populateMultipleCategorySelect,
+    populateFileCategorySelect,
     populatePersonSelect,
     populateAllPersonSelects
 } from './modals/modalHelpers.js';
 
 // Funciones que necesitan ser expuestas globalmente para compatibilidad
-export { 
+export {
     debugMultipleUpload,
     testMultipleUploadWithMockFiles,
     deleteDocument,
     loadDocuments,
     setupCompatibilityGlobals
 } from './compatibility.js';
+
+export { refreshCategoryTree } from './categoryNavigation.js';
 
 // =============================================================================
 // Funciones auxiliares y helpers que no están en otros módulos
@@ -120,10 +132,10 @@ function renderFilesList() {
         console.error('❌ Contenedor de lista no encontrado');
         return;
     }
-    
+
     // Limpiar lista
     filesListContainer.innerHTML = '';
-    
+
     if (!window.multipleUploadState || window.multipleUploadState.files.length === 0) {
         filesListContainer.innerHTML = `
             <div class="files__empty">
@@ -133,7 +145,7 @@ function renderFilesList() {
         `;
         return;
     }
-    
+
     // Renderizar cada archivo
     window.multipleUploadState.files.forEach(fileObj => {
         const fileElement = createFileElement(fileObj);
@@ -148,11 +160,11 @@ function createFileElement(fileObj) {
     const file = fileObj.file;
     const fileExtension = file.name.split('.').pop().toLowerCase();
     const fileIcon = getFileIcon(fileExtension);
-    
+
     const element = document.createElement('div');
     element.className = `file-item file-item--${fileObj.status}`;
     element.dataset.fileId = fileObj.id;
-    
+
     element.innerHTML = `
         <div class="file-item__header">
             <div class="file-item__icon">
@@ -195,7 +207,7 @@ function createFileElement(fileObj) {
             </div>
         ` : ''}
     `;
-    
+
     // Agregar event listeners
     const removeBtn = element.querySelector('.file-item__remove');
     removeBtn.addEventListener('click', () => {
@@ -204,7 +216,7 @@ function createFileElement(fileObj) {
             updateUploadButton();
         }
     });
-    
+
     return element;
 }
 
@@ -214,12 +226,12 @@ function createFileElement(fileObj) {
 function updateFilesSummary() {
     const filesSummary = document.getElementById('filesSummary');
     if (!filesSummary || !window.multipleUploadState) return;
-    
+
     const stats = window.multipleUploadState.getStats();
-    
+
     // Calcular tiempo estimado (1MB ≈ 1 segundo en conexión buena)
     const estimatedTimeSeconds = Math.ceil(stats.totalSize / (1024 * 1024));
-    
+
     filesSummary.innerHTML = `
         <div class="summary__item">
             <i class="fas fa-file"></i>
@@ -242,9 +254,9 @@ function updateFilesSummary() {
 function updateUploadButton() {
     const uploadBtn = document.getElementById('uploadMultipleDocumentsBtn');
     const uploadCount = document.getElementById('uploadCount');
-    
+
     if (!uploadBtn || !uploadCount) return;
-    
+
     if (!window.multipleUploadState || window.multipleUploadState.files.length === 0) {
         uploadBtn.disabled = true;
         uploadCount.textContent = '0';
@@ -256,29 +268,22 @@ function updateUploadButton() {
 
 /**
  * Actualiza la UI completa de subida múltiple.
- * Incluye contador, lista de archivos, resumen y configuración.
  */
 export function updateMultipleUploadUI() {
     console.log('🔄 Actualizando UI de subida múltiple');
-    
+
     if (!window.multipleUploadState) {
         console.error('❌ Estado de subida múltiple no inicializado');
         return;
     }
-    
-    // Actualizar contador
+
     const countElement = document.getElementById('selectedFilesCount');
     if (countElement) {
         countElement.textContent = window.multipleUploadState.files.length;
     }
-    
-    // Actualizar lista de archivos
+
     renderFilesList();
-    
-    // Actualizar resumen
     updateFilesSummary();
-    
-    // Actualizar botón de subida
     updateUploadButton();
 }
 
@@ -287,17 +292,16 @@ export function updateMultipleUploadUI() {
 // =============================================================================
 
 /**
- * Renderiza la lista reducida de documentos vencidos en el panel y añade interacciones.
+ * Renderiza la lista reducida de documentos vencidos en el panel.
  */
 export function renderExpiredDocuments() {
     try {
         if (!window.appState || !window.appState.documents) return;
 
         const modeEl = document.getElementById('expiredViewMode');
-        const mode = modeEl ? modeEl.value : 'expired'; // 'expired' | 'expiring' | 'all'
+        const mode = modeEl ? modeEl.value : 'expired';
         const now = new Date();
 
-        // Filtrar según modo
         let filtered = [];
         if (mode === 'expired') {
             filtered = window.appState.documents.filter(doc => {
@@ -313,11 +317,10 @@ export function renderExpiredDocuments() {
                 } catch (e) { return false; }
             });
         } else {
-            // 'all' -> incluir todos los documentos (con o sin fecha)
             filtered = window.appState.documents.slice();
         }
 
-        filtered.sort((a,b) => new Date(b.fecha_vencimiento || 0) - new Date(a.fecha_vencimiento || 0));
+        filtered.sort((a, b) => new Date(b.fecha_vencimiento || 0) - new Date(a.fecha_vencimiento || 0));
 
         const list = document.getElementById('expiredDocumentsList');
         const count = document.getElementById('expiredCount');
@@ -343,8 +346,7 @@ export function renderExpiredDocuments() {
             return;
         }
 
-        // Mostrar hasta 5 documentos
-        const toShow = filtered.slice(0,5);
+        const toShow = filtered.slice(0, 5);
         list.innerHTML = '';
 
         toShow.forEach(doc => {
@@ -388,7 +390,6 @@ export function renderExpiredDocuments() {
                 </div>
             `;
 
-            // Action listeners
             item.querySelectorAll('button[data-action]').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const action = btn.getAttribute('data-action');
@@ -416,29 +417,27 @@ export function renderExpiredDocuments() {
 
 /**
  * Inicializa el módulo de documentos con todas las funcionalidades.
- * Debe llamarse cuando el DOM esté listo.
  */
 export function initializeDocumentosModule() {
     console.group('🚀 INICIALIZANDO MÓDULO DE DOCUMENTOS');
-    
+
     try {
         // 1. Inicializar estado de subida múltiple si no existe
         if (!window.multipleUploadState) {
             window.multipleUploadState = new MultipleUploadState();
             console.log('✅ Estado de subida múltiple inicializado');
         }
-        
+
         // 2. Configurar drag and drop
         setupFileDragAndDrop();
-        
-        // 3. ✅ LIMPIAR localStorage si tiene filtros corruptos
+
+        // 3. LIMPIAR localStorage si tiene filtros corruptos
         try {
             const savedFilters = localStorage.getItem('documentFilters');
             if (savedFilters) {
                 const parsed = JSON.parse(savedFilters);
-                // Si solo tiene status='active' sin categoría, es el filtro por defecto corrupto
                 if (parsed.status === 'active' && !parsed.category && !parsed.type && !parsed.date) {
-                    console.log('🧹 Detectado filtro corrupto (status=active sin categoría), limpiando localStorage...');
+                    console.log('🧹 Detectado filtro corrupto, limpiando localStorage...');
                     localStorage.removeItem('documentFilters');
                     localStorage.removeItem('documentSearchQuery');
                 }
@@ -448,8 +447,8 @@ export function initializeDocumentosModule() {
             localStorage.removeItem('documentFilters');
             localStorage.removeItem('documentSearchQuery');
         }
-        
-        // 4. ✅ Inicializar appState con filtros LIMPIOS
+
+        // 4. Inicializar appState con filtros LIMPIOS
         if (!window.appState) {
             window.appState = {};
         }
@@ -460,60 +459,64 @@ export function initializeDocumentosModule() {
             category: '',
             type: '',
             date: '',
-            status: ''  // ✅ SIEMPRE inicia en "Todos los estados"
+            status: ''
         };
         window.appState.currentSearchQuery = '';
         window.appState.filteredDocuments = null;
-        
+
         console.log('📊 Estado inicial de filtros:', window.appState.filters);
-        
-        // 5. Inicializar filtros de tabla (con los valores limpios)
+
+        // 5. Inicializar filtros de tabla
         initializeTableFilters();
-        
-        // 6. ✅ Establecer el select de estado a '' explícitamente
+
+        // 6. Establecer selects a vacío
         const filterStatus = document.getElementById('filterStatus');
         if (filterStatus) {
             filterStatus.value = '';
-            console.log('🎯 Filtro de estado establecido a: (Todos)');
         }
-        
+
         const filterCategory = document.getElementById('filterCategory');
         if (filterCategory) {
             filterCategory.value = '';
         }
-        
+
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
             searchInput.value = '';
         }
-        
-        // 7. Ahora SÍ cargar estado guardado (si hay algo válido)
+
+        // 7. Cargar estado guardado
         loadFilterState();
-        
-        // 8. ✅ DESPUÉS de loadFilterState, verificar que no haya status='active' corrupto
-        if (window.appState.filters && window.appState.filters.status === 'active' && 
+
+        // 8. Inicializar navegación por categorías (¡AHORA SÍ ESTÁ DEFINIDA!)
+        console.log('🗂️ Llamando a initCategoryNavigation...');
+        initCategoryNavigation();
+        console.log('✅ Navegación por categorías inicializada');
+
+        // 10. Verificar filtros corruptos después de loadFilterState
+        if (window.appState.filters && window.appState.filters.status === 'active' &&
             !window.appState.filters.category && !window.appState.filters.type && !window.appState.filters.date) {
             console.log('🧹 loadFilterState restauró filtro corrupto, limpiando de nuevo...');
             window.appState.filters.status = '';
             if (filterStatus) filterStatus.value = '';
             localStorage.removeItem('documentFilters');
         }
-        
-        // 9. Inicializar modal de eliminación múltiple
+
+        // 11. Inicializar modal de eliminación múltiple
         bulkDeleteModal.init();
-        
-        // 10. Inicializar modal de edición de documentos
+
+        // 12. Inicializar modal de edición de documentos
         import('./modals/editDocumentModal.js').then(module => {
             module.initEditDocumentModal();
             console.log('✅ Modal de edición inicializado');
         }).catch(err => {
             console.error('❌ Error cargando modal de edición:', err);
         });
-        
-        // 11. Configurar funciones globales
+
+        // 13. Configurar funciones globales
         setupGlobalFunctions();
 
-        // 12. Inicializar panel de documentos vencidos
+        // 14. Inicializar panel de documentos vencidos
         const viewAllBtn = document.getElementById('viewAllExpiredBtn');
         const modeSelect = document.getElementById('expiredViewMode');
 
@@ -548,7 +551,7 @@ export function initializeDocumentosModule() {
         } catch (e) {
             console.error('Error inicializando panel vencidos:', e);
         }
-        
+
         console.log('✅ Módulo de documentos inicializado correctamente');
         console.log('📋 Estado final de filtros:', window.appState.filters);
         console.log('📋 Funcionalidades disponibles:');
@@ -558,15 +561,17 @@ export function initializeDocumentosModule() {
             'Vista previa': '✓',
             'Descargas': '✓',
             'Filtros': '✓',
-            'Edición': '✓'
+            'Edición': '✓',
+            'Navegación categorías': '✓'
         });
-        
+
     } catch (error) {
         console.error('❌ Error crítico inicializando módulo de documentos:', error);
+        // showAlert ahora sí está importado
         showAlert('Error inicializando módulo de documentos. Revisa la consola.', 'error');
         throw error;
     }
-    
+
     console.groupEnd();
 }
 
@@ -575,33 +580,35 @@ export function initializeDocumentosModule() {
  */
 function setupGlobalFunctions() {
     console.log('🔧 Configurando funciones globales...');
-    
+
     // Modal de eliminación múltiple
     window.bulkDeleteModal = bulkDeleteModal;
     window.bulkDeleteState = bulkDeleteState;
-    
+
     // Funciones de debugging
     window.debugBulkDelete = () => bulkDeleteModal.debug();
     window.testBulkDelete = () => bulkDeleteModal.test();
-    
+
     // Funciones de utilidad
     window.openBulkDelete = () => bulkDeleteModal.open();
     window.closeBulkDelete = () => bulkDeleteModal.close();
-    
+
+    // Exponer globalmente para que los onclick del HTML funcionen
+    window.openCategoryModal = openCategoryModal;
+    window.closeCategoryModal = closeCategoryModal;
+    window.saveCategory = saveCategory;
+
     console.log('✅ Funciones globales configuradas');
 }
 
 /**
  * Función de conveniencia para obtener todas las funciones exportadas.
- * Útil para debugging o para asignar globalmente.
  */
 export function getAllDocumentosFunctions() {
     return {
-        // Core
         MultipleUploadState,
         bulkDeleteState,
-        
-        // Upload
+
         handleFile,
         handleFileSelect,
         handleUploadDocument,
@@ -615,8 +622,7 @@ export function getAllDocumentosFunctions() {
         cancelMultipleUpload,
         showUploadResults,
         updateOverallProgress,
-        
-        // Preview
+
         previewDocument,
         canPreviewDocument,
         showImagePreviewModal,
@@ -625,8 +631,7 @@ export function getAllDocumentosFunctions() {
         showOfficePreviewModal,
         canPreviewOfficeDocument,
         getOfficePreviewInfo,
-        
-        // Download
+
         downloadDocument,
         downloadDocumentFromPreview,
         downloadDocumentSimple,
@@ -634,8 +639,7 @@ export function getAllDocumentosFunctions() {
         debugDocumentDownload,
         testAllDownloads,
         testDownloadMethod,
-        
-        // Table
+
         renderDocumentsTable,
         initializeTableFilters,
         applyFilters,
@@ -643,11 +647,9 @@ export function getAllDocumentosFunctions() {
         clearAllFilters,
         getFilteredDocumentStats,
         exportFilteredToCSV,
-        
-        // Modal de eliminación múltiple
+
         bulkDeleteModal,
-        
-        // Modals
+
         openDocumentModal,
         closeDocumentModal,
         switchUploadMode,
@@ -656,24 +658,25 @@ export function getAllDocumentosFunctions() {
         populateFileCategorySelect,
         populatePersonSelect,
         populateAllPersonSelects,
-        
-        // UI Helpers
+
         updateMultipleUploadUI,
-        
-        // Compatibility
+
         deleteDocument,
         loadDocuments,
         debugMultipleUpload,
         testMultipleUploadWithMockFiles,
-        
-        // Inicialización
+
+        initCategoryNavigation,
+        openCategoryModal,
+        closeCategoryModal,
+        saveCategory,
+
         initializeDocumentosModule
     };
 }
 
 // Auto-inicializar cuando se carga la pestaña de documentos
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar si estamos en la pestaña de documentos
     const documentosTab = document.getElementById('documentos');
     if (documentosTab && documentosTab.classList.contains('active')) {
         console.log('📁 Pestaña de documentos activa, inicializando...');
@@ -681,8 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initializeDocumentosModule();
         }, 500);
     }
-    
-    // También inicializar cuando se cambie a la pestaña
+
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
@@ -696,12 +698,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-    
-    // Observar cambios en la pestaña de documentos
+
     if (documentosTab) {
         observer.observe(documentosTab, { attributes: true });
     }
 });
 
-// Exportar la función de inicialización por si se necesita llamar manualmente
 export default initializeDocumentosModule;
