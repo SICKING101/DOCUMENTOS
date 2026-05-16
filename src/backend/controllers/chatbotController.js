@@ -14,21 +14,21 @@ import Department from '../models/Department.js';
 // DEBUG LOGGER MEJORADO
 // ──────────────────────────────────────────────────────────────
 const debug = {
-    log:    (...a) => console.log ('\x1b[36m🤖 [ARIA v4]\x1b[0m',      ...a),
-    warn:   (...a) => console.warn ('\x1b[33m⚠️  [ARIA v4]\x1b[0m',     ...a),
-    error:  (...a) => console.error('\x1b[31m❌ [ARIA v4]\x1b[0m',      ...a),
-    info:   (...a) => console.info ('\x1b[32mℹ️  [ARIA v4]\x1b[0m',     ...a),
-    action: (...a) => console.log ('\x1b[35m🎯 [ARIA-ACTION]\x1b[0m',   ...a),
-    db:     (...a) => console.log ('\x1b[34m🗄️  [ARIA-DB]\x1b[0m',      ...a),
-    nlp:    (...a) => console.log ('\x1b[93m🧠 [ARIA-NLP]\x1b[0m',      ...a),
-    perf:   (...a) => console.log ('\x1b[96m⚡ [ARIA-PERF]\x1b[0m',     ...a),
+    log: (...a) => console.log('\x1b[36m🤖 [ARIA v4]\x1b[0m', ...a),
+    warn: (...a) => console.warn('\x1b[33m⚠️  [ARIA v4]\x1b[0m', ...a),
+    error: (...a) => console.error('\x1b[31m❌ [ARIA v4]\x1b[0m', ...a),
+    info: (...a) => console.info('\x1b[32mℹ️  [ARIA v4]\x1b[0m', ...a),
+    action: (...a) => console.log('\x1b[35m🎯 [ARIA-ACTION]\x1b[0m', ...a),
+    db: (...a) => console.log('\x1b[34m🗄️  [ARIA-DB]\x1b[0m', ...a),
+    nlp: (...a) => console.log('\x1b[93m🧠 [ARIA-NLP]\x1b[0m', ...a),
+    perf: (...a) => console.log('\x1b[96m⚡ [ARIA-PERF]\x1b[0m', ...a),
 };
 
 // ──────────────────────────────────────────────────────────────
 // CLIENTE GROQ — con retry y backoff
 // ──────────────────────────────────────────────────────────────
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL   = 'llama-3.1-8b-instant';
+const GROQ_MODEL = 'llama-3.1-8b-instant';
 const GROQ_TIMEOUT = 25000;
 
 async function callGroq(systemPrompt, messages, maxTokens = 1200, retries = 2) {
@@ -38,16 +38,16 @@ async function callGroq(systemPrompt, messages, maxTokens = 1200, retries = 2) {
 
         try {
             const res = await fetch(GROQ_API_URL, {
-                method:  'POST',
+                method: 'POST',
                 headers: {
-                    'Content-Type':  'application/json',
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
                 },
                 body: JSON.stringify({
-                    model:       GROQ_MODEL,
-                    max_tokens:  maxTokens,
+                    model: GROQ_MODEL,
+                    max_tokens: maxTokens,
                     temperature: 0.4,
-                    top_p:       0.9,
+                    top_p: 0.9,
                     messages: [
                         { role: 'system', content: systemPrompt },
                         ...messages,
@@ -60,7 +60,7 @@ async function callGroq(systemPrompt, messages, maxTokens = 1200, retries = 2) {
 
             if (res.status === 429 && attempt < retries) {
                 const wait = (attempt + 1) * 1500;
-                debug.warn(`Rate limit Groq, esperando ${wait}ms (intento ${attempt+1}/${retries})`);
+                debug.warn(`Rate limit Groq, esperando ${wait}ms (intento ${attempt + 1}/${retries})`);
                 await new Promise(r => setTimeout(r, wait));
                 continue;
             }
@@ -70,10 +70,10 @@ async function callGroq(systemPrompt, messages, maxTokens = 1200, retries = 2) {
                 throw new Error(`Groq HTTP ${res.status}: ${err.substring(0, 300)}`);
             }
 
-            const data  = await res.json();
-            const text  = data.choices?.[0]?.message?.content ?? '';
+            const data = await res.json();
+            const text = data.choices?.[0]?.message?.content ?? '';
             const usage = data.usage ?? {};
-            debug.info(`Groq OK (intento ${attempt+1}) — in=${usage.prompt_tokens} out=${usage.completion_tokens}`);
+            debug.info(`Groq OK (intento ${attempt + 1}) — in=${usage.prompt_tokens} out=${usage.completion_tokens}`);
             return { text, usage };
 
         } catch (err) {
@@ -106,16 +106,16 @@ async function callGroq(systemPrompt, messages, maxTokens = 1200, retries = 2) {
 //   tipo            → 'personal' | 'asignada' | 'grupal' | 'clase'
 // ──────────────────────────────────────────────────────────────
 const TASK_SCHEMA = {
-    assignedField:  'asignado_a',   // Array de ObjectId
+    assignedField: 'asignado_a',   // Array de ObjectId
     createdByField: 'creado_por',   // ObjectId scalar
-    dueDateField:   'fecha_limite',
+    dueDateField: 'fecha_limite',
     completedField: 'fecha_completada',
-    statusField:    'estado',
-    priorityField:  'prioridad',
-    titleField:     'titulo',
+    statusField: 'estado',
+    priorityField: 'prioridad',
+    titleField: 'titulo',
     // Valores exactos del enum (sin tildes donde el modelo no las tiene)
-    statuses:       ['pendiente', 'en-progreso', 'completada', 'cancelada'],
-    priorities:     ['baja', 'media', 'alta', 'critica'],   // 'critica' sin tilde
+    statuses: ['pendiente', 'en-progreso', 'completada', 'cancelada'],
+    priorities: ['baja', 'media', 'alta', 'critica'],   // 'critica' sin tilde
     highPriorities: ['alta', 'critica'],
 };
 
@@ -126,38 +126,36 @@ debug.info('Schema Task cargado:', JSON.stringify(TASK_SCHEMA));
 // asignado_a es Array<ObjectId>, por lo que $elemMatch con ObjectId
 // funciona. También incluimos creado_por para tareas propias.
 // ──────────────────────────────────────────────────────────────
-async function buildTaskQuery(userId) {
-    // Asegurarse de tener ObjectId real además del string
+async function buildTaskQuery(userId, schoolId = null) {
     let userObjectId = userId;
     try {
         if (typeof userId === 'string' && /^[a-f\d]{24}$/i.test(userId)) {
             const { default: mongoose } = await import('mongoose');
             userObjectId = new mongoose.Types.ObjectId(userId);
         }
-    } catch (_) {
-        // Si falla la conversión, usar el valor original — MongoDB lo maneja
-    }
+    } catch (_) { }
 
     const query = {
         activo: true,
         $or: [
-            // asignado_a es array, $in funciona correctamente con arrays en MongoDB:
-            // busca documentos donde el array asignado_a contiene userId
             { asignado_a: userObjectId },
             { asignado_a: String(userId) },
-            { creado_por:  userObjectId },
-            { creado_por:  String(userId) },
+            { creado_por: userObjectId },
+            { creado_por: String(userId) },
         ],
     };
 
-    debug.db(`Task query para userId=${String(userId)}:`, JSON.stringify(query));
+    // ✅ Filtro por escuela
+    if (schoolId) query.schoolId = schoolId;
+
+    debug.db(`Task query para userId=${String(userId)} schoolId=${schoolId || 'superadmin'}:`, JSON.stringify(query));
     return { query, schema: TASK_SCHEMA };
 }
 
 // ──────────────────────────────────────────────────────────────
 // CONTEXTO DEL SISTEMA v4.0 — Datos enriquecidos
 // ──────────────────────────────────────────────────────────────
-async function buildSystemContext(userId) {
+async function buildSystemContext(userId, schoolId = null) {
     const t0 = Date.now();
     const ctx = {
         stats: {}, tareas: {}, docs: {},
@@ -166,17 +164,17 @@ async function buildSystemContext(userId) {
     };
 
     try {
-        const ahora  = new Date();
-        const en3d   = new Date(ahora.getTime() + 3  * 86400000);
-        const en7d   = new Date(ahora.getTime() + 7  * 86400000);
-        const en15d  = new Date(ahora.getTime() + 15 * 86400000);
-        const en30d  = new Date(ahora.getTime() + 30 * 86400000);
-        const hace7d = new Date(ahora.getTime() - 7  * 86400000);
-        const hace30d= new Date(ahora.getTime() - 30 * 86400000);
-        const hoy0   = new Date(ahora); hoy0.setHours(0,0,0,0);
-        const hoy23  = new Date(ahora); hoy23.setHours(23,59,59,999);
+        const ahora = new Date();
+        const en3d = new Date(ahora.getTime() + 3 * 86400000);
+        const en7d = new Date(ahora.getTime() + 7 * 86400000);
+        const en15d = new Date(ahora.getTime() + 15 * 86400000);
+        const en30d = new Date(ahora.getTime() + 30 * 86400000);
+        const hace7d = new Date(ahora.getTime() - 7 * 86400000);
+        const hace30d = new Date(ahora.getTime() - 30 * 86400000);
+        const hoy0 = new Date(ahora); hoy0.setHours(0, 0, 0, 0);
+        const hoy23 = new Date(ahora); hoy23.setHours(23, 59, 59, 999);
 
-        // Query base para documentos activos (excluye papelera)
+        // ✅ Filtro base para documentos
         const docQuery = {
             activo: true,
             $or: [
@@ -184,17 +182,30 @@ async function buildSystemContext(userId) {
                 { isDeleted: { $exists: false } },
             ],
         };
+        if (schoolId) docQuery.schoolId = schoolId;
 
-        // ── Estadísticas generales (paralelo) ────────────────
+        // ✅ Filtro base para personas
+        const personFilter = { activo: true };
+        if (schoolId) personFilter.schoolId = schoolId;
+
+        // ✅ Filtro base para categorías
+        const catFilter = { activo: true };
+        if (schoolId) catFilter.schoolId = schoolId;
+
+        // ✅ Filtro base para departamentos
+        const deptFilter = { activo: true };
+        if (schoolId) deptFilter.schoolId = schoolId;
+
+        // ── Estadísticas generales ────────────────────────────
         const [
             totalDocs, totalPersonas, totalCategorias, totalDeptos,
             docsPorVencer3, docsPorVencer7, docsPorVencer15, docsPorVencer30,
             docsVencidos, docsRecientes, docsHoy, docsEstesMes,
         ] = await Promise.all([
             Document.countDocuments(docQuery),
-            Person.countDocuments({ activo: true }),
-            Category.countDocuments({ activo: true }),
-            Department.countDocuments({ activo: true }),
+            Person.countDocuments(personFilter),
+            Category.countDocuments(catFilter),
+            Department.countDocuments(deptFilter),
             Document.countDocuments({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en3d } }),
             Document.countDocuments({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en7d } }),
             Document.countDocuments({ ...docQuery, fecha_vencimiento: { $gte: ahora, $lte: en15d } }),
@@ -211,9 +222,9 @@ async function buildSystemContext(userId) {
             docsVencidos, docsRecientes, docsHoy, docsEstesMes,
         };
 
-        // ── Tareas — CON AUTO-DIAGNÓSTICO ────────────────────
+        // ── Tareas ────────────────────────────────────────────
         try {
-            const { query: tareasQuery, schema } = await buildTaskQuery(userId);
+            const { query: tareasQuery, schema } = await buildTaskQuery(userId, schoolId);
 
             debug.db('Ejecutando queries de tareas...');
 
@@ -240,12 +251,6 @@ async function buildSystemContext(userId) {
 
             debug.db(`Tareas — total:${tTotal} pend:${tPend} prog:${tProg} comp:${tComp} cancel:${tCancel} venc:${tVenc}`);
 
-            // Verificación: Si todos son 0 pero total > 0, problema con query
-            if (tTotal > 0 && tPend + tProg + tComp + tCancel === 0) {
-                debug.warn(`⚠️ Tareas encontradas (${tTotal}) pero estados en 0. Posible campo estado incorrecto.`);
-            }
-
-            // Lista de tareas activas ordenadas
             const lista = await Task.find({
                 ...tareasQuery,
                 [schema.statusField]: { $in: ['pendiente', 'en-progreso'] },
@@ -254,7 +259,6 @@ async function buildSystemContext(userId) {
                 .limit(10)
                 .lean();
 
-            // Tareas completadas recientes
             const completadas = await Task.find({
                 ...tareasQuery,
                 [schema.statusField]: 'completada',
@@ -263,7 +267,6 @@ async function buildSystemContext(userId) {
                 .limit(5)
                 .lean();
 
-            // Tareas de alta prioridad (enum exacto: 'alta' | 'critica')
             const altaPrioridad = await Task.find({
                 ...tareasQuery,
                 [schema.priorityField]: { $in: TASK_SCHEMA.highPriorities },
@@ -274,46 +277,46 @@ async function buildSystemContext(userId) {
                 .lean();
 
             ctx.tareas = {
-                total:     tTotal,
+                total: tTotal,
                 pendientes: tPend,
                 enProgreso: tProg,
                 completadas: tComp,
-                canceladas:  tCancel,
-                vencidas:    tVenc,
-                paraHoy:     tHoy,
-                paraSemana:  tSem,
+                canceladas: tCancel,
+                vencidas: tVenc,
+                paraHoy: tHoy,
+                paraSemana: tSem,
                 porcentajeCompletado: tTotal > 0 ? Math.round((tComp / tTotal) * 100) : 0,
                 lista: lista.map(t => ({
-                    id:          String(t._id),
-                    titulo:      t[schema.titleField] || t.titulo || t.title || 'Sin título',
+                    id: String(t._id),
+                    titulo: t[schema.titleField] || t.titulo || t.title || 'Sin título',
                     descripcion: t.descripcion || t.description || '',
-                    prioridad:   t[schema.priorityField] || 'media',
-                    estado:      t[schema.statusField] || 'pendiente',
+                    prioridad: t[schema.priorityField] || 'media',
+                    estado: t[schema.statusField] || 'pendiente',
                     fechaLimite: t[schema.dueDateField]
                         ? new Date(t[schema.dueDateField]).toLocaleDateString('es-MX') : null,
                     diasRestantes: t[schema.dueDateField]
                         ? Math.ceil((new Date(t[schema.dueDateField]) - ahora) / 86400000) : null,
                 })),
                 altaPrioridad: altaPrioridad.map(t => ({
-                    titulo:    t[schema.titleField] || t.titulo || 'Sin título',
+                    titulo: t[schema.titleField] || t.titulo || 'Sin título',
                     prioridad: t[schema.priorityField] || 'alta',
                     fechaLimite: t[schema.dueDateField]
                         ? new Date(t[schema.dueDateField]).toLocaleDateString('es-MX') : null,
                 })),
                 completadasRecientes: completadas.map(t => ({
-                    titulo:          t[schema.titleField] || t.titulo || 'Sin título',
+                    titulo: t[schema.titleField] || t.titulo || 'Sin título',
                     fechaCompletada: t[schema.completedField]
                         ? new Date(t[schema.completedField]).toLocaleDateString('es-MX') : null,
                 })),
-                _schema: schema, // Para debugging
+                _schema: schema,
             };
 
         } catch (e) {
             debug.error('Error cargando tareas:', e.message, e.stack);
             ctx.tareas = {
-                total:0, pendientes:0, enProgreso:0, completadas:0, canceladas:0,
-                vencidas:0, paraHoy:0, paraSemana:0, porcentajeCompletado:0,
-                lista:[], altaPrioridad:[], completadasRecientes:[],
+                total: 0, pendientes: 0, enProgreso: 0, completadas: 0, canceladas: 0,
+                vencidas: 0, paraHoy: 0, paraSemana: 0, porcentajeCompletado: 0,
+                lista: [], altaPrioridad: [], completadasRecientes: [],
                 _error: e.message,
             };
         }
@@ -339,33 +342,33 @@ async function buildSystemContext(userId) {
 
         ctx.docs = {
             recientes: recientes.map(d => ({
-                nombre:      d.nombre_original || d.nombre || 'Sin nombre',
-                categoria:   d.categoria?.nombre || 'Sin categoría',
-                fecha:       new Date(d.fecha_subida).toLocaleDateString('es-MX'),
+                nombre: d.nombre_original || d.nombre || 'Sin nombre',
+                categoria: d.categoria?.nombre || 'Sin categoría',
+                fecha: new Date(d.fecha_subida).toLocaleDateString('es-MX'),
                 vencimiento: d.fecha_vencimiento
                     ? new Date(d.fecha_vencimiento).toLocaleDateString('es-MX') : null,
-                tamaño:      d.tamaño || d.size || null,
+                tamaño: d.tamaño || d.size || null,
             })),
             urgentes: urgentes.map(d => ({
-                nombre:        d.nombre_original || d.nombre || 'Sin nombre',
-                vence:         new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
+                nombre: d.nombre_original || d.nombre || 'Sin nombre',
+                vence: new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
                 diasRestantes: Math.ceil((new Date(d.fecha_vencimiento) - ahora) / 86400000),
             })),
             vencidos: vencidos.map(d => ({
-                nombre:       d.nombre_original || d.nombre || 'Sin nombre',
-                vencimiento:  new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
+                nombre: d.nombre_original || d.nombre || 'Sin nombre',
+                vencimiento: new Date(d.fecha_vencimiento).toLocaleDateString('es-MX'),
                 diasVencidos: Math.ceil((ahora - new Date(d.fecha_vencimiento)) / 86400000),
             })),
-            porCategoria:  porCategoria.map(c => ({ categoria: c._id || 'Sin categoría', cantidad: c.count })),
+            porCategoria: porCategoria.map(c => ({ categoria: c._id || 'Sin categoría', cantidad: c.count })),
             sinCategoria,
             aprobados,
         };
 
         // ── Personas detalladas ───────────────────────────────
         const [personas, porDepto] = await Promise.all([
-            Person.find({ activo: true }).limit(30).lean(),
+            Person.find(personFilter).limit(30).lean(),
             Person.aggregate([
-                { $match: { activo: true } },
+                { $match: personFilter },
                 { $group: { _id: '$departamento', count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
             ]),
@@ -373,50 +376,42 @@ async function buildSystemContext(userId) {
 
         ctx.personas = {
             total: totalPersonas,
-            lista:  personas.map(p => ({
-                nombre:       p.nombre,
-                email:        p.email,
+            lista: personas.map(p => ({
+                nombre: p.nombre,
+                email: p.email,
                 departamento: p.departamento,
-                puesto:       p.puesto,
-                telefono:     p.telefono,
+                puesto: p.puesto,
+                telefono: p.telefono,
             })),
             porDepartamento: porDepto.map(d => ({
                 departamento: d._id || 'Sin departamento',
-                cantidad:     d.count,
+                cantidad: d.count,
             })),
         };
 
         // ── Categorías y Departamentos ────────────────────────
         const [cats, deptos] = await Promise.all([
-            Category.find({ activo: true }).lean(),
-            Department.find({ activo: true }).lean(),
+            Category.find(catFilter).lean(),
+            Department.find(deptFilter).lean(),
         ]);
-        ctx.categorias    = cats.map(c => c.nombre);
+        ctx.categorias = cats.map(c => c.nombre);
         ctx.departamentos = deptos.map(d => d.nombre);
 
-        // ── Analytics de actividad ────────────────────────────
+        // ── Analytics ─────────────────────────────────────────
         try {
             const [
                 docsLastMonth,
                 convCount,
-                topCategories,
             ] = await Promise.all([
                 Document.countDocuments({ ...docQuery, fecha_subida: { $gte: hace30d } }),
                 Conversation.countDocuments({ usuario: userId }).catch(() => 0),
-                Document.aggregate([
-                    { $match: docQuery },
-                    { $group: { _id: '$categoria', count: { $sum: 1 } } },
-                    { $sort: { count: -1 } },
-                    { $limit: 3 },
-                ]),
             ]);
 
             ctx.analytics = {
-                docsUltimos30d:   docsLastMonth,
-                interaccionesIA:  convCount,
-                categoriaTop:     topCategories[0]?._id || 'N/A',
-                tasaCompletado:   ctx.tareas.porcentajeCompletado,
-                saludSistema:     _calcularSaludSistema(ctx.stats, ctx.tareas),
+                docsUltimos30d: docsLastMonth,
+                interaccionesIA: convCount,
+                tasaCompletado: ctx.tareas.porcentajeCompletado,
+                saludSistema: _calcularSaludSistema(ctx.stats, ctx.tareas),
             };
         } catch (e) {
             debug.warn('Analytics parciales:', e.message);
@@ -425,9 +420,9 @@ async function buildSystemContext(userId) {
 
         // ── Info del sistema ──────────────────────────────────
         ctx.sistema = {
-            fechaActual:  new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-            horaActual:   new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-            año:          new Date().getFullYear(),
+            fechaActual: new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            horaActual: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+            año: new Date().getFullYear(),
         };
 
         debug.perf(`Contexto construido en ${Date.now() - t0}ms`);
@@ -446,11 +441,11 @@ async function buildSystemContext(userId) {
 /** Convierte el enum interno de prioridad a label para mostrar al usuario */
 /** Convierte el enum interno de prioridad a label para mostrar al usuario */
 function prioridadLabel(p) {
-    const MAP = { 
-        baja: '🟢 Baja', 
-        media: '🟡 Media', 
-        alta: '🟠 Alta', 
-        critica: '🔴 Crítica' 
+    const MAP = {
+        baja: '🟢 Baja',
+        media: '🟡 Media',
+        alta: '🟠 Alta',
+        critica: '🔴 Crítica'
     };
     return MAP[p?.toLowerCase()] || (p || 'Media');
 }
@@ -458,10 +453,10 @@ function prioridadLabel(p) {
 /** Convierte el enum interno de estado a label para mostrar al usuario */
 function estadoLabel(e) {
     const MAP = {
-        'pendiente':  '⏳ Pendiente',
+        'pendiente': '⏳ Pendiente',
         'en-progreso': '🔄 En progreso',
         'completada': '✅ Completada',
-        'cancelada':  '❌ Cancelada',
+        'cancelada': '❌ Cancelada',
     };
     return MAP[e] || (e || 'Pendiente');
 }
@@ -471,9 +466,9 @@ function estadoLabel(e) {
 // ──────────────────────────────────────────────────────────────
 function _calcularSaludSistema(stats, tareas) {
     let score = 100;
-    if (stats.docsVencidos > 0)      score -= Math.min(stats.docsVencidos * 5, 30);
-    if (stats.docsPorVencer7 > 0)    score -= Math.min(stats.docsPorVencer7 * 2, 15);
-    if (tareas.vencidas > 0)         score -= Math.min(tareas.vencidas * 3, 20);
+    if (stats.docsVencidos > 0) score -= Math.min(stats.docsVencidos * 5, 30);
+    if (stats.docsPorVencer7 > 0) score -= Math.min(stats.docsPorVencer7 * 2, 15);
+    if (tareas.vencidas > 0) score -= Math.min(tareas.vencidas * 3, 20);
     const nivel = score >= 80 ? '🟢 Excelente' : score >= 60 ? '🟡 Regular' : '🔴 Crítico';
     return `${nivel} (${score}/100)`;
 }
@@ -482,19 +477,19 @@ function _calcularSaludSistema(stats, tareas) {
 // SYSTEM PROMPT v4.0 — Mucho más inteligente
 // ──────────────────────────────────────────────────────────────
 function buildSystemPrompt(ctx, userInfo) {
-    const s = ctx.stats    || {};
-    const t = ctx.tareas   || {};
-    const d = ctx.docs     || {};
+    const s = ctx.stats || {};
+    const t = ctx.tareas || {};
+    const d = ctx.docs || {};
     const p = ctx.personas || {};
     const a = ctx.analytics || {};
-    const si= ctx.sistema  || {};
+    const si = ctx.sistema || {};
 
     // Calcular tareas urgentes y vencidas REALES para el prompt
     const tareasVencidas = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes < 0) || [];
     const tareasUrgentes = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2) || [];
     const hayVencidas = tareasVencidas.length > 0;
     const hayUrgentes = tareasUrgentes.length > 0;
-    
+
     // Construir mensaje de alerta de tareas para el prompt
     let alertaTareasTexto = '';
     if (hayVencidas) {
@@ -522,8 +517,8 @@ function buildSystemPrompt(ctx, userInfo) {
             } else if (x.diasRestantes !== null && x.diasRestantes <= 7) {
                 etiqueta = ' 📅 Próxima';
             }
-            return `  • [${(x.prioridad||'media').toUpperCase()}] ${x.titulo}${etiqueta} → ${x.fechaLimite || 'sin fecha'} (${x.estado})`;
-          }).join('\n')
+            return `  • [${(x.prioridad || 'media').toUpperCase()}] ${x.titulo}${etiqueta} → ${x.fechaLimite || 'sin fecha'} (${x.estado})`;
+        }).join('\n')
         : '  • (sin tareas activas)';
 
     const altaPrioStr = t.altaPrioridad?.length
@@ -531,15 +526,15 @@ function buildSystemPrompt(ctx, userInfo) {
         : '  • (ninguna)';
 
     const docsRecStr = d.recientes?.length
-        ? d.recientes.slice(0,5).map(x => `  • ${x.nombre} (${x.categoria}) — ${x.fecha}`).join('\n')
+        ? d.recientes.slice(0, 5).map(x => `  • ${x.nombre} (${x.categoria}) — ${x.fecha}`).join('\n')
         : '  • (ninguno)';
 
     const docsUrgStr = d.urgentes?.length
-        ? d.urgentes.slice(0,5).map(x => `  • ${x.nombre} — ⚠️ ${x.diasRestantes}d (${x.vence})`).join('\n')
+        ? d.urgentes.slice(0, 5).map(x => `  • ${x.nombre} — ⚠️ ${x.diasRestantes}d (${x.vence})`).join('\n')
         : '  • (ninguno)';
 
     const docsVencStr = d.vencidos?.length
-        ? d.vencidos.slice(0,5).map(x => `  • ${x.nombre} — VENCIDO hace ${x.diasVencidos}d (${x.vencimiento})`).join('\n')
+        ? d.vencidos.slice(0, 5).map(x => `  • ${x.nombre} — VENCIDO hace ${x.diasVencidos}d (${x.vencimiento})`).join('\n')
         : '  • (ninguno)';
 
     return `Eres ARIA v1.0, asistente IA del Sistema de Gestión Documental del CBTIS 051.
@@ -594,7 +589,7 @@ ${docsVencStr}
 
 👥 PERSONAS: ${s.totalPersonas || 0} | CATEGORÍAS: ${s.totalCategorias || 0} | DEPARTAMENTOS: ${s.totalDeptos || 0}
 
-${alertasGenerales.length ? '⚡ ALERTAS GENERALES:\n' + alertasGenerales.map(x=>`  ${x}`).join('\n') : '✅ Sin alertas generales'}
+${alertasGenerales.length ? '⚡ ALERTAS GENERALES:\n' + alertasGenerales.map(x => `  ${x}`).join('\n') : '✅ Sin alertas generales'}
 
 ══════════════════════════════════════════════════════
 📋 INSTRUCCIONES PARA TU RESPUESTA
@@ -642,7 +637,7 @@ function extractActions(text) {
                     actions.push(parsed);
                     debug.action('Acción extraída:', JSON.stringify(parsed));
                 }
-            } catch (_) {}
+            } catch (_) { }
         }
     }
 
@@ -653,7 +648,7 @@ function extractActions(text) {
         try {
             const parsed = JSON.parse(inner);
             if (parsed.action) actions.push(parsed);
-        } catch (_) {}
+        } catch (_) { }
     }
 
     return actions;
@@ -675,17 +670,17 @@ function detectIntent(message) {
     const q = message.toLowerCase().trim();
 
     const SECTIONS = {
-        dashboard:       /\b(dashboard|inicio|principal|home|resumen general)\b/,
-        documentos:      /\b(documentos?|archivos?|expedientes?|docs?)\b/,
-        tareas:          /\b(tareas?|tasks?|pendientes?|actividades?)\b/,
-        personas:        /\b(personas?|usuarios?|empleados?|personal|gente)\b/,
-        reportes:        /\b(reportes?|informes?|estadísticas?|análisis|reporte)\b/,
-        papelera:        /\b(papelera|eliminados?|trash|basura)\b/,
-        notificaciones:  /\b(notificaciones?|alertas?|avisos?)\b/,
-        ajustes:         /\b(ajustes?|configuraci[oó]n|settings?|preferencias?)\b/,
-        soporte:         /\b(soporte|ayuda|help|asistencia|problemas?)\b/,
-        categorias:      /\b(categor[ií]as?)\b/,
-        departamentos:   /\b(departamentos?|áreas?|secciones?)\b/,
+        dashboard: /\b(dashboard|inicio|principal|home|resumen general)\b/,
+        documentos: /\b(documentos?|archivos?|expedientes?|docs?)\b/,
+        tareas: /\b(tareas?|tasks?|pendientes?|actividades?)\b/,
+        personas: /\b(personas?|usuarios?|empleados?|personal|gente)\b/,
+        reportes: /\b(reportes?|informes?|estadísticas?|análisis|reporte)\b/,
+        papelera: /\b(papelera|eliminados?|trash|basura)\b/,
+        notificaciones: /\b(notificaciones?|alertas?|avisos?)\b/,
+        ajustes: /\b(ajustes?|configuraci[oó]n|settings?|preferencias?)\b/,
+        soporte: /\b(soporte|ayuda|help|asistencia|problemas?)\b/,
+        categorias: /\b(categor[ií]as?)\b/,
+        departamentos: /\b(departamentos?|áreas?|secciones?)\b/,
     };
 
     const NAV_TRIGGERS = /\b(ir a|ve a|navegar|abrir|mostrar|llévame|abre|switch a|cambiar a|ver sección|ir al|abre el?)\b/;
@@ -702,10 +697,10 @@ function detectIntent(message) {
     // Creación/Apertura de modales
     if (CREATE_TRIGGERS.test(q)) {
         if (/documento|archivo|expediente/.test(q)) return { type: 'openModal', target: 'upload' };
-        if (/tarea|task|actividad/.test(q))         return { type: 'openModal', target: 'addTask' };
-        if (/persona|usuario|empleado/.test(q))     return { type: 'openModal', target: 'addPerson' };
-        if (/categor[ií]a/.test(q))                 return { type: 'openModal', target: 'addCategory' };
-        if (/departamento|área/.test(q))            return { type: 'openModal', target: 'addDepartment' };
+        if (/tarea|task|actividad/.test(q)) return { type: 'openModal', target: 'addTask' };
+        if (/persona|usuario|empleado/.test(q)) return { type: 'openModal', target: 'addPerson' };
+        if (/categor[ií]a/.test(q)) return { type: 'openModal', target: 'addCategory' };
+        if (/departamento|área/.test(q)) return { type: 'openModal', target: 'addDepartment' };
     }
 
     // Búsqueda
@@ -724,9 +719,9 @@ function detectIntent(message) {
 // ──────────────────────────────────────────────────────────────
 function ruleBasedResponse(message, ctx, userInfo) {
     const q = message.toLowerCase().trim();
-    const s = ctx.stats    || {};
-    const t = ctx.tareas   || {};
-    const d = ctx.docs     || {};
+    const s = ctx.stats || {};
+    const t = ctx.tareas || {};
+    const d = ctx.docs || {};
     const p = ctx.personas || {};
     const a = ctx.analytics || {};
 
@@ -735,10 +730,10 @@ function ruleBasedResponse(message, ctx, userInfo) {
     // ── Navegación ────────────────────────────────────────────
     if (intent.type === 'navigate') {
         const labels = {
-            documentos:'Documentos', tareas:'Tareas', personas:'Personas',
-            dashboard:'Dashboard', reportes:'Reportes', papelera:'Papelera',
-            notificaciones:'Notificaciones', ajustes:'Ajustes', soporte:'Soporte',
-            categorias:'Categorías', departamentos:'Departamentos',
+            documentos: 'Documentos', tareas: 'Tareas', personas: 'Personas',
+            dashboard: 'Dashboard', reportes: 'Reportes', papelera: 'Papelera',
+            notificaciones: 'Notificaciones', ajustes: 'Ajustes', soporte: 'Soporte',
+            categorias: 'Categorías', departamentos: 'Departamentos',
         };
         return {
             message: `📍 Navegando a **${labels[intent.target] || intent.target}**...`,
@@ -750,10 +745,10 @@ function ruleBasedResponse(message, ctx, userInfo) {
     // ── Modales ───────────────────────────────────────────────
     if (intent.type === 'openModal') {
         const msgs = {
-            upload:        `📤 Abriendo formulario para **subir documento**.\n\nArrastra el archivo o selecciónalo desde tu equipo.`,
-            addTask:       `✅ Abriendo formulario para **crear tarea**.\n\nCompleta el título, descripción, prioridad y fecha límite.`,
-            addPerson:     `👤 Abriendo formulario para **agregar persona**.`,
-            addCategory:   `📁 Abriendo formulario para **crear categoría**.`,
+            upload: `📤 Abriendo formulario para **subir documento**.\n\nArrastra el archivo o selecciónalo desde tu equipo.`,
+            addTask: `✅ Abriendo formulario para **crear tarea**.\n\nCompleta el título, descripción, prioridad y fecha límite.`,
+            addPerson: `👤 Abriendo formulario para **agregar persona**.`,
+            addCategory: `📁 Abriendo formulario para **crear categoría**.`,
             addDepartment: `🏢 Abriendo formulario para **crear departamento**.`,
         };
         return {
@@ -764,119 +759,119 @@ function ruleBasedResponse(message, ctx, userInfo) {
     }
 
     // ── MIS TAREAS (respuesta mejorada) ───────────────────────
-if (/mis tareas|tareas? m[ií]as?|qu[eé] tareas|tareas? pendientes|cuántas? tareas/.test(q)) {
-    if (t.total === 0) {
-        return {
-            message: `✅ **Tus tareas:**\n\nNo encontré tareas asignadas a **${userInfo?.nombre || 'ti'}**.\n\n¿Quieres crear una nueva tarea?`,
-            suggestions: ['Crear nueva tarea', 'Ir a Tareas'],
-            actions: [],
-        };
-    }
-
-    // Contar tareas urgentes y vencidas REALES
-    const urgentesReales = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2) || [];
-    const vencidasReales = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes < 0) || [];
-    const hayUrgentes = urgentesReales.length > 0;
-    const hayVencidas = vencidasReales.length > 0;
-
-    let mensaje = `📊 **Tus tareas, ${userInfo?.nombre || 'usuario'}:**\n\n`;
-    mensaje += `📌 **Resumen:** ${t.total} tarea(s) totales\n`;
-    mensaje += `   • ${t.pendientes} pendientes\n`;
-    mensaje += `   • ${t.enProgreso} en progreso\n`;
-    mensaje += `   • ${t.completadas} completadas\n`;
-    
-    if (hayVencidas) {
-        mensaje += `\n⚠️ **¡ALERTA!** Tienes ${vencidasReales.length} tarea(s) VENCIDA(S).\n`;
-    } else if (hayUrgentes) {
-        mensaje += `\n⚠️ **¡ATENCIÓN!** Tienes ${urgentesReales.length} tarea(s) URGENTE(S) (vencen en 2 días o menos).\n`;
-    } else {
-        mensaje += `\n✅ **Sin tareas urgentes ni vencidas.**\n`;
-    }
-    
-    if (t.lista?.length > 0) {
-        mensaje += `\n📋 **Tareas activas:**\n`;
-        t.lista.slice(0, 8).forEach(x => {
-            const estado = x.estado === 'pendiente' ? '⏳' : '🔄';
-            let etiqueta = '';
-            if (x.diasRestantes !== null && x.diasRestantes < 0) {
-                etiqueta = ' 🔴 VENCIDA';
-            } else if (x.diasRestantes !== null && x.diasRestantes <= 2) {
-                etiqueta = ' ⚠️ URGENTE';
-            } else if (x.diasRestantes !== null && x.diasRestantes <= 7) {
-                etiqueta = ' 📅 Próxima';
-            }
-            mensaje += `   ${estado} **${x.titulo}**${etiqueta}\n`;
-            mensaje += `      📅 ${x.fechaLimite || 'sin fecha'} | 🎯 ${prioridadLabel(x.prioridad)}\n`;
-        });
-        if (t.lista.length > 8) {
-            mensaje += `\n   ... y ${t.lista.length - 8} más.\n`;
+    if (/mis tareas|tareas? m[ií]as?|qu[eé] tareas|tareas? pendientes|cuántas? tareas/.test(q)) {
+        if (t.total === 0) {
+            return {
+                message: `✅ **Tus tareas:**\n\nNo encontré tareas asignadas a **${userInfo?.nombre || 'ti'}**.\n\n¿Quieres crear una nueva tarea?`,
+                suggestions: ['Crear nueva tarea', 'Ir a Tareas'],
+                actions: [],
+            };
         }
-    }
-    
-    mensaje += `\n📈 **Progreso:** ${t.porcentajeCompletado}% completado`;
-    
-    return {
-        message: mensaje,
-        suggestions: ['Ver tarea más urgente', 'Crear nueva tarea', 'Ir a Tareas'],
-        actions: [],
-    };
-}
 
-   // ── TAREA MÁS URGENTE ─────────────────────────────────────
-if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería hacer/.test(q)) {
-    if (!t.lista?.length) {
+        // Contar tareas urgentes y vencidas REALES
+        const urgentesReales = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2) || [];
+        const vencidasReales = t.lista?.filter(x => x.diasRestantes !== null && x.diasRestantes < 0) || [];
+        const hayUrgentes = urgentesReales.length > 0;
+        const hayVencidas = vencidasReales.length > 0;
+
+        let mensaje = `📊 **Tus tareas, ${userInfo?.nombre || 'usuario'}:**\n\n`;
+        mensaje += `📌 **Resumen:** ${t.total} tarea(s) totales\n`;
+        mensaje += `   • ${t.pendientes} pendientes\n`;
+        mensaje += `   • ${t.enProgreso} en progreso\n`;
+        mensaje += `   • ${t.completadas} completadas\n`;
+
+        if (hayVencidas) {
+            mensaje += `\n⚠️ **¡ALERTA!** Tienes ${vencidasReales.length} tarea(s) VENCIDA(S).\n`;
+        } else if (hayUrgentes) {
+            mensaje += `\n⚠️ **¡ATENCIÓN!** Tienes ${urgentesReales.length} tarea(s) URGENTE(S) (vencen en 2 días o menos).\n`;
+        } else {
+            mensaje += `\n✅ **Sin tareas urgentes ni vencidas.**\n`;
+        }
+
+        if (t.lista?.length > 0) {
+            mensaje += `\n📋 **Tareas activas:**\n`;
+            t.lista.slice(0, 8).forEach(x => {
+                const estado = x.estado === 'pendiente' ? '⏳' : '🔄';
+                let etiqueta = '';
+                if (x.diasRestantes !== null && x.diasRestantes < 0) {
+                    etiqueta = ' 🔴 VENCIDA';
+                } else if (x.diasRestantes !== null && x.diasRestantes <= 2) {
+                    etiqueta = ' ⚠️ URGENTE';
+                } else if (x.diasRestantes !== null && x.diasRestantes <= 7) {
+                    etiqueta = ' 📅 Próxima';
+                }
+                mensaje += `   ${estado} **${x.titulo}**${etiqueta}\n`;
+                mensaje += `      📅 ${x.fechaLimite || 'sin fecha'} | 🎯 ${prioridadLabel(x.prioridad)}\n`;
+            });
+            if (t.lista.length > 8) {
+                mensaje += `\n   ... y ${t.lista.length - 8} más.\n`;
+            }
+        }
+
+        mensaje += `\n📈 **Progreso:** ${t.porcentajeCompletado}% completado`;
+
         return {
-            message: `✅ No tienes tareas activas pendientes. ¡Todo al día!`,
-            suggestions: ['Ver dashboard', 'Subir documento', 'Crear tarea'],
+            message: mensaje,
+            suggestions: ['Ver tarea más urgente', 'Crear nueva tarea', 'Ir a Tareas'],
             actions: [],
         };
     }
 
-    // Ordenar: primero vencidas, luego urgentes (diasRestantes <=2), luego alta prioridad
-    const vencidas = t.lista.filter(x => x.diasRestantes !== null && x.diasRestantes < 0);
-    const urgentes = t.lista.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2);
-    const alta = t.lista.filter(x => TASK_SCHEMA.highPriorities.includes(x.prioridad?.toLowerCase()));
-    
-    let tareaPrincipal = null;
-    let razon = '';
+    // ── TAREA MÁS URGENTE ─────────────────────────────────────
+    if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería hacer/.test(q)) {
+        if (!t.lista?.length) {
+            return {
+                message: `✅ No tienes tareas activas pendientes. ¡Todo al día!`,
+                suggestions: ['Ver dashboard', 'Subir documento', 'Crear tarea'],
+                actions: [],
+            };
+        }
 
-    if (vencidas.length > 0) {
-        tareaPrincipal = vencidas[0];
-        razon = `🚨 **ESTA TAREA ESTÁ VENCIDA**\n   Vencida hace ${Math.abs(tareaPrincipal.diasRestantes)} día(s)`;
-    } else if (urgentes.length > 0) {
-        tareaPrincipal = urgentes[0];
-        razon = `⚠️ **URGENTE — Vence en ${tareaPrincipal.diasRestantes} día(s)**`;
-    } else if (alta.length > 0) {
-        tareaPrincipal = alta[0];
-        razon = `🔴 **ALTA PRIORIDAD** — Requiere atención pronto`;
-    } else {
-        tareaPrincipal = t.lista[0];
-        razon = `📋 **Siguiente tarea recomendada**`;
+        // Ordenar: primero vencidas, luego urgentes (diasRestantes <=2), luego alta prioridad
+        const vencidas = t.lista.filter(x => x.diasRestantes !== null && x.diasRestantes < 0);
+        const urgentes = t.lista.filter(x => x.diasRestantes !== null && x.diasRestantes >= 0 && x.diasRestantes <= 2);
+        const alta = t.lista.filter(x => TASK_SCHEMA.highPriorities.includes(x.prioridad?.toLowerCase()));
+
+        let tareaPrincipal = null;
+        let razon = '';
+
+        if (vencidas.length > 0) {
+            tareaPrincipal = vencidas[0];
+            razon = `🚨 **ESTA TAREA ESTÁ VENCIDA**\n   Vencida hace ${Math.abs(tareaPrincipal.diasRestantes)} día(s)`;
+        } else if (urgentes.length > 0) {
+            tareaPrincipal = urgentes[0];
+            razon = `⚠️ **URGENTE — Vence en ${tareaPrincipal.diasRestantes} día(s)**`;
+        } else if (alta.length > 0) {
+            tareaPrincipal = alta[0];
+            razon = `🔴 **ALTA PRIORIDAD** — Requiere atención pronto`;
+        } else {
+            tareaPrincipal = t.lista[0];
+            razon = `📋 **Siguiente tarea recomendada**`;
+        }
+
+        return {
+            message: `**${razon}**\n\n📌 **${tareaPrincipal.titulo}**\n• Estado: ${estadoLabel(tareaPrincipal.estado)}\n• Prioridad: ${prioridadLabel(tareaPrincipal.prioridad)}\n• Fecha límite: ${tareaPrincipal.fechaLimite || 'sin fecha'}\n${tareaPrincipal.diasRestantes !== null && tareaPrincipal.diasRestantes >= 0 ? `• ${tareaPrincipal.diasRestantes} día(s) restantes` : tareaPrincipal.diasRestantes !== null && tareaPrincipal.diasRestantes < 0 ? `• Vencida hace ${Math.abs(tareaPrincipal.diasRestantes)} día(s)` : ''}`,
+            suggestions: ['Ver todas mis tareas', 'Ir a Tareas', 'Crear nueva tarea'],
+            actions: [],
+        };
     }
-
-    return {
-        message: `**${razon}**\n\n📌 **${tareaPrincipal.titulo}**\n• Estado: ${estadoLabel(tareaPrincipal.estado)}\n• Prioridad: ${prioridadLabel(tareaPrincipal.prioridad)}\n• Fecha límite: ${tareaPrincipal.fechaLimite || 'sin fecha'}\n${tareaPrincipal.diasRestantes !== null && tareaPrincipal.diasRestantes >= 0 ? `• ${tareaPrincipal.diasRestantes} día(s) restantes` : tareaPrincipal.diasRestantes !== null && tareaPrincipal.diasRestantes < 0 ? `• Vencida hace ${Math.abs(tareaPrincipal.diasRestantes)} día(s)` : ''}`,
-        suggestions: ['Ver todas mis tareas', 'Ir a Tareas', 'Crear nueva tarea'],
-        actions: [],
-    };
-}
 
     // ── ESTADÍSTICAS / RESUMEN ────────────────────────────────
     if (/resumen|dashboard|estado del sistema|panorama|overview/.test(q)) {
         const salud = a.saludSistema || '🟡 Sin datos';
         return {
             message: `**📊 RESUMEN EJECUTIVO — CBTIS 051**\n**${ctx.sistema?.fechaActual || 'Hoy'}**\n\n` +
-                `**📄 Documentos**\n• Activos: **${s.totalDocs||0}** | Hoy: **${s.docsHoy||0}** | Este mes: **${s.docsEstesMes||0}**\n• Vencidos: **${s.docsVencidos||0}** | Por vencer (<7d): **${s.docsPorVencer7||0}**\n\n` +
-                `**✅ Tareas**\n• Pendientes: **${t.pendientes||0}** | En progreso: **${t.enProgreso||0}** | Completadas: **${t.completadas||0}**\n• Vencidas: **${t.vencidas||0}** | Progreso: **${t.porcentajeCompletado||0}%**\n\n` +
-                `**👥 Personal**\n• Personas: **${s.totalPersonas||0}** | Categorías: **${s.totalCategorias||0}** | Deptos: **${s.totalDeptos||0}**\n\n` +
+                `**📄 Documentos**\n• Activos: **${s.totalDocs || 0}** | Hoy: **${s.docsHoy || 0}** | Este mes: **${s.docsEstesMes || 0}**\n• Vencidos: **${s.docsVencidos || 0}** | Por vencer (<7d): **${s.docsPorVencer7 || 0}**\n\n` +
+                `**✅ Tareas**\n• Pendientes: **${t.pendientes || 0}** | En progreso: **${t.enProgreso || 0}** | Completadas: **${t.completadas || 0}**\n• Vencidas: **${t.vencidas || 0}** | Progreso: **${t.porcentajeCompletado || 0}%**\n\n` +
+                `**👥 Personal**\n• Personas: **${s.totalPersonas || 0}** | Categorías: **${s.totalCategorias || 0}** | Deptos: **${s.totalDeptos || 0}**\n\n` +
                 `**🔍 Salud del Sistema:** ${salud}` +
                 (s.docsPorVencer7 > 0 || s.docsVencidos > 0 || t.vencidas > 0
                     ? `\n\n**⚡ Alertas activas:**\n${[
                         s.docsPorVencer3 > 0 ? `🚨 ${s.docsPorVencer3} doc(s) vencen en <3 días` : null,
                         s.docsPorVencer7 > 0 ? `⚠️ ${s.docsPorVencer7} doc(s) vencen en <7 días` : null,
-                        s.docsVencidos   > 0 ? `❌ ${s.docsVencidos} doc(s) vencidos` : null,
-                        t.vencidas       > 0 ? `⏰ ${t.vencidas} tarea(s) vencidas` : null,
-                      ].filter(Boolean).join('\n')}` : '\n\n✅ **Sin alertas urgentes**'),
+                        s.docsVencidos > 0 ? `❌ ${s.docsVencidos} doc(s) vencidos` : null,
+                        t.vencidas > 0 ? `⏰ ${t.vencidas} tarea(s) vencidas` : null,
+                    ].filter(Boolean).join('\n')}` : '\n\n✅ **Sin alertas urgentes**'),
             suggestions: ['Documentos urgentes', 'Mis tareas', 'Ir a Reportes', 'Documentos vencidos'],
             actions: [],
         };
@@ -886,18 +881,18 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
     if (/cu[aá]ntos? documento|estadística.*doc|cuénta?me.*doc/.test(q)) {
         return {
             message: `📄 **Estadísticas de Documentos (excluye papelera):**\n\n` +
-                `• **${s.totalDocs||0}** documentos activos totales\n` +
-                `• **${s.docsHoy||0}** subidos hoy\n` +
-                `• **${s.docsEstesMes||0}** este mes\n` +
-                `• **${s.docsRecientes||0}** esta semana\n\n` +
+                `• **${s.totalDocs || 0}** documentos activos totales\n` +
+                `• **${s.docsHoy || 0}** subidos hoy\n` +
+                `• **${s.docsEstesMes || 0}** este mes\n` +
+                `• **${s.docsRecientes || 0}** esta semana\n\n` +
                 `**Vencimientos:**\n` +
-                `• **${s.docsPorVencer3||0}** vencen en menos de 3 días 🚨\n` +
-                `• **${s.docsPorVencer7||0}** vencen en menos de 7 días ⚠️\n` +
-                `• **${s.docsPorVencer15||0}** vencen en menos de 15 días\n` +
-                `• **${s.docsPorVencer30||0}** vencen en menos de 30 días\n` +
-                `• **${s.docsVencidos||0}** ya vencidos ❌\n\n` +
+                `• **${s.docsPorVencer3 || 0}** vencen en menos de 3 días 🚨\n` +
+                `• **${s.docsPorVencer7 || 0}** vencen en menos de 7 días ⚠️\n` +
+                `• **${s.docsPorVencer15 || 0}** vencen en menos de 15 días\n` +
+                `• **${s.docsPorVencer30 || 0}** vencen en menos de 30 días\n` +
+                `• **${s.docsVencidos || 0}** ya vencidos ❌\n\n` +
                 `**Categorías con más docs:**\n` +
-                (d.porCategoria?.slice(0,3).map(x=>`• ${x.categoria}: **${x.cantidad}**`).join('\n') || '  (sin datos)'),
+                (d.porCategoria?.slice(0, 3).map(x => `• ${x.categoria}: **${x.cantidad}**`).join('\n') || '  (sin datos)'),
             suggestions: ['Documentos urgentes', 'Subir documento', 'Ir a Documentos', 'Ver vencidos'],
             actions: [],
         };
@@ -912,7 +907,7 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
                 actions: [{ action: 'navigate', target: 'documentos' }],
             };
         }
-        const lista = d.urgentes.slice(0,7).map(x => {
+        const lista = d.urgentes.slice(0, 7).map(x => {
             const emoji = x.diasRestantes <= 1 ? '🚨' : x.diasRestantes <= 3 ? '⚠️' : '📅';
             return `${emoji} **${x.nombre}** — vence en **${x.diasRestantes}** día(s) (${x.vence})`;
         }).join('\n');
@@ -932,7 +927,7 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
                 actions: [],
             };
         }
-        const lista = d.vencidos.slice(0,5).map(x =>
+        const lista = d.vencidos.slice(0, 5).map(x =>
             `❌ **${x.nombre}** — vencido hace **${x.diasVencidos}** día(s) (${x.vencimiento})`
         ).join('\n');
         return {
@@ -949,14 +944,14 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
         return {
             message: `📈 **Análisis de Productividad — ${userInfo?.nombre || 'Usuario'}**\n\n` +
                 `**Tareas:** ${nivel} (${completadoPct}%)\n` +
-                `• Completadas: ${t.completadas||0} de ${t.total||0}\n` +
-                `• En progreso: ${t.enProgreso||0}\n` +
-                `• Vencidas: ${t.vencidas||0} ${t.vencidas > 0 ? '⚠️' : '✅'}\n\n` +
-                `**Documentos este mes:** ${a.docsUltimos30d||0} nuevos\n` +
-                `**Salud del sistema:** ${a.saludSistema||'N/A'}\n\n` +
+                `• Completadas: ${t.completadas || 0} de ${t.total || 0}\n` +
+                `• En progreso: ${t.enProgreso || 0}\n` +
+                `• Vencidas: ${t.vencidas || 0} ${t.vencidas > 0 ? '⚠️' : '✅'}\n\n` +
+                `**Documentos este mes:** ${a.docsUltimos30d || 0} nuevos\n` +
+                `**Salud del sistema:** ${a.saludSistema || 'N/A'}\n\n` +
                 (t.vencidas > 0 ? `💡 **Recomendación:** Atiende las ${t.vencidas} tarea(s) vencidas primero.` :
-                 t.pendientes > 3 ? `💡 **Recomendación:** Tienes ${t.pendientes} tareas pendientes. Considera priorizarlas.` :
-                 `💡 **¡Vas muy bien!** Mantén el ritmo.`),
+                    t.pendientes > 3 ? `💡 **Recomendación:** Tienes ${t.pendientes} tareas pendientes. Considera priorizarlas.` :
+                        `💡 **¡Vas muy bien!** Mantén el ritmo.`),
             suggestions: ['Tarea más urgente', 'Ver mis tareas', 'Ir a Reportes'],
             actions: [],
         };
@@ -965,7 +960,7 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
     // ── PERSONAS ─────────────────────────────────────────────
     if (/cu[aá]ntas? personas?|personal|empleados?|usuarios?/.test(q)) {
         return {
-            message: `👥 **Personal del CBTIS 051:**\n\n• **${s.totalPersonas||0}** personas activas\n\n**Por departamento:**\n${p.porDepartamento?.slice(0,5).map(x=>`• **${x.departamento}:** ${x.cantidad}`).join('\n')||'  (sin datos)'}`,
+            message: `👥 **Personal del CBTIS 051:**\n\n• **${s.totalPersonas || 0}** personas activas\n\n**Por departamento:**\n${p.porDepartamento?.slice(0, 5).map(x => `• **${x.departamento}:** ${x.cantidad}`).join('\n') || '  (sin datos)'}`,
             suggestions: ['Agregar persona', 'Ir a Personas', 'Ver departamentos'],
             actions: [],
         };
@@ -975,10 +970,10 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
     if (/^(hola|buenos\s|buenas\s|hey|buen\s|qué hay|que hay|hi$|buenas$)/.test(q)) {
         const hora = new Date().getHours();
         const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
-        const alertCount = (s.docsPorVencer7||0) + (s.docsVencidos||0) + (t.vencidas||0);
+        const alertCount = (s.docsPorVencer7 || 0) + (s.docsVencidos || 0) + (t.vencidas || 0);
         return {
             message: `${saludo} 👋 Soy **ARIA v1.0**, ${userInfo?.nombre || 'usuario'}.\n\n` +
-                `📊 **Estado rápido:**\n• **${s.totalDocs||0}** documentos activos\n• **${t.pendientes||0}** tareas pendientes (${t.enProgreso||0} en progreso)\n• **${s.totalPersonas||0}** personas registradas\n` +
+                `📊 **Estado rápido:**\n• **${s.totalDocs || 0}** documentos activos\n• **${t.pendientes || 0}** tareas pendientes (${t.enProgreso || 0} en progreso)\n• **${s.totalPersonas || 0}** personas registradas\n` +
                 (alertCount > 0 ? `\n🔔 **${alertCount} alertas** requieren atención.` : `\n✅ Sin alertas urgentes.`) +
                 `\n\n¿En qué te ayudo hoy?`,
             suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos urgentes', 'Productividad', '¿Qué puedes hacer?'],
@@ -1002,7 +997,7 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
 
     // ── FALLBACK MEJORADO ─────────────────────────────────────
     return {
-        message: `🤔 Entendí: *"${message.substring(0,80)}..."*\n\nPuedo ayudarte con:\n• 📊 **Estadísticas** del sistema\n• 📋 **Mis tareas** y prioridades\n• 📄 **Documentos** urgentes o vencidos\n• 🗺️ **Navegar** a cualquier sección\n• 📈 **Análisis** de productividad`,
+        message: `🤔 Entendí: *"${message.substring(0, 80)}..."*\n\nPuedo ayudarte con:\n• 📊 **Estadísticas** del sistema\n• 📋 **Mis tareas** y prioridades\n• 📄 **Documentos** urgentes o vencidos\n• 🗺️ **Navegar** a cualquier sección\n• 📈 **Análisis** de productividad`,
         suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos urgentes', '¿Qué puedes hacer?'],
         actions: [],
     };
@@ -1013,15 +1008,15 @@ if (/tarea.* m[aá]s? urgente|qu[eé] hago primero|prioridad|qu[eé] debería ha
 // ──────────────────────────────────────────────────────────────
 function buildSuggestions(message, ctx) {
     const q = message.toLowerCase();
-    const s = ctx.stats  || {};
+    const s = ctx.stats || {};
     const t = ctx.tareas || {};
     const out = new Set();
 
     // Alertas críticas primero
     if (s.docsPorVencer3 > 0) out.add(`🚨 ${s.docsPorVencer3} doc(s) vencen en 3 días`);
     else if (s.docsPorVencer7 > 0) out.add(`⚠️ ${s.docsPorVencer7} doc(s) por vencer`);
-    if (t.vencidas  > 0) out.add(`🚨 ${t.vencidas} tarea(s) vencidas`);
-    if (t.paraHoy   > 0) out.add(`📅 Tareas para hoy (${t.paraHoy})`);
+    if (t.vencidas > 0) out.add(`🚨 ${t.vencidas} tarea(s) vencidas`);
+    if (t.paraHoy > 0) out.add(`📅 Tareas para hoy (${t.paraHoy})`);
 
     // Sugerencias contextuales
     if (q.includes('documento')) {
@@ -1047,8 +1042,8 @@ async function getConvHistory(userId, limit = 8) {
         const rows = await Conversation.find({ usuario: userId })
             .sort({ timestamp: -1 }).limit(limit).lean();
         return rows.reverse().flatMap(r => [
-            { role: 'user',      content: r.mensajeUsuario },
-            { role: 'assistant', content: r.respuestaBot  },
+            { role: 'user', content: r.mensajeUsuario },
+            { role: 'assistant', content: r.respuestaBot },
         ]);
     } catch (e) {
         debug.warn('Error cargando historial:', e.message);
@@ -1059,11 +1054,11 @@ async function getConvHistory(userId, limit = 8) {
 async function saveConv(userId, userMsg, botMsg, extra = {}) {
     try {
         return await Conversation.create({
-            usuario:        userId,
+            usuario: userId,
             mensajeUsuario: userMsg.substring(0, 1000),
-            respuestaBot:   botMsg.substring(0, 5000),
-            fuente:         extra.fuente   ?? 'rule-based',
-            latencia:       extra.latencia ?? null,
+            respuestaBot: botMsg.substring(0, 5000),
+            fuente: extra.fuente ?? 'rule-based',
+            latencia: extra.latencia ?? null,
         });
     } catch (e) {
         debug.warn('Error guardando conversación:', e.message);
@@ -1075,11 +1070,11 @@ async function saveConv(userId, userMsg, botMsg, extra = {}) {
 // VALIDACIÓN DE ACCIONES
 // ──────────────────────────────────────────────────────────────
 const VALID_NAV = [
-    'dashboard','documentos','personas','tareas','reportes',
-    'papelera','notificaciones','ajustes','soporte','categorias','departamentos',
+    'dashboard', 'documentos', 'personas', 'tareas', 'reportes',
+    'papelera', 'notificaciones', 'ajustes', 'soporte', 'categorias', 'departamentos',
 ];
 const VALID_MODAL = [
-    'upload','addPerson','addTask','addCategory','addDepartment','search',
+    'upload', 'addPerson', 'addTask', 'addCategory', 'addDepartment', 'search',
 ];
 
 function validateAndFixActions(actions, originalMessage) {
@@ -1104,7 +1099,7 @@ function validateAndFixActions(actions, originalMessage) {
             return ok;
         }
         if (a.action === 'openModal') return VALID_MODAL.includes(a.target);
-        if (a.action === 'search')    return !!a.query;
+        if (a.action === 'search') return !!a.query;
         return false;
     });
 }
@@ -1115,7 +1110,7 @@ function validateAndFixActions(actions, originalMessage) {
 class ChatbotController {
 
     async processMessage(req, res) {
-        const t0     = Date.now();
+        const t0 = Date.now();
         const userId = req.user?.id || req.user?._id;
         const { message } = req.body;
 
@@ -1129,13 +1124,16 @@ class ChatbotController {
 
         const userInfo = {
             nombre: req.user?.nombre || req.user?.usuario || req.user?.name || 'Usuario',
-            rol:    req.user?.rol    || req.user?.role    || 'usuario',
-            id:     String(userId),
+            rol: req.user?.rol || req.user?.role || 'usuario',
+            id: String(userId),
         };
 
         try {
+            const schoolId = req.schoolId || req.user?.schoolId || null;
+            debug.log(`schoolId para contexto: ${schoolId || 'superadmin'}`);
+
             const [ctx, history] = await Promise.all([
-                buildSystemContext(userId),
+                buildSystemContext(userId, schoolId),
                 getConvHistory(userId, 8),
             ]);
 
@@ -1150,10 +1148,10 @@ class ChatbotController {
 
                     debug.log(`Groq raw (${raw.length} chars): "${raw.substring(0, 150)}..."`);
 
-                    let   actions  = extractActions(raw);
-                          actions  = validateAndFixActions(actions, msg);
+                    let actions = extractActions(raw);
+                    actions = validateAndFixActions(actions, msg);
                     const cleanMsg = cleanText(raw);
-                    const latency  = Date.now() - t0;
+                    const latency = Date.now() - t0;
                     const suggestions = buildSuggestions(msg, ctx);
 
                     debug.info(`✅ Groq OK en ${latency}ms | acciones: ${JSON.stringify(actions)}`);
@@ -1163,18 +1161,18 @@ class ChatbotController {
                     return res.json({
                         success: true,
                         data: {
-                            message:        cleanMsg,
+                            message: cleanMsg,
                             actions,
                             suggestions,
-                            source:         'groq',
+                            source: 'groq',
                             latency,
                             conversationId: conv?._id,
                             debug: process.env.NODE_ENV === 'development' ? {
-                                actionsRaw:    extractActions(raw).length,
-                                actionsFixed:  actions.length,
+                                actionsRaw: extractActions(raw).length,
+                                actionsFixed: actions.length,
                                 intentDetected: detectIntent(msg),
-                                taskSchema:    ctx.tareas?._schema,
-                                stats:         ctx.stats,
+                                taskSchema: ctx.tareas?._schema,
+                                stats: ctx.stats,
                             } : undefined,
                         },
                     });
@@ -1185,11 +1183,11 @@ class ChatbotController {
             }
 
             // ── Fallback rule-based ───────────────────────────
-            const fb      = ruleBasedResponse(msg, ctx, userInfo);
+            const fb = ruleBasedResponse(msg, ctx, userInfo);
             const latency = Date.now() - t0;
-            const cleanMsg= cleanText(fb.message ?? '');
-            let   actions = fb.actions ?? [];
-                  actions = validateAndFixActions(actions, msg);
+            const cleanMsg = cleanText(fb.message ?? '');
+            let actions = fb.actions ?? [];
+            actions = validateAndFixActions(actions, msg);
 
             const conv = await saveConv(userId, msg, cleanMsg, { fuente: 'rule-based', latencia: latency });
 
@@ -1198,10 +1196,10 @@ class ChatbotController {
             return res.json({
                 success: true,
                 data: {
-                    message:        cleanMsg,
+                    message: cleanMsg,
                     actions,
-                    suggestions:    fb.suggestions ?? buildSuggestions(msg, ctx),
-                    source:         'rule-based',
+                    suggestions: fb.suggestions ?? buildSuggestions(msg, ctx),
+                    source: 'rule-based',
                     latency,
                     conversationId: conv?._id,
                 },
@@ -1217,56 +1215,56 @@ class ChatbotController {
         }
     }
 
-    async getSystemStats(req, res) {
-        const t0     = Date.now();
-        const userId = req.user?.id || req.user?._id;
-        try {
-            const ctx = await buildSystemContext(userId);
-            debug.info(`getSystemStats en ${Date.now()-t0}ms`);
-            return res.json({
-                success: true,
-                data: {
-                    stats:                    ctx.stats,
-                    tareas:                   ctx.tareas,
-                    analytics:                ctx.analytics,
-                    sistema:                  ctx.sistema,
-                    documentosUrgentes:       ctx.docs.urgentes,
-                    ultimosDocumentos:        ctx.docs.recientes,
-                    documentosVencidos:       ctx.docs.vencidos,
-                    documentosPorCategoria:   ctx.docs.porCategoria,
-                    personas:                 ctx.personas,
-                    personasPorDepartamento:  ctx.personas.porDepartamento,
-                    categorias:               ctx.categorias,
-                    departamentos:            ctx.departamentos,
-                    // Compatibilidad hacia atrás
-                    totalDocs:       ctx.stats.totalDocs,
-                    totalPersonas:   ctx.stats.totalPersonas,
-                    docsPorVencer7:  ctx.stats.docsPorVencer7,
-                    docsVencidos:    ctx.stats.docsVencidos,
-                },
-            });
-        } catch (err) {
-            debug.error('getSystemStats error:', err);
-            return res.status(500).json({ success: false, message: 'Error al obtener estadísticas.' });
-        }
+async getSystemStats(req, res) {
+    const t0     = Date.now();
+    const userId = req.user?.id || req.user?._id;
+    const schoolId = req.schoolId || req.user?.schoolId || null;
+    try {
+        const ctx = await buildSystemContext(userId, schoolId);
+        debug.info(`getSystemStats en ${Date.now()-t0}ms`);
+        return res.json({
+            success: true,
+            data: {
+                stats:                    ctx.stats,
+                tareas:                   ctx.tareas,
+                analytics:                ctx.analytics,
+                sistema:                  ctx.sistema,
+                documentosUrgentes:       ctx.docs.urgentes,
+                ultimosDocumentos:        ctx.docs.recientes,
+                documentosVencidos:       ctx.docs.vencidos,
+                documentosPorCategoria:   ctx.docs.porCategoria,
+                personas:                 ctx.personas,
+                personasPorDepartamento:  ctx.personas.porDepartamento,
+                categorias:               ctx.categorias,
+                departamentos:            ctx.departamentos,
+                totalDocs:       ctx.stats.totalDocs,
+                totalPersonas:   ctx.stats.totalPersonas,
+                docsPorVencer7:  ctx.stats.docsPorVencer7,
+                docsVencidos:    ctx.stats.docsVencidos,
+            },
+        });
+    } catch (err) {
+        debug.error('getSystemStats error:', err);
+        return res.status(500).json({ success: false, message: 'Error al obtener estadísticas.' });
     }
+}
 
     async getHistory(req, res) {
         const userId = req.user?.id || req.user?._id;
-        const limit  = Math.min(parseInt(req.query.limit) || 20, 100);
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
         try {
             const rows = await Conversation.find({ usuario: userId })
                 .sort({ timestamp: -1 }).limit(limit).lean();
             return res.json({
                 success: true,
                 data: rows.reverse().map(r => ({
-                    _id:         r._id,
+                    _id: r._id,
                     userMessage: r.mensajeUsuario,
                     botResponse: r.respuestaBot,
-                    timestamp:   r.timestamp,
-                    util:        r.util,
-                    source:      r.fuente,
-                    latency:     r.latencia,
+                    timestamp: r.timestamp,
+                    util: r.util,
+                    source: r.fuente,
+                    latency: r.latencia,
                 })),
             });
         } catch (err) {
@@ -1314,10 +1312,10 @@ class ChatbotController {
         try {
             // Verificar query real contra la BD para confirmar que funciona
             const { query } = await buildTaskQuery(userId);
-            const totalTasks         = await Task.countDocuments({});
-            const totalTasksForUser  = await Task.countDocuments(query);
-            const sample             = await Task.findOne({}).lean();
-            const sampleFields       = sample ? Object.keys(sample).sort() : [];
+            const totalTasks = await Task.countDocuments({});
+            const totalTasksForUser = await Task.countDocuments(query);
+            const sample = await Task.findOne({}).lean();
+            const sampleFields = sample ? Object.keys(sample).sort() : [];
 
             // Desglose por estado para el usuario actual
             const byStatus = {};
@@ -1328,15 +1326,15 @@ class ChatbotController {
             return res.json({
                 success: true,
                 data: {
-                    confirmedSchema:    TASK_SCHEMA,
-                    userId:             String(userId),
-                    totalTasksInDB:     totalTasks,
-                    tasksForThisUser:   totalTasksForUser,
-                    tasksByStatus:      byStatus,
-                    sampleDocFields:    sampleFields,
-                    env:                process.env.NODE_ENV,
-                    groqEnabled:        !!process.env.GROQ_API_KEY,
-                    queryUsed:          query,
+                    confirmedSchema: TASK_SCHEMA,
+                    userId: String(userId),
+                    totalTasksInDB: totalTasks,
+                    tasksForThisUser: totalTasksForUser,
+                    tasksByStatus: byStatus,
+                    sampleDocFields: sampleFields,
+                    env: process.env.NODE_ENV,
+                    groqEnabled: !!process.env.GROQ_API_KEY,
+                    queryUsed: query,
                 },
             });
         } catch (err) {

@@ -10,7 +10,6 @@ class CategoryController {
       console.log('📋 CategoryController.getAll - Iniciando');
       console.log('🏫 req.schoolId:', req.schoolId || 'superadmin (sin filtro)');
       
-      // ✅ Filtro por escuela
       const filter = { activo: true };
       if (req.schoolId) {
         filter.schoolId = req.schoolId;
@@ -18,7 +17,6 @@ class CategoryController {
       
       const categories = await Category.find(filter).sort({ nombre: 1 });
       
-      // Contar documentos por categoría (filtrados por escuela)
       const categoriesWithCounts = await Promise.all(
         categories.map(async (category) => {
           const docFilter = { 
@@ -53,8 +51,9 @@ class CategoryController {
 
   // Crear nueva categoría
   static async create(req, res) {
+    console.log('🔍 BODY COMPLETO:', JSON.stringify(req.body, null, 2));
     try {
-      const { nombre, descripcion, color, icon } = req.body;
+      const { nombre, descripcion, color, icon, parent_id } = req.body;
       
       if (!nombre) {
         return res.status(400).json({ 
@@ -63,7 +62,6 @@ class CategoryController {
         });
       }
 
-      // ✅ Verificar duplicado SOLO dentro de la misma escuela
       const duplicadoFilter = { 
         nombre: { $regex: new RegExp(`^${nombre}$`, 'i') },
         activo: true 
@@ -81,17 +79,17 @@ class CategoryController {
         });
       }
 
-      // ✅ CREAR CON schoolId
       const nuevaCategoria = new Category({
         nombre,
         descripcion,
         color: color || '#4f46e5',
         icon: icon || 'folder',
-        schoolId: req.schoolId || 'superadmin'  // 🆕 ASIGNAR schoolId
+        parent_id: parent_id || null,  // 🆕 GUARDAR parent_id
+        schoolId: req.schoolId || 'superadmin'
       });
 
       await nuevaCategoria.save();
-      console.log('✅ Categoría creada:', nuevaCategoria.nombre, '| schoolId:', nuevaCategoria.schoolId);
+      console.log('✅ Categoría creada:', nuevaCategoria.nombre, '| parent_id:', nuevaCategoria.parent_id || 'raíz', '| schoolId:', nuevaCategoria.schoolId);
       
       try {
         await NotificationService.categoriaAgregada(nuevaCategoria);
@@ -117,7 +115,7 @@ class CategoryController {
   static async update(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, descripcion, color, icon } = req.body;
+      const { nombre, descripcion, color, icon, parent_id } = req.body;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ 
@@ -126,9 +124,14 @@ class CategoryController {
         });
       }
 
+      const updateData = { nombre, descripcion, color, icon };
+      if (parent_id !== undefined) {
+        updateData.parent_id = parent_id || null;
+      }
+
       const categoriaActualizada = await Category.findByIdAndUpdate(
         id,
-        { nombre, descripcion, color, icon },
+        updateData,
         { new: true, runValidators: true }
       );
 
@@ -175,7 +178,6 @@ class CategoryController {
         });
       }
 
-      // ✅ Verificar documentos en esta categoría (filtrados por escuela)
       const docFilter = { 
         categoria: categoria.nombre,
         activo: true,
@@ -216,5 +218,4 @@ class CategoryController {
   }
 }
 
-// Exportar como default
 export default CategoryController;

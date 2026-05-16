@@ -134,9 +134,11 @@ function initializeCategoryFilter() {
     if (!DOM.filterCategory.dataset.listenerBound) {
         DOM.filterCategory.dataset.listenerBound = 'true';
         DOM.filterCategory.addEventListener('change', function () {
-            console.log(`🎯 Filtro categoría cambiado a: "${this.value}"`);
+            const selectedCategory = this.value;
+            console.log(`🎯 Filtro categoría cambiado a: "${selectedCategory}"`);
+            
             if (window.appState && window.appState.filters) {
-                window.appState.filters.category = this.value;
+                window.appState.filters.category = selectedCategory;
                 applyFilters();
             }
         });
@@ -403,14 +405,19 @@ function filterDocuments() {
  */
 function saveFilterState() {
     try {
-        if (window.appState && window.appState.filters) {
+        // Solo guardar si NO estamos dentro de una carpeta
+        const isInsideCategory = window.categoryNavState && 
+                                  window.categoryNavState.stack && 
+                                  window.categoryNavState.stack.length > 0;
+        
+        if (!isInsideCategory && window.appState && window.appState.filters) {
             localStorage.setItem('documentFilters', JSON.stringify(window.appState.filters));
         }
         if (window.appState && window.appState.currentSearchQuery !== undefined) {
             localStorage.setItem('documentSearchQuery', window.appState.currentSearchQuery || '');
         }
     } catch (error) {
-        console.warn('⚠️  No se pudo guardar el estado de filtros:', error);
+        console.warn('⚠️ No se pudo guardar el estado de filtros:', error);
     }
 }
 
@@ -421,6 +428,16 @@ export function loadFilterState() {
     console.log('📥 Cargando estado de filtros desde localStorage...');
     
     try {
+        // NO cargar filtros si estamos dentro de una carpeta
+        const isInsideCategory = window.categoryNavState && 
+                                  window.categoryNavState.stack && 
+                                  window.categoryNavState.stack.length > 0;
+        
+        if (isInsideCategory) {
+            console.log('📥 Dentro de carpeta, ignorando filtros guardados en localStorage');
+            return;
+        }
+        
         const savedFilters = localStorage.getItem('documentFilters');
         const savedSearch = localStorage.getItem('documentSearchQuery');
         
@@ -569,29 +586,39 @@ function restoreFilterInputs() {
 
 /**
  * Limpia todos los filtros.
+ * MODIFICADO: No limpia el filtro de categoría si estamos dentro de una carpeta
  */
 export function clearAllFilters() {
-    console.log('🧹 Limpiando todos los filtros...');
+    console.log('🧹 Limpiando filtros (excepto categoría si estamos en una carpeta)...');
     
     try {
+        // Verificar si estamos dentro de una carpeta (categoryNavigation tiene un stack > 0)
+        const isInsideCategory = window.categoryNavState && 
+                                  window.categoryNavState.stack && 
+                                  window.categoryNavState.stack.length > 0;
+        
         // Resetear estado
         if (window.appState) {
-            window.appState.filters = {
-                category: '',
-                status: ''
-            };
+            // SOLO limpiar categoría si NO estamos dentro de una carpeta
+            if (!isInsideCategory) {
+                window.appState.filters.category = '';
+            }
+            window.appState.filters.status = '';
             window.appState.currentSearchQuery = '';
         }
         
         // Resetear inputs
-        if (DOM.filterCategory) {
+        // NO limpiar filterCategory si estamos dentro de una carpeta
+        if (DOM.filterCategory && !isInsideCategory) {
             DOM.filterCategory.value = '';
             console.log('🧹 Categoría limpiada');
         }
+        
         if (DOM.filterStatus) {
             DOM.filterStatus.value = '';
             console.log('🧹 Estado limpiado');
         }
+        
         if (DOM.searchInput) {
             DOM.searchInput.value = '';
             console.log('🧹 Búsqueda limpiada');
@@ -600,7 +627,7 @@ export function clearAllFilters() {
         // Aplicar cambios
         applyFilters();
         
-        console.log('✅ Filtros limpiados');
+        console.log('✅ Filtros limpiados (categoría preservada: ' + (isInsideCategory ? 'SÍ' : 'NO') + ')');
     } catch (error) {
         console.error('❌ Error limpiando filtros:', error);
     }

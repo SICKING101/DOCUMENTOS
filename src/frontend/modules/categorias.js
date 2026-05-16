@@ -24,7 +24,7 @@ function showCategoryPreloader(message = 'Cargando categorías...', duration = 1
             </div>
         `;
     }
-    
+
     // Retornar una promesa que se resuelve después del tiempo mínimo
     return new Promise(resolve => {
         setTimeout(resolve, duration);
@@ -38,7 +38,7 @@ function showCategoryOverlayPreloader(title = 'Procesando...', subtitle = 'Por f
     const overlay = document.createElement('div');
     overlay.className = 'category-preloader-overlay';
     overlay.id = 'categoryPreloaderOverlay';
-    
+
     overlay.innerHTML = `
         <div class="category-preloader-overlay__content">
             <div class="category-preloader-overlay__icon">
@@ -53,9 +53,9 @@ function showCategoryOverlayPreloader(title = 'Procesando...', subtitle = 'Por f
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(overlay);
-    
+
     // Retornar función para ocultar
     return {
         hide: () => {
@@ -132,10 +132,10 @@ function openCategoryModal(categoryId = null) {
         showAlert('No tienes permiso para modificar categorías', 'error');
         return;
     }
-    
+
     // Limpiar errores previos
     clearCategoryFormErrors();
-    
+
     if (categoryId) {
         DOM.categoryModalTitle.textContent = 'Editar Categoría';
         const category = window.appState.categories.find(c => c._id === categoryId);
@@ -153,7 +153,7 @@ function openCategoryModal(categoryId = null) {
         DOM.categoryColor.value = '#4f46e5';
         DOM.categoryIcon.value = 'folder';
     }
-    
+
     DOM.categoryModal.style.display = 'flex';
     setTimeout(() => DOM.categoryName.focus(), 100);
 }
@@ -173,7 +173,7 @@ function closeCategoryModal() {
 function clearCategoryFormErrors() {
     const errorElements = document.querySelectorAll('.validation-message--error');
     errorElements.forEach(el => el.remove());
-    
+
     const errorFields = document.querySelectorAll('.field--error-highlight');
     errorFields.forEach(el => {
         el.classList.remove('field--error-highlight');
@@ -187,19 +187,19 @@ function clearCategoryFormErrors() {
 function showCategoryFieldError(fieldId, message) {
     const field = document.getElementById(fieldId);
     if (!field) return;
-    
+
     // Agregar clase de error al campo
     field.classList.add('field--error-highlight');
     field.setAttribute('aria-invalid', 'true');
-    
+
     // Crear mensaje de error
     const errorMessage = document.createElement('div');
     errorMessage.className = 'validation-message validation-message--error';
     errorMessage.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
-    
+
     // Insertar después del campo
     field.parentNode.appendChild(errorMessage);
-    
+
     // Enfocar el campo con error
     field.focus();
 }
@@ -214,7 +214,7 @@ function showCategoryFieldError(fieldId, message) {
 function validateCategoryForm() {
     let isValid = true;
     clearCategoryFormErrors();
-    
+
     // Validar nombre
     if (!DOM.categoryName.value.trim()) {
         showCategoryFieldError('categoryName', 'El nombre de la categoría es obligatorio');
@@ -226,13 +226,13 @@ function validateCategoryForm() {
         showCategoryFieldError('categoryName', 'El nombre no puede exceder los 50 caracteres');
         isValid = false;
     }
-    
+
     // Validar descripción
     if (DOM.categoryDescription.value.trim().length > 500) {
         showCategoryFieldError('categoryDescription', 'La descripción no puede exceder los 500 caracteres');
         isValid = false;
     }
-    
+
     return isValid;
 }
 
@@ -249,38 +249,38 @@ async function saveCategory() {
     if (!validateCategoryForm()) {
         return;
     }
-    
+
     let preloader = null;
-    
+
     try {
         // Mostrar overlay preloader con tiempo mínimo garantizado
         preloader = showCategoryOverlayPreloader(
-            'Guardando categoría...', 
+            'Guardando categoría...',
             'Por favor, espera mientras se procesa la información'
         );
-        
+
         // Tiempo mínimo de preloader: 1.5 segundos
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
         const categoryData = {
             nombre: DOM.categoryName.value.trim(),
             descripcion: DOM.categoryDescription.value.trim(),
             color: DOM.categoryColor.value,
             icon: DOM.categoryIcon.value
         };
-        
+
         console.log('💾 Guardando categoría:', categoryData);
-        
+
         let data;
         if (DOM.categoryId.value) {
             data = await api.updateCategory(DOM.categoryId.value, categoryData);
         } else {
             data = await api.createCategory(categoryData);
         }
-        
+
         // Tiempo adicional para simular procesamiento
         await new Promise(resolve => setTimeout(resolve, 800));
-        
+
         if (data.success) {
             showAlert(data.message, 'success');
             await loadCategories();
@@ -306,7 +306,7 @@ async function saveCategory() {
         } else {
             throw new Error(data.message || 'Error desconocido al guardar');
         }
-        
+
     } catch (error) {
         console.error('❌ Error guardando categoría:', error);
         showAlert('Error al guardar categoría: ' + error.message, 'error');
@@ -324,10 +324,9 @@ async function loadCategories() {
         console.log('🔒 Sin permiso para ver categorías');
 
         if (DOM.categoriesStats) {
-            // Forzar display block para ocupar todo el ancho
             DOM.categoriesStats.style.display = 'block';
             DOM.categoriesStats.style.gridTemplateColumns = 'none';
-            
+
             DOM.categoriesStats.innerHTML = `
                 <div class="empty-state empty-state--category empty-state--locked empty-state--full-width">
                     <div class="empty-state__illustration empty-state__illustration--locked">
@@ -371,34 +370,44 @@ async function loadCategories() {
 
     try {
         console.log('🏷️ Cargando categorías...');
-        
+
         showCategorySkeletonCards(3);
         showCategorySkeletonTable();
-        
+
         await showCategoryPreloader('Cargando categorías...', 1200);
-        
+
         const data = await api.getCategories();
-        
+
         await new Promise(resolve => setTimeout(resolve, 600));
-        
+
         if (data.success) {
             window.appState.categories = data.categories || [];
             renderCategories();
             populateCategorySelects();
+
+            // Refrescar el árbol de navegación para actualizar contadores
+            if (typeof window.refreshCategoryTree === 'function') {
+                window.refreshCategoryTree();
+            }
+
+            // Forzar re-render del grid para actualizar contadores
+            if (typeof window.renderCategoryGrid === 'function') {
+                window.renderCategoryGrid();
+            }
+
             console.log(`✅ ${window.appState.categories.length} categorías cargadas`);
         } else {
             throw new Error(data.message);
         }
-        
+
     } catch (error) {
         console.error('❌ Error cargando categorías:', error);
         showAlert('Error al cargar categorías: ' + error.message, 'error');
-        
+
         if (DOM.categoriesStats) {
-            // Forzar display block para ocupar todo el ancho
             DOM.categoriesStats.style.display = 'block';
             DOM.categoriesStats.style.gridTemplateColumns = 'none';
-            
+
             DOM.categoriesStats.innerHTML = `
                 <div class="empty-state empty-state--category empty-state--error empty-state--full-width">
                     <div class="empty-state__illustration empty-state__illustration--error">
@@ -450,14 +459,14 @@ async function deleteCategory(id) {
 
     const category = window.appState.categories.find(c => c._id === id);
     if (!category) return;
-    
+
     // ⚠️ CERRAR cualquier modal previo
     const prevConfirm = document.getElementById('confirmModal');
     if (prevConfirm) prevConfirm.remove();
-    
+
     const prevAction = document.querySelector('[data-modal-type="action"]');
     if (prevAction) prevAction.remove();
-    
+
     // Mostrar modal de confirmación
     showConfirmModal({
         title: 'Eliminar Categoría',
@@ -468,23 +477,23 @@ async function deleteCategory(id) {
         cancelText: 'Cancelar',
         onConfirm: async () => {
             let preloader = null;
-            
+
             try {
                 console.log('🗑️ Eliminando categoría:', id);
-                
+
                 preloader = showCategoryOverlayPreloader(
                     'Eliminando categoría...',
                     'Esto puede tomar algunos segundos'
                 );
-                
+
                 await new Promise(resolve => setTimeout(resolve, 1200));
-                
+
                 const data = await api.deleteCategory(id);
-                
+
                 await new Promise(resolve => setTimeout(resolve, 600));
-                
+
                 if (preloader) preloader.hide();
-                
+
                 if (data.success) {
                     showActionModal({
                         type: 'success',
@@ -497,12 +506,12 @@ async function deleteCategory(id) {
                 } else {
                     throw new Error(data.message);
                 }
-                
+
             } catch (error) {
                 console.error('❌ Error eliminando categoría:', error);
-                
+
                 if (preloader) preloader.hide();
-                
+
                 showActionModal({
                     type: 'error',
                     title: 'Error',
@@ -528,12 +537,12 @@ function renderCategories() {
 
     if (DOM.categoriesStats) {
         DOM.categoriesStats.innerHTML = '';
-        
+
         if (window.appState.categories.length === 0) {
             // Forzar que el empty-state ocupe todo el ancho rompiendo el grid
             DOM.categoriesStats.style.display = 'block';
             DOM.categoriesStats.style.gridTemplateColumns = 'none';
-            
+
             DOM.categoriesStats.innerHTML = `
                 <div class="empty-state empty-state--category empty-state--full-width">
                     <div class="empty-state__illustration">
@@ -563,16 +572,16 @@ function renderCategories() {
             `;
             return;
         }
-        
+
         // Restaurar el grid cuando hay elementos
         DOM.categoriesStats.style.display = '';
         DOM.categoriesStats.style.gridTemplateColumns = '';
-        
+
         window.appState.categories.forEach(category => {
             const categoryCard = document.createElement('div');
             categoryCard.className = 'compact-category-card';
             categoryCard.style.position = 'relative';
-            
+
             categoryCard.innerHTML = `
                 <div class="compact-category-card__icon" style="background: linear-gradient(135deg, ${category.color || '#4f46e5'}, #4338ca);">
                     <i class="fas fa-${category.icon || 'folder'}"></i>
@@ -590,25 +599,34 @@ function renderCategories() {
                     </div>
                 ` : ''}
             `;
-            
+
             categoryCard.addEventListener('mouseenter', () => {
                 const actions = categoryCard.querySelector('.category-card-actions');
                 if (actions) actions.style.opacity = '1';
             });
-            
+
             categoryCard.addEventListener('mouseleave', () => {
                 const actions = categoryCard.querySelector('.category-card-actions');
                 if (actions) actions.style.opacity = '0';
             });
-            
+
             DOM.categoriesStats.appendChild(categoryCard);
+
+            // Después de renderizar todas las cards, configurar navegación:
+            import('../modules/documentos/categoryNavigation.js').then(module => {
+                setTimeout(() => {
+                    module.setupCategoryCardListeners();
+                }, 150);
+            }).catch(err => {
+                console.warn('⚠️ No se pudo cargar categoryNavigation:', err);
+            });
         });
     }
-    
+
     // Tabla
     if (DOM.categoriasTableBody) {
         DOM.categoriasTableBody.innerHTML = '';
-        
+
         if (window.appState.categories.length === 0) {
             DOM.categoriasTableBody.innerHTML = `
                 <tr>
@@ -632,11 +650,11 @@ function renderCategories() {
             `;
             return;
         }
-        
+
         window.appState.categories.forEach(category => {
             const row = document.createElement('tr');
             row.className = 'table__row';
-            
+
             row.innerHTML = `
                 <td class="table__cell">${category.nombre}</td>
                 <td class="table__cell">${category.descripcion || '-'}</td>
@@ -659,7 +677,7 @@ function renderCategories() {
                     ` : '<span class="text-muted">-</span>'}
                 </td>
             `;
-            
+
             DOM.categoriasTableBody.appendChild(row);
         });
     }
@@ -682,7 +700,7 @@ function populateCategorySelects() {
             DOM.filterCategory.appendChild(option);
         });
     }
-    
+
     if (DOM.searchCategory) {
         DOM.searchCategory.innerHTML = '<option value="">Todas las categorías</option>';
         window.appState.categories.forEach(category => {
@@ -699,7 +717,7 @@ function populateCategorySelects() {
  */
 function populateCategorySelect(selectElement) {
     if (!selectElement) return;
-    
+
     selectElement.innerHTML = '<option value="">Seleccionar categoría</option>';
     window.appState.categories.forEach(category => {
         const option = document.createElement('option');
@@ -757,16 +775,16 @@ window.deleteCategory = deleteCategory;
 window.loadCategories = loadCategories;
 window.openCategoryModal = openCategoryModal;
 
-export { 
-    openCategoryModal, 
-    closeCategoryModal, 
-    saveCategory, 
-    loadCategories, 
-    renderCategories, 
-    populateCategorySelects, 
-    populateCategorySelect, 
-    editCategory, 
-    deleteCategory, 
+export {
+    openCategoryModal,
+    closeCategoryModal,
+    saveCategory,
+    loadCategories,
+    renderCategories,
+    populateCategorySelects,
+    populateCategorySelect,
+    editCategory,
+    deleteCategory,
     handleSaveCategory,
     showCategoryPreloader,
     showCategoryOverlayPreloader

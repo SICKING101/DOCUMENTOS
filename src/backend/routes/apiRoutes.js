@@ -85,8 +85,8 @@ router.use('/avisos', protegerRuta, verificarAccesoSistema, avisoRoutes);
 router.get('/dashboard', protegerRuta, verificarAccesoSistema, inyectarSchoolId, DashboardController.getDashboardStats);
 
 // ─── CHATBOT ──────────────────────────────────────────────────
-router.post('/chatbot/message', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.processMessage(req, res));
-router.get('/chatbot/stats', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.getSystemStats(req, res));
+router.post('/chatbot/message', protegerRuta, verificarAccesoSistema, inyectarSchoolId, (req, res) => ChatbotController.processMessage(req, res));
+router.get('/chatbot/stats', protegerRuta, verificarAccesoSistema, inyectarSchoolId, (req, res) => ChatbotController.getSystemStats(req, res));
 router.get('/chatbot/history', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.getHistory(req, res));
 router.delete('/chatbot/history', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.clearHistory(req, res));
 router.patch('/chatbot/feedback', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.submitFeedback(req, res));

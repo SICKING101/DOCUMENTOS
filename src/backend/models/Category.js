@@ -5,8 +5,12 @@ const categorySchema = new mongoose.Schema({
   descripcion: String,
   color: { type: String, default: '#4f46e5' },
   icon: { type: String, default: 'folder' },
+  parent_id: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Category',
+    default: null 
+  },
   activo: { type: Boolean, default: true },
-  // ===== 🆕 NUEVO: Identificador de escuela =====
   schoolId: { 
     type: String, 
     required: true, 
@@ -16,6 +20,7 @@ const categorySchema = new mongoose.Schema({
 
 // Índice compuesto para búsquedas por escuela
 categorySchema.index({ schoolId: 1, activo: 1 });
+categorySchema.index({ parent_id: 1 });
 
 const Category = mongoose.model('Category', categorySchema);
 export default Category;
