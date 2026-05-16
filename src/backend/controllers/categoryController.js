@@ -84,7 +84,7 @@ class CategoryController {
         descripcion,
         color: color || '#4f46e5',
         icon: icon || 'folder',
-        parent_id: parent_id || null,  // 🆕 GUARDAR parent_id
+        parent_id: parent_id || null,
         schoolId: req.schoolId || 'superadmin'
       });
 
@@ -124,6 +124,35 @@ class CategoryController {
         });
       }
 
+      // Buscar la categoría actual
+      const categoriaActual = await Category.findById(id);
+      if (!categoriaActual) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Categoría no encontrada' 
+        });
+      }
+
+      // Validar nombre duplicado al editar (excluyendo la misma categoría)
+      if (nombre && nombre !== categoriaActual.nombre) {
+        const duplicadoFilter = { 
+          nombre: { $regex: new RegExp(`^${nombre}$`, 'i') },
+          activo: true,
+          _id: { $ne: id }
+        };
+        if (req.schoolId) {
+          duplicadoFilter.schoolId = req.schoolId;
+        }
+
+        const categoriaExistente = await Category.findOne(duplicadoFilter);
+        if (categoriaExistente) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Ya existe una categoría con ese nombre en tu escuela' 
+          });
+        }
+      }
+
       const updateData = { nombre, descripcion, color, icon };
       if (parent_id !== undefined) {
         updateData.parent_id = parent_id || null;
@@ -140,6 +169,24 @@ class CategoryController {
           success: false, 
           message: 'Categoría no encontrada' 
         });
+      }
+
+      // Si cambió el nombre, actualizar todos los documentos de esta categoría
+      if (nombre && categoriaActual.nombre !== nombre) {
+        const oldName = categoriaActual.nombre;
+        const docFilter = { 
+          categoria: oldName,
+          activo: true
+        };
+        if (req.schoolId) {
+          docFilter.schoolId = req.schoolId;
+        }
+
+        const updateResult = await Document.updateMany(
+          docFilter,
+          { $set: { categoria: nombre } }
+        );
+        console.log(`✅ ${updateResult.modifiedCount} documentos actualizados de "${oldName}" a "${nombre}"`);
       }
 
       console.log('✅ Categoría actualizada:', categoriaActualizada.nombre);

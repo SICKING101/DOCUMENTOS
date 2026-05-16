@@ -63,7 +63,7 @@ import * as documentos from './modules/documentos/index.js';
 
 // Categorías
 import {
-  openCategoryModal, closeCategoryModal, saveCategory,
+  openCategoryModal, closeCategoryModal,
   loadCategories, renderCategories, populateCategorySelects,
   editCategory, deleteCategory, handleSaveCategory,
 } from './modules/categorias.js';

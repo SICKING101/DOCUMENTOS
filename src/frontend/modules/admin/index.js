@@ -984,12 +984,29 @@ async function deleteRole(roleId, roleName) {
       rolesToast(res.message || 'Rol eliminado', 'success');
       log('deleteRole: éxito ✅');
     } else {
+      if (cb) { cb.disabled = false; cb.innerHTML = 'Eliminar'; }
       rolesToast(res?.message || 'Error al eliminar', 'error');
     }
   } catch (e) {
     err('deleteRole error:', e);
-    rolesToast('Error de conexión', 'error');
+    if (cb) { cb.disabled = false; cb.innerHTML = 'Eliminar'; }
+    
+    let errorMsg = 'Error de conexión';
+    try {
+      const match = e.message?.match(/\{.*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        if (parsed.message) errorMsg = parsed.message;
+      }
+    } catch (ex) {}
+    
     closeDeleteModal();
+    
+    if (window.showActionModal) {
+      window.showActionModal({ type: 'error', title: 'No se pudo eliminar', message: errorMsg });
+    } else {
+      rolesToast(errorMsg, 'error');
+    }
   }
 }
 

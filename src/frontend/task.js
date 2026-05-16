@@ -708,60 +708,62 @@ class TaskManager {
     // GUARDAR TAREA
     // =========================================================================
 
-    async _saveTask(mode) {
-        if (!canAction('tareas')) { showNoPermissionAlert('tareas'); return; }
-        if (this.isSaving) return;
+async _saveTask(mode) {
+    if (!canAction('tareas')) { showNoPermissionAlert('tareas'); return; }
+    if (this.isSaving) return;
 
-        const isPersonal = mode === 'personal';
-        const prefix     = isPersonal ? 'personal' : 'assign';
-        const modalId    = isPersonal ? 'personalModal' : 'assignModal';
-        const saveBtnId  = isPersonal ? 'savePersonalBtn' : 'saveAssignBtn';
+    const isPersonal = mode === 'personal';
+    const prefix     = isPersonal ? 'personal' : 'assign';
+    const modalId    = isPersonal ? 'personalModal' : 'assignModal';
+    const saveBtnId  = isPersonal ? 'savePersonalBtn' : 'saveAssignBtn';
 
-        if (!this._validateTaskForm(prefix)) return;
+    if (!this._validateTaskForm(prefix)) return;
 
-        const taskData = isPersonal
-            ? this._getPersonalFormData()
-            : this._getAssignFormData();
+    const taskData = isPersonal
+        ? this._getPersonalFormData()
+        : this._getAssignFormData();
 
-        this.isSaving = true;
+    // Eliminar _id si es null o vacío (tarea nueva)
+    if (!taskData._id) delete taskData._id;
 
-        const modal = document.getElementById(modalId);
-        const preloader = this._showModalSaving(modal, 'Guardando...');
-        const saveBtn = document.getElementById(saveBtnId);
-        if (saveBtn) saveBtn.disabled = true;
+    this.isSaving = true;
 
-        try {
-            const token = localStorage.getItem('token');
-            const id     = taskData._id;
-            const url    = id ? `${this.apiBaseUrl}/tasks/${id}` : `${this.apiBaseUrl}/tasks`;
-            const method = id ? 'PUT' : 'POST';
+    const modal = document.getElementById(modalId);
+    const preloader = this._showModalSaving(modal, 'Guardando...');
+    const saveBtn = document.getElementById(saveBtnId);
+    if (saveBtn) saveBtn.disabled = true;
 
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(taskData)
-            });
-            const data = await res.json();
+    try {
+        const token = localStorage.getItem('token');
+        const url    = taskData._id ? `${this.apiBaseUrl}/tasks/${taskData._id}` : `${this.apiBaseUrl}/tasks`;
+        const method = taskData._id ? 'PUT' : 'POST';
 
-            if (!res.ok || !data.success) throw new Error(data.message || 'Error al guardar');
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(taskData)
+        });
+        const data = await res.json();
 
-            this._showModalSuccess(preloader, id ? 'Tarea actualizada ✓' : 'Tarea creada ✓');
+        if (!res.ok || !data.success) throw new Error(data.message || 'Error al guardar');
 
-            await this.loadTasks();
+        this._showModalSuccess(preloader, taskData._id ? 'Tarea actualizada ✓' : 'Tarea creada ✓');
 
-            setTimeout(() => this._closeModal(modalId), 1400);
+        await this.loadTasks();
 
-        } catch (err) {
-            console.error('❌ _saveTask:', err);
-            this._showModalError(preloader, err.message);
-        } finally {
-            this.isSaving = false;
-            if (saveBtn) saveBtn.disabled = false;
-        }
+        setTimeout(() => this._closeModal(modalId), 1400);
+
+    } catch (err) {
+        console.error('❌ _saveTask:', err);
+        this._showModalError(preloader, err.message);
+    } finally {
+        this.isSaving = false;
+        if (saveBtn) saveBtn.disabled = false;
     }
+}
 
     _getPersonalFormData() {
         const g = id => document.getElementById(id)?.value?.trim() || '';

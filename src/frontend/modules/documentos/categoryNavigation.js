@@ -1226,8 +1226,14 @@ export async function saveCategory() {
         closeCategoryModal();
         _showPreloaderOverlay('Actualizando vista...');
 
+        // Recargar categorías
         if (typeof window.loadCategories === 'function') {
             await window.loadCategories();
+        }
+
+        // Recargar documentos para actualizar nombres de categoría
+        if (typeof window.loadDocuments === 'function') {
+            await window.loadDocuments();
         }
 
         refreshCategoryTree();

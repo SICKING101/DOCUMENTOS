@@ -236,89 +236,6 @@ function validateCategoryForm() {
     return isValid;
 }
 
-/**
- * 2.2 Guardar categoría (crear o actualizar) - CORREGIDO
- */
-async function saveCategory() {
-    if (!canAction('categorias')) {
-        showNoPermissionAlert('categorias');
-        showAlert('No tienes permiso para guardar categorías', 'error');
-        return;
-    }
-
-    if (!validateCategoryForm()) {
-        return;
-    }
-
-    let preloader = null;
-
-    try {
-        // Mostrar overlay preloader con tiempo mínimo garantizado
-        preloader = showCategoryOverlayPreloader(
-            'Guardando categoría...',
-            'Por favor, espera mientras se procesa la información'
-        );
-
-        // Tiempo mínimo de preloader: 1.5 segundos
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        const categoryData = {
-            nombre: DOM.categoryName.value.trim(),
-            descripcion: DOM.categoryDescription.value.trim(),
-            color: DOM.categoryColor.value,
-            icon: DOM.categoryIcon.value
-        };
-
-        console.log('💾 Guardando categoría:', categoryData);
-
-        let data;
-        if (DOM.categoryId.value) {
-            data = await api.updateCategory(DOM.categoryId.value, categoryData);
-        } else {
-            data = await api.createCategory(categoryData);
-        }
-
-        // Tiempo adicional para simular procesamiento
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        if (data.success) {
-            showAlert(data.message, 'success');
-            await loadCategories();
-            closeCategoryModal();
-
-            try {
-                const eventName = DOM.categoryId?.value ? 'categoryUpdated' : 'categoryCreated';
-                window.dispatchEvent(new CustomEvent(eventName, { detail: { category: data.category || data } }));
-            } catch (e) {
-                console.warn('No se pudo disparar evento categoryCreated/categoryUpdated:', e);
-            }
-            // Actualizar dashboard (número de categorías)
-            try {
-                const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
-                if (typeof dashboardLoader === 'function') {
-                    await dashboardLoader(window.appState);
-                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
-                    window.dashboard.updateDashboardStats(window.appState);
-                }
-            } catch (e) {
-                console.warn('No se pudo actualizar dashboard tras guardar categoría:', e);
-            }
-        } else {
-            throw new Error(data.message || 'Error desconocido al guardar');
-        }
-
-    } catch (error) {
-        console.error('❌ Error guardando categoría:', error);
-        showAlert('Error al guardar categoría: ' + error.message, 'error');
-    } finally {
-        // Ocultar preloader si existe
-        if (preloader) {
-            preloader.hide();
-        }
-        setLoadingState(false, DOM.saveCategoryBtn, 'Guardar');
-    }
-}
-
 async function loadCategories() {
     if (!canView('categorias')) {
         console.log('🔒 Sin permiso para ver categorías');
@@ -778,7 +695,6 @@ window.openCategoryModal = openCategoryModal;
 export {
     openCategoryModal,
     closeCategoryModal,
-    saveCategory,
     loadCategories,
     renderCategories,
     populateCategorySelects,

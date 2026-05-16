@@ -189,7 +189,7 @@
     font-size: 16px;
     line-height: 1.5;
     color: var(--text-color);
-    margin: 0;
+    margin: 10px;
 }
 
 /* ===== 9.1 ESTILOS ESPECÍFICOS PARA MODAL DE DETALLES DEL HISTORIAL ===== */
