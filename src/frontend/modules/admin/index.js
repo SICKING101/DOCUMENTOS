@@ -13,44 +13,44 @@ import { initSecurityValidation, validateUsername, validatePassword, validateEma
 
 // ─── Debug ─────────────────────────────────────────────────────────────────────
 const DEBUG = true;
-function log(...args)  { if (DEBUG) console.log('⚙️ [Admin]', ...args); }
+function log(...args) { if (DEBUG) console.log('⚙️ [Admin]', ...args); }
 function warn(...args) { if (DEBUG) console.warn('⚠️ [Admin]', ...args); }
-function err(...args)  { console.error('❌ [Admin]', ...args); }
+function err(...args) { console.error('❌ [Admin]', ...args); }
 
 // =============================================================================
 // CONSTANTES
 // =============================================================================
 
-const ADMIN_ROLE    = 'administrador';
+const ADMIN_ROLE = 'administrador';
 const DISABLED_ROLE = 'desactivado';
 
 const EXCLUDED_ROLE_SECTIONS = new Set(['notificaciones']);
 
 const SYSTEM_SECTIONS = [
-  { key: 'documentos',     label: 'Documentos',    icon: '📄' },
-  { key: 'personas',       label: 'Personas',       icon: '👥' },
-  { key: 'categorias',     label: 'Categorías',     icon: '🏷️' },
-  { key: 'departamentos',  label: 'Departamentos',  icon: '🏢' },
-  { key: 'tareas',         label: 'Tareas',         icon: '✅' },
-  { key: 'reportes',       label: 'Reportes',       icon: '📊' },
-  { key: 'papelera',       label: 'Papelera',       icon: '🗑️' },
-  { key: 'calendario',     label: 'Calendario',     icon: '📅' },
-  { key: 'historial',      label: 'Historial',      icon: '📜' },
-  { key: 'soporte',        label: 'Soporte',        icon: '🛟' },
+  { key: 'documentos', label: 'Documentos', icon: '📄' },
+  { key: 'personas', label: 'Personas', icon: '👥' },
+  { key: 'categorias', label: 'Categorías', icon: '🏷️' },
+  { key: 'departamentos', label: 'Departamentos', icon: '🏢' },
+  { key: 'tareas', label: 'Tareas', icon: '✅' },
+  { key: 'reportes', label: 'Reportes', icon: '📊' },
+  { key: 'papelera', label: 'Papelera', icon: '🗑️' },
+  { key: 'calendario', label: 'Calendario', icon: '📅' },
+  { key: 'historial', label: 'Historial', icon: '📜' },
+  { key: 'soporte', label: 'Soporte', icon: '🛟' },
 ];
 
 const PRESET_COLORS = [
-  '#dc2626','#b91c1c','#ef4444','#f59e0b','#d97706',
-  '#10b981','#059669','#06b6d4','#0891b2','#3b82f6',
-  '#2563eb','#8b5cf6','#7c3aed','#ec4899','#db2777',
-  '#6b7280','#374151','#1e293b',
+  '#dc2626', '#b91c1c', '#ef4444', '#f59e0b', '#d97706',
+  '#10b981', '#059669', '#06b6d4', '#0891b2', '#3b82f6',
+  '#2563eb', '#8b5cf6', '#7c3aed', '#ec4899', '#db2777',
+  '#6b7280', '#374151', '#1e293b',
 ];
 
 // ─── Estado módulo roles ────────────────────────────────────────────────────────
 let rolesState = {
-  roles:    [],
+  roles: [],
   sections: [],
-  editing:  null,
+  editing: null,
 };
 
 let rolesEventsAttached = false;
@@ -86,29 +86,29 @@ function filterExcludedSections(sections) {
 // ─── Helpers de rol ────────────────────────────────────────────────────────────
 
 function getRolLabel(rolName) {
-  if (!rolName)                    return 'Sin rol';
-  if (rolName === ADMIN_ROLE)      return 'Administrador';
-  if (rolName === DISABLED_ROLE)   return 'Desactivado';
+  if (!rolName) return 'Sin rol';
+  if (rolName === ADMIN_ROLE) return 'Administrador';
+  if (rolName === DISABLED_ROLE) return 'Desactivado';
   const found = rolesState.roles.find(r => r.name === rolName);
   return found ? found.name : (rolName.charAt(0).toUpperCase() + rolName.slice(1));
 }
 
 function getRolColor(rolName) {
-  if (rolName === ADMIN_ROLE)    return '#dc2626';
+  if (rolName === ADMIN_ROLE) return '#dc2626';
   if (rolName === DISABLED_ROLE) return '#374151';
   const found = rolesState.roles.find(r => r.name === rolName);
   return found?.color || '#6b7280';
 }
 
 function getRolIcon(rolName) {
-  if (rolName === ADMIN_ROLE)    return 'fas fa-crown';
+  if (rolName === ADMIN_ROLE) return 'fas fa-crown';
   if (rolName === DISABLED_ROLE) return 'fas fa-user-slash';
   return 'fas fa-user-tag';
 }
 
 function buildRoleOptions(currentRol = '', adminsCount = 0) {
   log('buildRoleOptions → currentRol:', currentRol, '| admins:', adminsCount,
-      '| roles dinámicos:', rolesState.roles.map(r => r.name));
+    '| roles dinámicos:', rolesState.roles.map(r => r.name));
 
   let html = `<option value="">Seleccionar rol</option>`;
 
@@ -173,8 +173,8 @@ function createConfirmModal(opts) {
     const m = document.createElement('div');
     m.className = 'admin-modal';
     m.style.cssText = 'position:fixed!important;inset:0!important;background:rgba(0,0,0,.7)!important;backdrop-filter:blur(8px)!important;z-index:1000000!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:20px!important;box-sizing:border-box!important;';
-    const icons  = { warning:'fa-exclamation-triangle', danger:'fa-trash-alt', success:'fa-check-circle', info:'fa-info-circle' };
-    const colors = { warning:'var(--warning)', danger:'var(--danger)', success:'var(--success)', info:'var(--info)' };
+    const icons = { warning: 'fa-exclamation-triangle', danger: 'fa-trash-alt', success: 'fa-check-circle', info: 'fa-info-circle' };
+    const colors = { warning: 'var(--warning)', danger: 'var(--danger)', success: 'var(--success)', info: 'var(--info)' };
     m.innerHTML = `
       <div style="max-width:450px;width:100%;background:var(--bg-primary);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);border:1px solid var(--border);">
         <header style="padding:1.75rem 1.75rem 1rem;display:flex;justify-content:space-between;align-items:flex-start;">
@@ -182,20 +182,20 @@ function createConfirmModal(opts) {
           <button class="adm-modal-x" style="background:var(--bg-tertiary);border:none;font-size:1.4rem;cursor:pointer;color:var(--text-secondary);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;">&times;</button>
         </header>
         <section style="padding:1.75rem;text-align:center;">
-          <i class="fas ${icons[opts.type]||'fa-question-circle'} fa-3x" style="color:${colors[opts.type]||'var(--primary)'};margin-bottom:16px;display:block;"></i>
-          <p style="font-size:1rem;line-height:1.5;color:var(--text-primary);margin:0 0 .5rem;">${opts.message||'¿Estás seguro?'}</p>
+          <i class="fas ${icons[opts.type] || 'fa-question-circle'} fa-3x" style="color:${colors[opts.type] || 'var(--primary)'};margin-bottom:16px;display:block;"></i>
+          <p style="font-size:1rem;line-height:1.5;color:var(--text-primary);margin:0 0 .5rem;">${opts.message || '¿Estás seguro?'}</p>
           ${opts.details ? `<p style="color:var(--text-secondary);font-size:.88rem;">${opts.details}</p>` : ''}
         </section>
         <footer style="padding:1rem 1.75rem 1.75rem;display:flex;justify-content:center;gap:.75rem;">
-          <button class="btn btn--outline adm-modal-cancel" style="padding:.6rem 1.2rem;border-radius:var(--radius-md);cursor:pointer;">${opts.cancelText||'Cancelar'}</button>
-          <button class="btn btn--${opts.type==='danger'?'danger':'primary'} adm-modal-ok" style="padding:.6rem 1.2rem;border-radius:var(--radius-md);cursor:pointer;">${opts.confirmText||'Confirmar'}</button>
+          <button class="btn btn--outline adm-modal-cancel" style="padding:.6rem 1.2rem;border-radius:var(--radius-md);cursor:pointer;">${opts.cancelText || 'Cancelar'}</button>
+          <button class="btn btn--${opts.type === 'danger' ? 'danger' : 'primary'} adm-modal-ok" style="padding:.6rem 1.2rem;border-radius:var(--radius-md);cursor:pointer;">${opts.confirmText || 'Confirmar'}</button>
         </footer>
       </div>`;
     document.body.appendChild(m);
     _activeModal = m;
     document.body.classList.add('modal-open');
-    const no  = () => { closeModal(); resolve(false); };
-    const yes = () => { closeModal(); resolve(true);  };
+    const no = () => { closeModal(); resolve(false); };
+    const yes = () => { closeModal(); resolve(true); };
     m.querySelector('.adm-modal-x').addEventListener('click', no);
     m.querySelector('.adm-modal-cancel').addEventListener('click', no);
     m.querySelector('.adm-modal-ok').addEventListener('click', yes);
@@ -257,7 +257,23 @@ async function updateUser(uid, data) {
     await sleep(1000); hidePreloader();
     if (r?.success) { showAlert('Usuario actualizado correctamente', 'success'); return true; }
     throw new Error(r?.message || 'Error al actualizar');
-  } catch (e) { hidePreloader(); showAlert(e.message, 'error'); return false; }
+  } catch (e) {
+    hidePreloader();
+    let errorMsg = e.message || 'Error al actualizar usuario';
+    try {
+      const match = e.message.match(/\{.*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        if (parsed.message) errorMsg = parsed.message;
+      }
+    } catch (ex) {}
+    if (window.showActionModal) {
+      window.showActionModal({ type: 'error', title: 'Error', message: errorMsg });
+    } else {
+      showAlert(errorMsg, 'error');
+    }
+    return false;
+  }
 }
 
 async function createUser(data) {
@@ -268,7 +284,23 @@ async function createUser(data) {
     await sleep(1000); hidePreloader();
     if (r?.success) { showAlert('Usuario creado exitosamente', 'success'); return true; }
     throw new Error(r?.message || 'Error al crear');
-  } catch (e) { hidePreloader(); showAlert(e.message, 'error'); return false; }
+  } catch (e) {
+    hidePreloader();
+    let errorMsg = e.message || 'Error al crear usuario';
+    try {
+      const match = e.message.match(/\{.*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        if (parsed.message) errorMsg = parsed.message;
+      }
+    } catch (ex) {}
+    if (window.showActionModal) {
+      window.showActionModal({ type: 'error', title: 'Error', message: errorMsg });
+    } else {
+      showAlert(errorMsg, 'error');
+    }
+    return false;
+  }
 }
 
 // =============================================================================
@@ -276,14 +308,14 @@ async function createUser(data) {
 // =============================================================================
 
 function renderUserRow(user, editingId, currentUserId, adminsCount) {
-  const isMe    = user._id === currentUserId;
+  const isMe = user._id === currentUserId;
   const isAdmin = user.rol === ADMIN_ROLE;
-  const active  = user.activo !== false && user.rol !== DISABLED_ROLE;
+  const active = user.activo !== false && user.rol !== DISABLED_ROLE;
 
   if (editingId === user._id) return renderEditRow(user, adminsCount);
 
   const color = getRolColor(user.rol);
-  const icon  = getRolIcon(user.rol);
+  const icon = getRolIcon(user.rol);
   const label = getRolLabel(user.rol);
 
   return `
@@ -294,7 +326,7 @@ function renderUserRow(user, editingId, currentUserId, adminsCount) {
             <i class="${icon}"></i>
           </div>
           <div class="user-info">
-            <span class="user-name" title="${escapeHtml(user.usuario)}">${escapeHtml(truncate(user.usuario,15))}</span>
+            <span class="user-name" title="${escapeHtml(user.usuario)}">${escapeHtml(truncate(user.usuario, 15))}</span>
             ${isMe ? '<span class="user-badge">Tú</span>' : ''}
           </div>
         </div>
@@ -302,7 +334,7 @@ function renderUserRow(user, editingId, currentUserId, adminsCount) {
       <td data-label="Correo">
         <a href="mailto:${escapeHtml(user.correo)}" class="user-email" title="${escapeHtml(user.correo)}">
           <i class="fas fa-envelope"></i>
-          <span>${escapeHtml(truncate(user.correo,22))}</span>
+          <span>${escapeHtml(truncate(user.correo, 22))}</span>
         </a>
       </td>
       <td data-label="Rol">
@@ -324,13 +356,13 @@ function renderUserRow(user, editingId, currentUserId, adminsCount) {
         </div>
       </td>
       <td data-label="Acciones">
-        <div class="action-buttons">
+        <div class="action-buttons" style="display: flex; flex-direction: row; gap: 4px; align-items: center;">
           ${!isAdmin ? `
             <button class="action-btn action-btn--edit" data-action="edit" data-id="${user._id}" title="Editar"><i class="fas fa-edit"></i></button>
             ${active
-              ? `<button class="action-btn action-btn--warning" data-action="deactivate" data-id="${user._id}" data-name="${escapeHtml(user.usuario)}" title="Desactivar"><i class="fas fa-user-slash"></i></button>`
-              : `<button class="action-btn action-btn--success" data-action="reactivate" data-id="${user._id}" data-name="${escapeHtml(user.usuario)}" title="Reactivar"><i class="fas fa-user-check"></i></button>`
-            }
+        ? `<button class="action-btn action-btn--warning" data-action="deactivate" data-id="${user._id}" data-name="${escapeHtml(user.usuario)}" title="Desactivar"><i class="fas fa-user-slash"></i></button>`
+        : `<button class="action-btn action-btn--success" data-action="reactivate" data-id="${user._id}" data-name="${escapeHtml(user.usuario)}" title="Reactivar"><i class="fas fa-user-check"></i></button>`
+      }
             ${!isMe ? `<button class="action-btn action-btn--delete" data-action="delete" data-id="${user._id}" data-name="${escapeHtml(user.usuario)}" title="Eliminar"><i class="fas fa-trash-alt"></i></button>` : ''}
           ` : `<span class="action-disabled" title="No se puede modificar al administrador"><i class="fas fa-ban"></i></span>`}
         </div>
@@ -378,9 +410,9 @@ function renderEditRow(user, adminsCount) {
 // =============================================================================
 
 function renderRoleStats(users) {
-  const totalActive   = users.filter(u => u.activo !== false && u.rol !== DISABLED_ROLE).length;
-  const totalInactive = users.filter(u => u.activo === false  || u.rol === DISABLED_ROLE).length;
-  const adminsCount   = users.filter(u => u.rol === ADMIN_ROLE).length;
+  const totalActive = users.filter(u => u.activo !== false && u.rol !== DISABLED_ROLE).length;
+  const totalInactive = users.filter(u => u.activo === false || u.rol === DISABLED_ROLE).length;
+  const adminsCount = users.filter(u => u.rol === ADMIN_ROLE).length;
 
   const countMap = {};
   users.forEach(u => {
@@ -389,12 +421,14 @@ function renderRoleStats(users) {
   });
 
   const rows = [];
-  const ac  = countMap[ADMIN_ROLE] || 0;
-  rows.push({ label: 'Administrador', icon: 'fas fa-crown', color: '#dc2626',
-              count: ac, pct: totalActive > 0 ? Math.round((ac / totalActive) * 100) : 0 });
+  const ac = countMap[ADMIN_ROLE] || 0;
+  rows.push({
+    label: 'Administrador', icon: 'fas fa-crown', color: '#dc2626',
+    count: ac, pct: totalActive > 0 ? Math.round((ac / totalActive) * 100) : 0
+  });
 
   rolesState.roles.forEach(role => {
-    const c   = countMap[role.name] || 0;
+    const c = countMap[role.name] || 0;
     const pct = totalActive > 0 ? Math.round((c / totalActive) * 100) : 0;
     rows.push({ label: role.name, icon: 'fas fa-user-tag', color: role.color || '#6b7280', count: c, pct });
   });
@@ -487,7 +521,7 @@ function renderRoleDescriptions() {
           <div class="role-description-title" style="display:flex;align-items:center;gap:8px;">
             ${escapeHtml(role.name)}
             <span style="width:10px;height:10px;border-radius:50%;
-              background:${escapeHtml(role.color||'#6b7280')};display:inline-block;flex-shrink:0;"></span>
+              background:${escapeHtml(role.color || '#6b7280')};display:inline-block;flex-shrink:0;"></span>
           </div>
           <div class="role-description-text">
             ${role.description ? escapeHtml(role.description) : '<em style="opacity:.55;font-style:italic;">Sin descripción</em>'}
@@ -512,7 +546,7 @@ async function fetchRoles() {
   try {
     const res = await api.call('/roles');
     if (res?.success) {
-      rolesState.roles    = res.data     || [];
+      rolesState.roles = res.data || [];
       rolesState.sections = filterExcludedSections(res.sections || SYSTEM_SECTIONS);
       log('fetchRoles OK →', rolesState.roles.map(r => r.name));
       return true;
@@ -527,14 +561,14 @@ async function fetchRoles() {
   }
 }
 
-async function apiCreateRole(data)   { return await api.call('/roles',        { method: 'POST',   body: data }); }
-async function apiUpdateRole(id, d)  { return await api.call(`/roles/${id}`,  { method: 'PUT',    body: d    }); }
-async function apiDeleteRole(id)     { return await api.call(`/roles/${id}`,  { method: 'DELETE'             }); }
+async function apiCreateRole(data) { return await api.call('/roles', { method: 'POST', body: data }); }
+async function apiUpdateRole(id, d) { return await api.call(`/roles/${id}`, { method: 'PUT', body: d }); }
+async function apiDeleteRole(id) { return await api.call(`/roles/${id}`, { method: 'DELETE' }); }
 
 function normalizePermissions(raw = []) {
   const valid = new Set(SYSTEM_SECTIONS.map(s => s.key));
-  const seen  = new Set();
-  const out   = [];
+  const seen = new Set();
+  const out = [];
   for (const p of raw) {
     if (!valid.has(p.section) || seen.has(p.section)) continue;
     seen.add(p.section);
@@ -626,12 +660,12 @@ function renderRolesGrid() {
       </div>`;
   }
   return rolesState.roles.map(role => {
-    const pc    = (role.permissions||[]).filter(p => p.canView||p.canAction).length;
+    const pc = (role.permissions || []).filter(p => p.canView || p.canAction).length;
     const total = rolesState.sections.length;
-    const pct   = total > 0 ? Math.round((pc/total)*100) : 0;
-    const color = escapeHtml(role.color||'#6b7280');
-    const sects = (role.permissions||[]).filter(p=>p.canView).map(p=>{
-      const s = rolesState.sections.find(x=>x.key===p.section);
+    const pct = total > 0 ? Math.round((pc / total) * 100) : 0;
+    const color = escapeHtml(role.color || '#6b7280');
+    const sects = (role.permissions || []).filter(p => p.canView).map(p => {
+      const s = rolesState.sections.find(x => x.key === p.section);
       return s ? `<span class="permisos-tag" title="${escapeHtml(s.label)}">${s.icon}</span>` : '';
     }).join('');
     return `
@@ -654,7 +688,7 @@ function renderRolesGrid() {
         <div class="permisos-role-card__stats">
           <div class="permisos-role-card__stat">
             <span class="permisos-role-card__stat-label">Usuarios</span>
-            <span class="permisos-role-card__stat-value">${role.userCount||0}</span>
+            <span class="permisos-role-card__stat-value">${role.userCount || 0}</span>
           </div>
           <div class="permisos-role-card__stat">
             <span class="permisos-role-card__stat-label">Secciones</span>
@@ -677,14 +711,14 @@ function renderRolesGrid() {
 
 function renderRoleForm(role) {
   const isEdit = Boolean(role);
-  const name   = isEdit ? escapeHtml(role.name)           : '';
-  const desc   = isEdit ? escapeHtml(role.description||'') : '';
-  const color  = isEdit ? (role.color||'#6b7280')          : '#6b7280';
+  const name = isEdit ? escapeHtml(role.name) : '';
+  const desc = isEdit ? escapeHtml(role.description || '') : '';
+  const color = isEdit ? (role.color || '#6b7280') : '#6b7280';
   const pm = {};
-  if (isEdit) (role.permissions||[]).forEach(p => { pm[p.section] = p; });
+  if (isEdit) (role.permissions || []).forEach(p => { pm[p.section] = p; });
 
   const swatches = PRESET_COLORS.map(c => `
-    <button type="button" class="permisos-color-swatch ${c===color?'permisos-color-swatch--active':''}"
+    <button type="button" class="permisos-color-swatch ${c === color ? 'permisos-color-swatch--active' : ''}"
       data-color="${c}" style="background:${c};" title="${c}"></button>`).join('');
 
   const rows = rolesState.sections.map(sec => {
@@ -700,7 +734,7 @@ function renderRoleForm(role) {
           ${hideViewToggle ? '' : `
             <label class="permisos-toggle" title="Puede ver esta sección en el menú">
               <input type="checkbox" class="permisos-toggle__input"
-                data-perm="canView" data-section="${sec.key}" ${p.canView?'checked':''}>
+                data-perm="canView" data-section="${sec.key}" ${p.canView ? 'checked' : ''}>
               <span class="permisos-toggle__slider"></span>
             </label>
           `}
@@ -708,7 +742,7 @@ function renderRoleForm(role) {
         <td class="permisos-perm-row__toggle">
           <label class="permisos-toggle" title="Puede crear, editar y eliminar">
             <input type="checkbox" class="permisos-toggle__input"
-              data-perm="canAction" data-section="${sec.key}" ${p.canAction?'checked':''}>
+              data-perm="canAction" data-section="${sec.key}" ${p.canAction ? 'checked' : ''}>
             <span class="permisos-toggle__slider"></span>
           </label>
         </td>
@@ -805,10 +839,10 @@ function attachRolesEvents() {
   document.getElementById('permisos-modal-rol')?.addEventListener('click', async e => {
     const sw = e.target.closest('.permisos-color-swatch');
     if (sw) { selectColor(sw.dataset.color); return; }
-    if (e.target.id === 'permisos-sel-view')    { document.querySelectorAll('#permisos-modal-rol input[data-perm="canView"]').forEach(cb=>cb.checked=true);  return; }
-    if (e.target.id === 'permisos-sel-action')  { document.querySelectorAll('#permisos-modal-rol input[data-perm]').forEach(cb=>cb.checked=true);             return; }
-    if (e.target.id === 'permisos-clear')        { document.querySelectorAll('#permisos-modal-rol input[data-perm]').forEach(cb=>cb.checked=false);            return; }
-    if (e.target.id === 'permisos-form-cancel')  { closeRoleModal(); return; }
+    if (e.target.id === 'permisos-sel-view') { document.querySelectorAll('#permisos-modal-rol input[data-perm="canView"]').forEach(cb => cb.checked = true); return; }
+    if (e.target.id === 'permisos-sel-action') { document.querySelectorAll('#permisos-modal-rol input[data-perm]').forEach(cb => cb.checked = true); return; }
+    if (e.target.id === 'permisos-clear') { document.querySelectorAll('#permisos-modal-rol input[data-perm]').forEach(cb => cb.checked = false); return; }
+    if (e.target.id === 'permisos-form-cancel') { closeRoleModal(); return; }
     if (e.target.closest('#permisos-form-submit')) { e.preventDefault(); await submitRoleForm(); }
   });
 
@@ -834,12 +868,12 @@ function attachRolesEvents() {
 
 function openRoleModal(role) {
   rolesState.editing = role;
-  const modal   = document.getElementById('permisos-modal-rol');
+  const modal = document.getElementById('permisos-modal-rol');
   const titleEl = document.getElementById('permisos-modal-title');
-  const bodyEl  = document.getElementById('permisos-modal-body');
+  const bodyEl = document.getElementById('permisos-modal-body');
   if (!modal) { err('openRoleModal: #permisos-modal-rol no encontrado'); return; }
   titleEl.textContent = role ? `Editar: ${role.name}` : 'Nuevo Rol';
-  bodyEl.innerHTML    = renderRoleForm(role);
+  bodyEl.innerHTML = renderRoleForm(role);
   modal.classList.add('permisos-modal--open');
   modal.setAttribute('aria-hidden', 'false');
   setTimeout(() => document.getElementById('permisos-role-name')?.focus(), 100);
@@ -848,18 +882,18 @@ function openRoleModal(role) {
 
 function closeRoleModal() {
   const m = document.getElementById('permisos-modal-rol');
-  if (m) { m.classList.remove('permisos-modal--open'); m.setAttribute('aria-hidden','true'); }
+  if (m) { m.classList.remove('permisos-modal--open'); m.setAttribute('aria-hidden', 'true'); }
   rolesState.editing = null;
 }
 
 function openDeleteModal(roleId, roleName) {
-  const m    = document.getElementById('permisos-modal-delete');
-  const txt  = document.getElementById('permisos-delete-text');
-  const btn  = document.getElementById('permisos-delete-confirm-btn');
+  const m = document.getElementById('permisos-modal-delete');
+  const txt = document.getElementById('permisos-delete-text');
+  const btn = document.getElementById('permisos-delete-confirm-btn');
   if (!m) { err('openDeleteModal: no encontrado'); return; }
   txt.textContent = `¿Eliminar el rol "${roleName}"?`;
   m.classList.add('permisos-modal--open');
-  m.setAttribute('aria-hidden','false');
+  m.setAttribute('aria-hidden', 'false');
   const nb = btn.cloneNode(true);
   btn.parentNode.replaceChild(nb, btn);
   nb.addEventListener('click', () => deleteRole(roleId, roleName));
@@ -867,7 +901,7 @@ function openDeleteModal(roleId, roleName) {
 
 function closeDeleteModal() {
   const m = document.getElementById('permisos-modal-delete');
-  if (m) { m.classList.remove('permisos-modal--open'); m.setAttribute('aria-hidden','true'); }
+  if (m) { m.classList.remove('permisos-modal--open'); m.setAttribute('aria-hidden', 'true'); }
 }
 
 // ─── Submit formulario de rol ──────────────────────────────────────────────────
@@ -876,13 +910,13 @@ function collectFormData() {
   const name = document.getElementById('permisos-role-name')?.value.trim() || '';
   const desc = document.getElementById('permisos-role-desc')?.value.trim() || '';
   const color = document.getElementById('permisos-role-color')?.value || '#6b7280';
-  const keys  = [...new Set(
+  const keys = [...new Set(
     [...document.querySelectorAll('#permisos-modal-rol input[data-section]')]
       .map(el => el.dataset.section)
   )];
   const permissions = keys.map(section => ({
     section,
-    canView:   document.querySelector(`#permisos-modal-rol input[data-perm="canView"][data-section="${section}"]`)?.checked   || false,
+    canView: document.querySelector(`#permisos-modal-rol input[data-perm="canView"][data-section="${section}"]`)?.checked || false,
     canAction: document.querySelector(`#permisos-modal-rol input[data-perm="canAction"][data-section="${section}"]`)?.checked || false,
   }));
   return { name, description: desc, color, permissions };
@@ -901,7 +935,7 @@ async function submitRoleForm() {
     document.getElementById('permisos-role-name')?.classList.add('permisos-form__input--error');
     return;
   }
-  if (['administrador','desactivado'].includes(data.name.toLowerCase())) {
+  if (['administrador', 'desactivado'].includes(data.name.toLowerCase())) {
     document.getElementById('permisos-name-error').textContent = `El nombre "${data.name}" está reservado`;
     return;
   }
@@ -927,19 +961,19 @@ async function submitRoleForm() {
     } else {
       warn('submitRoleForm: error API:', res?.message);
       rolesToast(res?.message || 'Error al guardar el rol', 'error');
-      if (sbtn) { sbtn.disabled=false; sbtn.innerHTML = rolesState.editing ? '<i class="fas fa-save"></i> Guardar Cambios' : '<i class="fas fa-plus"></i> Crear Rol'; }
+      if (sbtn) { sbtn.disabled = false; sbtn.innerHTML = rolesState.editing ? '<i class="fas fa-save"></i> Guardar Cambios' : '<i class="fas fa-plus"></i> Crear Rol'; }
     }
   } catch (e) {
     err('submitRoleForm error:', e);
     rolesToast('Error de conexión', 'error');
-    if (sbtn) { sbtn.disabled=false; sbtn.innerHTML = rolesState.editing ? '<i class="fas fa-save"></i> Guardar Cambios' : '<i class="fas fa-plus"></i> Crear Rol'; }
+    if (sbtn) { sbtn.disabled = false; sbtn.innerHTML = rolesState.editing ? '<i class="fas fa-save"></i> Guardar Cambios' : '<i class="fas fa-plus"></i> Crear Rol'; }
   }
 }
 
 async function deleteRole(roleId, roleName) {
   log('deleteRole:', roleName);
   const cb = document.getElementById('permisos-delete-confirm-btn');
-  if (cb) { cb.disabled=true; cb.innerHTML='<i class="fas fa-spinner fa-spin"></i> Eliminando...'; }
+  if (cb) { cb.disabled = true; cb.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...'; }
   try {
     const res = await apiDeleteRole(roleId);
     closeDeleteModal();
@@ -975,7 +1009,7 @@ function setGridLoading(show) {
   const ld = document.getElementById('permisos-grid-loading');
   const gr = document.getElementById('permisos-roles-grid');
   if (ld) ld.style.display = show ? 'flex' : 'none';
-  if (gr) gr.style.display = show ? 'none'  : 'grid';
+  if (gr) gr.style.display = show ? 'none' : 'grid';
 }
 
 function refreshRolesGrid() {
@@ -998,10 +1032,10 @@ function refreshRoleDescriptions() {
 
 function rolesToast(msg, type = 'info') {
   document.querySelector('.permisos-toast')?.remove();
-  const icons = { success:'✅', error:'❌', info:'ℹ️', warning:'⚠️' };
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
   const t = document.createElement('div');
   t.className = `permisos-toast permisos-toast--${type}`;
-  t.innerHTML = `<span class="permisos-toast__icon">${icons[type]||'ℹ️'}</span><span class="permisos-toast__message">${escapeHtml(msg)}</span>`;
+  t.innerHTML = `<span class="permisos-toast__icon">${icons[type] || 'ℹ️'}</span><span class="permisos-toast__message">${escapeHtml(msg)}</span>`;
   document.body.appendChild(t);
   requestAnimationFrame(() => t.classList.add('permisos-toast--visible'));
   setTimeout(() => { t.classList.remove('permisos-toast--visible'); setTimeout(() => t.remove(), 300); }, 3500);
@@ -1018,17 +1052,17 @@ function initChangeAdminModalValidation() {
   const modal = document.getElementById('changeAdminModal');
   if (!modal) return;
 
-  const userInput    = modal.querySelector('#newAdminUser');
-  const emailInput   = modal.querySelector('#newAdminEmail');
-  const passInput    = modal.querySelector('#newAdminPassword');
+  const userInput = modal.querySelector('#newAdminUser');
+  const emailInput = modal.querySelector('#newAdminEmail');
+  const passInput = modal.querySelector('#newAdminPassword');
   const confirmInput = modal.querySelector('#confirmAdminPassword');
-  const submitBtn    = modal.querySelector('#confirmChangeAdmin');
+  const submitBtn = modal.querySelector('#confirmChangeAdmin');
 
   function updateBtn() {
     if (!submitBtn) return;
-    const uOk = userInput  ? (userInput.value  && validateUsername(userInput.value).isValid)  : true;
-    const eOk = emailInput ? (emailInput.value && validateEmail(emailInput.value).isValid)     : true;
-    const pOk = passInput  ? (passInput.value  && validatePassword(passInput.value).isValid)   : true;
+    const uOk = userInput ? (userInput.value && validateUsername(userInput.value).isValid) : true;
+    const eOk = emailInput ? (emailInput.value && validateEmail(emailInput.value).isValid) : true;
+    const pOk = passInput ? (passInput.value && validatePassword(passInput.value).isValid) : true;
     const cOk = (confirmInput && passInput)
       ? (confirmInput.value && validateConfirmPassword(passInput.value, confirmInput.value).isValid)
       : true;
@@ -1036,12 +1070,12 @@ function initChangeAdminModalValidation() {
   }
 
   if (userInput) {
-    userInput.addEventListener('input', function() {
+    userInput.addEventListener('input', function () {
       const v = validateUsername(this.value);
       displayErrors(this, v.errors, 'username');
       updateBtn();
     });
-    userInput.addEventListener('blur', function() {
+    userInput.addEventListener('blur', function () {
       if (this.value) {
         const v = validateUsername(this.value);
         displayErrors(this, v.errors, 'username');
@@ -1050,7 +1084,7 @@ function initChangeAdminModalValidation() {
   }
 
   if (emailInput) {
-    emailInput.addEventListener('input', function() {
+    emailInput.addEventListener('input', function () {
       if (this.value.length > 3) {
         const v = validateEmail(this.value);
         displayErrors(this, v.errors, 'email');
@@ -1059,7 +1093,7 @@ function initChangeAdminModalValidation() {
         displayErrors(this, [], 'email');
       }
     });
-    emailInput.addEventListener('blur', function() {
+    emailInput.addEventListener('blur', function () {
       if (this.value) {
         const v = validateEmail(this.value);
         displayErrors(this, v.errors, 'email');
@@ -1069,7 +1103,7 @@ function initChangeAdminModalValidation() {
   }
 
   if (passInput) {
-    passInput.addEventListener('input', function() {
+    passInput.addEventListener('input', function () {
       const v = validatePassword(this.value);
       displayErrors(this, v.errors, 'password');
       displayPasswordStrength(this, v.strength);
@@ -1082,7 +1116,7 @@ function initChangeAdminModalValidation() {
   }
 
   if (confirmInput && passInput) {
-    confirmInput.addEventListener('input', function() {
+    confirmInput.addEventListener('input', function () {
       const cv = validateConfirmPassword(passInput.value, this.value);
       displayErrors(this, cv.errors, 'confirm-password');
       updateBtn();
@@ -1100,9 +1134,9 @@ function validateChangeAdminForm() {
   const modal = document.getElementById('changeAdminModal');
   if (!modal) return false;
 
-  const userInput    = modal.querySelector('#newAdminUser');
-  const emailInput   = modal.querySelector('#newAdminEmail');
-  const passInput    = modal.querySelector('#newAdminPassword');
+  const userInput = modal.querySelector('#newAdminUser');
+  const emailInput = modal.querySelector('#newAdminEmail');
+  const passInput = modal.querySelector('#newAdminPassword');
   const confirmInput = modal.querySelector('#confirmAdminPassword');
 
   let hasErrors = false;
@@ -1138,7 +1172,7 @@ function validateChangeAdminForm() {
 }
 
 // Exponer para uso en archivos externos (adminChange.js, etc.)
-window.validateChangeAdminForm    = validateChangeAdminForm;
+window.validateChangeAdminForm = validateChangeAdminForm;
 window.initChangeAdminModalValidation = initChangeAdminModalValidation;
 
 // =============================================================================
@@ -1175,8 +1209,8 @@ export async function renderAgregarAdministrador() {
     ]);
 
     log('Carga completa → usuarios:', users.length,
-        '| roles dinámicos:', rolesState.roles.length,
-        '→', rolesState.roles.map(r => r.name));
+      '| roles dinámicos:', rolesState.roles.length,
+      '→', rolesState.roles.map(r => r.name));
 
     const currentUserId = getCurrentUserId();
     let editingId = null;
@@ -1241,7 +1275,7 @@ export async function renderAgregarAdministrador() {
               </div>
               <div class="admin-card-body">
                 <div id="adminCreateUserResult"></div>
-                <form id="adminCreateUserForm" novalidate>
+                                <form id="adminCreateUserForm" novalidate>
                   <div class="form-grid">
                     <div class="form-group">
                       <label class="form-label"><i class="fas fa-user"></i> Usuario</label>
@@ -1256,6 +1290,13 @@ export async function renderAgregarAdministrador() {
                       <div class="password-wrapper">
                         <input type="password" id="admin_password" class="form-input-admin" required placeholder="••••••" data-validate="password" autocomplete="new-password">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('admin_password')"><i class="fas fa-eye"></i></button>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label"><i class="fas fa-lock"></i> Confirmar Contraseña</label>
+                      <div class="password-wrapper">
+                        <input type="password" id="admin_confirm_password" class="form-input-admin" required placeholder="••••••" data-validate="confirm-password" autocomplete="new-password">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('admin_confirm_password')"><i class="fas fa-eye"></i></button>
                       </div>
                     </div>
                     <div class="form-group">
@@ -1302,13 +1343,13 @@ export async function renderAgregarAdministrador() {
                   </thead>
                   <tbody id="adminUsersList">
                     ${users.length > 0
-                      ? users.map(u => renderUserRow(u, editingId, currentUserId, stats.admins)).join('')
-                      : `<tr><td colspan="6" class="empty-state">
+        ? users.map(u => renderUserRow(u, editingId, currentUserId, stats.admins)).join('')
+        : `<tr><td colspan="6" class="empty-state">
                           <div class="empty-state__icon"><i class="fas fa-users"></i></div>
                           <h3 class="empty-state__title">No hay usuarios</h3>
                           <p class="empty-state__description">Crea el primer usuario</p>
                         </td></tr>`
-                    }
+      }
                   </tbody>
                 </table>
               </div>
@@ -1344,9 +1385,9 @@ export async function renderAgregarAdministrador() {
     // ══════════════════════════════════════════════════════
     // EVENT LISTENERS — USUARIOS
     // ══════════════════════════════════════════════════════
-    const listEl   = document.getElementById('adminUsersList');
+    const listEl = document.getElementById('adminUsersList');
     const searchEl = document.getElementById('adminSearchInput');
-    const form     = document.getElementById('adminCreateUserForm');
+    const form = document.getElementById('adminCreateUserForm');
     const resetBtn = document.getElementById('adminResetFormBtn');
 
     searchEl?.addEventListener('input', e => {
@@ -1354,7 +1395,7 @@ export async function renderAgregarAdministrador() {
       if (!t) { listEl.innerHTML = users.map(u => renderUserRow(u, editingId, currentUserId, stats.admins)).join(''); return; }
       const f = users.filter(u =>
         u.usuario.toLowerCase().includes(t) ||
-        u.correo.toLowerCase().includes(t)  ||
+        u.correo.toLowerCase().includes(t) ||
         getRolLabel(u.rol).toLowerCase().includes(t)
       );
       listEl.innerHTML = f.length > 0
@@ -1374,11 +1415,11 @@ export async function renderAgregarAdministrador() {
     });
 
     listEl?.addEventListener('click', async e => {
-      const btn    = e.target.closest('button[data-action]');
+      const btn = e.target.closest('button[data-action]');
       if (!btn) return;
       const action = btn.dataset.action;
-      const id     = btn.dataset.id;
-      const name   = btn.dataset.name;
+      const id = btn.dataset.id;
+      const name = btn.dataset.name;
 
       switch (action) {
         case 'edit':
@@ -1391,12 +1432,12 @@ export async function renderAgregarAdministrador() {
           listEl.innerHTML = users.map(u => renderUserRow(u, editingId, currentUserId, stats.admins)).join('');
           break;
         case 'save': {
-          const row     = btn.closest('tr');
+          const row = btn.closest('tr');
           if (!row) return;
           const usuario = row.querySelector('[data-field="usuario"]')?.value?.trim();
-          const correo  = row.querySelector('[data-field="correo"]')?.value?.trim();
-          const rol     = row.querySelector('[data-field="rol"]')?.value;
-          const activo  = row.querySelector('[data-field="activo"]')?.checked ?? true;
+          const correo = row.querySelector('[data-field="correo"]')?.value?.trim();
+          const rol = row.querySelector('[data-field="rol"]')?.value;
+          const activo = row.querySelector('[data-field="activo"]')?.checked ?? true;
 
           // Validar correo en la edición inline
           if (correo) {
@@ -1436,6 +1477,7 @@ export async function renderAgregarAdministrador() {
       const usuario  = document.getElementById('admin_usuario')?.value?.trim();
       const correo   = document.getElementById('admin_correo')?.value?.trim();
       const password = document.getElementById('admin_password')?.value;
+      const confirmPassword = document.getElementById('admin_confirm_password')?.value;
       const rol      = document.getElementById('admin_rol')?.value;
 
       log('createUser: rol=', rol);
@@ -1468,13 +1510,31 @@ export async function renderAgregarAdministrador() {
         return;
       }
 
-      if (!rol) { showAlert('Selecciona un rol', 'error'); return; }
-      if (rol === ADMIN_ROLE && stats.admins > 0) { showAlert('Ya existe un administrador en el sistema', 'error'); return; }
+      // Validar confirmación de contraseña
+      const confirmValidation = validateConfirmPassword(password, confirmPassword);
+      if (!confirmValidation.isValid) {
+        const confirmEl = document.getElementById('admin_confirm_password');
+        displayErrors(confirmEl, confirmValidation.errors, 'confirm-password');
+        confirmEl?.focus();
+        return;
+      }
+
+      if (!rol) { 
+        if (window.showActionModal) {
+          window.showActionModal({ type: 'warning', title: 'Rol requerido', message: 'Selecciona un rol para el usuario' });
+        }
+        return; 
+      }
+      if (rol === ADMIN_ROLE && stats.admins > 0) { 
+        if (window.showActionModal) {
+          window.showActionModal({ type: 'warning', title: 'No permitido', message: 'Ya existe un administrador en el sistema' });
+        }
+        return; 
+      }
 
       const ok = await createUser({ usuario, correo, password, rol });
       if (ok) {
         form.reset();
-        // Limpiar errores y validaciones visuales tras éxito
         form.querySelectorAll('.error-container, .strength-indicator').forEach(el => el.remove());
         form.querySelectorAll('.input-error, .input-valid').forEach(el => {
           el.classList.remove('input-error', 'input-valid');
@@ -1487,10 +1547,10 @@ export async function renderAgregarAdministrador() {
     // Inicializar validación en tiempo real para el formulario de crear usuario
     if (form) {
       initSecurityValidation('#adminCreateUserForm', {
-        onValidationSuccess: function() {
+        onValidationSuccess: function () {
           log('Validación de seguridad: formulario válido ✅');
         },
-        onValidationFail: function() {
+        onValidationFail: function () {
           log('Validación de seguridad: hay errores');
         }
       });
@@ -1500,7 +1560,7 @@ export async function renderAgregarAdministrador() {
     initChangeAdminModalValidation();
 
     window.togglePasswordVisibility = inputId => {
-      const input  = document.getElementById(inputId);
+      const input = document.getElementById(inputId);
       const button = input?.nextElementSibling;
       if (input && button) {
         const type = input.type === 'password' ? 'text' : 'password';
@@ -1524,18 +1584,18 @@ export async function renderAgregarAdministrador() {
 
 async function loadUsers() {
   try {
-    const res  = await api.call('/admin/users');
+    const res = await api.call('/admin/users');
     const users = res?.users || [];
     const stats = {
-      total:    users.length,
-      active:   users.filter(u => u.activo !== false && u.rol !== DISABLED_ROLE).length,
-      inactive: users.filter(u => u.activo === false  || u.rol === DISABLED_ROLE).length,
-      admins:   users.filter(u => u.rol === ADMIN_ROLE).length,
+      total: users.length,
+      active: users.filter(u => u.activo !== false && u.rol !== DISABLED_ROLE).length,
+      inactive: users.filter(u => u.activo === false || u.rol === DISABLED_ROLE).length,
+      admins: users.filter(u => u.rol === ADMIN_ROLE).length,
     };
     return { users, stats };
   } catch (e) {
     err('loadUsers error:', e);
-    return { users: [], stats: { total:0, active:0, inactive:0, admins:0 } };
+    return { users: [], stats: { total: 0, active: 0, inactive: 0, admins: 0 } };
   }
 }
 

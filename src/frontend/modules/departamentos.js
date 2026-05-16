@@ -454,11 +454,21 @@ async function deleteDepartment(id) {
                 // Ocultar preloader si existe
                 if (preloader) preloader.hide();
                 
+                // Extraer solo el mensaje del JSON
+                let errorMsg = error.message || 'Error al eliminar departamento';
+                try {
+                    const match = error.message.match(/\{.*\}/);
+                    if (match) {
+                        const parsed = JSON.parse(match[0]);
+                        if (parsed.message) errorMsg = parsed.message;
+                    }
+                } catch (e) {}
+                
                 // Mostrar modal de error
                 showActionModal({
                     type: 'error',
                     title: 'Error',
-                    message: 'Error al eliminar departamento: ' + error.message
+                    message: errorMsg
                 });
             }
         },

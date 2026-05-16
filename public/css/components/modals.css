@@ -1242,3 +1242,22 @@
 .sa-modal__body {
     padding: 1rem 0;
 }
+
+.modal-bulk__footer .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    min-width: auto;
+    height: auto;
+}
+
+.modal-bulk__footer .footer-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.modal-bulk__footer .btn i {
+    font-size: 0.8rem;
+}
