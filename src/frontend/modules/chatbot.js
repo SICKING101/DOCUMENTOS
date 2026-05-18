@@ -921,6 +921,108 @@ class ChatbotAssistant {
         this._init();
     }
 
+        // ─── VERIFICACIÓN DE ACCESO DEL SISTEMA ────────────────────
+    /**
+     * Verifica si el sistema está cerrado (global o por escuela del usuario)
+     * @returns {Promise<{allowed: boolean, reason?: string, type?: string}>}
+     */
+async _checkSystemAccess() {
+    const saved = localStorage.getItem('system_closed');
+    if (!saved) return { allowed: true };
+
+    try {
+        const state = JSON.parse(saved);
+        if (!state.closed) return { allowed: true };
+
+        // Si es cierre global → bloquear
+        if (state.type === 'global') {
+            return { allowed: false, reason: state.reason || 'Sistema cerrado', type: 'global' };
+        }
+
+        // Si es cierre por escuela → buscar schoolId en TODAS las claves de localStorage
+        if (state.type === 'school' && state.closedSchools) {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.includes('school-')) {
+                    // Extraer schoolId completo de la clave
+                    const match = key.match(/(school-[a-zA-Z0-9\-]+)/);
+                    if (match && state.closedSchools.includes(match[1])) {
+                        return { allowed: false, reason: state.reason || 'Escuela suspendida', type: 'school' };
+                    }
+                }
+            }
+        }
+
+        return { allowed: true };
+    } catch (e) {
+        return { allowed: true };
+    }
+}
+
+    /**
+     * Oculta ARIA completamente (widget + toggle + slide) 
+     * cuando el sistema está cerrado
+     */
+_hideAriaDueToSystemClosure(reason) {
+    console.warn(`🔒 OCULTANDO ARIA: ${reason}`);
+    
+    const toggle = document.getElementById('ariaToggle');
+    if (toggle) {
+        toggle.style.setProperty('display', 'none', 'important');
+        toggle.classList.add('hidden');
+    }
+    
+    if (this._els.window) {
+        this._els.window.classList.add('aria-window--closed');
+        this._els.window.style.display = 'none';
+    }
+    
+    this.isOpen = false;
+}
+
+    /**
+     * Muestra ARIA nuevamente cuando el sistema se reabre
+     */
+_showAriaAfterSystemReopen() {
+    console.log('🔓 Mostrando ARIA');
+    
+    const toggle = document.getElementById('ariaToggle');
+    if (toggle) {
+        toggle.style.removeProperty('display');
+        toggle.classList.remove('hidden');
+        const currentTab = window.getCurrentTab?.() || 'dashboard';
+        toggle.style.display = currentTab !== 'chatbot' ? 'flex' : 'none';
+    }
+}
+
+    /**
+     * Inicia el polling de verificación de acceso
+     * Se ejecuta cada 30 segundos para detectar cierres/aperturas
+     */
+    _startAccessPolling() {
+        // Verificar inmediatamente al iniciar
+        this._performAccessCheck();
+        
+        // Luego cada 30 segundos
+        this._accessPollInterval = setInterval(() => {
+            this._performAccessCheck();
+        }, 30000);
+    }
+
+async _performAccessCheck() {
+    const result = await this._checkSystemAccess();
+    
+    if (!result.allowed) {
+        this._hideAriaDueToSystemClosure(result.reason);
+        this._wasHidden = true;
+    } else if (this._wasHidden) {
+        this._showAriaAfterSystemReopen();
+        this._wasHidden = false;
+    } else {
+        this._wasHidden = false;
+    }
+}
+
     // ─── INICIALIZACIÓN ────────────────────────────────────────
     async _init() {
         log.info('Inicializando ARIA v1.0...');
@@ -935,6 +1037,15 @@ class ChatbotAssistant {
         ]);
 
         setTimeout(() => this._showWelcomeBadge(), 4000);
+        
+        // ═══════════════════════════════════════════════════════
+        // 🆕 Iniciar verificación de acceso del sistema
+        // ═══════════════════════════════════════════════════════
+        this._wasHidden = false;
+        this._accessPollInterval = null;
+        this._startAccessPolling();
+        // ═══════════════════════════════════════════════════════
+        
         log.info('ARIA v1.0 lista ✅');
 
         // Refresco periódico de stats (5 min)
@@ -944,13 +1055,22 @@ class ChatbotAssistant {
             }
         }, 60000);
 
-        // Estado inicial del toggle
-        setTimeout(() => {
-            const currentTab = window.getCurrentTab?.() || 'dashboard';
-            if (this._els.toggle) {
-                this._els.toggle.style.display = currentTab !== 'chatbot' ? 'flex' : 'none';
-            }
-        }, 200);
+    }
+
+        /**
+     * Limpia recursos al destruir la instancia
+     */
+    destroy() {
+        if (this._accessPollInterval) {
+            clearInterval(this._accessPollInterval);
+            this._accessPollInterval = null;
+        }
+        if (this._reportProgressInterval) {
+            clearInterval(this._reportProgressInterval);
+        }
+        if (this.isListening) {
+            this._stopVoice();
+        }
     }
 
     _loadUserContext() {

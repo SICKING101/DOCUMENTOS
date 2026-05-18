@@ -236,15 +236,14 @@ systemLogSchema.methods.openSchool = async function (schoolId) {
  * @returns {Object} { allowed: Boolean, reason: String, type: String }
  */
 systemLogSchema.methods.checkAccess = function (user) {
-  // El superadmin SIEMPRE tiene acceso
+  // El SUPERADMIN SIEMPRE tiene acceso
   if (user.rol === 'superadmin' || user.isSuperAdmin === true) {
     return { allowed: true, reason: '', type: 'superadmin' };
   }
 
-  // El administrador NO se bloquea por cierre de escuela, solo por cierre global
-  // (Pero SÍ se bloquea si SU escuela está cerrada)
-  
-  // Verificar cierre global primero
+  // ═══════════════════════════════════════════════════════════
+  // Verificar cierre global (afecta a TODOS menos superadmin)
+  // ═══════════════════════════════════════════════════════════
   if (this.currentState.isClosed) {
     return {
       allowed: false,
@@ -253,7 +252,9 @@ systemLogSchema.methods.checkAccess = function (user) {
     };
   }
 
-  // Verificar cierre por escuela (si el usuario tiene schoolId)
+  // ═══════════════════════════════════════════════════════════
+  // Verificar cierre por escuela (afecta a ADMIN y USUARIOS)
+  // ═══════════════════════════════════════════════════════════
   if (user.schoolId) {
     const schoolClosure = this.currentState.closedSchools.find(
       s => s.schoolId === user.schoolId

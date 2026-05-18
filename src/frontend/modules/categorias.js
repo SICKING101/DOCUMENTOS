@@ -653,8 +653,6 @@ function populateCategorySelect(selectElement) {
  */
 function handleSaveCategory(event) {
     if (event) event.preventDefault();
-    console.log('💾 Guardando categoría...');
-    saveCategory();
 }
 
 /**
@@ -673,11 +671,6 @@ function handleOutsideClick(event) {
     if (event.target === DOM.categoryModal) {
         closeCategoryModal();
     }
-}
-
-// Event Listeners
-if (DOM.categoryForm) {
-    DOM.categoryForm.addEventListener('submit', handleSaveCategory);
 }
 
 if (DOM.categoryModal) {

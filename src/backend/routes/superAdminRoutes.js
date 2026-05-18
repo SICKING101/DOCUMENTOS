@@ -32,6 +32,7 @@ import {
   resendInvitation,
 } from '../controllers/invitationController.js';
 import SystemState from '../models/SystemState.js';
+import { getSchools } from '../controllers/schoolController.js';
 
 const router = express.Router();
 
@@ -191,5 +192,8 @@ router.get('/system/history', protegerSuperAdmin, async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// ── LISTA DE ESCUELAS ─────────────────────────────────────────
+router.get('/schools', protegerSuperAdmin, getSchools);
 
 export default router;

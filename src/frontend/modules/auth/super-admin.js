@@ -15,6 +15,7 @@ let currentSection = 'versions';
 let versionsData = [];
 let systemStatus = null;
 let shutdownHistory = [];
+let schoolsList = []; // Lista de escuelas para el selector
 
 // =============================================================
 // SUGERENCIAS - Variables de estado
@@ -944,22 +945,113 @@ async function deleteVersion(id, numero) {
 }
 
 // =============================================================
-// CIERRE DEL SISTEMA
+// CIERRE DEL SISTEMA (GLOBAL + POR ESCUELA)
 // =============================================================
+
 async function loadSystemStatus() {
-    await Promise.all([loadCurrentStatus(), loadShutdownHistory()]);
+    await Promise.all([
+        loadCurrentStatus(),
+        loadShutdownHistory(),
+        loadSchoolsList()
+    ]);
 }
 
 async function loadCurrentStatus() {
     try {
         const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/status`, {});
         const data = await response.json();
-        if (data.success) { systemStatus = data.status; renderSystemStatus(); }
-    } catch (error) { console.error('Error:', error); }
+        if (data.success) {
+            systemStatus = data.status;
+            renderSystemStatus();
+            renderClosedSchoolsList();
+        }
+    } catch (error) {
+        console.error('Error cargando estado del sistema:', error);
+    }
+}
+
+async function loadSchoolsList() {
+    try {
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/schools`, {});
+        const data = await response.json();
+        if (data.success) {
+            schoolsList = data.schools || [];
+            populateSchoolSelect();
+        }
+    } catch (error) {
+        console.error('Error cargando lista de escuelas:', error);
+    }
+}
+
+function populateSchoolSelect() {
+    const select = document.getElementById('schoolIdSelect');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">— Selecciona una escuela —</option>';
+
+    if (!schoolsList || schoolsList.length === 0) {
+        select.innerHTML += '<option value="" disabled>No hay escuelas registradas</option>';
+        return;
+    }
+
+    const sorted = [...schoolsList].sort((a, b) => 
+        a.displayName.localeCompare(b.displayName, 'es')
+    );
+
+    sorted.forEach(school => {
+        const option = document.createElement('option');
+        option.value = school.schoolId;
+        option.textContent = `${school.displayName} (${school.totalUsuarios} usuarios)`;
+        option.dataset.displayName = school.displayName;
+        option.dataset.totalUsuarios = school.totalUsuarios;
+        option.dataset.totalAdmins = school.totalAdmins;
+        option.dataset.adminName = school.adminPrincipal?.usuario || 'Sin admin';
+        option.dataset.adminEmail = school.adminPrincipal?.correo || '';
+        select.appendChild(option);
+    });
+
+    select.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const infoDiv = document.getElementById('schoolSelectInfo');
+        
+        if (!infoDiv) return;
+        if (!this.value) { infoDiv.style.display = 'none'; return; }
+
+        const displayName = selectedOption.dataset.displayName || this.value;
+        const totalUsuarios = selectedOption.dataset.totalUsuarios || '?';
+        const adminName = selectedOption.dataset.adminName || 'Sin admin';
+        const adminEmail = selectedOption.dataset.adminEmail || '';
+        const isClosed = systemStatus?.closedSchools?.some(s => s.schoolId === this.value);
+
+        infoDiv.style.display = 'block';
+        infoDiv.innerHTML = `
+            <div class="sa-school-info-card ${isClosed ? 'sa-school-info-card--closed' : ''}">
+                <div class="sa-school-info-card__header">
+                    <i class="fas ${isClosed ? 'fa-lock' : 'fa-school'}"></i>
+                    <span>${escapeHtml(displayName)}</span>
+                    ${isClosed ? '<span class="sa-badge sa-badge--closed-school">🔒 Cerrada</span>' : ''}
+                </div>
+                <div class="sa-school-info-card__body">
+                    <div class="sa-school-info-card__row">
+                        <span class="sa-school-info-card__label">School ID</span>
+                        <code class="sa-school-info-card__code">${escapeHtml(this.value)}</code>
+                    </div>
+                    <div class="sa-school-info-card__row">
+                        <span class="sa-school-info-card__label">Usuarios</span>
+                        <span>${totalUsuarios}</span>
+                    </div>
+                    <div class="sa-school-info-card__row">
+                        <span class="sa-school-info-card__label">Admin</span>
+                        <span>${escapeHtml(adminName)}${adminEmail ? ` (${escapeHtml(adminEmail)})` : ''}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
 }
 
 function renderSystemStatus() {
-    const container        = document.getElementById('systemStatus');
+    const container = document.getElementById('systemStatus');
     const buttonsContainer = document.getElementById('shutdownButtons');
     if (!container) return;
 
@@ -968,47 +1060,75 @@ function renderSystemStatus() {
     container.innerHTML = `
         <div class="status-badge ${isClosed ? 'system-closed' : 'system-open'}">
             <i class="fas ${isClosed ? 'fa-lock' : 'fa-lock-open'}"></i>
-            ${isClosed ? 'Sistema CERRADO para usuarios' : 'Sistema ABIERTO para usuarios'}
+            ${isClosed ? 'Sistema CERRADO GLOBALMENTE' : 'Sistema ABIERTO globalmente'}
         </div>
         ${systemStatus?.reason ? `
             <p style="margin-top:1rem;font-size:.875rem;color:var(--col-text-2);">
                 <strong style="color:var(--col-text-3);">Motivo:</strong> ${escapeHtml(systemStatus.reason)}
-            </p>
-        ` : ''}
-        ${systemStatus?.closedAt ? `
-            <p style="margin-top:.5rem;font-family:var(--font-mono);font-size:.7rem;color:var(--col-text-3);">
-                <i class="fas fa-clock"></i> Cerrado el: ${formatDate(systemStatus.closedAt)}
-            </p>
-        ` : ''}
+            </p>` : ''}
     `;
 
     if (buttonsContainer) {
-        buttonsContainer.innerHTML = isClosed ? `
-            <button class="btn-open" onclick="window.openSystem()">
-                <i class="fas fa-lock-open"></i> Reabrir sistema para usuarios
-            </button>
-        ` : `
-            <button class="btn-shutdown" onclick="window.closeSystem()">
-                <i class="fas fa-power-off"></i> Cerrar sistema para usuarios
-            </button>
-        `;
+        buttonsContainer.innerHTML = isClosed
+            ? `<button class="btn-open" onclick="openSystemGlobal()">
+                   <i class="fas fa-lock-open"></i> Reabrir sistema GLOBALMENTE
+               </button>`
+            : `<button class="btn-shutdown" onclick="closeSystemGlobal()">
+                   <i class="fas fa-power-off"></i> Cerrar sistema GLOBALMENTE
+               </button>`;
     }
 }
 
-async function closeSystem() {
-    const reason = document.getElementById('shutdownReason')?.value;
-    if (!reason) { showToast('Debes proporcionar un motivo para el cierre', 'error'); return; }
+function renderClosedSchoolsList() {
+    const container = document.getElementById('closedSchoolsContent');
+    if (!container) return;
 
-    // ===== REEMPLAZO DE confirm() POR MODAL PERSONALIZADO =====
+    const closedSchools = systemStatus?.closedSchools || [];
+
+    if (closedSchools.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:var(--sp-4);color:var(--col-text-3);font-size:0.8rem;">
+                <i class="fas fa-circle-check" style="color:var(--col-green);font-size:1.5rem;margin-bottom:var(--sp-2);display:block;"></i>
+                No hay escuelas cerradas
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = closedSchools.map(s => {
+        const schoolInfo = schoolsList.find(sc => sc.schoolId === s.schoolId);
+        const displayName = schoolInfo?.displayName || s.schoolId;
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3);background:rgba(248,113,113,0.04);border:1px solid rgba(248,113,113,0.15);border-radius:var(--r-md);margin-bottom:var(--sp-2);gap:var(--sp-3);">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;color:var(--col-text-1);font-size:0.85rem;">
+                    <i class="fas fa-school" style="margin-right:var(--sp-1);color:var(--col-amber);"></i> 
+                    ${escapeHtml(displayName)}
+                </div>
+                <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--col-text-3);margin-top:var(--sp-1);">${escapeHtml(s.schoolId)}</div>
+                <div style="font-size:0.72rem;color:var(--col-text-3);margin-top:var(--sp-1);">${escapeHtml(s.reason || 'Sin motivo')}</div>
+                <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--col-text-3);margin-top:var(--sp-1);"><i class="fas fa-clock"></i> ${formatDate(s.closedAt)}</div>
+            </div>
+            <button class="sa-btn sa-btn--success sa-btn--sm" onclick="reopenSingleSchool('${escapeHtml(s.schoolId)}')" title="Reabrir">Reabrir</button>
+        </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CIERRE GLOBAL
+// ═══════════════════════════════════════════════════════════════
+
+async function closeSystemGlobal() {
+    const reason = document.getElementById('shutdownReason')?.value?.trim();
+    if (!reason) { showToast('Debes proporcionar un motivo', 'error'); return; }
+
     const confirmed = await showConfirmModal({
-        message: '¿Cerrar el sistema para todos los usuarios?',
-        subtext: 'Los administradores y el superadmin mantendrán su acceso.',
-        title: 'Cerrar Sistema',
-        confirmText: 'Cerrar Sistema',
+        message: '¿Cerrar el sistema GLOBALMENTE para TODOS los usuarios?',
+        subtext: 'Solo el superadmin mantendrá acceso.',
+        title: 'Cerrar Sistema Globalmente',
+        confirmText: 'Cerrar Globalmente',
         confirmType: 'danger'
     });
     if (!confirmed) return;
-    // ===== FIN REEMPLAZO =====
 
     try {
         const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/shutdown`, {
@@ -1018,65 +1138,285 @@ async function closeSystem() {
         });
         const data = await response.json();
         if (data.success) {
-            showToast('Sistema cerrado para usuarios', 'warning');
+            // ═══════════════════════════════════════════════════
+            // GUARDAR EN localStorage PARA QUE ARIA LO LEA
+            // ═══════════════════════════════════════════════════
+            localStorage.setItem('system_closed', JSON.stringify({
+                closed: true,
+                type: 'global',
+                reason: reason,
+                timestamp: Date.now()
+            }));
+            
+            showToast('🔒 Sistema cerrado GLOBALMENTE', 'warning');
             document.getElementById('shutdownReason').value = '';
-            loadSystemStatus();
-        } else showToast(data.message || 'Error', 'error');
-    } catch (error) { showToast('Error al cerrar sistema', 'error'); }
+            await loadSystemStatus();
+        } else {
+            showToast(data.message || 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error cerrando sistema:', error);
+        showToast('Error al cerrar el sistema', 'error');
+    }
 }
 
-async function openSystem() {
-    // ===== REEMPLAZO DE confirm() POR MODAL PERSONALIZADO =====
+async function openSystemGlobal() {
     const confirmed = await showConfirmModal({
-        message: '¿Reabrir el sistema para todos los usuarios?',
-        subtext: 'Los usuarios podrán acceder nuevamente.',
-        title: 'Reabrir Sistema',
-        confirmText: 'Reabrir Sistema',
+        message: '¿Reabrir el sistema GLOBALMENTE?',
+        subtext: 'Las escuelas cerradas individualmente seguirán cerradas.',
+        title: 'Reabrir Sistema Globalmente',
+        confirmText: 'Reabrir Globalmente',
         confirmType: 'primary'
     });
     if (!confirmed) return;
-    // ===== FIN REEMPLAZO =====
 
     try {
         const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/open`, { method: 'POST' });
         const data = await response.json();
-        if (data.success) { showToast('Sistema reabierto para usuarios', 'success'); loadSystemStatus(); }
-        else showToast(data.message || 'Error', 'error');
-    } catch (error) { showToast('Error al reabrir sistema', 'error'); }
+        if (data.success) {
+            // ═══════════════════════════════════════════════════
+            // LIMPIAR localStorage
+            // ═══════════════════════════════════════════════════
+            localStorage.removeItem('system_closed');
+            
+            showToast('🔓 Sistema reabierto GLOBALMENTE', 'success');
+            await loadSystemStatus();
+        } else {
+            showToast(data.message || 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error reabriendo sistema:', error);
+        showToast('Error al reabrir el sistema', 'error');
+    }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// CIERRE POR ESCUELA
+// ═══════════════════════════════════════════════════════════════
+
+async function closeSchoolSystem() {
+    const select = document.getElementById('schoolIdSelect');
+    const schoolId = select?.value;
+    const reason = document.getElementById('schoolShutdownReason')?.value?.trim();
+
+    if (!schoolId) { showToast('Debes seleccionar una escuela', 'error'); return; }
+    if (!reason) { showToast('Debes proporcionar un motivo', 'error'); return; }
+
+    const selectedOption = select.options[select.selectedIndex];
+    const displayName = selectedOption?.dataset?.displayName || schoolId;
+
+    const confirmed = await showConfirmModal({
+        message: `¿Cerrar el sistema para "${displayName}"?`,
+        subtext: 'El admin y todos los usuarios de esta escuela serán bloqueados.',
+        title: 'Cerrar Escuela',
+        confirmText: 'Cerrar Escuela',
+        confirmType: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/school/shutdown`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ schoolId, reason })
+        });
+        const data = await response.json();
+        if (data.success) {
+            // ═══════════════════════════════════════════════════
+            // GUARDAR EN localStorage PARA QUE ARIA LO LEA
+            // ═══════════════════════════════════════════════════
+            const existing = JSON.parse(localStorage.getItem('system_closed') || '{}');
+            const closedSchools = existing.closedSchools || [];
+            if (!closedSchools.includes(schoolId)) {
+                closedSchools.push(schoolId);
+            }
+            localStorage.setItem('system_closed', JSON.stringify({
+                closed: true,
+                type: 'school',
+                closedSchools: closedSchools,
+                reason: reason,
+                timestamp: Date.now()
+            }));
+            
+            showToast(`🔒 Escuela cerrada`, 'warning');
+            document.getElementById('schoolShutdownReason').value = '';
+            await loadSystemStatus();
+        } else {
+            showToast(data.message || 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error cerrando escuela:', error);
+        showToast('Error al cerrar la escuela', 'error');
+    }
+}
+
+async function openSchoolSystem() {
+    const select = document.getElementById('schoolIdSelect');
+    const schoolId = select?.value;
+
+    if (!schoolId) { showToast('Debes seleccionar una escuela', 'error'); return; }
+
+    const selectedOption = select.options[select.selectedIndex];
+    const displayName = selectedOption?.dataset?.displayName || schoolId;
+
+    const confirmed = await showConfirmModal({
+        message: `¿Reabrir el sistema para "${displayName}"?`,
+        subtext: 'El admin y usuarios podrán acceder nuevamente.',
+        title: 'Reabrir Escuela',
+        confirmText: 'Reabrir Escuela',
+        confirmType: 'primary'
+    });
+    if (!confirmed) return;
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/school/open`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ schoolId })
+        });
+        const data = await response.json();
+        if (data.success) {
+            // ═══════════════════════════════════════════════════
+            // ACTUALIZAR localStorage
+            // ═══════════════════════════════════════════════════
+            const existing = JSON.parse(localStorage.getItem('system_closed') || '{}');
+            if (existing.closedSchools) {
+                existing.closedSchools = existing.closedSchools.filter(id => id !== schoolId);
+                if (existing.closedSchools.length === 0) {
+                    localStorage.removeItem('system_closed');
+                } else {
+                    localStorage.setItem('system_closed', JSON.stringify(existing));
+                }
+            } else {
+                localStorage.removeItem('system_closed');
+            }
+            
+            showToast(`🔓 Escuela reabierta`, 'success');
+            await loadSystemStatus();
+        } else {
+            showToast(data.message || 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error reabriendo escuela:', error);
+        showToast('Error al reabrir la escuela', 'error');
+    }
+}
+
+async function reopenSingleSchool(schoolId) {
+    const schoolInfo = schoolsList.find(s => s.schoolId === schoolId);
+    const displayName = schoolInfo?.displayName || schoolId;
+
+    const confirmed = await showConfirmModal({
+        message: `¿Reabrir el sistema para "${displayName}"?`,
+        subtext: 'El admin y usuarios podrán acceder nuevamente.',
+        title: 'Reabrir Escuela',
+        confirmText: 'Reabrir',
+        confirmType: 'primary'
+    });
+    if (!confirmed) return;
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/school/open`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ schoolId })
+        });
+        const data = await response.json();
+        if (data.success) {
+            // Actualizar localStorage
+            const existing = JSON.parse(localStorage.getItem('system_closed') || '{}');
+            if (existing.closedSchools) {
+                existing.closedSchools = existing.closedSchools.filter(id => id !== schoolId);
+                if (existing.closedSchools.length === 0) {
+                    localStorage.removeItem('system_closed');
+                } else {
+                    localStorage.setItem('system_closed', JSON.stringify(existing));
+                }
+            }
+            
+            showToast(`🔓 Escuela reabierta`, 'success');
+            await loadSystemStatus();
+        } else {
+            showToast(data.message || 'Error', 'error');
+        }
+    } catch (error) {
+        console.error('Error reabriendo escuela:', error);
+        showToast('Error al reabrir la escuela', 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTORIAL
+// ═══════════════════════════════════════════════════════════════
 
 async function loadShutdownHistory() {
     try {
         const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/history`, {});
         const data = await response.json();
-        if (data.success) { shutdownHistory = data.history || []; renderShutdownHistory(); }
-    } catch (error) { console.error('Error:', error); }
+        if (data.success) {
+            shutdownHistory = data.history || [];
+            renderShutdownHistory();
+        }
+    } catch (error) {
+        console.error('Error cargando historial:', error);
+    }
 }
 
 function renderShutdownHistory() {
     const container = document.getElementById('shutdownHistory');
     if (!container) return;
 
-    if (!shutdownHistory.length) {
-        container.innerHTML = '<p style="text-align:center;color:var(--col-text-3);padding:2rem;font-size:.875rem;">No hay registros de cambios</p>';
+    if (!shutdownHistory || shutdownHistory.length === 0) {
+        container.innerHTML = `
+            <p style="text-align:center;color:var(--col-text-3);padding:2rem;font-size:.875rem;">
+                <i class="fas fa-inbox" style="display:block;font-size:2rem;margin-bottom:var(--sp-3);opacity:0.3;"></i>
+                No hay registros de cambios
+            </p>`;
         return;
     }
 
-    container.innerHTML = shutdownHistory.map(h => `
+    const actionLabels = {
+        'close_global': { label: '🔒 Cierre Global', cssClass: 'status-closed' },
+        'open_global': { label: '🔓 Apertura Global', cssClass: 'status-opened' },
+        'close_school': { label: '🔒 Cierre de Escuela', cssClass: 'status-closed' },
+        'open_school': { label: '🔓 Apertura de Escuela', cssClass: 'status-opened' },
+    };
+
+    container.innerHTML = shutdownHistory.map(h => {
+        const actionInfo = actionLabels[h.action] || { label: h.action, cssClass: '' };
+        let extraInfo = '';
+        if (h.action === 'close_school' || h.action === 'open_school') {
+            const schoolInfo = schoolsList.find(s => s.schoolId === h.targetSchoolId);
+            const displayName = schoolInfo?.displayName || h.targetSchoolId || '—';
+            extraInfo = `
+                <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--col-cyan);margin-top:var(--sp-1);">
+                    <i class="fas fa-school"></i> Escuela: ${escapeHtml(displayName)}
+                </div>`;
+        }
+        return `
         <div class="history-item-admin">
             <div class="history-info">
                 <div class="history-date"><i class="fas fa-calendar"></i> ${formatDate(h.createdAt)}</div>
                 <div class="history-reason">
-                    <strong style="color:var(--col-text-3);">${h.action === 'close' ? 'Cierre' : 'Reapertura'}:</strong>
+                    <strong style="color:var(--col-text-2);">Motivo:</strong>
                     ${escapeHtml(h.reason || 'Sin motivo especificado')}
                 </div>
+                ${extraInfo}
             </div>
-            <span class="history-status ${h.action === 'close' ? 'status-closed' : 'status-opened'}">
-                ${h.action === 'close' ? '🔒 Cerrado' : '🔓 Abierto'}
-            </span>
-        </div>
-    `).join('');
+            <span class="history-status ${actionInfo.cssClass}">${actionInfo.label}</span>
+        </div>`;
+    }).join('');
 }
+
+// ── Exponer globalmente ─────────────────────────────────────
+window.loadSystemStatus     = loadSystemStatus;
+window.closeSystemGlobal    = closeSystemGlobal;
+window.openSystemGlobal     = openSystemGlobal;
+window.closeSchoolSystem    = closeSchoolSystem;
+window.openSchoolSystem     = openSchoolSystem;
+window.reopenSingleSchool   = reopenSingleSchool;
+window.closeSystem          = closeSystemGlobal;
+window.openSystem           = openSystemGlobal;
 
 // =============================================================
 // SUGERENCIAS

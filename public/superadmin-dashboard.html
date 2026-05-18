@@ -7,7 +7,9 @@
     <title>Super Admin — CBTIS051</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/sections/super-admin.css">
 </head>
 
@@ -25,9 +27,11 @@
                 <div class="sa-brand">
                     <div class="sa-brand__icon">
                         <svg viewBox="0 0 40 40" fill="none">
-                            <polygon points="20,4 36,12 36,28 20,36 4,28 4,12" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                            <polygon points="20,10 30,15 30,25 20,30 10,25 10,15" stroke="currentColor" stroke-width="1" fill="none" opacity="0.5"/>
-                            <circle cx="20" cy="20" r="3" fill="currentColor"/>
+                            <polygon points="20,4 36,12 36,28 20,36 4,28 4,12" stroke="currentColor" stroke-width="1.5"
+                                fill="none" />
+                            <polygon points="20,10 30,15 30,25 20,30 10,25 10,15" stroke="currentColor" stroke-width="1"
+                                fill="none" opacity="0.5" />
+                            <circle cx="20" cy="20" r="3" fill="currentColor" />
                         </svg>
                     </div>
                     <div class="sa-brand__text">
@@ -137,7 +141,8 @@
             <div class="sa-page-hero">
                 <div class="sa-page-hero__content">
                     <h1 class="sa-page-hero__title" id="heroTitle">Panel de Versiones</h1>
-                    <p class="sa-page-hero__desc" id="pageDescription">Gestiona las versiones del sistema y publica actualizaciones</p>
+                    <p class="sa-page-hero__desc" id="pageDescription">Gestiona las versiones del sistema y publica
+                        actualizaciones</p>
                 </div>
                 <div class="sa-page-hero__deco">
                     <div class="sa-page-hero__deco-ring"></div>
@@ -308,15 +313,15 @@
                 <div id="shutdownSection" class="sa-section sa-section--hidden">
                     <div class="sa-shutdown-layout">
 
-                        <!-- Control Card -->
+                        <!-- Control Global Card -->
                         <div class="sa-shutdown-card">
                             <div class="sa-shutdown-card__header">
                                 <div class="sa-shutdown-card__icon">
-                                    <i class="fas fa-server"></i>
+                                    <i class="fas fa-globe"></i>
                                 </div>
                                 <div>
-                                    <h3>Estado del Sistema</h3>
-                                    <p>Controla la disponibilidad para usuarios finales</p>
+                                    <h3>Estado Global del Sistema</h3>
+                                    <p>Cierra o reabre el sistema para TODAS las escuelas</p>
                                 </div>
                             </div>
 
@@ -324,7 +329,7 @@
 
                             <div class="sa-shutdown-controls">
                                 <div class="sa-field">
-                                    <label class="sa-label">Motivo del cambio</label>
+                                    <label class="sa-label">Motivo del cambio global</label>
                                     <textarea id="shutdownReason" class="sa-textarea" rows="3"
                                         placeholder="Ej: Mantenimiento programado, actualización del sistema…"></textarea>
                                 </div>
@@ -332,8 +337,64 @@
                             </div>
                         </div>
 
-                        <!-- History Card -->
-                        <div class="sa-history-card">
+                        <!-- Control por Escuela Card -->
+                        <div class="sa-shutdown-card">
+                            <div class="sa-shutdown-card__header">
+                                <div class="sa-shutdown-card__icon"
+                                    style="background:var(--col-amber-dim);border-color:rgba(251,191,36,0.25);color:var(--col-amber);">
+                                    <i class="fas fa-school"></i>
+                                </div>
+                                <div>
+                                    <h3>Cierre por Escuela</h3>
+                                    <p>Administra el acceso de una escuela específica</p>
+                                </div>
+                            </div>
+
+                            <div class="sa-shutdown-controls">
+                                <div class="sa-field">
+                                    <label class="sa-label">Seleccionar Escuela <span
+                                            class="sa-required">*</span></label>
+                                    <div class="sa-school-select-wrapper">
+                                        <select id="schoolIdSelect" class="sa-select sa-school-select">
+                                            <option value="">— Selecciona una escuela —</option>
+                                        </select>
+                                        <div class="sa-school-select__info" id="schoolSelectInfo" style="display:none;">
+                                            <!-- Info dinámica de la escuela seleccionada -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sa-field">
+                                    <label class="sa-label">Motivo del cierre/apertura <span
+                                            class="sa-required">*</span></label>
+                                    <textarea id="schoolShutdownReason" class="sa-textarea" rows="2"
+                                        placeholder="Ej: Mensualidad pendiente de pago…"></textarea>
+                                </div>
+                                <div class="sa-shutdown-actions">
+                                    <button class="sa-btn sa-btn--danger" onclick="closeSchoolSystem()">
+                                        <i class="fas fa-lock"></i> Cerrar para esta Escuela
+                                    </button>
+                                    <button class="sa-btn sa-btn--success" onclick="openSchoolSystem()">
+                                        <i class="fas fa-lock-open"></i> Reabrir para esta Escuela
+                                    </button>
+                                </div>
+
+                                <!-- Lista de escuelas cerradas -->
+                                <div id="closedSchoolsList" class="sa-closed-schools" style="margin-top:var(--sp-5);">
+                                    <h4>
+                                        <i class="fas fa-list"></i> Escuelas Actualmente Cerradas
+                                    </h4>
+                                    <div id="closedSchoolsContent">
+                                        <p
+                                            style="color:var(--col-text-3);font-size:0.8rem;text-align:center;padding:var(--sp-4);">
+                                            <i class="fas fa-spinner fa-spin"></i> Cargando…
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- History Card (ocupa ancho completo) -->
+                        <div class="sa-history-card" style="grid-column:1/-1;">
                             <div class="sa-history-card__header">
                                 <i class="fas fa-timeline"></i>
                                 <h4>Historial de Cambios</h4>
@@ -386,11 +447,13 @@
                 <form id="avisoForm" onsubmit="event.preventDefault()">
                     <div class="sa-field">
                         <label class="sa-label">Título <span class="sa-required">*</span></label>
-                        <input type="text" id="avisoTitulo" class="sa-input" placeholder="Ej: Mantenimiento programado" maxlength="200">
+                        <input type="text" id="avisoTitulo" class="sa-input" placeholder="Ej: Mantenimiento programado"
+                            maxlength="200">
                     </div>
                     <div class="sa-field">
                         <label class="sa-label">Descripción <span class="sa-required">*</span></label>
-                        <textarea id="avisoDescripcion" class="sa-textarea" rows="5" placeholder="Describe el aviso en detalle…" maxlength="5000"></textarea>
+                        <textarea id="avisoDescripcion" class="sa-textarea" rows="5"
+                            placeholder="Describe el aviso en detalle…" maxlength="5000"></textarea>
                     </div>
                     <div class="sa-field-row">
                         <div class="sa-field">
@@ -456,17 +519,17 @@
                 <form id="invitationForm" onsubmit="event.preventDefault(); sendInvitation();">
                     <div class="sa-field">
                         <label class="sa-label">Email del administrador <span class="sa-required">*</span></label>
-                        <input type="email" id="inviteEmail" class="sa-input"
-                               placeholder="admin@escuela.edu.mx" required>
+                        <input type="email" id="inviteEmail" class="sa-input" placeholder="admin@escuela.edu.mx"
+                            required>
                     </div>
                     <div class="sa-field">
                         <label class="sa-label">Nombre de la escuela <span class="sa-required">*</span></label>
-                        <input type="text" id="inviteSchoolName" class="sa-input"
-                               placeholder="Ej: CBTIS 051" required>
+                        <input type="text" id="inviteSchoolName" class="sa-input" placeholder="Ej: CBTIS 051" required>
                     </div>
                     <div class="sa-info-box">
                         <i class="fas fa-circle-info"></i>
-                        <p>Se enviará un email con token único. El destinatario tendrá <strong>48 horas</strong> para completar su registro.</p>
+                        <p>Se enviará un email con token único. El destinatario tendrá <strong>48 horas</strong> para
+                            completar su registro.</p>
                     </div>
                 </form>
             </div>
@@ -486,7 +549,8 @@
         <div class="sa-modal__backdrop" onclick="closeConfirmModal(false)"></div>
         <div class="sa-modal__dialog" style="max-width: 440px;">
             <div class="sa-modal__header">
-                <div class="sa-modal__header-icon" id="confirmModalIcon"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="sa-modal__header-icon" id="confirmModalIcon"><i class="fas fa-triangle-exclamation"></i>
+                </div>
                 <h3 id="confirmModalTitle">Confirmar acción</h3>
                 <button class="sa-modal__close" onclick="closeConfirmModal(false)">
                     <i class="fas fa-xmark"></i>
@@ -506,8 +570,10 @@
                         <i class="fas fa-question" style="font-size:1.5rem;color:var(--col-amber);"></i>
                     </div>
                     <div>
-                        <p id="confirmModalMessage" style="font-size:0.95rem;color:var(--col-text-2);line-height:1.6;margin:0;"></p>
-                        <p id="confirmModalSubtext" style="font-size:0.8rem;color:var(--col-text-3);margin-top:var(--sp-2);"></p>
+                        <p id="confirmModalMessage"
+                            style="font-size:0.95rem;color:var(--col-text-2);line-height:1.6;margin:0;"></p>
+                        <p id="confirmModalSubtext"
+                            style="font-size:0.8rem;color:var(--col-text-3);margin-top:var(--sp-2);"></p>
                     </div>
                 </div>
             </div>
@@ -515,7 +581,8 @@
                 <button class="sa-btn sa-btn--ghost" onclick="closeConfirmModal(false)" style="min-width:100px;">
                     <i class="fas fa-xmark"></i> Cancelar
                 </button>
-                <button id="confirmModalBtn" class="sa-btn sa-btn--primary" onclick="closeConfirmModal(true)" style="min-width:100px;">
+                <button id="confirmModalBtn" class="sa-btn sa-btn--primary" onclick="closeConfirmModal(true)"
+                    style="min-width:100px;">
                     <i class="fas fa-check"></i> Confirmar
                 </button>
             </div>
@@ -524,4 +591,5 @@
 
     <script type="module" src="/src/frontend/modules/auth/super-admin.js"></script>
 </body>
+
 </html>
