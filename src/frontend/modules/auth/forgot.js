@@ -1,7 +1,16 @@
 const API_URL = window.location.origin;
 
-        // Mostrar alertas
+        // Mostrar alertas — delegar al sistema central si está disponible
         function showAlert(message, type = 'info') {
+            try {
+                if (window && typeof window.showAlert === 'function') {
+                    window.showAlert(message, type);
+                    return;
+                }
+            } catch (e) {
+                // no-op
+            }
+
             const container = document.getElementById('alertContainer');
             const iconMap = {
                 success: 'check-circle',
@@ -9,6 +18,7 @@ const API_URL = window.location.origin;
                 info: 'info-circle'
             };
             
+            if (!container) return;
             container.innerHTML = `
                 <div class="alert alert-${type}">
                     <i class="fas fa-${iconMap[type]}"></i>

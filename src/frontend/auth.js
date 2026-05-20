@@ -61,6 +61,15 @@ async function logAuthEvent(eventType, data = {}) {
 // =============================================================================
 
 export function showAlert(message, type = 'success') {
+    try {
+        if (window && typeof window.showAlert === 'function') {
+            window.showAlert(message, type);
+            return;
+        }
+    } catch (e) {
+        // no-op
+    }
+
     const container = document.getElementById('alertContainer');
     if (!container) return;
 

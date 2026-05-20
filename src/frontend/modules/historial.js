@@ -8,6 +8,7 @@
 
 import { CONFIG } from '../config.js';
 import { showAlert, showConfirmation } from '../utils.js';
+import { showNotification } from '../utils/alertSystem.js';
 import { canAction, showNoPermissionAlert, applyActionPermissions } from '../permissions.js';
 
 class HistorialManager {
@@ -26,6 +27,8 @@ class HistorialManager {
         };
         this.historialData = [];
         this.activePreloaders = new Set();
+        // Enlazar showNotification centralizado para mantener llamadas existentes (this.showNotification)
+        this.showNotification = showNotification;
     }
 
     // =============================================================================
@@ -1071,46 +1074,8 @@ class HistorialManager {
         document.addEventListener('keydown', handleEscKey);
     }
 
-    // =============================================================================
-    // 6. NOTIFICACIÓN FLOTANTE (sin cambios)
-    // =============================================================================
-
-    showNotification(message, type = 'info') {
-        const notificationId = `notification-${Date.now()}`;
-        const icons = {
-            success: 'fas fa-check-circle',
-            error:   'fas fa-exclamation-circle',
-            warning: 'fas fa-exclamation-triangle',
-            info:    'fas fa-info-circle'
-        };
-        const notificationHTML = `
-            <div class="floating-notification floating-notification--${type}" id="${notificationId}">
-                <div class="floating-notification__content">
-                    <i class="${icons[type] || icons.info}"></i>
-                    <span>${message}</span>
-                </div>
-                <button class="floating-notification__close" onclick="document.getElementById('${notificationId}').remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        let notificationsContainer = document.querySelector('.notifications');
-        if (!notificationsContainer) {
-            notificationsContainer = document.createElement('div');
-            notificationsContainer.className = 'notifications';
-            document.body.appendChild(notificationsContainer);
-        }
-        notificationsContainer.insertAdjacentHTML('afterbegin', notificationHTML);
-        setTimeout(() => {
-            const n = document.getElementById(notificationId);
-            if (n) n.classList.add('floating-notification--visible');
-        }, 10);
-        setTimeout(() => {
-            const n = document.getElementById(notificationId);
-            if (n) { n.classList.remove('floating-notification--visible'); setTimeout(() => n.remove(), 300); }
-        }, 5000);
-        return notificationId;
-    }
+    // NOTIFICACIÓN FLOTANTE: ahora delegada al sistema central `alertSystem`.
+    // El método local fue eliminado para evitar implementaciones duplicadas.
 
     // =============================================================================
     // 7. PAGINACIÓN (sin cambios)

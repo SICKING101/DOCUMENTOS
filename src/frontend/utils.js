@@ -1,4 +1,11 @@
 import { CONFIG } from './config.js';
+// Re-exportar/usar el sistema centralizado de alertas
+import {
+    showAlert as alertSystemShowAlert,
+    showNotification as alertSystemShowNotification,
+    showProgress as alertSystemShowProgress,
+    hideAllAlerts as alertSystemHideAllAlerts
+} from './utils/alertSystem.js';
 
 // =============================================================================
 // 1. FUNCIONES DE ICONOS Y VISUALIZACIÓN
@@ -320,35 +327,27 @@ function setLoadingState(loading, element = null) {
  * Crea y muestra notificaciones temporales con íconos y estilos según tipo.
  */
 function showAlert(message, type = 'info') {
-    console.log(`🔔 Alert [${type}]: ${message}`);
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert--${type}`;
-    
-    const icons = {
-        success: 'check-circle',
-        error: 'exclamation-circle',
-        warning: 'exclamation-triangle',
-        info: 'info-circle'
-    };
-    
-    alert.innerHTML = `
-        <i class="fas fa-${icons[type] || 'info-circle'}"></i>
-        <span>${message}</span>
-    `;
-    
-    // Asegurarse de que el contenedor existe
-    const alertContainer = document.getElementById('alertContainer');
-    if (alertContainer) {
-        alertContainer.appendChild(alert);
-        
-        // Auto-eliminar después de 5 segundos
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.parentNode.removeChild(alert);
-            }
-        }, 5000);
+    // Delegar al sistema centralizado de alertas (mantiene compatibilidad)
+    try {
+        return alertSystemShowAlert(message, type);
+    } catch (e) {
+        // Fallback: si por alguna razón el sistema central falla, hacer un log simple
+        console.warn('alertSystem fallo, usando fallback:', e);
+        // Fallback mínimo: mostrar en consola
+        console.log(`🔔 Alert [${type}]: ${message}`);
     }
+}
+
+// Exponer en window para compatibilidad con scripts que usan showAlert globalmente
+try {
+    if (typeof window !== 'undefined') {
+        window.showAlert = showAlert;
+        window.showNotification = alertSystemShowNotification;
+        window.showProgress = alertSystemShowProgress;
+        window.hideAllAlerts = alertSystemHideAllAlerts;
+    }
+} catch (e) {
+    // no-op
 }
 
 /**

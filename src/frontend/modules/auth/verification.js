@@ -128,15 +128,24 @@ const API_URL = window.location.origin;
             verifyBtn.disabled = code.length !== 6;
         }
 
-        // Mostrar alertas
+        // Mostrar alertas — delegar al sistema central si está disponible
         function showAlert(message, type = 'info') {
+            try {
+                if (window && typeof window.showAlert === 'function') {
+                    window.showAlert(message, type);
+                    return;
+                }
+            } catch (e) {
+                // no-op
+            }
+
             const container = document.getElementById('alertContainer');
             const iconMap = {
                 success: 'check-circle',
                 error: 'exclamation-circle',
                 info: 'info-circle'
             };
-            
+            if (!container) return;
             container.innerHTML = `
                 <div class="alert alert-${type}">
                     <i class="fas fa-${iconMap[type]}"></i>

@@ -123,8 +123,17 @@ const resetPasswordModule = (function() {
         }
     }
     
-    // Mostrar alertas
+    // Mostrar alertas — delegar al sistema central si está disponible
     function showAlert(message, type = 'info') {
+        try {
+            if (window && typeof window.showAlert === 'function') {
+                window.showAlert(message, type);
+                return;
+            }
+        } catch (e) {
+            // no-op, usar fallback
+        }
+
         const container = document.getElementById('alertContainer');
         if (!container) return;
         
