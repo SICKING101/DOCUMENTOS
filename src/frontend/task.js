@@ -653,8 +653,16 @@ class TaskManager {
         set('personalPrioridad', task.prioridad);
         set('personalCategoria', task.categoria);
         if (task.fecha_limite) {
-            const d = new Date(task.fecha_limite);
-            set('personalDueDate', d.toISOString().split('T')[0]);
+            // Usar fecha_limite_formateada si existe (ya corregida en backend)
+            if (task.fecha_limite_formateada) {
+                set('personalDueDate', task.fecha_limite_formateada);
+            } else {
+                const d = new Date(task.fecha_limite);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                set('personalDueDate', `${year}-${month}-${day}`);
+            }
             if (task.hora_limite) set('personalTime', task.hora_limite);
         }
         const rem = document.getElementById('personalReminder');
@@ -671,8 +679,16 @@ class TaskManager {
         set('assignTipoForm', task.tipo);
         set('assignCategoria', task.categoria);
         if (task.fecha_limite) {
-            const d = new Date(task.fecha_limite);
-            set('assignDueDate', d.toISOString().split('T')[0]);
+            // Usar fecha_limite_formateada si existe (ya corregida en backend)
+            if (task.fecha_limite_formateada) {
+                set('assignDueDate', task.fecha_limite_formateada);
+            } else {
+                const d = new Date(task.fecha_limite);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                set('assignDueDate', `${year}-${month}-${day}`);
+            }
             if (task.hora_limite) set('assignTime', task.hora_limite);
         }
         const rem = document.getElementById('assignReminder');

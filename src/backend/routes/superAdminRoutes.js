@@ -18,7 +18,10 @@ import {
 import {
   closeSystem,
   openSystem,
+  closeSchool,
+  openSchool,
   getSuperAdminSystemStatus,
+  checkUserAccess,
 } from '../controllers/systemStateController.js';
 import {
   createInvitation,
@@ -162,16 +165,25 @@ router.post('/invitations/register', registerWithInvitation);
 // =============================================================================
 // CIERRE DEL SISTEMA — Solo superadmin
 // =============================================================================
+
+// ── Cierre/Apertura GLOBAL ──────────────────────────────────────────────
 router.post('/system/shutdown', protegerSuperAdmin, closeSystem);
 router.post('/system/open', protegerSuperAdmin, openSystem);
+
+// ── NUEVAS RUTAS: Cierre/Apertura por ESCUELA ───────────────────────────
+router.post('/system/school/shutdown', protegerSuperAdmin, closeSchool);
+router.post('/system/school/open', protegerSuperAdmin, openSchool);
+
+// ── Estado del sistema (superadmin - versión completa) ──────────────────
 router.get('/system/status', protegerSuperAdmin, getSuperAdminSystemStatus);
 
+// ── Historial ───────────────────────────────────────────────────────────
 router.get('/system/history', protegerSuperAdmin, async (req, res) => {
   try {
     const instance = await SystemState.getInstance();
     res.json({
       success: true,
-      history: instance.history,
+      history: instance.history.slice(-50).reverse(),
       total: instance.history.length,
     });
   } catch (err) {

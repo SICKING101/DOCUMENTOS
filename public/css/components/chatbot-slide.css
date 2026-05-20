@@ -1,0 +1,341 @@
+/* ============================================================
+   chatbot-slide.css — ARIA Slide Panel v5.0 RENOVADO
+   CBTIS051 — Diseño llamativo con animaciones premium
+   ============================================================ */
+
+/* ─── VARIABLES ─────────────────────────────────────────────── */
+:root {
+    --aria-slide-width: 420px;
+    --aria-slide-handle-size: 44px;
+    --aria-slide-transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+    --slide-handle-color: #ef4444;
+    --slide-handle-hover: #dc2626;
+    --slide-glow: rgba(239, 68, 68, 0.5);
+}
+
+/* ─── CONTENEDOR PRINCIPAL ──────────────────────────────────── */
+#ariaSlideContainer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: var(--aria-slide-width);
+    height: 100vh;
+    height: 100dvh;
+    z-index: calc(var(--aria-z, 9999) + 1);
+    
+    transform: translateX(100%);
+    transition: var(--aria-slide-transition);
+    pointer-events: none;
+    will-change: transform;
+}
+
+#ariaSlideContainer.open {
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+/* ─── OVERLAY CON BLUR ──────────────────────────────────────── */
+.aria-slide-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: var(--aria-z, 9999);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, backdrop-filter 0.4s ease;
+}
+
+.aria-slide-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ─── PANEL DEL CHAT ────────────────────────────────────────── */
+.aria-slide-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, #0a0a0f 0%, #0d1117 40%, #0f0f1a 100%);
+    border-left: 1px solid rgba(239, 68, 68, 0.25);
+    box-shadow: 
+        -8px 0 40px rgba(0, 0, 0, 0.6),
+        -2px 0 20px rgba(239, 68, 68, 0.15),
+        inset 1px 0 0 rgba(255, 255, 255, 0.03);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Brillo superior */
+.aria-slide-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(239, 68, 68, 0.4) 20%, 
+        rgba(239, 68, 68, 0.6) 50%, 
+        rgba(239, 68, 68, 0.4) 80%, 
+        transparent 100%);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ─── TIRADOR (MANIJA LATERAL) ──────────────────────────────── */
+.aria-slide-handle {
+    position: absolute;
+    left: -44px;
+    top: 50%;
+    transform: translateY(-50%);
+    
+    width: var(--aria-slide-handle-size);
+    height: 90px;
+    
+    background: linear-gradient(180deg, 
+        var(--slide-handle-color) 0%, 
+        var(--slide-handle-hover) 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-right: none;
+    border-radius: 14px 0 0 14px;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    
+    cursor: pointer;
+    box-shadow: 
+        0 6px 25px rgba(239, 68, 68, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.aria-slide-handle:hover {
+    background: linear-gradient(180deg, #f87171 0%, var(--slide-handle-color) 100%);
+    box-shadow: 
+        0 8px 35px var(--slide-glow),
+        0 0 60px rgba(239, 68, 68, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    left: -48px;
+    width: 48px;
+}
+
+.aria-slide-handle:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* ─── PUNTOS INDICADORES EN LA MANIJA ───────────────────────── */
+.aria-slide-handle::before,
+.aria-slide-handle::after {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+    margin-top: 15px;
+}
+
+.aria-slide-handle:hover::before,
+.aria-slide-handle:hover::after {
+    background: #fff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+/* ─── FLECHA ANIMADA ────────────────────────────────────────── */
+.aria-slide-arrow {
+    color: #fff;
+    font-size: 16px;
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Animación de bounce cuando está cerrado */
+#ariaSlideContainer:not(.open) .aria-slide-arrow {
+    animation: aria-arrow-bounce 2s ease-in-out infinite;
+}
+
+#ariaSlideContainer.open .aria-slide-arrow {
+    transform: rotate(180deg);
+    animation: none;
+}
+
+@keyframes aria-arrow-bounce {
+    0%, 100% { transform: translateX(0); }
+    50%      { transform: translateX(-6px); }
+}
+
+/* Pulso de atención */
+@keyframes aria-handle-pulse {
+    0%, 100% { 
+        box-shadow: 0 6px 25px rgba(239, 68, 68, 0.4);
+    }
+    50% { 
+        box-shadow: 0 6px 35px rgba(239, 68, 68, 0.7), 0 0 50px rgba(239, 68, 68, 0.3);
+    }
+}
+
+#ariaSlideContainer:not(.open) .aria-slide-handle {
+    animation: aria-handle-pulse 3s ease-in-out infinite;
+}
+
+/* ─── BADGE DE NOTIFICACIÓN EN LA MANIJA ────────────────────── */
+.aria-slide-handle-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--slide-handle-color);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--slide-handle-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── AJUSTE DE LA VENTANA INTERNA DE ARIA ──────────────────── */
+#ariaSlidePanel .aria-window {
+    position: relative !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transition: none !important;
+    background: transparent !important;
+}
+
+#ariaSlidePanel .aria-window.aria-window--closed {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transform: none !important;
+}
+
+/* ─── ESTILOS PARA EL HEADER DENTRO DEL SLIDE ───────────────── */
+#ariaSlidePanel .aria-header {
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+#ariaSlidePanel .aria-avatar {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+#ariaSlidePanel .aria-avatar__dot {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+/* ─── ESTILOS PARA EL INPUT DENTRO DEL SLIDE ────────────────── */
+#ariaSlidePanel .aria-input {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    transition: all 0.3s ease;
+}
+
+#ariaSlidePanel .aria-input:focus {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+#ariaSlidePanel .aria-send-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35);
+}
+
+#ariaSlidePanel .aria-send-btn:hover:not(:disabled) {
+    box-shadow: 0 6px 25px rgba(239, 68, 68, 0.5);
+}
+
+/* ─── ESTILOS PARA CHIPS DENTRO DEL SLIDE ───────────────────── */
+#ariaSlidePanel .aria-chip:hover {
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.1);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
+}
+
+/* ─── OCULTAR EN FULLSCREEN ─────────────────────────────────── */
+body.fullscreen-chatbot-active #ariaSlideContainer {
+    display: none;
+}
+
+/* ─── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    :root {
+        --aria-slide-width: calc(100vw - 28px);
+    }
+    
+    .aria-slide-handle {
+        left: -36px;
+        width: 36px;
+        height: 72px;
+        border-radius: 10px 0 0 10px;
+    }
+    
+    .aria-slide-handle:hover {
+        left: -38px;
+        width: 38px;
+    }
+    
+    .aria-slide-handle::before,
+    .aria-slide-handle::after {
+        width: 4px;
+        height: 4px;
+    }
+    
+    .aria-slide-arrow {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 360px) {
+    :root {
+        --aria-slide-width: calc(100vw - 16px);
+    }
+    
+    .aria-slide-handle {
+        left: -30px;
+        width: 30px;
+        height: 60px;
+    }
+    
+    .aria-slide-handle:hover {
+        left: -32px;
+        width: 32px;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   OCULTAR TOGGLE ORIGINAL (reemplazado por slide)
+   ────────────────────────────────────────────────────────────── */
+#ariaToggle {
+    display: none !important;
+}

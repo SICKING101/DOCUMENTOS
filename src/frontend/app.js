@@ -5,7 +5,8 @@
 import { CONFIG } from './config.js';
 import { AppState } from './state.js';
 import { DOM } from './dom.js';
-import { showAlert, setupModalBackdropClose } from './utils.js';
+import { showAlert, setupModalBackdropClose, showActionModal } from './utils.js';
+export { refreshCategoryTree } from './modules/documentos/categoryNavigation.js';
 import {
   applyVisibilityRules,
   hasPermission,
@@ -809,6 +810,10 @@ window.showAllDocuments = showAllDocuments;
 window.debugAppState = debugAppState;
 window.testAPIConnection = testAPIConnection;
 window.resetApp = resetApp;
+window.showAlert = showAlert;
+window.showActionModal = showActionModal;
+
+window.refreshCategoryTree = documentos.refreshCategoryTree;
 
 // ── Permisos ──
 window.refreshPermissions = refreshPermissions;

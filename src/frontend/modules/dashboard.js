@@ -768,6 +768,7 @@ if (typeof window !== 'undefined') {
         openTasksTab,
         openTaskById
     };
+
     // Compatibilidad: alias globales para código que espera `window.loadDashboardData`
     try {
         window.loadDashboardData = (appState) => loadDashboardData(appState || window.appState);

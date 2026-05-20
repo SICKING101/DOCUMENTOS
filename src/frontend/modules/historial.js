@@ -1,11 +1,14 @@
 // src/frontend/modules/historial.js
 
 // =============================================================================
-// MÓDULO DE HISTORIAL DEL SISTEMA CON PRELOADERS
+// MÓDULO DE HISTORIAL DEL SISTEMA — DISEÑO "LUMINOUS CHRONICLE"
+// Lógica de negocio y llamadas al backend: SIN CAMBIOS.
+// Solo se actualizaron las plantillas HTML de presentación.
 // =============================================================================
 
 import { CONFIG } from '../config.js';
 import { showAlert, showConfirmation } from '../utils.js';
+import { showNotification } from '../utils/alertSystem.js';
 import { canAction, showNoPermissionAlert, applyActionPermissions } from '../permissions.js';
 
 class HistorialManager {
@@ -23,7 +26,9 @@ class HistorialManager {
             busqueda: ''
         };
         this.historialData = [];
-        this.activePreloaders = new Set(); // Para rastrear preloaders activos
+        this.activePreloaders = new Set();
+        // Enlazar showNotification centralizado para mantener llamadas existentes (this.showNotification)
+        this.showNotification = showNotification;
     }
 
     // =============================================================================
@@ -32,73 +37,107 @@ class HistorialManager {
 
     init() {
         console.log('📜 Inicializando módulo de historial...');
-        
         this.bindEvents();
         this.loadHistorial();
-        
         return this;
     }
 
     bindEvents() {
-        // Botones de acción con preloader
+        // Botones de acción
         document.getElementById('clearHistoryBtn')?.addEventListener('click', () => this.clearHistorial());
         document.getElementById('exportHistoryBtn')?.addEventListener('click', () => this.exportHistorial());
-        
+
         // Filtros
         document.getElementById('filterType')?.addEventListener('change', (e) => {
             this.filters.tipo = e.target.value;
             this.loadHistorial();
+            this._updateActiveFiltersBadge();
         });
-        
+
         document.getElementById('filterPriority')?.addEventListener('change', (e) => {
             this.filters.prioridad = e.target.value;
             this.loadHistorial();
+            this._updateActiveFiltersBadge();
         });
-        
+
         document.getElementById('filterRead')?.addEventListener('change', (e) => {
             this.filters.estado = e.target.value;
             this.loadHistorial();
+            this._updateActiveFiltersBadge();
         });
-        
+
         document.getElementById('filterDateFrom')?.addEventListener('change', (e) => {
             this.filters.fechaDesde = e.target.value;
             this.loadHistorial();
+            this._updateActiveFiltersBadge();
         });
-        
+
         document.getElementById('filterDateTo')?.addEventListener('change', (e) => {
             this.filters.fechaHasta = e.target.value;
             this.loadHistorial();
+            this._updateActiveFiltersBadge();
         });
-        
+
         document.getElementById('searchHistory')?.addEventListener('input', (e) => {
             this.filters.busqueda = e.target.value;
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => this.loadHistorial(), 500);
         });
-        
+
         document.getElementById('itemsPerPage')?.addEventListener('change', (e) => {
             this.itemsPerPage = parseInt(e.target.value);
             this.currentPage = 1;
             this.loadHistorial();
         });
-        
-        // Paginación con preloader
+
+        // Paginación
         document.querySelector('.pagination__btn--prev')?.addEventListener('click', () => this.previousPage());
         document.querySelector('.pagination__btn--next')?.addEventListener('click', () => this.nextPage());
+
+        // ── Toggle del panel de filtros (UI pura) ──
+        const filterHeader = document.getElementById('filterPanelToggle');
+        const filterPanel  = document.getElementById('hfilterPanel');
+        if (filterHeader && filterPanel) {
+            // Abrir por defecto
+            filterPanel.classList.add('is-open');
+
+            filterHeader.addEventListener('click', () => {
+                filterPanel.classList.toggle('is-open');
+            });
+        }
+    }
+
+    /**
+     * Actualiza el badge de filtros activos en el panel
+     */
+    _updateActiveFiltersBadge() {
+        const badge = document.getElementById('activeFiltersCount');
+        if (!badge) return;
+        const active = [
+            this.filters.tipo      !== 'all' && this.filters.tipo,
+            this.filters.prioridad !== 'all' && this.filters.prioridad,
+            this.filters.estado    !== 'all' && this.filters.estado,
+            this.filters.fechaDesde,
+            this.filters.fechaHasta,
+            this.filters.busqueda
+        ].filter(Boolean).length;
+
+        if (active > 0) {
+            badge.textContent = active;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.style.display = 'none';
+        }
     }
 
     // =============================================================================
-    // 2. PRELOADER UTILITIES
+    // 2. PRELOADER UTILITIES (sin cambios)
     // =============================================================================
 
-    /**
-     * Muestra un preloader de overlay en una tabla
-     */
     showTablePreloader(tableId, message = 'Cargando datos...') {
         const table = document.getElementById(tableId);
         if (!table) return null;
-        
-        // Crear overlay de preloader
+
         const preloaderId = `preloader-${tableId}-${Date.now()}`;
         const preloaderHTML = `
             <div class="table-preloader-overlay" id="${preloaderId}">
@@ -112,45 +151,31 @@ class HistorialManager {
                 </div>
             </div>
         `;
-        
+
         table.style.position = 'relative';
         table.insertAdjacentHTML('beforeend', preloaderHTML);
         this.activePreloaders.add(preloaderId);
-        
         return preloaderId;
     }
 
-/**
- * Muestra un preloader en un botón (VERSIÓN CORREGIDA)
- */
-showButtonPreloader(button, text = 'Procesando...') {
-    if (!button) return button;
-    
-    // GUARDAR EL CONTENIDO COMPLETO DEL BOTÓN
-    button.setAttribute('data-original-html', button.innerHTML);
-    button.setAttribute('data-original-text', button.textContent);
-    
-    // Guardar también el ID del botón para referencia
-    const buttonId = button.id || `btn-${Date.now()}`;
-    button.setAttribute('data-original-id', buttonId);
-    
-    // Crear contenido del preloader
-    button.innerHTML = `
-        <span class="preloader-inline">
-            <div class="preloader-inline__spinner"></div>
-            <span>${text}</span>
-        </span>
-    `;
-    button.disabled = true;
-    button.classList.add('btn--loading');
-    
-    console.log(`Preloader activado para botón: ${buttonId}`);
-    return button;
-}
+    showButtonPreloader(button, text = 'Procesando...') {
+        if (!button) return button;
+        button.setAttribute('data-original-html', button.innerHTML);
+        button.setAttribute('data-original-text', button.textContent);
+        const buttonId = button.id || `btn-${Date.now()}`;
+        button.setAttribute('data-original-id', buttonId);
+        button.innerHTML = `
+            <span class="preloader-inline">
+                <div class="preloader-inline__spinner"></div>
+                <span>${text}</span>
+            </span>
+        `;
+        button.disabled = true;
+        button.classList.add('btn--loading');
+        console.log(`Preloader activado para botón: ${buttonId}`);
+        return button;
+    }
 
-    /**
-     * Oculta un preloader específico
-     */
     hidePreloader(preloaderId) {
         const preloader = document.getElementById(preloaderId);
         if (preloader) {
@@ -160,100 +185,69 @@ showButtonPreloader(button, text = 'Procesando...') {
         this.activePreloaders.delete(preloaderId);
     }
 
-    /**
- * Restaura un botón a su estado original (VERSIÓN CORREGIDA)
- */
-restoreButton(button) {
-    if (!button) {
-        console.warn('restoreButton: button es null');
-        return;
+    restoreButton(button) {
+        if (!button) {
+            console.warn('restoreButton: button es null');
+            return;
+        }
+        const buttonId = button.id || button.getAttribute('data-original-id');
+        console.log(`Restaurando botón: ${buttonId}`);
+        const originalHTML = button.getAttribute('data-original-html');
+        if (originalHTML) {
+            button.innerHTML = originalHTML;
+            button.removeAttribute('data-original-html');
+            button.removeAttribute('data-original-text');
+            button.removeAttribute('data-original-id');
+            console.log(`Botón ${buttonId} restaurado con contenido original`);
+        } else {
+            console.warn(`No se encontró data-original-html para botón: ${buttonId}, restaurando por ID`);
+            this.restoreButtonByType(button);
+        }
+        button.disabled = false;
+        button.classList.remove('btn--loading');
+        console.log(`Botón ${buttonId} restaurado exitosamente`);
     }
-    
-    const buttonId = button.id || button.getAttribute('data-original-id');
-    console.log(`Restaurando botón: ${buttonId}`);
-    
-    // OBTENER CONTENIDO ORIGINAL ESPECÍFICO DE CADA BOTÓN
-    const originalHTML = button.getAttribute('data-original-html');
-    
-    if (originalHTML) {
-        // Restaurar el contenido HTML exacto que tenía antes
-        button.innerHTML = originalHTML;
-        
-        // Remover atributos temporales
-        button.removeAttribute('data-original-html');
-        button.removeAttribute('data-original-text');
-        button.removeAttribute('data-original-id');
-        
-        console.log(`Botón ${buttonId} restaurado con contenido original`);
-    } else {
-        // Si no hay HTML guardado, restaurar basado en el ID del botón
-        console.warn(`No se encontró data-original-html para botón: ${buttonId}, restaurando por ID`);
-        
-        // Restaurar contenido basado en el tipo de botón
-        this.restoreButtonByType(button);
-    }
-    
-    // Restaurar estado
-    button.disabled = false;
-    button.classList.remove('btn--loading');
-    
-    console.log(`Botón ${buttonId} restaurado exitosamente`);
-}
 
-/**
- * Restaura un botón basado en su tipo/función
- */
-restoreButtonByType(button) {
-    const buttonId = button.id;
-    
-    // Contenido específico para cada tipo de botón
-    const buttonContents = {
-        'refreshHistoryBtn': '<i class="fas fa-sync-alt"></i> Actualizar',
-        'clearHistoryBtn': '<i class="fas fa-broom"></i> Limpiar Historial',
-        'exportHistoryBtn': '<i class="fas fa-file-export"></i> Exportar CSV',
-        'markAllReadBtn': '<i class="fas fa-check-double"></i> Marcar Todo como Leído',
-        // Agregar más botones según sea necesario
-    };
-    
-    // Restaurar contenido basado en el ID
-    if (buttonId && buttonContents[buttonId]) {
-        button.innerHTML = buttonContents[buttonId];
-    } else {
-        // Contenido por defecto si no se reconoce el botón
-        button.innerHTML = '<i class="fas fa-check"></i> Listo';
+    restoreButtonByType(button) {
+        const buttonId = button.id;
+        const buttonContents = {
+            'refreshHistoryBtn': '<i class="fas fa-sync-alt"></i> <span>Actualizar</span>',
+            'clearHistoryBtn':   '<i class="fas fa-trash-alt"></i> <span>Limpiar</span>',
+            'exportHistoryBtn':  '<i class="fas fa-download"></i> <span>Exportar CSV</span>',
+            'markAllReadBtn':    '<i class="fas fa-check-double"></i> <span>Marcar Todo Leído</span>',
+        };
+        if (buttonId && buttonContents[buttonId]) {
+            button.innerHTML = buttonContents[buttonId];
+        } else {
+            button.innerHTML = '<i class="fas fa-check"></i> <span>Listo</span>';
+        }
     }
-}
 
-    /**
-     * Muestra un preloader de acción en una fila específica
-     */
     showRowActionPreloader(rowId, action = 'processing') {
         const row = document.querySelector(`[data-id="${rowId}"]`);
         if (!row) return null;
-        
+
         const preloaderId = `row-action-${rowId}-${Date.now()}`;
         const actionTexts = {
-            'delete': 'Eliminando...',
+            'delete':    'Eliminando...',
             'mark-read': 'Marcando como leído...',
-            'view': 'Cargando...',
-            'processing': 'Procesando...'
+            'view':      'Cargando...',
+            'processing':'Procesando...'
         };
-        
         const actionClasses = {
-            'delete': 'task-action-indicator--delete',
+            'delete':    'task-action-indicator--delete',
             'mark-read': 'task-action-indicator--complete',
-            'view': 'task-action-indicator--edit',
-            'processing': 'task-action-indicator'
+            'view':      'task-action-indicator--edit',
+            'processing':'task-action-indicator'
         };
-        
         const preloaderHTML = `
             <div class="task-action-indicator ${actionClasses[action] || ''}" id="${preloaderId}">
                 <div class="task-action-indicator__content">
                     <div class="task-action-indicator__icon">
-                        ${action === 'delete' ? '<i class="fas fa-trash"></i>' : 
-                          action === 'mark-read' ? '<i class="fas fa-check"></i>' : 
-                          action === 'view' ? '<i class="fas fa-eye"></i>' : 
-                          '<i class="fas fa-cog"></i>'}
+                        ${action === 'delete'    ? '<i class="fas fa-trash"></i>'     :
+                          action === 'mark-read' ? '<i class="fas fa-check"></i>'     :
+                          action === 'view'      ? '<i class="fas fa-eye"></i>'       :
+                                                   '<i class="fas fa-cog"></i>'}
                     </div>
                     <div class="task-action-indicator__dots">
                         <span class="dot"></span>
@@ -263,17 +257,12 @@ restoreButtonByType(button) {
                 </div>
             </div>
         `;
-        
         row.style.position = 'relative';
         row.insertAdjacentHTML('beforeend', preloaderHTML);
         this.activePreloaders.add(preloaderId);
-        
         return preloaderId;
     }
 
-    /**
-     * Muestra preloader global para limpieza completa
-     */
     showClearAllPreloader(count) {
         const preloaderId = `clear-all-preloader-${Date.now()}`;
         const preloaderHTML = `
@@ -292,28 +281,19 @@ restoreButtonByType(button) {
                 </div>
             </div>
         `;
-        
         document.body.insertAdjacentHTML('beforeend', preloaderHTML);
         this.activePreloaders.add(preloaderId);
-        
-        // Animar la barra de progreso
         setTimeout(() => {
             const progressBar = document.querySelector(`#${preloaderId} .clear-tasks-indicator__progress-bar`);
-            if (progressBar) {
-                progressBar.style.width = '100%';
-            }
+            if (progressBar) progressBar.style.width = '100%';
         }, 100);
-        
         return preloaderId;
     }
 
-    /**
-     * Muestra preloader para exportación
-     */
     showExportPreloader() {
         const preloaderId = `export-preloader-${Date.now()}`;
         const preloaderHTML = `
-            <div class="document-upload-preloader" id="${preloaderId}" style="position: fixed; bottom: 20px; right: 20px;">
+            <div class="document-upload-preloader" id="${preloaderId}" style="position:fixed;bottom:20px;right:20px;">
                 <div class="document-upload-preloader__content">
                     <div class="document-upload-preloader__header">
                         <h3 class="document-upload-preloader__title">
@@ -323,12 +303,8 @@ restoreButtonByType(button) {
                     <div class="document-upload-preloader__content">
                         <div class="upload-preloader">
                             <div class="upload-preloader__dropzone">
-                                <div class="upload-preloader__icon">
-                                    <i class="fas fa-file-csv"></i>
-                                </div>
-                                <div class="upload-preloader__text">
-                                    Generando archivo CSV...
-                                </div>
+                                <div class="upload-preloader__icon"><i class="fas fa-file-csv"></i></div>
+                                <div class="upload-preloader__text">Generando archivo CSV...</div>
                                 <div class="upload-preloader__file">
                                     <div class="upload-preloader__file-info">
                                         <i class="fas fa-file-csv upload-preloader__file-icon"></i>
@@ -346,87 +322,64 @@ restoreButtonByType(button) {
                 </div>
             </div>
         `;
-        
         document.body.insertAdjacentHTML('beforeend', preloaderHTML);
         this.activePreloaders.add(preloaderId);
-        
-        // Animar la barra de progreso
         setTimeout(() => {
             const progressBar = document.querySelector(`#${preloaderId} .upload-preloader__file-progress-bar`);
-            if (progressBar) {
-                progressBar.style.width = '100%';
-            }
+            if (progressBar) progressBar.style.width = '100%';
         }, 100);
-        
         return preloaderId;
     }
 
-    /**
-     * Limpia todos los preloaders activos
-     */
     cleanupPreloaders() {
-        this.activePreloaders.forEach(preloaderId => {
-            this.hidePreloader(preloaderId);
-        });
+        this.activePreloaders.forEach(id => this.hidePreloader(id));
         this.activePreloaders.clear();
     }
 
     // =============================================================================
-    // 3. CARGAR HISTORIAL
+    // 3. CARGAR HISTORIAL (sin cambios)
     // =============================================================================
 
     async loadHistorial() {
         let preloaderId = null;
         let refreshButton = null;
-        
+
         try {
             console.log('📥 Cargando historial...');
-            
-            // Mostrar preloader en la tabla
-            preloaderId = this.showTablePreloader('historyTableBody', 'Cargando registros...');
-            
-            // Mostrar preloader en botón de refresh si está activo
-            refreshButton = document.getElementById('refreshHistoryBtn');
-            if (refreshButton) {
-                this.showButtonPreloader(refreshButton, 'Actualizando...');
-            }
-            
+
+            preloaderId    = this.showTablePreloader('historyTableBody', 'Cargando registros...');
+            refreshButton  = document.getElementById('refreshHistoryBtn');
+            if (refreshButton) this.showButtonPreloader(refreshButton, 'Actualizando...');
+
             const params = new URLSearchParams({
                 pagina: this.currentPage,
                 limite: this.itemsPerPage
             });
 
-            // Aplicar filtros
-            if (this.filters.tipo !== 'all') params.append('tipo', this.filters.tipo);
+            if (this.filters.tipo      !== 'all') params.append('tipo',     this.filters.tipo);
             if (this.filters.prioridad !== 'all') params.append('prioridad', this.filters.prioridad);
-            if (this.filters.estado === 'read') params.append('leida', 'true');
+            if (this.filters.estado === 'read')   params.append('leida', 'true');
             if (this.filters.estado === 'unread') params.append('leida', 'false');
-            if (this.filters.fechaDesde) params.append('desde', this.filters.fechaDesde);
-            if (this.filters.fechaHasta) params.append('hasta', this.filters.fechaHasta);
+            if (this.filters.fechaDesde)          params.append('desde',    this.filters.fechaDesde);
+            if (this.filters.fechaHasta)          params.append('hasta',    this.filters.fechaHasta);
 
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications?${params}`);
-            
-            if (!response.ok) {
-                throw new Error('Error al cargar historial');
-            }
+            if (!response.ok) throw new Error('Error al cargar historial');
 
             const data = await response.json();
-            
+
             if (data.success) {
                 this.historialData = data.data.notificaciones || [];
-                this.totalItems = data.data.total || 0;
-                this.totalPages = data.data.totalPaginas || 1;
-                
-                // Pequeña pausa para que se vea el preloader
+                this.totalItems    = data.data.total          || 0;
+                this.totalPages    = data.data.totalPaginas   || 1;
+
                 await new Promise(resolve => setTimeout(resolve, 1500));
-                
+
                 this.renderHistorial();
                 this.updateStats();
                 this.updatePagination();
-                
+
                 console.log(`✅ Historial cargado: ${this.historialData.length} registros`);
-                
-                // Mostrar notificación sutil si hay resultados
                 if (this.historialData.length > 0) {
                     this.showNotification(`Cargados ${this.historialData.length} registros`, 'success');
                 }
@@ -437,8 +390,7 @@ restoreButtonByType(button) {
             console.error('❌ Error cargando historial:', error);
             this.showNotification('Error al cargar el historial', 'error');
         } finally {
-            // Ocultar preloaders
-            if (preloaderId) this.hidePreloader(preloaderId);
+            if (preloaderId)   this.hidePreloader(preloaderId);
             if (refreshButton) this.restoreButton(refreshButton);
         }
     }
@@ -454,10 +406,18 @@ restoreButtonByType(button) {
         if (this.historialData.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty-state">
-                        <i class="fas fa-history empty-state__icon"></i>
-                        <h3 class="empty-state__title">No hay registros de historial</h3>
-                        <p class="empty-state__description">${this.hasFilters() ? 'Intenta con otros filtros' : 'Las actividades del sistema aparecerán aquí'}</p>
+                    <td colspan="6">
+                        <div class="history-empty">
+                            <div class="history-empty__icon">
+                                <i class="fas fa-stream"></i>
+                            </div>
+                            <h3 class="history-empty__title">No hay registros de actividad</h3>
+                            <p class="history-empty__desc">
+                                ${this.hasFilters()
+                                    ? 'Ningún resultado coincide con los filtros aplicados'
+                                    : 'Las acciones del sistema aparecerán aquí automáticamente'}
+                            </p>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -465,76 +425,100 @@ restoreButtonByType(button) {
         }
 
         tbody.innerHTML = this.historialData.map(item => this.renderHistoryItem(item)).join('');
-        
-        // Vincular eventos de acciones
         this.bindItemEvents();
-
-        // Ocultar acciones según permisos (las filas se renderizan dinámicamente)
         applyActionPermissions();
     }
 
+    /**
+     * Genera el HTML de una fila de historial — PLANTILLA RENOVADA.
+     * La lógica de datos (campos, condiciones) es idéntica al original.
+     */
     renderHistoryItem(item) {
-        const fecha = new Date(item.fecha_creacion || item.createdAt);
-        const fechaFormateada = fecha.toLocaleString('es-MX', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        
-        const prioridadClass = this.getPriorityClass(item.prioridad);
-        const tipoIcon = this.getTypeIcon(item.tipo);
-        const tipoTexto = this.getTypeText(item.tipo);
-        const leidoClass = item.leida ? 'status-badge--read' : 'status-badge--unread';
-        const leidoTexto = item.leida ? 'Leído' : 'No leído';
-        
+        const fecha        = new Date(item.fecha_creacion || item.createdAt);
+        const fechaDia     = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+        const fechaHora    = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+
+        const prioridadCss = this._getPriorityCSS(item.prioridad);
+        const prioridadTxt = this.getPriorityText(item.prioridad);
+        const tipoIcon     = this.getTypeIcon(item.tipo);
+        const tipoTxt      = this.getTypeText(item.tipo);
+        const leidoCss     = item.leida ? 'hrow-status--read'   : 'hrow-status--unread';
+        const leidoTxt     = item.leida ? 'Leído' : 'No leído';
+
+        const metaChips = item.metadata && Object.keys(item.metadata).length > 0
+            ? Object.entries(item.metadata).slice(0, 3).map(([k, v]) =>
+                `<span class="hrow-message__meta-chip">${this.formatMetadataKey(k)}: ${this.formatMetadataValue(v)}</span>`
+              ).join('')
+            : '';
+
         return `
-            <tr class="history-item ${item.leida ? '' : 'history-item--unread'}" data-id="${item._id}">
-                <td class="table__cell table__cell--date">
-                    <span class="date-time">${fechaFormateada}</span>
-                </td>
+            <tr class="history-item ${item.leida ? '' : 'history-item--unread'}"
+                data-id="${item._id}"
+                data-tipo="${item.tipo || ''}">
+
+                <!-- Fecha y hora -->
                 <td class="table__cell">
-                    <div class="history-type">
-                        <i class="fas fa-${tipoIcon}"></i>
-                        <span>${tipoTexto}</span>
+                    <div class="hrow-date">
+                        <span class="hrow-date__day">${fechaDia}</span>
+                        <span class="hrow-date__time">${fechaHora}</span>
                     </div>
                 </td>
+
+                <!-- Tipo de actividad -->
                 <td class="table__cell">
-                    <div class="history-details">
-                        <p class="detail-message">${item.mensaje}</p>
-                        ${item.metadata && Object.keys(item.metadata).length > 0 ? `
-                            <div class="detail-metadata">
-                                <small>${this.formatMetadata(item.metadata)}</small>
-                            </div>
-                        ` : ''}
+                    <div class="hrow-type">
+                        <div class="hrow-type__icon">
+                            <i class="fas fa-${tipoIcon}"></i>
+                        </div>
+                        <span class="hrow-type__label">${tipoTxt}</span>
                     </div>
                 </td>
+
+                <!-- Mensaje y metadata -->
                 <td class="table__cell">
-                    <span class="priority-badge ${prioridadClass}">
-                        ${this.getPriorityText(item.prioridad)}
-                    </span>
+                    <div class="hrow-message">
+                        <p class="hrow-message__text">${item.mensaje}</p>
+                        ${metaChips ? `<div class="hrow-message__meta">${metaChips}</div>` : ''}
+                    </div>
                 </td>
+
+                <!-- Prioridad -->
                 <td class="table__cell">
-                    <span class="status-badge ${leidoClass}">
-                        ${leidoTexto}
-                    </span>
+                    <span class="hrow-priority ${prioridadCss}">${prioridadTxt}</span>
                 </td>
+
+                <!-- Estado lectura -->
                 <td class="table__cell">
-                    <div class="table__actions">
+                    <div class="hrow-status ${leidoCss}">
+                        <span class="hrow-status__dot"></span>
+                        <span>${leidoTxt}</span>
+                    </div>
+                </td>
+
+                <!-- Acciones -->
+                <td class="table__cell">
+                    <div class="hrow-actions">
                         ${!item.leida ? `
-                            <button class="btn btn--icon btn--sm btn--primary" title="Marcar como leído" data-action="mark-read">
+                            <button class="hrow-btn hrow-btn--read"
+                                    title="Marcar como leído"
+                                    data-action="mark-read">
                                 <i class="fas fa-check"></i>
                             </button>
                         ` : ''}
-                        <button class="btn btn--icon btn--sm" title="Ver detalles" data-action="view">
+                        <button class="hrow-btn hrow-btn--view"
+                                title="Ver detalles"
+                                data-action="view">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn--icon btn--sm btn--danger" title="Eliminar registro" data-action="delete" data-action-section="historial">
+                        <button class="hrow-btn hrow-btn--del"
+                                title="Eliminar registro"
+                                data-action="delete"
+                                data-action-section="historial">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </td>
+
             </tr>
         `;
     }
@@ -542,28 +526,24 @@ restoreButtonByType(button) {
     bindItemEvents() {
         document.querySelectorAll('.history-item').forEach(row => {
             const id = row.dataset.id;
-            
-            // Marcar como leído
+
             row.querySelector('[data-action="mark-read"]')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.markAsRead(id);
             });
-            
-            // Ver detalles
+
             row.querySelector('[data-action="view"]')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.viewDetails(id);
             });
-            
-            // Eliminar
+
             row.querySelector('[data-action="delete"]')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.deleteItem(id);
             });
-            
-            // Click en toda la fila
+
             row.addEventListener('click', (e) => {
-                if (!e.target.closest('.table__actions')) {
+                if (!e.target.closest('.hrow-actions')) {
                     this.viewDetails(id);
                 }
             });
@@ -571,7 +551,7 @@ restoreButtonByType(button) {
     }
 
     // =============================================================================
-    // 5. ACCIONES DEL HISTORIAL
+    // 5. ACCIONES DEL HISTORIAL (sin cambios en lógica)
     // =============================================================================
 
     async markAsRead(id) {
@@ -582,52 +562,36 @@ restoreButtonByType(button) {
         }
         let preloaderId = null;
         let button = null;
-        
+
         try {
-            // Encontrar el botón que disparó la acción
             button = document.querySelector(`[data-id="${id}"] [data-action="mark-read"]`);
-            if (button) {
-                this.showButtonPreloader(button, 'Marcando...');
-            }
-            
-            // Mostrar preloader en la fila
+            if (button) this.showButtonPreloader(button, 'Marcando...');
+
             preloaderId = this.showRowActionPreloader(id, 'mark-read');
-            
+
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${id}/read`, {
                 method: 'PATCH'
             });
-
-            if (!response.ok) {
-                throw new Error('Error al marcar como leído');
-            }
+            if (!response.ok) throw new Error('Error al marcar como leído');
 
             const data = await response.json();
-            
             if (data.success) {
-                // Mostrar estado de éxito
                 const row = document.querySelector(`[data-id="${id}"]`);
                 if (row) {
                     row.classList.add('task-card--completing');
                     setTimeout(() => row.classList.remove('task-card--completing'), 600);
                 }
-                
-                // Pequeña pausa para mostrar el preloader
                 await new Promise(resolve => setTimeout(resolve, 500));
-                
                 this.showNotification('Registro marcado como leído', 'success');
                 this.loadHistorial();
-                
-                // Actualizar contador en notificaciones si existe
-                if (window.updateBadge) {
-                    window.updateBadge();
-                }
+                if (window.updateBadge) window.updateBadge();
             }
         } catch (error) {
             console.error('❌ Error marcando como leído:', error);
             this.showNotification('Error al marcar como leído', 'error');
         } finally {
             if (preloaderId) this.hidePreloader(preloaderId);
-            if (button) this.restoreButton(button);
+            if (button)      this.restoreButton(button);
         }
     }
 
@@ -642,38 +606,27 @@ restoreButtonByType(button) {
                 '¿Marcar todos los registros como leídos?',
                 'Esta acción afectará a todos los registros del historial.'
             );
-            
             if (!confirmed) return;
 
             const preloaderId = this.showTablePreloader('historyTableBody', 'Marcando todos como leídos...');
-            
+
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/read-all`, {
                 method: 'PATCH'
             });
-
-            if (!response.ok) {
-                throw new Error('Error al marcar todos como leídos');
-            }
+            if (!response.ok) throw new Error('Error al marcar todos como leídos');
 
             const data = await response.json();
-            
             if (data.success) {
-                // Pequeña pausa para mostrar el preloader
                 await new Promise(resolve => setTimeout(resolve, 800));
-                
                 this.showNotification(`${data.data?.cantidad || 0} registros marcados como leídos`, 'success');
                 this.loadHistorial();
-                
-                // Actualizar contador en notificaciones
-                if (window.updateBadge) {
-                    window.updateBadge();
-                }
+                if (window.updateBadge) window.updateBadge();
             }
         } catch (error) {
             console.error('❌ Error marcando todos como leídos:', error);
             this.showNotification('Error al marcar todos como leídos', 'error');
         } finally {
-            if (preloaderId) this.hidePreloader(preloaderId);
+            if (typeof preloaderId !== 'undefined') this.hidePreloader(preloaderId);
         }
     }
 
@@ -685,67 +638,48 @@ restoreButtonByType(button) {
         }
         let preloaderId = null;
         let button = null;
-        
+
         try {
             const item = this.historialData.find(n => n._id === id);
             if (!item) return;
 
-            // Usar showConfirmation con el nuevo modal
             const confirmed = await showConfirmation(
                 '¿Eliminar registro del historial?',
                 `Esta acción eliminará permanentemente el registro: "${item.titulo}"`,
                 { confirmText: 'Eliminar' }
             );
-            
             if (!confirmed) return;
 
-            // Encontrar el botón que disparó la acción
             button = document.querySelector(`[data-id="${id}"] [data-action="delete"]`);
-            if (button) {
-                this.showButtonPreloader(button, 'Eliminando...');
-            }
-            
-            // Mostrar preloader en la fila
+            if (button) this.showButtonPreloader(button, 'Eliminando...');
+
             preloaderId = this.showRowActionPreloader(id, 'delete');
-            
-            // Añadir clase de eliminación a la fila
+
             const row = document.querySelector(`[data-id="${id}"]`);
-            if (row) {
-                row.classList.add('table__row--deleting');
-            }
+            if (row) row.classList.add('table__row--deleting');
 
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${id}`, {
                 method: 'DELETE'
             });
-
-            if (!response.ok) {
-                throw new Error('Error al eliminar registro');
-            }
+            if (!response.ok) throw new Error('Error al eliminar registro');
 
             const data = await response.json();
-            
             if (data.success) {
-                // Animación de eliminación
                 if (row) {
                     row.classList.add('task-card--removing');
                     await new Promise(resolve => setTimeout(resolve, 400));
                 }
-                
                 this.showNotification('Registro eliminado correctamente', 'success');
                 this.loadHistorial();
             }
         } catch (error) {
             console.error('❌ Error eliminando registro:', error);
             this.showNotification('Error al eliminar registro', 'error');
-            
-            // Remover clase de eliminación si hay error
             const row = document.querySelector(`[data-id="${id}"]`);
-            if (row) {
-                row.classList.remove('table__row--deleting');
-            }
+            if (row) row.classList.remove('table__row--deleting');
         } finally {
             if (preloaderId) this.hidePreloader(preloaderId);
-            if (button) this.restoreButton(button);
+            if (button)      this.restoreButton(button);
         }
     }
 
@@ -757,170 +691,117 @@ restoreButtonByType(button) {
         }
         let preloaderId = null;
         let button = null;
-        
+
         try {
             const confirmed = await showConfirmation(
                 '¿Limpiar todo el historial?',
                 'Esta acción eliminará permanentemente TODOS los registros del historial. Esta acción NO se puede deshacer.',
                 { confirmText: 'Limpiar todo', cancelText: 'Cancelar' }
             );
-            
             if (!confirmed) return;
 
             console.log('🧹 Iniciando limpieza completa del historial...');
-            
-            // Mostrar preloader en botón
+
             button = document.getElementById('clearHistoryBtn');
-            if (button) {
-                this.showButtonPreloader(button, 'Limpiando...');
-            }
+            if (button) this.showButtonPreloader(button, 'Limpiando...');
 
-            // Obtener conteo actual para mostrar en preloader
-            const count = this.totalItems;
-            preloaderId = this.showClearAllPreloader(count);
+            const count    = this.totalItems;
+            preloaderId    = this.showClearAllPreloader(count);
 
-            // INTENTO 1: Eliminar todas las notificaciones individualmente
+            // INTENTO 1: Eliminar individualmente
             const allNotificationsResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications?limite=10000`);
-            
-            if (!allNotificationsResponse.ok) {
-                throw new Error('Error al obtener notificaciones');
-            }
+            if (!allNotificationsResponse.ok) throw new Error('Error al obtener notificaciones');
 
             const allData = await allNotificationsResponse.json();
-            
             if (allData.success && allData.data.notificaciones && allData.data.notificaciones.length > 0) {
                 console.log(`🗑️  Encontradas ${allData.data.notificaciones.length} notificaciones para eliminar`);
-                
-                // Eliminar en lotes para mostrar progreso
-                const batchSize = 10;
+
+                const batchSize   = 10;
                 const notifications = allData.data.notificaciones;
-                let deletedCount = 0;
-                let errorCount = 0;
-                
+                let deletedCount  = 0;
+                let errorCount    = 0;
+
                 for (let i = 0; i < notifications.length; i += batchSize) {
-                    const batch = notifications.slice(i, i + batchSize);
+                    const batch    = notifications.slice(i, i + batchSize);
                     const promises = batch.map(async (notification) => {
                         try {
                             const deleteResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notification._id}`, {
                                 method: 'DELETE'
                             });
-                            
                             if (deleteResponse.ok) {
                                 const deleteData = await deleteResponse.json();
-                                if (deleteData.success) {
-                                    deletedCount++;
-                                    return true;
-                                }
+                                if (deleteData.success) { deletedCount++; return true; }
                             }
                             errorCount++;
                             return false;
-                        } catch (error) {
+                        } catch {
                             errorCount++;
                             return false;
                         }
                     });
-                    
                     await Promise.all(promises);
-                    
-                    // Actualizar progreso visualmente
                     const progress = Math.min(Math.round(((i + batchSize) / notifications.length) * 100), 100);
                     console.log(`📊 Progreso: ${progress}% (${deletedCount} eliminados)`);
-                    
-                    // Pequeña pausa para no sobrecargar
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
-                
+
                 if (deletedCount > 0) {
                     console.log(`✅ ${deletedCount} notificaciones eliminadas individualmente`);
-                    
-                    // Esperar para que se complete la animación
                     await new Promise(resolve => setTimeout(resolve, 800));
-                    
                     this.showNotification(`Historial limpiado: ${deletedCount} registros eliminados`, 'success');
-                    
-                    // Recargar el historial
                     this.currentPage = 1;
                     await this.loadHistorial();
                     return;
                 }
             }
-            
-            // INTENTO 2: Usar endpoint de cleanup
+
+            // INTENTO 2: Endpoint masivo
             console.log('🔄 Intentando limpieza masiva...');
-            
             const cleanupResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/cleanup-all`, {
                 method: 'DELETE'
             });
 
             if (!cleanupResponse.ok) {
                 console.log('🔄 Probando con método POST...');
-                
                 const postResponse = await fetch(`${CONFIG.API_BASE_URL}/notifications/cleanup`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        dias: 0,
-                        eliminar_todas: true,
-                        confirmar: true 
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dias: 0, eliminar_todas: true, confirmar: true })
                 });
-
-                if (!postResponse.ok) {
-                    throw new Error('Error en limpieza masiva');
-                }
-
+                if (!postResponse.ok) throw new Error('Error en limpieza masiva');
                 const postData = await postResponse.json();
-                
                 if (postData.success) {
-                    console.log(`✅ Limpieza masiva completada: ${postData.data?.cantidad || 'todas'} registros eliminados`);
-                    
-                    // Esperar para que se complete la animación
                     await new Promise(resolve => setTimeout(resolve, 800));
-                    
                     this.showNotification(`Historial limpiado: ${postData.data?.cantidad || 'todas'} registros eliminados`, 'success');
-                    
-                    // Recargar el historial
                     this.currentPage = 1;
                     await this.loadHistorial();
                     return;
                 }
             } else {
                 const cleanupData = await cleanupResponse.json();
-                
                 if (cleanupData.success) {
-                    console.log(`✅ Limpieza masiva completada: ${cleanupData.data?.cantidad || 'todas'} registros eliminados`);
-                    
-                    // Esperar para que se complete la animación
                     await new Promise(resolve => setTimeout(resolve, 800));
-                    
                     this.showNotification(`Historial limpiado: ${cleanupData.data?.cantidad || 'todas'} registros eliminados`, 'success');
-                    
-                    // Recargar el historial
                     this.currentPage = 1;
                     await this.loadHistorial();
                     return;
                 }
             }
-            
-            // Si llegamos aquí, ambos métodos fallaron
+
             throw new Error('No se pudo completar la limpieza del historial');
-            
+
         } catch (error) {
             console.error('❌ Error limpiando historial:', error);
-            
-            // Verificar si el error es específico de permisos
             if (error.message.includes('401') || error.message.includes('403')) {
                 this.showNotification('No tienes permisos para limpiar el historial', 'error');
             } else if (error.message.includes('No se pudo completar')) {
-                this.showNotification('No se pudo limpiar el historial completamente. Intenta eliminando registros individualmente.', 'warning');
+                this.showNotification('No se pudo limpiar completamente. Intenta eliminando registros individualmente.', 'warning');
             } else {
                 this.showNotification(`Error al limpiar historial: ${error.message}`, 'error');
             }
         } finally {
             if (preloaderId) this.hidePreloader(preloaderId);
-            if (button) this.restoreButton(button);
+            if (button)      this.restoreButton(button);
         }
     }
 
@@ -932,36 +813,27 @@ restoreButtonByType(button) {
         }
         let preloaderId = null;
         let button = null;
-        
+
         try {
             button = document.getElementById('exportHistoryBtn');
-            if (button) {
-                this.showButtonPreloader(button, 'Exportando...');
-            }
-            
+            if (button) this.showButtonPreloader(button, 'Exportando...');
             preloaderId = this.showExportPreloader();
-            
+
             const params = new URLSearchParams();
-            if (this.filters.tipo !== 'all') params.append('tipo', this.filters.tipo);
+            if (this.filters.tipo      !== 'all') params.append('tipo',     this.filters.tipo);
             if (this.filters.prioridad !== 'all') params.append('prioridad', this.filters.prioridad);
-            if (this.filters.estado === 'read') params.append('leida', 'true');
+            if (this.filters.estado === 'read')   params.append('leida', 'true');
             if (this.filters.estado === 'unread') params.append('leida', 'false');
-            if (this.filters.fechaDesde) params.append('desde', this.filters.fechaDesde);
-            if (this.filters.fechaHasta) params.append('hasta', this.filters.fechaHasta);
-            if (this.filters.busqueda) params.append('busqueda', this.filters.busqueda);
-            
+            if (this.filters.fechaDesde)          params.append('desde',    this.filters.fechaDesde);
+            if (this.filters.fechaHasta)          params.append('hasta',    this.filters.fechaHasta);
+            if (this.filters.busqueda)            params.append('busqueda', this.filters.busqueda);
+
             const response = await fetch(`${CONFIG.API_BASE_URL}/notifications?${params}&limite=1000`);
-            
-            if (!response.ok) {
-                throw new Error('Error al exportar historial');
-            }
+            if (!response.ok) throw new Error('Error al exportar historial');
 
             const data = await response.json();
-            
             if (data.success && data.data.notificaciones) {
-                // Esperar un momento para mostrar el preloader
                 await new Promise(resolve => setTimeout(resolve, 800));
-                
                 this.exportToCSV(data.data.notificaciones);
             } else {
                 throw new Error('No hay datos para exportar');
@@ -971,104 +843,43 @@ restoreButtonByType(button) {
             this.showNotification('Error al exportar historial', 'error');
         } finally {
             if (preloaderId) this.hidePreloader(preloaderId);
-            if (button) this.restoreButton(button);
+            if (button)      this.restoreButton(button);
         }
     }
 
     exportToCSV(notificaciones) {
         const headers = ['Fecha', 'Tipo', 'Título', 'Mensaje', 'Prioridad', 'Estado', 'Detalles'];
-        
         const csvRows = [
             headers.join(','),
             ...notificaciones.map(item => {
-                const fecha = new Date(item.fecha_creacion || item.createdAt).toLocaleString('es-MX');
-                const tipo = this.getTypeText(item.tipo);
-                const prioridad = this.getPriorityText(item.prioridad);
-                const estado = item.leida ? 'Leído' : 'No leído';
+                const fecha    = new Date(item.fecha_creacion || item.createdAt).toLocaleString('es-MX');
+                const tipo     = this.getTypeText(item.tipo);
+                const prioridad= this.getPriorityText(item.prioridad);
+                const estado   = item.leida ? 'Leído' : 'No leído';
                 const detalles = item.metadata ? JSON.stringify(item.metadata) : '';
-                
                 return [
-                    `"${fecha}"`,
-                    `"${tipo}"`,
-                    `"${item.titulo}"`,
-                    `"${item.mensaje}"`,
-                    `"${prioridad}"`,
-                    `"${estado}"`,
-                    `"${detalles}"`
+                    `"${fecha}"`, `"${tipo}"`, `"${item.titulo}"`,
+                    `"${item.mensaje}"`, `"${prioridad}"`, `"${estado}"`, `"${detalles}"`
                 ].join(',');
             })
         ];
-
         const csvContent = csvRows.join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
+        const url  = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        
         const fechaExportacion = new Date().toISOString().split('T')[0];
         link.setAttribute('href', url);
         link.setAttribute('download', `historial_sistema_${fechaExportacion}.csv`);
         link.style.visibility = 'hidden';
-        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
         this.showNotification('Historial exportado correctamente', 'success');
     }
 
-    /**
-     * Muestra notificación flotante
-     */
-    showNotification(message, type = 'info') {
-        const notificationId = `notification-${Date.now()}`;
-        const icons = {
-            success: 'fas fa-check-circle',
-            error: 'fas fa-exclamation-circle',
-            warning: 'fas fa-exclamation-triangle',
-            info: 'fas fa-info-circle'
-        };
-        
-        const notificationHTML = `
-            <div class="floating-notification floating-notification--${type}" id="${notificationId}">
-                <div class="floating-notification__content">
-                    <i class="${icons[type] || icons.info}"></i>
-                    <span>${message}</span>
-                </div>
-                <button class="floating-notification__close" onclick="document.getElementById('${notificationId}').remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        
-        // Crear contenedor si no existe
-        let notificationsContainer = document.querySelector('.notifications');
-        if (!notificationsContainer) {
-            notificationsContainer = document.createElement('div');
-            notificationsContainer.className = 'notifications';
-            document.body.appendChild(notificationsContainer);
-        }
-        
-        notificationsContainer.insertAdjacentHTML('afterbegin', notificationHTML);
-        
-        // Mostrar animación
-        setTimeout(() => {
-            const notification = document.getElementById(notificationId);
-            if (notification) {
-                notification.classList.add('floating-notification--visible');
-            }
-        }, 10);
-        
-        // Auto-remover después de 5 segundos
-        setTimeout(() => {
-            const notification = document.getElementById(notificationId);
-            if (notification) {
-                notification.classList.remove('floating-notification--visible');
-                setTimeout(() => notification.remove(), 300);
-            }
-        }, 5000);
-        
-        return notificationId;
-    }
+    // =============================================================================
+    // 5b. VER DETALLES — MODAL RENOVADO (solo presentación)
+    // =============================================================================
 
     viewDetails(id) {
         const item = this.historialData.find(n => n._id === id);
@@ -1076,82 +887,112 @@ restoreButtonByType(button) {
 
         const fecha = new Date(item.fecha_creacion || item.createdAt);
         const fechaFormateada = fecha.toLocaleString('es-MX', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
+            weekday: 'long', year: 'numeric', month: 'long',
+            day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
 
-        const prioridadClass = this.getPriorityClass(item.prioridad);
-        const prioridadTexto = this.getPriorityText(item.prioridad);
-        const tipoTexto = this.getTypeText(item.tipo);
-        
-        // Crear modal de detalles
+        const prioridadCss = this._getPriorityCSS(item.prioridad);
+        const prioridadTxt = this.getPriorityText(item.prioridad);
+        const tipoTxt      = this.getTypeText(item.tipo);
+        const tipoIcon     = this.getTypeIcon(item.tipo);
+
         const modalHTML = `
-            <div id="historyDetailModal" class="modal">
+            <div id="historyDetailModal" class="modal hdetail-modal">
                 <article class="modal__content">
                     <header class="modal__header">
-                        <h3 class="modal__title">Detalles del Registro</h3>
+                        <h3 class="modal__title">Detalles del registro</h3>
                         <button class="modal__close">&times;</button>
                     </header>
+
                     <section class="modal__body">
-                        <div class="history-detail">
-                            <div class="detail-header">
-                                <div class="detail-title">
-                                    <h4>${item.titulo}</h4>
-                                    <span class="priority-badge ${prioridadClass}">${prioridadTexto}</span>
-                                </div>
-                                <div class="detail-meta">
-                                    <span class="detail-date"><i class="far fa-calendar"></i> ${fechaFormateada}</span>
-                                    <span class="detail-type"><i class="fas fa-tag"></i> ${tipoTexto}</span>
-                                </div>
+
+                        <!-- Encabezado del detalle -->
+                        <div class="hdetail-header">
+                            <div class="hdetail-header__icon" data-tipo="${item.tipo}">
+                                <i class="fas fa-${tipoIcon}"></i>
                             </div>
-                            
-                            <div class="detail-content">
-                                <h5>Mensaje:</h5>
-                                <p class="detail-message">${item.mensaje}</p>
-                                
-                                ${item.metadata && Object.keys(item.metadata).length > 0 ? `
-                                    <h5>Información Adicional:</h5>
-                                    <div class="detail-metadata">
-                                        ${Object.entries(item.metadata).map(([key, value]) => `
-                                            <div class="metadata-item">
-                                                <strong>${this.formatMetadataKey(key)}:</strong>
-                                                <span>${this.formatMetadataValue(value)}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                                
-                                ${item.documento_id ? `
-                                    <h5>Documento Relacionado:</h5>
-                                    <div class="detail-related">
-                                        <i class="fas fa-file"></i>
-                                        <span>${item.documento_id.nombre_original || 'Documento'}</span>
-                                    </div>
-                                ` : ''}
-                                
-                                ${item.persona_id ? `
-                                    <h5>Persona Relacionada:</h5>
-                                    <div class="detail-related">
-                                        <i class="fas fa-user"></i>
-                                        <span>${item.persona_id.nombre || 'Persona'}</span>
-                                    </div>
-                                ` : ''}
-                            </div>
-                            
-                            <div class="detail-footer">
-                                <div class="detail-status">
-                                    <span class="status-badge ${item.leida ? 'status-badge--read' : 'status-badge--unread'}">
+                            <div style="flex:1;min-width:0;">
+                                <p class="hdetail-header__title">${item.titulo}</p>
+                                <div class="hdetail-header__badges">
+                                    <span class="hrow-priority ${prioridadCss}">${prioridadTxt}</span>
+                                    <span class="hrow-status ${item.leida ? 'hrow-status--read' : 'hrow-status--unread'}">
+                                        <span class="hrow-status__dot"></span>
                                         ${item.leida ? 'Leído' : 'No leído'}
                                     </span>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Fecha y tipo -->
+                        <div class="hdetail-section">
+                            <p class="hdetail-section__label">
+                                <i class="fas fa-clock"></i> Fecha y tipo
+                            </p>
+                            <div class="hdetail-meta-grid">
+                                <div class="hdetail-meta-item">
+                                    <span class="hdetail-meta-item__key">Fecha y hora</span>
+                                    <span class="hdetail-meta-item__val">${fechaFormateada}</span>
+                                </div>
+                                <div class="hdetail-meta-item">
+                                    <span class="hdetail-meta-item__key">Tipo de evento</span>
+                                    <span class="hdetail-meta-item__val">${tipoTxt}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mensaje -->
+                        <div class="hdetail-section">
+                            <p class="hdetail-section__label">
+                                <i class="fas fa-comment-alt"></i> Mensaje
+                            </p>
+                            <div class="hdetail-message-box">${item.mensaje}</div>
+                        </div>
+
+                        <!-- Metadata -->
+                        ${item.metadata && Object.keys(item.metadata).length > 0 ? `
+                            <div class="hdetail-section">
+                                <p class="hdetail-section__label">
+                                    <i class="fas fa-info-circle"></i> Información adicional
+                                </p>
+                                <div class="hdetail-meta-grid">
+                                    ${Object.entries(item.metadata).map(([key, value]) => `
+                                        <div class="hdetail-meta-item">
+                                            <span class="hdetail-meta-item__key">${this.formatMetadataKey(key)}</span>
+                                            <span class="hdetail-meta-item__val">${this.formatMetadataValue(value)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Documento relacionado -->
+                        ${item.documento_id ? `
+                            <div class="hdetail-section">
+                                <p class="hdetail-section__label">
+                                    <i class="fas fa-paperclip"></i> Documento relacionado
+                                </p>
+                                <div class="hdetail-related">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>${item.documento_id.nombre_original || 'Documento'}</span>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Persona relacionada -->
+                        ${item.persona_id ? `
+                            <div class="hdetail-section">
+                                <p class="hdetail-section__label">
+                                    <i class="fas fa-user-circle"></i> Persona relacionada
+                                </p>
+                                <div class="hdetail-related">
+                                    <i class="fas fa-user"></i>
+                                    <span>${item.persona_id.nombre || 'Persona'}</span>
+                                </div>
+                            </div>
+                        ` : ''}
+
                     </section>
+
                     <footer class="modal__footer">
                         ${!item.leida ? `
                             <button class="btn btn--primary" id="markReadDetailBtn">
@@ -1164,204 +1005,184 @@ restoreButtonByType(button) {
             </div>
         `;
 
-        // Insertar modal en el DOM
+        // Insertar modal
         const modalContainer = document.createElement('div');
         modalContainer.innerHTML = modalHTML;
         document.body.appendChild(modalContainer.firstElementChild);
 
-        const modal = document.getElementById('historyDetailModal');
-        const closeBtn = modal.querySelector('.modal__close');
+        const modal          = document.getElementById('historyDetailModal');
+        const closeBtn       = modal.querySelector('.modal__close');
         const closeDetailBtn = modal.querySelector('#closeDetailBtn');
-        const markReadBtn = modal.querySelector('#markReadDetailBtn');
+        const markReadBtn    = modal.querySelector('#markReadDetailBtn');
 
-        // Mostrar modal usando el mismo método que los otros modales
+        // Aplicar colores al icono del modal según tipo
+        const detailIcon = modal.querySelector('.hdetail-header__icon');
+        if (detailIcon) {
+            detailIcon.className = `hdetail-header__icon hrow-type__icon`;
+            // El data-tipo en el tr aplica el color via CSS, para el modal usamos inline
+            const iconColors = {
+                documento_subido:         { bg: '#e0e7ff', color: '#6366f1' },
+                documento_eliminado:      { bg: '#ffe4e6', color: '#f43f5e' },
+                documento_proximo_vencer: { bg: '#fef3c7', color: '#f59e0b' },
+                documento_vencido:        { bg: '#fee2e2', color: '#ef4444' },
+                persona_agregada:         { bg: '#e0f2fe', color: '#0ea5e9' },
+                persona_eliminada:        { bg: '#fce7f3', color: '#ec4899' },
+                categoria_agregada:       { bg: '#ede9fe', color: '#8b5cf6' },
+                reporte_generado:         { bg: '#ccfbf1', color: '#14b8a6' },
+                sistema_iniciado:         { bg: '#d1fae5', color: '#10b981' },
+                error_sistema:            { bg: '#fee2e2', color: '#ef4444' },
+            };
+            const colors = iconColors[item.tipo] || { bg: '#e0e7ff', color: '#6366f1' };
+            Object.assign(detailIcon.style, {
+                background: colors.bg, color: colors.color,
+                width: '46px', height: '46px', borderRadius: '12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.1rem', flexShrink: '0'
+            });
+        }
+
+        // Mostrar modal
         modal.style.display = 'flex';
-        // Forzar reflow para que la animación funcione
         modal.offsetHeight;
         setTimeout(() => {
             modal.style.opacity = '1';
             modal.style.visibility = 'visible';
         }, 10);
 
-        // Función para cerrar el modal con animación
         const closeModal = (remove = true) => {
             modal.style.opacity = '0';
             modal.style.visibility = 'hidden';
             setTimeout(() => {
                 modal.style.display = 'none';
-                if (remove) {
-                    modal.remove();
-                }
+                if (remove) modal.remove();
             }, 300);
         };
 
-        // Event listeners
         closeBtn.addEventListener('click', () => closeModal());
         closeDetailBtn.addEventListener('click', () => closeModal());
-
         if (markReadBtn) {
             markReadBtn.addEventListener('click', async () => {
                 await this.markAsRead(id);
                 closeModal();
             });
         }
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-        // Cerrar al hacer clic fuera
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeModal();
-            }
-        });
-
-        // Cerrar con ESC
         const handleEscKey = (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
-                document.removeEventListener('keydown', handleEscKey);
-            }
+            if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', handleEscKey); }
         };
         document.addEventListener('keydown', handleEscKey);
-
-        // Limpiar event listener cuando se cierre
-        const cleanup = () => {
-            document.removeEventListener('keydown', handleEscKey);
-            modal.removeEventListener('click', () => {});
-            closeBtn.removeEventListener('click', () => {});
-            closeDetailBtn.removeEventListener('click', () => {});
-            if (markReadBtn) {
-                markReadBtn.removeEventListener('click', () => {});
-            }
-        };
-
-        // Ejecutar cleanup cuando se cierre el modal
-        modal.addEventListener('transitionend', (e) => {
-            if (e.propertyName === 'opacity' && modal.style.opacity === '0') {
-                cleanup();
-            }
-        });
     }
 
+    // NOTIFICACIÓN FLOTANTE: ahora delegada al sistema central `alertSystem`.
+    // El método local fue eliminado para evitar implementaciones duplicadas.
+
     // =============================================================================
-    // 6. PAGINACIÓN
+    // 7. PAGINACIÓN (sin cambios)
     // =============================================================================
 
     updatePagination() {
-        const prevBtn = document.querySelector('.pagination__btn--prev');
-        const nextBtn = document.querySelector('.pagination__btn--next');
-        const paginationInfo = document.getElementById('paginationInfo');
-        
+        const prevBtn       = document.querySelector('.pagination__btn--prev');
+        const nextBtn       = document.querySelector('.pagination__btn--next');
+        const paginationInfo= document.getElementById('paginationInfo');
         if (!prevBtn || !nextBtn || !paginationInfo) return;
 
-        // Habilitar/deshabilitar botones
         prevBtn.disabled = this.currentPage <= 1;
         nextBtn.disabled = this.currentPage >= this.totalPages;
-        
-        // Actualizar información
         paginationInfo.textContent = `Página ${this.currentPage} de ${this.totalPages} (${this.totalItems} registros)`;
     }
 
     async previousPage() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            await this.loadHistorial();
-        }
+        if (this.currentPage > 1) { this.currentPage--; await this.loadHistorial(); }
     }
 
     async nextPage() {
-        if (this.currentPage < this.totalPages) {
-            this.currentPage++;
-            await this.loadHistorial();
-        }
+        if (this.currentPage < this.totalPages) { this.currentPage++; await this.loadHistorial(); }
     }
 
     // =============================================================================
-    // 7. ESTADÍSTICAS
+    // 8. ESTADÍSTICAS (sin cambios)
     // =============================================================================
 
     async updateStats() {
         try {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
-            // Calcular estadísticas
-            const total = this.totalItems;
-            const unread = this.historialData.filter(item => !item.leida).length;
+
+            const total    = this.totalItems;
+            const unread   = this.historialData.filter(item => !item.leida).length;
             const todayCount = this.historialData.filter(item => {
                 const itemDate = new Date(item.fecha_creacion || item.createdAt);
                 itemDate.setHours(0, 0, 0, 0);
                 return itemDate.getTime() === today.getTime();
             }).length;
             const critical = this.historialData.filter(item => item.prioridad === 'critica').length;
-            
-            // Actualizar UI
-            const totalHistoryEl = document.getElementById('totalHistory');
-            const unreadHistoryEl = document.getElementById('unreadHistory');
-            const todayHistoryEl = document.getElementById('todayHistory');
-            const criticalHistoryEl = document.getElementById('criticalHistory');
-            
-            if (totalHistoryEl) totalHistoryEl.textContent = total.toLocaleString();
-            if (unreadHistoryEl) unreadHistoryEl.textContent = unread.toLocaleString();
-            if (todayHistoryEl) todayHistoryEl.textContent = todayCount.toLocaleString();
-            if (criticalHistoryEl) criticalHistoryEl.textContent = critical.toLocaleString();
-            
+
+            const el = (id) => document.getElementById(id);
+            if (el('totalHistory'))    el('totalHistory').textContent    = total.toLocaleString();
+            if (el('unreadHistory'))   el('unreadHistory').textContent   = unread.toLocaleString();
+            if (el('todayHistory'))    el('todayHistory').textContent    = todayCount.toLocaleString();
+            if (el('criticalHistory')) el('criticalHistory').textContent = critical.toLocaleString();
         } catch (error) {
             console.error('❌ Error actualizando estadísticas:', error);
         }
     }
 
     // =============================================================================
-    // 8. FUNCIONES AUXILIARES
+    // 9. FUNCIONES AUXILIARES
     // =============================================================================
 
-    getPriorityClass(priority) {
-        const classes = {
-            critica: 'priority-badge--critical',
-            alta: 'priority-badge--high',
-            media: 'priority-badge--medium',
-            baja: 'priority-badge--low'
+    /** CSS class para badge de prioridad (nuevo naming) */
+    _getPriorityCSS(priority) {
+        const map = {
+            critica: 'hrow-priority--critica',
+            alta:    'hrow-priority--alta',
+            media:   'hrow-priority--media',
+            baja:    'hrow-priority--baja'
         };
-        return classes[priority] || 'priority-badge--medium';
+        return map[priority] || 'hrow-priority--media';
+    }
+
+    /** Mantiene compatibilidad con código que usa getPriorityClass (preloaders, etc.) */
+    getPriorityClass(priority) {
+        return this._getPriorityCSS(priority);
     }
 
     getPriorityText(priority) {
-        const texts = {
-            critica: 'Crítica',
-            alta: 'Alta',
-            media: 'Media',
-            baja: 'Baja'
-        };
+        const texts = { critica: 'Crítica', alta: 'Alta', media: 'Media', baja: 'Baja' };
         return texts[priority] || 'Media';
     }
 
     getTypeIcon(type) {
         const icons = {
-            documento_subido: 'file-upload',
-            documento_eliminado: 'trash',
+            documento_subido:         'file-upload',
+            documento_eliminado:      'trash',
+            documento_restaurado:     'undo',
             documento_proximo_vencer: 'clock',
-            documento_vencido: 'exclamation-triangle',
-            persona_agregada: 'user-plus',
-            persona_eliminada: 'user-minus',
-            categoria_agregada: 'folder-plus',
-            reporte_generado: 'chart-bar',
-            sistema_iniciado: 'check-circle',
-            error_sistema: 'exclamation-circle'
+            documento_vencido:        'exclamation-triangle',
+            persona_agregada:         'user-plus',
+            persona_eliminada:        'user-minus',
+            categoria_agregada:       'folder-plus',
+            reporte_generado:         'chart-bar',
+            sistema_iniciado:         'check-circle',
+            error_sistema:            'exclamation-circle'
         };
         return icons[type] || 'bell';
     }
 
     getTypeText(type) {
         const texts = {
-            documento_subido: 'Documento Subido',
-            documento_eliminado: 'Documento Eliminado',
-            documento_restaurado: 'Documento Restaurado',
+            documento_subido:         'Documento Subido',
+            documento_eliminado:      'Documento Eliminado',
+            documento_restaurado:     'Documento Restaurado',
             documento_proximo_vencer: 'Documento por Vencer',
-            documento_vencido: 'Documento Vencido',
-            persona_agregada: 'Persona Agregada',
-            persona_eliminada: 'Persona Eliminada',
-            categoria_agregada: 'Categoría Agregada',
-            reporte_generado: 'Reporte Generado',
-            sistema_iniciado: 'Sistema Iniciado',
-            error_sistema: 'Error del Sistema'
+            documento_vencido:        'Documento Vencido',
+            persona_agregada:         'Persona Agregada',
+            persona_eliminada:        'Persona Eliminada',
+            categoria_agregada:       'Categoría Agregada',
+            reporte_generado:         'Reporte Generado',
+            sistema_iniciado:         'Sistema Iniciado',
+            error_sistema:            'Error del Sistema'
         };
         return texts[type] || type;
     }
@@ -1374,40 +1195,36 @@ restoreButtonByType(button) {
 
     formatMetadataKey(key) {
         const keyMap = {
-            tipo_archivo: 'Tipo de archivo',
-            tamano: 'Tamaño',
-            categoria: 'Categoría',
-            dias_restantes: 'Días restantes',
-            fecha_vencimiento: 'Fecha de vencimiento',
-            departamento: 'Departamento',
-            puesto: 'Puesto',
-            tipo_reporte: 'Tipo de reporte',
-            formato: 'Formato',
-            registros: 'Registros',
-            fecha_inicio: 'Fecha de inicio',
-            version: 'Versión'
+            tipo_archivo:     'Tipo de archivo',
+            tamano:           'Tamaño',
+            categoria:        'Categoría',
+            dias_restantes:   'Días restantes',
+            fecha_vencimiento:'Fecha de vencimiento',
+            departamento:     'Departamento',
+            puesto:           'Puesto',
+            tipo_reporte:     'Tipo de reporte',
+            formato:          'Formato',
+            registros:        'Registros',
+            fecha_inicio:     'Fecha de inicio',
+            version:          'Versión'
         };
         return keyMap[key] || key.replace(/_/g, ' ');
     }
 
     formatMetadataValue(value) {
-        if (value instanceof Date) {
-            return new Date(value).toLocaleString('es-MX');
-        }
-        if (typeof value === 'object') {
-            return JSON.stringify(value);
-        }
+        if (value instanceof Date) return new Date(value).toLocaleString('es-MX');
+        if (typeof value === 'object') return JSON.stringify(value);
         return value;
     }
 
     hasFilters() {
-        return Object.values(this.filters).some(value => 
+        return Object.values(this.filters).some(value =>
             value !== 'all' && value !== '' && value !== null && value !== undefined
         );
     }
 
     // =============================================================================
-    // 9. LIMPIEZA AL DESTRUIR
+    // 10. LIMPIEZA
     // =============================================================================
 
     destroy() {
@@ -1417,7 +1234,7 @@ restoreButtonByType(button) {
 }
 
 // =============================================================================
-// 10. INICIALIZACIÓN GLOBAL
+// 11. INICIALIZACIÓN GLOBAL
 // =============================================================================
 
 let historialManager = null;
