@@ -168,7 +168,7 @@ class TaskController {
         prioridad: prioridad || 'media',
         estado: estado || 'pendiente',
         categoria: categoria || '',
-        fecha_limite: fecha_limite ? new Date(fecha_limite + 'T12:00:00') : null,
+        fecha_limite: fecha_limite ? new Date(fecha_limite) : null,
         hora_limite: hora_limite || null,
         recordatorio: recordatorio || false,
         tipo: tipo || (asignado_a?.length > 0 ? 'asignada' : 'personal'),
@@ -249,7 +249,7 @@ class TaskController {
       if (prioridad) tarea.prioridad = prioridad;
       if (estado && estado !== 'completada') tarea.estado = estado;
       if (categoria !== undefined) tarea.categoria = categoria;
-      if (fecha_limite !== undefined) tarea.fecha_limite = fecha_limite ? new Date(fecha_limite + 'T12:00:00') : fecha_limite;
+      if (fecha_limite !== undefined) tarea.fecha_limite = fecha_limite ? new Date(fecha_limite) : null;
       if (hora_limite !== undefined) tarea.hora_limite = hora_limite;
       if (recordatorio !== undefined) tarea.recordatorio = recordatorio;
       if (tipo) tarea.tipo = tipo;

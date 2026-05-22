@@ -740,6 +740,12 @@ async function handleRestoreDocument(docId) {
         if (response.success) {
             showAlert(`"${doc.nombre_original}" restaurado exitosamente`, 'success', 3000);
             await loadTrashDocuments();
+            
+            // Recargar documentos y categorías para actualizar contadores
+            if (window.loadDocuments) await window.loadDocuments();
+            if (window.loadCategories) await window.loadCategories();
+            if (window.refreshCategoryTree) window.refreshCategoryTree();
+            
             animateDocumentRemoval(docId);
         } else {
             showAlert('Error al restaurar: ' + response.message, 'error');
@@ -883,6 +889,12 @@ async function handleRestoreSelected() {
         // Limpiar selección y recargar
         trashState.deselectAll();
         await loadTrashDocuments();
+        
+        // Recargar documentos y categorías para actualizar contadores
+        if (window.loadDocuments) await window.loadDocuments();
+        if (window.loadCategories) await window.loadCategories();
+        if (window.refreshCategoryTree) window.refreshCategoryTree();
+        
         updateSelectionControls();
 
     } catch (error) {

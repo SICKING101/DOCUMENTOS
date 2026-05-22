@@ -90,79 +90,41 @@ export const login = async (req, res) => {
             });
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // VERIFICAR SI EL SISTEMA ESTÁ CERRADO (SOLO PARA NO-SUPERADMINS)
-        // ═══════════════════════════════════════════════════════════════
-        if (user.rol !== 'superadmin') {
-            const systemState = await SystemState.getInstance();
+// ═══════════════════════════════════════════════════════════════
+// VERIFICAR SI EL SISTEMA ESTÁ CERRADO (SOLO PARA NO-SUPERADMINS)
+// ═══════════════════════════════════════════════════════════════
+if (user.rol !== 'superadmin') {
+    const systemState = await SystemState.getInstance();
 
-            // 1. Verificar cierre global
-            if (systemState.currentState.isClosed) {
-                console.log(`🚫 Login bloqueado - Sistema cerrado globalmente para: ${user.usuario}`);
-                
-                await AuditService.log(req, {
-                    action: 'LOGIN_BLOCKED',
-                    actionType: 'READ',
-                    actionCategory: 'AUTH',
-                    targetId: user._id,
-                    targetModel: 'User',
-                    targetName: user.usuario,
-                    description: `Login bloqueado - Sistema cerrado globalmente`,
-                    severity: 'WARNING',
-                    status: 'BLOCKED',
-                    metadata: { 
-                        motivo: 'system_closed_global',
-                        reason: systemState.currentState.reason 
-                    }
-                }).catch(err => console.error('❌ Error en auditoría:', err.message));
-                
-                return res.status(503).json({
-                    success: false,
-                    accessDenied: true,
-                    type: 'system_closed',
-                    message: 'El sistema está temporalmente cerrado.',
-                    reason: systemState.currentState.reason || 'Mantenimiento programado',
-                    closedAt: systemState.currentState.closedAt
-                });
-            }
+    // 1. Verificar cierre global (BLOQUEA A TODOS)
+    if (systemState.currentState.isClosed) {
+        return res.status(503).json({
+            success: false,
+            accessDenied: true,
+            type: 'system_closed',
+            message: 'El sistema está temporalmente cerrado.',
+            reason: systemState.currentState.reason || 'Mantenimiento programado',
+        });
+    }
 
-            // 2. Verificar cierre por escuela (si el usuario tiene schoolId)
-            if (user.schoolId) {
-                const schoolClosure = systemState.currentState.closedSchools.find(
-                    s => s.schoolId === user.schoolId
-                );
+    // 2. Verificar cierre por escuela (BLOQUEA A ADMIN Y USUARIOS)
+    if (user.schoolId) {
+        const schoolClosure = systemState.currentState.closedSchools.find(
+            s => s.schoolId === user.schoolId
+        );
 
-                if (schoolClosure) {
-                    console.log(`🚫 Login bloqueado - Escuela cerrada: ${user.schoolId} para: ${user.usuario}`);
-                    
-                    await AuditService.log(req, {
-                        action: 'LOGIN_BLOCKED',
-                        actionType: 'READ',
-                        actionCategory: 'AUTH',
-                        targetId: user._id,
-                        targetModel: 'User',
-                        targetName: user.usuario,
-                        description: `Login bloqueado - Escuela cerrada: ${user.schoolId}`,
-                        severity: 'WARNING',
-                        status: 'BLOCKED',
-                        metadata: { 
-                            motivo: 'school_closed',
-                            schoolId: user.schoolId,
-                            reason: schoolClosure.reason 
-                        }
-                    }).catch(err => console.error('❌ Error en auditoría:', err.message));
-                    
-                    return res.status(503).json({
-                        success: false,
-                        accessDenied: true,
-                        type: 'school_closed',
-                        message: 'El acceso para tu escuela está temporalmente suspendido.',
-                        reason: schoolClosure.reason || 'Sin motivo especificado',
-                        schoolId: user.schoolId
-                    });
-                }
-            }
+        if (schoolClosure) {
+            return res.status(503).json({
+                success: false,
+                accessDenied: true,
+                type: 'school_closed',
+                message: 'El acceso para tu escuela está temporalmente suspendido.',
+                reason: schoolClosure.reason || 'Sin motivo especificado',
+                schoolId: user.schoolId,
+            });
         }
+    }
+}
         // ═══════════════════════════════════════════════════════════════
 
         // Actualizar último acceso

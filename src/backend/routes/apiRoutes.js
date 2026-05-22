@@ -24,7 +24,7 @@ import {
   getCurrentVersion,
   getVersionById,
 } from '../controllers/versionController.js';
-import { getSystemStatus, getSystemHistory } from '../controllers/systemStateController.js';
+import { checkUserAccess, getSystemStatus, getSystemHistory } from '../controllers/systemStateController.js';
 
 // ── Modelos ────────────────────────────────────────────────────
 import User from '../models/User.js';
@@ -90,6 +90,8 @@ router.get('/chatbot/stats', protegerRuta, verificarAccesoSistema, inyectarSchoo
 router.get('/chatbot/history', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.getHistory(req, res));
 router.delete('/chatbot/history', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.clearHistory(req, res));
 router.patch('/chatbot/feedback', protegerRuta, verificarAccesoSistema, (req, res) => ChatbotController.submitFeedback(req, res));
+
+router.post('/system/check-access', checkUserAccess);
 
 // ─── PERSONAS ─────────────────────────────────────────────────
 router.get('/persons', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_PERSONS), PersonController.getAll);

@@ -12,9 +12,9 @@ export function handleFile(file) {
         console.warn('⚠️ No se proporcionó archivo');
         return;
     }
-    
+
     console.group(`📋 Procesando archivo individual: ${file.name}`);
-    
+
     // Validar archivo
     const fileExtension = file.name.split('.').pop().toLowerCase();
     if (!CONFIG.ALLOWED_FILE_TYPES.includes(fileExtension)) {
@@ -22,22 +22,22 @@ export function handleFile(file) {
         console.groupEnd();
         return;
     }
-    
+
     if (file.size > CONFIG.MAX_FILE_SIZE) {
         showAlert(`El archivo excede el tamaño máximo permitido (${formatFileSize(CONFIG.MAX_FILE_SIZE)})`, 'error');
         console.groupEnd();
         return;
     }
-    
+
     // Guardar archivo en estado
     window.appState.selectedFile = file;
-    
+
     // Mostrar información
     DOM.fileName.textContent = file.name;
     DOM.fileSize.textContent = formatFileSize(file.size);
     DOM.fileInfo.style.display = 'block';
     DOM.uploadDocumentBtn.disabled = false;
-    
+
     console.log('✅ Archivo individual validado correctamente');
     console.groupEnd();
 }
@@ -74,19 +74,19 @@ function showSingleUploadPreloader() {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', preloaderHTML);
         DOM.singleUploadPreloader = document.getElementById('singleUploadPreloader');
         DOM.uploadProgress = document.getElementById('uploadProgress');
         DOM.uploadStatus = document.getElementById('uploadStatus');
         DOM.uploadingFileName = document.getElementById('uploadingFileName');
     }
-    
+
     // Actualizar nombre del archivo
     if (DOM.uploadingFileName && window.appState.selectedFile) {
         DOM.uploadingFileName.textContent = window.appState.selectedFile.name;
     }
-    
+
     // Resetear progreso
     if (DOM.uploadProgress) {
         DOM.uploadProgress.style.width = '0%';
@@ -94,10 +94,10 @@ function showSingleUploadPreloader() {
     if (DOM.uploadStatus) {
         DOM.uploadStatus.textContent = 'Iniciando subida...';
     }
-    
+
     // Mostrar preloader
     DOM.singleUploadPreloader.style.display = 'flex';
-    
+
     // Bloquear interacción con el modal/formulario
     if (DOM.uploadDocumentBtn) {
         DOM.uploadDocumentBtn.disabled = true;
@@ -123,7 +123,7 @@ function hideSingleUploadPreloader() {
     if (DOM.singleUploadPreloader) {
         DOM.singleUploadPreloader.style.display = 'none';
     }
-    
+
     // Restaurar interacción con el modal/formulario
     if (DOM.uploadDocumentBtn) {
         DOM.uploadDocumentBtn.disabled = false;
@@ -174,9 +174,27 @@ export async function handleUploadDocument() {
         console.groupEnd();
         return;
     }
+
+    // Validar fecha de vencimiento
+    if (DOM.documentExpiration.value) {
+        const fechaSeleccionada = new Date(DOM.documentExpiration.value + 'T00:00:00');
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        
+        if (fechaSeleccionada <= hoy) {
+            if (window.showActionModal) {
+                window.showActionModal({
+                    type: 'error',
+                    title: 'Fecha inválida',
+                    message: 'La fecha de vencimiento debe ser posterior a hoy'
+                });
+            }
+            console.groupEnd();
+            return;
+        }
+    }
     
     try {
-        // Mostrar preloader
         showSingleUploadPreloader();
         updateUploadProgress(10, 'Preparando archivo...');
         
@@ -184,7 +202,6 @@ export async function handleUploadDocument() {
         console.log('📋 Archivo:', window.appState.selectedFile.name);
         console.log('📋 Tamaño:', formatFileSize(window.appState.selectedFile.size));
         
-        // Crear FormData con los datos del formulario
         const formData = new FormData();
         formData.append('file', window.appState.selectedFile);
         formData.append('descripcion', DOM.documentDescription.value);
@@ -193,18 +210,15 @@ export async function handleUploadDocument() {
         formData.append('persona_id', DOM.documentPerson.value);
         
         updateUploadProgress(30, 'Conectando con el servidor...');
-
         console.log('📤 Enviando al servidor...');
         
-        // Crear XMLHttpRequest para monitorear progreso
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             
-            // Configurar seguimiento de progreso
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    const uploadProgress = 30 + Math.round(percentComplete * 0.4); // 30-70%
+                    const uploadProgress = 30 + Math.round(percentComplete * 0.4);
                     updateUploadProgress(uploadProgress, `Subiendo archivo: ${percentComplete}%`);
                 }
             });
@@ -212,7 +226,6 @@ export async function handleUploadDocument() {
             xhr.addEventListener('load', async () => {
                 try {
                     updateUploadProgress(90, 'Procesando respuesta del servidor...');
-                    
                     console.log('📥 Respuesta:', xhr.status);
                     
                     if (xhr.status >= 200 && xhr.status < 300) {
@@ -221,32 +234,27 @@ export async function handleUploadDocument() {
                         
                         if (data.success) {
                             updateUploadProgress(100, '¡Archivo subido exitosamente!');
-                            
-                            // Pequeña pausa para mostrar el 100%
                             await new Promise(resolve => setTimeout(resolve, 500));
                             
                             hideSingleUploadPreloader();
                             showAlert(data.message, 'success');
-                            // Disparar evento global indicando nuevo documento creado
+                            
                             try {
                                 window.dispatchEvent(new CustomEvent('documentCreated', { detail: { document: data.document || data } }));
                             } catch (e) {
                                 console.warn('No se pudo disparar evento documentCreated:', e);
                             }
                             
-                            // Cargar documentos/categorías actualizados
                             if (window.refreshDocumentsView) {
                                 await window.refreshDocumentsView();
                             } else if (window.loadDocuments) {
                                 await window.loadDocuments();
                             }
 
-                            // Cerrar modal
                             if (window.closeDocumentModal) {
                                 window.closeDocumentModal();
                             }
 
-                            // Re-render panel de documentos vencidos si existe
                             try {
                                 if (typeof window.renderExpiredDocuments === 'function') {
                                     window.renderExpiredDocuments();
@@ -255,7 +263,6 @@ export async function handleUploadDocument() {
                                 console.warn('Error re-renderizando panel vencidos:', e);
                             }
 
-                            // Actualizar dashboard (total documentos, próximos a vencer)
                             try {
                                 const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
                                 if (typeof dashboardLoader === 'function') {
@@ -298,11 +305,8 @@ export async function handleUploadDocument() {
                 reject(new Error('Subida cancelada'));
             });
             
-            // Configurar y enviar la petición
             xhr.open('POST', `${CONFIG.API_BASE_URL}/documents`);
             xhr.setRequestHeader('Accept', 'application/json');
-            
-            // Enviar FormData
             xhr.send(formData);
         });
         

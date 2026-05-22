@@ -244,10 +244,13 @@ function _createCategoryCard(cat, index = 0) {
             : ''}
         </div>
         <div class="category--card-footer">
-            <span class="category--card-count">
-                <i class="fas fa-${hasChildren ? 'folder' : 'file-alt'}"></i>
-                ${hasChildren ? `${childCount} subcarpeta${childCount !== 1 ? 's' : ''}` : `${docCount} doc${docCount !== 1 ? 's' : ''}`}
-            </span>
+<span class="category--card-count">
+    <i class="fas fa-${hasChildren ? 'folder' : 'file-alt'}"></i>
+    ${hasChildren
+            ? `${childCount} subcarp.`
+            : `${docCount} doc${docCount !== 1 ? 's' : ''}`
+        }
+</span>
             ${hasChildren
             ? `<span class="category--card-sub-badge">
                        <i class="fas fa-chevron-right"></i> Abrir
@@ -808,7 +811,7 @@ function _initCategorySearch() {
  */
 export function openCategoryModal(categoryId = null, parentId = null) {
     console.log(`${LOG_PREFIX} openCategoryModal - categoryId: ${categoryId}, parentId: ${parentId}`);
-    
+
     const modal = document.getElementById('categoryModal');
     if (!modal) {
         console.error(`${LOG_PREFIX} Modal #categoryModal no encontrado en el DOM`);
@@ -843,11 +846,11 @@ export function openCategoryModal(categoryId = null, parentId = null) {
     _clearModalErrors();
     _resetModalPreview();
 
-    const isEdit  = !!categoryId;
-    const isSub   = !isEdit && !!parentId;
+    const isEdit = !!categoryId;
+    const isSub = !isEdit && !!parentId;
     const titleEl = document.getElementById('categoryModalTitle');
-    const subEl   = document.getElementById('categoryModalSubtitle');
-    const btnEl   = document.getElementById('saveCategoryBtnLabel');
+    const subEl = document.getElementById('categoryModalSubtitle');
+    const btnEl = document.getElementById('saveCategoryBtnLabel');
 
     if (isEdit) {
         const cat = _findCategoryInState(categoryId);
@@ -856,25 +859,25 @@ export function openCategoryModal(categoryId = null, parentId = null) {
             return;
         }
         if (titleEl) titleEl.textContent = 'Editar carpeta';
-        if (subEl)   subEl.textContent   = `Editando "${cat.nombre}"`;
-        if (btnEl)   btnEl.textContent   = 'Guardar cambios';
+        if (subEl) subEl.textContent = `Editando "${cat.nombre}"`;
+        if (btnEl) btnEl.textContent = 'Guardar cambios';
         _populateModalWithCategory(cat);
     } else if (isSub) {
         const parent = _findCategoryInState(parentId);
         if (titleEl) titleEl.textContent = 'Nueva subcarpeta';
-        if (subEl)   subEl.textContent   = parent ? `Dentro de "${parent.nombre}"` : 'Nueva subcarpeta';
-        if (btnEl)   btnEl.textContent   = 'Crear subcarpeta';
+        if (subEl) subEl.textContent = parent ? `Dentro de "${parent.nombre}"` : 'Nueva subcarpeta';
+        if (btnEl) btnEl.textContent = 'Crear subcarpeta';
         if (parentInput) parentInput.value = parentId || '';
     } else {
         if (titleEl) titleEl.textContent = 'Nueva carpeta';
-        if (subEl)   subEl.textContent   = 'Organiza tus documentos';
-        if (btnEl)   btnEl.textContent   = 'Crear carpeta';
+        if (subEl) subEl.textContent = 'Organiza tus documentos';
+        if (btnEl) btnEl.textContent = 'Crear carpeta';
     }
 
     _initModalLivePreview();
     _updateCharCounters();
     _bindModalButtons();
-    
+
     modal.style.display = 'flex';
     _toggleModalLoader(false);
 
@@ -882,7 +885,7 @@ export function openCategoryModal(categoryId = null, parentId = null) {
         const nameInput = document.getElementById('categoryName');
         if (nameInput) nameInput.focus();
     }, 150);
-    
+
     console.log(`${LOG_PREFIX} Modal abierto correctamente`);
 }
 
@@ -1162,10 +1165,23 @@ function _darkenColor(hex, percent) {
 // GUARDAR CATEGORÍA
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── BANDERA GLOBAL anti-doble-envío ────────────────────────
+let _isSaving = false;
+
 /**
  * Valida y guarda la categoría (crear o editar).
+ * PROTECCIÓN: Solo una ejecución a la vez.
  */
 export async function saveCategory() {
+    // ═══════════════════════════════════════════════════════════
+    // PROTECCIÓN ANTI-DOBLE ENVÍO
+    // ═══════════════════════════════════════════════════════════
+    if (_isSaving) {
+        console.warn(`${LOG_PREFIX} ⛔ saveCategory ya está en progreso, ignorando llamada duplicada`);
+        return;
+    }
+    _isSaving = true;
+
     console.log(`${LOG_PREFIX} saveCategory iniciado`);
 
     const catId = document.getElementById('categoryId')?.value?.trim() || null;
@@ -1181,14 +1197,17 @@ export async function saveCategory() {
 
     if (!nombre) {
         _showFieldError('categoryName', 'categoryNameError', 'El nombre de la carpeta es obligatorio');
+        _isSaving = false;
         return;
     }
     if (nombre.length < 2) {
         _showFieldError('categoryName', 'categoryNameError', 'El nombre debe tener al menos 2 caracteres');
+        _isSaving = false;
         return;
     }
     if (nombre.length > 50) {
         _showFieldError('categoryName', 'categoryNameError', 'El nombre no puede exceder los 50 caracteres');
+        _isSaving = false;
         return;
     }
 
@@ -1222,12 +1241,20 @@ export async function saveCategory() {
             throw new Error(result?.message || 'Error desconocido al guardar');
         }
 
+        // ═══════════════════════════════════════════════════════
         // ÉXITO: cerrar modal y mostrar preloader
+        // ═══════════════════════════════════════════════════════
         closeCategoryModal();
         _showPreloaderOverlay('Actualizando vista...');
 
+        // Recargar categorías (si existe la función global)
         if (typeof window.loadCategories === 'function') {
             await window.loadCategories();
+        }
+
+        // Recargar documentos para actualizar nombres de categoría
+        if (typeof window.loadDocuments === 'function') {
+            await window.loadDocuments();
         }
 
         refreshCategoryTree();
@@ -1262,6 +1289,13 @@ export async function saveCategory() {
         } catch (e) { }
 
         _showFieldError('categoryName', 'categoryNameError', errorMsg);
+
+    } finally {
+        // ═══════════════════════════════════════════════════════
+        // SIEMPRE liberar la bandera, incluso si hay error
+        // ═══════════════════════════════════════════════════════
+        _isSaving = false;
+        _toggleModalLoader(false);
     }
 }
 
@@ -1505,11 +1539,11 @@ export function refreshCategoryTree() {
 
 function _refreshFromAppState() {
     const categories = window.appState?.categories || [];
-    
+
     const currentStack = [..._navState.stack];
-    
+
     _navState.tree = buildCategoryTree(categories);
-    
+
     _navState.stack = [];
     currentStack.forEach(oldNode => {
         const freshNode = findNodeById(_navState.tree, oldNode._id);
@@ -1517,14 +1551,14 @@ function _refreshFromAppState() {
             _navState.stack.push(freshNode);
         }
     });
-    
+
     console.log(`${LOG_PREFIX} Árbol refrescado: ${_navState.tree.length} raíces, stack: [${_navState.stack.map(n => n.nombre).join(' › ')}]`);
-    
+
     // Forzar re-render del grid SIEMPRE
     if (_navState.stack.length === 0 || getCurrentChildren().length > 0) {
         renderCategoryGrid();
     }
-    
+
     _updateUI();
 }
 
@@ -1581,7 +1615,7 @@ function _sleep(ms) {
 function _showFieldError(fieldId, errorId, message) {
     const field = document.getElementById(fieldId);
     const error = document.getElementById(errorId);
-    
+
     if (field) {
         field.classList.add('is-error');
         field.setAttribute('aria-invalid', 'true');

@@ -838,32 +838,6 @@
 }
 
 /* ──────────────────────────────────────────────────────────────
-   12. UTILITY BUTTONS (used in empty-states and error states)
-   ────────────────────────────────────────────────────────────── */
-
-.btn--primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5625rem 1.125rem;
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: 50px;
-    font-size: 0.875rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
-    text-decoration: none;
-}
-
-.btn--primary:hover {
-    background: var(--primary-dark);
-    box-shadow: 0 4px 14px rgba(220,38,38,0.3);
-    transform: translateY(-1px);
-}
-
-/* ──────────────────────────────────────────────────────────────
    13. RESPONSIVE
    ────────────────────────────────────────────────────────────── */
 
