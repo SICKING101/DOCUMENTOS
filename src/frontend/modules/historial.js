@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { CONFIG } from '../config.js';
-import { showAlert, showConfirmation } from '../utils.js';
+import { showAlert, showConfirmation, stripEmojis } from '../utils.js';
 import { showNotification } from '../utils/alertSystem.js';
 import { canAction, showNoPermissionAlert, applyActionPermissions } from '../permissions.js';
 
@@ -29,6 +29,7 @@ class HistorialManager {
         this.activePreloaders = new Set();
         // Enlazar showNotification centralizado para mantener llamadas existentes (this.showNotification)
         this.showNotification = showNotification;
+        this._lastNotification = { key: null, ts: 0 };
     }
 
     // =============================================================================
@@ -381,7 +382,20 @@ class HistorialManager {
 
                 console.log(`✅ Historial cargado: ${this.historialData.length} registros`);
                 if (this.historialData.length > 0) {
-                    this.showNotification(`Cargados ${this.historialData.length} registros`, 'success');
+                    // Normalizar y deduplicar notificación para evitar repeticiones innecesarias
+                    const rawMsg = `Cargados ${this.historialData.length} registros`;
+                    const normalized = stripEmojis(rawMsg).replace(/\d+/g, '{n}').replace(/\s+/g, ' ').trim();
+                    const key = `success:${normalized}`;
+                    const now = Date.now();
+                    // Si la misma notificación se mostró recientemente (5s), evitar re-crearla
+                    if (this._lastNotification.key !== key || (now - this._lastNotification.ts) > 5000) {
+                        this.showNotification(rawMsg, 'success');
+                        this._lastNotification = { key, ts: now };
+                    } else {
+                        // Si ya se mostró, intentar actualizar contador en el sistema de toasts (showNotification internamente maneja dedupe)
+                        this.showNotification(rawMsg, 'success');
+                        this._lastNotification.ts = now;
+                    }
                 }
             } else {
                 throw new Error(data.message || 'Error al cargar historial');

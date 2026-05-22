@@ -667,17 +667,6 @@
   color: var(--text-secondary);
 }
 
-/* Badges de estado */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.8rem;
-  border-radius: var(--radius-full);
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
 
 .status-dot {
   width: 0.45rem;

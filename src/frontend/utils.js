@@ -7,6 +7,9 @@ import {
     hideAllAlerts as alertSystemHideAllAlerts
 } from './utils/alertSystem.js';
 
+// Re-export helper to strip emojis from messages (used by other modules)
+export { stripEmojis } from './utils/alertSystem.js';
+
 // =============================================================================
 // 1. FUNCIONES DE ICONOS Y VISUALIZACIÓN
 // =============================================================================
@@ -329,6 +332,8 @@ function setLoadingState(loading, element = null) {
 function showAlert(message, type = 'info') {
     // Delegar al sistema centralizado de alertas (mantiene compatibilidad)
     try {
+        // Si la aplicación está en fase de inicialización puede suprimir notificaciones
+        if (typeof window !== 'undefined' && window.__SUPPRESS_NOTIFICATIONS) return null;
         return alertSystemShowAlert(message, type);
     } catch (e) {
         // Fallback: si por alguna razón el sistema central falla, hacer un log simple

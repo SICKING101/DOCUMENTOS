@@ -425,6 +425,8 @@ async function _loadInitialData() {
   console.log('📥 Cargando datos iniciales...');
 
   try {
+    // Durante la carga inicial del sistema suprimimos notificaciones para evitar saturación
+    if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = true;
     const jobs = [];
 
     // Dashboard (por ahora siempre para usuarios autenticados)
@@ -440,6 +442,8 @@ async function _loadInitialData() {
     await Promise.allSettled(jobs);
 
     console.log('✅ Datos iniciales cargados');
+    // Levantar la supresión y mostrar notificación única de éxito
+    if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = false;
     showAlert('Sistema cargado correctamente', 'success');
   } catch (error) {
     console.error('❌ Error cargando datos iniciales:', error);

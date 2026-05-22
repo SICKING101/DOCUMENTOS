@@ -56,26 +56,75 @@ class DocumentController {
   // ===========================================================================
 static async create(req, res) {
     console.log('\n🔍 ========== SUBIENDO NUEVO DOCUMENTO ==========');
-    console.log('🏫 School ID:', req.schoolId);
+    console.log('🏫 School ID:', req.schoolId || 'superadmin');
+    console.log('📁 Archivo:', req.file?.originalname);
+    console.log('📏 Tamaño:', req.file?.size ? FileService.formatFileSize(req.file.size) : 'N/A');
 
     try {
+      // Validar que hay archivo
       if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No se ha subido ningún archivo' });
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No se ha subido ningún archivo' 
+        });
       }
 
       const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
 
-      let cloudinaryResult;
-      try {
-        cloudinaryResult = await FileService.uploadToCloudinary(req.file.path);
-      } catch (cloudinaryError) {
+      // ✅ Validar tamaño máximo (10MB para Cloudinary free)
+      const MAX_SIZE = 10 * 1024 * 1024; // 10MB en bytes
+      if (req.file.size > MAX_SIZE) {
         FileService.cleanTempFile(req.file.path);
-        return res.status(500).json({ success: false, message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message });
+        console.warn(`⚠️ Archivo excede 10MB: ${FileService.formatFileSize(req.file.size)}`);
+        return res.status(400).json({ 
+          success: false, 
+          message: `El archivo excede el límite de 10 MB (tamaño: ${FileService.formatFileSize(req.file.size)})` 
+        });
       }
 
+      // ✅ Determinar resource_type correcto para Cloudinary
+      const fileExtension = req.file.originalname.split('.').pop().toLowerCase();
+      const officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+      
+      let resourceType = 'auto';
+      if (officeExtensions.includes(fileExtension)) {
+        resourceType = 'raw'; // ✅ CRÍTICO: Office usa 'raw' para evitar "Unsupported ZIP file"
+        console.log(`📎 Office (${fileExtension}) → resource_type: raw`);
+      } else if (imageExtensions.includes(fileExtension)) {
+        resourceType = 'image';
+        console.log(`🖼️ Imagen (${fileExtension}) → resource_type: image`);
+      } else if (fileExtension === 'pdf') {
+        resourceType = 'auto';
+        console.log(`📄 PDF → resource_type: auto`);
+      } else {
+        resourceType = 'raw';
+        console.log(`📝 Otro (${fileExtension}) → resource_type: raw`);
+      }
+
+      // ✅ Subir a Cloudinary con el resource_type correcto
+      let cloudinaryResult;
+      try {
+        cloudinaryResult = await FileService.uploadToCloudinary(req.file.path, {
+          resource_type: resourceType
+        });
+        console.log('✅ Cloudinary OK:', {
+          url: cloudinaryResult.secure_url?.substring(0, 60) + '...',
+          format: cloudinaryResult.format
+        });
+      } catch (cloudinaryError) {
+        FileService.cleanTempFile(req.file.path);
+        console.error('❌ Error Cloudinary:', cloudinaryError.message);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message 
+        });
+      }
+
+      // ✅ Crear documento en MongoDB
       const nuevoDocumento = new Document({
         nombre_original: req.file.originalname,
-        tipo_archivo: req.file.originalname.split('.').pop().toLowerCase(),
+        tipo_archivo: fileExtension,
         tamano_archivo: req.file.size,
         descripcion: descripcion || '',
         categoria: categoria || 'General',
@@ -90,40 +139,64 @@ static async create(req, res) {
       });
 
       await nuevoDocumento.save();
+      console.log('✅ Documento guardado en MongoDB:', nuevoDocumento._id);
+
+      // Limpiar archivo temporal
       FileService.cleanTempFile(req.file.path);
 
+      // Poblar datos de persona
       const documentoConPersona = await Document.findById(nuevoDocumento._id)
-        .populate('persona_id', 'nombre');
+        .populate('persona_id', 'nombre email departamento puesto');
 
-      // ✅ Notificación con schoolId
+      // Notificación (no bloqueante)
       try {
         await NotificationService.documentoSubido(
           documentoConPersona,
           documentoConPersona.persona_id,
           req.schoolId
         );
-        console.log('✅ Notificación de documento creada');
+        console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
 
-      // Auditoría
+      // Auditoría (no bloqueante)
       try {
         await AuditService.logDocumentUpload(req, nuevoDocumento, documentoConPersona?.persona_id);
         console.log('✅ Auditoría registrada');
       } catch (auditError) {
-        console.error('❌ Error registrando auditoría:', auditError.message);
+        console.error('⚠️ Error registrando auditoría:', auditError.message);
       }
 
-      res.json({
+      console.log('✅✅✅ SUBIDA COMPLETADA');
+      console.log('🔍 ========== FIN ==========\n');
+
+      return res.json({
         success: true,
         message: 'Documento subido correctamente',
         document: documentoConPersona
       });
+
     } catch (error) {
-      console.error('🔥 ERROR CRÍTICO en create:', error);
-      if (req.file && req.file.path) FileService.cleanTempFile(req.file.path);
-      res.status(500).json({ success: false, message: 'Error al subir documento: ' + error.message });
+      console.error('🔥 ERROR CRÍTICO en create:', error.message);
+      console.error('📌 Stack:', error.stack);
+      
+      if (req.file && req.file.path) {
+        FileService.cleanTempFile(req.file.path);
+      }
+      
+      let errorMsg = 'Error al subir documento';
+      if (error.code === 11000) {
+        errorMsg = 'Ya existe un documento con ese nombre';
+      } else if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map(e => e.message).join(', ');
+        errorMsg = 'Datos del documento inválidos: ' + messages;
+      }
+      
+      return res.status(500).json({ 
+        success: false, 
+        message: errorMsg 
+      });
     }
   }
 

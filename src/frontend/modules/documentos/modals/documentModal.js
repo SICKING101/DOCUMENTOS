@@ -1,5 +1,5 @@
 // =============================================================================
-// src/frontend/modules/documentos/modals/documentModal.js
+// src/frontend/modules/documentos/modals/documentModal.js (MODIFICADO)
 // =============================================================================
 
 import { DOM } from '../../../dom.js';
@@ -7,187 +7,66 @@ import { showAlert } from '../../../utils.js';
 import { requirePermission, PERMISSIONS } from '../../../permissions.js';
 import { handleUploadDocument } from '../upload/uploadSingle.js';
 import { handleUploadMultipleDocuments, getMultipleUploadState } from '../upload/uploadMultiple.js';
+import { CONFIG } from '../../../config.js';
 import { 
-    populateDocumentCategorySelect, 
-    populateMultipleCategorySelect,
-    populateAllPersonSelects 
+    initSingleCategoryChips,
+    initMultipleCategoryChips,
+    initSinglePersonAutocomplete,
+    initMultiplePersonAutocomplete,
+    singleCategoryChips,
+    multipleCategoryChips
 } from './modalHelpers.js';
+import { SizeValidator } from './sizeValidator.js';
 
-// Variables para trackear event listeners
+// Variables globales del módulo
 let eventListenersInitialized = false;
+let sizeValidator = null;
 
-// Importar función de alerta mejorada
-let showPageAlert;
-let handleMultipleFileSelect;
-let multipleUploadStateInstance;
-
-// Cargar dinámicamente las funciones de uploadMultiple
-async function loadUploadMultipleModule() {
-    try {
-        const module = await import('../upload/uploadMultiple.js');
-        
-        // Crear una versión local de showPageAlert
-        showPageAlert = (message, type = 'info', duration = 3000) => {
-            console.log(`📢 ALERTA DESDE MODAL [${type.toUpperCase()}]: ${message}`);
-            showAlert(message, type, duration);
-            
-            // También crear alerta visual específica
-            showModalAlert(message, type, duration);
-        };
-        
-        // Obtener las funciones necesarias
-        handleMultipleFileSelect = module.handleMultipleFileSelect;
-        multipleUploadStateInstance = module.multipleUploadState || getMultipleUploadState();
-        
-        console.log('✅ Módulo uploadMultiple cargado correctamente');
-        console.log(`📊 Archivos en estado actual: ${multipleUploadStateInstance.files ? multipleUploadStateInstance.files.length : 0}`);
-        
-    } catch (error) {
-        console.error('Error cargando módulo uploadMultiple:', error);
-        // Fallback
-        showPageAlert = showAlert;
-        handleMultipleFileSelect = () => console.error('Módulo uploadMultiple no cargado');
-        multipleUploadStateInstance = getMultipleUploadState();
-    }
-}
-
-/**
- * Muestra alerta específica para el modal
- */
-function showModalAlert(message, type = 'info', duration = 3000) {
-    const alertId = 'modal-flow-alert';
-    const existingAlert = document.getElementById(alertId);
-    
-    if (existingAlert) {
-        existingAlert.remove();
-    }
-    
-    const alert = document.createElement('div');
-    alert.id = alertId;
-    alert.className = `alert alert--${type}`;
-    alert.style.cssText = `
-        background: var(--bg-primary);
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10050;
-        min-width: 300px;
-        max-width: 400px;
-        box-shadow: var(--shadow-lg);
-        animation: alertSlideIn 0.3s ease-out;
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    `;
-    
-    // Icono según tipo
-    const icons = {
-        success: 'fa-check-circle',
-        error: 'fa-times-circle',
-        warning: 'fa-exclamation-triangle',
-        info: 'fa-info-circle'
-    };
-    
-    alert.innerHTML = `
-        <i class="fas ${icons[type] || icons.info}" style="font-size: 1.2rem;"></i>
-        <div style="flex: 1;">
-            <div style="font-weight: 600; margin-bottom: 2px;">Subida de documentos</div>
-            <div>${message}</div>
-        </div>
-        <button class="alert-close-btn" style="background: none; border: none; cursor: pointer; color: inherit; opacity: 0.7; padding: 4px;">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    document.body.appendChild(alert);
-    
-    // Botón de cerrar
-    const closeBtn = alert.querySelector('.alert-close-btn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            alert.remove();
-        });
-    }
-    
-    // Auto-ocultar
-    if (duration > 0) {
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.style.animation = 'alertSlideOut 0.3s ease-out forwards';
-                setTimeout(() => {
-                    if (alert.parentNode) {
-                        alert.remove();
-                    }
-                }, 300);
-            }
-        }, duration);
-    }
-}
+// ═══════════════════════════════════════════════════════════
+// APERTURA DEL MODAL
+// ═══════════════════════════════════════════════════════════
 
 /**
  * Abre el modal de documentos con la configuración inicial
  * @param {string} mode - 'single' para subida única, 'multiple' para múltiple
  */
-export async function openDocumentModal(mode = 'single') {
-    console.group(`📂 openDocumentModal - Abriendo en modo: ${mode}`);
+export async function openDocumentModal(mode = 'single', presetCategory = '') {
+    console.group(`📂 Abriendo modal de documentos - Modo: ${mode}`);
     
     try {
-        if (!requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS, { onDenied: (msg) => showAlert(msg, 'error') })) {
+        if (!requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS, { 
+            onDenied: (msg) => showAlert(msg, 'error') 
+        })) {
             return;
         }
 
-        // Cargar módulo de uploadMultiple primero
-        await loadUploadMultipleModule();
-        
-        // Mostrar modal usando CSS en lugar de showModal()
         DOM.documentModal.style.display = 'flex';
         document.body.classList.add('modal-open');
         
-        // Poblar categorías
-        console.log('📋 Poblando selects de categoría...');
-        populateDocumentCategorySelect();
-        populateMultipleCategorySelect();
+        initializeComponents();
         
-        // Poblar personas
-        console.log('👤 Poblando selects de personas...');
-        await populateAllPersonSelects();
-        console.log('✅ Personas cargadas para modal');
+        // ✅ Detectar categoría actual si no se pasó una
+        let categoryToPreselect = presetCategory;
+        if (!categoryToPreselect) {
+            categoryToPreselect = getCurrentCategoryName();
+        }
+        console.log('🏷️ Categoría a preseleccionar:', categoryToPreselect || '(ninguna)');
         
-        // Configurar modo inicial
+        // ✅ Preseleccionar en ambos modos
+        if (categoryToPreselect) {
+            setTimeout(() => {
+                if (singleCategoryChips) {
+                    singleCategoryChips.setCategory(categoryToPreselect);
+                }
+                if (multipleCategoryChips) {
+                    multipleCategoryChips.setCategory(categoryToPreselect);
+                }
+            }, 400);
+        }
+        
         switchUploadMode(mode);
         
-        // Si estamos en modo múltiple, mostrar alerta informativa
-        if (mode === 'multiple') {
-            const state = getMultipleUploadState();
-            const fileCount = state.files ? state.files.length : 0;
-            
-            let message = '📋 Modo múltiple activado. ';
-            if (fileCount > 0) {
-                message += `Tienes ${fileCount} archivo(s) listos. `;
-            }
-            message += 'Recuerda: 1) Selecciona categoría, 2) Configura opciones, 3) Agrega más archivos';
-            
-            showPageAlert(message, 'info', 4000);
-            
-            // Verificar estado inicial
-            if (DOM.multipleDocumentCategory && DOM.multipleDocumentCategory.value) {
-                console.log(`🏷️ Categoría inicial: "${DOM.multipleDocumentCategory.value}"`);
-                state.setCommonCategory(DOM.multipleDocumentCategory.value);
-            } else {
-                showPageAlert('⚠️ Primero selecciona una categoría para habilitar las demás opciones', 'warning', 3000);
-            }
-        }
-        
-        // Actualizar UI de múltiples archivos
-        if (typeof updateMultipleUploadUI === 'function') {
-            console.log('🎨 Actualizando UI de múltiples archivos...');
-            updateMultipleUploadUI();
-        }
-        
-        // Configurar event listeners SOLO si no están ya configurados
         if (!eventListenersInitialized) {
-            console.log('🔧 Configurando event listeners...');
             setupEventListeners();
             eventListenersInitialized = true;
         }
@@ -195,7 +74,7 @@ export async function openDocumentModal(mode = 'single') {
         console.log('✅ Modal abierto exitosamente');
         
     } catch (error) {
-        console.error('❌ Error abriendo modal de documentos:', error);
+        console.error('❌ Error abriendo modal:', error);
         showAlert('Error al abrir el formulario de documentos', 'error');
     } finally {
         console.groupEnd();
@@ -203,662 +82,731 @@ export async function openDocumentModal(mode = 'single') {
 }
 
 /**
+ * ✅ Obtiene la categoría actual desde el navegador de categorías
+ */
+function getCurrentCategoryName() {
+    // Opción 1: Desde categoryNavState (navegación por carpetas)
+    if (window.categoryNavState && window.categoryNavState.stack && window.categoryNavState.stack.length > 0) {
+        const current = window.categoryNavState.stack[window.categoryNavState.stack.length - 1];
+        if (current && current.nombre) {
+            console.log('🏷️ Categoría detectada (navState):', current.nombre);
+            return current.nombre;
+        }
+    }
+    
+    // Opción 2: Desde appState.filters.category
+    if (window.appState?.filters?.category) {
+        console.log('🏷️ Categoría detectada (filters):', window.appState.filters.category);
+        return window.appState.filters.category;
+    }
+    
+    // Opción 3: Desde el select de filtro
+    const filterCategory = document.getElementById('filterCategory');
+    if (filterCategory && filterCategory.value) {
+        console.log('🏷️ Categoría detectada (select):', filterCategory.value);
+        return filterCategory.value;
+    }
+    
+    return '';
+}
+
+/**
+ * Inicializa todos los componentes del modal
+ */
+function initializeComponents() {
+    // Inicializar validador de tamaño
+    if (!sizeValidator) {
+        sizeValidator = new SizeValidator({
+            sizeBarFillId: 'sizeBarFill',
+            sizeUsedId: 'sizeUsed',
+            sizeBadgeId: 'fileSizeBadge',
+            sizeErrorId: 'sizeError',
+            previewContainerId: 'filePreview'
+        });
+    }
+    
+    // Inicializar selectores de categorías (chips)
+    initSingleCategoryChips();
+    initMultipleCategoryChips();
+    
+    // Inicializar autocompletados de personas
+    initSinglePersonAutocomplete();
+    initMultiplePersonAutocomplete();
+    
+    // Actualizar fecha mínima de vencimiento
+    if (DOM.documentExpiration) {
+        const today = new Date().toISOString().split('T')[0];
+        DOM.documentExpiration.min = today;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CIERRE DEL MODAL
+// ═══════════════════════════════════════════════════════════
+
+/**
  * Cierra el modal de documentos
  */
 export function closeDocumentModal() {
-    console.log('❌ closeDocumentModal - Cerrando modal');
+    console.log('❌ Cerrando modal de documentos');
     
     // Ocultar modal
     DOM.documentModal.style.display = 'none';
     document.body.classList.remove('modal-open');
     
-    // Limpiar formulario
+    // Resetear formulario
     if (DOM.documentForm) {
         DOM.documentForm.reset();
     }
     
-    // Resetear input de archivo único
-    if (DOM.fileInput) {
-        DOM.fileInput.value = '';
+    // Resetear inputs de archivo
+    if (DOM.fileInput) DOM.fileInput.value = '';
+    if (DOM.multipleFileInput) DOM.multipleFileInput.value = '';
+    
+    // Resetear validador
+    if (sizeValidator) sizeValidator.reset();
+    
+    // Ocultar preview
+    const filePreview = document.getElementById('filePreview');
+    if (filePreview) filePreview.style.display = 'none';
+    
+    // Limpiar selecciones
+    if (singleCategoryChips) singleCategoryChips.clearSelection();
+    if (multipleCategoryChips) multipleCategoryChips.clearSelection();
+    
+    // Resetear estado global
+    if (window.appState) {
+        window.appState.selectedFile = null;
     }
     
-    // Resetear input de archivos múltiples
-    if (DOM.multipleFileInput) {
-        DOM.multipleFileInput.value = '';
-    }
-    
-    // Ocultar información de archivo
-    if (DOM.fileInfo) {
-        DOM.fileInfo.style.display = 'none';
+    // Resetear estado de subida múltiple
+    const multipleState = getMultipleUploadState();
+    if (multipleState && multipleState.files.length > 0) {
+        // No resetear si hay archivos en progreso
     }
     
     console.log('✅ Modal cerrado');
 }
 
+// ═══════════════════════════════════════════════════════════
+// CAMBIO DE MODO (ÚNICO / MÚLTIPLE)
+// ═══════════════════════════════════════════════════════════
+
 /**
  * Cambia entre modo de subida único y múltiple
- * @param {string} mode - 'single' o 'multiple'
  */
 export function switchUploadMode(mode) {
-    console.group(`🔄 switchUploadMode - Cambiando a modo: ${mode}`);
+    console.log(`🔄 Cambiando a modo: ${mode}`);
     
     // Actualizar tabs
-    DOM.uploadTabs.forEach(tab => {
+    const tabs = document.querySelectorAll('.upload-tab');
+    tabs.forEach(tab => {
         if (tab.dataset.mode === mode) {
-            tab.classList.add('upload__tab--active');
-            console.log(`✅ Tab "${mode}" activado`);
+            tab.classList.add('upload-tab--active');
         } else {
-            tab.classList.remove('upload__tab--active');
+            tab.classList.remove('upload-tab--active');
         }
     });
     
     // Mostrar/ocultar contenedores
-    if (mode === 'single') {
-        DOM.singleUploadContainer.classList.add('upload__mode--active');
-        DOM.multipleUploadContainer.classList.remove('upload__mode--active');
-        
-        DOM.uploadDocumentBtn.style.display = 'flex';
-        DOM.uploadMultipleDocumentsBtn.style.display = 'none';
-        
-        console.log('📤 Modo único activado');
-        showPageAlert('📤 Modo de subida única activado', 'info', 2000);
-    } else {
-        DOM.singleUploadContainer.classList.remove('upload__mode--active');
-        DOM.multipleUploadContainer.classList.add('upload__mode--active');
-        
-        DOM.uploadDocumentBtn.style.display = 'none';
-        DOM.uploadMultipleDocumentsBtn.style.display = 'flex';
-        
-        const state = getMultipleUploadState();
-        const fileCount = state.files ? state.files.length : 0;
-        
-        console.log('📤📤 Modo múltiple activado');
-        
-        let message = '📤📤 Modo de subida múltiple activado. ';
-        if (fileCount > 0) {
-            message += `Tienes ${fileCount} archivo(s) listos. `;
-        }
-        message += 'Recuerda seleccionar categoría primero.';
-        
-        showPageAlert(message, 'info', 3000);
-        
-        // Asegurar que las personas estén cargadas
-        if (DOM.multipleDocumentPerson && DOM.multipleDocumentPerson.options.length <= 1) {
-            console.log('👤 Poblando select de personas...');
-            populateAllPersonSelects();
-        }
-        
-        // Actualizar estado con categoría actual del select
-        if (DOM.multipleDocumentCategory) {
-            const currentCategory = DOM.multipleDocumentCategory.value;
-            
-            console.log(`🏷️ Categoría actual en select: "${currentCategory}"`);
-            
-            if (currentCategory && currentCategory.trim() !== '') {
-                console.log(`✅ Aplicando categoría al estado: "${currentCategory}"`);
-                state.setCommonCategory(currentCategory);
-                showPageAlert(`🏷️ Categoría "${currentCategory}" aplicada`, 'success', 2000);
-            } else {
-                console.warn('⚠️ Categoría vacía en el select');
-                showPageAlert('⚠️ Selecciona una categoría para habilitar las demás opciones', 'warning', 3000);
-            }
-        }
-        
-        // Actualizar UI de archivos múltiples
-        if (typeof updateMultipleUploadUI === 'function') {
-            console.log('🎨 Actualizando UI...');
-            updateMultipleUploadUI();
-        }
-    }
+    const singleContainer = document.getElementById('singleUploadContainer');
+    const multipleContainer = document.getElementById('multipleUploadContainer');
     
-    console.groupEnd();
+    if (mode === 'single') {
+        if (singleContainer) singleContainer.classList.add('upload-container--active');
+        if (multipleContainer) multipleContainer.classList.remove('upload-container--active');
+        
+        if (DOM.uploadDocumentBtn) DOM.uploadDocumentBtn.style.display = 'flex';
+        if (DOM.uploadMultipleDocumentsBtn) DOM.uploadMultipleDocumentsBtn.style.display = 'none';
+    } else {
+        if (singleContainer) singleContainer.classList.remove('upload-container--active');
+        if (multipleContainer) multipleContainer.classList.add('upload-container--active');
+        
+        if (DOM.uploadDocumentBtn) DOM.uploadDocumentBtn.style.display = 'none';
+        if (DOM.uploadMultipleDocumentsBtn) DOM.uploadMultipleDocumentsBtn.style.display = 'flex';
+        
+        // Actualizar contador de archivos
+        updateMultipleFileCount();
+    }
 }
 
+// ═══════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════
+
 /**
- * Configura los event listeners del modal CON ALERTAS
+ * Configura todos los event listeners del modal
+ */
+/**
+ * Configura todos los event listeners del modal
+ * ✅ CORREGIDO: Usa document.getElementById() en lugar de DOM
  */
 function setupEventListeners() {
-    console.group('🔧 setupEventListeners - Configurando event listeners con alertas');
-    
-    // Limpiar event listeners previos para evitar duplicación
-    removeEventListeners();
-    
-    // Tabs de modo de subida
-    DOM.uploadTabs.forEach(tab => {
-        tab.addEventListener('click', handleTabClick);
-        console.log(`✅ Listener agregado a tab: ${tab.dataset.mode}`);
-    });
-    
-    // Botón de subida única
-    if (DOM.uploadDocumentBtn) {
-        DOM.uploadDocumentBtn.addEventListener('click', handleUploadDocumentClick);
-        console.log('✅ Listener agregado a botón de subida única');
-    }
-    
-    // Botón de subida múltiple CON VALIDACIÓN
-    if (DOM.uploadMultipleDocumentsBtn) {
-        DOM.uploadMultipleDocumentsBtn.addEventListener('click', handleUploadMultipleClick);
-        
-        // También validar en clic si está deshabilitado
-        DOM.uploadMultipleDocumentsBtn.addEventListener('click', (e) => {
-            const state = getMultipleUploadState();
-            const fileCount = state.files ? state.files.length : 0;
-            
-            if (DOM.uploadMultipleDocumentsBtn.disabled) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (fileCount === 0) {
-                    showPageAlert('📁 Primero agrega archivos para subir', 'warning');
-                } else if (!state.commonCategory || state.commonCategory.trim() === '') {
-                    showPageAlert('⚠️ Primero selecciona una categoría', 'warning');
-                } else {
-                    showPageAlert('⏳ Por favor completa la configuración primero', 'info');
-                }
-            }
+    console.log('🔧 Configurando event listeners del modal');
+
+    // Tabs de modo
+    const tabs = document.querySelectorAll('.upload-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const mode = tab.dataset.mode;
+            switchUploadMode(mode);
         });
-        
-        console.log('✅ Listener agregado a botón de subida múltiple');
-    }
-    
+    });
+
     // Botón de cancelar
-    if (DOM.cancelDocumentBtn) {
-        DOM.cancelDocumentBtn.addEventListener('click', closeDocumentModal);
-        console.log('✅ Listener agregado a botón de cancelar');
+    const cancelBtn = document.getElementById('cancelDocumentBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeDocumentModal);
     }
-    
-    // Botón de explorar archivos (modo único)
-    if (DOM.browseFilesBtn) {
-        DOM.browseFilesBtn.addEventListener('click', handleBrowseFilesClick);
-        console.log('✅ Listener agregado a botón de explorar archivos único');
-    }
-    
-    // Input de archivo único
-    if (DOM.fileInput) {
-        DOM.fileInput.addEventListener('change', handleFileInputChange);
-        console.log('✅ Listener agregado a input de archivo único');
-    }
-    
-    // Botón de explorar múltiples archivos CON VALIDACIÓN
-    if (DOM.browseMultipleFilesBtn) {
-        DOM.browseMultipleFilesBtn.addEventListener('click', handleBrowseMultipleClick);
-        
-        // Validar antes de abrir selector
-        DOM.browseMultipleFilesBtn.addEventListener('click', (e) => {
-            if (DOM.multipleFileInput && DOM.multipleFileInput.disabled) {
-                e.preventDefault();
-                e.stopPropagation();
-                showPageAlert('⚠️ Primero selecciona una categoría para habilitar la selección de archivos', 'warning');
-            }
-        });
-        
-        console.log('✅ Listener agregado a botón de explorar archivos múltiples');
-    }
-    
-    // Input de archivos múltiples - VERSIÓN CORREGIDA
-    if (DOM.multipleFileInput) {
-        // Prevenir selección cuando está deshabilitado
-        DOM.multipleFileInput.addEventListener('click', (e) => {
-            if (DOM.multipleFileInput.disabled) {
-                e.preventDefault();
-                e.stopPropagation();
-                showPageAlert('⚠️ Primero selecciona una categoría para habilitar la selección de archivos', 'warning');
-            }
-        });
-        
-        // Handler para cambio de archivos - VERSIÓN MEJORADA
-        DOM.multipleFileInput.addEventListener('change', async (e) => {
-            await handleMultipleFileInputChange(e);
-        });
-        
-        console.log('✅ Listener agregado a input de archivos múltiples');
-    }
-    
-    // Toggle opciones avanzadas
-    if (DOM.toggleAdvancedOptions) {
-        DOM.toggleAdvancedOptions.addEventListener('click', handleToggleAdvancedOptions);
-        console.log('✅ Listener agregado a toggle de opciones avanzadas');
-    }
-    
-    // IMPORTANTE: Escuchar cambios en la categoría múltiple CON ALERTAS
-    if (DOM.multipleDocumentCategory) {
-        DOM.multipleDocumentCategory.addEventListener('change', handleMultipleCategoryChange);
-        console.log('✅ Listener agregado a cambios en select de categoría múltiple');
-    }
-    
-    // Escuchar cambios en persona múltiple
-    if (DOM.multipleDocumentPerson) {
-        DOM.multipleDocumentPerson.addEventListener('change', (e) => {
-            console.log('👤 Persona múltiple cambiada:', e.target.value);
-            if (e.target.value && e.target.value.trim() !== '') {
-                const selectedText = e.target.options[e.target.selectedIndex].text;
-                showPageAlert(`👤 Persona asignada: ${selectedText}`, 'info', 2000);
-            }
-        });
-    }
-    
-    // Escuchar cambios en días de expiración
-    if (DOM.multipleExpirationDays) {
-        DOM.multipleExpirationDays.addEventListener('change', (e) => {
-            console.log('📅 Días de expiración cambiados:', e.target.value);
-            if (e.target.value && parseInt(e.target.value) > 0) {
-                showPageAlert(`📅 Vencimiento configurado: ${e.target.value} días`, 'info', 2000);
-            }
-        });
-    }
-    
-    console.log('🎯 Todos los event listeners configurados con alertas');
-    console.groupEnd();
-}
 
-/**
- * Handler para cambios en la categoría múltiple CON ALERTAS
- */
-function handleMultipleCategoryChange(e) {
-    console.group(`🏷️ handleMultipleCategoryChange`);
-    console.log(`📝 Categoría cambiada a: "${e.target.value}"`);
-    
-    const state = getMultipleUploadState();
-    const category = e.target.value;
-    
-    if (category && category.trim() !== '') {
-        console.log(`✅ Aplicando categoría "${category}" al estado`);
-        state.setCommonCategory(category);
-        
-        // Mostrar alerta de éxito
-        const optionText = e.target.options[e.target.selectedIndex].text;
-        showPageAlert(`✅ Categoría seleccionada: "${optionText}"`, 'success', 2000);
-        
-        // Actualizar archivos existentes con la nueva categoría
-        const fileCount = state.files ? state.files.length : 0;
-        if (fileCount > 0) {
-            let updatedCount = 0;
-            state.files.forEach(fileObj => {
-                if (!fileObj.customCategory || fileObj.customCategory.trim() === '') {
-                    fileObj.customCategory = category;
-                    updatedCount++;
-                }
-            });
-            
-            if (updatedCount > 0) {
-                showPageAlert(`✅ Categoría aplicada a ${updatedCount} archivo(s) existente(s)`, 'success', 2000);
-            }
+    // Cerrar con X
+    const closeBtn = document.querySelector('.modal__close--circle');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeDocumentModal);
+    }
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && DOM.documentModal.style.display === 'flex') {
+            closeDocumentModal();
         }
-        
-        // Verificar estado después del cambio
-        console.log('📊 Estado después de cambiar categoría:');
-        state.logState();
-    } else {
-        console.warn('⚠️ Categoría vacía seleccionada');
-        state.commonCategory = '';
-        showPageAlert('⚠️ Debes seleccionar una categoría para continuar', 'warning', 3000);
-    }
-    
-    console.groupEnd();
-}
-
-/**
- * Remueve todos los event listeners para evitar duplicación
- */
-function removeEventListeners() {
-    console.log('🧹 removeEventListeners - Limpiando listeners previos');
-    
-    if (!DOM.uploadTabs) return;
-    
-    DOM.uploadTabs.forEach(tab => {
-        tab.removeEventListener('click', handleTabClick);
     });
-    
-    if (DOM.uploadDocumentBtn) {
-        DOM.uploadDocumentBtn.removeEventListener('click', handleUploadDocumentClick);
+
+    // Cerrar clickeando fuera del modal
+    DOM.documentModal.addEventListener('click', (e) => {
+        if (e.target === DOM.documentModal) {
+            closeDocumentModal();
+        }
+    });
+
+    // ═══ MODO ÚNICO ═══
+
+    // Botón de explorar archivos
+    const browseFilesBtn = document.getElementById('browseFilesBtn');
+    const fileInput = document.getElementById('fileInput');
+    if (browseFilesBtn && fileInput) {
+        browseFilesBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        console.log('✅ Listener: browseFilesBtn → fileInput');
     }
-    
-    if (DOM.uploadMultipleDocumentsBtn) {
-        DOM.uploadMultipleDocumentsBtn.removeEventListener('click', handleUploadMultipleClick);
+
+    // Input de archivo único
+    if (fileInput) {
+        fileInput.addEventListener('change', handleSingleFileSelect);
+        console.log('✅ Listener: fileInput change');
     }
-    
-    if (DOM.cancelDocumentBtn) {
-        DOM.cancelDocumentBtn.removeEventListener('click', closeDocumentModal);
+
+    // Botón de quitar archivo
+    const removeFileBtn = document.getElementById('removeFileBtn');
+    if (removeFileBtn) {
+        removeFileBtn.addEventListener('click', removeSingleFile);
+        console.log('✅ Listener: removeFileBtn');
     }
-    
-    if (DOM.browseFilesBtn) {
-        DOM.browseFilesBtn.removeEventListener('click', handleBrowseFilesClick);
+
+    // Botón de subir documento único
+    const uploadDocumentBtn = document.getElementById('uploadDocumentBtn');
+    if (uploadDocumentBtn) {
+        uploadDocumentBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleUploadDocumentClick();
+        });
+        console.log('✅ Listener: uploadDocumentBtn');
     }
-    
-    if (DOM.fileInput) {
-        DOM.fileInput.removeEventListener('change', handleFileInputChange);
+
+    // ═══ MODO MÚLTIPLE ═══
+
+    // Botón de explorar archivos múltiples
+    const browseMultipleFilesBtn = document.getElementById('browseMultipleFilesBtn');
+    const multipleFileInput = document.getElementById('multipleFileInput');
+    if (browseMultipleFilesBtn && multipleFileInput) {
+        browseMultipleFilesBtn.addEventListener('click', () => {
+            multipleFileInput.click();
+        });
+        console.log('✅ Listener: browseMultipleFilesBtn → multipleFileInput');
     }
-    
-    if (DOM.browseMultipleFilesBtn) {
-        DOM.browseMultipleFilesBtn.removeEventListener('click', handleBrowseMultipleClick);
+
+    // Input de archivos múltiples
+    if (multipleFileInput) {
+        multipleFileInput.addEventListener('change', handleMultipleFileSelect);
+        console.log('✅ Listener: multipleFileInput change');
     }
-    
-    if (DOM.multipleFileInput) {
-        const newInput = DOM.multipleFileInput.cloneNode(true);
-        DOM.multipleFileInput.parentNode.replaceChild(newInput, DOM.multipleFileInput);
-        // Actualizar referencia en DOM
-        DOM.multipleFileInput = newInput;
+
+    // Botón de subir múltiples
+    const uploadMultipleDocumentsBtn = document.getElementById('uploadMultipleDocumentsBtn');
+    if (uploadMultipleDocumentsBtn) {
+        uploadMultipleDocumentsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleUploadMultipleClick();
+        });
+        console.log('✅ Listener: uploadMultipleDocumentsBtn');
     }
-    
-    if (DOM.toggleAdvancedOptions) {
-        DOM.toggleAdvancedOptions.removeEventListener('click', handleToggleAdvancedOptions);
+
+    // Toggle opciones avanzadas
+    const toggleAdvanced = document.getElementById('toggleAdvancedOptions');
+    const advancedOptions = document.getElementById('advancedOptions');
+    if (toggleAdvanced && advancedOptions) {
+        toggleAdvanced.addEventListener('click', () => {
+            const isOpen = advancedOptions.style.display !== 'none';
+            advancedOptions.style.display = isOpen ? 'none' : 'block';
+            toggleAdvanced.classList.toggle('multiple-advanced__toggle--open', !isOpen);
+        });
+        console.log('✅ Listener: toggleAdvancedOptions');
     }
-    
-    if (DOM.multipleDocumentCategory) {
-        DOM.multipleDocumentCategory.removeEventListener('change', handleMultipleCategoryChange);
-    }
-    
-    console.log('✅ Listeners previos removidos');
+
+    // ═══ DRAG & DROP ═══
+    setupDragAndDrop();
+
+    console.log('✅ Todos los event listeners configurados');
 }
 
 /**
- * Handlers específicos para evitar duplicación CON ALERTAS
+ * Configura drag & drop para los dropzones
  */
-function handleTabClick() {
-    const mode = this.dataset.mode;
-    console.log(`📌 Tab clickeado: ${mode}`);
+function setupDragAndDrop() {
+    const dropzones = document.querySelectorAll('.dropzone');
     
-    if (mode === 'multiple') {
-        const state = getMultipleUploadState();
-        const fileCount = state.files ? state.files.length : 0;
+    dropzones.forEach(dropzone => {
+        // Prevenir comportamiento por defecto
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
         
-        if (fileCount > 0 && (!state.commonCategory || state.commonCategory.trim() === '')) {
-            showPageAlert(`⚠️ Tienes ${fileCount} archivo(s) pero no has seleccionado categoría. Por favor selecciona una categoría.`, 'warning');
+        // Efectos visuales al arrastrar
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.add('dropzone--active');
+            });
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.remove('dropzone--active');
+            });
+        });
+        
+        // Manejar soltar archivos
+        dropzone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length === 0) return;
+            
+            // Determinar si es modo único o múltiple
+            const isMultiple = dropzone.classList.contains('dropzone--multiple');
+            
+            if (isMultiple) {
+                // Verificar que la categoría esté seleccionada
+                const category = multipleCategoryChips ? multipleCategoryChips.getSelectedCategory() : '';
+                if (!category) {
+                    showAlert('⚠️ Selecciona una categoría primero', 'warning');
+                    return;
+                }
+                handleMultipleFilesDrop(files);
+            } else {
+                // Modo único: solo el primer archivo
+                handleSingleFileDrop(files[0]);
+            }
+        });
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+// MANEJO DE ARCHIVOS - MODO ÚNICO
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Maneja la selección de un archivo único
+ */
+function handleSingleFileSelect(e) {
+    console.log('📁 Evento change disparado en fileInput');
+    const file = e.target.files[0];
+    if (!file) {
+        console.warn('⚠️ No se seleccionó archivo');
+        return;
+    }
+    processSingleFile(file);
+}
+
+/**
+ * Maneja el drop de un archivo único
+ */
+function handleSingleFileDrop(file) {
+    if (!file) return;
+    
+    // Simular selección en el input
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    DOM.fileInput.files = dataTransfer.files;
+    
+    processSingleFile(file);
+}
+
+/**
+ * Procesa un archivo único: valida y muestra preview
+ */
+function processSingleFile(file) {
+    console.log(`📁 Procesando archivo: ${file.name}`);
+    console.log('📏 Tamaño:', file.size, 'bytes');
+
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    console.log('📎 Extensión:', fileExtension);
+    console.log('✅ Extensiones permitidas:', CONFIG.ALLOWED_FILE_TYPES);
+
+    if (!CONFIG.ALLOWED_FILE_TYPES.includes(fileExtension)) {
+        showAlert(`Tipo de archivo no permitido: .${fileExtension}`, 'error');
+        DOM.fileInput.value = '';
+        return;
+    }
+
+    // Validar tamaño
+    console.log('🔍 Validando tamaño con sizeValidator...');
+    const validation = sizeValidator.validateFile(file);
+    console.log('📊 Resultado validación:', validation);
+
+    if (!validation.isValid) {
+        showAlert(validation.message, 'error');
+        showFilePreview(file, validation);
+        DOM.fileInput.value = '';
+        return;
+    }
+
+    // ✅ Guardar en estado global
+    console.log('💾 Guardando archivo en window.appState...');
+    window.appState.selectedFile = file;
+    console.log('✅ selectedFile guardado:', window.appState.selectedFile?.name);
+
+    // Mostrar preview
+    showFilePreview(file, validation);
+    updateUploadButton();
+
+    console.log(`✅ Archivo válido: ${file.name} (${validation.formattedSize})`);
+}
+
+/**
+ * Muestra la preview del archivo seleccionado
+ */
+function showFilePreview(file, validation) {
+    const preview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileTypeIcon = document.getElementById('fileTypeIcon');
+    
+    if (!preview) return;
+    
+    preview.style.display = 'block';
+    
+    if (fileName) fileName.textContent = file.name;
+    if (fileSize) fileSize.textContent = validation.formattedSize;
+    
+    // Icono según tipo
+    if (fileTypeIcon) {
+        fileTypeIcon.className = 'fas';
+        const ext = file.name.split('.').pop().toLowerCase();
+        
+        const iconMap = {
+            'pdf': 'fa-file-pdf',
+            'doc': 'fa-file-word',
+            'docx': 'fa-file-word',
+            'xls': 'fa-file-excel',
+            'xlsx': 'fa-file-excel',
+            'txt': 'fa-file-alt',
+            'jpg': 'fa-file-image',
+            'jpeg': 'fa-file-image',
+            'png': 'fa-file-image'
+        };
+        
+        fileTypeIcon.classList.add(iconMap[ext] || 'fa-file');
+    }
+}
+
+/**
+ * Quita el archivo seleccionado en modo único
+ */
+function removeSingleFile() {
+    console.log('🗑️ Quitando archivo seleccionado');
+    
+    window.appState.selectedFile = null;
+    DOM.fileInput.value = '';
+    
+    const preview = document.getElementById('filePreview');
+    if (preview) preview.style.display = 'none';
+    
+    if (sizeValidator) sizeValidator.reset();
+    
+    updateUploadButton();
+}
+
+// ═══════════════════════════════════════════════════════════
+// MANEJO DE ARCHIVOS - MODO MÚLTIPLE
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Maneja la selección de archivos múltiples
+ */
+function handleMultipleFileSelect(e) {
+    console.log('📁 Evento change disparado en multipleFileInput');
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+        console.warn('⚠️ No se seleccionaron archivos');
+        return;
+    }
+    processMultipleFiles(files);
+}
+
+/**
+ * Maneja el drop de archivos múltiples
+ */
+function handleMultipleFilesDrop(files) {
+    processMultipleFiles(files);
+}
+
+/**
+ * Procesa archivos múltiples: valida tamaños
+ */
+function processMultipleFiles(files) {
+    console.log(`📁 Procesando ${files.length} archivos múltiples`);
+    
+    // Validar tamaños
+    const validation = sizeValidator.validateMultipleFiles(Array.from(files));
+    
+    // Mostrar errores si hay archivos inválidos
+    if (validation.invalidFiles.length > 0) {
+        const errorMsg = sizeValidator.getMultipleFilesErrorMessage(validation.invalidFiles);
+        showAlert(errorMsg, 'error');
+    }
+    
+    // Si hay archivos válidos, pasarlos al estado de subida múltiple
+    if (validation.validFiles.length > 0) {
+        const state = getMultipleUploadState();
+        const addedCount = state.addFiles(validation.validFiles);
+        
+        if (addedCount > 0) {
+            showAlert(`✅ ${addedCount} archivo(s) agregado(s)`, 'success');
+            updateMultipleFileCount();
+            updateMultipleControlsState();
         }
     }
     
-    switchUploadMode(mode);
+    // Limpiar input
+    DOM.multipleFileInput.value = '';
 }
 
-function handleUploadDocumentClick(e) {
-    e.preventDefault();
-    console.log('📤 handleUploadDocumentClick - Iniciando subida individual...');
+/**
+ * Actualiza el contador de archivos múltiples
+ */
+function updateMultipleFileCount() {
+    const state = getMultipleUploadState();
+    const count = state.files ? state.files.length : 0;
     
-    // Validación básica para modo único
-    if (DOM.documentCategory && !DOM.documentCategory.value) {
-        showPageAlert('⚠️ Selecciona una categoría para el documento', 'warning');
+    const countEl = document.getElementById('selectedFilesCount');
+    const uploadCountEl = document.getElementById('uploadCount');
+    const totalFilesEl = document.getElementById('totalFiles');
+    
+    if (countEl) countEl.textContent = count;
+    if (uploadCountEl) uploadCountEl.textContent = count;
+    if (totalFilesEl) totalFilesEl.textContent = count;
+}
+
+/**
+ * Actualiza el estado de los controles múltiples
+ */
+function updateMultipleControlsState() {
+    const category = multipleCategoryChips ? multipleCategoryChips.getSelectedCategory() : '';
+    const state = getMultipleUploadState();
+    const fileCount = state.files ? state.files.length : 0;
+    const hiddenPerson = document.getElementById('multipleDocumentPerson');
+    const hasPerson = hiddenPerson && hiddenPerson.value && hiddenPerson.value.trim() !== '';
+
+    const hasCategory = category && category.trim() !== '';
+    const hasFiles = fileCount > 0;
+
+    // Actualizar botón de subida (requiere categoría + persona + archivos)
+    const uploadBtn = document.getElementById('uploadMultipleDocumentsBtn');
+    if (uploadBtn) {
+        uploadBtn.disabled = !(hasCategory && hasPerson && hasFiles);
+        uploadBtn.style.opacity = (hasCategory && hasPerson && hasFiles) ? '1' : '0.5';
+    }
+
+    // Actualizar botón de explorar
+    const browseBtn = document.getElementById('browseMultipleFilesBtn');
+    if (browseBtn) {
+        browseBtn.disabled = !hasCategory;
+        browseBtn.style.opacity = hasCategory ? '1' : '0.5';
+    }
+
+    // Actualizar input de archivos
+    const multipleInput = document.getElementById('multipleFileInput');
+    if (multipleInput) {
+        multipleInput.disabled = !hasCategory;
+    }
+}
+
+// ✅ Exponer globalmente
+window.updateMultipleControlsState = updateMultipleControlsState;
+
+// ═══════════════════════════════════════════════════════════
+// SUBIDA DE DOCUMENTOS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Actualiza el botón de subida única
+ */
+function updateUploadButton() {
+    const hasFile = window.appState && window.appState.selectedFile;
+    const hasCategory = singleCategoryChips && singleCategoryChips.getSelectedCategory();
+    const hiddenPerson = document.getElementById('documentPerson');
+    const hasPerson = hiddenPerson && hiddenPerson.value && hiddenPerson.value.trim() !== '';
+    
+    const uploadBtn = document.getElementById('uploadDocumentBtn');
+    if (uploadBtn) {
+        uploadBtn.disabled = !(hasFile && hasCategory && hasPerson);
+    }
+}
+
+/**
+ * Maneja el click en subir documento único
+ */
+function handleUploadDocumentClick() {
+    console.log('📤 Iniciando subida de documento único');
+
+    // Validar archivo
+    if (!window.appState || !window.appState.selectedFile) {
+        showAlert('Selecciona un archivo primero', 'warning');
         return;
     }
-    
-    if (!DOM.fileInput || !DOM.fileInput.files[0]) {
-        showPageAlert('📁 Selecciona un archivo para subir', 'warning');
+
+    // Validar categoría
+    const category = singleCategoryChips ? singleCategoryChips.getSelectedCategory() : '';
+    if (!category || category.trim() === '') {
+        showAlert('Selecciona una categoría', 'warning');
         return;
     }
-    
+
+    // ✅ Validar persona (OBLIGATORIA)
+    const hiddenPerson = document.getElementById('documentPerson');
+    const personId = hiddenPerson ? hiddenPerson.value : '';
+    if (!personId || personId.trim() === '') {
+        showAlert('Debes asignar el documento a una persona', 'warning');
+        // Enfocar el input de búsqueda de persona
+        const personSearch = document.getElementById('singlePersonSearch');
+        if (personSearch) {
+            personSearch.focus();
+            personSearch.style.borderColor = '#ef4444';
+            setTimeout(() => {
+                personSearch.style.borderColor = '';
+            }, 2000);
+        }
+        return;
+    }
+
+    // Forzar categoría en input hidden
+    const hiddenCategory = document.getElementById('documentCategory');
+    if (hiddenCategory) {
+        hiddenCategory.value = category;
+    }
+
+    // Validar fecha de vencimiento
+    const expirationInput = document.getElementById('documentExpiration');
+    if (expirationInput && expirationInput.value) {
+        const selectedDate = new Date(expirationInput.value + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate <= today) {
+            showAlert('La fecha de vencimiento debe ser posterior a hoy', 'error');
+            return;
+        }
+    }
+
+    // Llamar a la función original
     handleUploadDocument();
 }
 
-async function handleUploadMultipleClick(e) {
-    e.preventDefault();
-    console.group('📤📤 handleUploadMultipleClick - Iniciando subida múltiple...');
-    
-    try {
-        // Verificar estado antes de cerrar modal
-        const state = getMultipleUploadState();
-        const fileCount = state.files ? state.files.length : 0;
-        
-        console.log('📊 Estado ANTES de cerrar modal:');
-        console.log(`• Archivos: ${fileCount}`);
-        console.log(`• Categoría: ${state.commonCategory || 'NO SELECCIONADA'}`);
-        state.logState();
-        
-        // Validaciones importantes
-        if (fileCount === 0) {
-            showPageAlert('📁 No hay archivos para subir. Agrega archivos primero.', 'warning');
-            console.groupEnd();
-            return;
-        }
-        
-        if (!state.commonCategory || state.commonCategory.trim() === '') {
-            showPageAlert('⚠️ No hay categoría seleccionada. Selecciona una categoría primero.', 'warning');
-            console.groupEnd();
-            return;
-        }
-        
-        // Verificar que todos los archivos tengan categoría
-        const filesWithoutCategory = state.files.filter(f => !f.customCategory || f.customCategory.trim() === '');
-        if (filesWithoutCategory.length > 0) {
-            showPageAlert(`⚠️ ${filesWithoutCategory.length} archivo(s) no tienen categoría. Configura la categoría primero.`, 'warning');
-            console.groupEnd();
-            return;
-        }
-        
-        // Mostrar alerta confirmando
-        showPageAlert(`🚀 Iniciando subida de ${fileCount} archivo(s)...`, 'info', 2000);
-        
-        // Cerrar modal primero
-        closeDocumentModal();
-        
-        // Iniciar subida múltiple
-        console.log('🚀 Llamando a handleUploadMultipleDocuments...');
-        await handleUploadMultipleDocuments();
-        
-    } catch (error) {
-        console.error('❌ Error en subida múltiple:', error);
-        showPageAlert('❌ Error en subida múltiple: ' + error.message, 'error');
-        
-        // Reabrir modal si hay error
-        console.log('🔄 Reabriendo modal después de error...');
-        openDocumentModal('multiple');
-    } finally {
-        console.groupEnd();
-    }
-}
-
-function handleBrowseFilesClick() {
-    console.log('📁 handleBrowseFilesClick - Abriendo selector de archivo único');
-    DOM.fileInput.click();
-}
-
-function handleFileInputChange(e) {
-    console.log('📁 handleFileInputChange - Archivo único seleccionado:', e.target.files[0]?.name);
-    
-    if (!e.target.files[0]) {
-        showPageAlert('⚠️ No se seleccionó ningún archivo', 'info');
-        return;
-    }
-    
-    showPageAlert(`📁 Archivo seleccionado: ${e.target.files[0].name}`, 'success', 2000);
-    
-    import('../upload/uploadSingle.js').then(module => {
-        module.handleFileSelect(e);
-    });
-}
-
-function handleBrowseMultipleClick() {
-    console.log('📁📁 handleBrowseMultipleClick - Abriendo selector de archivos múltiples');
-    
-    // Validar que esté habilitado
-    if (DOM.multipleFileInput && DOM.multipleFileInput.disabled) {
-        showPageAlert('⚠️ Primero selecciona una categoría para habilitar la selección de archivos', 'warning');
-        return;
-    }
-    
-    DOM.multipleFileInput.click();
-}
-
 /**
- * Handler para cambio de archivos múltiples - VERSIÓN CORREGIDA DEFINITIVA
+ * Maneja el click en subir múltiples documentos
  */
-async function handleMultipleFileInputChange(e) {
-    console.log('📁📁 handleMultipleFileInputChange - Archivos múltiples seleccionados:', e.target.files.length);
-    
-    if (e.target.files.length === 0) {
-        showPageAlert('⚠️ No se seleccionaron archivos', 'info');
+async function handleUploadMultipleClick() {
+    console.log('📤 Iniciando subida de documentos múltiples');
+
+    const state = getMultipleUploadState();
+    const fileCount = state.files ? state.files.length : 0;
+
+    if (fileCount === 0) {
+        showAlert('No hay archivos para subir', 'warning');
         return;
     }
-    
-    // Validar que esté habilitado
-    if (DOM.multipleFileInput && DOM.multipleFileInput.disabled) {
-        showPageAlert('❌ Primero selecciona una categoría para habilitar la selección de archivos', 'warning');
-        e.target.value = '';
+
+    const category = multipleCategoryChips ? multipleCategoryChips.getSelectedCategory() : '';
+    if (!category || category.trim() === '') {
+        showAlert('Selecciona una categoría', 'warning');
         return;
     }
-    
-    try {
-        // Obtener conteo ANTES de agregar
-        const state = getMultipleUploadState();
-        const filesBefore = state.files ? state.files.length : 0;
-        const newFilesCount = e.target.files.length;
-        
-        console.log(`📊 Archivos antes de agregar: ${filesBefore}`);
-        console.log(`📊 Nuevos archivos: ${newFilesCount}`);
-        
-        // Mostrar alerta INICIAL
-        showPageAlert(`📁 Procesando ${newFilesCount} archivo(s)...`, 'info', 1500);
-        
-        // Primero procesar los archivos usando la función correcta
-        if (handleMultipleFileSelect) {
-            // Pasar el evento directamente
-            const filesAdded = await handleMultipleFileSelect(e);
-            console.log(`✅ handleMultipleFileSelect devolvió: ${filesAdded} archivo(s) agregado(s)`);
-        } else {
-            // Importar dinámicamente si no está cargada
-            const module = await import('../upload/uploadMultiple.js');
-            const filesAdded = await module.handleMultipleFileSelect(e);
-            console.log(`✅ handleMultipleFileSelect devolvió: ${filesAdded} archivo(s) agregado(s)`);
+
+    // ✅ Validar persona (OBLIGATORIA)
+    const hiddenPerson = document.getElementById('multipleDocumentPerson');
+    const personId = hiddenPerson ? hiddenPerson.value : '';
+    if (!personId || personId.trim() === '') {
+        showAlert('Debes asignar los documentos a una persona', 'warning');
+        const personSearch = document.getElementById('multiplePersonSearch');
+        if (personSearch) {
+            personSearch.focus();
         }
-        
-        // Esperar un momento para asegurar que el estado se actualice
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Obtener conteo DESPUÉS de agregar
-        const filesAfter = state.files ? state.files.length : 0;
-        const actuallyAdded = filesAfter - filesBefore;
-        
-        console.log(`📊 Archivos después de agregar: ${filesAfter}`);
-        console.log(`📊 Archivos realmente agregados: ${actuallyAdded}`);
-        
-        // Mostrar alerta FINAL con el conteo CORRECTO
-        if (actuallyAdded > 0) {
-            if (filesAfter === actuallyAdded) {
-                // Primera vez agregando archivos
-                showPageAlert(`✅ ${actuallyAdded} archivo(s) seleccionado(s) y listos para subir`, 'success', 3000);
-            } else {
-                // Agregando a archivos existentes
-                showPageAlert(`✅ ${actuallyAdded} archivo(s) agregado(s) - Total: ${filesAfter} archivo(s) listos`, 'success', 3000);
-            }
-        } else if (newFilesCount > 0 && actuallyAdded === 0) {
-            // Posible duplicado o error
-            showPageAlert(`ℹ️ Los ${newFilesCount} archivo(s) ya estaban en la lista o no pudieron ser agregados`, 'info', 3000);
-        }
-        
-        // Actualizar UI si existe la función
-        if (typeof updateMultipleUploadUI === 'function') {
-            console.log('🎨 Actualizando UI después de agregar archivos...');
-            updateMultipleUploadUI();
-        }
-        
-    } catch (error) {
-        console.error('❌ Error procesando archivos múltiples:', error);
-        showPageAlert('❌ Error al procesar archivos: ' + error.message, 'error');
-    } finally {
-        // Resetear input para permitir seleccionar los mismos archivos otra vez
-        e.target.value = '';
+        return;
     }
+
+    // Forzar valores
+    const hiddenCategory = document.getElementById('multipleDocumentCategory');
+    if (hiddenCategory) {
+        hiddenCategory.value = category;
+    }
+
+    state.setCommonCategory(category);
+    state.setCommonPersonId(personId);
+
+    // ✅ Dejar que uploadMultiple.js maneje el resto (cierre, preloader, etc.)
+    handleUploadMultipleDocuments();
 }
 
-function handleToggleAdvancedOptions() {
-    console.log('⚙️ handleToggleAdvancedOptions - Toggleando opciones avanzadas');
-    const advancedOptions = DOM.advancedOptions;
-    if (advancedOptions.style.display === 'none' || advancedOptions.style.display === '') {
-        advancedOptions.style.display = 'block';
-        this.innerHTML = '<i class="fas fa-sliders-h"></i> Ocultar Opciones Avanzadas';
-        showPageAlert('⚙️ Opciones avanzadas habilitadas', 'info', 2000);
-        console.log('✅ Opciones avanzadas mostradas');
-    } else {
-        advancedOptions.style.display = 'none';
-        this.innerHTML = '<i class="fas fa-sliders-h"></i> Opciones Avanzadas';
-        console.log('✅ Opciones avanzadas ocultadas');
-    }
-}
+// ═══════════════════════════════════════════════════════════
+// FUNCIONES DE COMPATIBILIDAD
+// ═══════════════════════════════════════════════════════════
 
 /**
- * Función auxiliar para mostrar alertas de validación
+ * Muestra alerta en el modal (compatibilidad)
  */
-export function showValidationAlert(message, type = 'warning') {
-    if (showPageAlert) {
-        showPageAlert(message, type, 3000);
-    } else {
-        showAlert(message, type);
-    }
+function showModalAlert(message, type = 'info') {
+    showAlert(message, type);
 }
 
 /**
- * Validar si se puede proceder con la subida múltiple
+ * Valida la subida múltiple (compatibilidad)
  */
 export function validateMultipleUpload() {
     const state = getMultipleUploadState();
     const fileCount = state.files ? state.files.length : 0;
-    const errors = [];
+    const category = multipleCategoryChips ? multipleCategoryChips.getSelectedCategory() : '';
     
-    if (fileCount === 0) {
-        errors.push('No hay archivos para subir');
-    }
-    
-    if (!state.commonCategory || state.commonCategory.trim() === '') {
-        errors.push('No hay categoría seleccionada');
-    }
-    
-    // Verificar archivos sin categoría
-    const filesWithoutCategory = state.files.filter(f => !f.customCategory || f.customCategory.trim() === '');
-    if (filesWithoutCategory.length > 0) {
-        errors.push(`${filesWithoutCategory.length} archivo(s) sin categoría`);
-    }
-    
-    if (errors.length > 0) {
-        const errorMessage = errors.join(', ');
-        showValidationAlert(`⚠️ ${errorMessage}`, 'warning');
-        return false;
-    }
+    if (fileCount === 0) return false;
+    if (!category) return false;
     
     return true;
 }
 
-/**
- * Obtiene el conteo actual de archivos en el estado
- */
-export function getCurrentFileCount() {
-    const state = getMultipleUploadState();
-    return state.files ? state.files.length : 0;
+// Debug global
+if (typeof window !== 'undefined') {
+    window.debugModalState = () => {
+        console.group('🐛 DEBUG MODAL STATE');
+        console.log('Categoría única:', singleCategoryChips?.getSelectedCategory());
+        console.log('Categoría múltiple:', multipleCategoryChips?.getSelectedCategory());
+        console.log('Archivo único:', window.appState?.selectedFile?.name);
+        
+        const state = getMultipleUploadState();
+        console.log('Archivos múltiples:', state?.files?.length);
+        state?.logState();
+        console.groupEnd();
+    };
 }
 
-/**
- * Función de debugging para verificar estado actual
- */
-export function debugModalState() {
-    console.group('🐛 DEBUG MODAL STATE');
-    
-    const state = getMultipleUploadState();
-    const fileCount = state.files ? state.files.length : 0;
-    
-    console.log('📊 Estado MultipleUploadState:');
-    state.logState();
-    
-    console.log('🔍 Verificación de DOM elements:');
-    console.log('- multipleDocumentCategory:', DOM.multipleDocumentCategory ? 'EXISTE' : 'NO EXISTE');
-    console.log('- Valor actual:', DOM.multipleDocumentCategory ? DOM.multipleDocumentCategory.value : 'N/A');
-    console.log('- multipleDocumentPerson:', DOM.multipleDocumentPerson ? 'EXISTE' : 'NO EXISTE');
-    console.log('- uploadMultipleDocumentsBtn:', DOM.uploadMultipleDocumentsBtn ? 'EXISTE' : 'NO EXISTE');
-    console.log('- multipleFileInput.disabled:', DOM.multipleFileInput ? DOM.multipleFileInput.disabled : 'N/A');
-    
-    // Mostrar alerta con estado
-    const message = `
-        Estado actual:
-        • Archivos: ${fileCount}
-        • Categoría: ${state.commonCategory || 'NO SELECCIONADA'}
-        • Persona: ${state.commonPersonId || 'NO CONFIGURADA'}
-        • Expiración: ${state.expirationDays ? state.expirationDays + ' días' : 'NO CONFIGURADA'}
-        • Input archivos habilitado: ${DOM.multipleFileInput ? !DOM.multipleFileInput.disabled : 'N/A'}
-    `;
-    
-    if (showPageAlert) {
-        showPageAlert(message, 'info', 5000);
-    }
-    
-    console.log('🏷️ Verificación de categorías:');
-    const categoryCheck = state.checkCategories();
-    console.table(categoryCheck.details);
-    
-    console.groupEnd();
-}
+console.log('✅ documentModal.js (rediseñado) cargado');
