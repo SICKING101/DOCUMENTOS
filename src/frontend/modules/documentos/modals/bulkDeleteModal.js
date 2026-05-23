@@ -165,34 +165,45 @@ export class BulkDeleteModal {
         }
     }
 
-    /**
-     * ABRIR MODAL
-     */
-    async open() {
-        console.group('📋 ABRIENDO MODAL DE ELIMINACIÓN MÚLTIPLE MEJORADO');
-        
-        if (!this.modal) {
-            this.init();
-        }
-        
-        // Resetear estado
-        this.resetModalState();
-        
-        // Cargar documentos
-        await this.loadDocuments();
-        
-        // Aplicar filtros iniciales
-        this.applyFilters();
-        
-        // Actualizar UI
-        this.updateUI();
-        
-        // Mostrar modal
-        this.showModal();
-        
-        console.log('✅ Modal mejorado abierto');
-        console.groupEnd();
+/**
+ * ABRIR MODAL
+ */
+async open() {
+    console.group('📋 ABRIENDO MODAL DE ELIMINACIÓN MÚLTIPLE MEJORADO');
+    
+    if (!this.modal) {
+        this.init();
     }
+    
+    // Resetear estado
+    this.resetModalState();
+    
+    // ✅ SIEMPRE recargar documentos desde la API
+    await this.loadDocuments();
+    
+    // Resetear filtros visuales
+    const modalFilterCategory = document.getElementById('modalFilterCategory');
+    const modalFilterType = document.getElementById('modalFilterType');
+    const modalFilterStatus = document.getElementById('modalFilterStatus');
+    const modalSearch = document.getElementById('modalSearch');
+    
+    if (modalFilterCategory) modalFilterCategory.value = '';
+    if (modalFilterType) modalFilterType.value = '';
+    if (modalFilterStatus) modalFilterStatus.value = '';
+    if (modalSearch) modalSearch.value = '';
+    
+    // Aplicar filtros
+    this.applyFilters();
+    
+    // Actualizar UI
+    this.updateUI();
+    
+    // Mostrar modal
+    this.showModal();
+    
+    console.log('✅ Modal mejorado abierto con datos frescos');
+    console.groupEnd();
+}
 
     /**
      * RESETEAR ESTADO DEL MODAL
@@ -216,32 +227,37 @@ export class BulkDeleteModal {
     /**
      * CARGAR DOCUMENTOS - CORREGIDO: CON BARRA AL INICIO
      */
-    async loadDocuments() {
-        console.log('📄 Cargando documentos para el modal...');
+async loadDocuments() {
+    console.log('📄 Cargando documentos para el modal...');
+    
+    try {
+        // ✅ SIEMPRE cargar desde la API, ignorar appState
+        const response = await api.call('/documents');
         
-        try {
-            if (window.appState?.documents) {
-                this.documents = window.appState.documents;
-                console.log(`✅ ${this.documents.length} documentos cargados del appState`);
-            } else {
-                // CORREGIDO: SIEMPRE con barra al inicio
-                const response = await api.call('/documents');
-                if (response.success) {
-                    this.documents = response.documents || [];
-                    console.log(`✅ ${this.documents.length} documentos cargados desde API`);
-                } else {
-                    throw new Error(response.message);
-                }
+        if (response.success) {
+            this.documents = response.documents || [];
+            // ✅ Actualizar también appState para mantener consistencia
+            if (window.appState) {
+                window.appState.documents = this.documents;
             }
-            
-            this.loadCategories();
-            
-        } catch (error) {
-            console.error('❌ Error cargando documentos:', error);
-            showAlert('Error cargando documentos: ' + error.message, 'error');
+            console.log(`✅ ${this.documents.length} documentos cargados desde API`);
+        } else {
+            throw new Error(response.message || 'Error al cargar documentos');
+        }
+        
+        this.loadCategories();
+        
+    } catch (error) {
+        console.error('❌ Error cargando documentos:', error);
+        // Fallback silencioso a appState si la API falla
+        if (window.appState?.documents) {
+            this.documents = window.appState.documents;
+            console.log(`⚠️ Usando ${this.documents.length} documentos del appState (fallback)`);
+        } else {
             this.documents = [];
         }
     }
+}
 
     /**
      * CARGAR CATEGORÍAS
@@ -933,36 +949,40 @@ export class BulkDeleteModal {
     /**
      * MANEJAR ÉXITO DE ELIMINACIÓN
      */
-    async handleSuccess(count, message) {
-        // Completar el progreso
-        this.updatePreloaderProgress(100, '¡Completado!');
-        
-        // Esperar un momento para mostrar el 100%
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        this.hidePreloader();
-        this.showDeletingState(false);
-        
-        showAlert(message || `${count} documentos movidos a la papelera`, 'success');
-        
-        // Cerrar modal
-        this.close();
-        
-        // Limpiar estado
-        bulkDeleteState.deselectAll();
-        
-        // Recargar documentos globales
-        if (window.loadDocuments) {
-            await window.loadDocuments();
-        }
-        
-        // Actualizar papelera
-        if (updateTrashBadge) {
-            await updateTrashBadge();
-        }
-        
-        console.log(`✅ ${count} documentos eliminados exitosamente`);
+async handleSuccess(count, message) {
+    this.updatePreloaderProgress(100, '¡Completado!');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    this.hidePreloader();
+    this.showDeletingState(false);
+    
+    showAlert(message || `${count} documentos movidos a la papelera`, 'success');
+    
+    this.close();
+    bulkDeleteState.deselectAll();
+    
+    // ✅ Recargar documentos
+    if (window.loadDocuments) {
+        await window.loadDocuments();
     }
+    
+    // ✅ Recargar categorías para actualizar contadores
+    if (window.loadCategories) {
+        await window.loadCategories();
+    }
+    
+    // ✅ Refrescar el árbol de categorías
+    if (window.refreshCategoryTree) {
+        window.refreshCategoryTree();
+    }
+    
+    // Actualizar papelera
+    if (updateTrashBadge) {
+        await updateTrashBadge();
+    }
+    
+    console.log(`✅ ${count} documentos eliminados exitosamente`);
+}
 
     /**
      * ELIMINACIÓN INDIVIDUAL (FALLBACK) - CORREGIDO: CON BARRA AL INICIO

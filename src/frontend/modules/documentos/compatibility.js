@@ -90,7 +90,7 @@ async function getDocumentInfo(documentId) {
             return {
                 name: data.document.original_filename || data.document.filename || data.document.nombre_original || 'Documento sin nombre',
                 size: formatFileSize(data.document.file_size || data.document.tamano_archivo || 0),
-                date: data.document.created_at || data.document.fecha_subida ? 
+                date: data.document.created_at || data.document.fecha_subida ?
                     new Date(data.document.created_at || data.document.fecha_subida).toLocaleDateString() : 'Fecha desconocida',
                 type: data.document.file_type || data.document.tipo_archivo || 'Desconocido',
                 icon: getFileIcon(data.document.file_type || data.document.tipo_archivo)
@@ -164,7 +164,7 @@ export async function deleteDocument(id) {
 
     const closeModal = () => {
         if (isProcessing) return;
-        
+
         modal.style.animation = 'modalOverlayFadeOut 0.3s ease-out';
         modal.querySelector('.modal__content').style.animation = 'modalContentSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
 
@@ -271,15 +271,19 @@ export async function deleteDocument(id) {
                 const closeSuccessButton = modal.querySelector('.btn-close-success');
                 closeSuccessButton.addEventListener('click', async () => {
                     closeModal();
-                    
-                    // Recargar datos
+
                     await window.loadDocuments();
+
+                    // ✅ Añadir recarga de categorías
+                    if (window.loadCategories) {
+                        await window.loadCategories();
+                    }
+                    if (window.refreshCategoryTree) {
+                        window.refreshCategoryTree();
+                    }
+
                     if (updateTrashBadge) await updateTrashBadge();
-                    if (window.loadCategories) await window.loadCategories();
-                    if (window.refreshCategoryTree) window.refreshCategoryTree();
-                    
-                    // Mostrar SOLO UNA notificación de éxito
-                    showDocumentNotification('DELETE', data.message || 'Documento movido a la papelera', 'success', id);
+                    showAlert(data.message || 'Documento movido a la papelera', 'success');
                 });
 
             } else {
@@ -299,7 +303,7 @@ export async function deleteDocument(id) {
                 } else if (error.message) {
                     errorMsg = error.message;
                 }
-            } catch (e) {}
+            } catch (e) { }
 
             // Mostrar mensaje de error en el modal
             const modalBody = modal.querySelector('.modal__body');
@@ -352,7 +356,7 @@ export async function deleteDocument(id) {
  * Función de compatibilidad para cargar documentos.
  * CORREGIDO: Usa control de notificaciones
  */
-export const loadDocuments = withDocumentLoadControl(async function() {
+export const loadDocuments = withDocumentLoadControl(async function () {
     try {
         console.log('📄 Cargando documentos...');
 
@@ -400,7 +404,7 @@ export async function refreshDocumentsView({ reloadCategories = true, refreshFil
     // Marcar como carga silenciosa para evitar notificaciones
     const wasLoading = window.isLoadingDocuments;
     window.isLoadingDocuments = true;
-    
+
     try {
         await loadDocuments();
 
@@ -610,9 +614,9 @@ export async function approveDocument(documentId, comment = '') {
         if (response?.success) {
             // Usar showDocumentNotification en lugar de showAlert
             showDocumentNotification('UPDATE', response.message || 'Documento aprobado', 'success', documentId);
-            
+
             await refreshDocumentsView();
-            
+
             try {
                 const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
                 if (typeof dashboardLoader === 'function') {
@@ -644,9 +648,9 @@ export async function rejectDocument(documentId, comment = '') {
 
         if (response?.success) {
             showDocumentNotification('UPDATE', response.message || 'Documento rechazado', 'success', documentId);
-            
+
             await refreshDocumentsView();
-            
+
             try {
                 const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
                 if (typeof dashboardLoader === 'function') {
