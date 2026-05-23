@@ -6,6 +6,7 @@
 import mongoose from 'mongoose';
 import Task from '../models/Task.js';
 import User from '../models/User.js';
+import ReminderService from '../services/reminderService.js';
 
 const DEBUG = true;
 function clog(...args) { if (DEBUG) console.log('🎯 [TaskController]', ...args); }
@@ -141,10 +142,10 @@ class TaskController {
     }
   }
   
-  // ===========================================================================
-  // 3. CREAR TAREA
-  // ===========================================================================
-  static async create(req, res) {
+// ===========================================================================
+// 3. CREAR TAREA
+// ===========================================================================
+static async create(req, res) {
     try {
       const userId = req.user?.id;
       const userName = req.user?.usuario;
@@ -180,6 +181,16 @@ class TaskController {
       
       await nuevaTarea.save();
       
+      // 🆕 Verificar recordatorios inmediatamente si la tarea tiene recordatorio activo
+      if (nuevaTarea.recordatorio && nuevaTarea.fecha_limite) {
+        try {
+          await ReminderService.runChecks();
+          console.log('⏰ Recordatorios verificados tras crear tarea');
+        } catch (e) {
+          console.warn('⚠️ Error verificando recordatorios:', e.message);
+        }
+      }
+      
       const tareaConDatos = await Task.findById(nuevaTarea._id)
         .populate('asignado_a', 'usuario correo')
         .populate('creado_por', 'usuario correo')
@@ -192,10 +203,10 @@ class TaskController {
     }
   }
   
-  // ===========================================================================
-  // 4. ACTUALIZAR TAREA
-  // ===========================================================================
-  static async update(req, res) {
+// ===========================================================================
+// 4. ACTUALIZAR TAREA
+// ===========================================================================
+static async update(req, res) {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
@@ -223,7 +234,6 @@ class TaskController {
         });
       }
       
-      // Verificar permisos
       if (!canEditTask(tarea, userId)) {
         return res.status(403).json({
           success: false,
@@ -232,16 +242,8 @@ class TaskController {
       }
       
       const {
-        titulo,
-        descripcion,
-        prioridad,
-        estado,
-        categoria,
-        fecha_limite,
-        hora_limite,
-        recordatorio,
-        tipo,
-        asignado_a
+        titulo, descripcion, prioridad, estado, categoria,
+        fecha_limite, hora_limite, recordatorio, tipo, asignado_a
       } = req.body;
       
       if (titulo) tarea.titulo = titulo.trim();
@@ -254,6 +256,10 @@ class TaskController {
       if (recordatorio !== undefined) tarea.recordatorio = recordatorio;
       if (tipo) tarea.tipo = tipo;
       
+      if (fecha_limite !== undefined || recordatorio !== undefined) {
+        tarea.recordatorio_enviado = false;
+      }
+      
       if (asignado_a !== undefined) {
         const nuevosAsignados = await User.find({
           _id: { $in: asignado_a },
@@ -263,6 +269,16 @@ class TaskController {
       }
       
       await tarea.save();
+      
+      // 🆕 Verificar recordatorios inmediatamente si la tarea tiene recordatorio activo
+      if (tarea.recordatorio && tarea.fecha_limite && tarea.estado !== 'completada') {
+        try {
+          await ReminderService.runChecks();
+          console.log('⏰ Recordatorios verificados tras actualizar tarea');
+        } catch (e) {
+          console.warn('⚠️ Error verificando recordatorios:', e.message);
+        }
+      }
       
       const tareaActualizada = await Task.findById(id)
         .populate('asignado_a', 'usuario correo')

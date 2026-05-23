@@ -415,12 +415,22 @@ function navigateFromNotification(notificacion) {
         case 'reporte_excel':
         case 'reporte_pdf':
         case 'reporte_csv':
-            // No navegar, ya se descargó el reporte
             showAlert('Reporte generado exitosamente', 'success');
             break;
         
+        case 'tarea_recordatorio':
+            if (window.switchTab) {
+                window.switchTab('tareas');
+            }
+            break;
+        
+        case 'calendario_recordatorio':
+            if (window.switchTab) {
+                window.switchTab('calendario');
+            }
+            break;
+        
         default:
-            // Dashboard por defecto
             if (window.switchTab) {
                 window.switchTab('dashboard');
             }

@@ -403,197 +403,195 @@
                 </section>
 
                 <!-- SECCIÓN 4.2.2: PESTAÑA PAPELERA -->
-<!-- ============================================================
+                <!-- ============================================================
      SECCIÓN 4.2.2: PAPELERA — HTML RENOVADO
      Reemplaza el bloque <section id="papelera" ...> completo
      Todos los IDs/clases funcionales intactos
      ============================================================ -->
 
-<section id="papelera" class="tab-content">
+                <section id="papelera" class="tab-content">
 
-    <!-- ── HEADER ───────────────────────────────────────────── -->
-    <div class="section__header">
-        <div class="header-left">
-            <div class="header-icon-wrap">
-                <i class="fas fa-trash-alt"></i>
-            </div>
-            <div class="header-text">
-                <h2 class="section__title">Papelera de Reciclaje</h2>
-                <p class="section__subtitle">
-                    Documentos eliminados &mdash; Se purgan automáticamente a los 30 días
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── ESTADÍSTICAS ─────────────────────────────────────── -->
-    <div class="trash-stats">
-
-        <div class="trash-stat-card stat-total">
-            <div class="trash-stat-icon stat-total">
-                <i class="fas fa-file-alt"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashTotalDocs">0</div>
-                <div class="trash-stat-label">En Papelera</div>
-            </div>
-        </div>
-
-        <div class="trash-stat-card stat-size">
-            <div class="trash-stat-icon stat-size">
-                <i class="fas fa-hdd"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashTotalSize">0 KB</div>
-                <div class="trash-stat-label">Espacio Total</div>
-            </div>
-        </div>
-
-        <div class="trash-stat-card stat-critical">
-            <div class="trash-stat-icon stat-critical">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashCriticalDocs">0</div>
-                <div class="trash-stat-label">Por Expirar</div>
-                <div class="trash-stat-subtitle">&le; 7 días</div>
-            </div>
-        </div>
-
-        <div class="trash-stat-card stat-warning">
-            <div class="trash-stat-icon stat-warning">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="trash-stat-info">
-                <div class="trash-stat-value" id="trashWarningDocs">0</div>
-                <div class="trash-stat-label">Próximos</div>
-                <div class="trash-stat-subtitle">8 &ndash; 14 días</div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ── CONTROLES ────────────────────────────────────────── -->
-    <div class="trash-controls">
-
-        <div class="trash-controls-left">
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input
-                    type="text"
-                    id="trashSearchInput"
-                    placeholder="Buscar en papelera..."
-                    autocomplete="off"
-                >
-            </div>
-
-            <div class="view-toggle">
-                <button id="gridViewBtn" class="active" title="Vista cuadrícula">
-                    <i class="fas fa-th-large"></i>
-                </button>
-                <button id="listViewBtn" title="Vista lista">
-                    <i class="fas fa-list"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="trash-controls-right">
-            <select id="trashSortSelect" class="sort-select">
-                <option value="deletedAt-desc">Más recientes primero</option>
-                <option value="deletedAt-asc">Más antiguos primero</option>
-                <option value="daysRemaining-asc">Menos días restantes</option>
-                <option value="daysRemaining-desc">Más días restantes</option>
-                <option value="name-asc">Nombre (A-Z)</option>
-                <option value="name-desc">Nombre (Z-A)</option>
-                <option value="size-desc">Mayor tamaño</option>
-                <option value="size-asc">Menor tamaño</option>
-            </select>
-        </div>
-
-    </div>
-
-    <!-- ── CONTROLES DE SELECCIÓN ───────────────────────────── -->
-    <div class="trash-selection-controls">
-
-        <div class="selection-controls-left">
-            <button class="btn btn--outline btn--sm" id="selectAllTrash">
-                <i class="fas fa-check-square"></i>
-                Seleccionar Todo
-            </button>
-            <button class="btn btn--outline btn--sm" id="deselectAllTrash">
-                <i class="fas fa-square"></i>
-                Deseleccionar
-            </button>
-            <div class="trash-selection-counter" id="trashSelectionCounter" style="display:none;">
-                <i class="fas fa-check-circle"></i>
-                <span class="selection-count">0</span> seleccionado(s)
-            </div>
-        </div>
-
-        <div class="selection-controls-right" id="bulkActionsContainer" style="display:none;">
-            <button class="btn btn--success btn--sm" id="restoreSelectedBtn">
-                <i class="fas fa-undo"></i>
-                Restaurar Seleccionados
-            </button>
-            <button class="btn btn--danger btn--sm" id="deleteSelectedBtn">
-                <i class="fas fa-trash-alt"></i>
-                Eliminar Seleccionados
-            </button>
-        </div>
-
-    </div>
-
-    <!-- ── LISTA DE DOCUMENTOS ──────────────────────────────── -->
-    <div class="trash-content" id="trashContent">
-        <div id="trashDocumentsList" class="trash-documents-list grid-view">
-
-            <!-- Estado vacío inicial (reemplazado por JS al cargar) -->
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-trash-alt"></i>
-                </div>
-                <h3>La papelera está vacía</h3>
-                <p>Los documentos eliminados aparecerán aquí y se conservan por 30 días</p>
-                <div class="empty-state-tips">
-                    <div class="tip">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Los documentos se eliminan automáticamente después de 30 días</span>
+                    <!-- ── HEADER ───────────────────────────────────────────── -->
+                    <div class="section__header">
+                        <div class="header-left">
+                            <div class="header-icon-wrap">
+                                <i class="fas fa-trash-alt"></i>
+                            </div>
+                            <div class="header-text">
+                                <h2 class="section__title">Papelera de Reciclaje</h2>
+                                <p class="section__subtitle">
+                                    Documentos eliminados &mdash; Se purgan automáticamente a los 30 días
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="tip">
-                        <i class="fas fa-undo"></i>
-                        <span>Puedes restaurar documentos antes de que sean eliminados permanentemente</span>
+
+                    <!-- ── ESTADÍSTICAS ─────────────────────────────────────── -->
+                    <div class="trash-stats">
+
+                        <div class="trash-stat-card stat-total">
+                            <div class="trash-stat-icon stat-total">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashTotalDocs">0</div>
+                                <div class="trash-stat-label">En Papelera</div>
+                            </div>
+                        </div>
+
+                        <div class="trash-stat-card stat-size">
+                            <div class="trash-stat-icon stat-size">
+                                <i class="fas fa-hdd"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashTotalSize">0 KB</div>
+                                <div class="trash-stat-label">Espacio Total</div>
+                            </div>
+                        </div>
+
+                        <div class="trash-stat-card stat-critical">
+                            <div class="trash-stat-icon stat-critical">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashCriticalDocs">0</div>
+                                <div class="trash-stat-label">Por Expirar</div>
+                                <div class="trash-stat-subtitle">&le; 7 días</div>
+                            </div>
+                        </div>
+
+                        <div class="trash-stat-card stat-warning">
+                            <div class="trash-stat-icon stat-warning">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="trash-stat-info">
+                                <div class="trash-stat-value" id="trashWarningDocs">0</div>
+                                <div class="trash-stat-label">Próximos</div>
+                                <div class="trash-stat-subtitle">8 &ndash; 14 días</div>
+                            </div>
+                        </div>
+
                     </div>
-                </div>
-            </div>
 
-        </div>
-    </div>
+                    <!-- ── CONTROLES ────────────────────────────────────────── -->
+                    <div class="trash-controls">
 
-    <!-- ── MODAL DE PROGRESO (operationProgress) ────────────── -->
-    <div id="operationProgress" class="operation-progress" style="display:none;">
-        <div class="progress-overlay"></div>
-        <div class="progress-content">
-            <div class="progress-spinner">
-                <div class="spinner-circle"></div>
-            </div>
-            <div class="progress-info">
-                <h4 class="progress-title">Procesando…</h4>
-                <p class="progress-message" id="progressMessage"></p>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-details">
-                    <span class="progress-counter" id="progressCounter">0/0</span>
-                    <span class="progress-percentage" id="progressPercentage">0%</span>
-                </div>
-            </div>
-            <button class="btn btn--text btn--sm progress-cancel" id="progressCancelBtn">
-                Cancelar
-            </button>
-        </div>
-    </div>
+                        <div class="trash-controls-left">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="trashSearchInput" placeholder="Buscar en papelera..."
+                                    autocomplete="off">
+                            </div>
 
-</section>
+                            <div class="view-toggle">
+                                <button id="gridViewBtn" class="active" title="Vista cuadrícula">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button id="listViewBtn" title="Vista lista">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="trash-controls-right">
+                            <select id="trashSortSelect" class="sort-select">
+                                <option value="deletedAt-desc">Más recientes primero</option>
+                                <option value="deletedAt-asc">Más antiguos primero</option>
+                                <option value="daysRemaining-asc">Menos días restantes</option>
+                                <option value="daysRemaining-desc">Más días restantes</option>
+                                <option value="name-asc">Nombre (A-Z)</option>
+                                <option value="name-desc">Nombre (Z-A)</option>
+                                <option value="size-desc">Mayor tamaño</option>
+                                <option value="size-asc">Menor tamaño</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <!-- ── CONTROLES DE SELECCIÓN ───────────────────────────── -->
+                    <div class="trash-selection-controls">
+
+                        <div class="selection-controls-left">
+                            <button class="btn btn--outline btn--sm" id="selectAllTrash">
+                                <i class="fas fa-check-square"></i>
+                                Seleccionar Todo
+                            </button>
+                            <button class="btn btn--outline btn--sm" id="deselectAllTrash">
+                                <i class="fas fa-square"></i>
+                                Deseleccionar
+                            </button>
+                            <div class="trash-selection-counter" id="trashSelectionCounter" style="display:none;">
+                                <i class="fas fa-check-circle"></i>
+                                <span class="selection-count">0</span> seleccionado(s)
+                            </div>
+                        </div>
+
+                        <div class="selection-controls-right" id="bulkActionsContainer" style="display:none;">
+                            <button class="btn btn--success btn--sm" id="restoreSelectedBtn">
+                                <i class="fas fa-undo"></i>
+                                Restaurar Seleccionados
+                            </button>
+                            <button class="btn btn--danger btn--sm" id="deleteSelectedBtn">
+                                <i class="fas fa-trash-alt"></i>
+                                Eliminar Seleccionados
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- ── LISTA DE DOCUMENTOS ──────────────────────────────── -->
+                    <div class="trash-content" id="trashContent">
+                        <div id="trashDocumentsList" class="trash-documents-list grid-view">
+
+                            <!-- Estado vacío inicial (reemplazado por JS al cargar) -->
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-trash-alt"></i>
+                                </div>
+                                <h3>La papelera está vacía</h3>
+                                <p>Los documentos eliminados aparecerán aquí y se conservan por 30 días</p>
+                                <div class="empty-state-tips">
+                                    <div class="tip">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>Los documentos se eliminan automáticamente después de 30 días</span>
+                                    </div>
+                                    <div class="tip">
+                                        <i class="fas fa-undo"></i>
+                                        <span>Puedes restaurar documentos antes de que sean eliminados
+                                            permanentemente</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- ── MODAL DE PROGRESO (operationProgress) ────────────── -->
+                    <div id="operationProgress" class="operation-progress" style="display:none;">
+                        <div class="progress-overlay"></div>
+                        <div class="progress-content">
+                            <div class="progress-spinner">
+                                <div class="spinner-circle"></div>
+                            </div>
+                            <div class="progress-info">
+                                <h4 class="progress-title">Procesando…</h4>
+                                <p class="progress-message" id="progressMessage"></p>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <div class="progress-details">
+                                    <span class="progress-counter" id="progressCounter">0/0</span>
+                                    <span class="progress-percentage" id="progressPercentage">0%</span>
+                                </div>
+                            </div>
+                            <button class="btn btn--text btn--sm progress-cancel" id="progressCancelBtn">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+
+                </section>
+
                 <!-- =====================================================================
      SECCIÓN 4.2.3: PESTAÑA HISTORIAL — DISEÑO "LUMINOUS CHRONICLE"
      Todos los IDs funcionales conservados; solo rediseño visual.
@@ -735,6 +733,8 @@
                                         <option value="reporte_generado">Reporte generado</option>
                                         <option value="sistema_iniciado">Sistema iniciado</option>
                                         <option value="error_sistema">Error del sistema</option>
+                                        <option value="tarea_recordatorio">Recordatorio de Tarea</option>
+                                        <option value="calendario_recordatorio">Recordatorio de Calendario</option>
                                     </select>
                                 </div>
 
@@ -745,7 +745,6 @@
                                     </label>
                                     <select id="filterPriority" class="hfilter-select">
                                         <option value="all">Todas las prioridades</option>
-                                        <option value="critica">Crítica</option>
                                         <option value="alta">Alta</option>
                                         <option value="media">Media</option>
                                         <option value="baja">Baja</option>
@@ -1984,7 +1983,6 @@
                                 <option value="baja">Baja</option>
                                 <option value="media">Media</option>
                                 <option value="alta">Alta</option>
-                                <option value="critica">Crítica</option>
                             </select>
                         </div>
 
@@ -1996,7 +1994,6 @@
                                         <tr>
                                             <th>Tarea</th>
                                             <th class="col-assignees">Asignado a</th>
-                                            <th class="col-type">Tipo</th>
                                             <th>Prioridad</th>
                                             <th>Estado</th>
                                             <th>Fecha límite</th>
@@ -3528,7 +3525,6 @@
                                 <option value="baja">🟢 Baja</option>
                                 <option value="media" selected>🟡 Media</option>
                                 <option value="alta">🔴 Alta</option>
-                                <option value="critica">🟣 Crítica</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -3617,20 +3613,11 @@
                     <!-- Tipo + Prioridad -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="assignTipoForm">Tipo</label>
-                            <select class="form-control" id="assignTipoForm">
-                                <option value="asignada">Asignada (1 persona)</option>
-                                <option value="grupal">Grupal (equipo)</option>
-                                <option value="clase">Clase / departamento</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
                             <label for="assignPrioridadForm">Prioridad</label>
                             <select class="form-control" id="assignPrioridadForm">
                                 <option value="baja">🟢 Baja</option>
                                 <option value="media" selected>🟡 Media</option>
                                 <option value="alta">🔴 Alta</option>
-                                <option value="critica">🟣 Crítica</option>
                             </select>
                         </div>
                     </div>
@@ -4204,7 +4191,6 @@
                                 <option value="baja">Baja</option>
                                 <option value="media" selected>Media</option>
                                 <option value="alta">Alta</option>
-                                <option value="critica">Crítica</option>
                             </select>
                         </div>
                     </div>

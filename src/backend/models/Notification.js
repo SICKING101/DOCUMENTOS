@@ -18,7 +18,10 @@ const notificationSchema = new mongoose.Schema({
       'categoria_eliminada',
       'reporte_generado',
       'sistema_iniciado',
-      'error_sistema'
+      'error_sistema',
+      // ✅ NUEVOS TIPOS PARA RECORDATORIOS
+      'tarea_recordatorio',
+      'calendario_recordatorio'
     ]
   },
   titulo: {
@@ -59,6 +62,18 @@ const notificationSchema = new mongoose.Schema({
     ref: 'Category',
     default: null
   },
+  // ✅ Referencia a tarea para recordatorios
+  tarea_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task',
+    default: null
+  },
+  // ✅ Referencia a evento de calendario
+  calendario_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CalendarEvent',
+    default: null
+  },
   metadata: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
@@ -67,11 +82,10 @@ const notificationSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  // ===== 🆕 NUEVO: Identificador de escuela =====
-  schoolId: { 
-    type: String, 
+  schoolId: {
+    type: String,
     index: true,
-    default: null 
+    default: null
   },
 }, {
   timestamps: true
@@ -85,26 +99,24 @@ notificationSchema.index({ prioridad: 1, leida: 1 });
 notificationSchema.index({ schoolId: 1, fecha_creacion: -1 });
 notificationSchema.index({ schoolId: 1, leida: 1 });
 
-// Métodos
-notificationSchema.methods.marcarLeida = async function() {
+// Métodos de instancia
+notificationSchema.methods.marcarLeida = async function () {
   this.leida = true;
   return await this.save();
 };
 
 // Métodos estáticos
-notificationSchema.statics.limpiarAntiguas = async function(dias = 30) {
+notificationSchema.statics.limpiarAntiguas = async function (dias = 30) {
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - dias);
-  
   const resultado = await this.deleteMany({
     fecha_creacion: { $lt: fechaLimite },
     leida: true
   });
-  
   return resultado.deletedCount;
 };
 
-notificationSchema.statics.obtenerEstadisticas = async function(schoolId = null) {
+notificationSchema.statics.obtenerEstadisticas = async function (schoolId = null) {
   const query = {};
   if (schoolId) {
     query.$or = [
@@ -113,14 +125,12 @@ notificationSchema.statics.obtenerEstadisticas = async function(schoolId = null)
       { schoolId: null }
     ];
   }
-  
   const total = await this.countDocuments(query);
   const noLeidas = await this.countDocuments({ ...query, leida: false });
   const porTipo = await this.aggregate([
     { $match: query },
     { $group: { _id: '$tipo', count: { $sum: 1 } } }
   ]);
-  
   return { total, leidas: total - noLeidas, noLeidas, porTipo };
 };
 
