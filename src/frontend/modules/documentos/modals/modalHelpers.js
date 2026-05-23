@@ -1,177 +1,234 @@
 // =============================================================================
-// src/frontend/modules/documentos/modals/modalHelpers.js
+// src/frontend/modules/documentos/modals/modalHelpers.js (CORREGIDO)
 // =============================================================================
 
 import { DOM } from '../../../dom.js';
 import { CONFIG } from '../../../config.js';
 import { showAlert } from '../../../utils.js';
+import { CategoriesChipsSelector } from './categoriesChips.js';
+import { PersonAutocomplete } from './personAutocomplete.js';
+
+// Instancias globales de los selectores
+let singleCategoryChips = null;
+let multipleCategoryChips = null;
+let singlePersonAutocomplete = null;
+let multiplePersonAutocomplete = null;
 
 /**
- * Pobla el select de categorías para el modo individual.
- * Usa las categorías del estado global.
+ * Inicializa el selector de categorías con chips para modo único
  */
-export function populateDocumentCategorySelect() {
-    if (!DOM.documentCategory) return;
-    
-    DOM.documentCategory.innerHTML = '<option value="">Seleccionar categoría</option>';
-    
-    if (window.appState && window.appState.categories) {
-        window.appState.categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.nombre;
-            option.textContent = category.nombre;
-            DOM.documentCategory.appendChild(option);
-        });
-    }
+export function initSingleCategoryChips() {
+    if (singleCategoryChips) return singleCategoryChips;
+
+    singleCategoryChips = new CategoriesChipsSelector({
+        containerId: 'singleCategorySelector',
+        searchInputId: 'singleCategorySearch',
+        chipsContainerId: 'singleCategoriesChips',
+        hiddenInputId: 'documentCategory',
+        noResultsId: 'singleCategoriesNoResults',
+        placeholder: 'Buscar o seleccionar categoría...'
+    });
+
+    singleCategoryChips.onChange((category) => {
+        console.log(`📂 Categoría única seleccionada: "${category}"`);
+        if (DOM.uploadDocumentBtn) {
+            validateSingleUploadForm();
+        }
+    });
+
+    return singleCategoryChips;
 }
 
 /**
- * Pobla el select de categorías para el modo múltiple.
- * Usa las categorías del estado global.
+ * Inicializa el selector de categorías con chips para modo múltiple
  */
-export function populateMultipleCategorySelect() {
-    if (!DOM.multipleDocumentCategory) return;
-    
-    DOM.multipleDocumentCategory.innerHTML = '<option value="">Seleccionar categoría común</option>';
-    
-    if (window.appState && window.appState.categories) {
-        window.appState.categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.nombre;
-            option.textContent = category.nombre;
-            DOM.multipleDocumentCategory.appendChild(option);
-        });
-    }
+export function initMultipleCategoryChips() {
+    if (multipleCategoryChips) return multipleCategoryChips;
+
+    multipleCategoryChips = new CategoriesChipsSelector({
+        containerId: 'multipleCategorySelector',
+        searchInputId: 'multipleCategorySearch',
+        chipsContainerId: 'multipleCategoriesChips',
+        hiddenInputId: 'multipleDocumentCategory',
+        noResultsId: 'multipleCategoriesNoResults',
+        placeholder: 'Buscar o seleccionar categoría...'
+    });
+
+    multipleCategoryChips.onChange((category) => {
+        console.log(`📂 Categoría múltiple seleccionada: "${category}"`);
+        handleMultipleCategoryChange(category);
+    });
+
+    return multipleCategoryChips;
 }
 
 /**
- * Pobla un select de categorías específico para archivos individuales en modo múltiple.
- * @param {HTMLSelectElement} selectElement - Elemento select a poblar
+ * Inicializa el autocompletado de personas para modo único
  */
-export function populateFileCategorySelect(selectElement) {
-    if (!selectElement) return;
-    
-    selectElement.innerHTML = '<option value="">Usar categoría común</option>';
-    
-    if (window.appState && window.appState.categories) {
-        window.appState.categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.nombre;
-            option.textContent = category.nombre;
-            selectElement.appendChild(option);
-        });
-    }
+export function initSinglePersonAutocomplete() {
+    if (singlePersonAutocomplete) return singlePersonAutocomplete;
+
+    singlePersonAutocomplete = new PersonAutocomplete({
+        containerId: 'singlePersonSelector',
+        searchInputId: 'singlePersonSearch',
+        dropdownId: 'singlePersonDropdown',
+        selectedContainerId: 'singlePersonSelected',
+        clearBtnId: 'singlePersonClear',
+        hiddenInputId: 'documentPerson'
+    });
+
+    singlePersonAutocomplete.onChange((person) => {
+        console.log(`👤 Persona única:`, person?.nombre || 'ninguna');
+        // ✅ Actualizar botón de subida
+        const uploadBtn = document.getElementById('uploadDocumentBtn');
+        if (uploadBtn) {
+            const hasFile = window.appState?.selectedFile;
+            const hasCategory = singleCategoryChips?.getSelectedCategory();
+            const hasPerson = person && person.id;
+            uploadBtn.disabled = !(hasFile && hasCategory && hasPerson);
+        }
+    });
+
+    return singlePersonAutocomplete;
 }
 
 /**
- * Pobla el select de personas desde la API o estado global.
- * Se usa en ambos modos de subida (individual y múltiple).
- * @param {HTMLSelectElement} selectElement - Elemento select a poblar
+ * Inicializa el autocompletado de personas para modo múltiple
  */
-export async function populatePersonSelect(selectElement) {
-    if (!selectElement) return;
-    
-    try {
-        console.log('👥 Cargando personas para select...');
+export function initMultiplePersonAutocomplete() {
+    if (multiplePersonAutocomplete) return multiplePersonAutocomplete;
+
+    multiplePersonAutocomplete = new PersonAutocomplete({
+        containerId: 'multiplePersonSelector',
+        searchInputId: 'multiplePersonSearch',
+        dropdownId: 'multiplePersonDropdown',
+        selectedContainerId: 'multiplePersonSelected',
+        clearBtnId: 'multiplePersonClear',
+        hiddenInputId: 'multipleDocumentPerson'
+    });
+
+    multiplePersonAutocomplete.onChange((person) => {
+        console.log(`👤 Persona múltiple:`, person?.nombre || 'ninguna');
         
-        // Limpiar select
-        selectElement.innerHTML = '<option value="">Seleccionar persona</option>';
-        
-        // Cargar personas si no están en el estado
-        if (!window.appState || !window.appState.persons || window.appState.persons.length === 0) {
-            console.log('📡 Obteniendo personas desde API...');
-            const response = await fetch(`${CONFIG.API_BASE_URL}/persons`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.persons) {
-                    // Inicializar appState si no existe
-                    if (!window.appState) window.appState = {};
-                    window.appState.persons = data.persons;
-                    console.log(`✅ ${data.persons.length} personas cargadas desde API`);
-                }
-            } else {
-                console.error('❌ Error en respuesta de API:', response.status);
-            }
+        // ✅ Disparar evento change en el input hidden
+        const hiddenPerson = document.getElementById('multipleDocumentPerson');
+        if (hiddenPerson && person) {
+            hiddenPerson.value = person.id;
+            hiddenPerson.dispatchEvent(new Event('change', { bubbles: true }));
         }
         
-        // Poblar opciones
-        if (window.appState && window.appState.persons && window.appState.persons.length > 0) {
-            window.appState.persons.forEach(person => {
-                const option = document.createElement('option');
-                option.value = person._id || person.id;
-                option.textContent = person.nombre || person.name || `Persona ${person._id}`;
-                selectElement.appendChild(option);
-            });
-            
-            console.log(`✅ ${window.appState.persons.length} personas cargadas en select`);
+        // ✅ Intentar llamar a la función global si existe
+        if (typeof window.updateMultipleControlsState === 'function') {
+            window.updateMultipleControlsState();
+        }
+    });
+
+    multiplePersonAutocomplete.setEnabled(false);
+    return multiplePersonAutocomplete;
+}
+
+/**
+ * ✅ CORREGIDO: Maneja el cambio de categoría en modo múltiple
+ * Ahora habilita correctamente el input de búsqueda de personas
+ */
+function handleMultipleCategoryChange(category) {
+    const hasCategory = category && category.trim() !== '';
+
+    console.log(`🔄 Categoría múltiple: "${category}" → habilitando controles: ${hasCategory}`);
+
+    if (multiplePersonAutocomplete) {
+        multiplePersonAutocomplete.setEnabled(hasCategory);
+    }
+
+    if (DOM.multiplePersonSearch) {
+        DOM.multiplePersonSearch.disabled = !hasCategory;
+        DOM.multiplePersonSearch.style.pointerEvents = hasCategory ? 'auto' : 'none';
+        DOM.multiplePersonSearch.style.opacity = hasCategory ? '1' : '0.5';
+        DOM.multiplePersonSearch.style.cursor = hasCategory ? 'text' : 'not-allowed';
+        DOM.multiplePersonSearch.placeholder = hasCategory ?
+            'Buscar persona por nombre...' :
+            'Selecciona una categoría primero';
+    }
+
+    if (DOM.multipleExpirationDays) {
+        DOM.multipleExpirationDays.disabled = !hasCategory;
+        DOM.multipleExpirationDays.style.opacity = hasCategory ? '1' : '0.5';
+        DOM.multipleExpirationDays.style.cursor = hasCategory ? 'text' : 'not-allowed';
+    }
+
+    if (DOM.multipleFileInput) {
+        DOM.multipleFileInput.disabled = !hasCategory;
+    }
+
+    if (DOM.browseMultipleFilesBtn) {
+        DOM.browseMultipleFilesBtn.disabled = !hasCategory;
+        DOM.browseMultipleFilesBtn.style.opacity = hasCategory ? '1' : '0.5';
+        DOM.browseMultipleFilesBtn.style.cursor = hasCategory ? 'pointer' : 'not-allowed';
+    }
+
+    const hint = document.getElementById('multipleDropzoneHint');
+    if (hint) {
+        if (hasCategory) {
+            hint.innerHTML = '✅ Categoría seleccionada. Ya puedes agregar archivos.';
+            hint.style.color = '#10b981';
         } else {
-            console.log('ℹ️ No hay personas disponibles');
-            // Agregar opción por defecto si no hay personas
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = 'No hay personas disponibles';
-            selectElement.appendChild(option);
+            hint.innerHTML = '⚠️ Primero selecciona una categoría para habilitar la subida';
+            hint.style.color = '#94a3b8';
         }
-        
-    } catch (error) {
-        console.error('❌ Error cargando personas:', error);
-        showAlert('Error al cargar la lista de personas', 'error');
+    }
+
+    if (DOM.multipleDocumentCategory) {
+        const event = new Event('change', { bubbles: true });
+        DOM.multipleDocumentCategory.dispatchEvent(event);
+    }
+
+    // ✅ Llamar a la función global
+    if (typeof window.updateMultipleControlsState === 'function') {
+        window.updateMultipleControlsState();
     }
 }
 
 /**
- * Pobla ambos selects de persona (individual y múltiple)
+ * Valida el formulario de subida única
  */
-export async function populateAllPersonSelects() {
-    console.log('👥👥 Poblando todos los selects de personas...');
-    
-    try {
-        // Cargar personas primero si no están
-        if (!window.appState || !window.appState.persons || window.appState.persons.length === 0) {
-            console.log('📡 Obteniendo personas desde API...');
-            const response = await fetch(`${CONFIG.API_BASE_URL}/persons`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.persons) {
-                    // Inicializar appState si no existe
-                    if (!window.appState) window.appState = {};
-                    window.appState.persons = data.persons;
-                    console.log(`✅ ${data.persons.length} personas cargadas desde API`);
-                }
-            }
-        }
-        
-        // Poblar select individual
-        if (DOM.documentPerson) {
-            DOM.documentPerson.innerHTML = '<option value="">Seleccionar persona</option>';
-            if (window.appState && window.appState.persons) {
-                window.appState.persons.forEach(person => {
-                    const option = document.createElement('option');
-                    option.value = person._id || person.id;
-                    option.textContent = person.nombre || person.name || `Persona ${person._id}`;
-                    DOM.documentPerson.appendChild(option);
-                });
-            }
-        }
-        
-        // Poblar select múltiple
-        if (DOM.multipleDocumentPerson) {
-            DOM.multipleDocumentPerson.innerHTML = '<option value="">Seleccionar persona</option>';
-            if (window.appState && window.appState.persons) {
-                window.appState.persons.forEach(person => {
-                    const option = document.createElement('option');
-                    option.value = person._id || person.id;
-                    option.textContent = person.nombre || person.name || `Persona ${person._id}`;
-                    DOM.multipleDocumentPerson.appendChild(option);
-                });
-            }
-        }
-        
-        console.log('✅ Todos los selects de personas poblados');
-        
-    } catch (error) {
-        console.error('❌ Error poblando selects de personas:', error);
+function validateSingleUploadForm() {
+    const hasFile = window.appState && window.appState.selectedFile;
+    const hasCategory = singleCategoryChips && singleCategoryChips.getSelectedCategory();
+
+    if (DOM.uploadDocumentBtn) {
+        DOM.uploadDocumentBtn.disabled = !(hasFile && hasCategory);
     }
 }
+
+// ═══════════════════════════════════════════════════════════
+// MÉTODOS DE COMPATIBILIDAD (mantener los antiguos)
+// ═══════════════════════════════════════════════════════════
+
+export function populateDocumentCategorySelect() {
+    console.log('ℹ️ populateDocumentCategorySelect: usando sistema de chips');
+}
+
+export function populateMultipleCategorySelect() {
+    console.log('ℹ️ populateMultipleCategorySelect: usando sistema de chips');
+}
+
+export async function populateAllPersonSelects() {
+    console.log('ℹ️ populateAllPersonSelects: usando autocompletado');
+    initSinglePersonAutocomplete();
+    initMultiplePersonAutocomplete();
+}
+
+export async function populatePersonSelect(selectElement) {
+    console.log('ℹ️ populatePersonSelect: usando autocompletado');
+}
+
+export function populateFileCategorySelect(selectElement) {
+    console.log('ℹ️ populateFileCategorySelect: usando sistema de chips');
+}
+
+export {
+    singleCategoryChips,
+    multipleCategoryChips,
+    singlePersonAutocomplete,
+    multiplePersonAutocomplete
+};

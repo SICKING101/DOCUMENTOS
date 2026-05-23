@@ -2,7 +2,7 @@
 
 import { DOM } from '../dom.js';
 import { api } from '../services/api.js';
-import { setLoadingState, showAlert, isValidEmail } from '../utils.js';
+import { setLoadingState, showAlert, isValidEmail, stripEmojis } from '../utils.js';
 import { 
     canView, 
     canAction, 
@@ -68,13 +68,14 @@ function showFormAlert(message, type = 'error', field = null) {
             alertTitle = 'Error';
     }
     
+    const safeMessage = stripEmojis(message);
     alert.innerHTML = `
         <div class="alert__icon">
             <i class="fas ${iconClass}"></i>
         </div>
         <div class="alert__content">
             <h4 class="alert__title">${alertTitle}</h4>
-            <p class="alert__message">${message}</p>
+            <p class="alert__message">${safeMessage}</p>
         </div>
         <button class="alert__close" onclick="this.parentElement.remove()" aria-label="Cerrar alerta">
             <i class="fas fa-times"></i>
@@ -122,13 +123,14 @@ function showDeleteAlert(personName, errorMessage, type = 'error') {
     
     const alert = document.createElement('div');
     alert.className = `alert alert--${type} alert--delete`;
+    const safeError = stripEmojis(errorMessage);
     alert.innerHTML = `
         <div class="alert__icon">
             <i class="fas fa-trash"></i>
         </div>
         <div class="alert__content">
             <h4 class="alert__title">Error al eliminar a "${personName}"</h4>
-            <p class="alert__message">${errorMessage}</p>
+            <p class="alert__message">${safeError}</p>
             <div class="alert__actions">
                 <button class="btn btn--sm btn--outline" onclick="this.closest('.alert').remove()">
                     <i class="fas fa-times"></i> Cerrar
@@ -1413,7 +1415,7 @@ async function savePerson() {
         }
         
         if (data.success) {
-            // Mostrar alerta de éxito
+            // Mostrar alerta de éxito dentro del modal
             showFormAlert(`✅ ${data.message}`, 'success');
             
             // Mostrar animación de éxito
@@ -1443,12 +1445,16 @@ async function savePerson() {
                 modalContent.classList.remove('modal-success');
             }, 300);
             
-            // Cerrar modal y recargar datos
+            // Cerrar modal, recargar datos en background y mostrar una sola notificación global estandarizada
             closePersonModal();
-            await loadPersons();
-            
-            // Mostrar notificación de éxito global
-            showAlert(data.message, 'success');
+            try {
+                if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = true;
+                await loadPersons();
+            } finally {
+                if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = false;
+            }
+            const action = DOM.personId.value ? 'actualizado' : 'creado';
+            showAlert(`Se ha ${action} correctamente la persona`, 'success');
             // Disparar evento global para que otros módulos puedan reaccionar
             try {
                 const eventName = DOM.personId.value ? 'personUpdated' : 'personCreated';
@@ -1614,8 +1620,7 @@ async function loadPersons() {
             return;
         }
         
-        // Mostrar alerta de carga
-        showAlert('Cargando lista de personas...', 'info');
+        // Se usa el preloader visual en la tabla; evitar toast de carga para no confundirse con errores
         
         // Mostrar preloader de tabla completo
         const tableContainer = document.querySelector('.tab-content[data-tab="personas"]');
@@ -1697,19 +1702,18 @@ async function loadPersons() {
             } else {
                 showAlert(`✅ Se cargaron ${window.appState.persons.length} persona(s)`, 'success');
                 
-                // Verificar datos incompletos
-                const personsWithoutDept = window.appState.persons.filter(p => !p.departamento);
-                const personsWithoutPhone = window.appState.persons.filter(p => !p.telefono);
-                const personsWithoutPosition = window.appState.persons.filter(p => !p.puesto);
-                
-                if (personsWithoutDept.length > 0) {
-                    showAlert(`${personsWithoutDept.length} persona(s) no tienen departamento asignado`, 'warning');
-                }
-                if (personsWithoutPhone.length > 0) {
-                    showAlert(`${personsWithoutPhone.length} persona(s) no tienen teléfono registrado`, 'info');
-                }
-                if (personsWithoutPosition.length > 0) {
-                    showAlert(`${personsWithoutPosition.length} persona(s) no tienen puesto definido`, 'info');
+                // Verificar datos incompletos y consolidar alertas en un solo mensaje
+                const personsWithoutDept = window.appState.persons.filter(p => !p.departamento).length;
+                const personsWithoutPhone = window.appState.persons.filter(p => !p.telefono).length;
+                const personsWithoutPosition = window.appState.persons.filter(p => !p.puesto).length;
+
+                const issues = [];
+                if (personsWithoutDept > 0) issues.push(`${personsWithoutDept} sin departamento`);
+                if (personsWithoutPhone > 0) issues.push(`${personsWithoutPhone} sin teléfono`);
+                if (personsWithoutPosition > 0) issues.push(`${personsWithoutPosition} sin puesto`);
+
+                if (issues.length > 0) {
+                    showAlert(`Hay ${window.appState.persons.length} persona(s). Datos incompletos: ${issues.join(', ')}`, 'warning');
                 }
             }
             
@@ -1812,15 +1816,15 @@ async function deletePerson(id) {
     return;
   }
   
-  // Mostrar alerta de advertencia antes de la confirmación
-  showAlert(`Preparando para eliminar a ${person.nombre}...`, 'warning');
+    // Mostrar alerta de advertencia dentro de UI antes de la confirmación
+    showFormAlert(`Preparando para eliminar a ${person.nombre}...`, 'warning');
   
   // Mostrar modal de confirmación mejorado
   const confirmed = await showDeleteConfirmation(person.nombre);
-  if (!confirmed) {
-    showAlert('Eliminación cancelada', 'info');
-    return;
-  }
+    if (!confirmed) {
+        showFormAlert('Eliminación cancelada', 'info');
+        return;
+    }
   
   try {
     console.log('🗑️ Eliminando persona PERMANENTEMENTE:', id);
@@ -1863,8 +1867,6 @@ async function deletePerson(id) {
     const data = await api.deletePerson(id);
     
     if (data.success) {
-      // Mostrar alerta de éxito
-      showAlert(`✅ ${data.message}`, 'success');
       
       // Mostrar animación de éxito
       if (tableRow) {
@@ -1914,8 +1916,14 @@ async function deletePerson(id) {
             populatePersonSelect();
             populateSearchPersonSelect();
             
-            // Mostrar notificación flotante de éxito
-            showFloatingNotification('Persona eliminada permanentemente del sistema', 'success');
+              // Mostrar una única notificación global estandarizada
+              try {
+                  if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = true;
+                  // actualización de listas ya aplicada localmente
+              } finally {
+                  if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = false;
+              }
+              showAlert('Se ha eliminado correctamente la persona', 'success');
             
                         // Actualizar departamentos y dashboard si existen
                         try {
@@ -1938,29 +1946,34 @@ async function deletePerson(id) {
                         }
           }, 500);
         }, 1000);
-      } else {
-        // Si no se encontró la fila, recargar normalmente
-        await loadPersons();
-        
-                try {
-                    if (typeof window.loadDepartments === 'function') {
-                        await window.loadDepartments();
-                    }
-                } catch (deptError) {
-                    console.warn('No se pudo actualizar departamentos:', deptError);
-                }
+        } else {
+          // Si no se encontró la fila, recargar normalmente (suprimir notificaciones para evitar duplicados)
+          try {
+            if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = true;
+            await loadPersons();
+          } finally {
+            if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = false;
+          }
 
-                try {
-                    const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
-                    if (typeof dashboardLoader === 'function') {
-                        await dashboardLoader(window.appState);
-                    } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
-                        window.dashboard.updateDashboardStats(window.appState);
-                    }
-                } catch (dashboardError) {
-                    console.log('Dashboard no disponible:', dashboardError);
-                }
-      }
+          try {
+              if (typeof window.loadDepartments === 'function') {
+                  await window.loadDepartments();
+              }
+          } catch (deptError) {
+              console.warn('No se pudo actualizar departamentos:', deptError);
+          }
+
+          try {
+              const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
+              if (typeof dashboardLoader === 'function') {
+                  await dashboardLoader(window.appState);
+              } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
+                  window.dashboard.updateDashboardStats(window.appState);
+              }
+          } catch (dashboardError) {
+              console.log('Dashboard no disponible:', dashboardError);
+          }
+        }
     } else {
       throw new Error(data.message || 'Error desconocido al eliminar');
     }

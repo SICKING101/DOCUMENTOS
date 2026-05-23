@@ -256,7 +256,7 @@ async function loadTrashDocuments() {
                 updateSelectionControls(); // Añadir esta línea
             }, 100);
 
-            showAlert('Papelera actualizada', 'success', 2000);
+            // Notificar visualmente solo vía badge/inline UI — evitar toasts redundantes
         } else {
             showAlert('Error al cargar papelera: ' + response.message, 'error');
         }

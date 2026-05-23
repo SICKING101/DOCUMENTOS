@@ -208,6 +208,9 @@ function validateDepartmentForm() {
 /**
  * 2.2 Guardar departamento (crear o actualizar) - CORREGIDO
  */
+/**
+ * 2.2 Guardar departamento (crear o actualizar) - CORREGIDO
+ */
 async function saveDepartment() {
     if (!canAction('departamentos')) {
         showNoPermissionAlert('departamentos');
@@ -262,11 +265,35 @@ async function saveDepartment() {
         } else {
             throw new Error(data.message || 'Error desconocido al guardar');
         }
-
         
     } catch (error) {
         console.error('❌ Error guardando departamento:', error);
-        showAlert('Error al guardar departamento: ' + error.message, 'error');
+        
+        // 🔧 CORRECCIÓN: Extraer solo el mensaje del error, sin el texto técnico HTTP
+        let errorMsg = 'Error al guardar departamento';
+        
+        try {
+            // Intentar extraer mensaje de un error HTTP que contiene JSON
+            const jsonMatch = error.message.match(/\{.*\}/);
+            if (jsonMatch) {
+                const parsedJson = JSON.parse(jsonMatch[0]);
+                if (parsedJson.message) {
+                    errorMsg = parsedJson.message;
+                }
+            } else if (error.message && !error.message.includes('Error HTTP')) {
+                // Si no es JSON pero tiene mensaje sin texto técnico
+                errorMsg = error.message;
+            }
+        } catch (parseError) {
+            // Si falla el parseo del JSON, usar el mensaje original sin el prefijo HTTP
+            if (error.message) {
+                errorMsg = error.message.replace(/Error HTTP \d+: /, '').trim();
+            }
+        }
+        
+        // Mostrar solo el mensaje limpio
+        showAlert(errorMsg, 'error');
+        
     } finally {
         // Ocultar preloader si existe
         if (preloader) {

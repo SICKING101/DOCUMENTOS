@@ -1,9 +1,13 @@
+// =============================================================================
+// src/backend/config/multerConfig.js (SIN OFFICE)
+// Solo permite: PDF, imágenes y texto
+// =============================================================================
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 
-// Obtener __dirname en ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,34 +21,41 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + '-' + file.originalname;
-    cb(null, safeName);
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1E9);
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileName = `${timestamp}-${random}-${safeName}`;
+    cb(null, fileName);
   }
 });
 
-const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png'];
+// ✅ SOLO formatos que Cloudinary gratis acepta bien
+const allowedExtensions = ['pdf', 'txt', 'csv', 'jpg', 'jpeg', 'png'];
 
 function createUpload({ fileSizeBytes }) {
   return multer({
     storage,
-    limits: { fileSize: fileSizeBytes },
+    limits: { 
+      fileSize: fileSizeBytes,
+      files: 1
+    },
     fileFilter: (req, file, cb) => {
       const fileExtension = file.originalname.split('.').pop().toLowerCase();
 
-      if (allowedTypes.includes(fileExtension)) {
+      if (allowedExtensions.includes(fileExtension)) {
         cb(null, true);
       } else {
-        cb(new Error('Tipo de archivo no permitido'), false);
+        const error = new Error(`Tipo de archivo no permitido: .${fileExtension}. Formatos aceptados: PDF, TXT, CSV, JPG, PNG`);
+        error.code = 'INVALID_FILE_TYPE';
+        return cb(error, false);
       }
     }
   });
 }
 
-// Documentos: 1GB
-export const uploadDocuments = createUpload({ fileSizeBytes: 1024 * 1024 * 1024 });
+// 10MB para Cloudinary free
+export const uploadDocuments = createUpload({ fileSizeBytes: 10 * 1024 * 1024 });
 
-// Otros (ej: tickets/soporte): mantener límite anterior (10MB)
 export const uploadSmallFiles = createUpload({ fileSizeBytes: 10 * 1024 * 1024 });
 
-// Compat: mantener default export como el upload de documentos
 export default uploadDocuments;

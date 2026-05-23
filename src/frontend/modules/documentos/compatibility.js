@@ -3,9 +3,10 @@
 // =============================================================================
 
 import { api } from '../../services/api.js';
-import { showAlert, formatFileSize } from '../../utils.js';
+import { showAlert, formatFileSize, withDocumentLoadControl } from '../../utils.js';
 import { updateTrashBadge } from '../papelera.js';
 import { hasPermission, PERMISSIONS } from '../../permissions.js';
+import { showDocumentNotification, shouldNotify } from './notificationConfig.js';
 
 // Importar TODO desde progressManager.js en una sola línea
 import {
@@ -17,6 +18,9 @@ import {
 
 // IMPORTANTE: Importar multipleUploadState desde uploadMultiple.js
 import { multipleUploadState } from './upload/uploadMultiple.js';
+
+// Variable para controlar notificaciones duplicadas en eliminación
+let isDeletingDocument = false;
 
 /**
  * Modal de confirmación para eliminar documento
@@ -84,11 +88,12 @@ async function getDocumentInfo(documentId) {
 
         if (data.success && data.document) {
             return {
-                name: data.document.original_filename || data.document.filename || 'Documento sin nombre',
-                size: formatFileSize(data.document.file_size || 0),
-                date: data.document.created_at ? new Date(data.document.created_at).toLocaleDateString() : 'Fecha desconocida',
-                type: data.document.file_type || 'Desconocido',
-                icon: getFileIcon(data.document.file_type)
+                name: data.document.original_filename || data.document.filename || data.document.nombre_original || 'Documento sin nombre',
+                size: formatFileSize(data.document.file_size || data.document.tamano_archivo || 0),
+                date: data.document.created_at || data.document.fecha_subida ?
+                    new Date(data.document.created_at || data.document.fecha_subida).toLocaleDateString() : 'Fecha desconocida',
+                type: data.document.file_type || data.document.tipo_archivo || 'Desconocido',
+                icon: getFileIcon(data.document.file_type || data.document.tipo_archivo)
             };
         }
     } catch (error) {
@@ -115,8 +120,8 @@ function getFileIcon(fileType) {
 
     if (type.includes('pdf')) return 'fa-file-pdf';
     if (type.includes('word') || type.includes('doc')) return 'fa-file-word';
-    if (type.includes('excel') || type.includes('xls')) return 'fa-file-excel';
-    if (type.includes('powerpoint') || type.includes('ppt')) return 'fa-file-powerpoint';
+    if (type.includes('excel') || type.includes('xls') || type.includes('sheet')) return 'fa-file-excel';
+    if (type.includes('powerpoint') || type.includes('ppt') || type.includes('presentation')) return 'fa-file-powerpoint';
     if (type.includes('image')) return 'fa-file-image';
     if (type.includes('zip') || type.includes('rar') || type.includes('tar') || type.includes('gz')) return 'fa-file-archive';
     if (type.includes('text') || type.includes('txt')) return 'fa-file-alt';
@@ -128,12 +133,19 @@ function getFileIcon(fileType) {
 
 /**
  * Función de compatibilidad para eliminar documentos con modal.
+ * CORREGIDO: Evita notificaciones duplicadas
  */
 export async function deleteDocument(id) {
     console.log('🔧 deleteDocument llamada con ID:', id);
 
+    // Evitar ejecuciones simultáneas
+    if (isDeletingDocument) {
+        console.log('⚠️ Ya hay una eliminación en proceso');
+        return;
+    }
+
     if (!hasPermission(PERMISSIONS.DELETE_DOCUMENTS)) {
-        showAlert('No tienes permisos para eliminar documentos', 'error');
+        showDocumentNotification('DELETE', 'No tienes permisos para eliminar documentos', 'error', id);
         return;
     }
 
@@ -147,26 +159,12 @@ export async function deleteDocument(id) {
         modal.setAttribute('open', '');
     });
 
-    // Obtener información del documento
-    const documentInfo = await getDocumentInfo(id);
-
-    // Actualizar información del documento en el modal
-    const nameElement = modal.querySelector('.document-name');
-    const sizeElement = modal.querySelector('.document-size');
-    const dateElement = modal.querySelector('.document-date');
-    const iconElement = modal.querySelector('.document-icon i');
-
-    if (nameElement) nameElement.textContent = documentInfo.name;
-    if (sizeElement) sizeElement.textContent = documentInfo.size;
-    if (dateElement) dateElement.textContent = documentInfo.date;
-    if (iconElement) {
-        iconElement.className = `fas ${documentInfo.icon}`;
-    }
-
     // Configurar eventos
     let isProcessing = false;
 
     const closeModal = () => {
+        if (isProcessing) return;
+
         modal.style.animation = 'modalOverlayFadeOut 0.3s ease-out';
         modal.querySelector('.modal__content').style.animation = 'modalContentSlideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
 
@@ -219,6 +217,7 @@ export async function deleteDocument(id) {
         if (isProcessing) return;
 
         isProcessing = true;
+        isDeletingDocument = true;
 
         // Cambiar estado del botón
         const originalText = confirmButton.innerHTML;
@@ -272,19 +271,39 @@ export async function deleteDocument(id) {
                 const closeSuccessButton = modal.querySelector('.btn-close-success');
                 closeSuccessButton.addEventListener('click', async () => {
                     closeModal();
+
                     await window.loadDocuments();
+
+                    // ✅ Añadir recarga de categorías
+                    if (window.loadCategories) {
+                        await window.loadCategories();
+                    }
+                    if (window.refreshCategoryTree) {
+                        window.refreshCategoryTree();
+                    }
+
                     if (updateTrashBadge) await updateTrashBadge();
-                    await window.loadCategories();
-                    window.refreshCategoryTree();
                     showAlert(data.message || 'Documento movido a la papelera', 'success');
                 });
 
             } else {
-                throw new Error(data.message);
+                throw new Error(data.message || 'Error desconocido al eliminar');
             }
 
         } catch (error) {
             console.error('❌ Error moviendo documento a papelera:', error);
+
+            // Extraer mensaje limpio
+            let errorMsg = 'Error al mover documento a la papelera';
+            try {
+                const match = error.message.match(/\{.*\}/);
+                if (match) {
+                    const parsed = JSON.parse(match[0]);
+                    if (parsed.message) errorMsg = parsed.message;
+                } else if (error.message) {
+                    errorMsg = error.message;
+                }
+            } catch (e) { }
 
             // Mostrar mensaje de error en el modal
             const modalBody = modal.querySelector('.modal__body');
@@ -300,7 +319,7 @@ export async function deleteDocument(id) {
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>
                             <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">
-                                ${error.message || 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.'}
+                                ${errorMsg}
                             </p>
                         </div>
                     </div>
@@ -324,9 +343,9 @@ export async function deleteDocument(id) {
             const closeErrorButton = modal.querySelector('.btn-close-error');
             closeErrorButton.addEventListener('click', closeModal);
 
-            // Re-enable cancel button
-            cancelButton.disabled = false;
         } finally {
+            isProcessing = false;
+            isDeletingDocument = false;
             // Limpiar evento Escape
             document.removeEventListener('keydown', handleEscape);
         }
@@ -335,8 +354,9 @@ export async function deleteDocument(id) {
 
 /**
  * Función de compatibilidad para cargar documentos.
+ * CORREGIDO: Usa control de notificaciones
  */
-export async function loadDocuments() {
+export const loadDocuments = withDocumentLoadControl(async function () {
     try {
         console.log('📄 Cargando documentos...');
 
@@ -369,34 +389,46 @@ export async function loadDocuments() {
         }
     } catch (error) {
         console.error('❌ Error cargando documentos:', error);
-        showAlert('Error al cargar documentos: ' + error.message, 'error');
+        // Solo mostrar error si no estamos en carga silenciosa
+        if (!window.isLoadingDocuments) {
+            showAlert('Error al cargar documentos: ' + error.message, 'error');
+        }
     }
-}
+});
 
 /**
  * Refresca la vista de Documentos (lista + filtros + categorías).
- * Útil después de subir/aprobar/rechazar/eliminar.
+ * CORREGIDO: Evita notificaciones innecesarias
  */
 export async function refreshDocumentsView({ reloadCategories = true, refreshFilters = true } = {}) {
-    await loadDocuments();
+    // Marcar como carga silenciosa para evitar notificaciones
+    const wasLoading = window.isLoadingDocuments;
+    window.isLoadingDocuments = true;
 
-    if (refreshFilters) {
-        try {
-            const filtersModule = await import('./table/tableFilters.js');
-            if (typeof filtersModule.initializeTableFilters === 'function') {
-                filtersModule.initializeTableFilters();
+    try {
+        await loadDocuments();
+
+        if (refreshFilters) {
+            try {
+                const filtersModule = await import('./table/tableFilters.js');
+                if (typeof filtersModule.initializeTableFilters === 'function') {
+                    filtersModule.initializeTableFilters();
+                }
+            } catch (e) {
+                console.warn('⚠️ No se pudieron refrescar los filtros de Documentos:', e);
             }
-        } catch (e) {
-            console.warn('⚠️ No se pudieron refrescar los filtros de Documentos:', e);
         }
-    }
 
-    if (reloadCategories && typeof window !== 'undefined' && typeof window.loadCategories === 'function') {
-        try {
-            await window.loadCategories();
-        } catch (e) {
-            console.warn('⚠️ No se pudieron refrescar las categorías:', e);
+        if (reloadCategories && typeof window !== 'undefined' && typeof window.loadCategories === 'function') {
+            try {
+                await window.loadCategories();
+            } catch (e) {
+                console.warn('⚠️ No se pudieron refrescar las categorías:', e);
+            }
         }
+    } finally {
+        // Restaurar estado anterior
+        window.isLoadingDocuments = wasLoading;
     }
 }
 
@@ -528,12 +560,10 @@ export function updateUploadProgress() {
 
 /**
  * Configura todas las funciones de compatibilidad globalmente.
- * Debe llamarse después de importar el módulo.
  */
 export function setupCompatibilityGlobals() {
     console.log('🔧 Configurando funciones globales de compatibilidad...');
 
-    // Solo configurar si window está disponible
     if (typeof window === 'undefined') return;
 
     // Asignar funciones esenciales
@@ -546,11 +576,12 @@ export function setupCompatibilityGlobals() {
     window.showUploadProgress = showUploadProgress;
     window.hideUploadProgress = hideUploadProgress;
     window.updateUploadProgress = updateUploadProgress;
+    window.showDocumentNotification = showDocumentNotification;
 
     // Agregar función de editar documento
     window.editDocument = async (documentId) => {
         if (!hasPermission(PERMISSIONS.EDIT_DOCUMENTS)) {
-            showAlert('No tienes permisos para editar documentos', 'error');
+            showDocumentNotification('UPDATE', 'No tienes permisos para editar documentos', 'error', documentId);
             return;
         }
         const { openEditDocumentModal } = await import('./modals/editDocumentModal.js');
@@ -565,12 +596,12 @@ export function setupCompatibilityGlobals() {
 }
 
 // =============================================================================
-// Revisión/Aprobación
+// Revisión/Aprobación - CORREGIDO para evitar notificaciones duplicadas
 // =============================================================================
 
 export async function approveDocument(documentId, comment = '') {
     if (!hasPermission(PERMISSIONS.APPROVE_DOCUMENTS)) {
-        showAlert('No tienes permisos para aprobar documentos', 'error');
+        showDocumentNotification('UPDATE', 'No tienes permisos para aprobar documentos', 'error', documentId);
         return;
     }
 
@@ -581,34 +612,31 @@ export async function approveDocument(documentId, comment = '') {
         });
 
         if (response?.success) {
-            showAlert(response.message || 'Documento aprobado', 'success');
-            if (typeof refreshDocumentsView === 'function') {
-                await refreshDocumentsView();
-            } else if (typeof loadDocuments === 'function') {
-                await loadDocuments();
-            }
+            // Usar showDocumentNotification en lugar de showAlert
+            showDocumentNotification('UPDATE', response.message || 'Documento aprobado', 'success', documentId);
+
+            await refreshDocumentsView();
+
             try {
                 const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
                 if (typeof dashboardLoader === 'function') {
                     await dashboardLoader(window.appState);
-                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
-                    window.dashboard.updateDashboardStats(window.appState);
                 }
             } catch (e) {
-                console.warn('No se pudo actualizar dashboard tras aprobar documento:', e);
+                console.warn('No se pudo actualizar dashboard:', e);
             }
         } else {
-            showAlert(response?.message || 'No se pudo aprobar', 'error');
+            showDocumentNotification('UPDATE', response?.message || 'No se pudo aprobar', 'error', documentId);
         }
     } catch (error) {
         console.error('Error aprobando documento:', error);
-        showAlert('Error al aprobar documento', 'error');
+        showDocumentNotification('UPDATE', 'Error al aprobar documento', 'error', documentId);
     }
 }
 
 export async function rejectDocument(documentId, comment = '') {
     if (!hasPermission(PERMISSIONS.APPROVE_DOCUMENTS)) {
-        showAlert('No tienes permisos para rechazar documentos', 'error');
+        showDocumentNotification('UPDATE', 'No tienes permisos para rechazar documentos', 'error', documentId);
         return;
     }
 
@@ -619,27 +647,23 @@ export async function rejectDocument(documentId, comment = '') {
         });
 
         if (response?.success) {
-            showAlert(response.message || 'Documento rechazado', 'success');
-            if (typeof refreshDocumentsView === 'function') {
-                await refreshDocumentsView();
-            } else if (typeof loadDocuments === 'function') {
-                await loadDocuments();
-            }
+            showDocumentNotification('UPDATE', response.message || 'Documento rechazado', 'success', documentId);
+
+            await refreshDocumentsView();
+
             try {
                 const dashboardLoader = window.dashboard?.loadDashboardData || window.loadDashboardData;
                 if (typeof dashboardLoader === 'function') {
                     await dashboardLoader(window.appState);
-                } else if (typeof window.dashboard?.updateDashboardStats === 'function') {
-                    window.dashboard.updateDashboardStats(window.appState);
                 }
             } catch (e) {
-                console.warn('No se pudo actualizar dashboard tras rechazar documento:', e);
+                console.warn('No se pudo actualizar dashboard:', e);
             }
         } else {
-            showAlert(response?.message || 'No se pudo rechazar', 'error');
+            showDocumentNotification('UPDATE', response?.message || 'No se pudo rechazar', 'error', documentId);
         }
     } catch (error) {
         console.error('Error rechazando documento:', error);
-        showAlert('Error al rechazar documento', 'error');
+        showDocumentNotification('UPDATE', 'Error al rechazar documento', 'error', documentId);
     }
 }

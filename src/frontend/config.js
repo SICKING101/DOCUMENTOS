@@ -43,13 +43,13 @@ const CONFIG = {
      * 2.1 Tamaño máximo de archivo individual
      * Establece el límite máximo en bytes para archivos individuales.
      */
-    MAX_FILE_SIZE: 1024 * 1024 * 1024, // 1GB
+    MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
 
     /**
      * 2.2 Tipos de archivo permitidos
      * Lista de extensiones de archivo que el sistema acepta para subida.
      */
-    ALLOWED_FILE_TYPES: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png'],
+    ALLOWED_FILE_TYPES: ['pdf', 'txt', 'csv', 'jpg', 'jpeg', 'png'],
 
     /**
      * 2.3 Máximo de archivos múltiples

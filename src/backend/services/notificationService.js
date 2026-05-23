@@ -4,11 +4,61 @@ import Notification from '../models/Notification.js';
 class NotificationService {
   
   // =============================================================================
+  // COLA DE NOTIFICACIONES PARA EVITAR DUPLICADOS
+  // =============================================================================
+  
+  static notificationQueue = new Map();
+  static DEBOUNCE_TIME = 5000; // 5 segundos
+  
+  /**
+   * Verifica si una notificación similar fue enviada recientemente
+   */
+  static async crearConDebounce(data, key = null) {
+    const debounceKey = key || `${data.tipo}:${data.mensaje}`;
+    const now = Date.now();
+    
+    // Limpiar cola de notificaciones antiguas
+    for (const [k, timestamp] of this.notificationQueue.entries()) {
+      if (now - timestamp > this.DEBOUNCE_TIME * 2) {
+        this.notificationQueue.delete(k);
+      }
+    }
+    
+    // Verificar si es un duplicado reciente
+    if (this.notificationQueue.has(debounceKey)) {
+      const lastTime = this.notificationQueue.get(debounceKey);
+      if (now - lastTime < this.DEBOUNCE_TIME) {
+        console.log('🔄 Notificación duplicada ignorada:', debounceKey);
+        return null; // Ignorar duplicado
+      }
+    }
+    
+    // Registrar notificación
+    this.notificationQueue.set(debounceKey, now);
+    return await this.crear(data);
+  }
+  
+  // =============================================================================
   // MÉTODO GENÉRICO DE CREACIÓN
   // =============================================================================
   
   static async crear(data) {
     try {
+      // Validar que no exista una notificación idéntica en los últimos 10 segundos
+      const existingNotification = await Notification.findOne({
+        tipo: data.tipo,
+        mensaje: data.mensaje,
+        schoolId: data.schoolId || null,
+        fecha_creacion: { 
+          $gte: new Date(Date.now() - 10000) // Últimos 10 segundos
+        }
+      });
+      
+      if (existingNotification) {
+        console.log('🔄 Notificación duplicada detectada en BD, ignorando:', existingNotification._id);
+        return existingNotification; // Retornar la existente sin crear nueva
+      }
+      
       const notificacion = new Notification(data);
       await notificacion.save();
       console.log('🔔 Notificación creada:', notificacion.titulo, '| schoolId:', notificacion.schoolId || 'global');
@@ -24,9 +74,9 @@ class NotificationService {
   // =============================================================================
 
   static async usuarioCreado(nuevoUsuario, creadoPor = 'Administrador', schoolId = null) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'usuario_creado',
-      titulo: '👤 Nuevo usuario creado',
+      titulo: 'Nuevo usuario creado',
       mensaje: `${creadoPor} creó el usuario "${nuevoUsuario.usuario}" (${nuevoUsuario.correo}) con rol ${nuevoUsuario.rol}`,
       icono: 'user-plus',
       prioridad: 'media',
@@ -37,18 +87,19 @@ class NotificationService {
         rol: nuevoUsuario.rol,
         creado_por: creadoPor
       }
-    });
+    }, `user_created:${nuevoUsuario._id}`);
   }
   
   // =============================================================================
-  // NOTIFICACIONES DE DOCUMENTOS
+  // NOTIFICACIONES DE DOCUMENTOS (CORREGIDAS)
   // =============================================================================
   
   static async documentoSubido(documento, persona = null, schoolId = null) {
     const nombrePersona = persona ? persona.nombre : 'Usuario';
-    return await this.crear({
+    
+    return await this.crearConDebounce({
       tipo: 'documento_subido',
-      titulo: '✅ Documento subido',
+      titulo: 'Documento subido',
       mensaje: `${nombrePersona} subió el documento "${documento.nombre_original}" en la categoría ${documento.categoria}`,
       icono: 'file-upload',
       prioridad: 'media',
@@ -60,37 +111,37 @@ class NotificationService {
         tamano: documento.tamano_archivo,
         categoria: documento.categoria
       }
-    });
+    }, `doc_upload:${documento._id}`);
   }
 
   static async documentoEliminado(nombreDocumento, categoria, usuario = 'Usuario', schoolId = null) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'documento_eliminado',
-      titulo: '❌ Documento eliminado',
+      titulo: 'Documento eliminado',
       mensaje: `${usuario} eliminó el documento "${nombreDocumento}" de la categoría ${categoria}`,
       icono: 'trash',
       prioridad: 'baja',
       schoolId: schoolId || null,
       metadata: { documento: nombreDocumento, categoria: categoria }
-    });
+    }, `doc_delete:${nombreDocumento}`);
   }
 
   static async documentoRestaurado(nombreDocumento, categoria, usuario = 'Usuario', schoolId = null) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'documento_restaurado',
-      titulo: '♻️ Documento restaurado',
+      titulo: 'Documento restaurado',
       mensaje: `${usuario} restauró el documento "${nombreDocumento}" de la categoría ${categoria}`,
       icono: 'undo',
       prioridad: 'media',
       schoolId: schoolId || null,
       metadata: { documento: nombreDocumento, categoria: categoria }
-    });
+    }, `doc_restore:${nombreDocumento}`);
   }
 
   static async documentoProximoVencer(documento, diasRestantes) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'documento_proximo_vencer',
-      titulo: '⚠️ Documento próximo a vencer',
+      titulo: 'Documento próximo a vencer',
       mensaje: `El documento "${documento.nombre_original}" vence en ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}`,
       icono: 'clock',
       prioridad: diasRestantes <= 3 ? 'alta' : 'media',
@@ -100,30 +151,30 @@ class NotificationService {
         dias_restantes: diasRestantes,
         fecha_vencimiento: documento.fecha_vencimiento
       }
-    });
+    }, `doc_expiring:${documento._id}`);
   }
 
   static async documentoVencido(documento) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'documento_vencido',
-      titulo: '🚨 Documento vencido',
-      mensaje: `El documento "${documento.nombre_original}" ha vencido y requiere atención inmediata`,
+      titulo: 'Documento vencido',
+      mensaje: `El documento "${documento.nombre_original}" ha vencido y requiere atención`,
       icono: 'exclamation-triangle',
       prioridad: 'critica',
       documento_id: documento._id,
       schoolId: documento.schoolId || null,
       metadata: { fecha_vencimiento: documento.fecha_vencimiento }
-    });
+    }, `doc_expired:${documento._id}`);
   }
   
   // =============================================================================
-  // NOTIFICACIONES DE PERSONAS
+  // RESTO DE MÉTODOS SIN CAMBIOS
   // =============================================================================
   
   static async personaAgregada(persona, schoolId = null) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'persona_agregada',
-      titulo: '✅ Persona agregada',
+      titulo: 'Persona agregada',
       mensaje: `Se agregó a ${persona.nombre} (${persona.puesto || 'Sin puesto'}) al sistema`,
       icono: 'user-plus',
       prioridad: 'baja',
@@ -133,39 +184,31 @@ class NotificationService {
         departamento: persona.departamento,
         puesto: persona.puesto
       }
-    });
+    }, `person_added:${persona._id}`);
   }
 
   static async personaEliminada(nombrePersona, schoolId = null) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'persona_eliminada',
-      titulo: '❌ Persona eliminada',
+      titulo: 'Persona eliminada',
       mensaje: `Se eliminó a ${nombrePersona} del sistema`,
       icono: 'user-minus',
       prioridad: 'baja',
       schoolId: schoolId || null
-    });
+    }, `person_deleted:${nombrePersona}`);
   }
   
-  // =============================================================================
-  // NOTIFICACIONES DE CATEGORÍAS
-  // =============================================================================
-  
   static async categoriaAgregada(categoria, schoolId = null) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'categoria_agregada',
-      titulo: '✅ Categoría agregada',
+      titulo: 'Categoría agregada',
       mensaje: `Se creó la categoría "${categoria.nombre}"`,
       icono: 'folder-plus',
       prioridad: 'baja',
       categoria_id: categoria._id,
       schoolId: schoolId || categoria.schoolId || null
-    });
+    }, `cat_added:${categoria._id}`);
   }
-  
-  // =============================================================================
-  // NOTIFICACIONES DE REPORTES Y SISTEMA
-  // =============================================================================
   
   static async reporteGenerado(tipoReporte, formato, cantidadRegistros, schoolId = null) {
     const nombresReportes = {
@@ -176,43 +219,43 @@ class NotificationService {
       expired: 'Documentos Vencidos'
     };
 
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'reporte_generado',
-      titulo: '✅ Reporte generado',
+      titulo: 'Reporte generado',
       mensaje: `Se generó el reporte "${nombresReportes[tipoReporte] || tipoReporte}" en formato ${formato.toUpperCase()} con ${cantidadRegistros} registro(s)`,
       icono: 'chart-bar',
       prioridad: 'baja',
       schoolId: schoolId || null,
       metadata: { tipo_reporte: tipoReporte, formato: formato, registros: cantidadRegistros }
-    });
+    }, `report:${tipoReporte}:${Date.now()}`);
   }
 
   static async sistemaIniciado() {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'sistema_iniciado',
-      titulo: '✅ Sistema iniciado',
+      titulo: 'Sistema iniciado',
       mensaje: `Sistema de Gestión de Documentos CBTIS051 iniciado correctamente el ${new Date().toLocaleString('es-MX')}`,
       icono: 'check-circle',
       prioridad: 'baja',
       schoolId: null,
       metadata: { fecha_inicio: new Date(), version: '1.0.0' }
-    });
+    }, 'system_start');
   }
 
   static async errorSistema(mensaje, detalles = {}) {
-    return await this.crear({
+    return await this.crearConDebounce({
       tipo: 'error_sistema',
-      titulo: '❌ Error del sistema',
+      titulo: 'Error del sistema',
       mensaje: mensaje,
       icono: 'exclamation-circle',
       prioridad: 'alta',
       schoolId: null,
       metadata: detalles
-    });
+    }, `error:${mensaje.substring(0, 50)}`);
   }
   
   // =============================================================================
-  // CONSULTAS Y GESTIÓN
+  // CONSULTAS Y GESTIÓN (SIN CAMBIOS)
   // =============================================================================
   
   static async obtener(filtros = {}, opciones = {}) {
@@ -238,7 +281,6 @@ class NotificationService {
       if (hasta) query.fecha_creacion.$lte = new Date(hasta);
     }
 
-    // ✅ Filtrar por escuela
     if (schoolId) {
       query.$or = [
         { schoolId: schoolId },

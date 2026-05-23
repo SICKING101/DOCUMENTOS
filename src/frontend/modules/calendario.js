@@ -8,6 +8,7 @@ import {
     showNoPermissionAlert,
     loadCurrentPermissions
 } from '../permissions.js';
+import { showAlert } from '../utils.js';
 
 // ─── CONSTANTES ──────────────────────────────────────────────────────────────
 
@@ -387,61 +388,14 @@ save() {
 
 class Toast {
     static show(message, type = 'info', duration = 3200) {
-        const existing = document.getElementById('cal-toast-container');
-        const container = existing || (() => {
-            const c = document.createElement('div');
-            c.id = 'cal-toast-container';
-            c.style.cssText = `position:fixed;top:1.25rem;right:1.25rem;z-index:99999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;`;
-            document.body.appendChild(c);
-            return c;
-        })();
-
-        const icons = { info:'ℹ', success:'✓', warning:'⚠', error:'✕', undo:'↩' };
-        const colors = {
-            info:    '#6366f1',
-            success: '#10b981',
-            warning: '#f59e0b',
-            error:   '#ef4444',
-            undo:    '#8b5cf6',
-        };
-
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            background: #0f0e17;
-            color: #fffffe;
-            padding: 0.75rem 1.1rem;
-            border-radius: 12px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.875rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            pointer-events: all;
-            cursor: default;
-            border-left: 3px solid ${colors[type] || colors.info};
-            max-width: 320px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-            will-change: transform, opacity;
-        `;
-        toast.innerHTML = `<span style="color:${colors[type]};font-size:1rem;flex-shrink:0;">${icons[type]||icons.info}</span><span>${message}</span>`;
-        container.appendChild(toast);
-
-        requestAnimationFrame(() => {
-            toast.style.opacity   = '1';
-            toast.style.transform = 'translateX(0)';
-        });
-
-        const remove = () => {
-            toast.style.opacity   = '0';
-            toast.style.transform = 'translateX(110%)';
-            setTimeout(() => toast.remove(), 300);
-        };
-        toast.addEventListener('click', remove);
-        setTimeout(remove, duration);
+        // Delegate calendar toasts to global alert system for consistency and dedupe
+        if (window.__SUPPRESS_NOTIFICATIONS) return;
+        try {
+            showAlert(message, type, duration);
+        } catch (e) {
+            // Fallback: console log if alert system isn't available
+            console.log(`CalToast [${type}]: ${message}`);
+        }
     }
 }
 

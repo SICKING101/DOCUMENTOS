@@ -13,8 +13,16 @@ const ICONS = {
   info: 'info-circle'
 };
 
+// Utilidad para eliminar emojis de un texto (exportada para uso en otros módulos)
+export function stripEmojis(text = '') {
+  if (!text) return '';
+  return String(text).replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDDFF]|[\u2011-\u26FF])/g, '').trim();
+}
+
 let container = null;
 let toasts = [];
+// Map para deduplicación: key -> { id, el, count, timeoutId }
+const dedupeIndex = new Map();
 
 /* ======================================================
    Utilidades internas
@@ -30,6 +38,13 @@ const ensureContainer = () => {
 const removeToast = (toastEl, immediate = false) => {
   if (!toastEl) return;
   const id = toastEl.dataset.toastId;
+  // Limpiar índice de dedupe si existe
+  for (const [key, entry] of dedupeIndex.entries()) {
+    if (entry && entry.id === id) {
+      dedupeIndex.delete(key);
+      break;
+    }
+  }
   toasts = toasts.filter(t => t.el !== toastEl);
   toastEl.classList.add('alert-toast--hide');
   const removeAfter = immediate ? 0 : 220;
@@ -41,17 +56,23 @@ const removeToast = (toastEl, immediate = false) => {
 const createToastElement = ({ id, title, message, type, duration }) => {
   const icon = ICONS[type] || ICONS.info;
 
+  // Sanitize title/message to remove debugging emojis or accidental emoji prefixes
+  title = stripEmojis(title);
+  message = stripEmojis(message);
+
   const el = document.createElement('div');
   el.className = `alert-toast alert-toast--${type}`;
   el.dataset.toastId = id;
-
   el.innerHTML = `
     <div class="alert-toast__icon"><i class="fas fa-${icon}"></i></div>
     <div class="alert-toast__body">
       ${title ? `<p class="alert-toast__title">${title}</p>` : ''}
       <p class="alert-toast__message">${message}</p>
     </div>
-    <button class="alert-toast__close" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+    <div class="alert-toast__meta">
+      <span class="alert-toast__count" style="display:none">x1</span>
+      <button class="alert-toast__close" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+    </div>
     <div class="alert-toast__progress" aria-hidden="true"></div>
   `;
 
@@ -85,6 +106,25 @@ const createToastElement = ({ id, title, message, type, duration }) => {
 export const showAlert = (message, type = 'info', options = {}) => {
   const { duration = DEFAULT_DURATION, title = null } = options;
   ensureContainer();
+  // Normalizar mensaje para deduplicación: quitar emojis y números
+  const normalized = stripEmojis(String(message || '')).replace(/\d+/g, '{n}').replace(/\s+/g, ' ').trim();
+  const dedupeKey = `${type}:${normalized}`;
+
+  // Si ya existe una notificación equivalente, incrementamos contador y reiniciamos timeout
+  if (dedupeIndex.has(dedupeKey)) {
+    const entry = dedupeIndex.get(dedupeKey);
+    entry.count = (entry.count || 1) + 1;
+    const countEl = entry.el.querySelector('.alert-toast__count');
+    if (countEl) {
+      countEl.style.display = '';
+      countEl.textContent = `x${entry.count}`;
+    }
+    // reiniciar timeout
+    if (entry.timeoutId) clearTimeout(entry.timeoutId);
+    entry.timeoutId = setTimeout(() => removeToast(entry.el, false), duration);
+    // Return existing id
+    return entry.id;
+  }
 
   // Cap de toasts: eliminar más viejo si estamos en límite
   if (toasts.length >= MAX_TOASTS) {
@@ -102,6 +142,9 @@ export const showAlert = (message, type = 'info', options = {}) => {
   const timeoutId = setTimeout(() => removeToast(el, false), duration);
 
   toasts.push({ id, el, timeoutId });
+
+  // Registrar en índice de dedupe
+  dedupeIndex.set(dedupeKey, { id, el, count: 1, timeoutId });
 
   return id;
 };
@@ -139,11 +182,12 @@ export const showProgress = (message, current = 0, total = 1) => {
   const el = document.createElement('div');
   el.className = `alert-toast alert-toast--info`;
   el.dataset.toastId = id;
+  const safeMessage = stripEmojis(message);
   el.innerHTML = `
     <div class="alert-toast__icon"><i class="fas fa-${ICONS.info}"></i></div>
     <div class="alert-toast__body">
-      <p class="alert-toast__title">${message}</p>
-      <p class="alert-toast__message">${message} ${current} / ${total}</p>
+      <p class="alert-toast__title">${safeMessage}</p>
+      <p class="alert-toast__message">${safeMessage} ${current} / ${total}</p>
     </div>
     <button class="alert-toast__close" aria-label="Cerrar"><i class="fas fa-times"></i></button>
     <div class="alert-toast__progress" aria-hidden="true"></div>

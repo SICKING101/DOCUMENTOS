@@ -1,5 +1,5 @@
 import { api } from '../services/api.js';
-import { showAlert, formatDate, showConfirmModal } from '../utils.js';
+import { showAlert, formatDate, showConfirmModal, stripEmojis } from '../utils.js';
 import { DOM } from '../dom.js';
 import SystemStatusModule from './systemStatus.js';
 import { canView, canAction, loadCurrentPermissions, showNoPermissionAlert } from '../permissions.js';
@@ -1800,7 +1800,7 @@ async preloadGuideImages() {
                 // ===== MOSTRAR ALERTA DE ÉXITO =====
                 this.showFormAlert(
                     'success',
-                    '✅ Ticket creado exitosamente. Recibirás una confirmación por email.',
+                    'Ticket creado exitosamente. Recibirás una confirmación por email.',
                     5000
                 );
 
@@ -1900,12 +1900,13 @@ async preloadGuideImages() {
             info: 'fa-info-circle'
         };
 
+        const safeMessage = stripEmojis(message);
         alert.innerHTML = `
         <div class="alert__icon">
             <i class="fas ${icons[type] || icons.info}"></i>
         </div>
         <div class="alert__content">
-            <p class="alert__message">${message}</p>
+            <p class="alert__message">${safeMessage}</p>
         </div>
         <button class="alert__close" onclick="this.closest('.alert').remove()">
             <i class="fas fa-times"></i>
@@ -2014,6 +2015,10 @@ async preloadGuideImages() {
                 body: `Ticket "${ticketData.subject}" creado exitosamente`,
                 icon: '/assets/icons/notification.png'
             });
+        }
+        // Mostrar un toast global estandarizado (si no está suprimido)
+        if (!window.__SUPPRESS_NOTIFICATIONS) {
+            try { showAlert('Se ha enviado el ticket correctamente', 'success', 5000); } catch(e) { /* ignore */ }
         }
     }
 

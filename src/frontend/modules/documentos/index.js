@@ -9,6 +9,9 @@ import { initializeTableFilters } from './table/tableFilters.js';
 import { MultipleUploadState } from './core/MultipleUploadState.js';
 import { formatFileSize, getFileIcon, showAlert } from '../../utils.js';
 
+import { showDocumentNotification } from './notificationConfig.js';
+import { withDocumentLoadControl, setupDocumentNotificationControl } from '../../utils.js';
+
 // IMPORTAR NUEVO MODAL DE ELIMINACIÓN MÚLTIPLE
 import { bulkDeleteModal } from './modals/bulkDeleteModal.js';
 import { bulkDeleteState } from './core/BulkDeleteState.js';
@@ -422,6 +425,10 @@ export function initializeDocumentosModule() {
     console.group('🚀 INICIALIZANDO MÓDULO DE DOCUMENTOS');
 
     try {
+        // 0. CONFIGURAR CONTROL DE NOTIFICACIONES
+        setupDocumentNotificationControl();
+        console.log('✅ Control de notificaciones configurado');
+
         // 1. Inicializar estado de subida múltiple si no existe
         if (!window.multipleUploadState) {
             window.multipleUploadState = new MultipleUploadState();
@@ -488,12 +495,12 @@ export function initializeDocumentosModule() {
         // 7. Cargar estado guardado
         loadFilterState();
 
-        // 8. Inicializar navegación por categorías (¡AHORA SÍ ESTÁ DEFINIDA!)
+        // 8. Inicializar navegación por categorías
         console.log('🗂️ Llamando a initCategoryNavigation...');
         initCategoryNavigation();
         console.log('✅ Navegación por categorías inicializada');
 
-        // 10. Verificar filtros corruptos después de loadFilterState
+        // 9. Verificar filtros corruptos después de loadFilterState
         if (window.appState.filters && window.appState.filters.status === 'active' &&
             !window.appState.filters.category && !window.appState.filters.type && !window.appState.filters.date) {
             console.log('🧹 loadFilterState restauró filtro corrupto, limpiando de nuevo...');
@@ -502,10 +509,10 @@ export function initializeDocumentosModule() {
             localStorage.removeItem('documentFilters');
         }
 
-        // 11. Inicializar modal de eliminación múltiple
+        // 10. Inicializar modal de eliminación múltiple
         bulkDeleteModal.init();
 
-        // 12. Inicializar modal de edición de documentos
+        // 11. Inicializar modal de edición de documentos
         import('./modals/editDocumentModal.js').then(module => {
             module.initEditDocumentModal();
             console.log('✅ Modal de edición inicializado');
@@ -513,10 +520,10 @@ export function initializeDocumentosModule() {
             console.error('❌ Error cargando modal de edición:', err);
         });
 
-        // 13. Configurar funciones globales
+        // 12. Configurar funciones globales
         setupGlobalFunctions();
 
-        // 14. Inicializar panel de documentos vencidos
+        // 13. Inicializar panel de documentos vencidos
         const viewAllBtn = document.getElementById('viewAllExpiredBtn');
         const modeSelect = document.getElementById('expiredViewMode');
 
@@ -553,7 +560,6 @@ export function initializeDocumentosModule() {
         }
 
         console.log('✅ Módulo de documentos inicializado correctamente');
-        console.log('📋 Estado final de filtros:', window.appState.filters);
         console.log('📋 Funcionalidades disponibles:');
         console.table({
             'Subida múltiple': '✓',
@@ -562,12 +568,12 @@ export function initializeDocumentosModule() {
             'Descargas': '✓',
             'Filtros': '✓',
             'Edición': '✓',
-            'Navegación categorías': '✓'
+            'Navegación categorías': '✓',
+            'Control notificaciones': '✓'
         });
 
     } catch (error) {
         console.error('❌ Error crítico inicializando módulo de documentos:', error);
-        // showAlert ahora sí está importado
         showAlert('Error inicializando módulo de documentos. Revisa la consola.', 'error');
         throw error;
     }
@@ -597,6 +603,9 @@ function setupGlobalFunctions() {
     window.openCategoryModal = openCategoryModal;
     window.closeCategoryModal = closeCategoryModal;
     window.saveCategory = saveCategory;
+    
+    // Funciones de notificación
+    window.showDocumentNotification = showDocumentNotification;
 
     console.log('✅ Funciones globales configuradas');
 }

@@ -403,168 +403,197 @@
                 </section>
 
                 <!-- SECCIÓN 4.2.2: PESTAÑA PAPELERA -->
-                <section id="papelera" class="tab-content">
-                    <div class="section__header">
-                        <div>
-                            <h2 class="section__title">
-                                <i class="fas fa-trash-alt"></i> Papelera de Reciclaje
-                            </h2>
-                            <p class="section__subtitle">Documentos eliminados - Se borran automáticamente después de 30
-                                días</p>
-                        </div>
+<!-- ============================================================
+     SECCIÓN 4.2.2: PAPELERA — HTML RENOVADO
+     Reemplaza el bloque <section id="papelera" ...> completo
+     Todos los IDs/clases funcionales intactos
+     ============================================================ -->
+
+<section id="papelera" class="tab-content">
+
+    <!-- ── HEADER ───────────────────────────────────────────── -->
+    <div class="section__header">
+        <div class="header-left">
+            <div class="header-icon-wrap">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <div class="header-text">
+                <h2 class="section__title">Papelera de Reciclaje</h2>
+                <p class="section__subtitle">
+                    Documentos eliminados &mdash; Se purgan automáticamente a los 30 días
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── ESTADÍSTICAS ─────────────────────────────────────── -->
+    <div class="trash-stats">
+
+        <div class="trash-stat-card stat-total">
+            <div class="trash-stat-icon stat-total">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashTotalDocs">0</div>
+                <div class="trash-stat-label">En Papelera</div>
+            </div>
+        </div>
+
+        <div class="trash-stat-card stat-size">
+            <div class="trash-stat-icon stat-size">
+                <i class="fas fa-hdd"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashTotalSize">0 KB</div>
+                <div class="trash-stat-label">Espacio Total</div>
+            </div>
+        </div>
+
+        <div class="trash-stat-card stat-critical">
+            <div class="trash-stat-icon stat-critical">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashCriticalDocs">0</div>
+                <div class="trash-stat-label">Por Expirar</div>
+                <div class="trash-stat-subtitle">&le; 7 días</div>
+            </div>
+        </div>
+
+        <div class="trash-stat-card stat-warning">
+            <div class="trash-stat-icon stat-warning">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="trash-stat-info">
+                <div class="trash-stat-value" id="trashWarningDocs">0</div>
+                <div class="trash-stat-label">Próximos</div>
+                <div class="trash-stat-subtitle">8 &ndash; 14 días</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── CONTROLES ────────────────────────────────────────── -->
+    <div class="trash-controls">
+
+        <div class="trash-controls-left">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input
+                    type="text"
+                    id="trashSearchInput"
+                    placeholder="Buscar en papelera..."
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="view-toggle">
+                <button id="gridViewBtn" class="active" title="Vista cuadrícula">
+                    <i class="fas fa-th-large"></i>
+                </button>
+                <button id="listViewBtn" title="Vista lista">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="trash-controls-right">
+            <select id="trashSortSelect" class="sort-select">
+                <option value="deletedAt-desc">Más recientes primero</option>
+                <option value="deletedAt-asc">Más antiguos primero</option>
+                <option value="daysRemaining-asc">Menos días restantes</option>
+                <option value="daysRemaining-desc">Más días restantes</option>
+                <option value="name-asc">Nombre (A-Z)</option>
+                <option value="name-desc">Nombre (Z-A)</option>
+                <option value="size-desc">Mayor tamaño</option>
+                <option value="size-asc">Menor tamaño</option>
+            </select>
+        </div>
+
+    </div>
+
+    <!-- ── CONTROLES DE SELECCIÓN ───────────────────────────── -->
+    <div class="trash-selection-controls">
+
+        <div class="selection-controls-left">
+            <button class="btn btn--outline btn--sm" id="selectAllTrash">
+                <i class="fas fa-check-square"></i>
+                Seleccionar Todo
+            </button>
+            <button class="btn btn--outline btn--sm" id="deselectAllTrash">
+                <i class="fas fa-square"></i>
+                Deseleccionar
+            </button>
+            <div class="trash-selection-counter" id="trashSelectionCounter" style="display:none;">
+                <i class="fas fa-check-circle"></i>
+                <span class="selection-count">0</span> seleccionado(s)
+            </div>
+        </div>
+
+        <div class="selection-controls-right" id="bulkActionsContainer" style="display:none;">
+            <button class="btn btn--success btn--sm" id="restoreSelectedBtn">
+                <i class="fas fa-undo"></i>
+                Restaurar Seleccionados
+            </button>
+            <button class="btn btn--danger btn--sm" id="deleteSelectedBtn">
+                <i class="fas fa-trash-alt"></i>
+                Eliminar Seleccionados
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ── LISTA DE DOCUMENTOS ──────────────────────────────── -->
+    <div class="trash-content" id="trashContent">
+        <div id="trashDocumentsList" class="trash-documents-list grid-view">
+
+            <!-- Estado vacío inicial (reemplazado por JS al cargar) -->
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <h3>La papelera está vacía</h3>
+                <p>Los documentos eliminados aparecerán aquí y se conservan por 30 días</p>
+                <div class="empty-state-tips">
+                    <div class="tip">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Los documentos se eliminan automáticamente después de 30 días</span>
                     </div>
-
-                    <!-- Estadísticas de papelera -->
-                    <div class="trash-stats">
-                        <div class="trash-stat-card stat-total">
-                            <div class="trash-stat-icon stat-total">
-                                <i class="fas fa-file-alt"></i>
-                            </div>
-                            <div class="trash-stat-info">
-                                <div class="trash-stat-value" id="trashTotalDocs">0</div>
-                                <div class="trash-stat-label">Documentos en Papelera</div>
-                            </div>
-                        </div>
-
-                        <div class="trash-stat-card stat-size">
-                            <div class="trash-stat-icon stat-size">
-                                <i class="fas fa-hdd"></i>
-                            </div>
-                            <div class="trash-stat-info">
-                                <div class="trash-stat-value" id="trashTotalSize">0 KB</div>
-                                <div class="trash-stat-label">Espacio total</div>
-                            </div>
-                        </div>
-
-                        <div class="trash-stat-card stat-critical">
-                            <div class="trash-stat-icon stat-critical">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <div class="trash-stat-info">
-                                <div class="trash-stat-value" id="trashCriticalDocs">0</div>
-                                <div class="trash-stat-label">Por expirar</div>
-                                <div class="trash-stat-subtitle">(≤ 7 días)</div>
-                            </div>
-                        </div>
-
-                        <div class="trash-stat-card stat-warning">
-                            <div class="trash-stat-icon stat-warning">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="trash-stat-info">
-                                <div class="trash-stat-value" id="trashWarningDocs">0</div>
-                                <div class="trash-stat-label">Próximos</div>
-                                <div class="trash-stat-subtitle">(8-14 días)</div>
-                            </div>
-                        </div>
+                    <div class="tip">
+                        <i class="fas fa-undo"></i>
+                        <span>Puedes restaurar documentos antes de que sean eliminados permanentemente</span>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Controles de búsqueda y vista -->
-                    <div class="trash-controls">
-                        <div class="trash-controls-left">
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="trashSearchInput" placeholder="Buscar en papelera..."
-                                    autocomplete="off">
-                            </div>
+        </div>
+    </div>
 
-                            <div class="view-toggle">
-                                <button id="gridViewBtn" class="active" title="Vista cuadrícula">
-                                    <i class="fas fa-th-large"></i>
-                                </button>
-                                <button id="listViewBtn" title="Vista lista">
-                                    <i class="fas fa-list"></i>
-                                </button>
-                            </div>
-                        </div>
+    <!-- ── MODAL DE PROGRESO (operationProgress) ────────────── -->
+    <div id="operationProgress" class="operation-progress" style="display:none;">
+        <div class="progress-overlay"></div>
+        <div class="progress-content">
+            <div class="progress-spinner">
+                <div class="spinner-circle"></div>
+            </div>
+            <div class="progress-info">
+                <h4 class="progress-title">Procesando…</h4>
+                <p class="progress-message" id="progressMessage"></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-details">
+                    <span class="progress-counter" id="progressCounter">0/0</span>
+                    <span class="progress-percentage" id="progressPercentage">0%</span>
+                </div>
+            </div>
+            <button class="btn btn--text btn--sm progress-cancel" id="progressCancelBtn">
+                Cancelar
+            </button>
+        </div>
+    </div>
 
-                        <div class="trash-controls-right">
-                            <select id="trashSortSelect" class="sort-select">
-                                <option value="deletedAt-desc">Más recientes primero</option>
-                                <option value="deletedAt-asc">Más antiguos primero</option>
-                                <option value="daysRemaining-asc">Menos días restantes</option>
-                                <option value="daysRemaining-desc">Más días restantes</option>
-                                <option value="name-asc">Nombre (A-Z)</option>
-                                <option value="name-desc">Nombre (Z-A)</option>
-                                <option value="size-desc">Mayor tamaño</option>
-                                <option value="size-asc">Menor tamaño</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Controles de selección -->
-                    <div class="trash-selection-controls">
-                        <div class="selection-controls-left">
-                            <button class="btn btn--outline btn--sm" id="selectAllTrash">
-                                <i class="fas fa-check-square"></i> Seleccionar Todo
-                            </button>
-                            <button class="btn btn--outline btn--sm" id="deselectAllTrash">
-                                <i class="fas fa-square"></i> Deseleccionar
-                            </button>
-                            <div class="trash-selection-counter" id="trashSelectionCounter" style="display: none;">
-                                <span class="selection-count">0</span> seleccionado(s)
-                            </div>
-                        </div>
-
-                        <div class="selection-controls-right" id="bulkActionsContainer" style="display: none;">
-                            <button class="btn btn--success btn--sm" id="restoreSelectedBtn">
-                                <i class="fas fa-undo"></i> Restaurar Seleccionados
-                            </button>
-                            <button class="btn btn--danger btn--sm" id="deleteSelectedBtn">
-                                <i class="fas fa-trash-alt"></i> Eliminar Seleccionados
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Lista de documentos en papelera -->
-                    <div class="trash-content" id="trashContent">
-                        <div id="trashDocumentsList" class="trash-documents-list grid-view">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">
-                                    <i class="fas fa-trash-alt"></i>
-                                </div>
-                                <h3>La papelera está vacía</h3>
-                                <p>Los documentos eliminados aparecerán aquí por 30 días</p>
-                                <div class="empty-state-tips">
-                                    <div class="tip">
-                                        <i class="fas fa-info-circle"></i>
-                                        <span>Los documentos se eliminan automáticamente después de 30 días</span>
-                                    </div>
-                                    <div class="tip">
-                                        <i class="fas fa-undo"></i>
-                                        <span>Puedes restaurar documentos antes de que sean eliminados
-                                            permanentemente</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Modal de progreso de operaciones -->
-                    <div id="operationProgress" class="operation-progress" style="display: none;">
-                        <div class="progress-overlay"></div>
-                        <div class="progress-content">
-                            <div class="progress-spinner">
-                                <div class="spinner-circle"></div>
-                            </div>
-                            <div class="progress-info">
-                                <h4 class="progress-title">Procesando...</h4>
-                                <p class="progress-message" id="progressMessage"></p>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" id="progressFill"></div>
-                                </div>
-                                <div class="progress-details">
-                                    <span class="progress-counter" id="progressCounter">0/0</span>
-                                    <span class="progress-percentage" id="progressPercentage">0%</span>
-                                </div>
-                            </div>
-                            <button class="btn btn--text btn--sm progress-cancel" id="progressCancelBtn">
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
+</section>
                 <!-- =====================================================================
      SECCIÓN 4.2.3: PESTAÑA HISTORIAL — DISEÑO "LUMINOUS CHRONICLE"
      Todos los IDs funcionales conservados; solo rediseño visual.
@@ -1306,153 +1335,417 @@
                 </dialog>
 
 
-     <!-- ════════════════════════════════════════════════════════════════════
-     MODAL: SUBIR DOCUMENTOS 
+                <!-- ════════════════════════════════════════════════════════════════════
+     MODAL: SUBIR DOCUMENTOS (REDISEÑO COMPLETO)
      ════════════════════════════════════════════════════════════════════ -->
-                <dialog id="documentModal" class="modal">
-                    <article class="modal__content">
-                        <header class="modal__header">
-                            <h3 class="modal__title">
-                                <i class="fas fa-file-upload" style="color: var(--primary); margin-right: .5rem;"></i>
-                                Subir Documento
-                            </h3>
-                            <button class="modal__close" aria-label="Cerrar">&times;</button>
+                <dialog id="documentModal" class="modal modal--upload">
+                    <article class="modal__content modal__content--upload">
+
+                        <!-- ═══ HEADER CON GRADIENTE ═══ -->
+                        <header class="modal__header modal__header--gradient">
+                            <div class="modal__header-left">
+                                <div class="modal__icon-wrapper">
+                                    <i class="fas fa-cloud-upload-alt modal__icon-pulse"></i>
+                                </div>
+                                <div>
+                                    <h3 class="modal__title modal__title--light">Subir Documentos</h3>
+                                    <p class="modal__subtitle modal__subtitle-white">Selecciona y configura tus archivos
+                                    </p>
+                                </div>
+                            </div>
+                            <button class="modal__close modal__close--circle" aria-label="Cerrar">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </header>
-                        <section class="modal__body">
-                            <form id="documentForm">
-                                <!-- Pestañas modo único/múltiple -->
-                                <div class="upload__tabs">
-                                    <button type="button" class="upload__tab upload__tab--active" data-mode="single">
-                                        <i class="fas fa-file-upload"></i> Subir Único
+
+                        <!-- ═══ BODY ═══ -->
+                        <section class="modal__body modal__body--upload">
+                            <form id="documentForm" class="upload-form">
+
+                                <!-- ═══════════════ PESTAÑAS DE MODO ═══════════════ -->
+                                <div class="upload-tabs">
+                                    <button type="button" class="upload-tab upload-tab--active" data-mode="single">
+                                        <div class="upload-tab__icon">
+                                            <i class="fas fa-file-upload"></i>
+                                        </div>
+                                        <div class="upload-tab__text">
+                                            <span>Documento Único</span>
+                                            <small>Sube un archivo a la vez</small>
+                                        </div>
                                     </button>
-                                    <button type="button" class="upload__tab" data-mode="multiple">
-                                        <i class="fas fa-folder-open"></i> Subir Múltiple
+                                    <button type="button" class="upload-tab" data-mode="multiple">
+                                        <div class="upload-tab__icon">
+                                            <i class="fas fa-layer-group"></i>
+                                        </div>
+                                        <div class="upload-tab__text">
+                                            <span>Múltiples Documentos</span>
+                                            <small>Sube varios archivos juntos</small>
+                                        </div>
                                     </button>
                                 </div>
 
-                                <!-- Modo único -->
-                                <div id="singleUploadContainer" class="upload__container upload__mode--active">
-                                    <div class="upload__dropzone" id="fileUploadContainer">
-                                        <i class="fas fa-cloud-upload-alt upload__icon"></i>
-                                        <h3>Arrastra y suelta tu archivo aquí</h3>
-                                        <p>o</p>
-                                        <button type="button" class="btn btn--primary" id="browseFilesBtn">
-                                            <i class="fas fa-folder-open"></i> Seleccionar Archivo
-                                        </button>
+                                <!-- ═══════════════ MODO ÚNICO ═══════════════ -->
+                                <div id="singleUploadContainer" class="upload-container upload-container--active">
+
+                                    <!-- Dropzone Moderno -->
+                                    <div class="dropzone dropzone--single" id="fileUploadContainer">
+                                        <div class="dropzone__visual">
+                                            <div class="dropzone__icon-ring">
+                                                <i class="fas fa-cloud-upload-alt dropzone__icon"></i>
+                                            </div>
+                                            <div class="dropzone__pulse-ring"></div>
+                                        </div>
+
+                                        <div class="dropzone__content">
+                                            <h4 class="dropzone__title">Arrastra tu archivo aquí</h4>
+                                            <p class="dropzone__subtitle">o haz clic en el botón para seleccionar</p>
+
+                                            <!-- Info de tamaño máximo -->
+                                            <div class="size-limit-badge">
+                                                <i class="fas fa-info-circle"></i>
+                                                <span>Tamaño máximo: <strong>10 MB</strong></span>
+                                            </div>
+
+                                            <button type="button" class="btn btn--primary btn--upload"
+                                                id="browseFilesBtn">
+                                                <i class="fas fa-folder-open"></i>
+                                                <span>Seleccionar Archivo</span>
+                                            </button>
+
+                                            <p class="dropzone__formats">
+                                                Formatos: PDF, TXT, CSV, JPG, PNG
+                                            </p>
+                                        </div>
+
                                         <input type="file" id="fileInput" class="upload__input"
-                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                                        <div class="upload__info" id="fileInfo">
-                                            <p><strong>Archivo:</strong> <span id="fileName"></span></p>
-                                            <p><strong>Tamaño:</strong> <span id="fileSize"></span></p>
-                                        </div>
+                                            accept=".pdf,.txt,.csv,.jpg,.jpeg,.png">
                                     </div>
-                                    <div class="form__group">
-                                        <label for="documentDescription" class="form__label">Descripción</label>
-                                        <textarea id="documentDescription" class="form__textarea" rows="3"></textarea>
-                                    </div>
-                                    <div class="form__row">
-                                        <div class="form__group">
-                                            <label for="documentCategory" class="form__label">Categoría</label>
-                                            <select id="documentCategory" class="form__select">
-                                                <option value="">Seleccionar categoría</option>
-                                            </select>
-                                        </div>
-                                        <div class="form__group">
-                                            <label for="documentExpiration" class="form__label">Fecha de
-                                                Vencimiento</label>
-                                            <input type="date" id="documentExpiration" class="form__input">
-                                        </div>
-                                    </div>
-                                    <div class="form__group">
-                                        <label for="documentPerson" class="form__label">Asignar a Persona</label>
-                                        <select id="documentPerson" class="form__select">
-                                            <option value="">Seleccionar persona</option>
-                                        </select>
-                                    </div>
-                                </div>
 
-                                <!-- Modo múltiple -->
-                                <div id="multipleUploadContainer" class="upload__container">
-                                    <div class="multiple-upload__header">
-                                        <i class="fas fa-layer-group"></i>
-                                        <h3>Subir Múltiples Documentos</h3>
-                                        <p class="multiple-upload__subtitle">Selecciona varios archivos para subirlos
-                                            juntos</p>
-                                    </div>
-                                    <div class="multiple-upload__dropzone" id="multipleFileUploadContainer">
-                                        <i class="fas fa-cloud-upload-alt upload__icon upload__icon--multiple"></i>
-                                        <h3>Arrastra y suelta múltiples archivos aquí</h3>
-                                        <p>o</p>
-                                        <button type="button" class="btn btn--primary" id="browseMultipleFilesBtn">
-                                            <i class="fas fa-folder-plus"></i> Seleccionar Múltiples Archivos
-                                        </button>
-                                        <input type="file" id="multipleFileInput" class="upload__input" multiple
-                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png">
-                                        <p class="upload__hint">Tamaño máximo por archivo: 1 GB</p>
-                                    </div>
-                                    <div class="multiple-upload__config">
-                                        <h4><i class="fas fa-cog"></i> Configuración Común</h4>
-                                        <div class="form__row">
-                                            <div class="form__group">
-                                                <label for="multipleDocumentCategory" class="form__label">Categoría para
-                                                    Todos</label>
-                                                <select id="multipleDocumentCategory" class="form__select">
-                                                    <option value="">Seleccionar categoría común</option>
-                                                </select>
+                                    <!-- Preview del archivo seleccionado -->
+                                    <div class="file-preview-card" id="filePreview" style="display: none;">
+                                        <div class="file-preview-card__inner">
+                                            <div class="file-preview-card__icon" id="fileTypeIconContainer">
+                                                <i class="fas fa-file-pdf" id="fileTypeIcon"></i>
                                             </div>
-                                            <div class="form__group">
-                                                <label for="multipleDocumentPerson" class="form__label">Asignar a
-                                                    Persona</label>
-                                                <select id="multipleDocumentPerson" class="form__select">
-                                                    <option value="">Seleccionar persona</option>
-                                                </select>
+                                            <div class="file-preview-card__info">
+                                                <h5 class="file-preview-card__name" id="fileName">nombre-archivo.pdf
+                                                </h5>
+                                                <div class="file-preview-card__meta">
+                                                    <span class="file-preview-card__size" id="fileSize">0 KB</span>
+                                                    <span
+                                                        class="file-preview-card__badge file-preview-card__badge--valid"
+                                                        id="fileSizeBadge">
+                                                        <i class="fas fa-check-circle"></i> Válido
+                                                    </span>
+                                                </div>
+                                                <div class="size-bar">
+                                                    <div class="size-bar__fill" id="sizeBarFill"></div>
+                                                </div>
+                                                <p class="size-bar__label">
+                                                    <span id="sizeUsed">0 MB</span> / <span>10 MB</span>
+                                                </p>
                                             </div>
+                                            <button type="button" class="file-preview-card__remove" id="removeFileBtn"
+                                                title="Quitar archivo">
+                                                <i class="fas fa-times"></i>
+                                            </button>
                                         </div>
+                                        <!-- Error de tamaño -->
+                                        <div class="size-error" id="sizeError" style="display: none;">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <span>El archivo excede el límite de 10 MB. Por favor selecciona un archivo
+                                                más pequeño.</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Campos del formulario -->
+                                    <div class="upload-form__fields">
+                                        <!-- Descripción -->
                                         <div class="form__group">
-                                            <label for="multipleExpirationDays" class="form__label">Días hasta
-                                                Vencimiento (opcional)</label>
-                                            <input type="number" id="multipleExpirationDays" class="form__input" min="0"
-                                                placeholder="Ej: 30">
+                                            <label for="documentDescription" class="form__label">
+                                                <i class="fas fa-align-left"></i> Descripción
+                                            </label>
+                                            <textarea id="documentDescription"
+                                                class="form__textarea form__textarea--modern" rows="3"
+                                                placeholder="Describe brevemente el contenido del documento..."></textarea>
                                         </div>
-                                    </div>
-                                    <div class="multiple-upload__files" id="multipleFilesList">
-                                        <h4><i class="fas fa-list"></i> Archivos Seleccionados (<span
-                                                id="selectedFilesCount">0</span>)</h4>
-                                        <div class="files__list" id="filesListContainer">
-                                            <div class="files__empty">
-                                                <i class="fas fa-file-alt"></i>
-                                                <p>No hay archivos seleccionados</p>
-                                            </div>
-                                        </div>
-                                        <div class="files__summary" id="filesSummary">
-                                            <div class="summary__item"><i class="fas fa-file"></i><span>Total archivos:
-                                                    <strong>0</strong></span></div>
-                                            <div class="summary__item"><i class="fas fa-hdd"></i><span>Tamaño: <strong>0
-                                                        MB</strong></span></div>
-                                            <div class="summary__item"><i class="fas fa-clock"></i><span>Tiempo
-                                                    estimado: <strong>0s</strong></span></div>
-                                        </div>
-                                    </div>
-                                    <div class="multiple-upload__advanced">
-                                        <button type="button" class="btn btn--sm btn--outline"
-                                            id="toggleAdvancedOptions">
-                                            <i class="fas fa-sliders-h"></i> Opciones Avanzadas
-                                        </button>
-                                        <div class="advanced__options" id="advancedOptions" style="display: none;">
+
+                                        <div class="form__row form__row--upload">
+                                            <!-- CATEGORÍAS CON CHIPS -->
                                             <div class="form__group">
                                                 <label class="form__label">
-                                                    <input type="checkbox" id="autoGenerateDescriptions">
-                                                    Generar descripciones automáticamente
+                                                    <i class="fas fa-folder-tree"></i> Categoría <span
+                                                        class="required">*</span>
                                                 </label>
-                                                <p class="form__hint">Usa el nombre del archivo como descripción</p>
+                                                <div class="categories-selector" id="singleCategorySelector">
+                                                    <div class="categories-search">
+                                                        <i class="fas fa-search"></i>
+                                                        <input type="text" id="singleCategorySearch"
+                                                            class="categories-search__input"
+                                                            placeholder="Buscar o seleccionar categoría..."
+                                                            autocomplete="off">
+                                                    </div>
+                                                    <div class="categories-chips" id="singleCategoriesChips">
+                                                        <!-- Chips se generan dinámicamente -->
+                                                    </div>
+                                                    <p class="categories-no-results" id="singleCategoriesNoResults"
+                                                        style="display: none;">
+                                                        <i class="fas fa-search"></i>
+                                                        No se encontraron categorías
+                                                    </p>
+                                                    <input type="hidden" id="documentCategory" name="category">
+                                                </div>
                                             </div>
+
+                                            <!-- Fecha de Vencimiento -->
                                             <div class="form__group">
-                                                <label for="uploadStrategy" class="form__label">Estrategia de
-                                                    Subida</label>
-                                                <select id="uploadStrategy" class="form__select">
-                                                    <option value="sequential">Secuencial (más estable)</option>
-                                                    <option value="parallel">Paralelo (más rápido)</option>
-                                                    <option value="batch">Por lotes (equilibrado)</option>
+                                                <label for="documentExpiration" class="form__label">
+                                                    <i class="fas fa-calendar-alt"></i> Vencimiento
+                                                </label>
+                                                <input type="date" id="documentExpiration"
+                                                    class="form__input form__input--modern" min="">
+                                            </div>
+                                        </div>
+
+                                        <!-- PERSONA CON AUTOCOMPLETADO -->
+                                        <div class="form__group">
+                                            <label class="form__label">
+                                                <i class="fas fa-user-circle"></i> Asignar a Persona <span
+                                                    class="required">*</span>
+                                            </label>
+                                            <div class="person-selector" id="singlePersonSelector">
+                                                <div class="person-input-wrapper">
+                                                    <i class="fas fa-search"></i>
+                                                    <input type="text" id="singlePersonSearch"
+                                                        class="person-input-wrapper__input"
+                                                        placeholder="Buscar persona por nombre..." autocomplete="off">
+                                                    <button type="button" class="person-clear" id="singlePersonClear"
+                                                        style="display: none;" title="Limpiar selección">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="person-dropdown" id="singlePersonDropdown">
+                                                    <!-- Resultados dinámicos -->
+                                                </div>
+                                                <div class="person-selected" id="singlePersonSelected"
+                                                    style="display: none;">
+                                                    <div class="person-selected__avatar">
+                                                        <span></span>
+                                                    </div>
+                                                    <div class="person-selected__info">
+                                                        <span class="person-selected__name"></span>
+                                                        <span class="person-selected__detail"></span>
+                                                    </div>
+                                                    <button type="button" class="person-selected__remove"
+                                                        title="Quitar persona">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="hidden" id="documentPerson" name="person_id">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ═══════════════ MODO MÚLTIPLE ═══════════════ -->
+                                <div id="multipleUploadContainer" class="upload-container">
+
+                                    <!-- Header modo múltiple -->
+                                    <div class="multiple-header">
+                                        <div class="multiple-header__icon">
+                                            <div class="multiple-header__icon-ring">
+                                                <i class="fas fa-layer-group"></i>
+                                            </div>
+                                        </div>
+                                        <div class="multiple-header__info">
+                                            <h3>Subida Múltiple</h3>
+                                            <p>Configura los parámetros y sube varios documentos a la vez</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Dropzone múltiple -->
+                                    <div class="dropzone dropzone--multiple" id="multipleFileUploadContainer">
+                                        <div class="dropzone__visual">
+                                            <div class="dropzone__icon-ring dropzone__icon-ring--multiple">
+                                                <i
+                                                    class="fas fa-cloud-upload-alt dropzone__icon dropzone__icon--multiple"></i>
+                                            </div>
+                                            <div class="dropzone__pulse-ring dropzone__pulse-ring--multiple"></div>
+                                        </div>
+
+                                        <div class="dropzone__content">
+                                            <h4 class="dropzone__title">Arrastra múltiples archivos aquí</h4>
+                                            <p class="dropzone__subtitle">o haz clic para seleccionar varios a la vez
+                                            </p>
+
+                                            <div class="size-limit-badge">
+                                                <i class="fas fa-info-circle"></i>
+                                                <span>Máximo <strong>10 MB</strong> por archivo</span>
+                                            </div>
+
+                                            <button type="button" class="btn btn--primary btn--upload"
+                                                id="browseMultipleFilesBtn" disabled>
+                                                <i class="fas fa-folder-plus"></i>
+                                                <span>Seleccionar Archivos</span>
+                                            </button>
+
+                                            <p class="dropzone__formats" id="multipleDropzoneHint">
+                                                ⚠️ Primero selecciona una categoría para habilitar la subida
+                                            </p>
+                                        </div>
+
+                                        <input type="file" id="multipleFileInput" class="upload__input" multiple
+                                            disabled accept=".pdf,.txt,.csv,.jpg,.jpeg,.png">
+                                    </div>
+
+                                    <!-- Configuración común -->
+                                    <div class="multiple-config">
+                                        <div class="multiple-config__header">
+                                            <h4>
+                                                <i class="fas fa-sliders-h"></i>
+                                                Configuración para Todos los Archivos
+                                            </h4>
+                                            <span class="multiple-config__badge">Se aplica a todos</span>
+                                        </div>
+
+                                        <div class="multiple-config__body">
+                                            <div class="form__row form__row--upload">
+                                                <!-- Categorías con Chips -->
+                                                <div class="form__group">
+                                                    <label class="form__label">
+                                                        <i class="fas fa-folder-tree"></i> Categoría <span
+                                                            class="required">*</span>
+                                                    </label>
+                                                    <div class="categories-selector" id="multipleCategorySelector">
+                                                        <div class="categories-search">
+                                                            <i class="fas fa-search"></i>
+                                                            <input type="text" id="multipleCategorySearch"
+                                                                class="categories-search__input"
+                                                                placeholder="Buscar o seleccionar categoría..."
+                                                                autocomplete="off">
+                                                        </div>
+                                                        <div class="categories-chips" id="multipleCategoriesChips">
+                                                            <!-- Chips se generan dinámicamente -->
+                                                        </div>
+                                                        <p class="categories-no-results"
+                                                            id="multipleCategoriesNoResults" style="display: none;">
+                                                            <i class="fas fa-search"></i>
+                                                            No se encontraron categorías
+                                                        </p>
+                                                        <input type="hidden" id="multipleDocumentCategory"
+                                                            name="category">
+                                                    </div>
+                                                </div>
+
+                                                <!-- Persona con Autocompletado -->
+                                                <div class="form__group">
+                                                    <label class="form__label">
+                                                        <i class="fas fa-user-circle"></i> Asignar a Persona <span
+                                                            class="required">*</span>
+                                                    </label>
+                                                    <div class="person-selector" id="multiplePersonSelector">
+                                                        <div class="person-input-wrapper">
+                                                            <i class="fas fa-search"></i>
+                                                            <input type="text" id="multiplePersonSearch"
+                                                                class="person-input-wrapper__input"
+                                                                placeholder="Buscar persona por nombre..."
+                                                                autocomplete="off" disabled>
+                                                            <button type="button" class="person-clear"
+                                                                id="multiplePersonClear" style="display: none;"
+                                                                title="Limpiar selección">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="person-dropdown" id="multiplePersonDropdown">
+                                                            <!-- Resultados dinámicos -->
+                                                        </div>
+                                                        <div class="person-selected" id="multiplePersonSelected"
+                                                            style="display: none;">
+                                                            <div class="person-selected__avatar">
+                                                                <span></span>
+                                                            </div>
+                                                            <div class="person-selected__info">
+                                                                <span class="person-selected__name"></span>
+                                                                <span class="person-selected__detail"></span>
+                                                            </div>
+                                                            <button type="button" class="person-selected__remove"
+                                                                title="Quitar persona">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                        <input type="hidden" id="multipleDocumentPerson"
+                                                            name="person_id">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Días de vencimiento -->
+                                            <div class="form__group">
+                                                <label for="multipleExpirationDays" class="form__label">
+                                                    <i class="fas fa-clock"></i> Días hasta Vencimiento
+                                                </label>
+                                                <div class="expiration-input-wrapper">
+                                                    <input type="number" id="multipleExpirationDays"
+                                                        class="form__input form__input--modern" min="0" max="365"
+                                                        placeholder="Ej: 30 días" disabled>
+                                                    <span class="expiration-input-wrapper__suffix">días</span>
+                                                </div>
+                                                <p class="form__hint">Opcional. Dejar vacío si no tiene vencimiento.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Lista de archivos seleccionados -->
+                                    <div class="files-list" id="multipleFilesList">
+                                        <div class="files-list__header">
+                                            <div class="files-list__header-left">
+                                                <h4>
+                                                    <i class="fas fa-list-ul"></i>
+                                                    Archivos Seleccionados
+                                                </h4>
+                                                <span class="files-list__count" id="selectedFilesCount">0</span>
+                                            </div>
+                                            <div class="files-list__summary" id="filesSummary">
+                                                <span class="files-list__summary-item">
+                                                    <i class="fas fa-hdd"></i>
+                                                    <strong id="totalSize">0 MB</strong>
+                                                </span>
+                                                <span class="files-list__summary-item">
+                                                    <i class="fas fa-file"></i>
+                                                    <strong id="totalFiles">0</strong> archivos
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="files-list__container" id="filesListContainer">
+                                            <div class="files-empty">
+                                                <div class="files-empty__icon">
+                                                    <i class="fas fa-inbox"></i>
+                                                </div>
+                                                <h5>No hay archivos seleccionados</h5>
+                                                <p>Selecciona una categoría y agrega archivos para comenzar</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Opciones avanzadas -->
+                                    <div class="multiple-advanced">
+                                        <button type="button" class="multiple-advanced__toggle"
+                                            id="toggleAdvancedOptions">
+                                            <i class="fas fa-sliders-h"></i>
+                                            <span>Opciones Avanzadas</span>
+                                            <i class="fas fa-chevron-down multiple-advanced__arrow"></i>
+                                        </button>
+                                        <div class="multiple-advanced__content" id="advancedOptions"
+                                            style="display: none;">
+                                            <div class="form__group">
+                                                <label for="uploadStrategy" class="form__label">
+                                                    <i class="fas fa-bolt"></i> Estrategia de Subida
+                                                </label>
+                                                <select id="uploadStrategy" class="form__select form__select--modern">
+                                                    <option value="sequential">🔵 Secuencial (más estable)</option>
+                                                    <option value="parallel">🟢 Paralelo (más rápido)</option>
+                                                    <option value="batch">🟡 Por lotes (equilibrado)</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -1460,15 +1753,24 @@
                                 </div>
                             </form>
                         </section>
-                        <footer class="modal__footer">
-                            <button class="btn btn--outline" id="cancelDocumentBtn">Cancelar</button>
-                            <button class="btn btn--primary" id="uploadDocumentBtn" disabled>
-                                <i class="fas fa-upload"></i> Subir Documento
+
+                        <!-- ═══ FOOTER ═══ -->
+                        <footer class="modal__footer modal__footer--upload">
+                            <button class="btn btn--outline btn--rounded" id="cancelDocumentBtn">
+                                <i class="fas fa-times"></i> Cancelar
                             </button>
-                            <button class="btn btn--success" id="uploadMultipleDocumentsBtn" style="display: none;">
-                                <i class="fas fa-layer-group"></i> Subir Todos (<span id="uploadCount">0</span>)
+                            <button class="btn btn--primary btn--rounded btn--upload-submit" id="uploadDocumentBtn"
+                                disabled>
+                                <i class="fas fa-upload"></i>
+                                <span>Subir Documento</span>
+                            </button>
+                            <button class="btn btn--success btn--rounded btn--upload-submit"
+                                id="uploadMultipleDocumentsBtn" style="display: none;" disabled>
+                                <i class="fas fa-layer-group"></i>
+                                <span>Subir <strong id="uploadCount">0</strong> Archivos</span>
                             </button>
                         </footer>
+
                     </article>
                 </dialog>
 
@@ -2302,19 +2604,6 @@
                                             </div>
                                             <label class="switch">
                                                 <input type="checkbox" name="highContrast">
-                                                <span class="slider"></span>
-                                            </label>
-                                        </label>
-                                    </div>
-
-                                    <div class="settings-group">
-                                        <label class="switch-label">
-                                            <div class="switch-text">
-                                                <span class="switch-title">Texto grande</span>
-                                                <span class="switch-description">Aumenta el tamaño de la fuente</span>
-                                            </div>
-                                            <label class="switch">
-                                                <input type="checkbox" name="largeFont">
                                                 <span class="slider"></span>
                                             </label>
                                         </label>

@@ -56,6 +56,9 @@
 @import url('components/topbar.css');
 @import url('components/chatbot-slide.css');
 @import url('components/charts.css');
+@import url('components/person-autocomplete.css');
+@import url('components/categories-chips.css');
+@import url('components/size-validator.css');
 
 @import url('sections/dashboard.css');
 @import url('sections/task.css');
