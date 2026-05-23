@@ -10,6 +10,43 @@ import {
 // Re-export helper to strip emojis from messages (used by other modules)
 export { stripEmojis } from './utils/alertSystem.js';
 
+/**
+ * Previene notificaciones durante la carga inicial de documentos
+ */
+export function setupDocumentNotificationControl() {
+    // Bandera global para control de notificaciones
+    window.isLoadingDocuments = false;
+    
+    // Interceptar showAlert para filtrar durante carga
+    const originalShowAlert = window.showAlert || showAlert;
+    
+    window.showAlert = function(message, type, options) {
+        // Suprimir notificaciones durante carga de documentos
+        if (window.isLoadingDocuments) {
+            console.log('🔇 Notificación suprimida durante carga:', message);
+            return;
+        }
+        return originalShowAlert(message, type, options);
+    };
+}
+
+/**
+ * Envolver función de carga de documentos para control de notificaciones
+ */
+export function withDocumentLoadControl(loadFunction) {
+    return async function(...args) {
+        window.isLoadingDocuments = true;
+        try {
+            return await loadFunction.apply(this, args);
+        } finally {
+            // Pequeño delay para asegurar que las notificaciones no se disparen
+            setTimeout(() => {
+                window.isLoadingDocuments = false;
+            }, 500);
+        }
+    };
+}
+
 // =============================================================================
 // 1. FUNCIONES DE ICONOS Y VISUALIZACIÓN
 // =============================================================================

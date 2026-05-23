@@ -8,7 +8,7 @@ import { requirePermission, PERMISSIONS } from '../../../permissions.js';
 import { handleUploadDocument } from '../upload/uploadSingle.js';
 import { handleUploadMultipleDocuments, getMultipleUploadState } from '../upload/uploadMultiple.js';
 import { CONFIG } from '../../../config.js';
-import { 
+import {
     initSingleCategoryChips,
     initMultipleCategoryChips,
     initSinglePersonAutocomplete,
@@ -32,26 +32,26 @@ let sizeValidator = null;
  */
 export async function openDocumentModal(mode = 'single', presetCategory = '') {
     console.group(`📂 Abriendo modal de documentos - Modo: ${mode}`);
-    
+
     try {
-        if (!requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS, { 
-            onDenied: (msg) => showAlert(msg, 'error') 
+        if (!requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS, {
+            onDenied: (msg) => showAlert(msg, 'error')
         })) {
             return;
         }
 
         DOM.documentModal.style.display = 'flex';
         document.body.classList.add('modal-open');
-        
+
         initializeComponents();
-        
+
         // ✅ Detectar categoría actual si no se pasó una
         let categoryToPreselect = presetCategory;
         if (!categoryToPreselect) {
             categoryToPreselect = getCurrentCategoryName();
         }
         console.log('🏷️ Categoría a preseleccionar:', categoryToPreselect || '(ninguna)');
-        
+
         // ✅ Preseleccionar en ambos modos
         if (categoryToPreselect) {
             setTimeout(() => {
@@ -63,16 +63,16 @@ export async function openDocumentModal(mode = 'single', presetCategory = '') {
                 }
             }, 400);
         }
-        
+
         switchUploadMode(mode);
-        
+
         if (!eventListenersInitialized) {
             setupEventListeners();
             eventListenersInitialized = true;
         }
-        
+
         console.log('✅ Modal abierto exitosamente');
-        
+
     } catch (error) {
         console.error('❌ Error abriendo modal:', error);
         showAlert('Error al abrir el formulario de documentos', 'error');
@@ -93,20 +93,20 @@ function getCurrentCategoryName() {
             return current.nombre;
         }
     }
-    
+
     // Opción 2: Desde appState.filters.category
     if (window.appState?.filters?.category) {
         console.log('🏷️ Categoría detectada (filters):', window.appState.filters.category);
         return window.appState.filters.category;
     }
-    
+
     // Opción 3: Desde el select de filtro
     const filterCategory = document.getElementById('filterCategory');
     if (filterCategory && filterCategory.value) {
         console.log('🏷️ Categoría detectada (select):', filterCategory.value);
         return filterCategory.value;
     }
-    
+
     return '';
 }
 
@@ -124,15 +124,15 @@ function initializeComponents() {
             previewContainerId: 'filePreview'
         });
     }
-    
+
     // Inicializar selectores de categorías (chips)
     initSingleCategoryChips();
     initMultipleCategoryChips();
-    
+
     // Inicializar autocompletados de personas
     initSinglePersonAutocomplete();
     initMultiplePersonAutocomplete();
-    
+
     // Actualizar fecha mínima de vencimiento
     if (DOM.documentExpiration) {
         const today = new Date().toISOString().split('T')[0];
@@ -149,42 +149,50 @@ function initializeComponents() {
  */
 export function closeDocumentModal() {
     console.log('❌ Cerrando modal de documentos');
-    
+
+    // ✅ SUPRIMIR NOTIFICACIONES DURANTE EL CIERRE
+    window.__SUPPRESS_NOTIFICATIONS = true;
+
     // Ocultar modal
     DOM.documentModal.style.display = 'none';
     document.body.classList.remove('modal-open');
-    
+
     // Resetear formulario
     if (DOM.documentForm) {
         DOM.documentForm.reset();
     }
-    
+
     // Resetear inputs de archivo
     if (DOM.fileInput) DOM.fileInput.value = '';
     if (DOM.multipleFileInput) DOM.multipleFileInput.value = '';
-    
+
     // Resetear validador
     if (sizeValidator) sizeValidator.reset();
-    
+
     // Ocultar preview
     const filePreview = document.getElementById('filePreview');
     if (filePreview) filePreview.style.display = 'none';
-    
+
     // Limpiar selecciones
     if (singleCategoryChips) singleCategoryChips.clearSelection();
     if (multipleCategoryChips) multipleCategoryChips.clearSelection();
-    
+
     // Resetear estado global
     if (window.appState) {
         window.appState.selectedFile = null;
     }
-    
+
     // Resetear estado de subida múltiple
     const multipleState = getMultipleUploadState();
     if (multipleState && multipleState.files.length > 0) {
         // No resetear si hay archivos en progreso
     }
-    
+
+    // ✅ RESTAURAR NOTIFICACIONES DESPUÉS DE UN BREVE DELAY
+    setTimeout(() => {
+        window.__SUPPRESS_NOTIFICATIONS = false;
+    }, 500);
+
     console.log('✅ Modal cerrado');
 }
 
@@ -197,7 +205,7 @@ export function closeDocumentModal() {
  */
 export function switchUploadMode(mode) {
     console.log(`🔄 Cambiando a modo: ${mode}`);
-    
+
     // Actualizar tabs
     const tabs = document.querySelectorAll('.upload-tab');
     tabs.forEach(tab => {
@@ -207,24 +215,24 @@ export function switchUploadMode(mode) {
             tab.classList.remove('upload-tab--active');
         }
     });
-    
+
     // Mostrar/ocultar contenedores
     const singleContainer = document.getElementById('singleUploadContainer');
     const multipleContainer = document.getElementById('multipleUploadContainer');
-    
+
     if (mode === 'single') {
         if (singleContainer) singleContainer.classList.add('upload-container--active');
         if (multipleContainer) multipleContainer.classList.remove('upload-container--active');
-        
+
         if (DOM.uploadDocumentBtn) DOM.uploadDocumentBtn.style.display = 'flex';
         if (DOM.uploadMultipleDocumentsBtn) DOM.uploadMultipleDocumentsBtn.style.display = 'none';
     } else {
         if (singleContainer) singleContainer.classList.remove('upload-container--active');
         if (multipleContainer) multipleContainer.classList.add('upload-container--active');
-        
+
         if (DOM.uploadDocumentBtn) DOM.uploadDocumentBtn.style.display = 'none';
         if (DOM.uploadMultipleDocumentsBtn) DOM.uploadMultipleDocumentsBtn.style.display = 'flex';
-        
+
         // Actualizar contador de archivos
         updateMultipleFileCount();
     }
@@ -365,7 +373,7 @@ function setupEventListeners() {
  */
 function setupDragAndDrop() {
     const dropzones = document.querySelectorAll('.dropzone');
-    
+
     dropzones.forEach(dropzone => {
         // Prevenir comportamiento por defecto
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -374,28 +382,28 @@ function setupDragAndDrop() {
                 e.stopPropagation();
             });
         });
-        
+
         // Efectos visuales al arrastrar
         ['dragenter', 'dragover'].forEach(eventName => {
             dropzone.addEventListener(eventName, () => {
                 dropzone.classList.add('dropzone--active');
             });
         });
-        
+
         ['dragleave', 'drop'].forEach(eventName => {
             dropzone.addEventListener(eventName, () => {
                 dropzone.classList.remove('dropzone--active');
             });
         });
-        
+
         // Manejar soltar archivos
         dropzone.addEventListener('drop', (e) => {
             const files = e.dataTransfer.files;
             if (files.length === 0) return;
-            
+
             // Determinar si es modo único o múltiple
             const isMultiple = dropzone.classList.contains('dropzone--multiple');
-            
+
             if (isMultiple) {
                 // Verificar que la categoría esté seleccionada
                 const category = multipleCategoryChips ? multipleCategoryChips.getSelectedCategory() : '';
@@ -434,12 +442,12 @@ function handleSingleFileSelect(e) {
  */
 function handleSingleFileDrop(file) {
     if (!file) return;
-    
+
     // Simular selección en el input
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     DOM.fileInput.files = dataTransfer.files;
-    
+
     processSingleFile(file);
 }
 
@@ -492,19 +500,19 @@ function showFilePreview(file, validation) {
     const fileName = document.getElementById('fileName');
     const fileSize = document.getElementById('fileSize');
     const fileTypeIcon = document.getElementById('fileTypeIcon');
-    
+
     if (!preview) return;
-    
+
     preview.style.display = 'block';
-    
+
     if (fileName) fileName.textContent = file.name;
     if (fileSize) fileSize.textContent = validation.formattedSize;
-    
+
     // Icono según tipo
     if (fileTypeIcon) {
         fileTypeIcon.className = 'fas';
         const ext = file.name.split('.').pop().toLowerCase();
-        
+
         const iconMap = {
             'pdf': 'fa-file-pdf',
             'doc': 'fa-file-word',
@@ -516,7 +524,7 @@ function showFilePreview(file, validation) {
             'jpeg': 'fa-file-image',
             'png': 'fa-file-image'
         };
-        
+
         fileTypeIcon.classList.add(iconMap[ext] || 'fa-file');
     }
 }
@@ -526,15 +534,15 @@ function showFilePreview(file, validation) {
  */
 function removeSingleFile() {
     console.log('🗑️ Quitando archivo seleccionado');
-    
+
     window.appState.selectedFile = null;
     DOM.fileInput.value = '';
-    
+
     const preview = document.getElementById('filePreview');
     if (preview) preview.style.display = 'none';
-    
+
     if (sizeValidator) sizeValidator.reset();
-    
+
     updateUploadButton();
 }
 
@@ -567,28 +575,28 @@ function handleMultipleFilesDrop(files) {
  */
 function processMultipleFiles(files) {
     console.log(`📁 Procesando ${files.length} archivos múltiples`);
-    
+
     // Validar tamaños
     const validation = sizeValidator.validateMultipleFiles(Array.from(files));
-    
+
     // Mostrar errores si hay archivos inválidos
     if (validation.invalidFiles.length > 0) {
         const errorMsg = sizeValidator.getMultipleFilesErrorMessage(validation.invalidFiles);
         showAlert(errorMsg, 'error');
     }
-    
+
     // Si hay archivos válidos, pasarlos al estado de subida múltiple
     if (validation.validFiles.length > 0) {
         const state = getMultipleUploadState();
         const addedCount = state.addFiles(validation.validFiles);
-        
+
         if (addedCount > 0) {
             showAlert(`✅ ${addedCount} archivo(s) agregado(s)`, 'success');
             updateMultipleFileCount();
             updateMultipleControlsState();
         }
     }
-    
+
     // Limpiar input
     DOM.multipleFileInput.value = '';
 }
@@ -599,11 +607,11 @@ function processMultipleFiles(files) {
 function updateMultipleFileCount() {
     const state = getMultipleUploadState();
     const count = state.files ? state.files.length : 0;
-    
+
     const countEl = document.getElementById('selectedFilesCount');
     const uploadCountEl = document.getElementById('uploadCount');
     const totalFilesEl = document.getElementById('totalFiles');
-    
+
     if (countEl) countEl.textContent = count;
     if (uploadCountEl) uploadCountEl.textContent = count;
     if (totalFilesEl) totalFilesEl.textContent = count;
@@ -658,7 +666,7 @@ function updateUploadButton() {
     const hasCategory = singleCategoryChips && singleCategoryChips.getSelectedCategory();
     const hiddenPerson = document.getElementById('documentPerson');
     const hasPerson = hiddenPerson && hiddenPerson.value && hiddenPerson.value.trim() !== '';
-    
+
     const uploadBtn = document.getElementById('uploadDocumentBtn');
     if (uploadBtn) {
         uploadBtn.disabled = !(hasFile && hasCategory && hasPerson);
@@ -684,7 +692,7 @@ function handleUploadDocumentClick() {
         return;
     }
 
-    // ✅ Validar persona (OBLIGATORIA)
+    // ✅ Validar persona (OBLIGATORIA - ÚNICA VEZ)
     const hiddenPerson = document.getElementById('documentPerson');
     const personId = hiddenPerson ? hiddenPerson.value : '';
     if (!personId || personId.trim() === '') {
@@ -693,9 +701,12 @@ function handleUploadDocumentClick() {
         const personSearch = document.getElementById('singlePersonSearch');
         if (personSearch) {
             personSearch.focus();
+            // Resaltar campo en rojo temporalmente
             personSearch.style.borderColor = '#ef4444';
+            personSearch.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
             setTimeout(() => {
                 personSearch.style.borderColor = '';
+                personSearch.style.boxShadow = '';
             }, 2000);
         }
         return;
@@ -720,12 +731,13 @@ function handleUploadDocumentClick() {
         }
     }
 
-    // Llamar a la función original
+    // Llamar a la función de subida individual
     handleUploadDocument();
 }
 
 /**
  * Maneja el click en subir múltiples documentos
+ * CORREGIDO: Validación de persona solo aquí, no duplicada
  */
 async function handleUploadMultipleClick() {
     console.log('📤 Iniciando subida de documentos múltiples');
@@ -733,39 +745,55 @@ async function handleUploadMultipleClick() {
     const state = getMultipleUploadState();
     const fileCount = state.files ? state.files.length : 0;
 
+    // Validar que haya archivos
     if (fileCount === 0) {
         showAlert('No hay archivos para subir', 'warning');
         return;
     }
 
+    // Validar categoría
     const category = multipleCategoryChips ? multipleCategoryChips.getSelectedCategory() : '';
     if (!category || category.trim() === '') {
         showAlert('Selecciona una categoría', 'warning');
         return;
     }
 
-    // ✅ Validar persona (OBLIGATORIA)
+    // ✅ Validar persona (OBLIGATORIA - ÚNICA VEZ)
     const hiddenPerson = document.getElementById('multipleDocumentPerson');
     const personId = hiddenPerson ? hiddenPerson.value : '';
     if (!personId || personId.trim() === '') {
         showAlert('Debes asignar los documentos a una persona', 'warning');
+        // Enfocar el input de búsqueda de persona
         const personSearch = document.getElementById('multiplePersonSearch');
         if (personSearch) {
             personSearch.focus();
+            // Resaltar campo en rojo temporalmente
+            personSearch.style.borderColor = '#ef4444';
+            personSearch.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+            setTimeout(() => {
+                personSearch.style.borderColor = '';
+                personSearch.style.boxShadow = '';
+            }, 2000);
         }
         return;
     }
 
-    // Forzar valores
+    // Forzar valores en inputs hidden
     const hiddenCategory = document.getElementById('multipleDocumentCategory');
     if (hiddenCategory) {
         hiddenCategory.value = category;
     }
 
+    // Establecer valores en el estado
     state.setCommonCategory(category);
     state.setCommonPersonId(personId);
 
-    // ✅ Dejar que uploadMultiple.js maneje el resto (cierre, preloader, etc.)
+    // Aplicar configuración a todos los archivos
+    if (typeof window.applyCommonSettingsToAllFiles === 'function') {
+        window.applyCommonSettingsToAllFiles(state, { silent: true });
+    }
+
+    // ✅ Llamar a la función de subida (uploadMultiple.js ya NO valida persona)
     handleUploadMultipleDocuments();
 }
 
@@ -787,10 +815,10 @@ export function validateMultipleUpload() {
     const state = getMultipleUploadState();
     const fileCount = state.files ? state.files.length : 0;
     const category = multipleCategoryChips ? multipleCategoryChips.getSelectedCategory() : '';
-    
+
     if (fileCount === 0) return false;
     if (!category) return false;
-    
+
     return true;
 }
 
@@ -801,7 +829,7 @@ if (typeof window !== 'undefined') {
         console.log('Categoría única:', singleCategoryChips?.getSelectedCategory());
         console.log('Categoría múltiple:', multipleCategoryChips?.getSelectedCategory());
         console.log('Archivo único:', window.appState?.selectedFile?.name);
-        
+
         const state = getMultipleUploadState();
         console.log('Archivos múltiples:', state?.files?.length);
         state?.logState();

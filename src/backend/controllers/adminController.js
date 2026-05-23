@@ -1416,13 +1416,6 @@ export const createUserWithRole = async (req, res) => {
 
         console.log('✅ Usuario creado:', newUser.usuario, '| schoolId:', newUser.schoolId);
 
-        // Notificación
-        try {
-            await NotificationService.usuarioCreado(newUser, req.user?.usuario || 'Administrador', req.schoolId);
-        } catch (notifError) {
-            console.warn('⚠️ No se pudo crear notificación:', notifError.message);
-        }
-
         // Auditoría
         AuditService.log(req, {
             action: 'USER_CREATE',
@@ -1434,13 +1427,26 @@ export const createUserWithRole = async (req, res) => {
             description: `Usuario creado con rol ${rol}: ${newUser.usuario}`,
             severity: 'INFO',
             status: 'SUCCESS',
-            metadata: { userId: newUser._id, usuario: newUser.usuario, correo: newUser.correo, rol: newUser.rol, creadoPor: req.user?.usuario || 'system' }
+            metadata: { 
+                userId: newUser._id, 
+                usuario: newUser.usuario, 
+                correo: newUser.correo, 
+                rol: newUser.rol, 
+                creadoPor: req.user?.usuario || 'system' 
+            }
         }).catch(err => console.error('❌ Error en auditoría:', err.message));
 
         return res.status(201).json({
             success: true,
             message: `✅ Usuario creado exitosamente con rol "${rol}"`,
-            user: { id: newUser._id, usuario: newUser.usuario, correo: newUser.correo, rol: newUser.rol, activo: newUser.activo, schoolId: newUser.schoolId }
+            user: { 
+                id: newUser._id, 
+                usuario: newUser.usuario, 
+                correo: newUser.correo, 
+                rol: newUser.rol, 
+                activo: newUser.activo, 
+                schoolId: newUser.schoolId 
+            }
         });
 
     } catch (error) {

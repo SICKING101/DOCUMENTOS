@@ -71,8 +71,8 @@ static async create(req, res) {
 
       const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
 
-      // ✅ Validar tamaño máximo (10MB para Cloudinary free)
-      const MAX_SIZE = 10 * 1024 * 1024; // 10MB en bytes
+      // Validar tamaño máximo (10MB para Cloudinary free)
+      const MAX_SIZE = 10 * 1024 * 1024;
       if (req.file.size > MAX_SIZE) {
         FileService.cleanTempFile(req.file.path);
         console.warn(`⚠️ Archivo excede 10MB: ${FileService.formatFileSize(req.file.size)}`);
@@ -82,14 +82,14 @@ static async create(req, res) {
         });
       }
 
-      // ✅ Determinar resource_type correcto para Cloudinary
+      // Determinar resource_type correcto para Cloudinary
       const fileExtension = req.file.originalname.split('.').pop().toLowerCase();
       const officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
       
       let resourceType = 'auto';
       if (officeExtensions.includes(fileExtension)) {
-        resourceType = 'raw'; // ✅ CRÍTICO: Office usa 'raw' para evitar "Unsupported ZIP file"
+        resourceType = 'raw';
         console.log(`📎 Office (${fileExtension}) → resource_type: raw`);
       } else if (imageExtensions.includes(fileExtension)) {
         resourceType = 'image';
@@ -102,7 +102,7 @@ static async create(req, res) {
         console.log(`📝 Otro (${fileExtension}) → resource_type: raw`);
       }
 
-      // ✅ Subir a Cloudinary con el resource_type correcto
+      // Subir a Cloudinary con el resource_type correcto
       let cloudinaryResult;
       try {
         cloudinaryResult = await FileService.uploadToCloudinary(req.file.path, {
@@ -121,7 +121,7 @@ static async create(req, res) {
         });
       }
 
-      // ✅ Crear documento en MongoDB
+      // Crear documento en MongoDB
       const nuevoDocumento = new Document({
         nombre_original: req.file.originalname,
         tipo_archivo: fileExtension,
@@ -148,19 +148,24 @@ static async create(req, res) {
       const documentoConPersona = await Document.findById(nuevoDocumento._id)
         .populate('persona_id', 'nombre email departamento puesto');
 
-      // Notificación (no bloqueante)
+      // =======================================================================
+      // NOTIFICACIÓN ÚNICA (CORREGIDO - SIN DUPLICADOS)
+      // =======================================================================
       try {
+        // SOLO UNA notificación, no dos
         await NotificationService.documentoSubido(
           documentoConPersona,
           documentoConPersona.persona_id,
           req.schoolId
         );
-        console.log('✅ Notificación creada');
+        console.log('✅ Notificación de subida creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
 
-      // Auditoría (no bloqueante)
+      // =======================================================================
+      // AUDITORÍA (sin generar notificación adicional)
+      // =======================================================================
       try {
         await AuditService.logDocumentUpload(req, nuevoDocumento, documentoConPersona?.persona_id);
         console.log('✅ Auditoría registrada');
