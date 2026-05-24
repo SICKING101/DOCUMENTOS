@@ -7,6 +7,7 @@ import { AppState } from './state.js';
 import { DOM } from './dom.js';
 import { showAlert, setupModalBackdropClose, showActionModal } from './utils.js';
 export { refreshCategoryTree } from './modules/documentos/categoryNavigation.js';
+import './modules/responsive.js';
 import {
   applyVisibilityRules,
   hasPermission,

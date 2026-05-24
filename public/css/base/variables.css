@@ -198,4 +198,13 @@
     
     /* Transición estándar para animaciones suaves */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ========== RESPONSIVE ========== */
+    --sidebar-width: 280px;
+    --sidebar-width-tablet: 240px;
+    --topbar-height: 60px;
+    --topbar-height-mobile: 56px;
+    --breakpoint-mobile: 768px;
+    --breakpoint-tablet: 1024px;
+    --transition-sidebar: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

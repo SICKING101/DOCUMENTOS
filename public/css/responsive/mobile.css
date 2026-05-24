@@ -180,3 +180,495 @@
         font-size: 0.8125rem;
     }
 }
+
+/* =============================================
+   RESPONSIVE MOBILE - Breakpoint principal
+   ============================================= */
+
+/* Mobile: hasta 768px */
+@media screen and (max-width: 768px) {
+    
+    /* ========== SIDEBAR ========== */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 280px;
+        height: 100vh;
+        height: 100dvh; /* Para navegadores modernos */
+        z-index: 1000;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .sidebar.active {
+        left: 0;
+    }
+    
+    /* Overlay oscuro cuando el sidebar está abierto */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+    
+    /* Header del sidebar en mobile */
+    .sidebar__header {
+        padding: 20px 16px 12px;
+        background: linear-gradient(135deg, var(--primary-color, #1a5276), var(--primary-dark, #0e3451));
+    }
+    
+    .sidebar__section-title {
+        font-size: 18px;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .sidebar__section-title i {
+        font-size: 20px;
+    }
+    
+    .sidebar__divider {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        margin: 0 16px;
+    }
+    
+    /* Scrollbar personalizada para sidebar mobile */
+    .sidebar::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .sidebar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .sidebar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+    
+    /* ========== TOPBAR MOBILE ========== */
+    .topbar {
+        padding: 0 16px;
+        height: 60px;
+        position: sticky;
+        top: 0;
+        z-index: 998;
+        background: var(--topbar-bg, #ffffff);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .topbar__left {
+        gap: 12px;
+    }
+    
+    /* Botón hamburguesa */
+    .topbar__menu-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 22px;
+        color: var(--text-primary, #333);
+        transition: all 0.2s ease;
+    }
+    
+    .topbar__menu-toggle:hover {
+        background: var(--hover-bg, rgba(0,0,0,0.05));
+    }
+    
+    .topbar__menu-toggle:active {
+        transform: scale(0.95);
+        background: var(--active-bg, rgba(0,0,0,0.1));
+    }
+    
+    /* Logo en mobile */
+    .topbar__logo {
+        gap: 8px;
+    }
+    
+    .topbar__logo-img {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .topbar__logo-text {
+        display: none; /* Ocultar texto en pantallas muy pequeñas */
+    }
+    
+    .topbar__logo-title {
+        font-size: 16px;
+    }
+    
+    .topbar__logo-subtitle {
+        display: none;
+    }
+    
+    /* Acciones en topbar */
+    .topbar__right {
+        gap: 4px;
+    }
+    
+    .topbar__actions {
+        gap: 2px;
+    }
+    
+    .topbar__action {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        color: var(--text-secondary, #666);
+        font-size: 18px;
+        transition: all 0.2s ease;
+    }
+    
+    .topbar__action:hover {
+        background: var(--hover-bg, rgba(0,0,0,0.05));
+    }
+    
+    .topbar__badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        background: #e74c3c;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 600;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #fff;
+    }
+    
+    /* Usuario en topbar mobile */
+    .topbar__user {
+        padding: 4px 8px;
+        gap: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .topbar__user:hover {
+        background: var(--hover-bg, rgba(0,0,0,0.05));
+    }
+    
+    .topbar__user-info {
+        display: none; /* Ocultar nombre y rol en mobile */
+    }
+    
+    .topbar__user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color, #1a5276), var(--primary-light, #2980b9));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 14px;
+        position: relative;
+    }
+    
+    .topbar__user-status {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #27ae60;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        border: 2px solid #fff;
+    }
+    
+    .topbar__user-chevron {
+        font-size: 12px;
+        color: var(--text-secondary, #666);
+    }
+    
+    /* Menú de usuario */
+    .user-menu {
+        position: fixed;
+        top: 60px;
+        right: 8px;
+        width: 280px;
+        max-width: calc(100vw - 16px);
+        z-index: 1001;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        transform-origin: top right;
+        transform: scale(0.95);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .user-menu.active {
+        transform: scale(1);
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    /* ========== CONTENIDO PRINCIPAL ========== */
+    .main-content {
+        margin-left: 0 !important;
+        padding: 16px;
+        width: 100%;
+        transition: margin-left 0.3s ease;
+    }
+    
+    /* ========== AJUSTES PARA SECCIONES EN MOBILE ========== */
+    
+    /* Tablas */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -16px;
+        padding: 0 16px;
+    }
+    
+    table {
+        min-width: 600px;
+    }
+    
+    /* Cards y grids */
+    .dashboard-grid,
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    /* Modales */
+    .modal-content {
+        width: 95%;
+        max-width: 95vw;
+        margin: 10px;
+        max-height: 90vh;
+        border-radius: 12px;
+    }
+    
+    /* Formularios */
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-group {
+        margin-bottom: 12px;
+    }
+    
+    /* Botones */
+    .btn-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-group .btn {
+        width: 100%;
+    }
+}
+
+/* =============================================
+   MÓVILES PEQUEÑOS - hasta 480px
+   ============================================= */
+@media screen and (max-width: 480px) {
+    
+    .topbar {
+        padding: 0 12px;
+        height: 56px;
+    }
+    
+    .sidebar {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .topbar__menu-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+    }
+    
+    .topbar__action {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+    
+    .topbar__user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .topbar__badge {
+        min-width: 14px;
+        height: 14px;
+        font-size: 9px;
+        top: 0px;
+        right: 0px;
+    }
+    
+    /* Mostrar solo iconos en topbar */
+    .topbar__logo-text {
+        display: none;
+    }
+    
+    .topbar__logo-img {
+        width: 28px;
+        height: 28px;
+    }
+    
+    /* Menú usuario más compacto */
+    .user-menu {
+        width: calc(100vw - 16px);
+        right: 8px;
+    }
+}
+
+/* =============================================
+   TABLET - 768px a 1024px
+   ============================================= */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    
+    .sidebar {
+        width: 240px;
+    }
+    
+    .main-content {
+        margin-left: 240px;
+    }
+    
+    .topbar__menu-toggle {
+        display: none;
+    }
+    
+    /* Sidebar compacta */
+    .sidebar__nav-text {
+        font-size: 13px;
+    }
+    
+    .sidebar__nav-icon-wrapper {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .sidebar__nav-link {
+        padding: 10px 16px;
+    }
+    
+    /* Grids en tablet */
+    .dashboard-grid,
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+/* =============================================
+   DESKTOP - más de 1024px
+   ============================================= */
+@media screen and (min-width: 1025px) {
+    
+    .topbar__menu-toggle {
+        display: none;
+    }
+    
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
+
+/* =============================================
+   ALERTAS DENTRO DE MODALES EN MOBILE
+   ============================================= */
+
+@media screen and (max-width: 768px) {
+    
+    /* Alertas dentro del modal de personas */
+    #personModal .alert--form,
+    .modal__body .alert--form {
+        margin: 0 0 16px 0;
+        padding: 12px 14px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        border-left-width: 3px;
+        flex-wrap: nowrap;
+    }
+    
+    /* Asegurar que la alerta no se desborde */
+    .modal__body .alert__content {
+        min-width: 0;
+        flex-grow: 1;
+    }
+    
+    .modal__body .alert__message {
+        font-size: 0.8rem;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+    
+    /* Form alerts container */
+    .form-alerts-container {
+        margin-bottom: 12px;
+        width: 100%;
+    }
+    
+    /* Alertas de validación */
+    .validation-message {
+        font-size: 0.75rem;
+        margin-top: 4px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    
+    #personModal .alert--form,
+    .modal__body .alert--form {
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        gap: 8px;
+    }
+    
+    .modal__body .alert__icon {
+        font-size: 0.9rem;
+    }
+    
+    .modal__body .alert__message {
+        font-size: 0.75rem;
+    }
+}

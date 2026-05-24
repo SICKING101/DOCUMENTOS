@@ -204,3 +204,289 @@
 .text-muted {
     color: var(--text-tertiary) !important;
 }
+
+/* =============================================
+   ALERTAS GLOBALES - ESTILOS RESPONSIVE
+   ============================================= */
+
+/* Contenedor de alertas globales (posición fija) */
+.alert--global {
+    position: fixed;
+    z-index: 1100;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    max-width: 450px;
+    width: auto;
+    min-width: 280px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 
+                0 2px 8px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+}
+
+/* Posiciones de alertas globales */
+.alert--global.alert--bottom-left {
+    bottom: 24px;
+    left: 24px;
+    animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.alert--global.alert--bottom-right {
+    bottom: 24px;
+    right: 24px;
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.alert--global.alert--top-right {
+    top: 24px;
+    right: 24px;
+    animation: slideInDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.alert--global.alert--top-left {
+    top: 24px;
+    left: 24px;
+    animation: slideInDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estado visible */
+.alert--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+}
+
+/* Estado oculto */
+.alert--global:not(.alert--visible) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Animaciones */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Animación de salida */
+.alert--global.alert--hiding {
+    animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+    }
+}
+
+/* Icono de la alerta */
+.alert--global .alert__icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* Contenido de la alerta */
+.alert--global .alert__content {
+    flex-grow: 1;
+}
+
+/* Botón de cierre */
+.alert--global .alert__close {
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.alert--global .alert__close:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* =============================================
+   RESPONSIVE PARA ALERTAS GLOBALES
+   ============================================= */
+
+/* Móviles: hasta 768px */
+@media screen and (max-width: 768px) {
+    
+    .alert--global {
+        max-width: calc(100vw - 32px);
+        width: calc(100vw - 32px);
+        min-width: unset;
+        padding: 14px 16px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+    }
+    
+    /* En móvil, siempre centrado abajo */
+    .alert--global.alert--bottom-left,
+    .alert--global.alert--bottom-right,
+    .alert--global.alert--top-left,
+    .alert--global.alert--top-right {
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        top: auto;
+        animation: slideInUpMobile 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Si hay sidebar abierto, ajustar z-index */
+    .sidebar.active ~ .alert--global,
+    .sidebar-overlay.active ~ .alert--global {
+        z-index: 1002;
+    }
+    
+    /* Ajustar cuando hay modales abiertos */
+    .modal[open] ~ .alert--global {
+        bottom: 16px;
+        z-index: 1100;
+    }
+    
+    @keyframes slideInUpMobile {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+    
+    .alert--global .alert__icon {
+        font-size: 1.1rem;
+    }
+    
+    .alert--global .alert__message {
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+}
+
+/* Móviles pequeños: hasta 480px */
+@media screen and (max-width: 480px) {
+    
+    .alert--global {
+        max-width: calc(100vw - 24px);
+        width: calc(100vw - 24px);
+        padding: 12px 14px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        gap: 10px;
+    }
+    
+    .alert--global.alert--bottom-left,
+    .alert--global.alert--bottom-right,
+    .alert--global.alert--top-left,
+    .alert--global.alert--top-right {
+        bottom: 12px;
+    }
+    
+    .alert--global .alert__icon {
+        font-size: 1rem;
+    }
+    
+    .alert--global .alert__message {
+        font-size: 0.8rem;
+    }
+    
+    .alert--global .alert__close {
+        padding: 2px;
+        font-size: 1rem;
+    }
+}
+
+/* Tablets: 768px a 1024px */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    
+    .alert--global {
+        max-width: 400px;
+    }
+    
+    .alert--global.alert--bottom-left {
+        bottom: 20px;
+        left: 20px;
+    }
+    
+    .alert--global.alert--bottom-right {
+        bottom: 20px;
+        right: 20px;
+    }
+}
+
+/* =============================================
+   RESPONSIVE - POSICIÓN DE ALERTAS
+   ============================================= */
+
+@media screen and (max-width: 768px) {
+    
+    /* Alertas globales: centradas abajo en móvil */
+    .alert--global {
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        bottom: 530px !important;
+        right: auto !important;
+        top: auto !important;
+    }
+}
