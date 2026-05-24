@@ -29,6 +29,9 @@ router.get('/history', (req, res) => ChatbotController.getHistory(req, res));
 // DELETE /api/chatbot/history
 router.delete('/history', (req, res) => ChatbotController.clearHistory(req, res));
 
+// 🆕 Cambiar tema (sincronizado con backend)
+router.post('/theme', (req, res) => ChatbotController.setTheme(req, res));
+
 // ─── Feedback de utilidad (👍 / 👎) ─────────────────────────
 // PATCH /api/chatbot/feedback
 // Body: { conversationId: string, util: boolean }
