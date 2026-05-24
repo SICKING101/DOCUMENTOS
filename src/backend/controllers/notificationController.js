@@ -9,7 +9,7 @@ class NotificationController {
       
       const {
         leida, tipo, prioridad, desde, hasta,
-        limite = 50, pagina = 1
+        limite = 50, pagina = 1, userId, schoolId
       } = req.query;
 
       const filtros = {};
@@ -19,10 +19,11 @@ class NotificationController {
       if (desde) filtros.desde = desde;
       if (hasta) filtros.hasta = hasta;
       
-      // ✅ Pasar schoolId al servicio
-      if (req.schoolId) {
-        filtros.schoolId = req.schoolId;
-      }
+      if (req.schoolId) filtros.schoolId = req.schoolId;
+      if (schoolId) filtros.schoolId = schoolId;
+      
+      // 🆕 Pasar userId para filtrar recordatorios y calcular leídas
+      filtros.userId = userId || (req.user?.id || req.user?._id);
 
       const resultado = await NotificationService.obtener(filtros, {
         limite: parseInt(limite),
@@ -39,7 +40,8 @@ class NotificationController {
 
   static async getUnread(req, res) {
     try {
-      const filtros = { leida: false };
+      const userId = req.query.userId || (req.user?.id || req.user?._id);
+      const filtros = { leida: false, userId: userId };
       if (req.schoolId) filtros.schoolId = req.schoolId;
       
       const resultado = await NotificationService.obtener(filtros);
@@ -53,7 +55,8 @@ class NotificationController {
 
   static async getStats(req, res) {
     try {
-      const estadisticas = await NotificationService.obtenerEstadisticas(req.schoolId || null);
+      const userId = req.query.userId || (req.user?.id || req.user?._id);
+      const estadisticas = await NotificationService.obtenerEstadisticas(req.schoolId || null, userId);
       res.json({ success: true, data: estadisticas });
     } catch (error) {
       console.error('❌ Error obteniendo estadísticas:', error);
@@ -64,7 +67,13 @@ class NotificationController {
   static async markAsRead(req, res) {
     try {
       const { id } = req.params;
-      const notificacion = await NotificationService.marcarLeida(id);
+      const userId = req.query.userId || (req.user?.id || req.user?._id);
+      
+      if (!userId) {
+        return res.status(400).json({ success: false, message: 'userId requerido' });
+      }
+      
+      const notificacion = await NotificationService.marcarLeida(id, userId);
       res.json({ success: true, message: 'Notificación marcada como leída', data: notificacion });
     } catch (error) {
       console.error('❌ Error marcando notificación:', error);
@@ -74,7 +83,13 @@ class NotificationController {
 
   static async markAllAsRead(req, res) {
     try {
-      const cantidad = await NotificationService.marcarTodasLeidas(req.schoolId || null);
+      const userId = req.query.userId || (req.user?.id || req.user?._id);
+      
+      if (!userId) {
+        return res.status(400).json({ success: false, message: 'userId requerido' });
+      }
+      
+      const cantidad = await NotificationService.marcarTodasLeidas(req.schoolId || null, userId);
       res.json({ success: true, message: `${cantidad} notificación(es) marcada(s) como leída(s)`, data: { cantidad } });
     } catch (error) {
       console.error('❌ Error marcando notificaciones:', error);

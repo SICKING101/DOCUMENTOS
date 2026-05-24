@@ -447,95 +447,95 @@ class HistorialManager {
      * Genera el HTML de una fila de historial — PLANTILLA RENOVADA.
      * La lógica de datos (campos, condiciones) es idéntica al original.
      */
-    renderHistoryItem(item) {
-        const fecha = new Date(item.fecha_creacion || item.createdAt);
-        const fechaDia = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-        const fechaHora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+renderHistoryItem(item) {
+    const fecha = new Date(item.fecha_creacion || item.createdAt);
+    const fechaDia = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    const fechaHora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
-        const prioridadCss = this._getPriorityCSS(item.prioridad);
-        const prioridadTxt = this.getPriorityText(item.prioridad);
-        const tipoIcon = this.getTypeIcon(item.tipo);
-        const tipoTxt = this.getTypeText(item.tipo);
-        const leidoCss = item.leida ? 'hrow-status--read' : 'hrow-status--unread';
-        const leidoTxt = item.leida ? 'Leído' : 'No leído';
+    const prioridadCss = this._getPriorityCSS(item.prioridad);
+    const prioridadTxt = this.getPriorityText(item.prioridad);
+    const tipoIcon = this.getTypeIcon(item.tipo);
+    const tipoTxt = this.getTypeText(item.tipo);
+    
+    // 🆕 Verificar leída por usuario actual
+    let userId = null;
+    try { const user = JSON.parse(localStorage.getItem('user') || '{}'); userId = user.id || user._id; } catch (e) {}
+    const leida = item.leidaPor && item.leidaPor.includes(userId);
+    
+    const leidoCss = leida ? 'hrow-status--read' : 'hrow-status--unread';
+    const leidoTxt = leida ? 'Leído' : 'No leído';
 
-        const metaChips = item.metadata && Object.keys(item.metadata).length > 0
-            ? Object.entries(item.metadata).slice(0, 3).map(([k, v]) =>
-                `<span class="hrow-message__meta-chip">${this.formatMetadataKey(k)}: ${this.formatMetadataValue(v)}</span>`
-            ).join('')
-            : '';
+    const metaChips = item.metadata && Object.keys(item.metadata).length > 0
+        ? Object.entries(item.metadata).slice(0, 3).map(([k, v]) =>
+            `<span class="hrow-message__meta-chip">${this.formatMetadataKey(k)}: ${this.formatMetadataValue(v)}</span>`
+        ).join('')
+        : '';
 
-        return `
-            <tr class="history-item ${item.leida ? '' : 'history-item--unread'}"
-                data-id="${item._id}"
-                data-tipo="${item.tipo || ''}">
+    return `
+        <tr class="history-item ${leida ? '' : 'history-item--unread'}"
+            data-id="${item._id}"
+            data-tipo="${item.tipo || ''}">
 
-                <!-- Fecha y hora -->
-                <td class="table__cell">
-                    <div class="hrow-date">
-                        <span class="hrow-date__day">${fechaDia}</span>
-                        <span class="hrow-date__time">${fechaHora}</span>
+            <td class="table__cell">
+                <div class="hrow-date">
+                    <span class="hrow-date__day">${fechaDia}</span>
+                    <span class="hrow-date__time">${fechaHora}</span>
+                </div>
+            </td>
+
+            <td class="table__cell">
+                <div class="hrow-type">
+                    <div class="hrow-type__icon">
+                        <i class="fas fa-${tipoIcon}"></i>
                     </div>
-                </td>
+                    <span class="hrow-type__label">${tipoTxt}</span>
+                </div>
+            </td>
 
-                <!-- Tipo de actividad -->
-                <td class="table__cell">
-                    <div class="hrow-type">
-                        <div class="hrow-type__icon">
-                            <i class="fas fa-${tipoIcon}"></i>
-                        </div>
-                        <span class="hrow-type__label">${tipoTxt}</span>
-                    </div>
-                </td>
+            <td class="table__cell">
+                <div class="hrow-message">
+                    <p class="hrow-message__text">${item.mensaje}</p>
+                    ${metaChips ? `<div class="hrow-message__meta">${metaChips}</div>` : ''}
+                </div>
+            </td>
 
-                <!-- Mensaje y metadata -->
-                <td class="table__cell">
-                    <div class="hrow-message">
-                        <p class="hrow-message__text">${item.mensaje}</p>
-                        ${metaChips ? `<div class="hrow-message__meta">${metaChips}</div>` : ''}
-                    </div>
-                </td>
+            <td class="table__cell">
+                <span class="hrow-priority ${prioridadCss}">${prioridadTxt}</span>
+            </td>
 
-                <!-- Prioridad -->
-                <td class="table__cell">
-                    <span class="hrow-priority ${prioridadCss}">${prioridadTxt}</span>
-                </td>
+            <td class="table__cell">
+                <div class="hrow-status ${leidoCss}">
+                    <span class="hrow-status__dot"></span>
+                    <span>${leidoTxt}</span>
+                </div>
+            </td>
 
-                <!-- Estado lectura -->
-                <td class="table__cell">
-                    <div class="hrow-status ${leidoCss}">
-                        <span class="hrow-status__dot"></span>
-                        <span>${leidoTxt}</span>
-                    </div>
-                </td>
-
-                <!-- Acciones -->
-                <td class="table__cell">
-                    <div class="hrow-actions">
-                        ${!item.leida ? `
-                            <button class="hrow-btn hrow-btn--read"
-                                    title="Marcar como leído"
-                                    data-action="mark-read">
-                                <i class="fas fa-check"></i>
-                            </button>
-                        ` : ''}
-                        <button class="hrow-btn hrow-btn--view"
-                                title="Ver detalles"
-                                data-action="view">
-                            <i class="fas fa-eye"></i>
+            <td class="table__cell">
+                <div class="hrow-actions">
+                    ${!leida ? `
+                        <button class="hrow-btn hrow-btn--read"
+                                title="Marcar como leído"
+                                data-action="mark-read">
+                            <i class="fas fa-check"></i>
                         </button>
-                        <button class="hrow-btn hrow-btn--del"
-                                title="Eliminar registro"
-                                data-action="delete"
-                                data-action-section="historial">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
+                    ` : ''}
+                    <button class="hrow-btn hrow-btn--view"
+                            title="Ver detalles"
+                            data-action="view">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="hrow-btn hrow-btn--del"
+                            title="Eliminar registro"
+                            data-action="delete"
+                            data-action-section="historial">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
 
-            </tr>
-        `;
-    }
+        </tr>
+    `;
+}
 
     bindItemEvents() {
         document.querySelectorAll('.history-item').forEach(row => {
@@ -568,81 +568,98 @@ class HistorialManager {
     // 5. ACCIONES DEL HISTORIAL (sin cambios en lógica)
     // =============================================================================
 
-    async markAsRead(id) {
-        if (!canAction('historial')) {
-            showNoPermissionAlert('historial');
-            showAlert('Solo lectura: no puedes modificar el historial', 'warning');
-            return;
-        }
-        let preloaderId = null;
-        let button = null;
-
-        try {
-            button = document.querySelector(`[data-id="${id}"] [data-action="mark-read"]`);
-            if (button) this.showButtonPreloader(button, 'Marcando...');
-
-            preloaderId = this.showRowActionPreloader(id, 'mark-read');
-
-            const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${id}/read`, {
-                method: 'PATCH'
-            });
-            if (!response.ok) throw new Error('Error al marcar como leído');
-
-            const data = await response.json();
-            if (data.success) {
-                const row = document.querySelector(`[data-id="${id}"]`);
-                if (row) {
-                    row.classList.add('task-card--completing');
-                    setTimeout(() => row.classList.remove('task-card--completing'), 600);
-                }
-                await new Promise(resolve => setTimeout(resolve, 500));
-                this.showNotification('Registro marcado como leído', 'success');
-                this.loadHistorial();
-                if (window.updateBadge) window.updateBadge();
-            }
-        } catch (error) {
-            console.error('❌ Error marcando como leído:', error);
-            this.showNotification('Error al marcar como leído', 'error');
-        } finally {
-            if (preloaderId) this.hidePreloader(preloaderId);
-            if (button) this.restoreButton(button);
-        }
+async markAsRead(id) {
+    if (!canAction('historial')) {
+        showNoPermissionAlert('historial');
+        showAlert('Solo lectura: no puedes modificar el historial', 'warning');
+        return;
     }
+    let preloaderId = null;
+    let button = null;
 
-    async markAllAsRead() {
-        if (!canAction('historial')) {
-            showNoPermissionAlert('historial');
-            showAlert('Solo lectura: no puedes modificar el historial', 'warning');
-            return;
-        }
-        try {
-            const confirmed = await showConfirmation(
-                '¿Marcar todos los registros como leídos?',
-                'Esta acción afectará a todos los registros del historial.'
-            );
-            if (!confirmed) return;
+    try {
+        button = document.querySelector(`[data-id="${id}"] [data-action="mark-read"]`);
+        if (button) this.showButtonPreloader(button, 'Marcando...');
 
-            const preloaderId = this.showTablePreloader('historyTableBody', 'Marcando todos como leídos...');
+        preloaderId = this.showRowActionPreloader(id, 'mark-read');
 
-            const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/read-all`, {
-                method: 'PATCH'
-            });
-            if (!response.ok) throw new Error('Error al marcar todos como leídos');
+        // 🆕 Obtener userId
+        let userId = null;
+        try { const user = JSON.parse(localStorage.getItem('user') || '{}'); userId = user.id || user._id; } catch (e) {}
 
-            const data = await response.json();
-            if (data.success) {
-                await new Promise(resolve => setTimeout(resolve, 800));
-                this.showNotification(`${data.data?.cantidad || 0} registros marcados como leídos`, 'success');
-                this.loadHistorial();
-                if (window.updateBadge) window.updateBadge();
+        const url = `${CONFIG.API_BASE_URL}/notifications/${id}/read?userId=${userId}`;
+        const response = await fetch(url, { method: 'PATCH' });
+        
+        if (!response.ok) throw new Error('Error al marcar como leído');
+
+        const data = await response.json();
+        if (data.success) {
+            const row = document.querySelector(`[data-id="${id}"]`);
+            if (row) {
+                row.classList.add('task-card--completing');
+                setTimeout(() => row.classList.remove('task-card--completing'), 600);
             }
-        } catch (error) {
-            console.error('❌ Error marcando todos como leídos:', error);
-            this.showNotification('Error al marcar todos como leídos', 'error');
-        } finally {
-            if (typeof preloaderId !== 'undefined') this.hidePreloader(preloaderId);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            this.showNotification('Registro marcado como leído', 'success');
+            this.loadHistorial();
+            if (window.updateBadge) window.updateBadge();
         }
+    } catch (error) {
+        console.error('❌ Error marcando como leído:', error);
+        this.showNotification('Error al marcar como leído', 'error');
+    } finally {
+        if (preloaderId) this.hidePreloader(preloaderId);
+        if (button) this.restoreButton(button);
     }
+}
+
+async markAllAsRead() {
+    if (!canAction('historial')) {
+        showNoPermissionAlert('historial');
+        showAlert('Solo lectura: no puedes modificar el historial', 'warning');
+        return;
+    }
+    try {
+        const confirmed = await showConfirmation(
+            '¿Marcar todos los registros como leídos?',
+            'Esta acción afectará a todos los registros del historial.'
+        );
+        if (!confirmed) return;
+
+        const preloaderId = this.showTablePreloader('historyTableBody', 'Marcando todos como leídos...');
+
+        // 🆕 Obtener userId y schoolId
+        let userId = null;
+        let schoolId = null;
+        try { 
+            const user = JSON.parse(localStorage.getItem('user') || '{}'); 
+            userId = user.id || user._id; 
+            schoolId = user.schoolId;
+        } catch (e) {}
+
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', userId);
+        if (schoolId) params.append('schoolId', schoolId);
+
+        const url = `${CONFIG.API_BASE_URL}/notifications/read-all?${params}`;
+        const response = await fetch(url, { method: 'PATCH' });
+        
+        if (!response.ok) throw new Error('Error al marcar todos como leídos');
+
+        const data = await response.json();
+        if (data.success) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            this.showNotification(`${data.data?.cantidad || 0} registros marcados como leídos`, 'success');
+            this.loadHistorial();
+            if (window.updateBadge) window.updateBadge();
+        }
+    } catch (error) {
+        console.error('❌ Error marcando todos como leídos:', error);
+        this.showNotification('Error al marcar todos como leídos', 'error');
+    } finally {
+        if (typeof preloaderId !== 'undefined') this.hidePreloader(preloaderId);
+    }
+}
 
     async deleteItem(id) {
         if (!canAction('historial')) {
@@ -1118,29 +1135,37 @@ class HistorialManager {
     // 8. ESTADÍSTICAS (sin cambios)
     // =============================================================================
 
-    async updateStats() {
-        try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+async updateStats() {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-            const total = this.totalItems;
-            const unread = this.historialData.filter(item => !item.leida).length;
-            const todayCount = this.historialData.filter(item => {
-                const itemDate = new Date(item.fecha_creacion || item.createdAt);
-                itemDate.setHours(0, 0, 0, 0);
-                return itemDate.getTime() === today.getTime();
-            }).length;
-            const critical = this.historialData.filter(item => item.prioridad === 'critica').length;
+        // 🆕 Obtener userId
+        let userId = null;
+        try { const user = JSON.parse(localStorage.getItem('user') || '{}'); userId = user.id || user._id; } catch (e) {}
 
-            const el = (id) => document.getElementById(id);
-            if (el('totalHistory')) el('totalHistory').textContent = total.toLocaleString();
-            if (el('unreadHistory')) el('unreadHistory').textContent = unread.toLocaleString();
-            if (el('todayHistory')) el('todayHistory').textContent = todayCount.toLocaleString();
-            if (el('criticalHistory')) el('criticalHistory').textContent = critical.toLocaleString();
-        } catch (error) {
-            console.error('❌ Error actualizando estadísticas:', error);
-        }
+        const total = this.totalItems;
+        const unread = this.historialData.filter(item => {
+            if (!item.leidaPor || item.leidaPor.length === 0) return true;
+            return !item.leidaPor.includes(userId);
+        }).length;
+        
+        const todayCount = this.historialData.filter(item => {
+            const itemDate = new Date(item.fecha_creacion || item.createdAt);
+            itemDate.setHours(0, 0, 0, 0);
+            return itemDate.getTime() === today.getTime();
+        }).length;
+        const critical = this.historialData.filter(item => item.prioridad === 'critica').length;
+
+        const el = (id) => document.getElementById(id);
+        if (el('totalHistory')) el('totalHistory').textContent = total.toLocaleString();
+        if (el('unreadHistory')) el('unreadHistory').textContent = unread.toLocaleString();
+        if (el('todayHistory')) el('todayHistory').textContent = todayCount.toLocaleString();
+        if (el('criticalHistory')) el('criticalHistory').textContent = critical.toLocaleString();
+    } catch (error) {
+        console.error('❌ Error actualizando estadísticas:', error);
     }
+}
 
     // =============================================================================
     // 9. FUNCIONES AUXILIARES
@@ -1167,43 +1192,43 @@ class HistorialManager {
         return texts[priority] || 'Media';
     }
 
-    getTypeIcon(type) {
-        const icons = {
-            documento_subido: 'file-upload',
-            documento_eliminado: 'trash',
-            documento_restaurado: 'undo',
-            documento_proximo_vencer: 'clock',
-            documento_vencido: 'exclamation-triangle',
-            persona_agregada: 'user-plus',
-            persona_eliminada: 'user-minus',
-            categoria_agregada: 'folder-plus',
-            reporte_generado: 'chart-bar',
-            sistema_iniciado: 'check-circle',
-            error_sistema: 'exclamation-circle'
-        };
-        return icons[type] || 'bell';
-    }
+getTypeIcon(type) {
+    const icons = {
+        documento_subido: 'file-upload',
+        documento_eliminado: 'trash',
+        documento_restaurado: 'undo',
+        documento_proximo_vencer: 'clock',
+        documento_vencido: 'exclamation-triangle',
+        persona_agregada: 'user-plus',
+        persona_eliminada: 'user-minus',
+        categoria_agregada: 'folder-plus',
+        reporte_generado: 'chart-bar',
+        sistema_iniciado: 'check-circle',
+        error_sistema: 'exclamation-circle',
+        tarea_recordatorio: 'tasks',
+        calendario_recordatorio: 'calendar-alt'
+    };
+    return icons[type] || 'bell';
+}
 
-    getTypeText(type) {
-        const texts = {
-            documento_subido: 'Documento Subido',
-            documento_eliminado: 'Documento Eliminado',
-            documento_restaurado: 'Documento Restaurado',
-            documento_proximo_vencer: 'Documento por Vencer',
-            documento_vencido: 'Documento Vencido',
-            persona_agregada: 'Persona Agregada',
-            persona_eliminada: 'Persona Eliminada',
-            categoria_agregada: 'Categoría Agregada',
-            reporte_generado: 'Reporte Generado',
-            sistema_iniciado: 'Sistema Iniciado',
-            error_sistema: 'Error del Sistema',
-            tarea_recordatorio: 'tasks',
-            calendario_recordatorio: 'calendar-alt',
-            tarea_recordatorio: 'Recordatorio de Tarea',
-            calendario_recordatorio: 'Recordatorio de Calendario'
-        };
-        return texts[type] || type;
-    }
+getTypeText(type) {
+    const texts = {
+        documento_subido: 'Documento Subido',
+        documento_eliminado: 'Documento Eliminado',
+        documento_restaurado: 'Documento Restaurado',
+        documento_proximo_vencer: 'Documento por Vencer',
+        documento_vencido: 'Documento Vencido',
+        persona_agregada: 'Persona Agregada',
+        persona_eliminada: 'Persona Eliminada',
+        categoria_agregada: 'Categoría Agregada',
+        reporte_generado: 'Reporte Generado',
+        sistema_iniciado: 'Sistema Iniciado',
+        error_sistema: 'Error del Sistema',
+        tarea_recordatorio: 'Recordatorio de Tarea',
+        calendario_recordatorio: 'Recordatorio de Calendario'
+    };
+    return texts[type] || type;
+}
 
     formatMetadata(metadata) {
         return Object.entries(metadata)
@@ -1229,11 +1254,14 @@ class HistorialManager {
         return keyMap[key] || key.replace(/_/g, ' ');
     }
 
-    formatMetadataValue(value) {
-        if (value instanceof Date) return new Date(value).toLocaleString('es-MX');
-        if (typeof value === 'object') return JSON.stringify(value);
-        return value;
+formatMetadataValue(value) {
+    if (value instanceof Date) return new Date(value).toLocaleString('es-MX');
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string' && value[0].match(/^[0-9a-fA-F]{24}$/)) {
+        return `${value.length} usuario(s)`;
     }
+    if (typeof value === 'object') return JSON.stringify(value);
+    return value;
+}
 
     hasFilters() {
         return Object.values(this.filters).some(value =>

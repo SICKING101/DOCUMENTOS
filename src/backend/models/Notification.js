@@ -19,7 +19,6 @@ const notificationSchema = new mongoose.Schema({
       'reporte_generado',
       'sistema_iniciado',
       'error_sistema',
-      // ✅ NUEVOS TIPOS PARA RECORDATORIOS
       'tarea_recordatorio',
       'calendario_recordatorio'
     ]
@@ -43,10 +42,10 @@ const notificationSchema = new mongoose.Schema({
     enum: ['baja', 'media', 'alta', 'critica'],
     default: 'media'
   },
-  leida: {
-    type: Boolean,
-    default: false
-  },
+  // 🆕 Cambiado de Boolean a Array de userIds
+  leidaPor: [{
+    type: String
+  }],
   documento_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Document',
@@ -62,13 +61,11 @@ const notificationSchema = new mongoose.Schema({
     ref: 'Category',
     default: null
   },
-  // ✅ Referencia a tarea para recordatorios
   tarea_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Task',
     default: null
   },
-  // ✅ Referencia a evento de calendario
   calendario_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'CalendarEvent',
@@ -93,16 +90,19 @@ const notificationSchema = new mongoose.Schema({
 
 // Índices
 notificationSchema.index({ fecha_creacion: -1 });
-notificationSchema.index({ leida: 1, fecha_creacion: -1 });
+notificationSchema.index({ leidaPor: 1 });
 notificationSchema.index({ tipo: 1, fecha_creacion: -1 });
-notificationSchema.index({ prioridad: 1, leida: 1 });
+notificationSchema.index({ prioridad: 1 });
 notificationSchema.index({ schoolId: 1, fecha_creacion: -1 });
-notificationSchema.index({ schoolId: 1, leida: 1 });
 
-// Métodos de instancia
-notificationSchema.methods.marcarLeida = async function () {
-  this.leida = true;
-  return await this.save();
+// 🆕 Método de instancia - Marcar leída por usuario específico
+notificationSchema.methods.marcarLeida = async function (userId) {
+  if (!this.leidaPor) this.leidaPor = [];
+  if (!this.leidaPor.includes(userId)) {
+    this.leidaPor.push(userId);
+    await this.save();
+  }
+  return this;
 };
 
 // Métodos estáticos
@@ -110,13 +110,12 @@ notificationSchema.statics.limpiarAntiguas = async function (dias = 30) {
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - dias);
   const resultado = await this.deleteMany({
-    fecha_creacion: { $lt: fechaLimite },
-    leida: true
+    fecha_creacion: { $lt: fechaLimite }
   });
   return resultado.deletedCount;
 };
 
-notificationSchema.statics.obtenerEstadisticas = async function (schoolId = null) {
+notificationSchema.statics.obtenerEstadisticas = async function (schoolId = null, userId = null) {
   const query = {};
   if (schoolId) {
     query.$or = [
@@ -126,7 +125,11 @@ notificationSchema.statics.obtenerEstadisticas = async function (schoolId = null
     ];
   }
   const total = await this.countDocuments(query);
-  const noLeidas = await this.countDocuments({ ...query, leida: false });
+  const noLeidasQuery = { ...query };
+  if (userId) {
+    noLeidasQuery.leidaPor = { $ne: userId };
+  }
+  const noLeidas = await this.countDocuments(noLeidasQuery);
   const porTipo = await this.aggregate([
     { $match: query },
     { $group: { _id: '$tipo', count: { $sum: 1 } } }

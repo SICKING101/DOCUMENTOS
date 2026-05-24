@@ -197,7 +197,7 @@ class TaskManager {
       </td></tr>`;
   }
 
-  _renderPostitBoard() {
+_renderPostitBoard() {
     const board = document.getElementById('postitBoard');
     if (!board) return;
 
@@ -207,7 +207,7 @@ class TaskManager {
     if (this.personalTasks.length === 0) {
       board.innerHTML = `
         <div class="postit-grid">
-          ${canAction('tareas') ? this._postitAddCard() : ''}
+          ${canView('tareas') ? this._postitAddCard() : ''}
           <div class="tasks-empty tasks-empty--postit">
             <span class="tasks-empty__icon">📝</span>
             <p class="tasks-empty__title">Sin notas todavía</p>
@@ -220,7 +220,7 @@ class TaskManager {
 
     board.innerHTML = `
       <div class="postit-grid" id="postitGrid">
-        ${canAction('tareas') ? this._postitAddCard() : ''}
+        ${canView('tareas') ? this._postitAddCard() : ''}
         ${this.personalTasks.map(t => this._buildPostitCard(t)).join('')}
       </div>`;
 
@@ -351,15 +351,14 @@ class TaskManager {
   // RENDERIZADO: TABLA DE TAREAS ASIGNADAS
   // =========================================================================
 
-  _renderAssignTable() {
+_renderAssignTable() {
     const tbody   = document.getElementById('assignTableBody');
     const countEl = document.getElementById('assignCount');
 
-    const canAssign = canAction('tareas');
-
+    // ✅ NO ocultar la tabla - siempre visible si puede ver tareas
     const assignBlock = document.getElementById('assignBlock');
     if (assignBlock) {
-      assignBlock.style.display = canAssign ? '' : 'none';
+        assignBlock.style.display = ''; // Siempre visible
     }
 
     if (!tbody) return;
@@ -401,8 +400,9 @@ class TaskManager {
     return list;
   }
 
-  _buildAssignRow(task) {
-    // ✅ FIX de fecha: usar fecha_limite_formateada del backend
+_buildAssignRow(task) {
+    const isDone = task.estado === 'completada';
+    
     let dueDate = null;
     if (task.fecha_limite_formateada) {
       const [y, m, d] = task.fecha_limite_formateada.split('-').map(Number);
@@ -414,7 +414,7 @@ class TaskManager {
     }
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const isOverdue = dueDate && dueDate < today && task.estado !== 'completada';
+    const isOverdue = dueDate && dueDate < today && !isDone;
 
     const dueDateStr = dueDate
       ? dueDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: '2-digit' })
@@ -432,12 +432,11 @@ class TaskManager {
 
     const prioridadClass = task.prioridad === 'critica' ? 'critica' : task.prioridad;
     const prioridadLabel = { baja: 'Baja', media: 'Media', alta: 'Alta', critica: 'Crítica' }[task.prioridad] || task.prioridad;
-    // ✅ Tipo ahora se detecta automáticamente, no se muestra en columna separada
     const estadoLabel = { pendiente: 'Pendiente', 'en-progreso': 'En progreso', completada: 'Completada', cancelada: 'Cancelada' }[task.estado] || task.estado;
 
-    const puedeCompletar = task.permisos?.puedeCompletar && task.estado !== 'completada';
-    const puedeEditar    = task.permisos?.puedeEditar;
-    const puedeEliminar  = task.permisos?.puedeEliminar;
+    const puedeCompletar = task.permisos?.puedeCompletar && !isDone;
+    const puedeEditar    = task.permisos?.puedeEditar && canAction('tareas');
+    const puedeEliminar  = task.permisos?.puedeEliminar && canAction('tareas');
 
     return `
       <tr data-task-id="${task._id}">
@@ -578,8 +577,8 @@ class TaskManager {
   // MODALES
   // =========================================================================
 
-  openPersonalModal(task = null) {
-    if (!canAction('tareas')) { showNoPermissionAlert('tareas'); return; }
+openPersonalModal(task = null) {
+    if (!canView('tareas')) { showNoPermissionAlert('tareas'); return; }
 
     const modal = document.getElementById('personalModal');
     if (!modal) { console.error('❌ #personalModal no encontrado'); return; }
@@ -721,11 +720,15 @@ class TaskManager {
   // GUARDAR TAREA
   // =========================================================================
 
-  async _saveTask(mode) {
-    if (!canAction('tareas')) { showNoPermissionAlert('tareas'); return; }
+async _saveTask(mode) {
+    const isPersonal = mode === 'personal';
+    
+    // Solo verificar canAction para tareas asignadas
+    if (!isPersonal && !canAction('tareas')) { showNoPermissionAlert('tareas'); return; }
+    if (isPersonal && !canView('tareas')) { showNoPermissionAlert('tareas'); return; }
+    
     if (this.isSaving) return;
 
-    const isPersonal = mode === 'personal';
     const prefix     = isPersonal ? 'personal' : 'assign';
     const modalId    = isPersonal ? 'personalModal' : 'assignModal';
     const saveBtnId  = isPersonal ? 'savePersonalBtn' : 'saveAssignBtn';
@@ -912,11 +915,21 @@ class TaskManager {
   // ACCIONES EN TAREAS
   // =========================================================================
 
-  _handleTaskAction(action, taskId) {
-    if (!canAction('tareas')) { showNoPermissionAlert('tareas'); return; }
+_handleTaskAction(action, taskId) {
+    // Para completar, solo verificar permisos de la tarea, no canAction
+    if (action !== 'complete' && !canAction('tareas')) { 
+        showNoPermissionAlert('tareas'); 
+        return; 
+    }
 
     const task = this.tasks.find(t => t._id === taskId);
     if (!task) { console.error('❌ Tarea no encontrada:', taskId); return; }
+
+    // Para completar, verificar que tenga permiso en la tarea
+    if (action === 'complete' && !task.permisos?.puedeCompletar) {
+        showNoPermissionAlert('tareas');
+        return;
+    }
 
     switch (action) {
       case 'edit':

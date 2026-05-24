@@ -85,9 +85,25 @@ async function fetchNotificaciones() {
             return;
         }
 
-        console.log('🔄 Fetching notificaciones desde:', `${CONFIG.API_BASE_URL}/notifications`);
+        // 🆕 Obtener schoolId y userId del usuario logueado
+        let schoolId = null;
+        let userId = null;
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            schoolId = user.schoolId;
+            userId = user.id || user._id;
+        } catch (e) {}
+
+        // 🆕 Construir URL con schoolId y userId
+        const params = new URLSearchParams({ limite: 20 });
+        if (schoolId) params.append('schoolId', schoolId);
+        if (userId) params.append('userId', userId);
+
+        const url = `${CONFIG.API_BASE_URL}/notifications?${params}`;
         
-        const response = await fetch(`${CONFIG.API_BASE_URL}/notifications?limite=20`);
+        console.log('🔄 Fetching notificaciones desde:', url);
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
             console.error('❌ Response not ok:', response.status, response.statusText);
@@ -99,13 +115,17 @@ async function fetchNotificaciones() {
         
         if (data.success && data.data) {
             notificaciones = data.data.notificaciones || [];
-            notificacionesNoLeidas = data.data.noLeidas || 0;
+            
+            // 🆕 Calcular noLeidas basado en leidaPor
+            notificacionesNoLeidas = notificaciones.filter(n => {
+                if (!n.leidaPor || n.leidaPor.length === 0) return true;
+                return !n.leidaPor.includes(userId);
+            }).length;
             
             console.log(`✅ ${notificaciones.length} notificaciones cargadas, ${notificacionesNoLeidas} no leídas`);
             
             updateBadge();
             
-            // Si el dropdown está abierto, actualizar la lista
             if (isDropdownOpen) {
                 renderNotificacionesList();
             }
@@ -122,29 +142,38 @@ async function fetchNotificaciones() {
  */
 async function marcarComoLeida(notificacionId) {
     try {
-        // Marcar como leída es una acción personal y debe permitirse con solo vista.
         if (!canView('notificaciones')) {
             showNoPermissionAlert('notificaciones');
             showAlert('No tienes permiso para ver notificaciones', 'error');
             return;
         }
 
-        const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${notificacionId}/read`, {
-            method: 'PATCH'
-        });
+        // 🆕 Obtener userId
+        let userId = null;
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            userId = user.id || user._id;
+        } catch (e) {}
 
-        if (!response.ok) {
-            throw new Error('Error al marcar como leída');
-        }
+        const url = `${CONFIG.API_BASE_URL}/notifications/${notificacionId}/read?userId=${userId}`;
+        
+        const response = await fetch(url, { method: 'PATCH' });
+
+        if (!response.ok) throw new Error('Error al marcar como leída');
 
         const data = await response.json();
         
         if (data.success) {
-            // Actualizar notificación local
             const notificacion = notificaciones.find(n => n._id === notificacionId);
-            if (notificacion && !notificacion.leida) {
-                notificacion.leida = true;
-                notificacionesNoLeidas = Math.max(0, notificacionesNoLeidas - 1);
+            if (notificacion) {
+                if (!notificacion.leidaPor) notificacion.leidaPor = [];
+                if (!notificacion.leidaPor.includes(userId)) {
+                    notificacion.leidaPor.push(userId);
+                }
+                notificacionesNoLeidas = notificaciones.filter(n => {
+                    if (!n.leidaPor || n.leidaPor.length === 0) return true;
+                    return !n.leidaPor.includes(userId);
+                }).length;
                 updateBadge();
                 renderNotificacionesList();
             }
@@ -161,26 +190,40 @@ async function marcarComoLeida(notificacionId) {
  */
 async function marcarTodasLeidas() {
     try {
-        // Marcar todas como leídas es una acción personal y debe permitirse con solo vista.
         if (!canView('notificaciones')) {
             showNoPermissionAlert('notificaciones');
             showAlert('No tienes permiso para ver notificaciones', 'error');
             return;
         }
 
-        const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/read-all`, {
-            method: 'PATCH'
-        });
+        // 🆕 Obtener userId y schoolId
+        let userId = null;
+        let schoolId = null;
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            userId = user.id || user._id;
+            schoolId = user.schoolId;
+        } catch (e) {}
 
-        if (!response.ok) {
-            throw new Error('Error al marcar todas como leídas');
-        }
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', userId);
+        if (schoolId) params.append('schoolId', schoolId);
+
+        const url = `${CONFIG.API_BASE_URL}/notifications/read-all?${params}`;
+        
+        const response = await fetch(url, { method: 'PATCH' });
+
+        if (!response.ok) throw new Error('Error al marcar todas como leídas');
 
         const data = await response.json();
         
         if (data.success) {
-            // Actualizar todas las notificaciones locales
-            notificaciones.forEach(n => n.leida = true);
+            notificaciones.forEach(n => {
+                if (!n.leidaPor) n.leidaPor = [];
+                if (!n.leidaPor.includes(userId)) {
+                    n.leidaPor.push(userId);
+                }
+            });
             notificacionesNoLeidas = 0;
             updateBadge();
             renderNotificacionesList();
@@ -322,6 +365,13 @@ function renderNotificacionesList() {
     const lista = document.getElementById('notificationsList');
     if (!lista) return;
 
+    // 🆕 Obtener userId para verificar leída
+    let userId = null;
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        userId = user.id || user._id;
+    } catch (e) {}
+
     if (notificaciones.length === 0) {
         lista.innerHTML = `
             <div class="notifications-empty">
@@ -336,8 +386,11 @@ function renderNotificacionesList() {
         const fecha = new Date(notif.fecha_creacion || notif.createdAt);
         const fechaRelativa = getRelativeTime(fecha);
         
+        // 🆕 Verificar si está leída para este usuario
+        const leida = notif.leidaPor && notif.leidaPor.includes(userId);
+        
         return `
-            <div class="notification-item ${notif.leida ? 'notification-item--read' : ''}" 
+            <div class="notification-item ${leida ? 'notification-item--read' : ''}" 
                  data-id="${notif._id}"
                  onclick="window.handleNotificationClick('${notif._id}')">
                 <div class="notification-icon notification-icon--${notif.prioridad}">
@@ -353,7 +406,7 @@ function renderNotificacionesList() {
                         <p class="notification-details">${notif.metadata.detalles}</p>
                     ` : ''}
                 </div>
-                ${!notif.leida ? '<div class="notification-unread-dot"></div>' : ''}
+                ${!leida ? '<div class="notification-unread-dot"></div>' : ''}
             </div>
         `;
     }).join('');
@@ -372,15 +425,20 @@ window.handleNotificationClick = function(notificacionId) {
     const notificacion = notificaciones.find(n => n._id === notificacionId);
     if (!notificacion) return;
 
-    // Marcar como leída si no lo está
-    if (!notificacion.leida) {
+    // 🆕 Verificar si está leída para este usuario
+    let userId = null;
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        userId = user.id || user._id;
+    } catch (e) {}
+    
+    const leida = notificacion.leidaPor && notificacion.leidaPor.includes(userId);
+
+    if (!leida) {
         marcarComoLeida(notificacionId);
     }
 
-    // Cerrar dropdown
     closeNotificationsDropdown();
-
-    // Navegar según el tipo de notificación
     navigateFromNotification(notificacion);
 };
 

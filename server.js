@@ -3526,43 +3526,26 @@ app.use((error, req, res, next) => {
 // Obtener todas las notificaciones con filtros
 app.get('/api/notifications', async (req, res) => {
   try {
-    console.log('📥 Obteniendo notificaciones con filtros:', req.query);
+    const { leida, tipo, prioridad, desde, hasta, limite = 50, pagina = 1 } = req.query;
     
-    const {
-      leida,
-      tipo,
-      prioridad,
-      desde,
-      hasta,
-      limite = 50,
-      pagina = 1
-    } = req.query;
-
     const filtros = {};
     if (leida !== undefined) filtros.leida = leida === 'true';
     if (tipo) filtros.tipo = tipo;
     if (prioridad) filtros.prioridad = prioridad;
     if (desde) filtros.desde = desde;
     if (hasta) filtros.hasta = hasta;
+    
+    // 🆕 Pasar el userId para filtrar notificaciones de recordatorio
+    filtros.userId = req.query.userId || null;
 
     const resultado = await NotificationService.obtener(filtros, {
       limite: parseInt(limite),
       pagina: parseInt(pagina)
     });
 
-    console.log(`✅ ${resultado.notificaciones.length} notificaciones obtenidas`);
-
-    res.json({
-      success: true,
-      data: resultado
-    });
-
+    res.json({ success: true, data: resultado });
   } catch (error) {
-    console.error('❌ Error obteniendo notificaciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener notificaciones: ' + error.message
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener notificaciones: ' + error.message });
   }
 });
 
@@ -3616,16 +3599,16 @@ app.get('/api/notifications/stats', async (req, res) => {
 app.patch('/api/notifications/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('✅ Marcando notificación como leída:', id);
+    const userId = req.query.userId || (req.user?.id || req.user?._id);
+    console.log('✅ Marcando notificación como leída:', id, 'userId:', userId);
 
-    const notificacion = await NotificationService.marcarLeida(id);
+    const notificacion = await NotificationService.marcarLeida(id, userId);
 
     res.json({
       success: true,
       message: 'Notificación marcada como leída',
       data: notificacion
     });
-
   } catch (error) {
     console.error('❌ Error marcando notificación:', error);
     res.status(500).json({
@@ -3638,16 +3621,17 @@ app.patch('/api/notifications/:id/read', async (req, res) => {
 // Marcar todas las notificaciones como leídas
 app.patch('/api/notifications/read-all', async (req, res) => {
   try {
-    console.log('✅ Marcando todas las notificaciones como leídas');
+    const schoolId = req.query.schoolId || null;
+    const userId = req.query.userId || (req.user?.id || req.user?._id);
+    console.log('✅ Marcando todas como leídas. userId:', userId);
 
-    const cantidad = await NotificationService.marcarTodasLeidas();
+    const cantidad = await NotificationService.marcarTodasLeidas(schoolId, userId);
 
     res.json({
       success: true,
       message: `${cantidad} notificación(es) marcada(s) como leída(s)`,
       data: { cantidad }
     });
-
   } catch (error) {
     console.error('❌ Error marcando notificaciones:', error);
     res.status(500).json({

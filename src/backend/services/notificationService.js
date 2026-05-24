@@ -70,7 +70,7 @@ class NotificationService {
    * Crea una notificación de recordatorio para una tarea que vence en ~1 día.
    * @param {Object} tarea - Documento Task de Mongoose
    */
-  static async tareaRecordatorio(tarea) {
+static async tareaRecordatorio(tarea) {
     const tipoTarea = {
       personal: 'personal',
       asignada: 'asignada',
@@ -80,13 +80,29 @@ class NotificationService {
 
     const fechaFormateada = tarea.fecha_limite
       ? new Date(tarea.fecha_limite).toLocaleDateString('es-MX', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
+          day: 'numeric', month: 'long', year: 'numeric'
         })
       : 'sin fecha definida';
 
     const horaStr = tarea.hora_limite ? ` a las ${tarea.hora_limite}` : '';
+
+    // 🆕 Determinar qué usuarios deben ver esta notificación
+    const usuarios = [];
+    
+    // El creador siempre ve sus tareas
+    if (tarea.creado_por) {
+      usuarios.push(tarea.creado_por.toString());
+    }
+    
+    // Los asignados también ven las tareas asignadas
+    if (tarea.asignado_a && Array.isArray(tarea.asignado_a)) {
+      tarea.asignado_a.forEach(u => {
+        const uid = u?._id?.toString() || u?.toString();
+        if (uid && !usuarios.includes(uid)) {
+          usuarios.push(uid);
+        }
+      });
+    }
 
     return await this.crearConDebounce({
       tipo: 'tarea_recordatorio',
@@ -101,7 +117,9 @@ class NotificationService {
         tarea_tipo: tarea.tipo,
         fecha_limite: tarea.fecha_limite,
         hora_limite: tarea.hora_limite,
-        creado_por: tarea.creado_por_nombre
+        creado_por: tarea.creado_por_nombre,
+        // 🆕 Lista de usuarios que deben ver esta notificación
+        usuarios: usuarios
       }
     }, `tarea_recordatorio:${tarea._id}`);
   }
@@ -115,25 +133,22 @@ class NotificationService {
    * @param {Object} evento - Documento CalendarEvent de Mongoose
    * @param {number} diasRestantes - 1 o 3
    */
-  static async calendarioRecordatorio(evento, diasRestantes) {
+static async calendarioRecordatorio(evento, diasRestantes) {
     const fechaEvento = new Date(evento.fecha);
     const fechaFormateada = fechaEvento.toLocaleDateString('es-MX', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
+      weekday: 'long', day: 'numeric', month: 'long'
     });
 
     const horaStr = evento.horaInicio ? ` a las ${evento.horaInicio}` : '';
     const diasLabel = diasRestantes === 1 ? 'mañana' : `en ${diasRestantes} días`;
 
     const tiposIcono = {
-      academic: 'book',
-      meetings: 'users',
-      deadlines: 'clock',
-      holidays: 'star',
-      exam: 'file-alt',
-      personal: 'user'
+      academic: 'book', meetings: 'users', deadlines: 'clock',
+      holidays: 'star', exam: 'file-alt', personal: 'user'
     };
+
+    // 🆕 Solo el creador ve esta notificación
+    const usuarios = evento.creadoPor ? [evento.creadoPor] : [];
 
     return await this.crearConDebounce({
       tipo: 'calendario_recordatorio',
@@ -149,7 +164,9 @@ class NotificationService {
         fecha: evento.fecha,
         hora_inicio: evento.horaInicio,
         ubicacion: evento.ubicacion,
-        dias_restantes: diasRestantes
+        dias_restantes: diasRestantes,
+        // 🆕 Usuario que debe ver esta notificación
+        usuarios: usuarios
       }
     }, `calendario_recordatorio:${evento._id}:${diasRestantes}d`);
   }
@@ -353,34 +370,54 @@ class NotificationService {
   // CONSULTAS Y GESTIÓN
   // =============================================================================
 
-  static async obtener(filtros = {}, opciones = {}) {
+static async obtener(filtros = {}, opciones = {}) {
     const {
-      leida = null,
-      tipo = null,
-      prioridad = null,
-      desde = null,
-      hasta = null,
-      schoolId = null,
-      limite = 50,
-      pagina = 1
+      leida = null, tipo = null, prioridad = null,
+      desde = null, hasta = null, schoolId = null,
+      limite = 50, pagina = 1,
+      userId = null
     } = { ...filtros, ...opciones };
 
-    const query = {};
-    if (leida !== null) query.leida = leida;
-    if (tipo) query.tipo = tipo;
-    if (prioridad) query.prioridad = prioridad;
+    const conditions = [];
+
+    if (leida !== null) {
+      if (leida === true && userId) {
+        conditions.push({ leidaPor: userId });
+      } else if (leida === false && userId) {
+        conditions.push({ leidaPor: { $ne: userId } });
+      }
+    }
+    if (tipo) conditions.push({ tipo: tipo });
+    if (prioridad) conditions.push({ prioridad: prioridad });
     if (desde || hasta) {
-      query.fecha_creacion = {};
-      if (desde) query.fecha_creacion.$gte = new Date(desde);
-      if (hasta) query.fecha_creacion.$lte = new Date(hasta);
+      const fechaCondition = {};
+      if (desde) fechaCondition.$gte = new Date(desde);
+      if (hasta) fechaCondition.$lte = new Date(hasta);
+      if (Object.keys(fechaCondition).length > 0) {
+        conditions.push({ fecha_creacion: fechaCondition });
+      }
     }
     if (schoolId) {
-      query.$or = [
-        { schoolId: schoolId },
-        { schoolId: { $exists: false } },
-        { schoolId: null }
-      ];
+      conditions.push({
+        $or: [
+          { schoolId: schoolId },
+          { schoolId: { $exists: false } },
+          { schoolId: null }
+        ]
+      });
     }
+    
+    // 🆕 Filtrar notificaciones de recordatorio por usuario
+    if (userId) {
+      conditions.push({
+        $or: [
+          { tipo: { $nin: ['tarea_recordatorio', 'calendario_recordatorio'] } },
+          { 'metadata.usuarios': userId }
+        ]
+      });
+    }
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
 
     const skip = (pagina - 1) * limite;
     const notificaciones = await Notification.find(query)
@@ -391,25 +428,28 @@ class NotificationService {
       .skip(skip);
 
     const total = await Notification.countDocuments(query);
-    const noLeidas = await Notification.countDocuments({ ...query, leida: false });
+    
+    // 🆕 Calcular noLeidas por usuario
+    const noLeidasQuery = { ...query };
+    if (userId) {
+      noLeidasQuery.leidaPor = { $ne: userId };
+    }
+    const noLeidas = await Notification.countDocuments(noLeidasQuery);
 
     return {
-      notificaciones,
-      total,
-      noLeidas,
-      pagina,
-      totalPaginas: Math.ceil(total / limite)
+      notificaciones, total, noLeidas,
+      pagina, totalPaginas: Math.ceil(total / limite)
     };
   }
 
-  static async marcarLeida(id) {
+  static async marcarLeida(id, userId) {
     const notificacion = await Notification.findById(id);
     if (!notificacion) throw new Error('Notificación no encontrada');
-    return await notificacion.marcarLeida();
+    return await notificacion.marcarLeida(userId);
   }
 
-  static async marcarTodasLeidas(schoolId = null) {
-    const query = { leida: false };
+  static async marcarTodasLeidas(schoolId = null, userId = null) {
+    const query = {};
     if (schoolId) {
       query.$or = [
         { schoolId: schoolId },
@@ -417,7 +457,11 @@ class NotificationService {
         { schoolId: null }
       ];
     }
-    const resultado = await Notification.updateMany(query, { leida: true });
+    // Solo marcar las que NO tienen este userId
+    if (userId) {
+      query.leidaPor = { $ne: userId };
+    }
+    const resultado = await Notification.updateMany(query, { $addToSet: { leidaPor: userId } });
     return resultado.modifiedCount;
   }
 
