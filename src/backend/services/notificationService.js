@@ -2,63 +2,56 @@
 import Notification from '../models/Notification.js';
 
 class NotificationService {
-  
+
   // =============================================================================
   // COLA DE NOTIFICACIONES PARA EVITAR DUPLICADOS
   // =============================================================================
-  
+
   static notificationQueue = new Map();
   static DEBOUNCE_TIME = 5000; // 5 segundos
-  
-  /**
-   * Verifica si una notificación similar fue enviada recientemente
-   */
+
   static async crearConDebounce(data, key = null) {
     const debounceKey = key || `${data.tipo}:${data.mensaje}`;
     const now = Date.now();
-    
-    // Limpiar cola de notificaciones antiguas
+
     for (const [k, timestamp] of this.notificationQueue.entries()) {
       if (now - timestamp > this.DEBOUNCE_TIME * 2) {
         this.notificationQueue.delete(k);
       }
     }
-    
-    // Verificar si es un duplicado reciente
+
     if (this.notificationQueue.has(debounceKey)) {
       const lastTime = this.notificationQueue.get(debounceKey);
       if (now - lastTime < this.DEBOUNCE_TIME) {
         console.log('🔄 Notificación duplicada ignorada:', debounceKey);
-        return null; // Ignorar duplicado
+        return null;
       }
     }
-    
-    // Registrar notificación
+
     this.notificationQueue.set(debounceKey, now);
     return await this.crear(data);
   }
-  
+
   // =============================================================================
   // MÉTODO GENÉRICO DE CREACIÓN
   // =============================================================================
-  
+
   static async crear(data) {
     try {
-      // Validar que no exista una notificación idéntica en los últimos 10 segundos
       const existingNotification = await Notification.findOne({
         tipo: data.tipo,
         mensaje: data.mensaje,
         schoolId: data.schoolId || null,
-        fecha_creacion: { 
-          $gte: new Date(Date.now() - 10000) // Últimos 10 segundos
+        fecha_creacion: {
+          $gte: new Date(Date.now() - 10000)
         }
       });
-      
+
       if (existingNotification) {
         console.log('🔄 Notificación duplicada detectada en BD, ignorando:', existingNotification._id);
-        return existingNotification; // Retornar la existente sin crear nueva
+        return existingNotification;
       }
-      
+
       const notificacion = new Notification(data);
       await notificacion.save();
       console.log('🔔 Notificación creada:', notificacion.titulo, '| schoolId:', notificacion.schoolId || 'global');
@@ -67,6 +60,115 @@ class NotificationService {
       console.error('❌ Error creando notificación:', error);
       throw error;
     }
+  }
+
+  // =============================================================================
+  // ✅ NOTIFICACIONES DE RECORDATORIO DE TAREAS
+  // =============================================================================
+
+  /**
+   * Crea una notificación de recordatorio para una tarea que vence en ~1 día.
+   * @param {Object} tarea - Documento Task de Mongoose
+   */
+static async tareaRecordatorio(tarea) {
+    const tipoTarea = {
+      personal: 'personal',
+      asignada: 'asignada',
+      grupal: 'grupal',
+      clase: 'de clase'
+    }[tarea.tipo] || tarea.tipo;
+
+    const fechaFormateada = tarea.fecha_limite
+      ? new Date(tarea.fecha_limite).toLocaleDateString('es-MX', {
+          day: 'numeric', month: 'long', year: 'numeric'
+        })
+      : 'sin fecha definida';
+
+    const horaStr = tarea.hora_limite ? ` a las ${tarea.hora_limite}` : '';
+
+    // 🆕 Determinar qué usuarios deben ver esta notificación
+    const usuarios = [];
+    
+    // El creador siempre ve sus tareas
+    if (tarea.creado_por) {
+      usuarios.push(tarea.creado_por.toString());
+    }
+    
+    // Los asignados también ven las tareas asignadas
+    if (tarea.asignado_a && Array.isArray(tarea.asignado_a)) {
+      tarea.asignado_a.forEach(u => {
+        const uid = u?._id?.toString() || u?.toString();
+        if (uid && !usuarios.includes(uid)) {
+          usuarios.push(uid);
+        }
+      });
+    }
+
+    return await this.crearConDebounce({
+      tipo: 'tarea_recordatorio',
+      titulo: '⏰ Recordatorio de tarea',
+      mensaje: `La tarea ${tipoTarea} "${tarea.titulo}" vence mañana${horaStr} (${fechaFormateada})`,
+      icono: 'clock',
+      prioridad: tarea.prioridad === 'critica' ? 'critica' : tarea.prioridad === 'alta' ? 'alta' : 'media',
+      tarea_id: tarea._id,
+      schoolId: tarea.schoolId || null,
+      metadata: {
+        tarea_titulo: tarea.titulo,
+        tarea_tipo: tarea.tipo,
+        fecha_limite: tarea.fecha_limite,
+        hora_limite: tarea.hora_limite,
+        creado_por: tarea.creado_por_nombre,
+        // 🆕 Lista de usuarios que deben ver esta notificación
+        usuarios: usuarios
+      }
+    }, `tarea_recordatorio:${tarea._id}`);
+  }
+
+  // =============================================================================
+  // ✅ NOTIFICACIONES DE RECORDATORIO DE CALENDARIO
+  // =============================================================================
+
+  /**
+   * Crea una notificación de recordatorio para un evento de calendario.
+   * @param {Object} evento - Documento CalendarEvent de Mongoose
+   * @param {number} diasRestantes - 1 o 3
+   */
+static async calendarioRecordatorio(evento, diasRestantes) {
+    const fechaEvento = new Date(evento.fecha);
+    const fechaFormateada = fechaEvento.toLocaleDateString('es-MX', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+
+    const horaStr = evento.horaInicio ? ` a las ${evento.horaInicio}` : '';
+    const diasLabel = diasRestantes === 1 ? 'mañana' : `en ${diasRestantes} días`;
+
+    const tiposIcono = {
+      academic: 'book', meetings: 'users', deadlines: 'clock',
+      holidays: 'star', exam: 'file-alt', personal: 'user'
+    };
+
+    // 🆕 Solo el creador ve esta notificación
+    const usuarios = evento.creadoPor ? [evento.creadoPor] : [];
+
+    return await this.crearConDebounce({
+      tipo: 'calendario_recordatorio',
+      titulo: `📅 Evento próximo: ${evento.titulo}`,
+      mensaje: `El evento "${evento.titulo}" ocurre ${diasLabel}${horaStr} (${fechaFormateada})`,
+      icono: tiposIcono[evento.tipo] || 'calendar-alt',
+      prioridad: evento.prioridad === 'urgent' ? 'alta' : 'media',
+      calendario_id: evento._id,
+      schoolId: evento.schoolId || null,
+      metadata: {
+        evento_titulo: evento.titulo,
+        evento_tipo: evento.tipo,
+        fecha: evento.fecha,
+        hora_inicio: evento.horaInicio,
+        ubicacion: evento.ubicacion,
+        dias_restantes: diasRestantes,
+        // 🆕 Usuario que debe ver esta notificación
+        usuarios: usuarios
+      }
+    }, `calendario_recordatorio:${evento._id}:${diasRestantes}d`);
   }
 
   // =============================================================================
@@ -89,14 +191,13 @@ class NotificationService {
       }
     }, `user_created:${nuevoUsuario._id}`);
   }
-  
+
   // =============================================================================
-  // NOTIFICACIONES DE DOCUMENTOS (CORREGIDAS)
+  // NOTIFICACIONES DE DOCUMENTOS
   // =============================================================================
-  
+
   static async documentoSubido(documento, persona = null, schoolId = null) {
     const nombrePersona = persona ? persona.nombre : 'Usuario';
-    
     return await this.crearConDebounce({
       tipo: 'documento_subido',
       titulo: 'Documento subido',
@@ -166,11 +267,11 @@ class NotificationService {
       metadata: { fecha_vencimiento: documento.fecha_vencimiento }
     }, `doc_expired:${documento._id}`);
   }
-  
+
   // =============================================================================
-  // RESTO DE MÉTODOS SIN CAMBIOS
+  // NOTIFICACIONES DE PERSONAS
   // =============================================================================
-  
+
   static async personaAgregada(persona, schoolId = null) {
     return await this.crearConDebounce({
       tipo: 'persona_agregada',
@@ -197,7 +298,11 @@ class NotificationService {
       schoolId: schoolId || null
     }, `person_deleted:${nombrePersona}`);
   }
-  
+
+  // =============================================================================
+  // NOTIFICACIONES DE CATEGORÍAS
+  // =============================================================================
+
   static async categoriaAgregada(categoria, schoolId = null) {
     return await this.crearConDebounce({
       tipo: 'categoria_agregada',
@@ -209,7 +314,11 @@ class NotificationService {
       schoolId: schoolId || categoria.schoolId || null
     }, `cat_added:${categoria._id}`);
   }
-  
+
+  // =============================================================================
+  // NOTIFICACIONES DE REPORTES
+  // =============================================================================
+
   static async reporteGenerado(tipoReporte, formato, cantidadRegistros, schoolId = null) {
     const nombresReportes = {
       general: 'General',
@@ -218,7 +327,6 @@ class NotificationService {
       expiring: 'Documentos Próximos a Vencer',
       expired: 'Documentos Vencidos'
     };
-
     return await this.crearConDebounce({
       tipo: 'reporte_generado',
       titulo: 'Reporte generado',
@@ -229,6 +337,10 @@ class NotificationService {
       metadata: { tipo_reporte: tipoReporte, formato: formato, registros: cantidadRegistros }
     }, `report:${tipoReporte}:${Date.now()}`);
   }
+
+  // =============================================================================
+  // NOTIFICACIONES DEL SISTEMA
+  // =============================================================================
 
   static async sistemaIniciado() {
     return await this.crearConDebounce({
@@ -253,44 +365,61 @@ class NotificationService {
       metadata: detalles
     }, `error:${mensaje.substring(0, 50)}`);
   }
-  
+
   // =============================================================================
-  // CONSULTAS Y GESTIÓN (SIN CAMBIOS)
+  // CONSULTAS Y GESTIÓN
   // =============================================================================
-  
-  static async obtener(filtros = {}, opciones = {}) {
+
+static async obtener(filtros = {}, opciones = {}) {
     const {
-      leida = null,
-      tipo = null,
-      prioridad = null,
-      desde = null,
-      hasta = null,
-      schoolId = null,
-      limite = 50,
-      pagina = 1
+      leida = null, tipo = null, prioridad = null,
+      desde = null, hasta = null, schoolId = null,
+      limite = 50, pagina = 1,
+      userId = null
     } = { ...filtros, ...opciones };
 
-    const query = {};
-    
-    if (leida !== null) query.leida = leida;
-    if (tipo) query.tipo = tipo;
-    if (prioridad) query.prioridad = prioridad;
+    const conditions = [];
+
+    if (leida !== null) {
+      if (leida === true && userId) {
+        conditions.push({ leidaPor: userId });
+      } else if (leida === false && userId) {
+        conditions.push({ leidaPor: { $ne: userId } });
+      }
+    }
+    if (tipo) conditions.push({ tipo: tipo });
+    if (prioridad) conditions.push({ prioridad: prioridad });
     if (desde || hasta) {
-      query.fecha_creacion = {};
-      if (desde) query.fecha_creacion.$gte = new Date(desde);
-      if (hasta) query.fecha_creacion.$lte = new Date(hasta);
+      const fechaCondition = {};
+      if (desde) fechaCondition.$gte = new Date(desde);
+      if (hasta) fechaCondition.$lte = new Date(hasta);
+      if (Object.keys(fechaCondition).length > 0) {
+        conditions.push({ fecha_creacion: fechaCondition });
+      }
+    }
+    if (schoolId) {
+      conditions.push({
+        $or: [
+          { schoolId: schoolId },
+          { schoolId: { $exists: false } },
+          { schoolId: null }
+        ]
+      });
+    }
+    
+    // 🆕 Filtrar notificaciones de recordatorio por usuario
+    if (userId) {
+      conditions.push({
+        $or: [
+          { tipo: { $nin: ['tarea_recordatorio', 'calendario_recordatorio'] } },
+          { 'metadata.usuarios': userId }
+        ]
+      });
     }
 
-    if (schoolId) {
-      query.$or = [
-        { schoolId: schoolId },
-        { schoolId: { $exists: false } },
-        { schoolId: null }
-      ];
-    }
+    const query = conditions.length > 0 ? { $and: conditions } : {};
 
     const skip = (pagina - 1) * limite;
-
     const notificaciones = await Notification.find(query)
       .populate('documento_id', 'nombre_original categoria tipo_archivo')
       .populate('persona_id', 'nombre departamento')
@@ -299,25 +428,28 @@ class NotificationService {
       .skip(skip);
 
     const total = await Notification.countDocuments(query);
-    const noLeidas = await Notification.countDocuments({ ...query, leida: false });
+    
+    // 🆕 Calcular noLeidas por usuario
+    const noLeidasQuery = { ...query };
+    if (userId) {
+      noLeidasQuery.leidaPor = { $ne: userId };
+    }
+    const noLeidas = await Notification.countDocuments(noLeidasQuery);
 
     return {
-      notificaciones,
-      total,
-      noLeidas,
-      pagina,
-      totalPaginas: Math.ceil(total / limite)
+      notificaciones, total, noLeidas,
+      pagina, totalPaginas: Math.ceil(total / limite)
     };
   }
 
-  static async marcarLeida(id) {
+  static async marcarLeida(id, userId) {
     const notificacion = await Notification.findById(id);
     if (!notificacion) throw new Error('Notificación no encontrada');
-    return await notificacion.marcarLeida();
+    return await notificacion.marcarLeida(userId);
   }
 
-  static async marcarTodasLeidas(schoolId = null) {
-    const query = { leida: false };
+  static async marcarTodasLeidas(schoolId = null, userId = null) {
+    const query = {};
     if (schoolId) {
       query.$or = [
         { schoolId: schoolId },
@@ -325,14 +457,18 @@ class NotificationService {
         { schoolId: null }
       ];
     }
-    const resultado = await Notification.updateMany(query, { leida: true });
+    // Solo marcar las que NO tienen este userId
+    if (userId) {
+      query.leidaPor = { $ne: userId };
+    }
+    const resultado = await Notification.updateMany(query, { $addToSet: { leidaPor: userId } });
     return resultado.modifiedCount;
   }
 
   static async eliminar(id) {
     return await Notification.findByIdAndDelete(id);
   }
-  
+
   static async obtenerEstadisticas(schoolId = null) {
     return await Notification.obtenerEstadisticas(schoolId);
   }

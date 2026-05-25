@@ -185,6 +185,54 @@ save() {
         localStorage.setItem(this._storageKey, JSON.stringify(this._events)); 
     }
     catch(e) { console.error('Cal: error guardando', e); }
+    
+    // 🆕 Forzar sync inmediato (sin esperar 30s)
+    this._syncToBackend(true);
+}
+
+_syncToBackend(force = false) {
+    const now = Date.now();
+    if (!force && this._lastSync && now - this._lastSync < 30000) return;
+    this._lastSync = now;
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.warn('Cal: No hay token para sincronizar');
+        return;
+    }
+    
+    const eventos = this._events.map(ev => ({
+        id: ev.id,
+        title: ev.title,
+        type: ev.type,
+        priority: ev.priority,
+        color: ev.color,
+        startDate: ev.startDate,
+        endDate: ev.endDate,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        location: ev.location,
+        description: ev.description,
+        recurrence: ev.recurrence,
+        reminder: ev.reminder
+    }));
+    
+    console.log('📅 Sincronizando', eventos.length, 'eventos...');
+    
+    fetch('/api/calendar/sync', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ eventos })
+    })
+    .then(r => r.json())
+    .then(d => {
+        console.log('📅 Sync OK:', d);
+        document.dispatchEvent(new CustomEvent('notifications:refresh'));
+    })
+    .catch(err => console.error('📅 Sync error:', err));
 }
 
     // — Suscriptores (reactivo) —
@@ -623,9 +671,6 @@ class EventForm {
                     <label class="cf-label">Recordatorio</label>
                     <select id="cf-reminder" class="cf-input">
                         <option value="">Sin recordatorio</option>
-                        <option value="15m"  ${defaults.reminder==='15m'?'selected':''}>15 minutos antes</option>
-                        <option value="30m"  ${defaults.reminder==='30m'?'selected':''}>30 minutos antes</option>
-                        <option value="1h"   ${defaults.reminder==='1h'?'selected':''}>1 hora antes</option>
                         <option value="1d"   ${defaults.reminder==='1d'?'selected':''}>1 día antes</option>
                         <option value="3d"   ${defaults.reminder==='3d'?'selected':''}>3 días antes</option>
                     </select>

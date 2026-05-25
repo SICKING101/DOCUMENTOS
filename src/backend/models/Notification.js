@@ -18,7 +18,9 @@ const notificationSchema = new mongoose.Schema({
       'categoria_eliminada',
       'reporte_generado',
       'sistema_iniciado',
-      'error_sistema'
+      'error_sistema',
+      'tarea_recordatorio',
+      'calendario_recordatorio'
     ]
   },
   titulo: {
@@ -40,10 +42,10 @@ const notificationSchema = new mongoose.Schema({
     enum: ['baja', 'media', 'alta', 'critica'],
     default: 'media'
   },
-  leida: {
-    type: Boolean,
-    default: false
-  },
+  // 🆕 Cambiado de Boolean a Array de userIds
+  leidaPor: [{
+    type: String
+  }],
   documento_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Document',
@@ -59,6 +61,16 @@ const notificationSchema = new mongoose.Schema({
     ref: 'Category',
     default: null
   },
+  tarea_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task',
+    default: null
+  },
+  calendario_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CalendarEvent',
+    default: null
+  },
   metadata: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
@@ -67,11 +79,10 @@ const notificationSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  // ===== 🆕 NUEVO: Identificador de escuela =====
-  schoolId: { 
-    type: String, 
+  schoolId: {
+    type: String,
     index: true,
-    default: null 
+    default: null
   },
 }, {
   timestamps: true
@@ -79,32 +90,32 @@ const notificationSchema = new mongoose.Schema({
 
 // Índices
 notificationSchema.index({ fecha_creacion: -1 });
-notificationSchema.index({ leida: 1, fecha_creacion: -1 });
+notificationSchema.index({ leidaPor: 1 });
 notificationSchema.index({ tipo: 1, fecha_creacion: -1 });
-notificationSchema.index({ prioridad: 1, leida: 1 });
+notificationSchema.index({ prioridad: 1 });
 notificationSchema.index({ schoolId: 1, fecha_creacion: -1 });
-notificationSchema.index({ schoolId: 1, leida: 1 });
 
-// Métodos
-notificationSchema.methods.marcarLeida = async function() {
-  this.leida = true;
-  return await this.save();
+// 🆕 Método de instancia - Marcar leída por usuario específico
+notificationSchema.methods.marcarLeida = async function (userId) {
+  if (!this.leidaPor) this.leidaPor = [];
+  if (!this.leidaPor.includes(userId)) {
+    this.leidaPor.push(userId);
+    await this.save();
+  }
+  return this;
 };
 
 // Métodos estáticos
-notificationSchema.statics.limpiarAntiguas = async function(dias = 30) {
+notificationSchema.statics.limpiarAntiguas = async function (dias = 30) {
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() - dias);
-  
   const resultado = await this.deleteMany({
-    fecha_creacion: { $lt: fechaLimite },
-    leida: true
+    fecha_creacion: { $lt: fechaLimite }
   });
-  
   return resultado.deletedCount;
 };
 
-notificationSchema.statics.obtenerEstadisticas = async function(schoolId = null) {
+notificationSchema.statics.obtenerEstadisticas = async function (schoolId = null, userId = null) {
   const query = {};
   if (schoolId) {
     query.$or = [
@@ -113,14 +124,16 @@ notificationSchema.statics.obtenerEstadisticas = async function(schoolId = null)
       { schoolId: null }
     ];
   }
-  
   const total = await this.countDocuments(query);
-  const noLeidas = await this.countDocuments({ ...query, leida: false });
+  const noLeidasQuery = { ...query };
+  if (userId) {
+    noLeidasQuery.leidaPor = { $ne: userId };
+  }
+  const noLeidas = await this.countDocuments(noLeidasQuery);
   const porTipo = await this.aggregate([
     { $match: query },
     { $group: { _id: '$tipo', count: { $sum: 1 } } }
   ]);
-  
   return { total, leidas: total - noLeidas, noLeidas, porTipo };
 };
 

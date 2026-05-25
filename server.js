@@ -55,6 +55,7 @@ import SupportController from './src/backend/controllers/supportController.js';
 import { validarConfigSuperAdmin } from './src/backend/middleware/superAdminAuth.js';
 import authRoutes from './src/backend/routes/authRoutes.js';
 import apiRoutes from './src/backend/routes/apiRoutes.js';
+import calendarRoutes from './src/backend/routes/calendarRoutes.js';
 import superAdminRoutes from './src/backend/routes/superAdminRoutes.js';
 import Document from './src/backend/models/Document.js';
 import Ticket from './src/backend/models/Ticket.js';
@@ -63,6 +64,7 @@ import Category from './src/backend/models/Category.js';
 import Department from './src/backend/models/Department.js';
 import adminRoutes from './src/backend/routes/adminRoutes.js';
 import Notification from './src/backend/models/Notification.js';
+import ReminderService from './src/backend/services/reminderService.js';
 import NotificationService from './src/backend/services/notificationService.js';
 import { verificarAccesoSistema } from './src/backend/middleware/systemAccess.js';
 import { protegerRuta, inyectarSchoolId } from './src/backend/middleware/auth.js';
@@ -131,6 +133,9 @@ console.log('  • GET /api/tasks/high-priority');
 console.log('  • GET /api/tasks/today');
 console.log('  • GET /api/tasks/stats');
 
+app.use('/api/calendar', calendarRoutes);
+console.log('📅 Calendar Routes montadas en /api/calendar');
+
 app.use('/api/superadmin', superAdminRoutes);
 console.log('🛡️  Super Admin Routes montadas en /api/superadmin');
 
@@ -188,6 +193,8 @@ mongoose.connect(MONGO_URI)
     } catch (error) {
       console.error('⚠️ Error creando notificación de inicio:', error.message);
     }
+    // 🆕 Iniciar servicio de recordatorios
+    ReminderService.start();
   })
   .catch(err => {
     console.error('❌ Error conectando a MongoDB:', err);
@@ -273,6 +280,131 @@ app.get('/api/dashboard', protegerRuta, inyectarSchoolId, async (req, res) => {
       message: 'Error al cargar el dashboard' 
     });
   }
+});
+
+// =============================================================================
+// 🆕 SINCRONIZACIÓN DE EVENTOS DEL CALENDARIO (localStorage → MongoDB)
+// =============================================================================
+app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) => {
+    try {
+        const { eventos } = req.body;
+        
+        if (!eventos || !Array.isArray(eventos)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Se requiere un array de eventos' 
+            });
+        }
+        
+        const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
+        
+        // Obtener los localId de los eventos enviados
+        const localIdsEnviados = eventos.map(ev => ev.id || ev._id).filter(Boolean);
+        
+        let creados = 0;
+        let actualizados = 0;
+        let eliminados = 0;
+        
+        // 🆕 Marcar como inactivos los eventos que ya NO están en localStorage
+        const schoolId = req.schoolId || 'superadmin';
+        const resultadoEliminacion = await CalendarEvent.updateMany(
+            { 
+                schoolId: schoolId,
+                activo: true,
+                localId: { $nin: localIdsEnviados }
+            },
+            { $set: { activo: false } }
+        );
+        eliminados = resultadoEliminacion.modifiedCount;
+        
+        // Crear o actualizar los eventos enviados
+        for (const ev of eventos) {
+            const localId = ev.id || ev._id;
+            if (!localId) continue;
+            
+            const eventData = {
+                localId: localId,
+                titulo: ev.title || ev.titulo || 'Evento sin título',
+                tipo: ev.type || ev.tipo || 'academic',
+                prioridad: ev.priority || ev.prioridad || 'normal',
+                color: ev.color || '#6366f1',
+                fecha: ev.startDate ? new Date(ev.startDate + 'T12:00:00.000Z') : new Date(),
+                fechaFin: ev.endDate ? new Date(ev.endDate + 'T12:00:00.000Z') : null,
+                horaInicio: ev.startTime || null,
+                horaFin: ev.endTime || null,
+                ubicacion: ev.location || ev.ubicacion || '',
+                descripcion: ev.description || ev.descripcion || '',
+                recurrencia: ev.recurrence || ev.recurrencia || 'none',
+                recordatorio: ev.reminder || ev.recordatorio || '',
+                recordatorio_enviado: false,
+                creadoPor: req.user?.usuario || 'sistema',
+                schoolId: schoolId,
+                activo: true
+            };
+            
+            const existente = await CalendarEvent.findOne({ localId: eventData.localId });
+            
+            if (existente) {
+                await CalendarEvent.updateOne({ localId: eventData.localId }, eventData);
+                actualizados++;
+            } else {
+                await CalendarEvent.create(eventData);
+                creados++;
+            }
+        }
+        
+        console.log(`📅 Sync: ${creados} creados, ${actualizados} actualizados, ${eliminados} eliminados`);
+        
+        // 🆕 Si se crearon o actualizaron eventos, verificar recordatorios inmediatamente
+        if (creados > 0 || actualizados > 0) {
+            try {
+                await ReminderService.runChecks();
+                console.log('⏰ Recordatorios verificados tras sync');
+            } catch (e) {
+                console.warn('⚠️ Error verificando recordatorios tras sync:', e.message);
+            }
+        }
+        
+        res.json({
+            success: true,
+            creados,
+            actualizados,
+            eliminados
+        });
+        
+    } catch (error) {
+        console.error('❌ Error sync calendario:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Endpoint de debug para ver el estado del evento
+app.get('/api/debug/calendar-check', async (req, res) => {
+    const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
+    const ahora = new Date();
+    
+    const evento = await CalendarEvent.findOne({ activo: true }).lean();
+    
+    if (!evento) return res.json({ error: 'No hay eventos' });
+    
+    const fechaEvento = new Date(evento.fecha);
+    const horasRestantes = Math.round((fechaEvento - ahora) / (1000 * 60 * 60));
+    
+    res.json({
+        evento: {
+            titulo: evento.titulo,
+            fecha: evento.fecha,
+            recordatorio: evento.recordatorio,
+            recordatorio_enviado: evento.recordatorio_enviado
+        },
+        ahora: ahora.toISOString(),
+        horasRestantes,
+        ventana1d: {
+            min: new Date(ahora.getTime() + 23*60*60*1000).toISOString(),
+            max: new Date(ahora.getTime() + 25*60*60*1000).toISOString()
+        },
+        deberiaNotificar: horasRestantes >= 23 && horasRestantes <= 25 && evento.recordatorio === '1d' && !evento.recordatorio_enviado
+    });
 });
 
 // -----------------------------
@@ -3394,43 +3526,26 @@ app.use((error, req, res, next) => {
 // Obtener todas las notificaciones con filtros
 app.get('/api/notifications', async (req, res) => {
   try {
-    console.log('📥 Obteniendo notificaciones con filtros:', req.query);
+    const { leida, tipo, prioridad, desde, hasta, limite = 50, pagina = 1 } = req.query;
     
-    const {
-      leida,
-      tipo,
-      prioridad,
-      desde,
-      hasta,
-      limite = 50,
-      pagina = 1
-    } = req.query;
-
     const filtros = {};
     if (leida !== undefined) filtros.leida = leida === 'true';
     if (tipo) filtros.tipo = tipo;
     if (prioridad) filtros.prioridad = prioridad;
     if (desde) filtros.desde = desde;
     if (hasta) filtros.hasta = hasta;
+    
+    // 🆕 Pasar el userId para filtrar notificaciones de recordatorio
+    filtros.userId = req.query.userId || null;
 
     const resultado = await NotificationService.obtener(filtros, {
       limite: parseInt(limite),
       pagina: parseInt(pagina)
     });
 
-    console.log(`✅ ${resultado.notificaciones.length} notificaciones obtenidas`);
-
-    res.json({
-      success: true,
-      data: resultado
-    });
-
+    res.json({ success: true, data: resultado });
   } catch (error) {
-    console.error('❌ Error obteniendo notificaciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener notificaciones: ' + error.message
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener notificaciones: ' + error.message });
   }
 });
 
@@ -3484,16 +3599,16 @@ app.get('/api/notifications/stats', async (req, res) => {
 app.patch('/api/notifications/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('✅ Marcando notificación como leída:', id);
+    const userId = req.query.userId || (req.user?.id || req.user?._id);
+    console.log('✅ Marcando notificación como leída:', id, 'userId:', userId);
 
-    const notificacion = await NotificationService.marcarLeida(id);
+    const notificacion = await NotificationService.marcarLeida(id, userId);
 
     res.json({
       success: true,
       message: 'Notificación marcada como leída',
       data: notificacion
     });
-
   } catch (error) {
     console.error('❌ Error marcando notificación:', error);
     res.status(500).json({
@@ -3506,16 +3621,17 @@ app.patch('/api/notifications/:id/read', async (req, res) => {
 // Marcar todas las notificaciones como leídas
 app.patch('/api/notifications/read-all', async (req, res) => {
   try {
-    console.log('✅ Marcando todas las notificaciones como leídas');
+    const schoolId = req.query.schoolId || null;
+    const userId = req.query.userId || (req.user?.id || req.user?._id);
+    console.log('✅ Marcando todas como leídas. userId:', userId);
 
-    const cantidad = await NotificationService.marcarTodasLeidas();
+    const cantidad = await NotificationService.marcarTodasLeidas(schoolId, userId);
 
     res.json({
       success: true,
       message: `${cantidad} notificación(es) marcada(s) como leída(s)`,
       data: { cantidad }
     });
-
   } catch (error) {
     console.error('❌ Error marcando notificaciones:', error);
     res.status(500).json({

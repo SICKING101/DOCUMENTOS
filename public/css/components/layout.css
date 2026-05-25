@@ -172,3 +172,19 @@
 .icons {
     margin-right: 0.7rem;
 }
+
+/* Transición suave del contenido principal */
+.main-content {
+    transition: margin-left var(--transition-sidebar);
+}
+
+/* Prevenir selección durante arrastre en mobile */
+@media (max-width: 768px) {
+    .sidebar,
+    .sidebar-overlay {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+}

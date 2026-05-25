@@ -1086,3 +1086,12 @@
         grid-template-columns: 1fr;
     }
 }
+
+.history-item[data-tipo="tarea_recordatorio"]      td:first-child { border-left-color: #f59e0b; }
+.history-item[data-tipo="calendario_recordatorio"]  td:first-child { border-left-color: #6366f1; }
+
+.history-item[data-tipo="tarea_recordatorio"]      .hrow-type__icon { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+.history-item[data-tipo="calendario_recordatorio"]  .hrow-type__icon { background: rgba(99,102,241,0.15);  color: #6366f1; }
+
+.dark-theme .history-item[data-tipo="tarea_recordatorio"]      .hrow-type__icon { background: rgba(245,158,11,0.22);  color: #fbbf24; }
+.dark-theme .history-item[data-tipo="calendario_recordatorio"]  .hrow-type__icon { background: rgba(99,102,241,0.22);  color: #a5b4fc; }

@@ -533,3 +533,37 @@
         max-width: 320px;
     }
 }
+
+/* Asegurar que el botón hamburguesa esté oculto por defecto en desktop */
+.topbar__menu-toggle {
+    display: none;
+}
+
+/* Transiciones suaves para el sidebar */
+.sidebar {
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Prevenir scroll cuando sidebar está abierto en mobile */
+body.sidebar-open {
+    overflow: hidden;
+}
+
+/* Overlay */
+.sidebar-overlay {
+    display: none;
+}
+
+/* Estados de hover mejorados para mobile */
+@media (hover: hover) {
+    .sidebar__nav-link:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
+}
+
+/* Estilo para el indicador de enlace activo */
+.sidebar__nav-link--active .sidebar__nav-active-indicator {
+    opacity: 1;
+    transform: scaleX(1);
+}
