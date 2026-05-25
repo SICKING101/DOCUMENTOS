@@ -417,7 +417,7 @@ function detectCategoryCreation(message) {
 
     // 🆕 AGREGADOS MÁS VERBOS: "crees", "quiero que crees", "podrías crear", etc.
     const hasCreateVerb = /\b(crea(?:r)?|crees?|nueva?|agrega(?:r)?|a[ñn]ade?|creame|quiero\s+que\s+crees?|podr[ií]as\s+crear?|me\s+creas?|me\s+haces?)\s+(?:una?\s+)?(?:nueva\s+)?(?:carpeta|categor[ií]a|folder|subcarpeta|subcategor[ií]a)\b/i.test(q);
-    
+
     if (!hasCreateVerb) {
         log.category('⛔ No se detectó verbo de creación de carpeta:', q.substring(0, 80));
         return { detected: false };
@@ -440,7 +440,7 @@ function detectCategoryCreation(message) {
         // 🆕 "en maestros llamadas José" (después de "crea una subcarpeta")
         /(?:crea|crees?|nueva)\s+(?:una\s+)?(?:subcarpeta|subcategor[ií]a)\s+en\s+/i,
     ];
-    
+
     for (const pattern of subcategoryPatterns) {
         if (pattern.test(q)) {
             isSubcategory = true;
@@ -487,7 +487,7 @@ function detectCategoryCreation(message) {
             // 🆕 "quiero que crees una categoría X" (sin "llamada")
             /quiero\s+que\s+crees?\s+(?:una?\s+)?(?:carpeta|categor[ií]a|folder)\s+["']?(.+?)["']?(?:\s*(?:,|\.|que|con|cuya|su|y|dentro|color|$))/i,
         ];
-        
+
         for (const pattern of nombrePatterns) {
             const match = original.match(pattern);
             if (match?.[1]) {
@@ -505,7 +505,7 @@ function detectCategoryCreation(message) {
                 let possibleName = afterKeyword[1]
                     .replace(/^(?:llamada|llamado|nombrada|nombrado|que\s+se\s+llame|que\s+se\s+llama|con\s+nombre\s+de)\s+/i, '')
                     .trim();
-                
+
                 // Tomar solo hasta el primer separador
                 const separators = [',', '.', ' con ', ' que ', ' cuyo ', ' su ', ' y ', ' de color ', ' color ', ' en '];
                 let endIndex = possibleName.length;
@@ -515,10 +515,10 @@ function detectCategoryCreation(message) {
                         endIndex = idx;
                     }
                 }
-                
+
                 nombre = possibleName.substring(0, endIndex).trim();
                 nombre = nombre.replace(/^["']|["']$/g, '').trim();
-                
+
                 if (nombre && nombre.length >= 2) {
                     log.category('✅ Nombre de carpeta (extracción alternativa):', nombre);
                 }
@@ -577,14 +577,14 @@ function detectCategoryCreation(message) {
         return { detected: false };
     }
 
-    log.category('✅ Carpeta detectada:', { 
-        nombre, 
-        isSubcategory, 
-        parent_id, 
-        color, 
-        descripcion: descripcion?.substring(0, 30) 
+    log.category('✅ Carpeta detectada:', {
+        nombre,
+        isSubcategory,
+        parent_id,
+        color,
+        descripcion: descripcion?.substring(0, 30)
     });
-    
+
     return {
         detected: true,
         nombre,
@@ -601,6 +601,27 @@ function detectTaskCreation(message) {
     const original = message.trim();
     const q = original.toLowerCase().trim();
 
+    // 🆕 Verificar si es tarea ASIGNADA (requiere abrir modal)
+    const isAssignedTask = /\b(asignada|asignar|asignale|as[ií]gnale|para\s+\w+|delega|delegar|encarga|encargar)\s+(?:una?\s+)?(?:tarea|task)\b/i.test(q) ||
+        /\b(?:tarea|task)\s+(?:asignada|para\s+\w+|delegada)\b/i.test(q) ||
+        /\b(?:crea|nueva|agrega)\s+(?:una\s+)?tarea\s+(?:asignada|para\s+\w+)\b/i.test(q);
+
+    // 🆕 Si es tarea asignada, NO crear directamente, abrir modal
+    if (isAssignedTask) {
+        log.nlp('⛔ Tarea ASIGNADA detectada - abriendo modal en lugar de crear automáticamente');
+        return {
+            detected: true,
+            isAssigned: true,
+            title: null,
+            description: '',
+            priority: 'media',
+            category: '',
+            dueDate: null,
+            hourLimit: null,
+            recordatorio: false
+        };
+    }
+
     const hasCreateVerb = /\b(crea(?:r)?|nueva?|agrega(?:r)?|a[ñn]ade?|registra(?:r)?|pon(?:er)?|haz|elabora|genera|creame|crear)\s+(?:una?\s+)?(?:nueva\s+)?tarea\b/i.test(q);
     if (!hasCreateVerb) return { detected: false };
 
@@ -610,6 +631,7 @@ function detectTaskCreation(message) {
     let category = '';
     let dueDate = null;
     let hourLimit = null;
+    let recordatorio = false; // 🆕 Variable para recordatorio
 
     let rest = original.replace(/(?:crea(?:r)?|nueva?|agrega(?:r)?|a[ñn]ade?|registra(?:r)?|pon(?:er)?|haz|elabora|genera|creame|crear)\s+(?:una?\s+)?(?:nueva\s+)?tarea\s*/i, '').trim();
 
@@ -627,15 +649,34 @@ function detectTaskCreation(message) {
         return { detected: false };
     }
 
+    // 🆕 Extraer recordatorio ANTES de procesar el título
+    // (para que no interfiera con la extracción del título)
+    const reminderPatterns = [
+        /\b(?:con|que\s+tenga|activa|activar|pon|poner|ponle|agrega|agregar|a[ñn]ade|incluye|incluir)\s+(?:el\s+)?recordatorio\b/i,
+        /\brecordatorio\s+(?:activado|activo|puesto|encendido|s[ií]|incluido)\b/i,
+        /\b(?:que\s+)?(?:me\s+)?(?:recuerde|notifique|avise|alerte|alerta)\b/i,
+        /\bcon\s+(?:recordatorio|alerta|notificaci[oó]n|aviso|bell|alarma)\b/i,
+        /\b(?:recordatorio|recordarme|recordar|notificaci[oó]n|alerta)\s*$/i,
+        /\b(?:y|e)\s+(?:que\s+)?(?:tenga|tener|active|activar|ponga|poner)\s+(?:el\s+)?recordatorio\b/i,
+        /\b(?:y|e)\s+recordatorio\b/i,
+    ];
+
+    for (const pattern of reminderPatterns) {
+        if (pattern.test(q)) {
+            recordatorio = true;
+            log.nlp('🔔 Recordatorio detectado');
+            break;
+        }
+    }
+
     // Extraer título
-    const llamadaMatch = rest.match(/^(?:llamada|llamado|titulada|titulado|nombrada|nombrado|con\s+titulo|con\s+título)\s+["']?(.+?)["']?\s*(?:,|\.|que|con|cuya|su|y|$)/i);
+    const llamadaMatch = rest.match(/^(?:llamada|llamado|titulada|titulado|nombrada|nombrado|con\s+titulo|con\s+título|que\s+se\s+llame|que\s+se\s+llama)\s+["']?(.+?)["']?\s*(?:,|\.|que|con|cuya|su|y|para|$)/i);
     if (llamadaMatch) {
         title = llamadaMatch[1].trim();
         rest = rest.substring(llamadaMatch[0].length).trim();
         log.nlp('Título vía "llamada":', title);
     } else {
         // 🆕 Buscar el título de forma más inteligente
-        // Primero, ver si hay una estructura "tarea X para Y" o "tarea X con Y"
         const structuralMatch = rest.match(/^["']?(.+?)["']?\s+(?:para|con|que|cuya|su|de|del|a|en|por)\s+/i);
         if (structuralMatch) {
             title = structuralMatch[1].trim();
@@ -648,6 +689,9 @@ function detectTaskCreation(message) {
                 /\s*,\s*con\b/i, /\s*,\s*cuya\b/i, /\s*,\s*su\b/i,
                 /\s*,\s*para\b/i, /\s*\.\s*que\b/i, /\s*\.\s*su\b/i, /\s*\.\s*la\b/i,
                 /\s+para\s+(?:el|la|los|las)\s+/i, /\s+con\s+(?:fecha|prioridad|descripci)/i,
+                /\s+que\s+venza\b/i, /\s+que\s+venza\s+el\b/i, /\s+que\s+se\s+llame\b/i,
+                /\s+y\s+(?:que\s+)?(?:tenga|venza|sea)\b/i, // 🆕 "y tenga recordatorio"
+                /\s+y\s+recordatorio\b/i, // 🆕 "y recordatorio"
             ];
             let titleEndIndex = rest.length;
             for (const sep of separators) {
@@ -674,10 +718,10 @@ function detectTaskCreation(message) {
 
     title = title.replace(/^["']|["']$/g, '').replace(/^[,.\s]+|[,.\s]+$/g, '').trim();
 
-    // 🆕 REGLA #3: Validar que el título NO sea una palabra vaga
-    const VAGUE_TITLES = /^(?:quiero|quisiera|necesito|deseo|me\s+gustar[ií]a|algo|una\s+tarea|un\s+documento|un\s+reporte|lo\s+que\s+sea|cualquier\s+cosa|no\s+s[eé])\s*$/i;
+    // 🆕 REGLA #3: Validar que el título NO sea una palabra vaga o relacionada con asignación
+    const VAGUE_TITLES = /^(?:quiero|quisiera|necesito|deseo|me\s+gustar[ií]a|algo|una\s+tarea|un\s+documento|un\s+reporte|lo\s+que\s+sea|cualquier\s+cosa|no\s+s[eé]|asignada|asignar|personal|delegada)\s*$/i;
     if (VAGUE_TITLES.test(title)) {
-        log.nlp('⛔ Título vago detectado:', title);
+        log.nlp('⛔ Título vago o de tipo de tarea detectado:', title);
         return { detected: false };
     }
 
@@ -753,8 +797,26 @@ function detectTaskCreation(message) {
         log.nlp('Fecha detectada:', dueDate.toLocaleDateString('es-MX'));
     }
 
-    log.nlp('✅ Tarea detectada:', { title, priority, category, dueDate: dueDate?.toISOString(), hourLimit });
-    return { detected: true, title, description, priority, category, dueDate, hourLimit };
+    log.nlp('✅ Tarea detectada:', {
+        title,
+        priority,
+        category,
+        dueDate: dueDate?.toISOString(),
+        hourLimit,
+        recordatorio // 🆕
+    });
+
+    return {
+        detected: true,
+        isAssigned: false,
+        title,
+        description,
+        priority,
+        category,
+        dueDate,
+        hourLimit,
+        recordatorio // 🆕 Se incluye en el retorno
+    };
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -954,11 +1016,8 @@ function detectPersonAction(message) {
 
 function detectReportCommand(message) {
     const q = message.toLowerCase().trim();
-
-    // ═══════════════════════════════════════════════════════════
-    // 🆕 REGLA #0: Si el mensaje es VAGO (solo dice "crea/genera un reporte" sin tipo ni formato)
-    // NO generar nada, dejar que detectVagueIntention lo maneje
-    // ═══════════════════════════════════════════════════════════
+    
+    // REGLA #0: Mensajes VAGOS
     const vagueReportPatterns = [
         /^(?:crea|genera|haz|quiero|necesito|deseo|quisiera|me\s+gustar[ií]a)\s+(?:un|el)\s+reporte\s*$/i,
         /^(?:crea|genera|haz|quiero|necesito|deseo|quisiera)\s+(?:un|el)\s+informe\s*$/i,
@@ -967,81 +1026,89 @@ function detectReportCommand(message) {
         /^(?:puedes|podr[ií]as)\s+(?:crear|generar|hacer)\s+(?:un|el)\s+reporte\s*$/i,
         /^(?:puedes|podr[ií]as)\s+(?:crear|generar|hacer)\s+(?:un|el)\s+informe\s*$/i,
         /^(?:crea|genera|haz)\s+(?:un\s+)?reporte\s+(?:por\s+)?(?:fa|favor|porfa|porfis|pls|please)\s*$/i,
+        /^(?:reporte|informe)\s*$/i,
     ];
-
-    for (const pattern of vagueReportPatterns) {
-        if (pattern.test(q)) {
-            log.nlp('⛔ detectReportCommand: Reporte VAGO detectado, NO generar. Lo manejará detectVagueIntention');
-            return { detected: false };
-        }
+    for (const p of vagueReportPatterns) {
+        if (p.test(q)) { log.nlp('⛔ VAGO'); return { detected: false }; }
     }
 
-    // ⛔ REGLA #1: Si el usuario quiere NAVEGAR a reportes, NO generar reporte
-    const navVerbs = /\b(ir|ve|vamos|navega|navegar|abre|abr[ií]|mostrame|mu[eé]strame|ll[ée]vame|llevame|ver|revisar|checar|consultar|acceder|cambiar\s+a|switch|mover\s+a|mu[eé]strame|ens[eé][ñn]ame|mostr[aá])\b/i;
+    // REGLA #1: NAVEGACIÓN a reportes
+    const navVerbs = /\b(ir|ve|vamos|navega|navegar|abre|abr[ií]|mostrame|mu[eé]strame|ll[ée]vame|llevame|ver|revisar|checar|consultar|acceder|cambiar\s+a|switch|mover\s+a|ens[eé][ñn]ame|mostr[aá])\b/i;
     const reportSection = /\b(reportes?|informes?|estad[ií]sticas?|gr[aá]ficas?|anal[ií]ticas?|an[aá]lisis)\b/i;
-    const toPreposition = /\b(a|al|hacia|en|para)\b/i;
-
-    if (navVerbs.test(q) && reportSection.test(q)) {
-        log.nlp('⛔ detectReportCommand: Detectada NAVEGACIÓN a reportes, NO generación');
-        return { detected: false };
+    if (navVerbs.test(q) && reportSection.test(q) && !/\b(?:gr[aá]fico|grafica)\b/i.test(q)) {
+        log.nlp('⛔ NAVEGACIÓN'); return { detected: false };
     }
-
-    // "Quiero ver reportes", "Necesito revisar informes" → NAVEGACIÓN
     if (/(?:quiero|necesito|deseo|quisiera|me\s+gustar[ií]a)\s+(?:ir\s+a\s+)?(?:ver|revisar|checar|consultar|mirar|acceder\s+a)\s+(?:los\s+)?(?:reportes|informes|estad[ií]sticas)/i.test(q)) {
-        log.nlp('⛔ detectReportCommand: Frase de consulta de reportes, NO generación');
-        return { detected: false };
+        log.nlp('⛔ CONSULTA'); return { detected: false };
     }
 
-    // ⛔ REGLA #2: Solo detectar generación si hay verbo de CREAR/EXPORTAR + algún detalle (tipo o formato)
+    // REGLA #2: Verbo O gráfico con tipo
     const generationVerbs = /\b(genera(?:r)?|crea(?:r)?|exporta(?:r)?|descarga(?:r)?|obt[eé]n|haz|elabora|producir|sacar|emitir|realiza(?:r)?|hacer|preparar)\b/i;
-
-    if (!generationVerbs.test(q)) {
-        // Si no hay verbo de generación, verificar si al menos menciona formato + reporte
-        const formats = /\b(excel|xlsx|csv|pdf|archivo|descargable|formato)\b/i;
-        const hasReport = /\b(reporte|informe)\b/i;
-        if (!formats.test(q) || !hasReport.test(q)) {
-            log.nlp('⛔ detectReportCommand: Sin verbo de generación ni formato explícito con reporte');
-            return { detected: false };
-        }
-    }
-
-    // 🆕 REGLA #3: Debe haber al menos UN detalle (tipo de reporte O formato)
-    const hasType = /\b(general|completo|todos?|por\s+categor[ií]a|categor[ií]as?|por\s+persona|personas?|por\s+vencer|pr[oó]ximos?\s+a\s+vencer|vencen\s+pronto|vencidos?|expirados?)\b/i.test(q);
+    const hasGenerationVerb = generationVerbs.test(q);
+    
+    const hasChart = /\b(gr[aá]fico|grafica|gr[aá]ficas?|reporte\s+gr[aá]fico|visual|visualizaci[oó]n|chart)\b/i.test(q);
+    const hasType = /\b(general|completo|todos?|por\s+categor[ií]a|categor[ií]as?|por\s+persona|personas?|por\s+vencer|pr[oó]ximos?\s+a\s+vencer|vencen\s+pronto|vencidos?|expirados?|por\s+estado|estado|tendencia|comparativa|comparativo|comparaci[oó]n|por\s+tipo|tipos?\s+de\s+archivo|l[ií]nea\s+de\s+tiempo|timeline|evoluci[oó]n)\b/i.test(q);
     const hasFormat = /\b(excel|xlsx|csv|pdf|archivo|descargable|formato)\b/i.test(q);
-
-    if (!hasType && !hasFormat) {
-        log.nlp('⛔ detectReportCommand: Sin tipo ni formato especificado, es VAGO');
-        return { detected: false };
+    
+    if (hasChart && hasType) {
+        log.nlp('✅ Gráfico con tipo');
+    } else if (hasGenerationVerb && (hasType || hasFormat)) {
+        log.nlp('✅ Verbo con tipo/formato');
+    } else {
+        log.nlp('⛔ Sin condiciones'); return { detected: false };
     }
 
-    const typeMap = [
-        { pattern: /\b(general|completo|todos?)\b/, type: 'general', label: 'General' },
-        { pattern: /\b(por\s+categor[ií]a|por\s+categor[ií]as?|categor[ií]as?)\b/, type: 'byCategory', label: 'por Categoría' },
-        { pattern: /\b(por\s+persona|por\s+usuario|personas?)\b/, type: 'byPerson', label: 'por Persona' },
-        { pattern: /\b(por\s+vencer|pr[oó]ximos?\s+a\s+vencer|vencen\s+pronto)\b/, type: 'expiring', label: 'Por Vencer' },
-        { pattern: /\b(vencidos?|expirados?)\b/, type: 'expired', label: 'Vencidos' },
-    ];
-
-    const fmtMap = [
-        { pattern: /\b(excel|xlsx)\b/, format: 'excel', label: 'Excel' },
-        { pattern: /\b(csv)\b/, format: 'csv', label: 'CSV' },
-        { pattern: /\b(pdf)\b/, format: 'pdf', label: 'PDF' },
-    ];
-
-    let reportType = 'general', typeLabel = 'General';
-    for (const { pattern, type, label } of typeMap) {
-        if (pattern.test(q)) { reportType = type; typeLabel = label; break; }
+    // ═══════════════════════════════════════════════════════════
+    // DETERMINAR TIPO
+    // ═══════════════════════════════════════════════════════════
+    let reportType, typeLabel;
+    
+    if (hasChart) {
+        // 🎯 GRÁFICO: detectar subtipo REAL (orden específico: comparativo y tendencia primero)
+        if (/\b(comparativa|comparaci[oó]n|comparar|comparativo)\b/i.test(q)) {
+            reportType = 'comparison'; typeLabel = 'Gráfico Comparativo';
+        } else if (/\b(tendencia|timeline|l[ií]nea\s+de\s+tiempo|evoluci[oó]n)\b/i.test(q)) {
+            reportType = 'timeline'; typeLabel = 'Gráfico de Tendencia';
+        } else if (/\b(por\s+tipo|tipos?\s+de\s+archivo|formatos?|tipo\s+de\s+archivo)\b/i.test(q)) {
+            reportType = 'type'; typeLabel = 'Gráfico por Tipo de Archivo';
+        } else if (/\b(por\s+categor[ií]a|por\s+categor[ií]as?|categor[ií]as?)\b/i.test(q)) {
+            reportType = 'byCategory'; typeLabel = 'Gráfico por Categoría';
+        } else if (/\b(por\s+persona|por\s+usuario|personas?)\b/i.test(q)) {
+            reportType = 'byPerson'; typeLabel = 'Gráfico por Persona';
+        } else if (/\b(por\s+estado|estado)\b/i.test(q)) {
+            reportType = 'expiring'; typeLabel = 'Gráfico por Estado';
+        } else if (/\b(por\s+vencer|pr[oó]ximos?\s+a\s+vencer|vencen\s+pronto)\b/i.test(q)) {
+            reportType = 'expiring'; typeLabel = 'Gráfico por Vencer';
+        } else if (/\b(vencidos?|expirados?)\b/i.test(q)) {
+            reportType = 'expired'; typeLabel = 'Gráfico de Vencidos';
+        } else if (/\b(general|completo|todos?)\b/i.test(q)) {
+            reportType = 'general'; typeLabel = 'Gráfico General';
+        } else {
+            reportType = 'chart'; typeLabel = 'Gráfico';
+        }
+    } else if (/\b(por\s+categor[ií]a|por\s+categor[ií]as?|categor[ií]as?)\b/i.test(q)) {
+        reportType = 'byCategory'; typeLabel = 'por Categoría';
+    } else if (/\b(por\s+persona|por\s+usuario|personas?)\b/i.test(q)) {
+        reportType = 'byPerson'; typeLabel = 'por Persona';
+    } else if (/\b(por\s+vencer|pr[oó]ximos?\s+a\s+vencer|vencen\s+pronto)\b/i.test(q)) {
+        reportType = 'expiring'; typeLabel = 'Por Vencer';
+    } else if (/\b(vencidos?|expirados?)\b/i.test(q)) {
+        reportType = 'expired'; typeLabel = 'Vencidos';
+    } else {
+        reportType = 'general'; typeLabel = 'General';
     }
 
+    // Formato
     let format = 'excel', formatLabel = 'Excel';
-    for (const { pattern, format: fmt, label } of fmtMap) {
-        if (pattern.test(q)) { format = fmt; formatLabel = label; break; }
-    }
+    if (/\b(csv)\b/i.test(q)) { format = 'csv'; formatLabel = 'CSV'; }
+    else if (/\b(pdf)\b/i.test(q)) { format = 'pdf'; formatLabel = 'PDF'; }
+    
+    if (hasChart) { format = 'chart'; formatLabel = 'Gráfico'; }
 
     const daysMatch = q.match(/(\d+)\s*d[ií]as?/i);
     const days = daysMatch ? Math.min(parseInt(daysMatch[1]), 365) : 30;
 
-    log.nlp(`✅ detectReportCommand: Generación detectada - tipo:${reportType}, formato:${format}`);
+    log.nlp(`✅ tipo=${reportType}, formato=${format}`);
     return { detected: true, reportType, format, formatLabel, typeLabel, days };
 }
 
@@ -1050,29 +1117,34 @@ function detectReportCommand(message) {
 // ──────────────────────────────────────────────────────────────
 function detectNavigationCommand(message) {
     const q = message.toLowerCase().trim();
+    
     const sectionMap = {
-        'dashboard': ['dashboard', 'inicio', 'principal', 'home', 'panel', 'escritorio', 'pantalla principal', 'menú principal'],
-        'documentos': ['documentos', 'documento', 'archivos', 'archivo', 'docs', 'expedientes', 'expediente'],
-        'personas': ['personas', 'persona', 'usuarios', 'usuario', 'empleados', 'personal', 'contactos', 'gente'],
-        'tareas': ['tareas', 'tarea', 'actividades', 'pendientes', 'to-do', 'todo', 'lista de tareas', 'mis tareas'],
-        'reportes': ['reportes', 'reporte', 'informes', 'informe', 'estadísticas', 'estadística', 'gráficas', 'análisis', 'analíticas'],
-        'papelera': ['papelera', 'eliminados', 'trash', 'reciclaje', 'basura', 'borrados'],
-        'notificaciones': ['notificaciones', 'notificación', 'alertas', 'alerta', 'avisos', 'aviso', 'campana', 'notificaciones'],
-        'ajustes': ['ajustes', 'ajuste', 'configuración', 'configuraciones', 'settings', 'preferencias', 'opciones'],
-        'soporte': ['soporte', 'ayuda', 'help', 'asistencia', 'faq', 'preguntas', 'asistente'],
-        'categorias': ['categorías', 'categoría', 'categorias', 'categoria', 'carpetas', 'carpeta', 'folders', 'folder'],
-        'departamentos': ['departamentos', 'departamento', 'áreas', 'área', 'secciones', 'sección', 'divisiones'],
+        'dashboard': ['dashboard', 'inicio', 'principal', 'home', 'panel', 'escritorio'],
+        'documentos': ['documentos', 'documento', 'archivos', 'archivo', 'docs', 'expedientes', 'categorías', 'categoría', 'categorias', 'carpetas', 'carpeta', 'folders', 'folder'],
+        'personas': ['personas', 'persona', 'usuarios', 'usuario', 'empleados', 'personal', 'contactos'],
+        'tareas': ['tareas', 'tarea', 'actividades', 'pendientes', 'to-do', 'todo'],
+        'reportes': ['reportes', 'reporte', 'informes', 'informe', 'estadísticas', 'gráficas', 'análisis'],
+        'papelera': ['papelera', 'eliminados', 'trash', 'reciclaje', 'basura'],
+        'notificaciones': ['notificaciones', 'notificación', 'alertas', 'alerta', 'avisos'],
+        'ajustes': ['ajustes', 'ajuste', 'configuración', 'settings', 'preferencias'],
+        'soporte': ['soporte', 'ayuda', 'help', 'asistencia', 'faq'],
+        'departamentos': ['departamentos', 'departamento', 'áreas', 'secciones'],
     };
-    const navVerbs = /\b(ir|ve|vamos|navega|navegar|abre|abr[ií]|mostrame|mu[eé]strame|ll[ée]vame|llevame|ver|revisar|checar|consultar|acceder|cambiar\s+a|switch|mover\s+a|mu[eé]strame|ens[eé][ñn]ame|mostr[aá]|ense[ñn]ar)\b/i;
+    
+    const navVerbs = /\b(ir|ve|vamos|navega|navegar|abre|abr[ií]|mostrame|mu[eé]strame|ll[ée]vame|llevame|ver|revisar|checar|consultar|acceder|cambiar\s+a|switch|mover\s+a|ens[eé][ñn]ame|mostr[aá]|ense[ñn]ar)\b/i;
     if (!navVerbs.test(q)) return { detected: false };
+
+    // EXCEPCIONES: gráficos NO son navegación
+    if (/\b(?:gr[aá]fico|grafica|reporte\s+gr[aá]fico)\s+por\s+(?:categor[ií]a|persona|estado|tipo)\b/i.test(q)) return { detected: false };
+    if (/\b(?:gr[aá]fico|grafica)\s+de\s+(?:estado|tendencia|comparativa)\b/i.test(q)) return { detected: false };
 
     for (const [section, keywords] of Object.entries(sectionMap)) {
         for (const keyword of keywords) {
             const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const pattern = new RegExp(`\\b${escaped}\\b`, 'i');
-            if (pattern.test(q)) {
-                if (section === 'tareas' && /\b(crea|nueva|agrega|a[ñn]ade)\s+(?:una\s+)?tarea/i.test(q)) continue;
-                if (section === 'reportes' && /\b(genera|crea|exporta|descarga)\s+(?:un\s+)?(?:reporte|informe)/i.test(q)) continue;
+            if (new RegExp(`\\b${escaped}\\b`, 'i').test(q)) {
+                if (section === 'tareas' && /\b(crea|nueva|agrega)\s+(?:una\s+)?tarea/i.test(q)) continue;
+                if (section === 'reportes' && /\b(genera|crea|exporta)\s+(?:un\s+)?(?:reporte|informe|gr[aá]fico)/i.test(q)) continue;
+                log.nav(`✅ ${section}`);
                 return { detected: true, target: section, label: NAV_MAP[section]?.label || section };
             }
         }
@@ -1085,93 +1157,117 @@ function detectNavigationCommand(message) {
 // ──────────────────────────────────────────────────────────────
 function detectVagueIntention(message) {
     const q = message.toLowerCase().trim();
-
-    // Patrones que indican que el usuario quiere hacer algo pero no especifica
+    
     const vaguePatterns = [
         {
-            // "Quiero crear un documento" / "Quiero subir un archivo" (sin más detalles)
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:crear|subir|agregar|a[ñn]adir)\s+(?:un|una)\s+(?:documento|archivo|doc|expediente|nuevo\s+documento|nuevo\s+archivo)\s*$/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:crear|subir|agregar)\s+(?:un|una)\s+(?:documento|archivo|doc|expediente)\s*$/i,
             response: {
-                message: `📄 **¿Quieres subir un documento?**\n\nPara eso, puedes:\n• Decir **"Subir documento"** para abrir el formulario`,
-                suggestions: ['Subir documento', 'Ir a Documentos', 'Ver documentos urgentes'],
+                message: `📄 **¿Quieres subir un documento?**\n\nDi **"Subir documento"** para abrir el formulario.`,
+                suggestions: ['Subir documento', 'Ir a Documentos'],
             }
         },
         {
-            // "Quiero crear una tarea" / "Quiero agregar una actividad" (sin detalles)
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:crear|agregar|a[ñn]adir|poner|hacer)\s+(?:un|una)\s+(?:tarea|nueva\s+tarea|actividad|to-?do|pendiente)\s*$/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:crear|agregar|poner|hacer)\s+(?:un|una)\s+(?:tarea|actividad|to-?do|pendiente)\s*$/i,
             response: {
-                message: `✅ **¿Quieres crear una tarea?**\n\nDime los detalles así:\n**"Crea una tarea llamada [nombre] para el [fecha]"**\n\nEjemplo: _"Crea una tarea llamada Reporte mensual para el viernes, prioridad alta"_\n\n¿Qué tarea necesitas crear?`,
-                suggestions: ['Crear tarea: Reporte mensual para el viernes', 'Ir a Tareas', 'Ver mis tareas'],
+                message: `✅ **¿Quieres crear una tarea?**\n\n**"Crea una tarea llamada [nombre] para el [fecha]"**\n\nEjemplo: _"Crea una tarea llamada Reporte mensual para el viernes, prioridad alta"_`,
+                suggestions: ['Crear tarea: Reporte mensual para el viernes', 'Ir a Tareas'],
             }
         },
         {
-            // "Quiero crear un reporte" / "Genera un informe" (sin tipo)
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:crear|generar|hacer|obtener|sacar|exportar|descargar)\s+(?:un|una)\s+(?:reporte|informe)\s*$/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito|crea|crear|genera|generar|haz|hacer|obt[ée]n|saca|exporta|descarga|elabora|realiza|prepara|puedes|podr[ií]as)\s+(?:un|el|los|mis)?\s*(?:reporte|informe)\s*$/i,
             response: {
-                message: `📊 **¿Qué tipo de reporte necesitas?**\n\nPuedo generar:\n• 📋 **Reporte General** — Todos los documentos del sistema\n• 📁 **Por Categoría** — Agrupados por carpeta\n• 👤 **Por Persona** — Documentos de cada persona\n• ⚠️ **Por Vencer** — Próximos a vencer\n• ❌ **Vencidos** — Documentos ya vencidos\n\nDime cuál necesitas y en qué formato (Excel o CSV).\nEjemplo: _"Genera un reporte de documentos vencidos en Excel"_`,
-                suggestions: ['Reporte general en Excel', 'Reporte por vencer', 'Reporte vencidos', 'Ir a Reportes'],
+                message: `📊 **¿Qué tipo de reporte necesitas?**\n\n• 📋 General • 📁 Por Categoría • 👤 Por Persona • ⚠️ Por Vencer • ❌ Vencidos • 📊 Gráfico\n\nEjemplo: _"Genera un reporte de vencidos en Excel"_`,
+                suggestions: ['Reporte general en Excel', 'Reporte gráfico por categoría', 'Ir a Reportes'],
             }
         },
         {
-            // "Quiero crear una persona" / "Quiero agregar un usuario" (sin detalles)
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:crear|agregar|a[ñn]adir|registrar|dar\s+de\s+alta)\s+(?:un|una)\s+(?:persona|usuario|empleado|nueva\s+persona|nuevo\s+usuario)\s*$/i,
+            pattern: /^(?:reporte|informe)\s*$/i,
             response: {
-                message: `👤 **¿Quieres agregar una persona?**\n\nNecesito estos datos:\n• 👤 **Nombre** (obligatorio)\n• 📧 **Email** (obligatorio)\n• 📞 Teléfono (opcional)\n• 🏢 Departamento\n• 💼 Puesto\n\nEjemplo: _"Crea una persona llamada Juan Pérez, email juan@example.com, departamento Sistemas, puesto Profesor"_\n\n¿Cuáles son los datos?`,
-                suggestions: ['Ir a Personas', 'Ver personas existentes'],
+                message: `📊 **¿Qué tipo de reporte?**\n\n• 📋 General • 📁 Por Categoría • 👤 Por Persona • ⚠️ Por Vencer • ❌ Vencidos • 📊 Gráfico`,
+                suggestions: ['Reporte general en Excel', 'Reporte gráfico por categoría', 'Ir a Reportes'],
             }
         },
         {
-            // "Quiero crear una carpeta" / "Quiero una categoría nueva"
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:crear|agregar|a[ñn]adir)\s+(?:un|una)\s+(?:carpeta|categor[ií]a|folder|nueva\s+carpeta)\s*$/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:crear|agregar|registrar)\s+(?:un|una)\s+(?:persona|usuario|empleado)\s*$/i,
             response: {
-                message: `📁 **¿Quieres crear una carpeta?**\n\nDime el nombre y opcionalmente:\n• 🎨 Un color (rojo, azul, verde, etc.)\n• 📝 Una descripción\n• 📂 Si es subcarpeta de otra\n\nEjemplo: _"Crea una carpeta llamada Reconocimientos color azul"_\n\n¿Cómo se llamará?`,
-                suggestions: ['Ir a Categorías', 'Ver carpetas existentes'],
+                message: `👤 **¿Quieres agregar una persona?**\n\nNecesito: Nombre y Email.\n\nEjemplo: _"Crea una persona llamada Juan, email juan@example.com"_`,
+                suggestions: ['Ir a Personas'],
             }
         },
         {
-            // "Quiero crear un evento en calendario"
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:crear|agregar|a[ñn]adir|poner|hacer)\s+(?:un|una)\s+(?:evento|cita|reuni[oó]n|compromiso|recordatorio)\b/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:crear|agregar)\s+(?:un|una)\s+(?:carpeta|categor[ií]a|folder)\s*$/i,
             response: {
-                message: `📅 **¿Quieres crear un evento en el calendario?**\n\nActualmente no tengo acceso directo al calendario, pero puedo:\n• ✅ **Crear una tarea** con fecha límite y recordatorio\n• 🗺️ **Navegar al calendario** para que lo crees manualmente\n\nEjemplo: _"Crea una tarea llamada Junta de profesores para el lunes a las 10am"_\n\n¿Qué prefieres?`,
-                suggestions: ['Ir a Calendario', 'Crear tarea: Junta para el lunes', 'Ir a Tareas'],
+                message: `📁 **¿Quieres crear una carpeta?**\n\nDime el nombre: _"Crea una carpeta llamada [nombre]"_`,
+                suggestions: ['Ir a Categorías'],
             }
         },
         {
-            // "Quiero enviar un ticket a soporte"
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:enviar|mandar|abrir|crear|reportar)\s+(?:un|una)\s+(?:ticket|soporte|ayuda|reporte\s+de\s+error|problema)\b/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:crear|agregar|poner)\s+(?:un|una)\s+(?:evento|cita|reuni[oó]n)\b/i,
             response: {
-                message: `🎫 **¿Quieres contactar a soporte?**\n\nPuedo:\n• 🗺️ **Navegar a Soporte** para que llenes el formulario\n• 📝 **Describirme el problema** y te ayudo a redactarlo\n\nEjemplo: _"Ir a soporte"_\n\n¿Qué prefieres?`,
-                suggestions: ['Ir a Soporte', 'Ir a Ayuda', 'Ver mis tareas'],
+                message: `📅 **¿Quieres crear un evento?**\n\nPuedo crear una tarea con fecha. Ejemplo: _"Crea una tarea llamada Junta para el lunes a las 10am"_`,
+                suggestions: ['Crear tarea: Junta para el lunes', 'Ir a Calendario'],
             }
         },
         {
-            // "Quiero recuperar un documento de papelera"
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:recuperar|restaurar|sacar|ver)\s+(?:un|una|el|los)\s+(?:documento|archivo|doc)\s+(?:de|en)\s+(?:la\s+)?papelera\b/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:enviar|mandar|abrir)\s+(?:un|una)\s+(?:ticket|soporte|ayuda)\b/i,
             response: {
-                message: `🗑️ **¿Quieres recuperar un documento de la papelera?**\n\nPuedo:\n• 🗺️ **Navegar a la Papelera** para que veas los documentos eliminados\n• 🔍 **Buscar un documento específico** si me dices el nombre\n\nEjemplo: _"Ir a papelera" o "Buscar documento contrato en papelera"_\n\n¿Qué prefieres?`,
-                suggestions: ['Ir a Papelera', 'Ir a Documentos', 'Buscar en papelera'],
+                message: `🎫 **¿Quieres contactar a soporte?**\n\nDi **"Ir a soporte"** para navegar a la sección.`,
+                suggestions: ['Ir a Soporte'],
             }
         },
         {
-            // "Quiero ver/consultar documentos" (sin especificar)
-            pattern: /\b(?:quiero|quisiera|me\s+gustar[ií]a|deseo|necesito)\s+(?:ver|revisar|consultar|checar|mirar|acceder\s+a)\s+(?:los\s+)?(?:documentos|archivos|docs|expedientes)\s*$/i,
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:recuperar|restaurar)\s+(?:un|una)\s+(?:documento|archivo)\s+(?:de|en)\s+papelera\b/i,
             response: {
-                message: `📄 **¿Quieres ver los documentos?**\n\nPuedo:\n• 🗺️ **Navegar a Documentos** para que veas todos\n• 🔍 **Buscar uno específico** — dime el nombre\n• ⚠️ **Mostrarte los urgentes** — próximos a vencer\n• ❌ **Mostrarte los vencidos**\n\n¿Qué prefieres?`,
-                suggestions: ['Ir a Documentos', 'Documentos urgentes', 'Documentos vencidos'],
+                message: `🗑️ **¿Quieres recuperar un documento?**\n\nDi **"Ir a papelera"** para ver los eliminados.`,
+                suggestions: ['Ir a Papelera'],
+            }
+        },
+        {
+            pattern: /\b(?:quiero|quisiera|deseo|necesito)\s+(?:ver|revisar|consultar)\s+(?:los\s+)?(?:documentos|archivos)\s*$/i,
+            response: {
+                message: `📄 **¿Quieres ver documentos?**\n\nPuedo navegar a Documentos, mostrar urgentes o vencidos.`,
+                suggestions: ['Ir a Documentos', 'Documentos urgentes'],
+            }
+        },
+        {
+            pattern: /^(?:crea|crear|nueva|nuevo|agrega|haz|hacer)\s+(?:una?\s+)?(?:tarea|task|actividad)\s*$/i,
+            response: {
+                message: `✅ **¿Qué tarea?**\n\n_"Crea una tarea llamada [nombre] para el [fecha]"_`,
+                suggestions: ['Crear tarea: Reporte para el viernes', 'Ir a Tareas'],
+            }
+        },
+        {
+            pattern: /^(?:crea|crear|nueva|nuevo|agrega)\s+(?:una?\s+)?(?:carpeta|categor[ií]a|folder)\s*$/i,
+            response: {
+                message: `📁 **¿Nombre de la carpeta?**\n\n_"Crea una carpeta llamada [nombre]"_`,
+                suggestions: ['Ir a Categorías'],
+            }
+        },
+        {
+            pattern: /^(?:crea|crear|nueva|nuevo|agrega|registra)\s+(?:una?\s+)?(?:persona|usuario|empleado)\s*$/i,
+            response: {
+                message: `👤 **¿Datos de la persona?**\n\nNombre y Email obligatorios.`,
+                suggestions: ['Ir a Personas'],
+            }
+        },
+        {
+            pattern: /^(?:mu[eé]strame|ver|mostrar|abre|historial|history|conversaciones)\s*$/i,
+            response: {
+                message: `📜 **¿Ver historial?**\n\nPuedo mostrar el historial completo.`,
+                suggestions: ['Ver historial', 'Dashboard'],
             }
         },
     ];
-
+    
     for (const { pattern, response } of vaguePatterns) {
         if (pattern.test(q)) {
-            log.nlp('Intención vaga detectada:', response.message.substring(0, 60));
+            log.nlp('✅ Intención vaga:', response.message.substring(0, 50));
             return { detected: true, ...response };
         }
     }
-
+    
     return { detected: false };
 }
-
 // ──────────────────────────────────────────────────────────────
 // 🆕 DETECCIÓN DE ACCIONES SOBRE CARPETAS (eliminar/ver/editar)
 // ──────────────────────────────────────────────────────────────
@@ -1266,33 +1362,33 @@ function detectCategoryAction(message) {
 // ──────────────────────────────────────────────────────────────
 function detectConfirmation(message) {
     const q = message.toLowerCase().trim();
-    
+
     // Patrones de confirmación
     const confirmPatterns = [
         /^s[ií]\s*(?:,\s*)?(?:eliminar|borrar|quitar|elim[íi]nalo|b[oó]rralo|qu[íi]talo|adelante|procede|continua|confirma|confirmo|aceptar|ok|okay|sip|simon|claro|dale|va|sale|por\s+favor|porfa|porfis)?\s*$/i,
         /^(?:eliminar|borrar|quitar|adelante|procede|continua|confirma|confirmo|aceptar|ok|okay|sip|simon|claro|dale|va|sale)\s*$/i,
         /^(?:s[ií]|yes|yep|yeah)\s*$/i,
     ];
-    
+
     // Patrones de cancelación
     const cancelPatterns = [
         /^no\s*(?:,\s*)?(?:eliminar|borrar|quitar|gracias|cancelar|cancela|cancelado)?\s*$/i,
         /^(?:cancelar|cancela|cancelado|nop|nope|nel|mejor\s+no|no\s+gracias)\s*$/i,
         /^(?:no|nop|nope|nel)\s*$/i,
     ];
-    
+
     for (const pattern of confirmPatterns) {
         if (pattern.test(q)) {
             return { detected: true, type: 'confirm' };
         }
     }
-    
+
     for (const pattern of cancelPatterns) {
         if (pattern.test(q)) {
             return { detected: true, type: 'cancel' };
         }
     }
-    
+
     return { detected: false };
 }
 
@@ -1322,6 +1418,7 @@ class ChatbotAssistant {
         this._fullscreenStatus = null;
         this._fullscreenSuggestions = null;
         this._pendingAction = null; // 🆕 Para confirmaciones (eliminar carpeta, etc.)
+        this._lastSavedKey = null; // 🆕 Para evitar guardar duplicados
 
         // Voice
         this.recognition = null;
@@ -1573,8 +1670,78 @@ class ChatbotAssistant {
         }
     }
 
+// 🆕 Generar reporte gráfico (navega a reportes y carga el gráfico)
+async _generateChartDirectly(cmd) {
+    const { reportType } = cmd;
+    log.report('📊 Generando gráfico:', { reportType });
+    
+    try {
+        this._setStatus('Cargando gráfico...');
+        
+        // 🆕 MAPEO COMPLETO
+        const chartTypeMap = {
+            'chart': 'category',
+            'byCategory': 'category',
+            'byPerson': 'person',
+            'expiring': 'status',
+            'expired': 'status',
+            'general': 'category',
+            'type': 'type',
+            'timeline': 'timeline',
+            'comparison': 'comparison',
+        };
+        
+        const chartType = chartTypeMap[reportType] || 'category';
+        
+        await this._doNavigate('reportes');
+        await new Promise(r => setTimeout(r, 1500));
+        
+        const select = document.getElementById('chartType');
+        const periodSelect = document.getElementById('chartPeriod');
+        
+        if (select) {
+            const nativeSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+            nativeSetter.call(select, chartType);
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            log.report(`✅ chartType → ${chartType}`);
+        }
+        
+        if (periodSelect) {
+            const nativeSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+            nativeSetter.call(periodSelect, '30d');
+            periodSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        
+        await new Promise(r => setTimeout(r, 1500));
+        
+        if (typeof window.loadReportChart === 'function') {
+            try { await window.loadReportChart(); } catch (e) { log.warn('Error:', e.message); }
+        }
+        
+        const typeNames = {
+            'category': 'por Categoría',
+            'status': 'por Estado',
+            'person': 'por Persona',
+            'type': 'por Tipo de Archivo',
+            'timeline': 'de Tendencia',
+            'comparison': 'Comparativo',
+        };
+        const typeName = typeNames[chartType] || '';
+        
+        return {
+            success: true,
+            message: `📊 **Gráfico ${typeName} cargado**\n\nLa sección de Reportes muestra el gráfico solicitado.\n\nPuedes:\n• Cambiar el tipo de gráfico en el selector\n• Cambiar el período de tiempo\n• **Exportar a Excel** con el gráfico incluido\n• Ver diferentes estilos: Barras, Dona, Pastel, Área Polar`,
+        };
+    } catch (error) {
+        log.error('Error:', error.message);
+        return { success: false, message: `❌ **Error al cargar el gráfico**\n\n${error.message}` };
+    } finally {
+        this._setStatus('En línea');
+    }
+}
+
     // ─── CREACIÓN DE TAREAS ────────────────────────────────────
-    async _createTaskDirectly(title, dueDate = null, description = '', priority = 'media', category = '', hourLimit = null) {
+    async _createTaskDirectly(title, dueDate = null, description = '', priority = 'media', category = '', hourLimit = null, recordatorio = false) {
         log.task('Creando tarea:', { title, priority, category, hourLimit });
         if (!title?.trim() || title.trim().length < 2) return { success: false, message: '❌ El título debe tener al menos 2 caracteres.' };
         if (title.length > 200) return { success: false, message: '❌ El título no puede exceder los 200 caracteres.' };
@@ -1609,7 +1776,7 @@ class ChatbotAssistant {
                 creado_por_nombre: this.userContext?.nombre || 'ARIA',
                 fecha_limite: fechaLimite,
                 hora_limite: hourLimit || null,
-                recordatorio: false,
+                recordatorio: recordatorio || false, // 🆕 Usar el parámetro
                 activo: true,
             };
 
@@ -2037,65 +2204,47 @@ async _sendMessage() {
     this.isLoading = true;
     this._updateSendBtn();
 
-    // ═══════════════════════════════════════════════════════
-    // 🆕 PRIORIDAD 0: Confirmaciones pendientes (Sí/No)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 0: Confirmaciones pendientes
     if (this._pendingAction) {
         const confirmation = detectConfirmation(text);
-        
         if (confirmation.detected && confirmation.type === 'confirm') {
             this._showTyping(true);
             this._setStatus('Procesando...');
-            
-            // Ejecutar la acción pendiente
             const action = this._pendingAction;
-            this._pendingAction = null; // Limpiar pendiente
-            
+            this._pendingAction = null;
             if (action.type === 'deleteCategory') {
                 const result = await this._deleteCategoryDirectly(action.id);
                 this._showTyping(false);
                 this._appendBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver todas las carpetas', 'Ir a Categorías']
-                        : ['Intentar de nuevo', 'Ver todas las carpetas'],
+                    suggestions: result.success ? ['Ver todas las carpetas', 'Ir a Categorías'] : ['Intentar de nuevo', 'Ver todas las carpetas'],
                 });
                 if (result.success) showAlert('🗑️ Carpeta eliminada', 'success', 2500);
             } else if (action.type === 'deleteTask') {
                 const result = await this._deleteTaskDirectly(action.id);
                 this._showTyping(false);
                 this._appendBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas']
-                        : ['Intentar de nuevo', 'Ver mis tareas'],
+                    suggestions: result.success ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas'] : ['Intentar de nuevo', 'Ver mis tareas'],
                 });
                 if (result.success) showAlert('🗑️ Tarea eliminada', 'success', 2500);
             } else if (action.type === 'deletePerson') {
                 const result = await this._deletePersonDirectly(action.id);
                 this._showTyping(false);
                 this._appendBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver todas las personas', 'Crear nueva persona', 'Ir a Personas']
-                        : ['Intentar de nuevo', 'Ver todas las personas'],
+                    suggestions: result.success ? ['Ver todas las personas', 'Crear nueva persona', 'Ir a Personas'] : ['Intentar de nuevo', 'Ver todas las personas'],
                 });
                 if (result.success) showAlert('🗑️ Persona eliminada', 'success', 2500);
             } else if (action.type === 'clearHistory') {
-                await this._clearChat();
+                await this._newConversation();
                 this._showTyping(false);
-                this._appendBotMessage('✅ **Historial borrado exitosamente.**', {
-                    suggestions: ['Resumen del sistema', 'Mis tareas'],
-                });
+                this._appendBotMessage('✅ **Historial borrado exitosamente.**', { suggestions: ['Resumen del sistema', 'Mis tareas'] });
                 showAlert('Historial borrado', 'success', 2500);
             } else {
                 this._showTyping(false);
-                this._appendBotMessage('❌ Acción pendiente desconocida.', {
-                    suggestions: ['¿Qué puedes hacer?'],
-                });
+                this._appendBotMessage('❌ Acción pendiente desconocida.', { suggestions: ['¿Qué puedes hacer?'] });
             }
-            
             this._finishLoading();
             return;
         }
-        
         if (confirmation.detected && confirmation.type === 'cancel') {
             this._pendingAction = null;
             this._showTyping(true);
@@ -2109,47 +2258,37 @@ async _sendMessage() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 1: Navegación Explícita
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 1: Navegación
     const navCmd = detectNavigationCommand(text);
     if (navCmd.detected) {
-        log.nav(`Navegación prioritaria: ${navCmd.target}`);
+        log.nav(`Navegación: ${navCmd.target}`);
         this._showTyping(true);
         await new Promise(r => setTimeout(r, 400));
         this._showTyping(false);
-
         const navInfo = NAV_MAP[navCmd.target];
         if (navInfo) {
             this._appendBotMessage(`📍 **Navegando a ${navInfo.label}...**`, {
                 suggestions: ['Ver mis tareas', 'Dashboard', 'Documentos urgentes'],
                 isNavigation: true,
             });
-            // Cerrar ventana y navegar
             setTimeout(() => this._doNavigate(navCmd.target), 500);
         }
         this._finishLoading();
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // 🆕 PRIORIDAD 1.5: Intenciones vagas (preguntar al usuario)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 1.5: Intenciones vagas
     const vagueIntention = detectVagueIntention(text);
     if (vagueIntention.detected) {
         this._showTyping(true);
         await new Promise(r => setTimeout(r, 500));
         this._showTyping(false);
-        this._appendBotMessage(vagueIntention.message, {
-            suggestions: vagueIntention.suggestions,
-        });
+        this._appendBotMessage(vagueIntention.message, { suggestions: vagueIntention.suggestions });
         this._finishLoading();
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 2: Comando de ajustes
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 2: Ajustes
     const settingCmd = detectSettingCommand(text);
     if (settingCmd.detected) {
         this._showTyping(true);
@@ -2157,9 +2296,7 @@ async _sendMessage() {
         this._showTyping(false);
         const result = executeSettingAction(settingCmd.action);
         this._appendBotMessage(result.message, {
-            suggestions: result.success
-                ? ['Ver ajustes actuales', 'Cambiar densidad', 'Ir a Ajustes']
-                : ['Ir a Ajustes', '¿Qué puedes hacer?'],
+            suggestions: result.success ? ['Ver ajustes actuales', 'Cambiar densidad', 'Ir a Ajustes'] : ['Ir a Ajustes', '¿Qué puedes hacer?'],
             isSettingResult: true,
         });
         if (result.success) showAlert('⚙️ Ajuste aplicado', 'success', 2500);
@@ -2167,94 +2304,67 @@ async _sendMessage() {
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 3: Creación de tareas
-    // ═══════════════════════════════════════════════════════
     const taskCmd = detectTaskCreation(text);
     if (taskCmd.detected) {
+        if (taskCmd.isAssigned) {
+            this._showTyping(true);
+            await new Promise(r => setTimeout(r, 400));
+            this._showTyping(false);
+            this._appendBotMessage(
+                `✅ **Abriendo el formulario de tareas**\n\nPara tareas asignadas, llena el formulario directamente. El modal ya está abierto.`,
+                { suggestions: ['Ir a Tareas', 'Ver mis tareas', 'Crear tarea personal'], actions: [{ action: 'openModal', target: 'addTask' }] }
+            );
+            setTimeout(() => this._doOpenModal('addTask'), 300);
+            this._finishLoading();
+            return;
+        }
         this._showTyping(true);
         this._setStatus('Creando tarea...');
-        const result = await this._createTaskDirectly(
-            taskCmd.title,
-            taskCmd.dueDate,
-            taskCmd.description,
-            taskCmd.priority,
-            taskCmd.category,
-            taskCmd.hourLimit
-        );
+        const result = await this._createTaskDirectly(taskCmd.title, taskCmd.dueDate, taskCmd.description, taskCmd.priority, taskCmd.category, taskCmd.hourLimit, taskCmd.recordatorio);
         this._showTyping(false);
         this._appendBotMessage(result.message, {
-            suggestions: result.success
-                ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas']
-                : ['Intentar de nuevo', 'Ir a Tareas'],
-            isTaskResult: true,
-            taskCreated: result.success,
+            suggestions: result.success ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas'] : ['Intentar de nuevo', 'Ir a Tareas'],
+            isTaskResult: true, taskCreated: result.success,
         });
         if (result.success) showAlert('✅ Tarea creada', 'success', 3000);
         this._finishLoading();
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 3.5: Acciones sobre tareas (eliminar/completar/editar)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 3.5: Acciones sobre tareas
     const taskActionCmd = detectTaskAction(text);
     if (taskActionCmd.detected) {
         this._showTyping(true);
         this._setStatus('Procesando...');
-
         if (taskActionCmd.action === 'delete') {
             const match = await this._findTaskByName(taskActionCmd.taskName);
             this._showTyping(false);
             if (match.found) {
-                // 🆕 Guardar acción pendiente para confirmación
-                this._pendingAction = {
-                    type: 'deleteTask',
-                    id: match.task._id,
-                    name: match.task.titulo,
-                    timestamp: Date.now()
-                };
-                
-                // Auto-limpiar después de 60 segundos
-                setTimeout(() => {
-                    if (this._pendingAction?.id === match.task._id) {
-                        this._pendingAction = null;
-                    }
-                }, 60000);
-                
-                this._appendBotMessage(
-                    `⚠️ **¿Estás seguro de eliminar la tarea "${match.task.titulo}"?**\n\nEsta acción no se puede deshacer.\n\nResponde **"Sí, eliminar"** para confirmar o **"No"** para cancelar.`,
-                    { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver mis tareas'] }
-                );
+                this._pendingAction = { type: 'deleteTask', id: match.task._id, name: match.task.titulo, timestamp: Date.now() };
+                setTimeout(() => { if (this._pendingAction?.id === match.task._id) this._pendingAction = null; }, 60000);
+                this._appendBotMessage(`⚠️ **¿Estás seguro de eliminar la tarea "${match.task.titulo}"?**\n\nResponde **"Sí, eliminar"** o **"No"**.`, { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver mis tareas'] });
             } else {
-                this._appendBotMessage(match.message, {
-                    suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
-                });
+                this._appendBotMessage(match.message, { suggestions: ['Ver mis tareas', 'Crear nueva tarea'] });
             }
             this._finishLoading();
             return;
         }
-
         if (taskActionCmd.action === 'complete') {
             const match = await this._findTaskByName(taskActionCmd.taskName);
             this._showTyping(false);
             if (match.found) {
                 const result = await this._completeTaskDirectly(match.task._id);
                 this._appendBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver mis tareas', 'Tarea más urgente', 'Ir a Tareas']
-                        : ['Intentar de nuevo', 'Ver mis tareas'],
+                    suggestions: result.success ? ['Ver mis tareas', 'Tarea más urgente', 'Ir a Tareas'] : ['Intentar de nuevo', 'Ver mis tareas'],
                 });
                 if (result.success) showAlert('✅ Tarea completada', 'success', 2500);
             } else {
-                this._appendBotMessage(match.message, {
-                    suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
-                });
+                this._appendBotMessage(match.message, { suggestions: ['Ver mis tareas', 'Crear nueva tarea'] });
             }
             this._finishLoading();
             return;
         }
-
         if (taskActionCmd.action === 'edit') {
             const match = await this._findTaskByName(taskActionCmd.taskName);
             this._showTyping(false);
@@ -2262,161 +2372,64 @@ async _sendMessage() {
                 const updates = {};
                 if (taskActionCmd.field === 'titulo') updates.titulo = taskActionCmd.newValue;
                 else if (taskActionCmd.field === 'descripcion') updates.descripcion = taskActionCmd.newValue;
-                else if (taskActionCmd.field === 'prioridad') {
-                    const p = taskActionCmd.newValue.toLowerCase();
-                    updates.prioridad = ['alta', 'critica', 'media', 'baja'].includes(p) ? p : 'media';
-                } else if (taskActionCmd.field === 'fecha_limite') {
-                    const parsedDate = parseDateFromText(taskActionCmd.newValue);
-                    if (parsedDate) {
-                        parsedDate.setHours(23, 59, 59, 999);
-                        updates.fecha_limite = parsedDate;
-                    }
-                }
-
+                else if (taskActionCmd.field === 'prioridad') { const p = taskActionCmd.newValue.toLowerCase(); updates.prioridad = ['alta','critica','media','baja'].includes(p) ? p : 'media'; }
+                else if (taskActionCmd.field === 'fecha_limite') { const pd = parseDateFromText(taskActionCmd.newValue); if (pd) { pd.setHours(23,59,59,999); updates.fecha_limite = pd; } }
                 if (Object.keys(updates).length > 0) {
                     const result = await this._updateTaskDirectly(match.task._id, updates);
-                    this._appendBotMessage(result.message, {
-                        suggestions: result.success
-                            ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas']
-                            : ['Intentar de nuevo', 'Ver mis tareas'],
-                    });
+                    this._appendBotMessage(result.message, { suggestions: result.success ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas'] : ['Intentar de nuevo', 'Ver mis tareas'] });
                     if (result.success) showAlert('✏️ Tarea actualizada', 'success', 2500);
                 } else {
-                    this._appendBotMessage('❌ No pude entender qué campo actualizar.', {
-                        suggestions: ['Ver mis tareas', '¿Qué puedes hacer?'],
-                    });
+                    this._appendBotMessage('❌ No pude entender qué campo actualizar.', { suggestions: ['Ver mis tareas', '¿Qué puedes hacer?'] });
                 }
             } else {
-                this._appendBotMessage(match.message, {
-                    suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
-                });
+                this._appendBotMessage(match.message, { suggestions: ['Ver mis tareas', 'Crear nueva tarea'] });
             }
             this._finishLoading();
             return;
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // 🆕 PRIORIDAD 3.55: Acciones sobre carpetas (eliminar/ver/editar)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 3.55: Acciones sobre carpetas
     const categoryActionCmd = detectCategoryAction(text);
     if (categoryActionCmd.detected) {
         this._showTyping(true);
         this._setStatus('Procesando...');
-
         if (categoryActionCmd.action === 'delete') {
             const match = await this._findCategoryByName(categoryActionCmd.categoryName);
             this._showTyping(false);
             if (match.found) {
-                // 🆕 Guardar acción pendiente para confirmación
-                this._pendingAction = {
-                    type: 'deleteCategory',
-                    id: match.category._id,
-                    name: match.category.nombre,
-                    timestamp: Date.now()
-                };
-                
-                // Auto-limpiar después de 60 segundos
-                setTimeout(() => {
-                    if (this._pendingAction?.id === match.category._id) {
-                        this._pendingAction = null;
-                    }
-                }, 60000);
-                
-                this._appendBotMessage(
-                    `⚠️ **¿Estás seguro de eliminar la carpeta "${match.category.nombre}"?**\n\n${
-                        match.category.descripcion ? `📝 Descripción: ${match.category.descripcion}\n` : ''
-                    }Esta acción no se puede deshacer si la carpeta está vacía.\n\nResponde **"Sí, eliminar"** para confirmar o **"No"** para cancelar.`,
-                    { 
-                        suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver todas las carpetas'],
-                    }
-                );
+                this._pendingAction = { type: 'deleteCategory', id: match.category._id, name: match.category.nombre, timestamp: Date.now() };
+                setTimeout(() => { if (this._pendingAction?.id === match.category._id) this._pendingAction = null; }, 60000);
+                this._appendBotMessage(`⚠️ **¿Estás seguro de eliminar la carpeta "${match.category.nombre}"?**\n\nResponde **"Sí, eliminar"** o **"No"**.`, { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver todas las carpetas'] });
             } else {
-                this._appendBotMessage(match.message, { 
-                    suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] 
-                });
+                this._appendBotMessage(match.message, { suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] });
             }
             this._finishLoading();
             return;
         }
-
         if (categoryActionCmd.action === 'view') {
             const match = await this._findCategoryByName(categoryActionCmd.categoryName);
             this._showTyping(false);
             if (match.found) {
                 const c = match.category;
-                const info = `📁 **${c.nombre}**\n\n📝 **Descripción:** ${c.descripcion || 'Sin descripción'}\n🎨 **Color:** ${c.color || '#4f46e5'}\n📂 **Subcarpetas:** ${c.children?.length || 0}\n📄 **Documentos:** ${c.documentCount || 'No especificado'}`;
-                this._appendBotMessage(info, { 
-                    suggestions: ['Ver todas las carpetas', 'Ir a Categorías', 'Eliminar carpeta'] 
-                });
+                this._appendBotMessage(`📁 **${c.nombre}**\n\n📝 ${c.descripcion || 'Sin descripción'}\n🎨 Color: ${c.color || '#4f46e5'}`, { suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] });
             } else {
-                this._appendBotMessage(match.message, { 
-                    suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] 
-                });
+                this._appendBotMessage(match.message, { suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] });
             }
             this._finishLoading();
             return;
         }
-
-        if (categoryActionCmd.action === 'edit') {
-            const match = await this._findCategoryByName(categoryActionCmd.categoryName);
-            this._showTyping(false);
-            if (match.found) {
-                const updates = {};
-                if (categoryActionCmd.field === 'nombre') updates.nombre = categoryActionCmd.newValue;
-                else if (categoryActionCmd.field === 'color') {
-                    const colorMap = {
-                        'rojo': '#ef4444', 'azul': '#3b82f6', 'verde': '#10b981',
-                        'amarillo': '#f59e0b', 'morado': '#8b5cf6', 'naranja': '#f97316',
-                        'gris': '#6b7280', 'negro': '#1f2937', 'blanco': '#f9fafb',
-                    };
-                    updates.color = colorMap[categoryActionCmd.newValue.toLowerCase()] || categoryActionCmd.newValue;
-                }
-
-                if (Object.keys(updates).length > 0) {
-                    const result = await this._updateCategoryDirectly(match.category._id, updates);
-                    this._appendBotMessage(result.message, {
-                        suggestions: result.success
-                            ? ['Ver todas las carpetas', 'Ir a Categorías']
-                            : ['Intentar de nuevo', 'Ir a Categorías'],
-                    });
-                    if (result.success) showAlert('✏️ Carpeta actualizada', 'success', 2500);
-                } else {
-                    this._appendBotMessage('❌ No pude entender qué campo actualizar.', {
-                        suggestions: ['Ver todas las carpetas', '¿Qué puedes hacer?'],
-                    });
-                }
-            } else {
-                this._appendBotMessage(match.message, {
-                    suggestions: ['Ver todas las carpetas', 'Ir a Categorías'],
-                });
-            }
-            this._finishLoading();
-            return;
-        }
-
         this._finishLoading();
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 3.6: Creación de carpetas
-    // ═══════════════════════════════════════════════════════
     const categoryCmd = detectCategoryCreation(text);
     if (categoryCmd.detected) {
         this._showTyping(true);
-
         if (categoryCmd.missing.length > 0) {
             this._showTyping(false);
-            const faltantes = categoryCmd.missing.map(f => `• ${f}`).join('\n');
-            this._appendBotMessage(
-                `⚠️ **Faltan datos para crear la carpeta**\n\n❌ **Falta:**\n${faltantes}\n\n${
-                    categoryCmd.isSubcategory
-                        ? 'Necesito saber en qué carpeta va. Ejemplo: "Crea una subcarpeta llamada 2024 dentro de Reconocimientos"'
-                        : 'Dime el nombre de la carpeta.'
-                }`,
-                { suggestions: ['Ver carpetas existentes', 'Ir a Categorías'] }
-            );
+            this._appendBotMessage(`⚠️ **Faltan datos**\n\n${categoryCmd.missing.map(f => `• ${f}`).join('\n')}`, { suggestions: ['Ver carpetas existentes', 'Ir a Categorías'] });
         } else {
             this._setStatus('Creando carpeta...');
             let parent_id = null;
@@ -2424,239 +2437,121 @@ async _sendMessage() {
                 parent_id = await this._resolveCategoryId(categoryCmd.parent_id);
                 if (!parent_id) {
                     this._showTyping(false);
-                    this._appendBotMessage(
-                        `❌ No encontré la carpeta **"${categoryCmd.parent_id}"**.\n\nVerifica el nombre e intenta de nuevo.`,
-                        { suggestions: ['Ver carpetas existentes', 'Ir a Categorías'] }
-                    );
+                    this._appendBotMessage(`❌ No encontré la carpeta **"${categoryCmd.parent_id}"**.`, { suggestions: ['Ver carpetas existentes', 'Ir a Categorías'] });
                     this._finishLoading();
                     return;
                 }
             }
-
-            const result = await this._createCategoryDirectly({
-                nombre: categoryCmd.nombre,
-                descripcion: categoryCmd.descripcion,
-                color: categoryCmd.color,
-                icon: categoryCmd.icon,
-                parent_id: parent_id,
-            });
+            const result = await this._createCategoryDirectly({ nombre: categoryCmd.nombre, descripcion: categoryCmd.descripcion, color: categoryCmd.color, icon: categoryCmd.icon, parent_id });
             this._showTyping(false);
-            this._appendBotMessage(result.message, {
-                suggestions: result.success
-                    ? ['Ver todas las carpetas', 'Ir a Categorías']
-                    : ['Intentar de nuevo', 'Ir a Categorías'],
-            });
+            this._appendBotMessage(result.message, { suggestions: result.success ? ['Ver todas las carpetas', 'Ir a Categorías'] : ['Intentar de nuevo', 'Ir a Categorías'] });
             if (result.success) showAlert('📁 Carpeta creada', 'success', 3000);
         }
         this._finishLoading();
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 3.7: Creación de personas
-    // ═══════════════════════════════════════════════════════
     const personCmd = detectPersonCreation(text);
     if (personCmd.detected) {
         this._showTyping(true);
-
-        // Si faltan campos, preguntar por ellos
         if (personCmd.missing.length > 0 && !personCmd.hasAllRequired) {
             this._showTyping(false);
-
-            // Construir lista de campos faltantes
             const faltantes = personCmd.missing.map(f => `• ${f}`).join('\n');
-            const yaProporcionados = [];
-            if (personCmd.nombre) yaProporcionados.push(`👤 Nombre: **${personCmd.nombre}**`);
-            if (personCmd.email) yaProporcionados.push(`📧 Email: **${personCmd.email}**`);
-            if (personCmd.telefono) yaProporcionados.push(`📞 Teléfono: **${personCmd.telefono}**`);
-            if (personCmd.departamento) yaProporcionados.push(`🏢 Departamento: **${personCmd.departamento}**`);
-            if (personCmd.puesto) yaProporcionados.push(`💼 Puesto: **${personCmd.puesto}**`);
-
-            let mensaje = `⚠️ **Faltan datos para crear la persona**\n\n`;
-            if (yaProporcionados.length > 0) {
-                mensaje += `✅ **Datos que ya tengo:**\n${yaProporcionados.join('\n')}\n\n`;
-            }
-            mensaje += `❌ **Falta:**\n${faltantes}\n\n`;
-            mensaje += `Por favor, dime los datos faltantes. Ejemplo:\n_"El email es juan@example.com, su teléfono es 5512345678 y su puesto es Profesor"_`;
-
-            this._appendBotMessage(mensaje, {
-                suggestions: ['Cancelar creación', 'Ver personas existentes', 'Intentar de nuevo'],
-            });
+            const ya = [];
+            if (personCmd.nombre) ya.push(`👤 ${personCmd.nombre}`);
+            if (personCmd.email) ya.push(`📧 ${personCmd.email}`);
+            let m = `⚠️ **Faltan datos**\n\n`;
+            if (ya.length) m += `✅ Ya tengo:\n${ya.join('\n')}\n\n`;
+            m += `❌ Falta:\n${faltantes}`;
+            this._appendBotMessage(m, { suggestions: ['Cancelar creación', 'Ver personas existentes'] });
         } else {
-            // Validar email
-            const emailValidation = this._validateEmail(personCmd.email);
-            if (!emailValidation.valid) {
-                this._showTyping(false);
-                this._appendBotMessage(
-                    `❌ **${emailValidation.message}**\n\nProporcionaste: _${personCmd.email}_\n\nIntenta de nuevo con un email válido.`,
-                    { suggestions: ['Intentar de nuevo', 'Cancelar creación'] }
-                );
-                this._finishLoading();
-                return;
-            }
-
-            // Validar teléfono
-            const phoneValidation = this._validatePhone(personCmd.telefono);
-            if (!phoneValidation.valid) {
-                this._showTyping(false);
-                this._appendBotMessage(
-                    `❌ **${phoneValidation.message}**\n\nProporcionaste: _${personCmd.telefono}_\n\nIntenta de nuevo.`,
-                    { suggestions: ['Intentar de nuevo', 'Cancelar creación'] }
-                );
-                this._finishLoading();
-                return;
-            }
-
-            // Validar nombre
-            const nameValidation = this._validateName(personCmd.nombre);
-            if (!nameValidation.valid) {
-                this._showTyping(false);
-                this._appendBotMessage(
-                    `❌ **${nameValidation.message}**`,
-                    { suggestions: ['Intentar de nuevo', 'Cancelar creación'] }
-                );
-                this._finishLoading();
-                return;
-            }
-
+            const ev = this._validateEmail(personCmd.email);
+            if (!ev.valid) { this._showTyping(false); this._appendBotMessage(`❌ ${ev.message}`, { suggestions: ['Intentar de nuevo'] }); this._finishLoading(); return; }
+            const pv = this._validatePhone(personCmd.telefono);
+            if (!pv.valid) { this._showTyping(false); this._appendBotMessage(`❌ ${pv.message}`, { suggestions: ['Intentar de nuevo'] }); this._finishLoading(); return; }
+            const nv = this._validateName(personCmd.nombre);
+            if (!nv.valid) { this._showTyping(false); this._appendBotMessage(`❌ ${nv.message}`, { suggestions: ['Intentar de nuevo'] }); this._finishLoading(); return; }
             this._setStatus('Creando persona...');
-            const result = await this._createPersonDirectly({
-                nombre: personCmd.nombre,
-                email: personCmd.email,
-                telefono: personCmd.telefono || '',
-                departamento: personCmd.departamento || '',
-                puesto: personCmd.puesto || ''
-            });
+            const result = await this._createPersonDirectly({ nombre: personCmd.nombre, email: personCmd.email, telefono: personCmd.telefono || '', departamento: personCmd.departamento || '', puesto: personCmd.puesto || '' });
             this._showTyping(false);
-            this._appendBotMessage(result.message, {
-                suggestions: result.success
-                    ? ['Ver todas las personas', 'Crear otra persona', 'Ir a Personas']
-                    : ['Intentar de nuevo', 'Ir a Personas'],
-            });
+            this._appendBotMessage(result.message, { suggestions: result.success ? ['Ver todas las personas', 'Ir a Personas'] : ['Intentar de nuevo', 'Ir a Personas'] });
             if (result.success) showAlert('👤 Persona creada', 'success', 3000);
         }
         this._finishLoading();
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 3.8: Acciones sobre personas (eliminar/ver/editar)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 3.8: Acciones sobre personas
     const personActionCmd = detectPersonAction(text);
     if (personActionCmd.detected) {
         this._showTyping(true);
         this._setStatus('Procesando...');
-
         if (personActionCmd.action === 'delete') {
             const match = await this._findPersonByName(personActionCmd.personName);
             this._showTyping(false);
             if (match.found) {
-                // 🆕 Guardar acción pendiente para confirmación
-                this._pendingAction = {
-                    type: 'deletePerson',
-                    id: match.person._id,
-                    name: match.person.nombre,
-                    timestamp: Date.now()
-                };
-                
-                setTimeout(() => {
-                    if (this._pendingAction?.id === match.person._id) {
-                        this._pendingAction = null;
-                    }
-                }, 60000);
-                
-                this._appendBotMessage(
-                    `⚠️ **¿Estás seguro de eliminar a "${match.person.nombre}"?**\n\nEsta acción no se puede deshacer.\n\nResponde **"Sí, eliminar"** para confirmar o **"No"** para cancelar.`,
-                    { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver todas las personas'] }
-                );
+                this._pendingAction = { type: 'deletePerson', id: match.person._id, name: match.person.nombre, timestamp: Date.now() };
+                setTimeout(() => { if (this._pendingAction?.id === match.person._id) this._pendingAction = null; }, 60000);
+                this._appendBotMessage(`⚠️ **¿Eliminar a "${match.person.nombre}"?**\n\nResponde **"Sí, eliminar"** o **"No"**.`, { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver todas las personas'] });
             } else {
-                this._appendBotMessage(match.message, { 
-                    suggestions: ['Ver todas las personas', 'Ir a Personas'] 
-                });
+                this._appendBotMessage(match.message, { suggestions: ['Ver todas las personas', 'Ir a Personas'] });
             }
             this._finishLoading();
             return;
         }
-
         if (personActionCmd.action === 'view') {
             const match = await this._findPersonByName(personActionCmd.personName);
             this._showTyping(false);
             if (match.found) {
                 const p = match.person;
-                const info = `👤 **${p.nombre}**\n\n📧 **Email:** ${p.email}\n📞 **Teléfono:** ${p.telefono || 'No especificado'}\n🏢 **Departamento:** ${p.departamento || 'No especificado'}\n💼 **Puesto:** ${p.puesto || 'No especificado'}`;
-                this._appendBotMessage(info, { 
-                    suggestions: ['Ver todas las personas', 'Editar persona', 'Ir a Personas'] 
-                });
+                this._appendBotMessage(`👤 **${p.nombre}**\n\n📧 ${p.email}\n📞 ${p.telefono || 'N/A'}\n🏢 ${p.departamento || 'N/A'}\n💼 ${p.puesto || 'N/A'}`, { suggestions: ['Ver todas las personas', 'Ir a Personas'] });
             } else {
-                this._appendBotMessage(match.message, { 
-                    suggestions: ['Ver todas las personas', 'Ir a Personas'] 
-                });
+                this._appendBotMessage(match.message, { suggestions: ['Ver todas las personas', 'Ir a Personas'] });
             }
             this._finishLoading();
             return;
         }
-
-        if (personActionCmd.action === 'edit') {
-            const match = await this._findPersonByName(personActionCmd.personName);
-            this._showTyping(false);
-            if (match.found) {
-                const updates = {};
-                updates[personActionCmd.field] = personActionCmd.newValue;
-
-                // Validar email si se está editando
-                if (personActionCmd.field === 'email') {
-                    const emailValidation = this._validateEmail(personActionCmd.newValue);
-                    if (!emailValidation.valid) {
-                        this._appendBotMessage(`❌ **${emailValidation.message}**`, { 
-                            suggestions: ['Intentar de nuevo'] 
-                        });
-                        this._finishLoading();
-                        return;
-                    }
-                }
-
-                // Validar teléfono
-                if (personActionCmd.field === 'telefono') {
-                    const phoneValidation = this._validatePhone(personActionCmd.newValue);
-                    if (!phoneValidation.valid) {
-                        this._appendBotMessage(`❌ **${phoneValidation.message}**`, { 
-                            suggestions: ['Intentar de nuevo'] 
-                        });
-                        this._finishLoading();
-                        return;
-                    }
-                }
-
-                const result = await this._updatePersonDirectly(match.person._id, updates);
-                this._appendBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver todas las personas', 'Ir a Personas']
-                        : ['Intentar de nuevo', 'Ir a Personas'],
-                });
-                if (result.success) showAlert('✏️ Persona actualizada', 'success', 2500);
-            } else {
-                this._appendBotMessage(match.message, { 
-                    suggestions: ['Ver todas las personas', 'Ir a Personas'] 
-                });
-            }
-            this._finishLoading();
-            return;
-        }
+        this._finishLoading();
+        return;
     }
 
     // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 4: Generación de Reportes (con verbo explícito)
+    // 🎯 PRIORIDAD 4: Reportes (CORREGIDO - DETECTA GRÁFICOS)
     // ═══════════════════════════════════════════════════════
     const reportCmd = detectReportCommand(text);
     if (reportCmd.detected) {
-        log.report('Generación de reporte detectada');
+        log.report('🎯 Reporte detectado:', { reportType: reportCmd.reportType, format: reportCmd.format });
+        
+        // 🆕 Verificar si el mensaje contiene palabras de GRÁFICO
+        const hasChartWord = /\b(gr[aá]fico|grafica|gr[aá]ficas?|reporte\s+gr[aá]fico|visual|visualizaci[oó]n|chart)\b/i.test(text);
+        
+        // 🆕 Si es gráfico (por palabra clave o por formato)
+        if (hasChartWord || reportCmd.format === 'chart') {
+            log.report('📊 ES UN GRÁFICO → _generateChartDirectly');
+            this._showTyping(true);
+            const result = await this._generateChartDirectly(reportCmd);
+            this._showTyping(false);
+            this._appendBotMessage(result.message, {
+                suggestions: result.success
+                    ? ['Gráfico por estado', 'Gráfico por persona', 'Gráfico de tendencia', 'Exportar a Excel']
+                    : ['Intentar de nuevo', 'Ir a Reportes'],
+                isReportResult: true,
+            });
+            if (result.success) showAlert('📊 Gráfico cargado', 'success', 3000);
+            this._finishLoading();
+            return;
+        }
+        
+        // Reporte NORMAL (Excel/CSV)
+        log.report('📄 ES UN REPORTE NORMAL → _generateReportDirectly');
         this._showTyping(true);
         this._setStatus('Generando reporte...');
         const result = await this._generateReportDirectly(reportCmd);
         this._showTyping(false);
         this._appendBotMessage(result.message, {
             suggestions: result.success
-                ? ['Generar otro reporte', 'Ir a Reportes']
+                ? ['Generar otro reporte', 'Ir a Reportes', 'Ver gráfico']
                 : ['Intentar de nuevo', 'Ir a Reportes'],
             isReportResult: true,
         });
@@ -2665,39 +2560,28 @@ async _sendMessage() {
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 5: IA (Groq / rule-based backend)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 5: IA Backend
     this._showTyping(true);
     this._setStatus('ARIA está pensando...');
-
     try {
         const res = await api.call('/chatbot/message', { method: 'POST', body: { message: text } });
         this._showTyping(false);
-
         if (!res?.success || !res.data) throw new Error(res?.message || 'Respuesta inválida');
-
         const { message: rawMsg, actions = [], suggestions = [], latency } = res.data;
         const cleanMsg = this._cleanJSON(rawMsg);
-
         log.info(`Respuesta en ${latency}ms | acciones: ${actions.length}`);
         this._appendBotMessage(cleanMsg, { actions, suggestions, latency });
         if (suggestions?.length) this._renderSuggestions(suggestions);
-
         if (actions?.length) {
             setTimeout(async () => {
                 for (const action of actions) await this._executeAction(action);
             }, text.length > 40 ? 900 : 500);
         }
-
         this._setStatus('En línea');
     } catch (err) {
         log.error('Error en sendMessage:', err);
         this._showTyping(false);
-        this._appendBotMessage(
-            `⚠️ **Error de conexión**\n\nNo pude procesar tu mensaje.\n\n_${err.message}_`,
-            { isError: true }
-        );
+        this._appendBotMessage(`⚠️ **Error de conexión**\n\nNo pude procesar tu mensaje.\n\n_${err.message}_`, { isError: true });
         this._setStatus('Error — reintentando...');
         setTimeout(() => this._setStatus('En línea'), 4000);
     } finally {
@@ -2705,19 +2589,50 @@ async _sendMessage() {
     }
 }
 
-    _appendBotMessage(content, opts = {}) {
-        const msg = {
-            role: 'assistant', content, timestamp: new Date().toISOString(),
-            actions: opts.actions || [], suggestions: opts.suggestions || [],
-            latency: opts.latency || null, isError: opts.isError || false,
-            isTaskResult: opts.isTaskResult || false, isReportResult: opts.isReportResult || false,
-            isSettingResult: opts.isSettingResult || false, taskCreated: opts.taskCreated || false,
-        };
-        this.messages.push(msg);
-        this._appendMessage(msg);
-        this._saveLocal();
-        if (msg.suggestions?.length) this._renderSuggestions(msg.suggestions);
+_appendBotMessage(content, opts = {}) {
+    const msg = {
+        role: 'assistant', content, timestamp: new Date().toISOString(),
+        actions: opts.actions || [], suggestions: opts.suggestions || [],
+        latency: opts.latency || null, isError: opts.isError || false,
+        isTaskResult: opts.isTaskResult || false, isReportResult: opts.isReportResult || false,
+        isSettingResult: opts.isSettingResult || false, taskCreated: opts.taskCreated || false,
+        source: opts.source || 'frontend-local',
+    };
+    this.messages.push(msg);
+    this._appendMessage(msg);
+    this._saveLocal();
+    if (msg.suggestions?.length) this._renderSuggestions(msg.suggestions);
+    
+    // 🆕 Guardar en el servidor (async, no bloquea)
+    setTimeout(() => {
+        this._saveToServer().catch(e => log.warn('Error guardando:', e.message));
+    }, 500);
+}
+
+// 🆕 Guardar última conversación en el servidor
+async _saveToServer() {
+    if (this.messages.length < 2) return; // Necesita al menos un par user+assistant
+    
+    const lastUser = [...this.messages].reverse().find(m => m.role === 'user');
+    const lastBot = [...this.messages].reverse().find(m => m.role === 'assistant');
+    
+    if (!lastUser || !lastBot) return;
+    
+    try {
+        await api.call('/chatbot/message', { 
+            method: 'POST', 
+            body: { 
+                message: lastUser.content,
+                _saveOnly: true, // 🆕 Flag para solo guardar
+                _botResponse: lastBot.content,
+                _source: lastBot.source || 'rule-based',
+                _latency: lastBot.latency || 0,
+            } 
+        });
+    } catch (e) {
+        // Silencioso - no queremos molestar al usuario
     }
+}
 
     _finishLoading() {
         this.isLoading = false;
@@ -2778,29 +2693,144 @@ async _sendMessage() {
         this._setStatus(`Abriendo ${MODAL_LABELS[target] || target}...`);
         this.close();
         await new Promise(r => setTimeout(r, 200));
+
+        // 🆕 Función helper para intentar abrir un modal vía window.funcion()
+        const tryOpen = (fnName) => {
+            if (typeof window[fnName] === 'function') {
+                try {
+                    window[fnName]();
+                    log.action(`✅ Modal abierto vía window.${fnName}()`);
+                    return true;
+                } catch (e) {
+                    log.warn(`Error con window.${fnName}():`, e.message);
+                }
+            }
+            return false;
+        };
+
+        // 🆕 Función helper para intentar click en botón
+        const tryClick = (selector) => {
+            const btn = document.querySelector(selector);
+            if (btn && btn.offsetParent !== null) {
+                btn.click();
+                log.action(`✅ Modal abierto vía click en "${selector}"`);
+                return true;
+            }
+            return false;
+        };
+
+        // 🆕 Función helper para disparar evento personalizado
+        const tryEvent = (eventName) => {
+            window.dispatchEvent(new CustomEvent(eventName, { detail: { source: 'aria' } }));
+            log.action(`📡 Evento ${eventName} disparado`);
+        };
+
+        // ═══════════════════════════════════════════════════════════
+        // MAPA DE FUNCIONES POR TARGET
+        // ═══════════════════════════════════════════════════════════
         const fnMap = {
-            upload: ['openDocumentModal', 'openUploadModal'],
-            addPerson: ['openPersonModal', 'showPersonModal'],
-            addTask: ['openTaskModal', 'showTaskModal'],
+            upload: ['openDocumentModal', 'openUploadModal', 'showUploadModal'],
+            addPerson: ['openPersonModal', 'showPersonModal', 'showAddPersonModal'],
+            addTask: [
+                'openTaskModal',        // 🆕 Nueva función global (tasks.js)
+                'showTaskModal',        // 🆕 Alias
+                'openAssignTaskModal',  // 🆕 Modal de asignación
+                'openPersonalTaskModal',// 🆕 Modal personal
+                'showAddTaskModal',     // 🆕 Otro alias común
+            ],
             addCategory: ['openCategoryModal', 'showCategoryModal'],
             addDepartment: ['openDepartmentModal', 'showDeptModal'],
         };
+
+        // Intentar funciones globales
         for (const fn of (fnMap[target] || [])) {
-            if (typeof window[fn] === 'function') {
-                try { window[fn](); this._setStatus('En línea'); return true; } catch (_) { }
+            if (tryOpen(fn)) { this._setStatus('En línea'); return true; }
+        }
+
+        // 🆕 Intentar directamente con taskManager si existe
+        if (target === 'addTask' && window.taskManager) {
+            try {
+                // Si hay usuarios disponibles, abrir modal de asignación (más completo)
+                if (window.taskManager.users && window.taskManager.users.length > 0) {
+                    window.taskManager.openAssignModal();
+                    log.action('✅ Modal abierto vía taskManager.openAssignModal()');
+                    this._setStatus('En línea');
+                    return true;
+                } else {
+                    window.taskManager.openPersonalModal();
+                    log.action('✅ Modal abierto vía taskManager.openPersonalModal()');
+                    this._setStatus('En línea');
+                    return true;
+                }
+            } catch (e) {
+                log.warn('Error con taskManager:', e.message);
             }
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // MAPA DE BOTONES POR TARGET
+        // ═══════════════════════════════════════════════════════════
         const btnMap = {
-            upload: ['#uploadDocumentBtn', '#addDocumentBtn'],
-            addPerson: ['#addPersonBtn'],
-            addTask: ['#addTaskBtn', '#newTaskBtn'],
-            addCategory: ['#addCategoryBtn'],
-            addDepartment: ['#addDepartmentBtn'],
+            upload: ['#uploadDocumentBtn', '#addDocumentBtn', '#btnUpload', '[data-action="upload"]'],
+            addPerson: ['#addPersonBtn', '#btnAddPerson', '[data-action="add-person"]'],
+            addTask: [
+                '#addAssignTaskBtn',    // 🆕 Botón de "Asignar tarea" en la tabla
+                '#addPersonalTaskBtn',  // 🆕 Botón de "Nueva nota" en post-its
+                '#addTaskBtn',          // Genérico
+                '#newTaskBtn',          // Genérico
+                '#btnNewTask',          // Genérico
+                '[data-action="add-task"]',
+                '.add-task-btn',
+            ],
+            addCategory: ['#addCategoryBtn', '#btnAddCategory', '[data-action="add-category"]'],
+            addDepartment: ['#addDepartmentBtn', '#btnAddDepartment', '[data-action="add-department"]'],
         };
+
+        // Intentar botones
         for (const sel of (btnMap[target] || [])) {
-            const btn = document.querySelector(sel);
-            if (btn) { btn.click(); this._setStatus('En línea'); return true; }
+            if (tryClick(sel)) { this._setStatus('En línea'); return true; }
         }
+
+        // 🆕 Búsqueda heurística: buscar cualquier botón visible que contenga texto relacionado
+        if (target === 'addTask') {
+            const allButtons = document.querySelectorAll('button, a, .btn, [role="button"]');
+            for (const btn of allButtons) {
+                const text = (btn.textContent || '').toLowerCase();
+                const id = (btn.id || '').toLowerCase();
+                const cls = (btn.className || '').toLowerCase();
+
+                if (
+                    text.includes('nueva tarea') || text.includes('crear tarea') ||
+                    text.includes('agregar tarea') || text.includes('añadir tarea') ||
+                    text.includes('asignar tarea') || text.includes('nueva nota') ||
+                    text.includes('new task') || text.includes('add task') ||
+                    id.includes('task') || cls.includes('task')
+                ) {
+                    if (btn.offsetParent !== null) {
+                        btn.click();
+                        log.action(`✅ Modal abierto vía botón heurístico: "${text.substring(0, 30)}"`);
+                        this._setStatus('En línea');
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 🆕 Último recurso: disparar eventos
+        const eventMap = {
+            upload: ['openUploadModal', 'aria:openUploadModal'],
+            addPerson: ['openPersonModal', 'aria:openPersonModal'],
+            addTask: ['openTaskModal', 'aria:openTaskModal', 'showTaskModal'],
+            addCategory: ['openCategoryModal', 'aria:openCategoryModal'],
+            addDepartment: ['openDepartmentModal', 'aria:openDepartmentModal'],
+        };
+
+        for (const evt of (eventMap[target] || [])) {
+            tryEvent(evt);
+        }
+
+        log.warn(`❌ No se pudo abrir el modal: ${target}`);
+        this._setStatus('En línea');
         return false;
     }
 
@@ -2923,83 +2953,266 @@ async _sendMessage() {
 
     // 🆕 Abrir modal de historial completo
     async _openHistoryModal() {
+        log.info('Abriendo modal de historial...');
         this._setStatus('Cargando historial...');
+
         try {
             const res = await api.call('/chatbot/history?limit=50', { method: 'GET' });
-            if (res?.success && res.data?.length > 0) {
-                this._showHistoryModal(res.data, res.total || res.data.length);
+            log.info('Respuesta del servidor:', res);
+
+            if (res?.success) {
+                const conversations = res.data || [];
+                const total = res.total || conversations.length;
+                log.info(`✅ ${conversations.length} conversaciones cargadas, total: ${total}`);
+                this._showHistoryModal(conversations, total);
             } else {
-                showAlert('No hay conversaciones guardadas', 'info');
+                log.warn('❌ Respuesta no exitosa:', res);
+                this._showHistoryModal([], 0);
             }
-        } catch (_) {
-            showAlert('No se pudo cargar el historial', 'error');
+        } catch (err) {
+            log.error('Error cargando historial:', err.message);
+            this._showHistoryModal([], 0);
         }
+
         this._setStatus('En línea');
     }
 
     _showHistoryModal(conversations, total) {
-        // Eliminar modal existente si hay
-        document.getElementById('ariaHistoryModal')?.remove();
+    log.info('Mostrando modal de historial con', conversations.length, 'conversaciones');
 
-        const modal = document.createElement('div');
-        modal.id = 'ariaHistoryModal';
-        modal.className = 'aria-history-modal';
-        modal.innerHTML = `
-            <div class="aria-history-modal__overlay"></div>
-            <div class="aria-history-modal__content">
-                <div class="aria-history-modal__header">
-                    <h3><i class="fas fa-history"></i> Historial de Conversaciones</h3>
-                    <span class="aria-history-modal__count">${total} conversaciones</span>
-                    <button class="aria-history-modal__close" id="ariaHistoryClose">&times;</button>
-                </div>
-                <div class="aria-history-modal__body" id="ariaHistoryBody">
-                    ${conversations.map(c => `
-                        <div class="aria-history-item">
-                            <div class="aria-history-item__user">
-                                <i class="fas fa-user"></i>
-                                <span>${this._escapeHtml(c.userMessage?.substring(0, 100) || '')}</span>
-                            </div>
-                            <div class="aria-history-item__bot">
-                                <i class="fas fa-robot"></i>
-                                <span>${this._escapeHtml(c.botResponse?.substring(0, 150) || '')}</span>
-                            </div>
-                            <div class="aria-history-item__meta">
-                                <span>${this._formatTime(c.timestamp)}</span>
-                                ${c.source ? `<span class="aria-history-item__source">${c.source}</span>` : ''}
-                                ${c.latency ? `<span class="aria-history-item__latency">${c.latency}ms</span>` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="aria-history-modal__footer">
-                    <button class="aria-btn aria-btn--danger" id="ariaHistoryClearAll">
-                        <i class="fas fa-trash"></i> Borrar todo
-                    </button>
-                    <button class="aria-btn aria-btn--secondary" id="ariaHistoryCloseBtn">Cerrar</button>
-                </div>
+    // Eliminar cualquier modal existente
+    const existingModal = document.getElementById('ariaHistoryModal');
+    if (existingModal) {
+        existingModal.remove();
+        log.info('Modal anterior eliminado');
+    }
+
+    // Crear el modal
+    const modal = document.createElement('div');
+    modal.id = 'ariaHistoryModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+    `;
+
+    // Contenido del modal
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 16px;
+        width: min(700px, 92vw);
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+    `;
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = `
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+        flex-shrink: 0;
+    `;
+    header.innerHTML = `
+        <i class="fas fa-history" style="color:#4f46e5;font-size:1.2rem;margin-right:0.5rem;"></i>
+        <h3 style="margin:0;flex:1;font-size:1.1rem;color:#111827;">Historial de Conversaciones</h3>
+        <span style="background:#4f46e5;color:white;padding:0.2rem 0.7rem;border-radius:20px;font-size:0.8rem;font-weight:600;">${total}</span>
+        <button id="ariaHistoryCloseBtn2" style="margin-left:0.75rem;width:32px;height:32px;border-radius:50%;border:none;background:#e5e7eb;cursor:pointer;font-size:1rem;color:#374151;">✕</button>
+    `;
+
+    // Body
+    const body = document.createElement('div');
+    body.style.cssText = `
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 1.5rem;
+        color: #111827;
+    `;
+
+    if (!conversations || conversations.length === 0) {
+        body.innerHTML = `
+            <div style="text-align:center;padding:3rem 1rem;color:#6b7280;">
+                <i class="fas fa-inbox" style="font-size:3rem;margin-bottom:1rem;opacity:0.5;"></i>
+                <p style="font-size:1.1rem;font-weight:600;color:#6b7280;margin:0 0 0.5rem;">No hay conversaciones guardadas</p>
+                <span style="font-size:0.85rem;color:#9ca3af;">Los mensajes que intercambies con ARIA aparecerán aquí</span>
             </div>
         `;
-        document.body.appendChild(modal);
+    } else {
+        body.innerHTML = conversations.map((c, i) => `
+            <div class="aria-history-item-clickable" data-conv-index="${i}" style="background:#f9fafb;border-radius:12px;padding:1rem;margin-bottom:0.75rem;border:1px solid #e5e7eb;cursor:pointer;transition:all 0.2s;" 
+                 onmouseover="this.style.borderColor='#4f46e5';this.style.boxShadow='0 2px 8px rgba(79,70,229,0.1)'" 
+                 onmouseout="this.style.borderColor='#e5e7eb';this.style.boxShadow='none'">
+                <div style="display:flex;gap:0.75rem;font-size:0.78rem;color:#9ca3af;margin-bottom:0.5rem;flex-wrap:wrap;">
+                    <span><i class="fas fa-calendar-alt"></i> ${this._formatFullDate(c.timestamp)}</span>
+                    <span><i class="fas fa-clock"></i> ${this._formatTime(c.timestamp)}</span>
+                    ${c.source ? `<span style="background:#eef2ff;color:#4f46e5;padding:0.15rem 0.5rem;border-radius:10px;font-weight:600;">${c.source}</span>` : ''}
+                    ${c.latency ? `<span style="background:#fef3c7;color:#92400e;padding:0.15rem 0.5rem;border-radius:10px;">${c.latency}ms</span>` : ''}
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.4rem;">
+                    <div style="display:flex;gap:0.5rem;padding:0.5rem 0.75rem;background:#eef2ff;border-radius:8px;font-size:0.85rem;">
+                        <i class="fas fa-user" style="color:#4f46e5;margin-top:2px;flex-shrink:0;"></i>
+                        <span style="color:#1e1b4b;">${this._escapeHtml(c.userMessage?.substring(0, 200) || '')}${c.userMessage?.length > 200 ? '...' : ''}</span>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;padding:0.5rem 0.75rem;background:#f0fdf4;border-radius:8px;font-size:0.85rem;">
+                        <i class="fas fa-robot" style="color:#10b981;margin-top:2px;flex-shrink:0;"></i>
+                        <span style="color:#14532d;">${this._escapeHtml(c.botResponse?.substring(0, 300) || '')}${c.botResponse?.length > 300 ? '...' : ''}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
 
-        const closeModal = () => modal.remove();
-        modal.querySelector('#ariaHistoryClose')?.addEventListener('click', closeModal);
-        modal.querySelector('#ariaHistoryCloseBtn')?.addEventListener('click', closeModal);
-        modal.querySelector('.aria-history-modal__overlay')?.addEventListener('click', closeModal);
-        modal.querySelector('#ariaHistoryClearAll')?.addEventListener('click', async () => {
-            if (confirm('¿Borrar TODO el historial de conversaciones?')) {
-                await this._clearChat();
-                closeModal();
+    // Footer
+    const footer = document.createElement('div');
+    footer.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+        flex-shrink: 0;
+    `;
+    footer.innerHTML = `
+        <button id="ariaHistoryClearAll2" style="padding:0.5rem 1rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+            <i class="fas fa-trash-alt"></i> Borrar todo
+        </button>
+        <button id="ariaHistoryCloseFooter2" style="padding:0.5rem 1rem;background:white;color:#374151;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+            Cerrar
+        </button>
+    `;
+
+    // Armar el modal
+    dialog.appendChild(header);
+    dialog.appendChild(body);
+    dialog.appendChild(footer);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+
+    log.info('✅ Modal de historial agregado al DOM');
+
+    // Función para cerrar
+    const close = () => {
+        log.info('Cerrando modal de historial');
+        modal.remove();
+    };
+
+    // Eventos de cierre
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+
+    const closeBtn1 = document.getElementById('ariaHistoryCloseBtn2');
+    const closeBtn2 = document.getElementById('ariaHistoryCloseFooter2');
+
+    if (closeBtn1) closeBtn1.addEventListener('click', close);
+    if (closeBtn2) closeBtn2.addEventListener('click', close);
+
+    // Escape para cerrar
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            close();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    // 🆕 Click en item del historial → restaurar conversación
+    body.querySelectorAll('[data-conv-index]').forEach(item => {
+        item.addEventListener('click', () => {
+            const index = parseInt(item.dataset.convIndex);
+            if (!isNaN(index) && conversations[index]) {
+                const conv = conversations[index];
+                log.info('🔄 Restaurando conversación:', conv._id);
+                
+                // Cerrar el modal
+                close();
+                
+                // Restaurar mensajes
+                this.messages = [
+                    { role: 'user', content: conv.userMessage, timestamp: conv.timestamp },
+                    { role: 'assistant', content: conv.botResponse, timestamp: conv.timestamp },
+                ];
+                
+                // Actualizar UI
+                this._renderAll();
+                this._saveLocal();
+                
+                showAlert('📜 Conversación restaurada', 'success', 2000);
+            }
+        });
+    });
+
+    // Borrar todo
+    const clearBtn = document.getElementById('ariaHistoryClearAll2');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', async () => {
+            if (confirm('¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.')) {
+                try {
+                    await api.call('/chatbot/history', { method: 'DELETE' });
+                } catch (_) {}
+                this.messages = [];
+                localStorage.removeItem('aria_history_v4');
+                this._showWelcome();
+                close();
+                showAlert('🗑️ Historial borrado', 'success', 2500);
             }
         });
     }
+}
+
+    // 🆕 Formatear fecha completa
+    _formatFullDate(ts) {
+        if (!ts) return '';
+        try {
+            return new Date(ts).toLocaleDateString('es-MX', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } catch (_) { return ''; }
+    }
 
     async _clearChat() {
-        if (!confirm('¿Borrar toda la conversación?')) return;
-        try { await api.call('/chatbot/history', { method: 'DELETE' }); } catch (_) { }
+        // Limpiar mensajes locales
         this.messages = [];
         localStorage.removeItem('aria_history_v4');
+
+        // Limpiar historial del servidor (opcional, sin confirmación)
+        try {
+            await api.call('/chatbot/history', { method: 'DELETE' });
+        } catch (_) {
+            // No importa si falla, limpiamos localmente
+        }
+
+        // Mostrar mensaje de bienvenida
         this._showWelcome();
-        showAlert('Conversación borrada', 'success');
+
+        // Actualizar UI
+        if (this._els.messages) {
+            this._els.messages.innerHTML = '';
+            this._renderAll();
+        }
+        if (this._fullscreenMessages) {
+            this._fullscreenMessages.innerHTML = '';
+            this._renderMessagesToFullscreen();
+        }
+
+        showAlert('✨ Nueva conversación iniciada', 'success', 2000);
     }
 
     _showWelcome() {
@@ -3272,462 +3485,232 @@ async _sendMessage() {
     }
 
 async _processMessageFullscreen(text) {
-    // ═══════════════════════════════════════════════════════
-    // 🆕 PRIORIDAD 0: Confirmaciones pendientes (Sí/No)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 0: Confirmaciones
     if (this._pendingAction) {
         const confirmation = detectConfirmation(text);
-        
         if (confirmation.detected && confirmation.type === 'confirm') {
             this._setFullscreenStatus('Procesando...');
             if (this._fullscreenTyping) this._fullscreenTyping.style.display = 'flex';
-            
             const action = this._pendingAction;
             this._pendingAction = null;
-            
             if (action.type === 'deleteCategory') {
                 const result = await this._deleteCategoryDirectly(action.id);
                 if (this._fullscreenTyping) this._fullscreenTyping.style.display = 'none';
-                this._appendFullscreenBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver todas las carpetas', 'Ir a Categorías']
-                        : ['Intentar de nuevo', 'Ver todas las carpetas'],
-                });
+                this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver todas las carpetas', 'Ir a Categorías'] : ['Intentar de nuevo', 'Ver todas las carpetas'] });
                 if (result.success) showAlert('🗑️ Carpeta eliminada', 'success', 2500);
             } else if (action.type === 'deleteTask') {
                 const result = await this._deleteTaskDirectly(action.id);
                 if (this._fullscreenTyping) this._fullscreenTyping.style.display = 'none';
-                this._appendFullscreenBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas']
-                        : ['Intentar de nuevo', 'Ver mis tareas'],
-                });
+                this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas'] : ['Intentar de nuevo', 'Ver mis tareas'] });
                 if (result.success) showAlert('🗑️ Tarea eliminada', 'success', 2500);
             } else if (action.type === 'deletePerson') {
                 const result = await this._deletePersonDirectly(action.id);
                 if (this._fullscreenTyping) this._fullscreenTyping.style.display = 'none';
-                this._appendFullscreenBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver todas las personas', 'Crear nueva persona', 'Ir a Personas']
-                        : ['Intentar de nuevo', 'Ver todas las personas'],
-                });
+                this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver todas las personas', 'Ir a Personas'] : ['Intentar de nuevo', 'Ver todas las personas'] });
                 if (result.success) showAlert('🗑️ Persona eliminada', 'success', 2500);
             } else if (action.type === 'clearHistory') {
-                await this._clearChat();
+                await this._newConversation();
                 if (this._fullscreenTyping) this._fullscreenTyping.style.display = 'none';
-                this._appendFullscreenBotMessage('✅ **Historial borrado exitosamente.**', {
-                    suggestions: ['Resumen del sistema', 'Mis tareas'],
-                });
+                this._appendFullscreenBotMessage('✅ **Historial borrado.**', { suggestions: ['Resumen del sistema', 'Mis tareas'] });
                 showAlert('Historial borrado', 'success', 2500);
-            } else {
-                if (this._fullscreenTyping) this._fullscreenTyping.style.display = 'none';
-                this._appendFullscreenBotMessage('❌ Acción pendiente desconocida.', {
-                    suggestions: ['¿Qué puedes hacer?'],
-                });
             }
-            
             this._setFullscreenStatus('En línea');
             return;
         }
-        
         if (confirmation.detected && confirmation.type === 'cancel') {
             this._pendingAction = null;
             await new Promise(r => setTimeout(r, 300));
-            this._appendFullscreenBotMessage('✅ **Acción cancelada.**\n\n¿En qué más te ayudo?', {
-                suggestions: ['Resumen del sistema', 'Mis tareas', 'Documentos urgentes'],
-            });
+            this._appendFullscreenBotMessage('✅ **Acción cancelada.**', { suggestions: ['Resumen del sistema', 'Mis tareas'] });
             return;
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 1: Navegación Explícita
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 1: Navegación
     const navCmd = detectNavigationCommand(text);
     if (navCmd.detected) {
         await new Promise(r => setTimeout(r, 300));
         const navInfo = NAV_MAP[navCmd.target];
         if (navInfo) {
-            this._appendFullscreenBotMessage(`📍 **Navegando a ${navInfo.label}...**`, {
-                suggestions: ['Dashboard', 'Mis tareas', 'Ver ajustes'],
-            });
+            this._appendFullscreenBotMessage(`📍 **Navegando a ${navInfo.label}...**`, { suggestions: ['Dashboard', 'Mis tareas', 'Ver ajustes'] });
             setTimeout(() => this._doNavigate(navCmd.target), 500);
         }
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // 🆕 PRIORIDAD 1.5: Intenciones vagas (preguntar al usuario)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 1.5: Intenciones vagas
     const vagueIntention = detectVagueIntention(text);
     if (vagueIntention.detected) {
         await new Promise(r => setTimeout(r, 400));
-        this._appendFullscreenBotMessage(vagueIntention.message, {
-            suggestions: vagueIntention.suggestions,
-        });
+        this._appendFullscreenBotMessage(vagueIntention.message, { suggestions: vagueIntention.suggestions });
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 2: Ajustes
-    // ═══════════════════════════════════════════════════════
     const settingCmd = detectSettingCommand(text);
     if (settingCmd.detected) {
         await new Promise(r => setTimeout(r, 250));
         const result = executeSettingAction(settingCmd.action);
-        this._appendFullscreenBotMessage(result.message, {
-            suggestions: result.success
-                ? ['Ver ajustes actuales', 'Cambiar tema', 'Ir a Ajustes']
-                : ['Ir a Ajustes', '¿Qué puedes hacer?'],
-        });
+        this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver ajustes actuales', 'Cambiar tema', 'Ir a Ajustes'] : ['Ir a Ajustes', '¿Qué puedes hacer?'] });
         if (result.success) showAlert('⚙️ Ajuste aplicado', 'success', 2500);
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 3: Creación de tareas
-    // ═══════════════════════════════════════════════════════
     const taskCmd = detectTaskCreation(text);
     if (taskCmd.detected) {
+        if (taskCmd.isAssigned) {
+            await new Promise(r => setTimeout(r, 300));
+            this._appendFullscreenBotMessage(`✅ **Abriendo formulario de tareas**`, { suggestions: ['Ir a Tareas', 'Ver mis tareas'], actions: [{ action: 'openModal', target: 'addTask' }] });
+            setTimeout(() => this._doOpenModal('addTask'), 200);
+            return;
+        }
         this._setFullscreenStatus('Creando tarea...');
-        const result = await this._createTaskDirectly(
-            taskCmd.title,
-            taskCmd.dueDate,
-            taskCmd.description,
-            taskCmd.priority,
-            taskCmd.category,
-            taskCmd.hourLimit
-        );
-        this._appendFullscreenBotMessage(result.message, {
-            suggestions: result.success
-                ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas']
-                : ['Intentar de nuevo', 'Ir a Tareas'],
-        });
+        const result = await this._createTaskDirectly(taskCmd.title, taskCmd.dueDate, taskCmd.description, taskCmd.priority, taskCmd.category, taskCmd.hourLimit, taskCmd.recordatorio);
+        this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver mis tareas', 'Crear otra tarea', 'Ir a Tareas'] : ['Intentar de nuevo', 'Ir a Tareas'] });
         if (result.success) showAlert('✅ Tarea creada', 'success', 3000);
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 3.5: Acciones sobre tareas (eliminar/completar/editar)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 3.5: Acciones sobre tareas
     const taskActionCmd = detectTaskAction(text);
     if (taskActionCmd.detected) {
         this._setFullscreenStatus('Procesando...');
-        
         if (taskActionCmd.action === 'delete') {
             const match = await this._findTaskByName(taskActionCmd.taskName);
             if (match.found) {
-                // 🆕 Guardar acción pendiente
-                this._pendingAction = {
-                    type: 'deleteTask',
-                    id: match.task._id,
-                    name: match.task.titulo,
-                    timestamp: Date.now()
-                };
-                setTimeout(() => {
-                    if (this._pendingAction?.id === match.task._id) this._pendingAction = null;
-                }, 60000);
-                
-                this._appendFullscreenBotMessage(
-                    `⚠️ **¿Estás seguro de eliminar la tarea "${match.task.titulo}"?**\n\nResponde **"Sí, eliminar"** para confirmar.`,
-                    { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver mis tareas'] }
-                );
+                this._pendingAction = { type: 'deleteTask', id: match.task._id, name: match.task.titulo, timestamp: Date.now() };
+                setTimeout(() => { if (this._pendingAction?.id === match.task._id) this._pendingAction = null; }, 60000);
+                this._appendFullscreenBotMessage(`⚠️ **¿Eliminar "${match.task.titulo}"?**\n\nResponde **"Sí, eliminar"**.`, { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver mis tareas'] });
             } else {
-                this._appendFullscreenBotMessage(match.message, {
-                    suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
-                });
+                this._appendFullscreenBotMessage(match.message, { suggestions: ['Ver mis tareas', 'Crear nueva tarea'] });
             }
             return;
         }
-
         if (taskActionCmd.action === 'complete') {
             const match = await this._findTaskByName(taskActionCmd.taskName);
             if (match.found) {
                 const result = await this._completeTaskDirectly(match.task._id);
-                this._appendFullscreenBotMessage(result.message, {
-                    suggestions: result.success
-                        ? ['Ver mis tareas', 'Tarea más urgente', 'Ir a Tareas']
-                        : ['Intentar de nuevo', 'Ver mis tareas'],
-                });
+                this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver mis tareas', 'Ir a Tareas'] : ['Intentar de nuevo', 'Ver mis tareas'] });
                 if (result.success) showAlert('✅ Tarea completada', 'success', 2500);
             } else {
-                this._appendFullscreenBotMessage(match.message, {
-                    suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
-                });
+                this._appendFullscreenBotMessage(match.message, { suggestions: ['Ver mis tareas', 'Crear nueva tarea'] });
             }
             return;
         }
-
-        if (taskActionCmd.action === 'edit') {
-            const match = await this._findTaskByName(taskActionCmd.taskName);
-            if (match.found) {
-                const updates = {};
-                if (taskActionCmd.field === 'titulo') updates.titulo = taskActionCmd.newValue;
-                else if (taskActionCmd.field === 'descripcion') updates.descripcion = taskActionCmd.newValue;
-                else if (taskActionCmd.field === 'prioridad') {
-                    const p = taskActionCmd.newValue.toLowerCase();
-                    updates.prioridad = ['alta', 'critica', 'media', 'baja'].includes(p) ? p : 'media';
-                } else if (taskActionCmd.field === 'fecha_limite') {
-                    const parsedDate = parseDateFromText(taskActionCmd.newValue);
-                    if (parsedDate) {
-                        parsedDate.setHours(23, 59, 59, 999);
-                        updates.fecha_limite = parsedDate;
-                    }
-                }
-
-                if (Object.keys(updates).length > 0) {
-                    const result = await this._updateTaskDirectly(match.task._id, updates);
-                    this._appendFullscreenBotMessage(result.message, {
-                        suggestions: result.success
-                            ? ['Ver mis tareas', 'Crear nueva tarea', 'Ir a Tareas']
-                            : ['Intentar de nuevo', 'Ver mis tareas'],
-                    });
-                    if (result.success) showAlert('✏️ Tarea actualizada', 'success', 2500);
-                } else {
-                    this._appendFullscreenBotMessage('❌ No pude entender qué campo actualizar.', {
-                        suggestions: ['Ver mis tareas', '¿Qué puedes hacer?'],
-                    });
-                }
-            } else {
-                this._appendFullscreenBotMessage(match.message, {
-                    suggestions: ['Ver mis tareas', 'Crear nueva tarea'],
-                });
-            }
-            return;
-        }
+        return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // 🆕 PRIORIDAD 3.55: Acciones sobre carpetas
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 3.55: Acciones sobre carpetas
     const categoryActionCmd = detectCategoryAction(text);
     if (categoryActionCmd.detected) {
         if (categoryActionCmd.action === 'delete') {
             const match = await this._findCategoryByName(categoryActionCmd.categoryName);
             if (match.found) {
-                this._pendingAction = {
-                    type: 'deleteCategory',
-                    id: match.category._id,
-                    name: match.category.nombre,
-                    timestamp: Date.now()
-                };
-                setTimeout(() => {
-                    if (this._pendingAction?.id === match.category._id) this._pendingAction = null;
-                }, 60000);
-                
-                this._appendFullscreenBotMessage(
-                    `⚠️ **¿Estás seguro de eliminar la carpeta "${match.category.nombre}"?**\n\nResponde **"Sí, eliminar"** para confirmar.`,
-                    { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver todas las carpetas'] }
-                );
+                this._pendingAction = { type: 'deleteCategory', id: match.category._id, name: match.category.nombre, timestamp: Date.now() };
+                setTimeout(() => { if (this._pendingAction?.id === match.category._id) this._pendingAction = null; }, 60000);
+                this._appendFullscreenBotMessage(`⚠️ **¿Eliminar "${match.category.nombre}"?**\n\nResponde **"Sí, eliminar"**.`, { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver todas las carpetas'] });
             } else {
-                this._appendFullscreenBotMessage(match.message, { 
-                    suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] 
-                });
+                this._appendFullscreenBotMessage(match.message, { suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] });
             }
             return;
         }
-
-        if (categoryActionCmd.action === 'view') {
-            const match = await this._findCategoryByName(categoryActionCmd.categoryName);
-            if (match.found) {
-                const c = match.category;
-                this._appendFullscreenBotMessage(
-                    `📁 **${c.nombre}**\n\n📝 ${c.descripcion || 'Sin descripción'}\n🎨 Color: ${c.color || '#4f46e5'}\n📂 Subcarpetas: ${c.children?.length || 0}`,
-                    { suggestions: ['Ver todas las carpetas', 'Ir a Categorías'] }
-                );
-            } else {
-                this._appendFullscreenBotMessage(match.message, { 
-                    suggestions: ['Ver todas las carpetas'] 
-                });
-            }
-            return;
-        }
+        return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 3.6: Creación de carpetas
-    // ═══════════════════════════════════════════════════════
     const categoryCmd = detectCategoryCreation(text);
     if (categoryCmd.detected) {
         if (categoryCmd.missing.length > 0) {
-            const faltantes = categoryCmd.missing.map(f => `• ${f}`).join('\n');
-            this._appendFullscreenBotMessage(
-                `⚠️ **Faltan datos para crear la carpeta**\n\n❌ **Falta:**\n${faltantes}\n\n${
-                    categoryCmd.isSubcategory
-                        ? 'Necesito saber en qué carpeta va. Ejemplo: "Crea una subcarpeta llamada 2024 dentro de Reconocimientos"'
-                        : 'Dime el nombre de la carpeta.'
-                }`,
-                { suggestions: ['Ver carpetas existentes', 'Ir a Categorías'] }
-            );
+            this._appendFullscreenBotMessage(`⚠️ **Faltan datos**`, { suggestions: ['Ver carpetas existentes', 'Ir a Categorías'] });
             return;
         }
-
         this._setFullscreenStatus('Creando carpeta...');
         let parent_id = null;
         if (categoryCmd.isSubcategory && categoryCmd.parent_id) {
             parent_id = await this._resolveCategoryId(categoryCmd.parent_id);
-            if (!parent_id) {
-                this._appendFullscreenBotMessage(
-                    `❌ No encontré la carpeta **"${categoryCmd.parent_id}"**.`,
-                    { suggestions: ['Ver carpetas existentes', 'Ir a Categorías'] }
-                );
-                return;
-            }
+            if (!parent_id) { this._appendFullscreenBotMessage(`❌ No encontré la carpeta.`, { suggestions: ['Ver carpetas existentes'] }); return; }
         }
-
-        const result = await this._createCategoryDirectly({
-            nombre: categoryCmd.nombre,
-            descripcion: categoryCmd.descripcion,
-            color: categoryCmd.color,
-            icon: categoryCmd.icon,
-            parent_id: parent_id,
-        });
-
-        this._appendFullscreenBotMessage(result.message, {
-            suggestions: result.success
-                ? ['Ver todas las carpetas', 'Ir a Categorías']
-                : ['Intentar de nuevo', 'Ir a Categorías'],
-        });
+        const result = await this._createCategoryDirectly({ nombre: categoryCmd.nombre, descripcion: categoryCmd.descripcion, color: categoryCmd.color, icon: categoryCmd.icon, parent_id });
+        this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver todas las carpetas', 'Ir a Categorías'] : ['Intentar de nuevo'] });
         if (result.success) showAlert('📁 Carpeta creada', 'success', 3000);
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 3.7: Creación de personas
-    // ═══════════════════════════════════════════════════════
     const personCmd = detectPersonCreation(text);
     if (personCmd.detected) {
         if (personCmd.missing.length > 0 && !personCmd.hasAllRequired) {
-            const faltantes = personCmd.missing.map(f => `• ${f}`).join('\n');
-            const yaProporcionados = [];
-            if (personCmd.nombre) yaProporcionados.push(`👤 Nombre: **${personCmd.nombre}**`);
-            if (personCmd.email) yaProporcionados.push(`📧 Email: **${personCmd.email}**`);
-            if (personCmd.telefono) yaProporcionados.push(`📞 Teléfono: **${personCmd.telefono}**`);
-            if (personCmd.departamento) yaProporcionados.push(`🏢 Departamento: **${personCmd.departamento}**`);
-            if (personCmd.puesto) yaProporcionados.push(`💼 Puesto: **${personCmd.puesto}**`);
-
-            let mensaje = `⚠️ **Faltan datos para crear la persona**\n\n`;
-            if (yaProporcionados.length > 0) mensaje += `✅ **Datos que ya tengo:**\n${yaProporcionados.join('\n')}\n\n`;
-            mensaje += `❌ **Falta:**\n${faltantes}\n\nPor favor, dime los datos faltantes.`;
-
-            this._appendFullscreenBotMessage(mensaje, {
-                suggestions: ['Cancelar creación', 'Ver personas existentes', 'Intentar de nuevo'],
-            });
+            this._appendFullscreenBotMessage(`⚠️ **Faltan datos**`, { suggestions: ['Cancelar creación', 'Ver personas existentes'] });
             return;
         }
-
-        const emailValidation = this._validateEmail(personCmd.email);
-        if (!emailValidation.valid) {
-            this._appendFullscreenBotMessage(`❌ **${emailValidation.message}**\n\nProporcionaste: _${personCmd.email}_`, { suggestions: ['Intentar de nuevo', 'Cancelar creación'] });
-            return;
-        }
-        const phoneValidation = this._validatePhone(personCmd.telefono);
-        if (!phoneValidation.valid) {
-            this._appendFullscreenBotMessage(`❌ **${phoneValidation.message}**\n\nProporcionaste: _${personCmd.telefono}_`, { suggestions: ['Intentar de nuevo', 'Cancelar creación'] });
-            return;
-        }
-        const nameValidation = this._validateName(personCmd.nombre);
-        if (!nameValidation.valid) {
-            this._appendFullscreenBotMessage(`❌ **${nameValidation.message}**`, { suggestions: ['Intentar de nuevo', 'Cancelar creación'] });
-            return;
-        }
-
         this._setFullscreenStatus('Creando persona...');
-        const result = await this._createPersonDirectly({
-            nombre: personCmd.nombre, email: personCmd.email,
-            telefono: personCmd.telefono || '', departamento: personCmd.departamento || '', puesto: personCmd.puesto || ''
-        });
-        this._appendFullscreenBotMessage(result.message, {
-            suggestions: result.success ? ['Ver todas las personas', 'Ir a Personas'] : ['Intentar de nuevo'],
-        });
+        const result = await this._createPersonDirectly({ nombre: personCmd.nombre, email: personCmd.email, telefono: personCmd.telefono || '', departamento: personCmd.departamento || '', puesto: personCmd.puesto || '' });
+        this._appendFullscreenBotMessage(result.message, { suggestions: result.success ? ['Ver todas las personas', 'Ir a Personas'] : ['Intentar de nuevo'] });
         if (result.success) showAlert('👤 Persona creada', 'success', 3000);
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
     // PRIORIDAD 3.8: Acciones sobre personas
-    // ═══════════════════════════════════════════════════════
     const personActionCmd = detectPersonAction(text);
     if (personActionCmd.detected) {
         if (personActionCmd.action === 'delete') {
             const match = await this._findPersonByName(personActionCmd.personName);
             if (match.found) {
-                this._pendingAction = {
-                    type: 'deletePerson',
-                    id: match.person._id,
-                    name: match.person.nombre,
-                    timestamp: Date.now()
-                };
-                setTimeout(() => {
-                    if (this._pendingAction?.id === match.person._id) this._pendingAction = null;
-                }, 60000);
-                
-                this._appendFullscreenBotMessage(
-                    `⚠️ **¿Estás seguro de eliminar a "${match.person.nombre}"?**\n\nResponde **"Sí, eliminar"** para confirmar.`,
-                    { suggestions: ['Sí, eliminar', 'No, cancelar', 'Ver todas las personas'] }
-                );
+                this._pendingAction = { type: 'deletePerson', id: match.person._id, name: match.person.nombre, timestamp: Date.now() };
+                setTimeout(() => { if (this._pendingAction?.id === match.person._id) this._pendingAction = null; }, 60000);
+                this._appendFullscreenBotMessage(`⚠️ **¿Eliminar a "${match.person.nombre}"?**`, { suggestions: ['Sí, eliminar', 'No, cancelar'] });
             } else {
                 this._appendFullscreenBotMessage(match.message, { suggestions: ['Ver todas las personas'] });
             }
             return;
         }
-        if (personActionCmd.action === 'view') {
-            const match = await this._findPersonByName(personActionCmd.personName);
-            if (match.found) {
-                const p = match.person;
-                this._appendFullscreenBotMessage(
-                    `👤 **${p.nombre}**\n\n📧 ${p.email}\n📞 ${p.telefono || 'N/A'}\n🏢 ${p.departamento || 'N/A'}\n💼 ${p.puesto || 'N/A'}`,
-                    { suggestions: ['Ver todas las personas'] }
-                );
-            } else {
-                this._appendFullscreenBotMessage(match.message, { suggestions: ['Ver todas las personas'] });
-            }
-            return;
-        }
+        return;
     }
 
     // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 4: Reportes
+    // 🎯 PRIORIDAD 4: Reportes (CORREGIDO - DETECTA GRÁFICOS)
     // ═══════════════════════════════════════════════════════
     const reportCmd = detectReportCommand(text);
     if (reportCmd.detected) {
+        log.report('🎯 Reporte FS:', { reportType: reportCmd.reportType, format: reportCmd.format });
+        
+        const hasChartWord = /\b(gr[aá]fico|grafica|gr[aá]ficas?|reporte\s+gr[aá]fico|visual|visualizaci[oó]n|chart)\b/i.test(text);
+        
+        if (hasChartWord || reportCmd.format === 'chart') {
+            log.report('📊 GRÁFICO FS → _generateChartDirectly');
+            const result = await this._generateChartDirectly(reportCmd);
+            this._appendFullscreenBotMessage(result.message, {
+                suggestions: result.success ? ['Gráfico por estado', 'Gráfico por persona', 'Exportar a Excel'] : ['Intentar de nuevo', 'Ir a Reportes'],
+            });
+            if (result.success) showAlert('📊 Gráfico cargado', 'success', 3000);
+            return;
+        }
+        
+        log.report('📄 REPORTE NORMAL FS → _generateReportDirectly');
         this._setFullscreenStatus('Generando reporte...');
         const result = await this._generateReportDirectly(reportCmd);
         this._appendFullscreenBotMessage(result.message, {
-            suggestions: result.success
-                ? ['Generar otro reporte', 'Ir a Reportes']
-                : ['Intentar de nuevo', 'Ir a Reportes'],
+            suggestions: result.success ? ['Generar otro reporte', 'Ir a Reportes', 'Ver gráfico'] : ['Intentar de nuevo', 'Ir a Reportes'],
         });
         if (result.success) showAlert('📊 Reporte generado', 'success', 3000);
         return;
     }
 
-    // ═══════════════════════════════════════════════════════
-    // PRIORIDAD 5: IA (Groq / rule-based backend)
-    // ═══════════════════════════════════════════════════════
+    // PRIORIDAD 5: IA Backend
     try {
         const res = await api.call('/chatbot/message', { method: 'POST', body: { message: text } });
         if (res?.success && res.data) {
             const cleanMsg = this._cleanJSON(res.data.message);
-            this._appendFullscreenBotMessage(cleanMsg, {
-                actions: res.data.actions,
-                suggestions: res.data.suggestions,
-                latency: res.data.latency,
-            });
+            this._appendFullscreenBotMessage(cleanMsg, { actions: res.data.actions, suggestions: res.data.suggestions, latency: res.data.latency });
             if (res.data.actions?.length) {
-                setTimeout(async () => {
-                    for (const action of res.data.actions) await this._executeAction(action);
-                }, 500);
+                setTimeout(async () => { for (const action of res.data.actions) await this._executeAction(action); }, 500);
             }
         } else {
-            throw new Error(res?.message || 'Respuesta inválida del servidor');
+            throw new Error(res?.message || 'Respuesta inválida');
         }
     } catch (err) {
         log.error('Error en _processMessageFullscreen:', err.message);
-        this._appendFullscreenBotMessage(
-            `⚠️ **Error de conexión**\n\nNo pude procesar tu mensaje.\n\n_${err.message}_`,
-            { isError: true }
-        );
+        this._appendFullscreenBotMessage(`⚠️ **Error de conexión**\n\n_${err.message}_`, { isError: true });
     }
 }
 

@@ -1132,6 +1132,53 @@ export function initTasksModule() {
   return window.taskManager;
 }
 
+// =============================================================================
+// 🆕 FUNCIONES GLOBALES PARA ARIA (chatbot)
+// =============================================================================
+
+/**
+ * Abre el modal de tareas personales (notas)
+ * Llamado por ARIA cuando dice "crea una tarea personal"
+ */
+window.openPersonalTaskModal = function() {
+    if (window.taskManager) {
+        window.taskManager.openPersonalModal();
+    }
+};
+
+/**
+ * Abre el modal de tareas asignadas
+ * Llamado por ARIA cuando dice "crea una tarea asignada" o "crea una tarea para..."
+ */
+window.openAssignTaskModal = function() {
+    if (window.taskManager) {
+        window.taskManager.openAssignModal();
+    }
+};
+
+/**
+ * 🆕 Función genérica que decide qué modal abrir
+ * Si hay múltiples usuarios disponibles → abre modal de asignación
+ * Si no → abre modal personal
+ */
+window.openTaskModal = function() {
+    if (!window.taskManager) return;
+    
+    // Si hay usuarios asignables, abrir modal de asignación (más completo)
+    if (window.taskManager.users && window.taskManager.users.length > 0) {
+        window.taskManager.openAssignModal();
+    } else {
+        // Si no hay usuarios, abrir modal personal
+        window.taskManager.openPersonalModal();
+    }
+};
+
+// También exponer como showTaskModal (alias común)
+window.showTaskModal = window.openTaskModal;
+window.showAddTaskModal = window.openTaskModal;
+
+tlog('✅ Funciones globales para ARIA registradas: openTaskModal, openPersonalTaskModal, openAssignTaskModal');
+
 if (typeof window !== 'undefined') {
   window.TaskManager = TaskManager;
 }
