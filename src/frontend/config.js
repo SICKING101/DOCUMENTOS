@@ -26,15 +26,6 @@ const CONFIG = {
      */
     API_BASE_URL: '/api',
 
-    /**
-     * 1.3 Credenciales de Cloudinary
-     * Configuración necesaria para subir y gestionar archivos en Cloudinary.
-     */
-    CLOUDINARY_CLOUD_NAME: 'dn9ts84q6',
-    CLOUDINARY_API_KEY: '797652563747974',
-    CLOUDINARY_UPLOAD_PRESET: 'DOCUMENTOS',
-    CLOUDINARY_API_SECRET: 'raOkraliwEKlBFTRL7Cr9kEyHOA',
-
     // =============================================================================
     // 2. LÍMITES DE SUBIDA DE ARCHIVOS
     // =============================================================================

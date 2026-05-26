@@ -10,10 +10,13 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import multer from 'multer';
-import { v2 as cloudinary } from 'cloudinary';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import dotenv from 'dotenv';
+
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import { s3Client, SPACES_CONFIG } from './src/backend/config/cloudinaryConfig.js';
 
 // ===== CONFIGURACIÓN CRÍTICA DE DOTENV - DEBE SER LO PRIMERO =====
 const __filename = fileURLToPath(import.meta.url);
@@ -24,14 +27,14 @@ const envPath = path.join(__dirname, '.env');
 console.log('🔍 Buscando .env en:', envPath);
 
 if (fs.existsSync(envPath)) {
-    const result = dotenv.config({ path: envPath });
-    if (result.error) {
-        console.error('❌ Error cargando .env:', result.error);
-    } else {
-        console.log('✅ .env cargado correctamente');
-    }
+  const result = dotenv.config({ path: envPath });
+  if (result.error) {
+    console.error('❌ Error cargando .env:', result.error);
+  } else {
+    console.log('✅ .env cargado correctamente');
+  }
 } else {
-    console.warn('⚠️ Archivo .env no encontrado en:', envPath);
+  console.warn('⚠️ Archivo .env no encontrado en:', envPath);
 }
 
 // DEBUG: Verificar variables cargadas
@@ -80,20 +83,13 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI;
 
-// Configuración de Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dn9ts84q6',
-  api_key: process.env.CLOUDINARY_API_KEY || '797652563747974',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'raOkraliwEKlBFTRL7Cr9kEyHOA'
-});
-
 // -----------------------------
 // Middlewares
 // -----------------------------
 const allowedOrigins = [
   'http://localhost:4000',
   'https://documentos-kj6t.onrender.com',
- "http://127.0.0.1:4000",
+  "http://127.0.0.1:4000",
   "http://gestacks.com",
   "https://gestacks.com",
   "http://www.gestacks.com",
@@ -293,125 +289,125 @@ app.get('/api/dashboard', protegerRuta, inyectarSchoolId, async (req, res) => {
 // 🆕 SINCRONIZACIÓN DE EVENTOS DEL CALENDARIO (localStorage → MongoDB)
 // =============================================================================
 app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) => {
-    try {
-        const { eventos } = req.body;
+  try {
+    const { eventos } = req.body;
 
-        if (!eventos || !Array.isArray(eventos)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Se requiere un array de eventos'
-            });
-        }
-
-        const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
-
-        // Obtener los localId de los eventos enviados
-        const localIdsEnviados = eventos.map(ev => ev.id || ev._id).filter(Boolean);
-
-        let creados = 0;
-        let actualizados = 0;
-        let eliminados = 0;
-
-        // 🆕 Marcar como inactivos los eventos que ya NO están en localStorage
-        const schoolId = req.schoolId || 'superadmin';
-        const resultadoEliminacion = await CalendarEvent.updateMany(
-            {
-                schoolId: schoolId,
-                activo: true,
-                localId: { $nin: localIdsEnviados }
-            },
-            { $set: { activo: false } }
-        );
-        eliminados = resultadoEliminacion.modifiedCount;
-
-        // Crear o actualizar los eventos enviados
-        for (const ev of eventos) {
-            const localId = ev.id || ev._id;
-            if (!localId) continue;
-
-            const eventData = {
-                localId: localId,
-                titulo: ev.title || ev.titulo || 'Evento sin título',
-                tipo: ev.type || ev.tipo || 'academic',
-                prioridad: ev.priority || ev.prioridad || 'normal',
-                color: ev.color || '#6366f1',
-                fecha: ev.startDate ? new Date(ev.startDate + 'T12:00:00.000Z') : new Date(),
-                fechaFin: ev.endDate ? new Date(ev.endDate + 'T12:00:00.000Z') : null,
-                horaInicio: ev.startTime || null,
-                horaFin: ev.endTime || null,
-                ubicacion: ev.location || ev.ubicacion || '',
-                descripcion: ev.description || ev.descripcion || '',
-                recurrencia: ev.recurrence || ev.recurrencia || 'none',
-                recordatorio: ev.reminder || ev.recordatorio || '',
-                recordatorio_enviado: false,
-                creadoPor: req.user?.usuario || 'sistema',
-                schoolId: schoolId,
-                activo: true
-            };
-
-            const existente = await CalendarEvent.findOne({ localId: eventData.localId });
-
-            if (existente) {
-                await CalendarEvent.updateOne({ localId: eventData.localId }, eventData);
-                actualizados++;
-            } else {
-                await CalendarEvent.create(eventData);
-                creados++;
-            }
-        }
-
-        console.log(`📅 Sync: ${creados} creados, ${actualizados} actualizados, ${eliminados} eliminados`);
-
-        // 🆕 Si se crearon o actualizaron eventos, verificar recordatorios inmediatamente
-        if (creados > 0 || actualizados > 0) {
-            try {
-                await ReminderService.runChecks();
-                console.log('⏰ Recordatorios verificados tras sync');
-            } catch (e) {
-                console.warn('⚠️ Error verificando recordatorios tras sync:', e.message);
-            }
-        }
-
-        res.json({
-            success: true,
-            creados,
-            actualizados,
-            eliminados
-        });
-
-    } catch (error) {
-        console.error('❌ Error sync calendario:', error);
-        res.status(500).json({ success: false, message: error.message });
+    if (!eventos || !Array.isArray(eventos)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere un array de eventos'
+      });
     }
+
+    const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
+
+    // Obtener los localId de los eventos enviados
+    const localIdsEnviados = eventos.map(ev => ev.id || ev._id).filter(Boolean);
+
+    let creados = 0;
+    let actualizados = 0;
+    let eliminados = 0;
+
+    // 🆕 Marcar como inactivos los eventos que ya NO están en localStorage
+    const schoolId = req.schoolId || 'superadmin';
+    const resultadoEliminacion = await CalendarEvent.updateMany(
+      {
+        schoolId: schoolId,
+        activo: true,
+        localId: { $nin: localIdsEnviados }
+      },
+      { $set: { activo: false } }
+    );
+    eliminados = resultadoEliminacion.modifiedCount;
+
+    // Crear o actualizar los eventos enviados
+    for (const ev of eventos) {
+      const localId = ev.id || ev._id;
+      if (!localId) continue;
+
+      const eventData = {
+        localId: localId,
+        titulo: ev.title || ev.titulo || 'Evento sin título',
+        tipo: ev.type || ev.tipo || 'academic',
+        prioridad: ev.priority || ev.prioridad || 'normal',
+        color: ev.color || '#6366f1',
+        fecha: ev.startDate ? new Date(ev.startDate + 'T12:00:00.000Z') : new Date(),
+        fechaFin: ev.endDate ? new Date(ev.endDate + 'T12:00:00.000Z') : null,
+        horaInicio: ev.startTime || null,
+        horaFin: ev.endTime || null,
+        ubicacion: ev.location || ev.ubicacion || '',
+        descripcion: ev.description || ev.descripcion || '',
+        recurrencia: ev.recurrence || ev.recurrencia || 'none',
+        recordatorio: ev.reminder || ev.recordatorio || '',
+        recordatorio_enviado: false,
+        creadoPor: req.user?.usuario || 'sistema',
+        schoolId: schoolId,
+        activo: true
+      };
+
+      const existente = await CalendarEvent.findOne({ localId: eventData.localId });
+
+      if (existente) {
+        await CalendarEvent.updateOne({ localId: eventData.localId }, eventData);
+        actualizados++;
+      } else {
+        await CalendarEvent.create(eventData);
+        creados++;
+      }
+    }
+
+    console.log(`📅 Sync: ${creados} creados, ${actualizados} actualizados, ${eliminados} eliminados`);
+
+    // 🆕 Si se crearon o actualizaron eventos, verificar recordatorios inmediatamente
+    if (creados > 0 || actualizados > 0) {
+      try {
+        await ReminderService.runChecks();
+        console.log('⏰ Recordatorios verificados tras sync');
+      } catch (e) {
+        console.warn('⚠️ Error verificando recordatorios tras sync:', e.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      creados,
+      actualizados,
+      eliminados
+    });
+
+  } catch (error) {
+    console.error('❌ Error sync calendario:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // Endpoint de debug para ver el estado del evento
 app.get('/api/debug/calendar-check', async (req, res) => {
-    const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
-    const ahora = new Date();
+  const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
+  const ahora = new Date();
 
-    const evento = await CalendarEvent.findOne({ activo: true }).lean();
+  const evento = await CalendarEvent.findOne({ activo: true }).lean();
 
-    if (!evento) return res.json({ error: 'No hay eventos' });
+  if (!evento) return res.json({ error: 'No hay eventos' });
 
-    const fechaEvento = new Date(evento.fecha);
-    const horasRestantes = Math.round((fechaEvento - ahora) / (1000 * 60 * 60));
+  const fechaEvento = new Date(evento.fecha);
+  const horasRestantes = Math.round((fechaEvento - ahora) / (1000 * 60 * 60));
 
-    res.json({
-        evento: {
-            titulo: evento.titulo,
-            fecha: evento.fecha,
-            recordatorio: evento.recordatorio,
-            recordatorio_enviado: evento.recordatorio_enviado
-        },
-        ahora: ahora.toISOString(),
-        horasRestantes,
-        ventana1d: {
-            min: new Date(ahora.getTime() + 23*60*60*1000).toISOString(),
-            max: new Date(ahora.getTime() + 25*60*60*1000).toISOString()
-        },
-        deberiaNotificar: horasRestantes >= 23 && horasRestantes <= 25 && evento.recordatorio === '1d' && !evento.recordatorio_enviado
-    });
+  res.json({
+    evento: {
+      titulo: evento.titulo,
+      fecha: evento.fecha,
+      recordatorio: evento.recordatorio,
+      recordatorio_enviado: evento.recordatorio_enviado
+    },
+    ahora: ahora.toISOString(),
+    horasRestantes,
+    ventana1d: {
+      min: new Date(ahora.getTime() + 23 * 60 * 60 * 1000).toISOString(),
+      max: new Date(ahora.getTime() + 25 * 60 * 60 * 1000).toISOString()
+    },
+    deberiaNotificar: horasRestantes >= 23 && horasRestantes <= 25 && evento.recordatorio === '1d' && !evento.recordatorio_enviado
+  });
 });
 
 // -----------------------------
@@ -824,10 +820,10 @@ app.patch('/api/persons/:id/reactivate', async (req, res) => {
     console.error('Error reactivando persona:', error);
     res.status(500).json({
       success: false,
-        message: 'Error al reactivar persona'
-      });
-    }
-  });
+      message: 'Error al reactivar persona'
+    });
+  }
+});
 
 app.get('/api/persons/inactive', async (req, res) => {
   try {
@@ -1265,9 +1261,6 @@ app.get('/api/documents', protegerRuta, inyectarSchoolId, async (req, res) => {
 app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file'), async (req, res) => {
   try {
     console.log('📥 ========== CREACIÓN DE DOCUMENTO ==========');
-    console.log('📋 Headers:', req.headers);
-    console.log('📋 Body completo:', JSON.stringify(req.body, null, 2));
-    console.log('📋 File:', req.file ? req.file.originalname : 'NO FILE');
 
     if (!req.file) {
       console.error('❌ No se recibió archivo en la solicitud');
@@ -1279,30 +1272,18 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
 
     console.log('✅ Archivo recibido:', req.file.originalname);
     console.log('📊 Tamaño:', req.file.size, 'bytes');
-    console.log('📝 Tipo MIME:', req.file.mimetype);
 
-    // EXTRAER TODOS LOS CAMPOS POSIBLES (incluyendo "estado" que viene del frontend)
     const {
       descripcion,
       categoria,
       fecha_vencimiento,
       persona_id,
-      estado, // Este viene del frontend pero NO existe en el modelo
+      estado,
       notificar_persona,
       notificar_vencimiento
     } = req.body;
 
-    // DEBUG: Mostrar qué recibimos realmente
-    console.log('🔍 CAMPOS RECIBIDOS DEL FRONTEND:');
-    console.log('- descripcion:', descripcion);
-    console.log('- categoria:', categoria);
-    console.log('- fecha_vencimiento:', fecha_vencimiento);
-    console.log('- persona_id:', persona_id);
-    console.log('- estado (PROBLEMA):', estado, '(← este campo NO existe en el modelo Document)');
-    console.log('- notificar_persona:', notificar_persona);
-    console.log('- notificar_vencimiento:', notificar_vencimiento);
-
-    // FIX CRÍTICO #1: VALIDAR QUE TENEMOS CATEGORÍA
+    // Validar categoría
     if (!categoria || categoria.trim() === '') {
       console.error('❌ ERROR: Categoría es obligatoria');
       return res.status(400).json({
@@ -1311,97 +1292,64 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
       });
     }
 
-    // FIX CRÍTICO #2: PROCESAR PERSONA_ID CORRECTAMENTE
+    // Procesar persona_id
     let personaIdProcesado = null;
-    if (persona_id) {
-      console.log('👤 Procesando persona_id recibido:', persona_id, 'tipo:', typeof persona_id);
-
-      if (persona_id === '' || persona_id === 'null' || persona_id === 'undefined') {
-        console.log('👤 persona_id vacío - estableciendo como null');
-        personaIdProcesado = null;
-      } else if (mongoose.Types.ObjectId.isValid(persona_id)) {
-        // Si es un ObjectId válido
+    if (persona_id && persona_id !== '' && persona_id !== 'null' && persona_id !== 'undefined') {
+      if (mongoose.Types.ObjectId.isValid(persona_id)) {
         personaIdProcesado = persona_id;
-        console.log('✅ persona_id válido como ObjectId:', persona_id);
-      } else {
-        console.warn('⚠️ persona_id no es ObjectId válido, se establecerá como null');
-        personaIdProcesado = null;
+        console.log('✅ persona_id válido:', persona_id);
       }
-    } else {
-      console.log('👤 No se recibió persona_id - estableciendo como null');
     }
 
-    // FIX CRÍTICO #3: PROCESAR FECHA_VENCIMIENTO (EL CAMPO REAL)
+    // Procesar fecha_vencimiento
     let fechaVencimientoProcesada = null;
-    if (fecha_vencimiento) {
-      console.log('📅 Procesando fecha_vencimiento recibida:', fecha_vencimiento);
-
-      if (fecha_vencimiento === '' || fecha_vencimiento === 'null' || fecha_vencimiento === 'undefined') {
-        console.log('📅 fecha_vencimiento vacía - estableciendo como null');
-        fechaVencimientoProcesada = null;
-      } else {
-        try {
-          // Intentar parsear la fecha
-          const fecha = new Date(fecha_vencimiento);
-          if (!isNaN(fecha.getTime())) {
-            fechaVencimientoProcesada = fecha;
-            console.log('✅ fecha_vencimiento válida:', fecha.toISOString());
-          } else {
-            console.warn('⚠️ fecha_vencimiento inválida, se establecerá como null');
-            fechaVencimientoProcesada = null;
-          }
-        } catch (error) {
-          console.warn('⚠️ Error parseando fecha_vencimiento:', error);
-          fechaVencimientoProcesada = null;
+    if (fecha_vencimiento && fecha_vencimiento !== '' && fecha_vencimiento !== 'null' && fecha_vencimiento !== 'undefined') {
+      try {
+        const fecha = new Date(fecha_vencimiento);
+        if (!isNaN(fecha.getTime())) {
+          fechaVencimientoProcesada = fecha;
+          console.log('✅ fecha_vencimiento válida:', fecha.toISOString());
         }
+      } catch (error) {
+        console.warn('⚠️ Error parseando fecha_vencimiento:', error);
       }
-    } else {
-      console.log('📅 No se recibió fecha_vencimiento - estableciendo como null');
     }
 
-    // EXPLICACIÓN: El campo "estado" viene del frontend pero NO existe en el modelo
-    // El frontend lo envía con valor 'pendiente' pero debemos IGNORARLO
-    console.log('ℹ️ INFORMACIÓN IMPORTANTE:');
-    console.log('   • El frontend envía campo "estado" con valor:', estado);
-    console.log('   • PERO el modelo Document.js NO tiene campo "estado"');
-    console.log('   • El modelo Document.js solo tiene "fecha_vencimiento" (Date)');
-    console.log('   • Se IGNORARÁ el campo "estado" del frontend');
-    console.log('   • Para determinar si un documento "está pendiente" usar fecha_vencimiento');
+    console.log('📤 Subiendo archivo a DigitalOcean Spaces...');
 
-    console.log('📤 Subiendo archivo a Cloudinary...');
+    const fileContent = fs.readFileSync(req.file.path);
+    const safeFileName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileKey = `documentos/${Date.now()}-${safeFileName}`;
 
-    // Subir a Cloudinary
-    let cloudinaryResult;
+    let spacesResult;
     try {
-      cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'documentos_cbtis051',
-        resource_type: 'auto',
-        timeout: 30000 // 30 segundos timeout
+      const uploadToSpaces = new Upload({
+        client: s3Client,
+        params: {
+          Bucket: SPACES_CONFIG.bucket,
+          Key: fileKey,
+          Body: fileContent,
+          ContentType: req.file.mimetype,
+          ACL: 'public-read',
+        },
       });
-      console.log('✅ Archivo subido a Cloudinary:', cloudinaryResult.secure_url);
-      console.log('📋 Cloudinary response:', {
-        public_id: cloudinaryResult.public_id,
-        resource_type: cloudinaryResult.resource_type,
-        format: cloudinaryResult.format,
-        bytes: cloudinaryResult.bytes
-      });
-    } catch (cloudinaryError) {
-      console.error('❌ Error subiendo a Cloudinary:', cloudinaryError);
-      console.error('❌ Error detallado:', JSON.stringify(cloudinaryError, null, 2));
-      // Limpiar archivo temporal
+
+      spacesResult = await uploadToSpaces.done();
+      console.log('✅ Archivo subido a Spaces:', spacesResult.Location);
+    } catch (spacesError) {
+      console.error('❌ Error subiendo a Spaces:', spacesError);
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
       return res.status(500).json({
         success: false,
-        message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message
+        message: 'Error al subir el archivo: ' + spacesError.message
       });
     }
 
     console.log('💾 Guardando documento en la base de datos...');
 
-    // CREAR DOCUMENTO CON LOS CAMPOS CORRECTOS (sin "estado")
-        const nuevoDocumento = new Document({
+    const nuevoDocumento = new Document({
       nombre_original: req.file.originalname,
       tipo_archivo: req.file.originalname.split('.').pop().toLowerCase(),
       tamano_archivo: req.file.size,
@@ -1409,22 +1357,12 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
       categoria: categoria,
       fecha_vencimiento: fechaVencimientoProcesada,
       persona_id: personaIdProcesado,
-      cloudinary_url: cloudinaryResult.secure_url,
-      public_id: cloudinaryResult.public_id,
-      resource_type: cloudinaryResult.resource_type,
+      cloudinary_url: spacesResult.Location,
+      public_id: fileKey,
+      resource_type: req.file.mimetype,
       activo: true,
       schoolId: req.schoolId || 'superadmin',
       uploadedBy: req.user?._id || null
-    });
-
-    // DEBUG: Mostrar el documento que se va a guardar
-    console.log('📝 DOCUMENTO A GUARDAR (CORREGIDO):', {
-      nombre: nuevoDocumento.nombre_original,
-      categoria: nuevoDocumento.categoria,
-      persona_id: nuevoDocumento.persona_id,
-      fecha_vencimiento: nuevoDocumento.fecha_vencimiento,
-      // NO existe: estado
-      tiene_fecha_vencimiento: !!nuevoDocumento.fecha_vencimiento
     });
 
     await nuevoDocumento.save();
@@ -1440,33 +1378,20 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
     const documentoConPersona = await Document.findById(nuevoDocumento._id)
       .populate('persona_id', 'nombre email departamento puesto');
 
-    // DEBUG: Mostrar el documento guardado (como lo verá el frontend)
     console.log('📊 DOCUMENTO CREADO EXITOSAMENTE:', {
       _id: documentoConPersona._id,
       nombre_original: documentoConPersona.nombre_original,
       categoria: documentoConPersona.categoria,
-      persona_id: documentoConPersona.persona_id,
-      fecha_vencimiento: documentoConPersona.fecha_vencimiento,
-      // Importante: NO existe "estado" en la respuesta porque no existe en el modelo
-      cloudinary_url: documentoConPersona.cloudinary_url,
-      fecha_subida: documentoConPersona.fecha_subida
+      url: documentoConPersona.cloudinary_url
     });
 
-    // Crear notificación de documento subido si corresponde
+    // Crear notificación si corresponde
     if (personaIdProcesado) {
       try {
         const shouldNotify = notificar_persona === 'true' || notificar_persona === true;
         if (shouldNotify) {
-          await NotificationService.documentoSubido(
-            documentoConPersona,
-            documentoConPersona.persona_id
-          );
+          await NotificationService.documentoSubido(documentoConPersona, documentoConPersona.persona_id);
           console.log('🔔 Notificación creada para la persona asignada');
-        }
-
-        // Notificación para vencimiento si hay fecha
-        if (fechaVencimientoProcesada && (notificar_vencimiento === 'true' || notificar_vencimiento === true)) {
-          console.log('🔔 Notificación de vencimiento configurada');
         }
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
@@ -1475,7 +1400,6 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
 
     console.log('✅ ========== UPLOAD COMPLETADO EXITOSAMENTE ==========');
 
-    // RESPONDER AL FRONTEND
     res.json({
       success: true,
       message: 'Documento subido correctamente',
@@ -1488,7 +1412,6 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
         categoria: documentoConPersona.categoria,
         fecha_subida: documentoConPersona.fecha_subida,
         fecha_vencimiento: documentoConPersona.fecha_vencimiento,
-        // NO incluir "estado" porque no existe en el modelo
         persona_id: documentoConPersona.persona_id,
         cloudinary_url: documentoConPersona.cloudinary_url,
         public_id: documentoConPersona.public_id,
@@ -1499,10 +1422,8 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
   } catch (error) {
     console.error('❌❌❌ ERROR GENERAL SUBIENDO DOCUMENTO ❌❌❌');
     console.error('Mensaje:', error.message);
-    console.error('Stack trace:', error.stack);
 
     if (error.name === 'ValidationError') {
-      console.error('Error de validación de Mongoose:', error.errors);
       return res.status(400).json({
         success: false,
         message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
@@ -1510,18 +1431,15 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
     }
 
     if (error.name === 'CastError') {
-      console.error('Error de casteo (ObjectId inválido):', error);
       return res.status(400).json({
         success: false,
         message: 'ID inválido: ' + error.message
       });
     }
 
-    // Limpiar archivo temporal si existe
     if (req.file && fs.existsSync(req.file.path)) {
       try {
         fs.unlinkSync(req.file.path);
-        console.log('🧹 Archivo temporal eliminado después del error');
       } catch (fsError) {
         console.error('Error limpiando archivo temporal:', fsError);
       }
@@ -1542,11 +1460,6 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
     try {
         console.log('📝 ========== ACTUALIZACIÓN DOCUMENTO ==========');
         const { id } = req.params;
-
-        console.log('📋 ID del documento:', id);
-        console.log('📋 Body recibido:', JSON.stringify(req.body, null, 2));
-        console.log('📋 ¿Hay archivo?', req.file ? `SÍ: ${req.file.originalname}` : 'NO');
-        console.log('📋 Headers Content-Type:', req.headers['content-type']);
 
         // Validar ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -1574,29 +1487,15 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
 
         console.log('📄 Documento encontrado:', {
             nombre: documentoExistente.nombre_original,
-            categoria: documentoExistente.categoria,
-            persona: documentoExistente.persona_id
+            categoria: documentoExistente.categoria
         });
 
         // Preparar datos para actualizar
         const updateData = {};
 
-        // Extraer datos del body (multipart/form-data)
-        const {
-            descripcion,
-            categoria,
-            fecha_vencimiento,
-            persona_id
-        } = req.body;
+        const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
 
-        console.log('📋 Datos recibidos para actualizar:', {
-            descripcion,
-            categoria,
-            fecha_vencimiento,
-            persona_id
-        });
-
-        // Validar que se haya proporcionado categoría
+        // Validar categoría
         if (categoria !== undefined) {
             if (!categoria || categoria.trim() === '') {
                 return res.status(400).json({
@@ -1641,14 +1540,13 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
             }
         }
 
-        let cloudinaryResult = null;
         let public_id_antiguo = null;
 
         // =========================================================================
         // SI HAY ARCHIVO NUEVO (REEMPLAZAR)
         // =========================================================================
         if (req.file) {
-            console.log('🔄 Reemplazando archivo...');
+            console.log('🔄 Reemplazando archivo en Spaces...');
             console.log('📁 Archivo nuevo:', req.file.originalname);
             console.log('📊 Tamaño:', req.file.size, 'bytes');
 
@@ -1656,50 +1554,55 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
             public_id_antiguo = documentoExistente.public_id;
 
             try {
-                // Subir nuevo archivo a Cloudinary
-                cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'documentos_cbtis051',
-                    resource_type: 'auto',
-                    timeout: 30000
+                // Subir nuevo archivo a DigitalOcean Spaces
+                const fileContent = fs.readFileSync(req.file.path);
+                const safeFileName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const fileKey = `documentos/${Date.now()}-${safeFileName}`;
+
+                const uploadToSpaces = new Upload({
+                    client: s3Client,
+                    params: {
+                        Bucket: SPACES_CONFIG.bucket,
+                        Key: fileKey,
+                        Body: fileContent,
+                        ContentType: req.file.mimetype,
+                        ACL: 'public-read',
+                    },
                 });
 
-                console.log('✅ Nuevo archivo subido a Cloudinary:', cloudinaryResult.secure_url);
+                const spacesResult = await uploadToSpaces.done();
+
+                console.log('✅ Nuevo archivo subido a Spaces:', spacesResult.Location);
 
                 // Actualizar datos con nuevo archivo
                 updateData.nombre_original = req.file.originalname;
                 updateData.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
                 updateData.tamano_archivo = req.file.size;
-                updateData.cloudinary_url = cloudinaryResult.secure_url;
-                updateData.public_id = cloudinaryResult.public_id;
-                updateData.resource_type = cloudinaryResult.resource_type;
+                updateData.cloudinary_url = spacesResult.Location;
+                updateData.public_id = fileKey;
+                updateData.resource_type = req.file.mimetype;
 
-            } catch (cloudinaryError) {
-                console.error('❌ Error subiendo archivo nuevo:', cloudinaryError);
-                // Limpiar archivo temporal
+            } catch (spacesError) {
+                console.error('❌ Error subiendo archivo nuevo:', spacesError);
                 if (fs.existsSync(req.file.path)) {
                     fs.unlinkSync(req.file.path);
                 }
                 return res.status(500).json({
                     success: false,
-                    message: 'Error al subir nuevo archivo: ' + cloudinaryError.message
+                    message: 'Error al subir nuevo archivo: ' + spacesError.message
                 });
             }
         }
 
         console.log('📋 Campos finales a actualizar:', updateData);
 
-        // =========================================================================
-        // ACTUALIZAR EN BASE DE DATOS
-        // =========================================================================
+        // Actualizar en base de datos
         console.log('💾 Actualizando en base de datos...');
 
         const documentoActualizado = await Document.findByIdAndUpdate(
             id,
             updateData,
-            {
-                new: true,
-                runValidators: true
-            }
+            { new: true, runValidators: true }
         ).populate('persona_id', 'nombre email departamento');
 
         if (!documentoActualizado) {
@@ -1711,31 +1614,26 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
 
         console.log('✅ Documento actualizado en BD:', documentoActualizado.nombre_original);
 
-        // =========================================================================
-        // LIMPIAR ARCHIVOS TEMPORALES Y ANTIGUOS
-        // =========================================================================
-
         // Limpiar archivo temporal si existe
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
             console.log('🧹 Archivo temporal eliminado');
         }
 
-        // Eliminar archivo antiguo de Cloudinary si se reemplazó
+        // Eliminar archivo antiguo de Spaces si se reemplazó
         if (req.file && public_id_antiguo) {
             try {
-                await cloudinary.uploader.destroy(public_id_antiguo, {
-                    resource_type: documentoExistente.resource_type
-                });
-                console.log('🗑️ Archivo antiguo eliminado de Cloudinary');
+                await s3Client.send(new DeleteObjectCommand({
+                    Bucket: SPACES_CONFIG.bucket,
+                    Key: public_id_antiguo,
+                }));
+                console.log('🗑️ Archivo antiguo eliminado de Spaces');
             } catch (deleteError) {
                 console.warn('⚠️ No se pudo eliminar archivo antiguo:', deleteError.message);
             }
         }
 
-        // =========================================================================
-        // CREAR NOTIFICACIÓN
-        // =========================================================================
+        // Crear notificación
         try {
             await NotificationService.documentoActualizado(
                 documentoActualizado,
@@ -1756,10 +1654,8 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error general actualizando documento:', error);
-        console.error('❌ Stack trace:', error.stack);
 
         if (error.name === 'ValidationError') {
-            console.error('Error de validación de Mongoose:', error.errors);
             return res.status(400).json({
                 success: false,
                 message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
@@ -1767,14 +1663,12 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
         }
 
         if (error.name === 'CastError') {
-            console.error('Error de casteo (ObjectId inválido):', error);
             return res.status(400).json({
                 success: false,
                 message: 'ID inválido: ' + error.message
             });
         }
 
-        // Limpiar archivos temporales en caso de error
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
@@ -1787,93 +1681,93 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
 });
 
 app.delete('/documents/bulk-delete', async (req, res) => {
-    try {
-        const { document_ids } = req.body;
+  try {
+    const { document_ids } = req.body;
 
-        console.log(`🗑️ Solicitud de eliminación masiva para ${document_ids?.length || 0} documentos`);
+    console.log(`🗑️ Solicitud de eliminación masiva para ${document_ids?.length || 0} documentos`);
 
-        // Validar entrada
-        if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Debe proporcionar una lista de IDs de documentos'
-            });
-        }
-
-        // Validar que no exceda el límite (opcional)
-        if (document_ids.length > 100) {
-            return res.status(400).json({
-                success: false,
-                message: 'No se pueden eliminar más de 100 documentos a la vez'
-            });
-        }
-
-        // Mover documentos a la papelera
-        const results = [];
-
-        for (const documentId of document_ids) {
-            try {
-                // Buscar documento
-                const document = await Document.findByPk(documentId);
-
-                if (!document) {
-                    results.push({
-                        id: documentId,
-                        success: false,
-                        message: 'Documento no encontrado'
-                    });
-                    continue;
-                }
-
-                // Verificar que no esté ya en la papelera
-                if (document.deleted_at) {
-                    results.push({
-                        id: documentId,
-                        success: false,
-                        message: 'El documento ya está en la papelera'
-                    });
-                    continue;
-                }
-
-                // Mover a papelera (soft delete)
-                document.deleted_at = new Date();
-                await document.save();
-
-                results.push({
-                    id: documentId,
-                    success: true,
-                    message: 'Documento movido a la papelera'
-                });
-
-            } catch (error) {
-                results.push({
-                    id: documentId,
-                    success: false,
-                    message: error.message
-                });
-            }
-        }
-
-        // Calcular estadísticas
-        const successful = results.filter(r => r.success).length;
-        const failed = results.filter(r => !r.success).length;
-
-        return res.json({
-            success: true,
-            message: `${successful} documentos movidos a la papelera${failed > 0 ? `, ${failed} fallaron` : ''}`,
-            total: document_ids.length,
-            successful,
-            failed,
-            results
-        });
-
-    } catch (error) {
-        console.error('Error en eliminación masiva:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Error interno del servidor'
-        });
+    // Validar entrada
+    if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe proporcionar una lista de IDs de documentos'
+      });
     }
+
+    // Validar que no exceda el límite (opcional)
+    if (document_ids.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se pueden eliminar más de 100 documentos a la vez'
+      });
+    }
+
+    // Mover documentos a la papelera
+    const results = [];
+
+    for (const documentId of document_ids) {
+      try {
+        // Buscar documento
+        const document = await Document.findByPk(documentId);
+
+        if (!document) {
+          results.push({
+            id: documentId,
+            success: false,
+            message: 'Documento no encontrado'
+          });
+          continue;
+        }
+
+        // Verificar que no esté ya en la papelera
+        if (document.deleted_at) {
+          results.push({
+            id: documentId,
+            success: false,
+            message: 'El documento ya está en la papelera'
+          });
+          continue;
+        }
+
+        // Mover a papelera (soft delete)
+        document.deleted_at = new Date();
+        await document.save();
+
+        results.push({
+          id: documentId,
+          success: true,
+          message: 'Documento movido a la papelera'
+        });
+
+      } catch (error) {
+        results.push({
+          id: documentId,
+          success: false,
+          message: error.message
+        });
+      }
+    }
+
+    // Calcular estadísticas
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+
+    return res.json({
+      success: true,
+      message: `${successful} documentos movidos a la papelera${failed > 0 ? `, ${failed} fallaron` : ''}`,
+      total: document_ids.length,
+      successful,
+      failed,
+      results
+    });
+
+  } catch (error) {
+    console.error('Error en eliminación masiva:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
 });
 
 // =============================================================================
@@ -2031,17 +1925,14 @@ app.delete('/api/documents/:id', async (req, res) => {
     const { id } = req.params;
 
     console.log('🗑️ ========== ELIMINACIÓN SOFT DELETE ==========');
-    console.log('📋 ID recibido:', id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.log('❌ ID inválido:', id);
       return res.status(400).json({
         success: false,
         message: 'ID inválido'
       });
     }
 
-    // CORREGIDO: No filtrar por activo, solo por isDeleted
     const documento = await Document.findOne({
       _id: id,
       $or: [
@@ -2050,21 +1941,13 @@ app.delete('/api/documents/:id', async (req, res) => {
       ]
     });
 
-    console.log('📄 Documento encontrado:', documento ? 'SÍ' : 'NO');
-    if (documento) {
-      console.log('📄 Nombre:', documento.nombre_original);
-      console.log('📄 Categoría:', documento.categoria);
-    }
-
     if (!documento) {
-      console.log('❌ Documento no encontrado o ya eliminado');
       return res.status(404).json({
         success: false,
         message: 'Documento no encontrado'
       });
     }
 
-    // Guardar datos para la notificación antes de mover a papelera
     const nombreDocumento = documento.nombre_original;
     const categoriaDocumento = documento.categoria;
 
@@ -2072,23 +1955,16 @@ app.delete('/api/documents/:id', async (req, res) => {
     const updateResult = await Document.findByIdAndUpdate(id, {
       isDeleted: true,
       deletedAt: new Date(),
-      deletedBy: 'Administrador' // En producción, usar el usuario actual
+      deletedBy: 'Administrador'
     }, { new: true });
 
-    console.log('✅ Documento actualizado en BD');
-    console.log('📋 isDeleted:', updateResult.isDeleted);
-    console.log('📋 deletedAt:', updateResult.deletedAt);
-    console.log('📋 deletedBy:', updateResult.deletedBy);
+    console.log('✅ Documento movido a papelera:', nombreDocumento);
 
-    // Crear notificación de documento movido a papelera
     try {
       await NotificationService.documentoEliminado(nombreDocumento, categoriaDocumento);
-      console.log('✅ Notificación creada');
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
-
-    console.log('🗑️ ========== FIN ELIMINACIÓN ==========');
 
     res.json({
       success: true,
@@ -2117,8 +1993,8 @@ app.get('/api/trash', async (req, res) => {
       activo: true,
       isDeleted: true
     })
-    .populate('persona_id', 'nombre email departamento')
-    .sort({ deletedAt: -1 });
+      .populate('persona_id', 'nombre email departamento')
+      .sort({ deletedAt: -1 });
 
     console.log('📊 Documentos en papelera encontrados:', trashedDocs.length);
     trashedDocs.forEach((doc, index) => {
@@ -2157,7 +2033,6 @@ app.get('/api/trash', async (req, res) => {
   }
 });
 
-// Vaciar papelera (eliminar todos los documentos permanentemente) - DEBE IR ANTES DE /:id
 app.delete('/api/trash/empty-all', async (req, res) => {
   try {
     console.log('🗑️ ========== VACIANDO PAPELERA ==========');
@@ -2172,10 +2047,11 @@ app.delete('/api/trash/empty-all', async (req, res) => {
 
     for (const doc of trashedDocs) {
       try {
-        // Eliminar de Cloudinary
-        await cloudinary.uploader.destroy(doc.public_id, {
-          resource_type: doc.resource_type
-        });
+        // Eliminar de DigitalOcean Spaces
+        await s3Client.send(new DeleteObjectCommand({
+          Bucket: SPACES_CONFIG.bucket,
+          Key: doc.public_id,
+        }));
 
         // Eliminar de la base de datos
         await Document.findByIdAndUpdate(doc._id, { activo: false });
@@ -2204,6 +2080,57 @@ app.delete('/api/trash/empty-all', async (req, res) => {
   }
 });
 
+// Vaciar papelera (eliminar todos los documentos permanentemente) - DEBE IR ANTES DE /:id
+app.delete('/api/trash/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
+      });
+    }
+
+    const documento = await Document.findOne({ _id: id, activo: true, isDeleted: true });
+
+    if (!documento) {
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado en la papelera'
+      });
+    }
+
+    const nombreDocumento = documento.nombre_original;
+
+    // Eliminar de DigitalOcean Spaces
+    try {
+      await s3Client.send(new DeleteObjectCommand({
+        Bucket: SPACES_CONFIG.bucket,
+        Key: documento.public_id,
+      }));
+      console.log('✅ Archivo eliminado de Spaces');
+    } catch (spacesError) {
+      console.warn('⚠️ No se pudo eliminar de Spaces:', spacesError);
+    }
+
+    // Eliminar permanentemente de la base de datos
+    await Document.findByIdAndUpdate(id, { activo: false });
+
+    res.json({
+      success: true,
+      message: `"${nombreDocumento}" eliminado permanentemente`
+    });
+
+  } catch (error) {
+    console.error('Error eliminando documento permanentemente:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar documento permanentemente'
+    });
+  }
+});
+
 // Proceso automático para eliminar documentos con más de 30 días en papelera - DEBE IR ANTES DE /:id
 app.post('/api/trash/auto-cleanup', async (req, res) => {
   try {
@@ -2221,10 +2148,11 @@ app.post('/api/trash/auto-cleanup', async (req, res) => {
 
     for (const doc of expiredDocs) {
       try {
-        // Eliminar de Cloudinary
-        await cloudinary.uploader.destroy(doc.public_id, {
-          resource_type: doc.resource_type
-        });
+        // Eliminar de DigitalOcean Spaces
+        await s3Client.send(new DeleteObjectCommand({
+          Bucket: SPACES_CONFIG.bucket,
+          Key: doc.public_id,
+        }));
 
         // Eliminar de la base de datos
         await Document.findByIdAndUpdate(doc._id, { activo: false });
@@ -2645,7 +2573,7 @@ app.post('/api/reports/pdf', async (req, res) => {
       isDeleted: { $ne: true }
     };
 
-    switch(reportType) {
+    switch (reportType) {
       case 'general':
         reportTitle = 'Reporte General del Sistema';
         documents = await Document.find(baseQuery)
@@ -2660,8 +2588,8 @@ app.post('/api/reports/pdf', async (req, res) => {
             ...baseQuery,
             categoria: category
           })
-          .populate('persona_id', 'nombre email departamento puesto')
-          .sort({ fecha_subida: -1 });
+            .populate('persona_id', 'nombre email departamento puesto')
+            .sort({ fecha_subida: -1 });
         } else {
           reportTitle = 'Reporte por Todas las Categorías';
           documents = await Document.find(baseQuery)
@@ -2678,8 +2606,8 @@ app.post('/api/reports/pdf', async (req, res) => {
             ...baseQuery,
             persona_id: person
           })
-          .populate('persona_id', 'nombre email departamento puesto')
-          .sort({ fecha_subida: -1 });
+            .populate('persona_id', 'nombre email departamento puesto')
+            .sort({ fecha_subida: -1 });
         } else {
           reportTitle = 'Reporte por Todas las Personas';
           documents = await Document.find(baseQuery)
@@ -2703,8 +2631,8 @@ app.post('/api/reports/pdf', async (req, res) => {
             $lte: futureDate
           }
         })
-        .populate('persona_id', 'nombre email departamento puesto')
-        .sort({ fecha_vencimiento: 1 });
+          .populate('persona_id', 'nombre email departamento puesto')
+          .sort({ fecha_vencimiento: 1 });
         break;
 
       case 'expired':
@@ -2715,8 +2643,8 @@ app.post('/api/reports/pdf', async (req, res) => {
           ...baseQuery,
           fecha_vencimiento: { $lt: now }
         })
-        .populate('persona_id', 'nombre email departamento puesto')
-        .sort({ fecha_vencimiento: 1 });
+          .populate('persona_id', 'nombre email departamento puesto')
+          .sort({ fecha_vencimiento: 1 });
         break;
 
       default:
@@ -2755,44 +2683,44 @@ app.post('/api/reports/pdf', async (req, res) => {
 
     // Logo/Título
     doc.fontSize(20)
-       .font('Helvetica-Bold')
-       .fillColor('#4F46E5')
-       .text('Sistema de Gestión de Documentos', { align: 'center' });
+      .font('Helvetica-Bold')
+      .fillColor('#4F46E5')
+      .text('Sistema de Gestión de Documentos', { align: 'center' });
 
     doc.fontSize(16)
-       .text('CBTIS051', { align: 'center' })
-       .moveDown(0.5);
+      .text('CBTIS051', { align: 'center' })
+      .moveDown(0.5);
 
     doc.fontSize(14)
-       .fillColor('#000000')
-       .text(reportTitle, { align: 'center' })
-       .moveDown(0.5);
+      .fillColor('#000000')
+      .text(reportTitle, { align: 'center' })
+      .moveDown(0.5);
 
     doc.fontSize(10)
-       .fillColor('#6B7280')
-       .text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, { align: 'center' })
-       .moveDown();
+      .fillColor('#6B7280')
+      .text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, { align: 'center' })
+      .moveDown();
 
     // Línea separadora
     doc.moveTo(50, doc.y)
-       .lineTo(550, doc.y)
-       .stroke()
-       .moveDown();
+      .lineTo(550, doc.y)
+      .stroke()
+      .moveDown();
 
     // =====================================================================
     // RESUMEN ESTADÍSTICO
     // =====================================================================
 
     doc.fontSize(12)
-       .font('Helvetica-Bold')
-       .text('Resumen del Reporte:', { underline: true })
-       .moveDown(0.5);
+      .font('Helvetica-Bold')
+      .text('Resumen del Reporte:', { underline: true })
+      .moveDown(0.5);
 
     doc.fontSize(10)
-       .font('Helvetica')
-       .text(`• Total de documentos: ${documents.length}`)
-       .text(`• Fecha de generación: ${new Date().toLocaleDateString()}`)
-       .text(`• Tipo de reporte: ${getReportTypeName(reportType)}`);
+      .font('Helvetica')
+      .text(`• Total de documentos: ${documents.length}`)
+      .text(`• Fecha de generación: ${new Date().toLocaleDateString()}`)
+      .text(`• Tipo de reporte: ${getReportTypeName(reportType)}`);
 
     // Estadísticas adicionales si hay documentos
     if (documents.length > 0) {
@@ -2808,8 +2736,8 @@ app.post('/api/reports/pdf', async (req, res) => {
 
       if (expiredCount > 0) {
         doc.fillColor('red')
-           .text(`• Documentos vencidos: ${expiredCount}`)
-           .fillColor('#000000');
+          .text(`• Documentos vencidos: ${expiredCount}`)
+          .fillColor('#000000');
       }
     }
 
@@ -2821,22 +2749,22 @@ app.post('/api/reports/pdf', async (req, res) => {
 
     if (documents.length === 0) {
       doc.fontSize(14)
-         .fillColor('#DC2626')
-         .text('No hay documentos para mostrar', { align: 'center' })
-         .moveDown();
+        .fillColor('#DC2626')
+        .text('No hay documentos para mostrar', { align: 'center' })
+        .moveDown();
 
       doc.fontSize(10)
-         .fillColor('#6B7280')
-         .text('No se encontraron documentos con los criterios seleccionados.', { align: 'center' })
-         .moveDown(2);
+        .fillColor('#6B7280')
+        .text('No se encontraron documentos con los criterios seleccionados.', { align: 'center' })
+        .moveDown(2);
 
       // Pie de página para documento vacío
       doc.fontSize(8)
-         .fillColor('#9CA3AF')
-         .text(`Sistema de Gestión de Documentos CBTIS051 - Página 1 de 1`,
-               50,
-               doc.page.height - 50,
-               { align: 'center' });
+        .fillColor('#9CA3AF')
+        .text(`Sistema de Gestión de Documentos CBTIS051 - Página 1 de 1`,
+          50,
+          doc.page.height - 50,
+          { align: 'center' });
 
       doc.end();
       console.log('✅ PDF vacío generado exitosamente');
@@ -2854,10 +2782,10 @@ app.post('/api/reports/pdf', async (req, res) => {
     }
 
     doc.fontSize(12)
-       .font('Helvetica-Bold')
-       .fillColor('#000000')
-       .text('Detalle de Documentos:', { underline: true })
-       .moveDown(0.5);
+      .font('Helvetica-Bold')
+      .fillColor('#000000')
+      .text('Detalle de Documentos:', { underline: true })
+      .moveDown(0.5);
 
     // Definir posiciones y anchos de columnas
     const tableTop = doc.y;
@@ -2866,7 +2794,7 @@ app.post('/api/reports/pdf', async (req, res) => {
 
     // Encabezados de tabla
     doc.font('Helvetica-Bold')
-       .fontSize(9);
+      .fontSize(9);
 
     let x = 50;
     headers.forEach((header, i) => {
@@ -2879,14 +2807,14 @@ app.post('/api/reports/pdf', async (req, res) => {
 
     // Línea debajo de los encabezados
     doc.moveTo(50, tableTop + 15)
-       .lineTo(550, tableTop + 15)
-       .stroke();
+      .lineTo(550, tableTop + 15)
+      .stroke();
 
     // Filas de datos
     let y = tableTop + 25;
 
     doc.font('Helvetica')
-       .fontSize(8);
+      .fontSize(8);
 
     documents.forEach((document, index) => {
       // Verificar si necesitamos nueva página
@@ -2896,7 +2824,7 @@ app.post('/api/reports/pdf', async (req, res) => {
 
         // Volver a dibujar encabezados en nueva página
         doc.font('Helvetica-Bold')
-           .fontSize(9);
+          .fontSize(9);
 
         let newX = 50;
         headers.forEach((header, i) => {
@@ -2908,8 +2836,8 @@ app.post('/api/reports/pdf', async (req, res) => {
         });
 
         doc.moveTo(50, y + 15)
-           .lineTo(550, y + 15)
-           .stroke();
+          .lineTo(550, y + 15)
+          .stroke();
 
         y += 25;
         doc.font('Helvetica').fontSize(8);
@@ -2958,9 +2886,9 @@ app.post('/api/reports/pdf', async (req, res) => {
       // Línea separadora entre filas (opcional)
       if (index < documents.length - 1) {
         doc.moveTo(50, y - 2)
-           .lineTo(550, y - 2)
-           .strokeColor('#E5E7EB')
-           .stroke();
+          .lineTo(550, y - 2)
+          .strokeColor('#E5E7EB')
+          .stroke();
       }
     });
 
@@ -2984,13 +2912,13 @@ app.post('/api/reports/pdf', async (req, res) => {
 
       // Agregar pie de página en posición fija
       doc.fontSize(8)
-         .fillColor('#9CA3AF')
-         .text(
-           `Sistema de Gestión de Documentos CBTIS051 - Página ${i + 1} de ${pageRange.count}`,
-           50,
-           doc.page.height - 50,
-           { align: 'center', width: 500 }
-         );
+        .fillColor('#9CA3AF')
+        .text(
+          `Sistema de Gestión de Documentos CBTIS051 - Página ${i + 1} de ${pageRange.count}`,
+          50,
+          doc.page.height - 50,
+          { align: 'center', width: 500 }
+        );
     }
 
     // =====================================================================
@@ -3156,106 +3084,106 @@ app.post('/api/reports/csv', async (req, res) => {
 // ============================================================================
 
 app.get('/api/documents/:id/download', async (req, res) => {
-    console.log('📥 ====== INICIO ENDPOINT DESCARGA ======');
+  console.log('📥 ====== INICIO ENDPOINT DESCARGA ======');
 
-    try {
-        const { id } = req.params;
-        const { filename } = req.query;
+  try {
+    const { id } = req.params;
+    const { filename } = req.query;
 
-        console.log('📋 Parámetros recibidos:', { id, filename });
+    console.log('📋 Parámetros recibidos:', { id, filename });
 
-        // 1. Validar ID
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'ID de documento invalido'
-            });
-        }
-
-        // 2. Buscar en BD
-        const documento = await Document.findOne({
-            _id: id,
-            activo: true
-        }).populate('persona_id', 'nombre');
-
-        if (!documento) {
-            return res.status(404).json({
-                success: false,
-                message: 'Documento no encontrado'
-            });
-        }
-
-        const fileName = filename || documento.nombre_original;
-        const cloudinaryUrl = documento.cloudinary_url || documento.url_cloudinary;
-        const fileExtension = fileName.split('.').pop().toLowerCase();
-
-        console.log('📄 Documento encontrado:', {
-            fileName,
-            extension: fileExtension,
-            url: cloudinaryUrl
-        });
-
-        if (!cloudinaryUrl) {
-            return res.status(404).json({
-                success: false,
-                message: 'URL de archivo no disponible'
-            });
-        }
-
-        // Tipos de archivo
-        const isImage = ['png','jpg','jpeg','gif','webp','bmp'].includes(fileExtension);
-        const isPDF = fileExtension === 'pdf';
-
-        // =====================================================================
-        // ESTRATEGIA 1: Redireccion directa para IMAGENES (funciona perfecto)
-        // =====================================================================
-        if (isImage) {
-            console.log('🖼️ Imagen detectada → redireccion directa');
-
-            let finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
-
-            return res.redirect(finalUrl);
-        }
-
-        // =====================================================================
-        // ESTRATEGIA 2: SERVIDOR PROXY PARA PDF, DOCX, XLSX, TXT, ETC
-        // =====================================================================
-        console.log('📄 Documento → usando servidor proxy');
-
-        // Intento 1: URL original
-        let response = await tryFetch(cloudinaryUrl);
-
-        // Si fallo, intentamos con URL modificada
-        if (!response.ok) {
-            console.log('⚠️ Intento 1 fallo, probando URL mejorada para Cloudinary...');
-
-            const modifiedUrl = buildCloudinaryDownloadURL(cloudinaryUrl, fileExtension);
-            console.log('🔗 URL modificada final:', modifiedUrl);
-
-            response = await tryFetch(modifiedUrl);
-
-            if (!response.ok) {
-                console.log('❌ Intento 2 tambien fallo. Haciendo redireccion como ultimo recurso.');
-
-                res.setHeader('Content-Type', getContentType(fileExtension));
-                res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-                return res.redirect(cloudinaryUrl);
-            }
-        }
-
-        // Procesar archivo
-        await processAndSendFile(response, res, fileName, fileExtension);
-
-    } catch (error) {
-        console.error('❌ ERROR CRITICO:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno en la descarga',
-            error: error.message
-        });
-    } finally {
-        console.log('📥 ====== FIN ENDPOINT DESCARGA ======');
+    // 1. Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de documento invalido'
+      });
     }
+
+    // 2. Buscar en BD
+    const documento = await Document.findOne({
+      _id: id,
+      activo: true
+    }).populate('persona_id', 'nombre');
+
+    if (!documento) {
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado'
+      });
+    }
+
+    const fileName = filename || documento.nombre_original;
+    const cloudinaryUrl = documento.cloudinary_url || documento.url_cloudinary;
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+
+    console.log('📄 Documento encontrado:', {
+      fileName,
+      extension: fileExtension,
+      url: cloudinaryUrl
+    });
+
+    if (!cloudinaryUrl) {
+      return res.status(404).json({
+        success: false,
+        message: 'URL de archivo no disponible'
+      });
+    }
+
+    // Tipos de archivo
+    const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(fileExtension);
+    const isPDF = fileExtension === 'pdf';
+
+    // =====================================================================
+    // ESTRATEGIA 1: Redireccion directa para IMAGENES (funciona perfecto)
+    // =====================================================================
+    if (isImage) {
+      console.log('🖼️ Imagen detectada → redireccion directa');
+
+      let finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
+
+      return res.redirect(finalUrl);
+    }
+
+    // =====================================================================
+    // ESTRATEGIA 2: SERVIDOR PROXY PARA PDF, DOCX, XLSX, TXT, ETC
+    // =====================================================================
+    console.log('📄 Documento → usando servidor proxy');
+
+    // Intento 1: URL original
+    let response = await tryFetch(cloudinaryUrl);
+
+    // Si fallo, intentamos con URL modificada
+    if (!response.ok) {
+      console.log('⚠️ Intento 1 fallo, probando URL mejorada para Cloudinary...');
+
+      const modifiedUrl = buildCloudinaryDownloadURL(cloudinaryUrl, fileExtension);
+      console.log('🔗 URL modificada final:', modifiedUrl);
+
+      response = await tryFetch(modifiedUrl);
+
+      if (!response.ok) {
+        console.log('❌ Intento 2 tambien fallo. Haciendo redireccion como ultimo recurso.');
+
+        res.setHeader('Content-Type', getContentType(fileExtension));
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+        return res.redirect(cloudinaryUrl);
+      }
+    }
+
+    // Procesar archivo
+    await processAndSendFile(response, res, fileName, fileExtension);
+
+  } catch (error) {
+    console.error('❌ ERROR CRITICO:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno en la descarga',
+      error: error.message
+    });
+  } finally {
+    console.log('📥 ====== FIN ENDPOINT DESCARGA ======');
+  }
 });
 
 
@@ -3263,23 +3191,23 @@ app.get('/api/documents/:id/download', async (req, res) => {
 // FUNCION: Corregir URL para descarga desde Cloudinary (fix definitivo PDF)
 // ============================================================================
 function buildCloudinaryDownloadURL(url, extension) {
-    if (!url.includes('/upload/')) return url;
+  if (!url.includes('/upload/')) return url;
 
-    // Inserta fl_attachment incluso si existe /v123456/
-    let newUrl = url.replace(/\/upload\/(?:v\d+\/)?/, match => {
-        return match.replace('upload/', 'upload/fl_attachment/');
-    });
+  // Inserta fl_attachment incluso si existe /v123456/
+  let newUrl = url.replace(/\/upload\/(?:v\d+\/)?/, match => {
+    return match.replace('upload/', 'upload/fl_attachment/');
+  });
 
-    // Cloudinary requiere .pdf al final para PDFs
-    if (extension === 'pdf' && !newUrl.endsWith('.pdf')) {
-        if (newUrl.includes('.pdf')) {
-            newUrl = newUrl.split('.pdf')[0] + '.pdf';
-        } else {
-            newUrl += '.pdf';
-        }
+  // Cloudinary requiere .pdf al final para PDFs
+  if (extension === 'pdf' && !newUrl.endsWith('.pdf')) {
+    if (newUrl.includes('.pdf')) {
+      newUrl = newUrl.split('.pdf')[0] + '.pdf';
+    } else {
+      newUrl += '.pdf';
     }
+  }
 
-    return newUrl;
+  return newUrl;
 }
 
 
@@ -3287,18 +3215,18 @@ function buildCloudinaryDownloadURL(url, extension) {
 // FUNCION: Intento de fetch con headers correctos
 // ============================================================================
 async function tryFetch(url) {
-    try {
-        return await fetch(url, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Mozilla/5.0'
-            },
-            timeout: 30000
-        });
-    } catch (err) {
-        console.error('❌ Error en fetch:', err);
-        return { ok: false, status: 0 };
-    }
+  try {
+    return await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      },
+      timeout: 30000
+    });
+  } catch (err) {
+    console.error('❌ Error en fetch:', err);
+    return { ok: false, status: 0 };
+  }
 }
 
 
@@ -3306,29 +3234,29 @@ async function tryFetch(url) {
 // FUNCION: Procesar y enviar archivo
 // ============================================================================
 async function processAndSendFile(fetchResponse, res, fileName, fileExtension) {
-    const buffer = await fetchResponse.arrayBuffer();
-    const nodeBuffer = Buffer.from(buffer);
+  const buffer = await fetchResponse.arrayBuffer();
+  const nodeBuffer = Buffer.from(buffer);
 
-    if (nodeBuffer.length === 0) {
-        throw new Error('Buffer vacio');
+  if (nodeBuffer.length === 0) {
+    throw new Error('Buffer vacio');
+  }
+
+  // Verificacion PDF
+  if (fileExtension === 'pdf') {
+    const firstBytes = nodeBuffer.slice(0, 5).toString();
+    if (!firstBytes.includes('%PDF')) {
+      console.log('⚠️ El archivo no empieza con %PDF, Cloudinary devolvio HTML');
+      throw new Error('Respuesta invalida para PDF');
     }
+  }
 
-    // Verificacion PDF
-    if (fileExtension === 'pdf') {
-        const firstBytes = nodeBuffer.slice(0, 5).toString();
-        if (!firstBytes.includes('%PDF')) {
-            console.log('⚠️ El archivo no empieza con %PDF, Cloudinary devolvio HTML');
-            throw new Error('Respuesta invalida para PDF');
-        }
-    }
+  // Headers
+  const contentType = getContentType(fileExtension);
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Length', nodeBuffer.length);
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
 
-    // Headers
-    const contentType = getContentType(fileExtension);
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', nodeBuffer.length);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-
-    return res.end(nodeBuffer);
+  return res.end(nodeBuffer);
 }
 
 
@@ -3336,24 +3264,24 @@ async function processAndSendFile(fetchResponse, res, fileName, fileExtension) {
 // MIME TYPES
 // ============================================================================
 function getContentType(ext) {
-    const types = {
-        'pdf': 'application/pdf',
-        'doc': 'application/msword',
-        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'xls': 'application/vnd.ms-excel',
-        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'txt': 'text/plain',
-        'csv': 'text/csv',
-        'rtf': 'application/rtf',
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'bmp': 'image/bmp'
-    };
+  const types = {
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xls': 'application/vnd.ms-excel',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'txt': 'text/plain',
+    'csv': 'text/csv',
+    'rtf': 'application/rtf',
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'bmp': 'image/bmp'
+  };
 
-    return types[ext.toLowerCase()] || 'application/octet-stream';
+  return types[ext.toLowerCase()] || 'application/octet-stream';
 }
 
 // =============================================================================
@@ -3361,148 +3289,148 @@ function getContentType(ext) {
 // =============================================================================
 
 app.get('/api/documents/:id/content', async (req, res) => {
-    console.log('📝 Obteniendo contenido para vista previa de texto');
+  console.log('📝 Obteniendo contenido para vista previa de texto');
 
-    try {
-        const { id } = req.params;
-        const { limit = 50000 } = req.query; // Limitar a 50KB por defecto
+  try {
+    const { id } = req.params;
+    const { limit = 50000 } = req.query; // Limitar a 50KB por defecto
 
-        // Validar ID
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'ID de documento inválido'
-            });
-        }
-
-        // Buscar documento
-        const documento = await Document.findOne({
-            _id: id,
-            activo: true
-        });
-
-        if (!documento) {
-            return res.status(404).json({
-                success: false,
-                message: 'Documento no encontrado'
-            });
-        }
-
-        // Verificar que sea archivo de texto
-        const extension = documento.nombre_original.split('.').pop().toLowerCase();
-        const textExtensions = ['txt', 'csv', 'json', 'xml', 'html', 'htm', 'js', 'css', 'md'];
-
-        if (!textExtensions.includes(extension)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Este tipo de archivo no puede ser previsualizado como texto'
-            });
-        }
-
-        const cloudinaryUrl = documento.cloudinary_url;
-
-        if (!cloudinaryUrl) {
-            return res.status(500).json({
-                success: false,
-                message: 'URL del archivo no disponible'
-            });
-        }
-
-        console.log('📥 Descargando contenido desde Cloudinary...');
-
-        // IMPORTANTE: Para archivos .txt, Cloudinary los sirve como 'raw'
-        // Necesitamos agregar parámetros para asegurar que sea texto
-        let finalUrl = cloudinaryUrl;
-
-        // Si es una URL de Cloudinary, forzar formato raw
-        if (cloudinaryUrl.includes('cloudinary.com')) {
-            if (!cloudinaryUrl.includes('/raw/')) {
-                finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
-            }
-        }
-
-        // Descargar desde Cloudinary con fetch nativo de Node.js 18+
-        const response = await fetch(finalUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error al descargar desde Cloudinary: ${response.status}`);
-        }
-
-        // Leer el contenido
-        const buffer = await response.arrayBuffer();
-
-        if (buffer.byteLength === 0) {
-            return res.status(500).json({
-                success: false,
-                message: 'El archivo está vacío'
-            });
-        }
-
-        // Convertir a texto
-        let textContent;
-        try {
-            // Intentar UTF-8 primero
-            textContent = new TextDecoder('utf-8').decode(buffer);
-        } catch (utf8Error) {
-            // Si falla UTF-8, intentar Latin-1
-            try {
-                textContent = new TextDecoder('latin-1').decode(buffer);
-            } catch (latinError) {
-                return res.status(500).json({
-                    success: false,
-                    message: 'No se pudo decodificar el contenido del archivo'
-                });
-            }
-        }
-
-        // Limitar contenido si es muy grande
-        const maxLength = parseInt(limit);
-        let isTruncated = false;
-
-        if (textContent.length > maxLength) {
-            textContent = textContent.substring(0, maxLength);
-            isTruncated = true;
-        }
-
-        // Determinar tipo de contenido
-        let contentType = 'text/plain; charset=utf-8';
-        if (extension === 'html' || extension === 'htm') contentType = 'text/html; charset=utf-8';
-        if (extension === 'json') contentType = 'application/json; charset=utf-8';
-        if (extension === 'xml') contentType = 'application/xml; charset=utf-8';
-        if (extension === 'css') contentType = 'text/css; charset=utf-8';
-        if (extension === 'js') contentType = 'application/javascript; charset=utf-8';
-        if (extension === 'csv') contentType = 'text/csv; charset=utf-8';
-        if (extension === 'md') contentType = 'text/markdown; charset=utf-8';
-
-        // Configurar respuesta
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('X-File-Name', encodeURIComponent(documento.nombre_original));
-        res.setHeader('X-File-Size', buffer.byteLength);
-        res.setHeader('X-Content-Length', textContent.length);
-        if (isTruncated) {
-            res.setHeader('X-Content-Truncated', 'true');
-            res.setHeader('X-Original-Length', buffer.byteLength);
-        }
-
-        // Enviar contenido
-        res.send(textContent);
-
-        console.log(`✅ Contenido enviado: ${textContent.length} caracteres`);
-
-    } catch (error) {
-        console.error('❌ Error en endpoint de contenido:', error);
-
-        // Enviar como JSON si es un error
-        res.setHeader('Content-Type', 'application/json');
-        res.status(500).json({
-            success: false,
-            message: 'Error al obtener contenido: ' + error.message
-        });
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de documento inválido'
+      });
     }
+
+    // Buscar documento
+    const documento = await Document.findOne({
+      _id: id,
+      activo: true
+    });
+
+    if (!documento) {
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado'
+      });
+    }
+
+    // Verificar que sea archivo de texto
+    const extension = documento.nombre_original.split('.').pop().toLowerCase();
+    const textExtensions = ['txt', 'csv', 'json', 'xml', 'html', 'htm', 'js', 'css', 'md'];
+
+    if (!textExtensions.includes(extension)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Este tipo de archivo no puede ser previsualizado como texto'
+      });
+    }
+
+    const cloudinaryUrl = documento.cloudinary_url;
+
+    if (!cloudinaryUrl) {
+      return res.status(500).json({
+        success: false,
+        message: 'URL del archivo no disponible'
+      });
+    }
+
+    console.log('📥 Descargando contenido desde Cloudinary...');
+
+    // IMPORTANTE: Para archivos .txt, Cloudinary los sirve como 'raw'
+    // Necesitamos agregar parámetros para asegurar que sea texto
+    let finalUrl = cloudinaryUrl;
+
+    // Si es una URL de Cloudinary, forzar formato raw
+    if (cloudinaryUrl.includes('cloudinary.com')) {
+      if (!cloudinaryUrl.includes('/raw/')) {
+        finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
+      }
+    }
+
+    // Descargar desde Cloudinary con fetch nativo de Node.js 18+
+    const response = await fetch(finalUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al descargar desde Cloudinary: ${response.status}`);
+    }
+
+    // Leer el contenido
+    const buffer = await response.arrayBuffer();
+
+    if (buffer.byteLength === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'El archivo está vacío'
+      });
+    }
+
+    // Convertir a texto
+    let textContent;
+    try {
+      // Intentar UTF-8 primero
+      textContent = new TextDecoder('utf-8').decode(buffer);
+    } catch (utf8Error) {
+      // Si falla UTF-8, intentar Latin-1
+      try {
+        textContent = new TextDecoder('latin-1').decode(buffer);
+      } catch (latinError) {
+        return res.status(500).json({
+          success: false,
+          message: 'No se pudo decodificar el contenido del archivo'
+        });
+      }
+    }
+
+    // Limitar contenido si es muy grande
+    const maxLength = parseInt(limit);
+    let isTruncated = false;
+
+    if (textContent.length > maxLength) {
+      textContent = textContent.substring(0, maxLength);
+      isTruncated = true;
+    }
+
+    // Determinar tipo de contenido
+    let contentType = 'text/plain; charset=utf-8';
+    if (extension === 'html' || extension === 'htm') contentType = 'text/html; charset=utf-8';
+    if (extension === 'json') contentType = 'application/json; charset=utf-8';
+    if (extension === 'xml') contentType = 'application/xml; charset=utf-8';
+    if (extension === 'css') contentType = 'text/css; charset=utf-8';
+    if (extension === 'js') contentType = 'application/javascript; charset=utf-8';
+    if (extension === 'csv') contentType = 'text/csv; charset=utf-8';
+    if (extension === 'md') contentType = 'text/markdown; charset=utf-8';
+
+    // Configurar respuesta
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('X-File-Name', encodeURIComponent(documento.nombre_original));
+    res.setHeader('X-File-Size', buffer.byteLength);
+    res.setHeader('X-Content-Length', textContent.length);
+    if (isTruncated) {
+      res.setHeader('X-Content-Truncated', 'true');
+      res.setHeader('X-Original-Length', buffer.byteLength);
+    }
+
+    // Enviar contenido
+    res.send(textContent);
+
+    console.log(`✅ Contenido enviado: ${textContent.length} caracteres`);
+
+  } catch (error) {
+    console.error('❌ Error en endpoint de contenido:', error);
+
+    // Enviar como JSON si es un error
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener contenido: ' + error.message
+    });
+  }
 });
 
 // -----------------------------
@@ -3701,20 +3629,20 @@ console.log('\n🔧 Cargando rutas de soporte...');
 
 // IMPORTANTE: Configurar multer para tickets
 const ticketUpload = multer({
-    storage: multer.diskStorage({
-        destination: function (req, file, cb) {
-            const ticketDir = path.join(__dirname, 'uploads', 'tickets');
-            if (!fs.existsSync(ticketDir)) {
-                fs.mkdirSync(ticketDir, { recursive: true });
-            }
-            cb(null, ticketDir);
-        },
-        filename: function (req, file, cb) {
-            const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
-            cb(null, safeName);
-        }
-    }),
-    limits: { fileSize: 5 * 1024 * 1024 }
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      const ticketDir = path.join(__dirname, 'uploads', 'tickets');
+      if (!fs.existsSync(ticketDir)) {
+        fs.mkdirSync(ticketDir, { recursive: true });
+      }
+      cb(null, ticketDir);
+    },
+    filename: function (req, file, cb) {
+      const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+      cb(null, safeName);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 app.post('/api/support/tickets', upload.array('files', 5), SupportController.createTicket);
@@ -3725,36 +3653,36 @@ app.post('/api/support/tickets', upload.array('files', 5), SupportController.cre
 
 // Obtener tickets
 app.get('/api/support/tickets', async (req, res) => {
+  try {
+    console.log('📥 Obteniendo tickets...');
+
     try {
-        console.log('📥 Obteniendo tickets...');
+      const ticketModule = await import('./src/backend/models/Ticket.js');
+      const TicketModel = ticketModule.default;
 
-        try {
-            const ticketModule = await import('./src/backend/models/Ticket.js');
-            const TicketModel = ticketModule.default;
+      const tickets = await TicketModel.find({ isDeleted: false })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean();
 
-            const tickets = await TicketModel.find({ isDeleted: false })
-                .sort({ createdAt: -1 })
-                .limit(50)
-                .lean();
-
-            res.json({
-                success: true,
-                tickets,
-                pagination: { total: tickets.length, page: 1, limit: 50, pages: 1 }
-            });
-
-        } catch (error) {
-            res.json({
-                success: true,
-                tickets: [],
-                pagination: { total: 0, page: 1, limit: 50, pages: 0 }
-            });
-        }
+      res.json({
+        success: true,
+        tickets,
+        pagination: { total: tickets.length, page: 1, limit: 50, pages: 1 }
+      });
 
     } catch (error) {
-        console.error('Error obteniendo tickets:', error);
-        res.status(500).json({ success: false, message: 'Error obteniendo tickets' });
+      res.json({
+        success: true,
+        tickets: [],
+        pagination: { total: 0, page: 1, limit: 50, pages: 0 }
+      });
     }
+
+  } catch (error) {
+    console.error('Error obteniendo tickets:', error);
+    res.status(500).json({ success: false, message: 'Error obteniendo tickets' });
+  }
 });
 
 // FAQ y Guía
@@ -3763,126 +3691,126 @@ app.get('/api/support/guide', SupportController.getSystemGuide);
 
 // Detalles de ticket
 app.get('/api/support/tickets/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'ID de ticket no válido' });
-        }
-
-        const ticketModule = await import('./src/backend/models/Ticket.js');
-        const TicketModel = ticketModule.default;
-
-        const ticket = await TicketModel.findOne({ _id: id, isDeleted: false }).lean();
-
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
-        }
-
-        res.json({ success: true, ticket });
-
-    } catch (error) {
-        console.error('Error obteniendo detalles:', error);
-        res.status(500).json({ success: false, message: 'Error interno' });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'ID de ticket no válido' });
     }
+
+    const ticketModule = await import('./src/backend/models/Ticket.js');
+    const TicketModel = ticketModule.default;
+
+    const ticket = await TicketModel.findOne({ _id: id, isDeleted: false }).lean();
+
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
+    }
+
+    res.json({ success: true, ticket });
+
+  } catch (error) {
+    console.error('Error obteniendo detalles:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
 });
 
 // Actualizar estado
 app.patch('/api/support/tickets/:id/status', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status, message } = req.body;
+  try {
+    const { id } = req.params;
+    const { status, message } = req.body;
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'ID no válido' });
-        }
-
-        const ticketModule = await import('./src/backend/models/Ticket.js');
-        const TicketModel = ticketModule.default;
-
-        const ticket = await TicketModel.findOneAndUpdate(
-            { _id: id, isDeleted: false },
-            {
-                $set: { status, updatedAt: new Date() },
-                $push: { updates: { user: 'system', userName: 'Sistema', message: message || `Estado: ${status}`, createdAt: new Date() } }
-            },
-            { new: true }
-        ).lean();
-
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
-        }
-
-        res.json({ success: true, message: `Estado actualizado a ${status}`, ticket });
-
-    } catch (error) {
-        console.error('Error actualizando estado:', error);
-        res.status(500).json({ success: false, message: 'Error interno' });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'ID no válido' });
     }
+
+    const ticketModule = await import('./src/backend/models/Ticket.js');
+    const TicketModel = ticketModule.default;
+
+    const ticket = await TicketModel.findOneAndUpdate(
+      { _id: id, isDeleted: false },
+      {
+        $set: { status, updatedAt: new Date() },
+        $push: { updates: { user: 'system', userName: 'Sistema', message: message || `Estado: ${status}`, createdAt: new Date() } }
+      },
+      { new: true }
+    ).lean();
+
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
+    }
+
+    res.json({ success: true, message: `Estado actualizado a ${status}`, ticket });
+
+  } catch (error) {
+    console.error('Error actualizando estado:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
 });
 
 // Agregar respuesta
 app.post('/api/support/tickets/:id/response', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { message } = req.body;
+  try {
+    const { id } = req.params;
+    const { message } = req.body;
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'ID no válido' });
-        }
-
-        const ticketModule = await import('./src/backend/models/Ticket.js');
-        const TicketModel = ticketModule.default;
-
-        const ticket = await TicketModel.findOneAndUpdate(
-            { _id: id, isDeleted: false },
-            {
-                $set: { updatedAt: new Date() },
-                $push: { updates: { user: 'system', userName: 'Sistema', message: message.trim(), createdAt: new Date() } }
-            },
-            { new: true }
-        ).lean();
-
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
-        }
-
-        res.json({ success: true, message: 'Respuesta agregada', ticket });
-
-    } catch (error) {
-        console.error('Error agregando respuesta:', error);
-        res.status(500).json({ success: false, message: 'Error interno' });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'ID no válido' });
     }
+
+    const ticketModule = await import('./src/backend/models/Ticket.js');
+    const TicketModel = ticketModule.default;
+
+    const ticket = await TicketModel.findOneAndUpdate(
+      { _id: id, isDeleted: false },
+      {
+        $set: { updatedAt: new Date() },
+        $push: { updates: { user: 'system', userName: 'Sistema', message: message.trim(), createdAt: new Date() } }
+      },
+      { new: true }
+    ).lean();
+
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
+    }
+
+    res.json({ success: true, message: 'Respuesta agregada', ticket });
+
+  } catch (error) {
+    console.error('Error agregando respuesta:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
 });
 
 // Eliminar ticket
 app.delete('/api/support/tickets/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ success: false, message: 'ID no válido' });
-        }
-
-        const ticketModule = await import('./src/backend/models/Ticket.js');
-        const TicketModel = ticketModule.default;
-
-        const ticket = await TicketModel.findOneAndUpdate(
-            { _id: id, isDeleted: false },
-            { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: 'system' } },
-            { new: true }
-        ).lean();
-
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
-        }
-
-        res.json({ success: true, message: 'Ticket eliminado' });
-
-    } catch (error) {
-        console.error('Error eliminando ticket:', error);
-        res.status(500).json({ success: false, message: 'Error interno' });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'ID no válido' });
     }
+
+    const ticketModule = await import('./src/backend/models/Ticket.js');
+    const TicketModel = ticketModule.default;
+
+    const ticket = await TicketModel.findOneAndUpdate(
+      { _id: id, isDeleted: false },
+      { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: 'system' } },
+      { new: true }
+    ).lean();
+
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
+    }
+
+    res.json({ success: true, message: 'Ticket eliminado' });
+
+  } catch (error) {
+    console.error('Error eliminando ticket:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
 });
 
 // Test de email con Brevo
@@ -3918,11 +3846,11 @@ if (!process.env.BREVO_API_KEY) {
 // Debug de rutas (solo desarrollo)
 // -----------------------------
 if (process.env.NODE_ENV === 'development') {
-    import('./src/backend/debugRoutes.js').then(({ debugRoutes }) => {
-        debugRoutes(app);
-    }).catch(err => {
-        console.log('⚠️ No se pudo cargar debug de rutas:', err.message);
-    });
+  import('./src/backend/debugRoutes.js').then(({ debugRoutes }) => {
+    debugRoutes(app);
+  }).catch(err => {
+    console.log('⚠️ No se pudo cargar debug de rutas:', err.message);
+  });
 }
 
 // -----------------------------
@@ -3933,7 +3861,7 @@ const server = app.listen(serverPort, '0.0.0.0', () => {
   console.log(`🚀 Servidor ejecutándose en puerto ${serverPort}`);
   console.log(`📊 Sistema de Gestión de Documentos - CBTIS051`);
   console.log(`🗄️ Base de datos: ${MONGO_URI}`);
-  console.log(`☁️ Cloudinary: ${cloudinary.config().cloud_name}`);
+  console.log(`☁️ Spaces: ${SPACES_CONFIG.bucket}`);
   console.log(`🔌 API disponible en: https://documentos-kj6t.onrender.com/api`);
 });
 
