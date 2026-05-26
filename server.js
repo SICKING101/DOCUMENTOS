@@ -78,7 +78,7 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 // -----------------------------
 const app = express();
 const PORT = process.env.PORT || 4000;
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/CBTIS051';
 
 // Configuración de Cloudinary
 cloudinary.config({
@@ -92,7 +92,12 @@ cloudinary.config({
 // -----------------------------
 const allowedOrigins = [
   'http://localhost:4000',
-  'https://documentos-kj6t.onrender.com'
+  'https://documentos-kj6t.onrender.com',
+ "http://127.0.0.1:4000",
+  "http://gestacks.com",
+  "https://gestacks.com",
+  "http://www.gestacks.com",
+  "https://www.gestacks.com"
 ];
 
 app.use(cors({
@@ -139,6 +144,8 @@ console.log('📅 Calendar Routes montadas en /api/calendar');
 app.use('/api/superadmin', superAdminRoutes);
 console.log('🛡️  Super Admin Routes montadas en /api/superadmin');
 
+console.log("MONGO URI:", process.env.MONGODB_URI);
+
 // -----------------------------
 // Configuración de Multer
 // -----------------------------
@@ -155,12 +162,12 @@ const storage = multer.diskStorage({
     const originalName = file.originalname;
     const ext = path.extname(originalName);
     const name = path.basename(originalName, ext);
-    
+
     // Crear nombre seguro (reemplazar caracteres especiales y espacios)
     const safeName = name
       .replace(/[^a-zA-Z0-9]/g, '_')
       .substring(0, 100); // Limitar longitud
-    
+
     const finalName = `${Date.now()}-${Math.round(Math.random() * 1E9)}-${safeName}${ext}`;
     cb(null, finalName);
   }
@@ -172,7 +179,7 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png'];
     const fileExtension = file.originalname.split('.').pop().toLowerCase();
-    
+
     if (allowedTypes.includes(fileExtension)) {
       cb(null, true);
     } else {
@@ -185,7 +192,7 @@ const upload = multer({
 // Conexión a MongoDB
 // -----------------------------
 mongoose.connect(MONGO_URI)
-  .then(async () => { 
+  .then(async () => {
     console.log('✅ Conectado a MongoDB');
     // Crear notificación de sistema iniciado
     try {
@@ -206,8 +213,8 @@ mongoose.connect(MONGO_URI)
 
 // Ruta de prueba
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'API funcionando correctamente',
     timestamp: new Date().toISOString()
   });
@@ -239,21 +246,21 @@ app.get('/api/dashboard', protegerRuta, inyectarSchoolId, async (req, res) => {
     // Si quieres aislarlas también: if (req.schoolId) categoryFilter.schoolId = req.schoolId;
 
     const totalPersonas = await Person.countDocuments(personFilter);
-    
+
     const totalDocumentos = await Document.countDocuments(docFilter);
-    
+
     const totalCategorias = await Category.countDocuments(categoryFilter);
 
     // Documentos próximos a vencer (en los próximos 30 días)
     const fechaLimite = new Date();
     fechaLimite.setDate(fechaLimite.getDate() + 30);
-    
+
     const proximosVencerFilter = { ...docFilter };
-    proximosVencerFilter.fecha_vencimiento = { 
-      $gte: new Date(), 
-      $lte: fechaLimite 
+    proximosVencerFilter.fecha_vencimiento = {
+      $gte: new Date(),
+      $lte: fechaLimite
     };
-    
+
     const proximosVencer = await Document.countDocuments(proximosVencerFilter);
 
     // Documentos recientes
@@ -275,9 +282,9 @@ app.get('/api/dashboard', protegerRuta, inyectarSchoolId, async (req, res) => {
     });
   } catch (error) {
     console.error('Error en dashboard:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al cargar el dashboard' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al cargar el dashboard'
     });
   }
 });
@@ -288,27 +295,27 @@ app.get('/api/dashboard', protegerRuta, inyectarSchoolId, async (req, res) => {
 app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) => {
     try {
         const { eventos } = req.body;
-        
+
         if (!eventos || !Array.isArray(eventos)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Se requiere un array de eventos' 
+            return res.status(400).json({
+                success: false,
+                message: 'Se requiere un array de eventos'
             });
         }
-        
+
         const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
-        
+
         // Obtener los localId de los eventos enviados
         const localIdsEnviados = eventos.map(ev => ev.id || ev._id).filter(Boolean);
-        
+
         let creados = 0;
         let actualizados = 0;
         let eliminados = 0;
-        
+
         // 🆕 Marcar como inactivos los eventos que ya NO están en localStorage
         const schoolId = req.schoolId || 'superadmin';
         const resultadoEliminacion = await CalendarEvent.updateMany(
-            { 
+            {
                 schoolId: schoolId,
                 activo: true,
                 localId: { $nin: localIdsEnviados }
@@ -316,12 +323,12 @@ app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) 
             { $set: { activo: false } }
         );
         eliminados = resultadoEliminacion.modifiedCount;
-        
+
         // Crear o actualizar los eventos enviados
         for (const ev of eventos) {
             const localId = ev.id || ev._id;
             if (!localId) continue;
-            
+
             const eventData = {
                 localId: localId,
                 titulo: ev.title || ev.titulo || 'Evento sin título',
@@ -341,9 +348,9 @@ app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) 
                 schoolId: schoolId,
                 activo: true
             };
-            
+
             const existente = await CalendarEvent.findOne({ localId: eventData.localId });
-            
+
             if (existente) {
                 await CalendarEvent.updateOne({ localId: eventData.localId }, eventData);
                 actualizados++;
@@ -352,9 +359,9 @@ app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) 
                 creados++;
             }
         }
-        
+
         console.log(`📅 Sync: ${creados} creados, ${actualizados} actualizados, ${eliminados} eliminados`);
-        
+
         // 🆕 Si se crearon o actualizaron eventos, verificar recordatorios inmediatamente
         if (creados > 0 || actualizados > 0) {
             try {
@@ -364,14 +371,14 @@ app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) 
                 console.warn('⚠️ Error verificando recordatorios tras sync:', e.message);
             }
         }
-        
+
         res.json({
             success: true,
             creados,
             actualizados,
             eliminados
         });
-        
+
     } catch (error) {
         console.error('❌ Error sync calendario:', error);
         res.status(500).json({ success: false, message: error.message });
@@ -382,14 +389,14 @@ app.post('/api/calendar/sync', protegerRuta, inyectarSchoolId, async (req, res) 
 app.get('/api/debug/calendar-check', async (req, res) => {
     const CalendarEvent = (await import('./src/backend/models/CalendarEvent.js')).default;
     const ahora = new Date();
-    
+
     const evento = await CalendarEvent.findOne({ activo: true }).lean();
-    
+
     if (!evento) return res.json({ error: 'No hay eventos' });
-    
+
     const fechaEvento = new Date(evento.fecha);
     const horasRestantes = Math.round((fechaEvento - ahora) / (1000 * 60 * 60));
-    
+
     res.json({
         evento: {
             titulo: evento.titulo,
@@ -417,7 +424,7 @@ app.get('/api/persons', protegerRuta, inyectarSchoolId, async (req, res) => {
     const filter = { activo: true };
     // 🆕 Filtro por escuela
     if (req.schoolId) filter.schoolId = req.schoolId;
-    
+
     const persons = await Person.find(filter).sort({ nombre: 1 });
     res.json({ success: true, persons });
   } catch (error) {
@@ -430,26 +437,26 @@ app.get('/api/persons', protegerRuta, inyectarSchoolId, async (req, res) => {
 app.post('/api/persons', protegerRuta, inyectarSchoolId, async (req, res) => {
   try {
     const { nombre, email, telefono, departamento, puesto } = req.body;
-    
+
     if (!nombre || !email) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Nombre y email son obligatorios' 
+      return res.status(400).json({
+        success: false,
+        message: 'Nombre y email son obligatorios'
       });
     }
 
     // 🆕 Verificar duplicados SOLO dentro de la misma escuela
-    const emailFilter = { 
+    const emailFilter = {
       email: { $regex: new RegExp(`^${email}$`, 'i') }
     };
     if (req.schoolId) emailFilter.schoolId = req.schoolId;
-    
+
     const personaExistente = await Person.findOne(emailFilter);
 
     if (personaExistente) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Ya existe una persona con ese email en tu escuela' 
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe una persona con ese email en tu escuela'
       });
     }
 
@@ -463,24 +470,24 @@ app.post('/api/persons', protegerRuta, inyectarSchoolId, async (req, res) => {
     });
 
     await nuevaPersona.save();
-    
+
     // Crear notificación de persona agregada
     try {
       await NotificationService.personaAgregada(nuevaPersona);
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Persona agregada correctamente',
-      person: nuevaPersona 
+      person: nuevaPersona
     });
   } catch (error) {
     console.error('Error creando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al crear persona' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear persona'
     });
   }
 });
@@ -506,22 +513,22 @@ app.put('/api/persons/:id', protegerRuta, inyectarSchoolId, async (req, res) => 
     );
 
     if (!personaActualizada) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Persona no encontrada o no pertenece a tu escuela' 
+      return res.status(404).json({
+        success: false,
+        message: 'Persona no encontrada o no pertenece a tu escuela'
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Persona actualizada correctamente',
-      person: personaActualizada 
+      person: personaActualizada
     });
   } catch (error) {
     console.error('Error actualizando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al actualizar persona' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar persona'
     });
   }
 });
@@ -541,16 +548,16 @@ app.delete('/api/persons/:id', protegerRuta, inyectarSchoolId, async (req, res) 
 
     const personaExistente = await Person.findOne(filter);
     if (!personaExistente) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Persona no encontrada o no pertenece a tu escuela' 
+      return res.status(404).json({
+        success: false,
+        message: 'Persona no encontrada o no pertenece a tu escuela'
       });
     }
 
     const nombrePersona = personaExistente.nombre;
 
     // Verificar documentos asociados (también filtrados)
-    const docFilter = { 
+    const docFilter = {
       persona_id: id,
       $or: [
         { isDeleted: false },
@@ -562,9 +569,9 @@ app.delete('/api/persons/:id', protegerRuta, inyectarSchoolId, async (req, res) 
     const documentosAsociados = await Document.countDocuments(docFilter);
 
     if (documentosAsociados > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No se puede eliminar la persona porque tiene documentos asociados' 
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede eliminar la persona porque tiene documentos asociados'
       });
     }
 
@@ -576,15 +583,15 @@ app.delete('/api/persons/:id', protegerRuta, inyectarSchoolId, async (req, res) 
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
 
-    res.json({ 
-      success: true, 
-      message: 'Persona eliminada permanentemente del sistema' 
+    res.json({
+      success: true,
+      message: 'Persona eliminada permanentemente del sistema'
     });
   } catch (error) {
     console.error('Error eliminando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al eliminar persona' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar persona'
     });
   }
 });
@@ -592,23 +599,23 @@ app.delete('/api/persons/:id', protegerRuta, inyectarSchoolId, async (req, res) 
 app.post('/api/persons', async (req, res) => {
   try {
     const { nombre, email, telefono, departamento, puesto } = req.body;
-    
+
     if (!nombre || !email) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Nombre y email son obligatorios' 
+      return res.status(400).json({
+        success: false,
+        message: 'Nombre y email son obligatorios'
       });
     }
 
     // Verificar si ya existe una persona con el mismo email
-    const personaExistente = await Person.findOne({ 
+    const personaExistente = await Person.findOne({
       email: { $regex: new RegExp(`^${email}$`, 'i') }
     });
 
     if (personaExistente) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Ya existe una persona con ese email' 
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe una persona con ese email'
       });
     }
 
@@ -621,24 +628,24 @@ app.post('/api/persons', async (req, res) => {
     });
 
     await nuevaPersona.save();
-    
+
     // Crear notificación de persona agregada
     try {
       await NotificationService.personaAgregada(nuevaPersona);
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Persona agregada correctamente',
-      person: nuevaPersona 
+      person: nuevaPersona
     });
   } catch (error) {
     console.error('Error creando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al crear persona' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear persona'
     });
   }
 });
@@ -649,9 +656,9 @@ app.put('/api/persons/:id', async (req, res) => {
     const { nombre, email, telefono, departamento, puesto } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
@@ -662,22 +669,22 @@ app.put('/api/persons/:id', async (req, res) => {
     );
 
     if (!personaActualizada) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Persona no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Persona no encontrada'
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Persona actualizada correctamente',
-      person: personaActualizada 
+      person: personaActualizada
     });
   } catch (error) {
     console.error('Error actualizando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al actualizar persona' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar persona'
     });
   }
 });
@@ -688,18 +695,18 @@ app.delete('/api/persons/:id', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
     // Verificar si la persona existe
     const personaExistente = await Person.findById(id);
     if (!personaExistente) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Persona no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Persona no encontrada'
       });
     }
 
@@ -707,7 +714,7 @@ app.delete('/api/persons/:id', async (req, res) => {
     const nombrePersona = personaExistente.nombre;
 
     // Verificar si la persona tiene documentos asociados
-    const documentosAsociados = await Document.countDocuments({ 
+    const documentosAsociados = await Document.countDocuments({
       persona_id: id,
       $or: [
         { isDeleted: false },
@@ -716,9 +723,9 @@ app.delete('/api/persons/:id', async (req, res) => {
     });
 
     if (documentosAsociados > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No se puede eliminar la persona porque tiene documentos asociados. Elimina o reasigna primero los documentos.' 
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede eliminar la persona porque tiene documentos asociados. Elimina o reasigna primero los documentos.'
       });
     }
 
@@ -732,15 +739,15 @@ app.delete('/api/persons/:id', async (req, res) => {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
 
-    res.json({ 
-      success: true, 
-      message: 'Persona eliminada permanentemente del sistema' 
+    res.json({
+      success: true,
+      message: 'Persona eliminada permanentemente del sistema'
     });
   } catch (error) {
     console.error('Error eliminando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al eliminar persona' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar persona'
     });
   }
 });
@@ -751,9 +758,9 @@ app.patch('/api/persons/:id/deactivate', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
@@ -764,22 +771,22 @@ app.patch('/api/persons/:id/deactivate', async (req, res) => {
     );
 
     if (!personaDesactivada) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Persona no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Persona no encontrada'
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Persona desactivada correctamente',
-      person: personaDesactivada 
+      person: personaDesactivada
     });
   } catch (error) {
     console.error('Error desactivando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al desactivar persona' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al desactivar persona'
     });
   }
 });
@@ -789,9 +796,9 @@ app.patch('/api/persons/:id/reactivate', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
@@ -802,22 +809,22 @@ app.patch('/api/persons/:id/reactivate', async (req, res) => {
     );
 
     if (!personaReactivada) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Persona no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Persona no encontrada'
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Persona reactivada correctamente',
-      person: personaReactivada 
+      person: personaReactivada
     });
   } catch (error) {
     console.error('Error reactivando persona:', error);
-    res.status(500).json({ 
-      success: false, 
-        message: 'Error al reactivar persona' 
+    res.status(500).json({
+      success: false,
+        message: 'Error al reactivar persona'
       });
     }
   });
@@ -828,9 +835,9 @@ app.get('/api/persons/inactive', async (req, res) => {
     res.json({ success: true, persons });
   } catch (error) {
     console.error('Error obteniendo personas inactivas:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al obtener personas inactivas' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener personas inactivas'
     });
   }
 });
@@ -841,13 +848,13 @@ app.get('/api/persons/inactive', async (req, res) => {
 app.get('/api/categories', async (req, res) => {
   try {
     const categories = await Category.find({ activo: true }).sort({ nombre: 1 });
-    
+
     // Contar documentos por categoría
     const categoriesWithCounts = await Promise.all(
       categories.map(async (category) => {
-        const documentCount = await Document.countDocuments({ 
+        const documentCount = await Document.countDocuments({
           categoria: category.nombre,
-          activo: true 
+          activo: true
         });
         return {
           ...category.toObject(),
@@ -866,24 +873,24 @@ app.get('/api/categories', async (req, res) => {
 app.post('/api/categories', async (req, res) => {
   try {
     const { nombre, descripcion, color, icon } = req.body;
-    
+
     if (!nombre) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'El nombre es obligatorio' 
+      return res.status(400).json({
+        success: false,
+        message: 'El nombre es obligatorio'
       });
     }
 
     // Verificar si ya existe una categoría con el mismo nombre
-    const categoriaExistente = await Category.findOne({ 
+    const categoriaExistente = await Category.findOne({
       nombre: { $regex: new RegExp(`^${nombre}$`, 'i') },
-      activo: true 
+      activo: true
     });
 
     if (categoriaExistente) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Ya existe una categoría con ese nombre' 
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe una categoría con ese nombre'
       });
     }
 
@@ -895,24 +902,24 @@ app.post('/api/categories', async (req, res) => {
     });
 
     await nuevaCategoria.save();
-    
+
     // Crear notificación de categoría agregada
     try {
       await NotificationService.categoriaAgregada(nuevaCategoria);
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Categoría creada correctamente',
-      category: nuevaCategoria 
+      category: nuevaCategoria
     });
   } catch (error) {
     console.error('Error creando categoría:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al crear categoría' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear categoría'
     });
   }
 });
@@ -923,9 +930,9 @@ app.put('/api/categories/:id', async (req, res) => {
     const { nombre, descripcion, color, icon } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
@@ -936,22 +943,22 @@ app.put('/api/categories/:id', async (req, res) => {
     );
 
     if (!categoriaActualizada) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Categoría no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Categoría no encontrada'
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Categoría actualizada correctamente',
-      category: categoriaActualizada 
+      category: categoriaActualizada
     });
   } catch (error) {
     console.error('Error actualizando categoría:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al actualizar categoría' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar categoría'
     });
   }
 });
@@ -961,44 +968,44 @@ app.delete('/api/categories/:id', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
     const categoria = await Category.findById(id);
     if (!categoria) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Categoría no encontrada' 
+      return res.status(404).json({
+        success: false,
+        message: 'Categoría no encontrada'
       });
     }
 
     // Verificar si hay documentos en esta categoría
-    const documentosEnCategoria = await Document.countDocuments({ 
+    const documentosEnCategoria = await Document.countDocuments({
       categoria: categoria.nombre,
-      activo: true 
+      activo: true
     });
 
     if (documentosEnCategoria > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No se puede eliminar la categoría porque tiene documentos asociados' 
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede eliminar la categoría porque tiene documentos asociados'
       });
     }
 
     await Category.findByIdAndUpdate(id, { activo: false });
 
-    res.json({ 
-      success: true, 
-      message: 'Categoría eliminada correctamente' 
+    res.json({
+      success: true,
+      message: 'Categoría eliminada correctamente'
     });
   } catch (error) {
     console.error('Error eliminando categoría:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al eliminar categoría' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar categoría'
     });
   }
 });
@@ -1009,13 +1016,13 @@ app.delete('/api/categories/:id', async (req, res) => {
 app.get('/api/departments', async (req, res) => {
   try {
     const departments = await Department.find({ activo: true }).sort({ nombre: 1 });
-    
+
     // Contar personas por departamento
     const departmentsWithCounts = await Promise.all(
       departments.map(async (department) => {
-        const personCount = await Person.countDocuments({ 
+        const personCount = await Person.countDocuments({
           departamento: department.nombre,
-          activo: true 
+          activo: true
         });
         return {
           ...department.toObject(),
@@ -1034,24 +1041,24 @@ app.get('/api/departments', async (req, res) => {
 app.post('/api/departments', async (req, res) => {
   try {
     const { nombre, descripcion, color, icon } = req.body;
-    
+
     if (!nombre) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'El nombre es obligatorio' 
+      return res.status(400).json({
+        success: false,
+        message: 'El nombre es obligatorio'
       });
     }
 
     // Verificar si ya existe un departamento con el mismo nombre
-    const departamentoExistente = await Department.findOne({ 
+    const departamentoExistente = await Department.findOne({
       nombre: { $regex: new RegExp(`^${nombre}$`, 'i') },
-      activo: true 
+      activo: true
     });
 
     if (departamentoExistente) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Ya existe un departamento con ese nombre' 
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe un departamento con ese nombre'
       });
     }
 
@@ -1063,17 +1070,17 @@ app.post('/api/departments', async (req, res) => {
     });
 
     await nuevoDepartamento.save();
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Departamento creado correctamente',
-      department: nuevoDepartamento 
+      department: nuevoDepartamento
     });
   } catch (error) {
     console.error('Error creando departamento:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al crear departamento' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear departamento'
     });
   }
 });
@@ -1084,9 +1091,9 @@ app.put('/api/departments/:id', async (req, res) => {
     const { nombre, descripcion, color, icon } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
@@ -1097,22 +1104,22 @@ app.put('/api/departments/:id', async (req, res) => {
     );
 
     if (!departamentoActualizado) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Departamento no encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Departamento no encontrado'
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Departamento actualizado correctamente',
-      department: departamentoActualizado 
+      department: departamentoActualizado
     });
   } catch (error) {
     console.error('Error actualizando departamento:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al actualizar departamento' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar departamento'
     });
   }
 });
@@ -1122,44 +1129,44 @@ app.delete('/api/departments/:id', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
     const departamento = await Department.findById(id);
     if (!departamento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Departamento no encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Departamento no encontrado'
       });
     }
 
     // Verificar si hay personas en este departamento
-    const personasEnDepartamento = await Person.countDocuments({ 
+    const personasEnDepartamento = await Person.countDocuments({
       departamento: departamento.nombre,
-      activo: true 
+      activo: true
     });
 
     if (personasEnDepartamento > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No se puede eliminar el departamento porque tiene personas asociadas' 
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede eliminar el departamento porque tiene personas asociadas'
       });
     }
 
     await Department.findByIdAndUpdate(id, { activo: false });
 
-    res.json({ 
-      success: true, 
-      message: 'Departamento eliminado correctamente' 
+    res.json({
+      success: true,
+      message: 'Departamento eliminado correctamente'
     });
   } catch (error) {
     console.error('Error eliminando departamento:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al eliminar departamento' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar departamento'
     });
   }
 });
@@ -1170,16 +1177,16 @@ app.delete('/api/departments/:id', async (req, res) => {
 app.get('/api/documents', protegerRuta, inyectarSchoolId, async (req, res) => {
   try {
     console.log('📊 ========== OBTENIENDO DOCUMENTOS ==========');
-    
+
     // 🆕 Filtro base por escuela
-    const filter = { 
+    const filter = {
       $or: [
         { isDeleted: false },
         { isDeleted: { $exists: false } }
       ]
     };
     if (req.schoolId) filter.schoolId = req.schoolId;
-    
+
     // Estadísticas para debugging
     const totalDocs = await Document.countDocuments(filter);
     console.log(`📊 Documentos encontrados (filtrados por escuela): ${totalDocs}`);
@@ -1218,7 +1225,7 @@ app.get('/api/documents', protegerRuta, inyectarSchoolId, async (req, res) => {
         const hoy = new Date();
         const fechaVencimiento = new Date(doc.fecha_vencimiento);
         const diasRestantes = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
-        
+
         if (diasRestantes < 0) {
           documentoLimpio.estadoVirtual = 'vencido';
         } else if (diasRestantes <= 7) {
@@ -1236,8 +1243,8 @@ app.get('/api/documents', protegerRuta, inyectarSchoolId, async (req, res) => {
     console.log(`✅ ${documentosTransformados.length} documentos transformados y listos`);
     console.log('📊 ========== FIN OBTENCIÓN DOCUMENTOS ==========');
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       documents: documentosTransformados,
       metadata: {
         total: totalDocs,
@@ -1248,9 +1255,9 @@ app.get('/api/documents', protegerRuta, inyectarSchoolId, async (req, res) => {
   } catch (error) {
     console.error('❌ ERROR obteniendo documentos:', error);
     console.error('Stack trace:', error.stack);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al obtener documentos: ' + error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener documentos: ' + error.message
     });
   }
 });
@@ -1264,9 +1271,9 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
 
     if (!req.file) {
       console.error('❌ No se recibió archivo en la solicitud');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No se ha subido ningún archivo' 
+      return res.status(400).json({
+        success: false,
+        message: 'No se ha subido ningún archivo'
       });
     }
 
@@ -1275,14 +1282,14 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
     console.log('📝 Tipo MIME:', req.file.mimetype);
 
     // EXTRAER TODOS LOS CAMPOS POSIBLES (incluyendo "estado" que viene del frontend)
-    const { 
-      descripcion, 
-      categoria, 
-      fecha_vencimiento, 
+    const {
+      descripcion,
+      categoria,
+      fecha_vencimiento,
       persona_id,
       estado, // Este viene del frontend pero NO existe en el modelo
       notificar_persona,
-      notificar_vencimiento 
+      notificar_vencimiento
     } = req.body;
 
     // DEBUG: Mostrar qué recibimos realmente
@@ -1308,7 +1315,7 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
     let personaIdProcesado = null;
     if (persona_id) {
       console.log('👤 Procesando persona_id recibido:', persona_id, 'tipo:', typeof persona_id);
-      
+
       if (persona_id === '' || persona_id === 'null' || persona_id === 'undefined') {
         console.log('👤 persona_id vacío - estableciendo como null');
         personaIdProcesado = null;
@@ -1328,7 +1335,7 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
     let fechaVencimientoProcesada = null;
     if (fecha_vencimiento) {
       console.log('📅 Procesando fecha_vencimiento recibida:', fecha_vencimiento);
-      
+
       if (fecha_vencimiento === '' || fecha_vencimiento === 'null' || fecha_vencimiento === 'undefined') {
         console.log('📅 fecha_vencimiento vacía - estableciendo como null');
         fechaVencimientoProcesada = null;
@@ -1385,9 +1392,9 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message 
+      return res.status(500).json({
+        success: false,
+        message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message
       });
     }
 
@@ -1456,7 +1463,7 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
           );
           console.log('🔔 Notificación creada para la persona asignada');
         }
-        
+
         // Notificación para vencimiento si hay fecha
         if (fechaVencimientoProcesada && (notificar_vencimiento === 'true' || notificar_vencimiento === true)) {
           console.log('🔔 Notificación de vencimiento configurada');
@@ -1493,7 +1500,7 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
     console.error('❌❌❌ ERROR GENERAL SUBIENDO DOCUMENTO ❌❌❌');
     console.error('Mensaje:', error.message);
     console.error('Stack trace:', error.stack);
-    
+
     if (error.name === 'ValidationError') {
       console.error('Error de validación de Mongoose:', error.errors);
       return res.status(400).json({
@@ -1501,7 +1508,7 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
         message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
       });
     }
-    
+
     if (error.name === 'CastError') {
       console.error('Error de casteo (ObjectId inválido):', error);
       return res.status(400).json({
@@ -1509,7 +1516,7 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
         message: 'ID inválido: ' + error.message
       });
     }
-    
+
     // Limpiar archivo temporal si existe
     if (req.file && fs.existsSync(req.file.path)) {
       try {
@@ -1519,10 +1526,10 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
         console.error('Error limpiando archivo temporal:', fsError);
       }
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error interno al subir documento: ' + error.message 
+
+    res.status(500).json({
+      success: false,
+      message: 'Error interno al subir documento: ' + error.message
     });
   }
 });
@@ -1535,7 +1542,7 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
     try {
         console.log('📝 ========== ACTUALIZACIÓN DOCUMENTO ==========');
         const { id } = req.params;
-        
+
         console.log('📋 ID del documento:', id);
         console.log('📋 Body recibido:', JSON.stringify(req.body, null, 2));
         console.log('📋 ¿Hay archivo?', req.file ? `SÍ: ${req.file.originalname}` : 'NO');
@@ -1543,14 +1550,14 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
 
         // Validar ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'ID de documento inválido' 
+            return res.status(400).json({
+                success: false,
+                message: 'ID de documento inválido'
             });
         }
 
         // Buscar documento existente
-        const documentoExistente = await Document.findOne({ 
+        const documentoExistente = await Document.findOne({
             _id: id,
             $or: [
                 { isDeleted: false },
@@ -1559,9 +1566,9 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
         });
 
         if (!documentoExistente) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Documento no encontrado' 
+            return res.status(404).json({
+                success: false,
+                message: 'Documento no encontrado'
             });
         }
 
@@ -1573,13 +1580,13 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
 
         // Preparar datos para actualizar
         const updateData = {};
-        
+
         // Extraer datos del body (multipart/form-data)
-        const { 
-            descripcion, 
-            categoria, 
-            fecha_vencimiento, 
-            persona_id 
+        const {
+            descripcion,
+            categoria,
+            fecha_vencimiento,
+            persona_id
         } = req.body;
 
         console.log('📋 Datos recibidos para actualizar:', {
@@ -1672,9 +1679,9 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
                 if (fs.existsSync(req.file.path)) {
                     fs.unlinkSync(req.file.path);
                 }
-                return res.status(500).json({ 
-                    success: false, 
-                    message: 'Error al subir nuevo archivo: ' + cloudinaryError.message 
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error al subir nuevo archivo: ' + cloudinaryError.message
                 });
             }
         }
@@ -1685,20 +1692,20 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
         // ACTUALIZAR EN BASE DE DATOS
         // =========================================================================
         console.log('💾 Actualizando en base de datos...');
-        
+
         const documentoActualizado = await Document.findByIdAndUpdate(
             id,
             updateData,
-            { 
-                new: true, 
-                runValidators: true 
+            {
+                new: true,
+                runValidators: true
             }
         ).populate('persona_id', 'nombre email departamento');
 
         if (!documentoActualizado) {
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Error al actualizar en base de datos' 
+            return res.status(500).json({
+                success: false,
+                message: 'Error al actualizar en base de datos'
             });
         }
 
@@ -1707,7 +1714,7 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
         // =========================================================================
         // LIMPIAR ARCHIVOS TEMPORALES Y ANTIGUOS
         // =========================================================================
-        
+
         // Limpiar archivo temporal si existe
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
@@ -1750,7 +1757,7 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
     } catch (error) {
         console.error('❌ Error general actualizando documento:', error);
         console.error('❌ Stack trace:', error.stack);
-        
+
         if (error.name === 'ValidationError') {
             console.error('Error de validación de Mongoose:', error.errors);
             return res.status(400).json({
@@ -1758,7 +1765,7 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
                 message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
             });
         }
-        
+
         if (error.name === 'CastError') {
             console.error('Error de casteo (ObjectId inválido):', error);
             return res.status(400).json({
@@ -1766,15 +1773,15 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
                 message: 'ID inválido: ' + error.message
             });
         }
-        
+
         // Limpiar archivos temporales en caso de error
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
 
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error al actualizar documento: ' + error.message 
+        res.status(500).json({
+            success: false,
+            message: 'Error al actualizar documento: ' + error.message
         });
     }
 });
@@ -1782,9 +1789,9 @@ app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
 app.delete('/documents/bulk-delete', async (req, res) => {
     try {
         const { document_ids } = req.body;
-        
+
         console.log(`🗑️ Solicitud de eliminación masiva para ${document_ids?.length || 0} documentos`);
-        
+
         // Validar entrada
         if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
             return res.status(400).json({
@@ -1792,7 +1799,7 @@ app.delete('/documents/bulk-delete', async (req, res) => {
                 message: 'Debe proporcionar una lista de IDs de documentos'
             });
         }
-        
+
         // Validar que no exceda el límite (opcional)
         if (document_ids.length > 100) {
             return res.status(400).json({
@@ -1800,15 +1807,15 @@ app.delete('/documents/bulk-delete', async (req, res) => {
                 message: 'No se pueden eliminar más de 100 documentos a la vez'
             });
         }
-        
+
         // Mover documentos a la papelera
         const results = [];
-        
+
         for (const documentId of document_ids) {
             try {
                 // Buscar documento
                 const document = await Document.findByPk(documentId);
-                
+
                 if (!document) {
                     results.push({
                         id: documentId,
@@ -1817,7 +1824,7 @@ app.delete('/documents/bulk-delete', async (req, res) => {
                     });
                     continue;
                 }
-                
+
                 // Verificar que no esté ya en la papelera
                 if (document.deleted_at) {
                     results.push({
@@ -1827,17 +1834,17 @@ app.delete('/documents/bulk-delete', async (req, res) => {
                     });
                     continue;
                 }
-                
+
                 // Mover a papelera (soft delete)
                 document.deleted_at = new Date();
                 await document.save();
-                
+
                 results.push({
                     id: documentId,
                     success: true,
                     message: 'Documento movido a la papelera'
                 });
-                
+
             } catch (error) {
                 results.push({
                     id: documentId,
@@ -1846,11 +1853,11 @@ app.delete('/documents/bulk-delete', async (req, res) => {
                 });
             }
         }
-        
+
         // Calcular estadísticas
         const successful = results.filter(r => r.success).length;
         const failed = results.filter(r => !r.success).length;
-        
+
         return res.json({
             success: true,
             message: `${successful} documentos movidos a la papelera${failed > 0 ? `, ${failed} fallaron` : ''}`,
@@ -1859,7 +1866,7 @@ app.delete('/documents/bulk-delete', async (req, res) => {
             failed,
             results
         });
-        
+
     } catch (error) {
         console.error('Error en eliminación masiva:', error);
         return res.status(500).json({
@@ -1877,20 +1884,20 @@ app.patch('/api/documents/:id', async (req, res) => {
   try {
     console.log('🔄 PATCH - Actualización parcial de documento');
     const { id } = req.params;
-    
+
     console.log('📋 ID del documento:', id);
     console.log('📋 Body recibido:', req.body);
 
     // Validar ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID de documento inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID de documento inválido'
       });
     }
 
     // Buscar documento existente
-    const documentoExistente = await Document.findOne({ 
+    const documentoExistente = await Document.findOne({
       _id: id,
       $or: [
         { isDeleted: false },
@@ -1899,25 +1906,25 @@ app.patch('/api/documents/:id', async (req, res) => {
     });
 
     if (!documentoExistente) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado'
       });
     }
 
     console.log('📄 Documento encontrado para PATCH:', documentoExistente.nombre_original);
 
     // Extraer datos del cuerpo
-    const { 
-      descripcion, 
-      categoria, 
-      fecha_vencimiento, 
-      persona_id 
+    const {
+      descripcion,
+      categoria,
+      fecha_vencimiento,
+      persona_id
     } = req.body;
 
     // Preparar datos para actualizar
     const updateData = {};
-    
+
     if (descripcion !== undefined) updateData.descripcion = descripcion;
     if (categoria !== undefined) updateData.categoria = categoria;
     if (fecha_vencimiento !== undefined) updateData.fecha_vencimiento = fecha_vencimiento;
@@ -1936,16 +1943,16 @@ app.patch('/api/documents/:id', async (req, res) => {
     const documentoActualizado = await Document.findByIdAndUpdate(
       id,
       updateData,
-      { 
-        new: true, 
-        runValidators: true 
+      {
+        new: true,
+        runValidators: true
       }
     ).populate('persona_id', 'nombre');
 
     if (!documentoActualizado) {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Error al actualizar en base de datos' 
+      return res.status(500).json({
+        success: false,
+        message: 'Error al actualizar en base de datos'
       });
     }
 
@@ -1969,9 +1976,9 @@ app.patch('/api/documents/:id', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error en PATCH:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al actualizar documento: ' + error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar documento: ' + error.message
     });
   }
 });
@@ -1982,25 +1989,25 @@ app.get('/api/documents/:id/preview', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
     const documento = await Document.findOne({ _id: id, activo: true });
 
     if (!documento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado'
       });
     }
 
     if (!documento.cloudinary_url) {
-      return res.status(500).json({ 
-        success: false, 
-        message: 'URL del documento no disponible' 
+      return res.status(500).json({
+        success: false,
+        message: 'URL del documento no disponible'
       });
     }
 
@@ -2012,9 +2019,9 @@ app.get('/api/documents/:id/preview', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error en vista previa:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al cargar vista previa' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al cargar vista previa'
     });
   }
 });
@@ -2022,27 +2029,27 @@ app.get('/api/documents/:id/preview', async (req, res) => {
 app.delete('/api/documents/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     console.log('🗑️ ========== ELIMINACIÓN SOFT DELETE ==========');
     console.log('📋 ID recibido:', id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       console.log('❌ ID inválido:', id);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
     // CORREGIDO: No filtrar por activo, solo por isDeleted
-    const documento = await Document.findOne({ 
-      _id: id, 
+    const documento = await Document.findOne({
+      _id: id,
       $or: [
         { isDeleted: false },
         { isDeleted: { $exists: false } }
       ]
     });
-    
+
     console.log('📄 Documento encontrado:', documento ? 'SÍ' : 'NO');
     if (documento) {
       console.log('📄 Nombre:', documento.nombre_original);
@@ -2051,9 +2058,9 @@ app.delete('/api/documents/:id', async (req, res) => {
 
     if (!documento) {
       console.log('❌ Documento no encontrado o ya eliminado');
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado'
       });
     }
 
@@ -2062,12 +2069,12 @@ app.delete('/api/documents/:id', async (req, res) => {
     const categoriaDocumento = documento.categoria;
 
     // Mover a papelera (eliminación suave)
-    const updateResult = await Document.findByIdAndUpdate(id, { 
+    const updateResult = await Document.findByIdAndUpdate(id, {
       isDeleted: true,
       deletedAt: new Date(),
       deletedBy: 'Administrador' // En producción, usar el usuario actual
     }, { new: true });
-    
+
     console.log('✅ Documento actualizado en BD');
     console.log('📋 isDeleted:', updateResult.isDeleted);
     console.log('📋 deletedAt:', updateResult.deletedAt);
@@ -2080,19 +2087,19 @@ app.delete('/api/documents/:id', async (req, res) => {
     } catch (notifError) {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
-    
+
     console.log('🗑️ ========== FIN ELIMINACIÓN ==========');
 
-    res.json({ 
-      success: true, 
-      message: 'Documento movido a la papelera' 
+    res.json({
+      success: true,
+      message: 'Documento movido a la papelera'
     });
 
   } catch (error) {
     console.error('Error moviendo documento a papelera:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al eliminar documento' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar documento'
     });
   }
 });
@@ -2105,14 +2112,14 @@ app.delete('/api/documents/:id', async (req, res) => {
 app.get('/api/trash', async (req, res) => {
   try {
     console.log('🗑️ ========== OBTENIENDO PAPELERA ==========');
-    
-    const trashedDocs = await Document.find({ 
-      activo: true, 
-      isDeleted: true 
+
+    const trashedDocs = await Document.find({
+      activo: true,
+      isDeleted: true
     })
     .populate('persona_id', 'nombre email departamento')
     .sort({ deletedAt: -1 });
-    
+
     console.log('📊 Documentos en papelera encontrados:', trashedDocs.length);
     trashedDocs.forEach((doc, index) => {
       console.log(`  ${index + 1}. ${doc.nombre_original} - Eliminado: ${doc.deletedAt}`);
@@ -2123,29 +2130,29 @@ app.get('/api/trash', async (req, res) => {
       const deletedDate = new Date(doc.deletedAt);
       const expirationDate = new Date(deletedDate);
       expirationDate.setDate(expirationDate.getDate() + 30);
-      
+
       const now = new Date();
       const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
-      
+
       return {
         ...doc.toObject(),
         daysRemaining: Math.max(0, daysRemaining),
         expirationDate: expirationDate
       };
     });
-    
+
     console.log('🗑️ ========== FIN OBTENER PAPELERA ==========');
 
-    res.json({ 
-      success: true, 
-      documents: docsWithDaysRemaining 
+    res.json({
+      success: true,
+      documents: docsWithDaysRemaining
     });
 
   } catch (error) {
     console.error('Error obteniendo documentos de papelera:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al obtener documentos de la papelera' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener documentos de la papelera'
     });
   }
 });
@@ -2154,9 +2161,9 @@ app.get('/api/trash', async (req, res) => {
 app.delete('/api/trash/empty-all', async (req, res) => {
   try {
     console.log('🗑️ ========== VACIANDO PAPELERA ==========');
-    const trashedDocs = await Document.find({ 
-      activo: true, 
-      isDeleted: true 
+    const trashedDocs = await Document.find({
+      activo: true,
+      isDeleted: true
     });
 
     console.log('📊 Documentos a eliminar:', trashedDocs.length);
@@ -2169,7 +2176,7 @@ app.delete('/api/trash/empty-all', async (req, res) => {
         await cloudinary.uploader.destroy(doc.public_id, {
           resource_type: doc.resource_type
         });
-        
+
         // Eliminar de la base de datos
         await Document.findByIdAndUpdate(doc._id, { activo: false });
         deletedCount++;
@@ -2181,8 +2188,8 @@ app.delete('/api/trash/empty-all', async (req, res) => {
     }
 
     console.log('🗑️ ========== FIN VACIADO ==========');
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Papelera vaciada: ${deletedCount} documentos eliminados`,
       deletedCount,
       errorCount
@@ -2190,9 +2197,9 @@ app.delete('/api/trash/empty-all', async (req, res) => {
 
   } catch (error) {
     console.error('Error vaciando papelera:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al vaciar papelera' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al vaciar papelera'
     });
   }
 });
@@ -2218,7 +2225,7 @@ app.post('/api/trash/auto-cleanup', async (req, res) => {
         await cloudinary.uploader.destroy(doc.public_id, {
           resource_type: doc.resource_type
         });
-        
+
         // Eliminar de la base de datos
         await Document.findByIdAndUpdate(doc._id, { activo: false });
         deletedCount++;
@@ -2229,8 +2236,8 @@ app.post('/api/trash/auto-cleanup', async (req, res) => {
       }
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Limpieza automática completada: ${deletedCount} documentos eliminados`,
       deletedCount,
       errorCount
@@ -2238,9 +2245,9 @@ app.post('/api/trash/auto-cleanup', async (req, res) => {
 
   } catch (error) {
     console.error('Error en limpieza automática:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error en limpieza automática' 
+    res.status(500).json({
+      success: false,
+      message: 'Error en limpieza automática'
     });
   }
 });
@@ -2251,18 +2258,18 @@ app.post('/api/trash/:id/restore', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
     const documento = await Document.findOne({ _id: id, activo: true, isDeleted: true });
 
     if (!documento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado en la papelera' 
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado en la papelera'
       });
     }
 
@@ -2271,7 +2278,7 @@ app.post('/api/trash/:id/restore', async (req, res) => {
     const categoriaDocumento = documento.categoria;
 
     // Restaurar documento
-    await Document.findByIdAndUpdate(id, { 
+    await Document.findByIdAndUpdate(id, {
       isDeleted: false,
       deletedAt: null,
       deletedBy: null
@@ -2284,17 +2291,17 @@ app.post('/api/trash/:id/restore', async (req, res) => {
       console.error('⚠️ Error creando notificación:', notifError.message);
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Documento restaurado exitosamente',
-      document: documento 
+      document: documento
     });
 
   } catch (error) {
     console.error('Error restaurando documento:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al restaurar documento' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al restaurar documento'
     });
   }
 });
@@ -2305,18 +2312,18 @@ app.delete('/api/trash/:id', async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
     const documento = await Document.findOne({ _id: id, activo: true, isDeleted: true });
 
     if (!documento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado en la papelera' 
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado en la papelera'
       });
     }
 
@@ -2335,16 +2342,16 @@ app.delete('/api/trash/:id', async (req, res) => {
     // Eliminar permanentemente de la base de datos
     await Document.findByIdAndUpdate(id, { activo: false });
 
-    res.json({ 
-      success: true, 
-      message: `"${nombreDocumento}" eliminado permanentemente` 
+    res.json({
+      success: true,
+      message: `"${nombreDocumento}" eliminado permanentemente`
     });
 
   } catch (error) {
     console.error('Error eliminando documento permanentemente:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al eliminar documento permanentemente' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar documento permanentemente'
     });
   }
 });
@@ -2356,31 +2363,31 @@ app.delete('/api/trash/:id', async (req, res) => {
 app.get('/api/documents/:id/info', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     console.log('📄 Obteniendo información del documento:', id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'ID inválido' 
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido'
       });
     }
 
-    const documento = await Document.findOne({ 
+    const documento = await Document.findOne({
       _id: id,
       $or: [
         { isDeleted: false },
         { isDeleted: { $exists: false } }
       ]
     }).populate('persona_id', 'nombre email departamento puesto');
-    
+
     if (!documento) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Documento no encontrado' 
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado'
       });
     }
-    
+
     res.json({
       success: true,
       document: {
@@ -2398,12 +2405,12 @@ app.get('/api/documents/:id/info', async (req, res) => {
         resource_type: documento.resource_type
       }
     });
-    
+
   } catch (error) {
     console.error('Error obteniendo info del documento:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al obtener información del documento' 
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener información del documento'
     });
   }
 });
@@ -2525,7 +2532,7 @@ app.post('/api/reports/excel', async (req, res) => {
     documents.forEach(doc => {
       const person = doc.persona_id ? doc.persona_id.nombre : 'No asignado';
       const vencimiento = doc.fecha_vencimiento ? formatDate(doc.fecha_vencimiento) : 'Sin vencimiento';
-      
+
       let estado = 'Activo';
       if (doc.fecha_vencimiento) {
         const now = new Date();
@@ -2603,9 +2610,9 @@ app.post('/api/reports/excel', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error generando reporte Excel:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al generar reporte Excel: ' + error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error al generar reporte Excel: ' + error.message
     });
   }
 });
@@ -2617,7 +2624,7 @@ app.post('/api/reports/excel', async (req, res) => {
 // Generar reporte en PDF
 app.post('/api/reports/pdf', async (req, res) => {
   console.group('📊 REPORTE PDF - Iniciando generación');
-  
+
   try {
     const { reportType, category, person, days, dateFrom, dateTo } = req.body;
 
@@ -2633,9 +2640,9 @@ app.post('/api/reports/pdf', async (req, res) => {
     let reportTitle = '';
 
     // CORREGIDO: Obtener documentos activos no eliminados
-    const baseQuery = { 
-      activo: true, 
-      isDeleted: { $ne: true } 
+    const baseQuery = {
+      activo: true,
+      isDeleted: { $ne: true }
     };
 
     switch(reportType) {
@@ -2645,13 +2652,13 @@ app.post('/api/reports/pdf', async (req, res) => {
           .populate('persona_id', 'nombre email departamento puesto')
           .sort({ fecha_subida: -1 });
         break;
-        
+
       case 'byCategory':
         if (category) {
           reportTitle = `Reporte por Categoría: ${category}`;
-          documents = await Document.find({ 
+          documents = await Document.find({
             ...baseQuery,
-            categoria: category 
+            categoria: category
           })
           .populate('persona_id', 'nombre email departamento puesto')
           .sort({ fecha_subida: -1 });
@@ -2662,14 +2669,14 @@ app.post('/api/reports/pdf', async (req, res) => {
             .sort({ categoria: 1, fecha_subida: -1 });
         }
         break;
-        
+
       case 'byPerson':
         if (person) {
           const personaData = await Person.findById(person);
           reportTitle = `Reporte por Persona: ${personaData ? personaData.nombre : 'Desconocida'}`;
-          documents = await Document.find({ 
+          documents = await Document.find({
             ...baseQuery,
-            persona_id: person 
+            persona_id: person
           })
           .populate('persona_id', 'nombre email departamento puesto')
           .sort({ fecha_subida: -1 });
@@ -2680,15 +2687,15 @@ app.post('/api/reports/pdf', async (req, res) => {
             .sort({ 'persona_id.nombre': 1, fecha_subida: -1 });
         }
         break;
-        
+
       case 'expiring':
         const daysToExpire = parseInt(days) || 30;
         reportTitle = `Documentos que Vencen en Próximos ${daysToExpire} Días`;
-        
+
         const today = new Date();
         const futureDate = new Date();
         futureDate.setDate(today.getDate() + daysToExpire);
-        
+
         documents = await Document.find({
           ...baseQuery,
           fecha_vencimiento: {
@@ -2699,11 +2706,11 @@ app.post('/api/reports/pdf', async (req, res) => {
         .populate('persona_id', 'nombre email departamento puesto')
         .sort({ fecha_vencimiento: 1 });
         break;
-        
+
       case 'expired':
         reportTitle = 'Documentos Vencidos';
         const now = new Date();
-        
+
         documents = await Document.find({
           ...baseQuery,
           fecha_vencimiento: { $lt: now }
@@ -2711,20 +2718,20 @@ app.post('/api/reports/pdf', async (req, res) => {
         .populate('persona_id', 'nombre email departamento puesto')
         .sort({ fecha_vencimiento: 1 });
         break;
-        
+
       default:
         console.error('❌ Tipo de reporte no válido:', reportType);
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Tipo de reporte no válido' 
+        return res.status(400).json({
+          success: false,
+          message: 'Tipo de reporte no válido'
         });
     }
 
     console.log(`📄 Documentos encontrados: ${documents.length}`);
 
     // Crear documento PDF
-    const doc = new PDFDocument({ 
-      margin: 50, 
+    const doc = new PDFDocument({
+      margin: 50,
       size: 'A4',
       info: {
         Title: reportTitle,
@@ -2745,27 +2752,27 @@ app.post('/api/reports/pdf', async (req, res) => {
     // =====================================================================
     // ENCABEZADO
     // =====================================================================
-    
+
     // Logo/Título
     doc.fontSize(20)
        .font('Helvetica-Bold')
        .fillColor('#4F46E5')
        .text('Sistema de Gestión de Documentos', { align: 'center' });
-    
+
     doc.fontSize(16)
        .text('CBTIS051', { align: 'center' })
        .moveDown(0.5);
-    
+
     doc.fontSize(14)
        .fillColor('#000000')
        .text(reportTitle, { align: 'center' })
        .moveDown(0.5);
-    
+
     doc.fontSize(10)
        .fillColor('#6B7280')
        .text(`Generado el: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, { align: 'center' })
        .moveDown();
-    
+
     // Línea separadora
     doc.moveTo(50, doc.y)
        .lineTo(550, doc.y)
@@ -2775,18 +2782,18 @@ app.post('/api/reports/pdf', async (req, res) => {
     // =====================================================================
     // RESUMEN ESTADÍSTICO
     // =====================================================================
-    
+
     doc.fontSize(12)
        .font('Helvetica-Bold')
        .text('Resumen del Reporte:', { underline: true })
        .moveDown(0.5);
-    
+
     doc.fontSize(10)
        .font('Helvetica')
        .text(`• Total de documentos: ${documents.length}`)
        .text(`• Fecha de generación: ${new Date().toLocaleDateString()}`)
        .text(`• Tipo de reporte: ${getReportTypeName(reportType)}`);
-    
+
     // Estadísticas adicionales si hay documentos
     if (documents.length > 0) {
       const categories = [...new Set(documents.map(d => d.categoria))];
@@ -2795,42 +2802,42 @@ app.post('/api/reports/pdf', async (req, res) => {
         if (!d.fecha_vencimiento) return false;
         return new Date(d.fecha_vencimiento) < new Date();
       }).length;
-      
+
       doc.text(`• Categorías incluidas: ${categories.length}`);
       doc.text(`• Tamaño total: ${totalSizeMB.toFixed(2)} MB`);
-      
+
       if (expiredCount > 0) {
         doc.fillColor('red')
            .text(`• Documentos vencidos: ${expiredCount}`)
            .fillColor('#000000');
       }
     }
-    
+
     doc.moveDown();
 
     // =====================================================================
     // VERIFICAR SI HAY DOCUMENTOS
     // =====================================================================
-    
+
     if (documents.length === 0) {
       doc.fontSize(14)
          .fillColor('#DC2626')
          .text('No hay documentos para mostrar', { align: 'center' })
          .moveDown();
-      
+
       doc.fontSize(10)
          .fillColor('#6B7280')
          .text('No se encontraron documentos con los criterios seleccionados.', { align: 'center' })
          .moveDown(2);
-      
+
       // Pie de página para documento vacío
       doc.fontSize(8)
          .fillColor('#9CA3AF')
-         .text(`Sistema de Gestión de Documentos CBTIS051 - Página 1 de 1`, 
-               50, 
-               doc.page.height - 50, 
+         .text(`Sistema de Gestión de Documentos CBTIS051 - Página 1 de 1`,
+               50,
+               doc.page.height - 50,
                { align: 'center' });
-      
+
       doc.end();
       console.log('✅ PDF vacío generado exitosamente');
       console.groupEnd();
@@ -2840,27 +2847,27 @@ app.post('/api/reports/pdf', async (req, res) => {
     // =====================================================================
     // TABLA DE DOCUMENTOS
     // =====================================================================
-    
+
     // Verificar si necesitamos nueva página antes de la tabla
     if (doc.y > 650) {
       doc.addPage();
     }
-    
+
     doc.fontSize(12)
        .font('Helvetica-Bold')
        .fillColor('#000000')
        .text('Detalle de Documentos:', { underline: true })
        .moveDown(0.5);
-    
+
     // Definir posiciones y anchos de columnas
     const tableTop = doc.y;
     const columnWidths = [30, 200, 100, 100, 120]; // Ajustado
     const headers = ['#', 'Nombre', 'Categoría', 'Persona', 'Vencimiento'];
-    
+
     // Encabezados de tabla
     doc.font('Helvetica-Bold')
        .fontSize(9);
-    
+
     let x = 50;
     headers.forEach((header, i) => {
       doc.text(header, x, tableTop, {
@@ -2869,28 +2876,28 @@ app.post('/api/reports/pdf', async (req, res) => {
       });
       x += columnWidths[i];
     });
-    
+
     // Línea debajo de los encabezados
     doc.moveTo(50, tableTop + 15)
        .lineTo(550, tableTop + 15)
        .stroke();
-    
+
     // Filas de datos
     let y = tableTop + 25;
-    
+
     doc.font('Helvetica')
        .fontSize(8);
-    
+
     documents.forEach((document, index) => {
       // Verificar si necesitamos nueva página
       if (y > 750) {
         doc.addPage();
         y = 50; // Reiniciar Y en nueva página
-        
+
         // Volver a dibujar encabezados en nueva página
         doc.font('Helvetica-Bold')
            .fontSize(9);
-        
+
         let newX = 50;
         headers.forEach((header, i) => {
           doc.text(header, newX, y, {
@@ -2899,26 +2906,26 @@ app.post('/api/reports/pdf', async (req, res) => {
           });
           newX += columnWidths[i];
         });
-        
+
         doc.moveTo(50, y + 15)
            .lineTo(550, y + 15)
            .stroke();
-        
+
         y += 25;
         doc.font('Helvetica').fontSize(8);
       }
-      
+
       // Datos de la fila
       const rowData = [
         (index + 1).toString(),
         truncateText(document.nombre_original, 35),
         truncateText(document.categoria || 'Sin categoría', 15),
         document.persona_id?.nombre || 'No asignado',
-        document.fecha_vencimiento 
+        document.fecha_vencimiento
           ? formatDate(document.fecha_vencimiento)
           : 'Sin fecha'
       ];
-      
+
       // Determinar color según estado
       let rowColor = '#000000';
       if (document.fecha_vencimiento) {
@@ -2930,7 +2937,7 @@ app.post('/api/reports/pdf', async (req, res) => {
           rowColor = '#D97706'; // Naranja para por vencer
         }
       }
-      
+
       // Dibujar fila
       doc.fillColor(rowColor);
       let cellX = 50;
@@ -2943,11 +2950,11 @@ app.post('/api/reports/pdf', async (req, res) => {
         });
         cellX += columnWidths[i];
       });
-      
+
       // Resetear color
       doc.fillColor('#000000');
       y += 15;
-      
+
       // Línea separadora entre filas (opcional)
       if (index < documents.length - 1) {
         doc.moveTo(50, y - 2)
@@ -2956,25 +2963,25 @@ app.post('/api/reports/pdf', async (req, res) => {
            .stroke();
       }
     });
-    
+
     // =====================================================================
     // PIE DE PÁGINA CORREGIDO
     // =====================================================================
-    
+
     // CORRECCIÓN CRÍTICA: Manejar correctamente las páginas
     // Obtener el rango de páginas
     const pageRange = doc.bufferedPageRange();
     console.log(`📄 Total de páginas generadas: ${pageRange.count}`);
-    
+
     // IMPORTANTE: No usar switchToPage() si hay 0 páginas
     // En lugar de eso, agregar pie de página directamente en cada página
     for (let i = 0; i < pageRange.count; i++) {
       // En PDFKit, las páginas ya están en el buffer
       // Solo necesitamos agregar texto al pie de página
-      
+
       // Acceder a la página usando el método correcto
       doc.switchToPage(i);
-      
+
       // Agregar pie de página en posición fija
       doc.fontSize(8)
          .fillColor('#9CA3AF')
@@ -2985,20 +2992,20 @@ app.post('/api/reports/pdf', async (req, res) => {
            { align: 'center', width: 500 }
          );
     }
-    
+
     // =====================================================================
     // FINALIZAR DOCUMENTO
     // =====================================================================
-    
+
     doc.end();
-    
+
     console.log(`✅ PDF generado exitosamente con ${documents.length} documentos`);
     console.groupEnd();
-    
+
   } catch (error) {
     console.error('❌ ERROR generando reporte PDF:', error);
     console.error('📋 Stack trace:', error.stack);
-    
+
     // IMPORTANTE: Verificar si los headers ya fueron enviados
     if (res.headersSent) {
       console.error('⚠️ Headers ya enviados, no se puede enviar error JSON');
@@ -3008,12 +3015,12 @@ app.post('/api/reports/pdf', async (req, res) => {
         console.error('❌ Error finalizando respuesta:', endError);
       }
     } else {
-      res.status(500).json({ 
-        success: false, 
-        message: `Error al generar reporte PDF: ${error.message}` 
+      res.status(500).json({
+        success: false,
+        message: `Error al generar reporte PDF: ${error.message}`
       });
     }
-    
+
     console.groupEnd();
   }
 });
@@ -3100,7 +3107,7 @@ app.post('/api/reports/csv', async (req, res) => {
       const departamento = doc.persona_id ? doc.persona_id.departamento || '-' : '-';
       const puesto = doc.persona_id ? doc.persona_id.puesto || '-' : '-';
       const vencimiento = doc.fecha_vencimiento ? formatDate(doc.fecha_vencimiento) : 'Sin vencimiento';
-      
+
       let estado = 'Activo';
       if (doc.fecha_vencimiento) {
         const now = new Date();
@@ -3137,9 +3144,9 @@ app.post('/api/reports/csv', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error generando reporte CSV:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al generar reporte CSV: ' + error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error al generar reporte CSV: ' + error.message
     });
   }
 });
@@ -3166,9 +3173,9 @@ app.get('/api/documents/:id/download', async (req, res) => {
         }
 
         // 2. Buscar en BD
-        const documento = await Document.findOne({ 
-            _id: id, 
-            activo: true 
+        const documento = await Document.findOne({
+            _id: id,
+            activo: true
         }).populate('persona_id', 'nombre');
 
         if (!documento) {
@@ -3221,7 +3228,7 @@ app.get('/api/documents/:id/download', async (req, res) => {
         // Si fallo, intentamos con URL modificada
         if (!response.ok) {
             console.log('⚠️ Intento 1 fallo, probando URL mejorada para Cloudinary...');
-            
+
             const modifiedUrl = buildCloudinaryDownloadURL(cloudinaryUrl, fileExtension);
             console.log('🔗 URL modificada final:', modifiedUrl);
 
@@ -3229,7 +3236,7 @@ app.get('/api/documents/:id/download', async (req, res) => {
 
             if (!response.ok) {
                 console.log('❌ Intento 2 tambien fallo. Haciendo redireccion como ultimo recurso.');
-                
+
                 res.setHeader('Content-Type', getContentType(fileExtension));
                 res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
                 return res.redirect(cloudinaryUrl);
@@ -3355,7 +3362,7 @@ function getContentType(ext) {
 
 app.get('/api/documents/:id/content', async (req, res) => {
     console.log('📝 Obteniendo contenido para vista previa de texto');
-    
+
     try {
         const { id } = req.params;
         const { limit = 50000 } = req.query; // Limitar a 50KB por defecto
@@ -3369,9 +3376,9 @@ app.get('/api/documents/:id/content', async (req, res) => {
         }
 
         // Buscar documento
-        const documento = await Document.findOne({ 
-            _id: id, 
-            activo: true 
+        const documento = await Document.findOne({
+            _id: id,
+            activo: true
         });
 
         if (!documento) {
@@ -3384,7 +3391,7 @@ app.get('/api/documents/:id/content', async (req, res) => {
         // Verificar que sea archivo de texto
         const extension = documento.nombre_original.split('.').pop().toLowerCase();
         const textExtensions = ['txt', 'csv', 'json', 'xml', 'html', 'htm', 'js', 'css', 'md'];
-        
+
         if (!textExtensions.includes(extension)) {
             return res.status(400).json({
                 success: false,
@@ -3393,7 +3400,7 @@ app.get('/api/documents/:id/content', async (req, res) => {
         }
 
         const cloudinaryUrl = documento.cloudinary_url;
-        
+
         if (!cloudinaryUrl) {
             return res.status(500).json({
                 success: false,
@@ -3406,7 +3413,7 @@ app.get('/api/documents/:id/content', async (req, res) => {
         // IMPORTANTE: Para archivos .txt, Cloudinary los sirve como 'raw'
         // Necesitamos agregar parámetros para asegurar que sea texto
         let finalUrl = cloudinaryUrl;
-        
+
         // Si es una URL de Cloudinary, forzar formato raw
         if (cloudinaryUrl.includes('cloudinary.com')) {
             if (!cloudinaryUrl.includes('/raw/')) {
@@ -3427,7 +3434,7 @@ app.get('/api/documents/:id/content', async (req, res) => {
 
         // Leer el contenido
         const buffer = await response.arrayBuffer();
-        
+
         if (buffer.byteLength === 0) {
             return res.status(500).json({
                 success: false,
@@ -3455,7 +3462,7 @@ app.get('/api/documents/:id/content', async (req, res) => {
         // Limitar contenido si es muy grande
         const maxLength = parseInt(limit);
         let isTruncated = false;
-        
+
         if (textContent.length > maxLength) {
             textContent = textContent.substring(0, maxLength);
             isTruncated = true;
@@ -3488,7 +3495,7 @@ app.get('/api/documents/:id/content', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error en endpoint de contenido:', error);
-        
+
         // Enviar como JSON si es un error
         res.setHeader('Content-Type', 'application/json');
         res.status(500).json({
@@ -3503,7 +3510,7 @@ app.get('/api/documents/:id/content', async (req, res) => {
 // -----------------------------
 app.use((error, req, res, next) => {
   console.error('Error no manejado:', error);
-  
+
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
@@ -3527,14 +3534,14 @@ app.use((error, req, res, next) => {
 app.get('/api/notifications', async (req, res) => {
   try {
     const { leida, tipo, prioridad, desde, hasta, limite = 50, pagina = 1 } = req.query;
-    
+
     const filtros = {};
     if (leida !== undefined) filtros.leida = leida === 'true';
     if (tipo) filtros.tipo = tipo;
     if (prioridad) filtros.prioridad = prioridad;
     if (desde) filtros.desde = desde;
     if (hasta) filtros.hasta = hasta;
-    
+
     // 🆕 Pasar el userId para filtrar notificaciones de recordatorio
     filtros.userId = req.query.userId || null;
 
@@ -3553,9 +3560,9 @@ app.get('/api/notifications', async (req, res) => {
 app.get('/api/notifications/unread', async (req, res) => {
   try {
     console.log('📥 Obteniendo notificaciones no leídas');
-    
+
     const resultado = await NotificationService.obtener({ leida: false });
-    
+
     console.log(`✅ ${resultado.notificaciones.length} notificaciones no leídas`);
 
     res.json({
@@ -3576,9 +3583,9 @@ app.get('/api/notifications/unread', async (req, res) => {
 app.get('/api/notifications/stats', async (req, res) => {
   try {
     console.log('📊 Obteniendo estadísticas de notificaciones');
-    
+
     const estadisticas = await NotificationService.obtenerEstadisticas();
-    
+
     console.log('✅ Estadísticas obtenidas:', estadisticas);
 
     res.json({
@@ -3720,22 +3727,22 @@ app.post('/api/support/tickets', upload.array('files', 5), SupportController.cre
 app.get('/api/support/tickets', async (req, res) => {
     try {
         console.log('📥 Obteniendo tickets...');
-        
+
         try {
             const ticketModule = await import('./src/backend/models/Ticket.js');
             const TicketModel = ticketModule.default;
-            
+
             const tickets = await TicketModel.find({ isDeleted: false })
                 .sort({ createdAt: -1 })
                 .limit(50)
                 .lean();
-            
+
             res.json({
                 success: true,
                 tickets,
                 pagination: { total: tickets.length, page: 1, limit: 50, pages: 1 }
             });
-            
+
         } catch (error) {
             res.json({
                 success: true,
@@ -3743,7 +3750,7 @@ app.get('/api/support/tickets', async (req, res) => {
                 pagination: { total: 0, page: 1, limit: 50, pages: 0 }
             });
         }
-        
+
     } catch (error) {
         console.error('Error obteniendo tickets:', error);
         res.status(500).json({ success: false, message: 'Error obteniendo tickets' });
@@ -3758,22 +3765,22 @@ app.get('/api/support/guide', SupportController.getSystemGuide);
 app.get('/api/support/tickets/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ success: false, message: 'ID de ticket no válido' });
         }
-        
+
         const ticketModule = await import('./src/backend/models/Ticket.js');
         const TicketModel = ticketModule.default;
-        
+
         const ticket = await TicketModel.findOne({ _id: id, isDeleted: false }).lean();
-        
+
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
-        
+
         res.json({ success: true, ticket });
-        
+
     } catch (error) {
         console.error('Error obteniendo detalles:', error);
         res.status(500).json({ success: false, message: 'Error interno' });
@@ -3785,29 +3792,29 @@ app.patch('/api/support/tickets/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
         const { status, message } = req.body;
-        
+
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ success: false, message: 'ID no válido' });
         }
-        
+
         const ticketModule = await import('./src/backend/models/Ticket.js');
         const TicketModel = ticketModule.default;
-        
+
         const ticket = await TicketModel.findOneAndUpdate(
             { _id: id, isDeleted: false },
-            { 
+            {
                 $set: { status, updatedAt: new Date() },
                 $push: { updates: { user: 'system', userName: 'Sistema', message: message || `Estado: ${status}`, createdAt: new Date() } }
             },
             { new: true }
         ).lean();
-        
+
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
-        
+
         res.json({ success: true, message: `Estado actualizado a ${status}`, ticket });
-        
+
     } catch (error) {
         console.error('Error actualizando estado:', error);
         res.status(500).json({ success: false, message: 'Error interno' });
@@ -3819,29 +3826,29 @@ app.post('/api/support/tickets/:id/response', async (req, res) => {
     try {
         const { id } = req.params;
         const { message } = req.body;
-        
+
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ success: false, message: 'ID no válido' });
         }
-        
+
         const ticketModule = await import('./src/backend/models/Ticket.js');
         const TicketModel = ticketModule.default;
-        
+
         const ticket = await TicketModel.findOneAndUpdate(
             { _id: id, isDeleted: false },
-            { 
+            {
                 $set: { updatedAt: new Date() },
                 $push: { updates: { user: 'system', userName: 'Sistema', message: message.trim(), createdAt: new Date() } }
             },
             { new: true }
         ).lean();
-        
+
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
-        
+
         res.json({ success: true, message: 'Respuesta agregada', ticket });
-        
+
     } catch (error) {
         console.error('Error agregando respuesta:', error);
         res.status(500).json({ success: false, message: 'Error interno' });
@@ -3852,26 +3859,26 @@ app.post('/api/support/tickets/:id/response', async (req, res) => {
 app.delete('/api/support/tickets/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ success: false, message: 'ID no válido' });
         }
-        
+
         const ticketModule = await import('./src/backend/models/Ticket.js');
         const TicketModel = ticketModule.default;
-        
+
         const ticket = await TicketModel.findOneAndUpdate(
             { _id: id, isDeleted: false },
             { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: 'system' } },
             { new: true }
         ).lean();
-        
+
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket no encontrado' });
         }
-        
+
         res.json({ success: true, message: 'Ticket eliminado' });
-        
+
     } catch (error) {
         console.error('Error eliminando ticket:', error);
         res.status(500).json({ success: false, message: 'Error interno' });
