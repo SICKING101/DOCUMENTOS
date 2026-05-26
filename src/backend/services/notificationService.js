@@ -346,7 +346,7 @@ static async calendarioRecordatorio(evento, diasRestantes) {
     return await this.crearConDebounce({
       tipo: 'sistema_iniciado',
       titulo: 'Sistema iniciado',
-      mensaje: `Sistema de Gestión de Documentos CBTIS051 iniciado correctamente el ${new Date().toLocaleString('es-MX')}`,
+      mensaje: `Sistema de Gestión de Documentos Gestacks iniciado correctamente el ${new Date().toLocaleString('es-MX')}`,
       icono: 'check-circle',
       prioridad: 'baja',
       schoolId: null,

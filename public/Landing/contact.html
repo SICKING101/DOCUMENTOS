@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Contacta con Gestacks para más información sobre nuestros servicios." />
+    <title>Contacto | Gestacks</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <img src="./assets/logo.png" alt="Gestacks Logo" class="navbar-logo">
+                <span class="navbar-company-name">Gestacks</span>
+            </div>
+
+            <ul class="navbar-menu">
+                <li><a href="index.html#about" class="navbar-link">Sobre Gestacks</a></li>
+                <li><a href="index.html#benefits" class="navbar-link">Beneficios</a></li>
+                <li><a href="index.html#stats" class="navbar-link">Estadísticas</a></li>
+                <li><a href="contact.html" class="navbar-link">Contacto</a></li>
+            </ul>
+
+            <a href="/login" class="navbar-login-btn">Iniciar Sesión</a>
+        </div>
+    </nav>
+
+    <!-- ===== CONTACT SECTION ===== -->
+    <section class="contact-section">
+        <div class="container">
+            <div class="contact-wrapper">
+                <div class="contact-header">
+                    <h1 class="contact-title">Ponte en Contacto</h1>
+                    <p class="contact-subtitle">
+                        Déjanos tus datos y nos pondremos en contacto contigo lo antes posible
+                    </p>
+                </div>
+
+                <form class="contact-form" id="contactForm">
+                    <!-- Name Field -->
+                    <div class="form-group">
+                        <label for="name" class="form-label">Nombre</label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name" 
+                            class="form-input" 
+                            placeholder="Tu nombre completo"
+                            required
+                        />
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="form-group">
+                        <label for="email" class="form-label">Correo Electrónico</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="form-input" 
+                            placeholder="tu@email.com"
+                            required
+                        />
+                    </div>
+
+                    <!-- Phone Field -->
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Número de Teléfono</label>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="phone" 
+                            class="form-input" 
+                            placeholder="+34 123 456 789"
+                            required
+                        />
+                    </div>
+
+                    <!-- Message Field -->
+                    <div class="form-group">
+                        <label for="message" class="form-label">Mensaje (Opcional)</label>
+                        <textarea 
+                            id="message" 
+                            name="message" 
+                            class="form-input form-textarea" 
+                            placeholder="Cuéntanos más sobre tu consulta..."
+                            rows="4"
+                        ></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="button button-primary button-large">
+                        Enviar mi información
+                    </button>
+
+                    <!-- Status Message -->
+                    <div id="statusMessage" class="status-message"></div>
+                </form>
+
+                <!-- Back Link -->
+                <div class="contact-back">
+                    <a href="index.html" class="back-link">← Volver a inicio</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- JavaScript for form handling -->
+    <script src="script.js"></script>
+    <script src="contact.js"></script>
+</body>
+</html>
