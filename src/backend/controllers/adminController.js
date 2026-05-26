@@ -22,7 +22,7 @@ const generateSecureToken = () => {
 };
 
 const buildVerificationUrl = (token) => {
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
+    const baseUrl = process.env.FRONTEND_URL || 'https://gestacks.com';
     return `${baseUrl}/verify-admin-change.html?token=${token}`;
 };
 
@@ -415,7 +415,7 @@ export const confirmAdminChange = async (req, res) => {
 
         console.log('✅ Nuevo administrador creado:', newAdmin.usuario);
 
-        const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:4000'}/login.html`;
+        const loginUrl = `${process.env.FRONTEND_URL || 'https://gestacks.com'}/login.html`;
 
         // ========== ENVIAR EMAIL DE BIENVENIDA ==========
         try {
@@ -731,7 +731,7 @@ export const testAdminChange = async (req, res) => {
                 database: '✅ Conectado',
                 adminCount,
                 pendingRequests,
-                frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4000'
+                frontendUrl: process.env.FRONTEND_URL || 'https://gestacks.com'
             }
         });
 
