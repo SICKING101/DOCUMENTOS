@@ -17,7 +17,7 @@ class EmailService {
     const config = {
       from: process.env.EMAIL_FROM || 'noreply@cbtis051.edu.mx',
       fromName: process.env.EMAIL_FROM_NAME || 'Sistema CBTIS051',
-      frontendUrl: process.env.FRONTEND_URL || 'http://localhost:4000',
+      frontendUrl: process.env.FRONTEND_URL || 'https://gestacks.com',
       brevoApiKey: process.env.BREVO_API_KEY || '',
     };
 
@@ -294,17 +294,11 @@ class EmailService {
           <div style="background: #FEF3C7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F59E0B;">
             <p style="margin: 0; color: #92400E; font-size: 0.9rem;">
               <strong>📋 ¿Cómo usar este token?</strong><br>
-              1. Ve a la página de inicio de sesión<br>
+              1. Ve a la página de inicio de sesión (http://gestacks.com/login.html)<br>
               2. Haz clic en <strong>"¿Tienes una invitación? Validar token"</strong><br>
               3. Ingresa el código: <strong>${token}</strong><br>
               4. Completa tu registro como administrador
             </p>
-          </div>
-
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${loginUrl}" style="display: inline-block; background: #4F46E5; color: white; padding: 14px 35px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 16px;">
-              Ir al Login
-            </a>
           </div>
 
           <p style="color: #9ca3af; font-size: 0.8rem; text-align: center;">
