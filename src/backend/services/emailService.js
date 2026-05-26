@@ -16,7 +16,7 @@ class EmailService {
   loadConfig() {
     const config = {
       from: process.env.EMAIL_FROM || 'noreply@cbtis051.edu.mx',
-      fromName: process.env.EMAIL_FROM_NAME || 'Sistema CBTIS051',
+      fromName: process.env.EMAIL_FROM_NAME || 'Sistema Gestacks',
       frontendUrl: process.env.FRONTEND_URL || 'https://gestacks.com',
       brevoApiKey: process.env.BREVO_API_KEY || '',
     };
@@ -132,7 +132,7 @@ class EmailService {
 
     const mailOptions = {
       to: email,
-      subject: `🏫 Invitación para administrar ${schoolName} - CBTIS051`,
+      subject: `🏫 Invitación para administrar ${schoolName} - Gestacks`,
       html: this.getAdminInvitationTemplate({ schoolName, token, schoolId, expiresIn, loginUrl, email }),
       text: this.getAdminInvitationText({ schoolName, token, schoolId, expiresIn, loginUrl, email }),
     };
@@ -146,9 +146,9 @@ class EmailService {
     const mailOptions = {
       to: email,
       toName: userName,
-      subject: '🔐 Código de recuperación - CBTIS051',
+      subject: '🔐 Código de recuperación - Gestacks',
       html: this.getPasswordResetTemplate(code, userName),
-      text: `CBTIS051 - Código de recuperación\n\nHola ${userName},\n\nTu código de verificación es: ${code}\n\nEste código expira en 15 minutos.\n\nSi no solicitaste este cambio, ignora este mensaje.`,
+      text: `Gestacks - Código de recuperación\n\nHola ${userName},\n\nTu código de verificación es: ${code}\n\nEste código expira en 15 minutos.\n\nSi no solicitaste este cambio, ignora este mensaje.`,
     };
     return this.sendWithRetry(mailOptions);
   }
@@ -160,9 +160,9 @@ class EmailService {
     const mailOptions = {
       to: email,
       toName: userName,
-      subject: '✅ Contraseña cambiada exitosamente - CBTIS051',
+      subject: '✅ Contraseña cambiada exitosamente - Gestacks',
       html: this.getPasswordChangeTemplate(userName, metadata),
-      text: `CONTRASEÑA CAMBIADA - CBTIS051\n\nHola ${userName},\n\nTu contraseña ha sido cambiada exitosamente.\n\nFecha: ${new Date().toLocaleString('es-MX')}\n\nSi no realizaste este cambio, contacta al administrador inmediatamente.`,
+      text: `CONTRASEÑA CAMBIADA - Gestacks\n\nHola ${userName},\n\nTu contraseña ha sido cambiada exitosamente.\n\nFecha: ${new Date().toLocaleString('es-MX')}\n\nSi no realizaste este cambio, contacta al administrador inmediatamente.`,
     };
     return this.sendWithRetry(mailOptions);
   }
@@ -175,9 +175,9 @@ class EmailService {
     const mailOptions = {
       to: email,
       toName: currentAdminName,
-      subject: '⚠️ Confirmación de Cambio de Administrador - CBTIS051',
+      subject: '⚠️ Confirmación de Cambio de Administrador - Gestacks',
       html: this.getAdminChangeVerificationTemplate(data),
-      text: `CONFIRMACIÓN DE CAMBIO DE ADMINISTRADOR - CBTIS051\n\nHas solicitado transferir la administración a ${newAdminUser}.\n\nDETALLES:\n- Nuevo administrador: ${newAdminUser}\n- Correo nuevo: ${newAdminEmail}\n- Solicitado por: ${currentAdminName}\n- ID de solicitud: ${requestId}\n\nCONFIRMAR: ${verificationUrl}`,
+      text: `CONFIRMACIÓN DE CAMBIO DE ADMINISTRADOR - Gestacks\n\nHas solicitado transferir la administración a ${newAdminUser}.\n\nDETALLES:\n- Nuevo administrador: ${newAdminUser}\n- Correo nuevo: ${newAdminEmail}\n- Solicitado por: ${currentAdminName}\n- ID de solicitud: ${requestId}\n\nCONFIRMAR: ${verificationUrl}`,
     };
     return this.sendWithRetry(mailOptions);
   }
@@ -190,7 +190,7 @@ class EmailService {
     const mailOptions = {
       to: email,
       toName: newAdminUser,
-      subject: '✅ ¡Eres el nuevo Administrador! - CBTIS051',
+      subject: '✅ ¡Eres el nuevo Administrador! - Gestacks',
       html: this.getNewAdminWelcomeTemplate(data),
       text: `¡BIENVENIDO NUEVO ADMINISTRADOR!\n\n${currentAdminName} ha transferido la administración a tu cuenta.\n\nCREDENCIALES:\n- Usuario: ${newAdminUser}\n- Correo: ${newAdminEmail}\n- Contraseña: La que estableciste\n\nINICIAR SESIÓN: ${loginUrl}`,
     };
@@ -204,7 +204,7 @@ class EmailService {
     const { userName, schoolName, loginUrl } = data;
     const mailOptions = {
       to: email,
-      subject: `✅ ¡Bienvenido! Eres el administrador de ${schoolName} - CBTIS051`,
+      subject: `✅ ¡Bienvenido! Eres el administrador de ${schoolName} - Gestacks`,
       html: this.getInvitationWelcomeTemplate({ userName, schoolName, loginUrl }),
       text: `¡BIENVENIDO ${userName}!\n\nAhora eres el administrador de ${schoolName}.\n\nInicia sesión en: ${loginUrl}`,
     };
@@ -248,9 +248,9 @@ class EmailService {
     const mailOptions = {
       to: email,
       toName: adminName,
-      subject: '🧪 Prueba de Email - CBTIS051 (Brevo)',
+      subject: '🧪 Prueba de Email - Gestacks (Brevo)',
       html: this.getTestEmailTemplate(email, adminName),
-      text: `PRUEBA DE EMAIL - CBTIS051\n\nHola ${adminName},\n\nEste email prueba que el sistema está configurado correctamente con Brevo.\n\nFecha: ${new Date().toLocaleString('es-MX')}\nProveedor: Brevo API\n\n✅ Configuración correcta`,
+      text: `PRUEBA DE EMAIL - Gestacks\n\nHola ${adminName},\n\nEste email prueba que el sistema está configurado correctamente con Brevo.\n\nFecha: ${new Date().toLocaleString('es-MX')}\nProveedor: Brevo API\n\n✅ Configuración correcta`,
     };
     return this.sendWithRetry(mailOptions);
   }
@@ -266,7 +266,7 @@ class EmailService {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
         <div style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); padding: 40px; text-align: center; border-radius: 15px 15px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">CBTIS051</h1>
+          <h1 style="color: white; margin: 0; font-size: 28px;">Gestacks</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-size: 16px;">Sistema de Gestión Documental</p>
         </div>
         <div style="padding: 40px; background: white; border-radius: 0 0 15px 15px;">
@@ -311,7 +311,7 @@ class EmailService {
   }
 
   getAdminInvitationText({ schoolName, token, expiresIn, loginUrl, email }) {
-    return `INVITACIÓN DE ADMINISTRACIÓN - CBTIS051
+    return `INVITACIÓN DE ADMINISTRACIÓN - Gestacks
 
 Has sido invitado a administrar: ${schoolName}
 
@@ -352,7 +352,7 @@ Este email fue enviado a: ${email}`;
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">CBTIS051</h1>
+          <h1 style="color: white; margin: 0; font-size: 28px;">Gestacks</h1>
           <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-size: 16px;">Sistema de Gestión Documental</p>
         </div>
         <div style="padding: 40px; border-radius: 0 0 10px 10px; background: white;">
@@ -443,7 +443,7 @@ Este email fue enviado a: ${email}`;
       <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 25px; text-align: center; border-radius: 10px 10px 0 0; color: white;">
           <h1 style="margin: 0;">✅ TICKET CREADO EXITOSAMENTE</h1>
-          <p style="margin: 5px 0 0;">Sistema de Soporte CBTIS051</p>
+          <p style="margin: 5px 0 0;">Sistema de Soporte Gestacks</p>
         </div>
         <div style="padding: 25px; background: white; border-radius: 0 0 10px 10px;">
           <h2 style="color: #065f46;">Ticket: ${ticket.ticketNumber}</h2>
@@ -469,7 +469,7 @@ Este email fue enviado a: ${email}`;
       <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 25px; text-align: center; border-radius: 10px 10px 0 0; color: white;">
           <h1 style="margin: 0;">🚨 NUEVO TICKET RECIBIDO</h1>
-          <p style="margin: 5px 0 0;">Sistema de Soporte CBTIS051</p>
+          <p style="margin: 5px 0 0;">Sistema de Soporte Gestacks</p>
         </div>
         <div style="padding: 25px; background: white; border-radius: 0 0 10px 10px;">
           <div style="text-align: center;">
@@ -523,11 +523,11 @@ Este email fue enviado a: ${email}`;
   }
 
   getTicketAdminText(ticket, user, adminName) {
-    return `TICKET CREADO - CBTIS051\n\n✅ NUEVO TICKET\n\nTicket: ${ticket.ticketNumber}\nAsunto: ${ticket.subject}\nCreado por: ${user.name}\nEmail: ${user.email}\nCategoría: ${ticket.category}\nPrioridad: ${ticket.priority}\n\nDescripción:\n${ticket.description}`;
+    return `TICKET CREADO - Gestacks\n\n✅ NUEVO TICKET\n\nTicket: ${ticket.ticketNumber}\nAsunto: ${ticket.subject}\nCreado por: ${user.name}\nEmail: ${user.email}\nCategoría: ${ticket.category}\nPrioridad: ${ticket.priority}\n\nDescripción:\n${ticket.description}`;
   }
 
   getTicketUserText(ticket, user) {
-    return `NUEVO TICKET RECIBIDO - CBTIS051\n\n🚨 TICKET RECIBIDO\n\nTicket: ${ticket.ticketNumber}\nAsunto: ${ticket.subject}\nCategoría: ${ticket.category}\nPrioridad: ${ticket.priority}\n\nDescripción:\n${ticket.description}\n\nVer estado: ${this.config.frontendUrl}/soporte/tickets/${ticket._id}`;
+    return `NUEVO TICKET RECIBIDO - Gestacks\n\n🚨 TICKET RECIBIDO\n\nTicket: ${ticket.ticketNumber}\nAsunto: ${ticket.subject}\nCategoría: ${ticket.category}\nPrioridad: ${ticket.priority}\n\nDescripción:\n${ticket.description}\n\nVer estado: ${this.config.frontendUrl}/soporte/tickets/${ticket._id}`;
   }
 
   // ===========================================================================

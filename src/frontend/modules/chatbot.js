@@ -1,6 +1,6 @@
 // ============================================================
 // chatbot.js — ARIA v3.0 Frontend
-// CBTIS051 — Conversación natural, validaciones, carpetas
+// Gestacks — Conversación natural, validaciones, carpetas
 // ============================================================
 
 import { api } from '../services/api.js';
@@ -3312,7 +3312,7 @@ async _saveToServer() {
                     <div class="aria-fullscreen-avatar"><i class="fas fa-robot"></i></div>
                     <div class="aria-fullscreen-title">
                         <h2>ARIA <span class="aria-fullscreen-version">v3.0</span></h2>
-                        <p>Asistente Inteligente · CBTIS 051
+                        <p>Asistente Inteligente · Gestacks
                             <span class="aria-fullscreen-status">
                                 <span class="aria-fullscreen-status-dot"></span>
                                 <span id="ariaFullscreenStatus">En línea</span>

@@ -1,6 +1,6 @@
 // ============================================================
 // chatbotController.js — Motor IA ARIA v3.0
-// CBTIS051 — NLP avanzado, conversación natural, validaciones
+// Gestacks — NLP avanzado, conversación natural, validaciones
 // ============================================================
 
 import mongoose from 'mongoose';
@@ -419,7 +419,7 @@ function buildSystemPrompt(ctx, userInfo) {
         ? ctx.categoriasObj.filter(c => !c.parent_id).map(c => `  • 📁 ${c.nombre}`).join('\n')
         : '  • (sin carpetas)';
 
-    return `Eres ARIA v3.0, asistente IA del Sistema de Gestión Documental del CBTIS 051.
+    return `Eres ARIA v3.0, asistente IA del Sistema de Gestión Documental de Gestacks.
 
 ════════════════════════════════════════════
 🧠 PERSONALIDAD Y MODO DE RESPUESTA
@@ -434,7 +434,7 @@ TIPOS DE INTERACCIÓN:
 3. COMANDOS: Si dice "navega a X", "ir a X", "crea una carpeta...", "sube un documento..." → indica la acción con JSON.
 
 ⚠️ REGLA CRÍTICA: USA EXACTAMENTE LOS DATOS REALES. NUNCA INVENTES NÚMEROS.
-⚠️ REGLA CRÍTICA: Si preguntan "¿quién eres?" → Responde que eres ARIA v3.0, asistente del CBTIS 051.
+⚠️ REGLA CRÍTICA: Si preguntan "¿quién eres?" → Responde que eres ARIA v3.0, asistente de Gestacks.
 ⚠️ REGLA CRÍTICA: NO DIGAS que no puedes tener conversaciones. SÍ PUEDES.
 
 Usuario: ${userInfo?.nombre || 'Usuario'} | Rol: ${userInfo?.rol || 'usuario'}
@@ -524,7 +524,7 @@ function buildConversationalResponse(type, ctx, userInfo) {
         }
         case 'identity':
             return {
-                message: `¡Claro! Soy **ARIA v3.0** 🤖 — Asistente de Recursos e Inteligencia Administrativa del **CBTIS 051**.\n\nEstoy aquí para ayudarte con:\n• 📋 Gestión de tareas y documentos\n• 📊 Estadísticas y reportes del sistema\n• 🗺️ Navegación rápida entre secciones\n• 👤 Alta y gestión de personas\n• 📁 Creación de carpetas y subcarpetas\n• ⚙️ Ajustes de la interfaz\n\n...y también puedo tener una conversación normal 😊 ¿En qué te ayudo?`,
+                message: `¡Claro! Soy **ARIA v3.0** 🤖 — Asistente de Recursos e Inteligencia Administrativa del **Gestacks**.\n\nEstoy aquí para ayudarte con:\n• 📋 Gestión de tareas y documentos\n• 📊 Estadísticas y reportes del sistema\n• 🗺️ Navegación rápida entre secciones\n• 👤 Alta y gestión de personas\n• 📁 Creación de carpetas y subcarpetas\n• ⚙️ Ajustes de la interfaz\n\n...y también puedo tener una conversación normal 😊 ¿En qué te ayudo?`,
                 suggestions: ['¿Qué puedes hacer?', 'Mis tareas', 'Resumen del sistema'],
             };
         case 'howAreYou':
@@ -768,7 +768,7 @@ function ruleBasedResponse(message, ctx, userInfo) {
     // ── Resumen / Dashboard ──────────────────────────────────
     if (/resumen|dashboard|estado del sistema|panorama|overview/i.test(q)) {
         return {
-            message: `**📊 RESUMEN — CBTIS 051** | ${ctx.sistema?.fechaActual || 'Hoy'}\n\n` +
+            message: `**📊 RESUMEN — Gestacks** | ${ctx.sistema?.fechaActual || 'Hoy'}\n\n` +
                 `**📄 Documentos:** ${s.totalDocs || 0} activos | ${s.docsHoy || 0} hoy | ${s.docsVencidos || 0} vencidos\n` +
                 `**✅ Tareas:** ${t.pendientes || 0} pendientes | ${t.enProgreso || 0} en progreso | ${t.vencidas || 0} vencidas | ${t.porcentajeCompletado || 0}% completado\n` +
                 `**👥 Personal:** ${s.totalPersonas || 0} personas | ${s.totalCategorias || 0} carpetas | ${s.totalDeptos || 0} deptos\n` +
@@ -807,7 +807,7 @@ function ruleBasedResponse(message, ctx, userInfo) {
     // ── Personas ─────────────────────────────────────────────
     if (/cu[aá]ntas? personas?|personal|empleados?/i.test(q)) {
         return {
-            message: `👥 **Personal del CBTIS 051:**\n\n• **${s.totalPersonas || 0}** personas activas\n\n**Por departamento:**\n${p.porDepartamento?.slice(0, 5).map(x => `• **${x.departamento}:** ${x.cantidad}`).join('\n') || '  (sin datos)'}`,
+            message: `👥 **Personal de Gestacks:**\n\n• **${s.totalPersonas || 0}** personas activas\n\n**Por departamento:**\n${p.porDepartamento?.slice(0, 5).map(x => `• **${x.departamento}:** ${x.cantidad}`).join('\n') || '  (sin datos)'}`,
             suggestions: ['Agregar persona', 'Ir a Personas'], actions: [],
         };
     }
