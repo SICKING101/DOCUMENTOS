@@ -78,7 +78,7 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 // -----------------------------
 const app = express();
 const PORT = process.env.PORT || 4000;
-const MONGO_URI = process.env.MONGODB_URI;
+const MONGO_URI = process.env.MONGO_URI;
 
 // Configuración de Cloudinary
 cloudinary.config({
@@ -144,7 +144,7 @@ console.log('📅 Calendar Routes montadas en /api/calendar');
 app.use('/api/superadmin', superAdminRoutes);
 console.log('🛡️  Super Admin Routes montadas en /api/superadmin');
 
-console.log("MONGO URI:", process.env.MONGODB_URI);
+console.log("MONGO URI:", process.env.MONGO_URI);
 
 // -----------------------------
 // Configuración de Multer
