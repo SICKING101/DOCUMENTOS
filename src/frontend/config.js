@@ -9,7 +9,7 @@ const isLocalhost = typeof window !== 'undefined' &&
 
 const API_BASE_URL = isLocalhost 
     ? 'http://localhost:4000/api'
-    : 'https://documentos-kj6t.onrender.com/api';
+    : 'https://gestacks.com/api';
 
 console.log(`🌐 API_BASE_URL configurada: ${API_BASE_URL}`);
 
