@@ -1,8 +1,8 @@
 // src/backend/controllers/documentController.js
-
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import mongoose from 'mongoose';
 import Document from '../models/Document.js';
-import cloudinary from '../config/cloudinaryConfig.js';
+import { s3Client, SPACES_CONFIG } from '../config/cloudinaryConfig.js';
 import FileService from '../services/fileService.js';
 import NotificationService from '../services/notificationService.js';
 import { PERMISSIONS, hasPermission } from '../config/permissions.js';
@@ -27,14 +27,14 @@ class DocumentController {
       console.log('📋 DocumentController.getAll - Iniciando');
       console.log('🏫 req.schoolId:', req.schoolId || 'superadmin (sin filtro)');
 
-      const filter = { 
+      const filter = {
         activo: true,
         $or: [
           { isDeleted: false },
           { isDeleted: { $exists: false } }
         ]
       };
-      
+
       if (req.schoolId) {
         filter.schoolId = req.schoolId;
       }
@@ -54,7 +54,7 @@ class DocumentController {
   // ===========================================================================
   // CREAR/SUBIR DOCUMENTO
   // ===========================================================================
-static async create(req, res) {
+  static async create(req, res) {
     console.log('\n🔍 ========== SUBIENDO NUEVO DOCUMENTO ==========');
     console.log('🏫 School ID:', req.schoolId || 'superadmin');
     console.log('📁 Archivo:', req.file?.originalname);
@@ -63,9 +63,9 @@ static async create(req, res) {
     try {
       // Validar que hay archivo
       if (!req.file) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No se ha subido ningún archivo' 
+        return res.status(400).json({
+          success: false,
+          message: 'No se ha subido ningún archivo'
         });
       }
 
@@ -76,9 +76,9 @@ static async create(req, res) {
       if (req.file.size > MAX_SIZE) {
         FileService.cleanTempFile(req.file.path);
         console.warn(`⚠️ Archivo excede 10MB: ${FileService.formatFileSize(req.file.size)}`);
-        return res.status(400).json({ 
-          success: false, 
-          message: `El archivo excede el límite de 10 MB (tamaño: ${FileService.formatFileSize(req.file.size)})` 
+        return res.status(400).json({
+          success: false,
+          message: `El archivo excede el límite de 10 MB (tamaño: ${FileService.formatFileSize(req.file.size)})`
         });
       }
 
@@ -86,7 +86,7 @@ static async create(req, res) {
       const fileExtension = req.file.originalname.split('.').pop().toLowerCase();
       const officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-      
+
       let resourceType = 'auto';
       if (officeExtensions.includes(fileExtension)) {
         resourceType = 'raw';
@@ -115,9 +115,9 @@ static async create(req, res) {
       } catch (cloudinaryError) {
         FileService.cleanTempFile(req.file.path);
         console.error('❌ Error Cloudinary:', cloudinaryError.message);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message 
+        return res.status(500).json({
+          success: false,
+          message: 'Error al subir el archivo a la nube: ' + cloudinaryError.message
         });
       }
 
@@ -185,11 +185,11 @@ static async create(req, res) {
     } catch (error) {
       console.error('🔥 ERROR CRÍTICO en create:', error.message);
       console.error('📌 Stack:', error.stack);
-      
+
       if (req.file && req.file.path) {
         FileService.cleanTempFile(req.file.path);
       }
-      
+
       let errorMsg = 'Error al subir documento';
       if (error.code === 11000) {
         errorMsg = 'Ya existe un documento con ese nombre';
@@ -197,10 +197,10 @@ static async create(req, res) {
         const messages = Object.values(error.errors).map(e => e.message).join(', ');
         errorMsg = 'Datos del documento inválidos: ' + messages;
       }
-      
-      return res.status(500).json({ 
-        success: false, 
-        message: errorMsg 
+
+      return res.status(500).json({
+        success: false,
+        message: errorMsg
       });
     }
   }
@@ -528,7 +528,7 @@ static async create(req, res) {
 
       console.log('📄 Documento → usando servidor proxy');
 
-      let response = await this.tryFetch(cloudinaryUrl);
+      let response = await DocumentController.tryFetch(cloudinaryUrl);
 
       if (!response.ok) {
         console.log('⚠️ Intento 1 falló, probando URL mejorada para Cloudinary...');
@@ -536,7 +536,7 @@ static async create(req, res) {
         const modifiedUrl = FileService.buildCloudinaryDownloadURL(cloudinaryUrl, fileExtension);
         console.log('🔗 URL modificada final:', modifiedUrl);
 
-        response = await this.tryFetch(modifiedUrl);
+        response = await DocumentController.tryFetch(modifiedUrl);
 
         if (!response.ok) {
           console.log('❌ Intento 2 también falló. Haciendo redirección como último recurso.');
@@ -547,7 +547,7 @@ static async create(req, res) {
         }
       }
 
-      await this.processAndSendFile(response, res, fileName, fileExtension);
+      await DocumentController.processAndSendFile(response, res, fileName, fileExtension);
 
     } catch (error) {
       console.error('❌ ERROR CRÍTICO:', error);
@@ -859,10 +859,11 @@ static async create(req, res) {
         try {
           // Eliminar archivo anterior de Cloudinary
           if (documentoOriginal.public_id) {
-            await cloudinary.uploader.destroy(documentoOriginal.public_id, {
-              resource_type: documentoOriginal.resource_type || 'auto'
-            });
-            console.log('🗑️ Archivo anterior eliminado de Cloudinary');
+            await s3Client.send(new DeleteObjectCommand({
+              Bucket: SPACES_CONFIG.bucket,
+              Key: documentoOriginal.public_id,
+            }));
+            console.log('🗑️ Archivo anterior eliminado de Spaces');
           }
 
           // Subir nuevo archivo

@@ -5,7 +5,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import cloudinary from '../config/cloudinaryConfig.js';
+import { s3Client, SPACES_CONFIG } from '../config/cloudinaryConfig.js';
+import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 class FileService {
   
@@ -87,81 +88,47 @@ class FileService {
   // ===========================================================================
   static async uploadToCloudinary(filePath, options = {}) {
     try {
-      // ✅ Detectar extensión del archivo
       const fileExtension = path.extname(filePath).toLowerCase().replace('.', '');
-      
-      // ✅ Determinar resource_type correcto según extensión
-      let resourceType = options.resource_type || 'auto';
-      
-      if (resourceType === 'auto') {
-        const officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
-        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
-        const textExtensions = ['txt', 'csv', 'json', 'xml', 'html', 'css', 'js', 'md'];
-        
-        if (officeExtensions.includes(fileExtension)) {
-          resourceType = 'raw'; // ✅ CRÍTICO: Office usa 'raw' para evitar error ZIP
-          console.log(`📎 Archivo Office (${fileExtension}) → resource_type: raw`);
-        } else if (imageExtensions.includes(fileExtension)) {
-          resourceType = 'image';
-          console.log(`🖼️ Imagen (${fileExtension}) → resource_type: image`);
-        } else if (fileExtension === 'pdf') {
-          resourceType = 'auto';
-          console.log(`📄 PDF → resource_type: auto`);
-        } else if (textExtensions.includes(fileExtension)) {
-          resourceType = 'raw';
-          console.log(`📝 Texto (${fileExtension}) → resource_type: raw`);
-        } else {
-          resourceType = 'raw'; // Por defecto usar raw para tipos desconocidos
-          console.log(`❓ Desconocido (${fileExtension}) → resource_type: raw (por defecto)`);
-        }
-      }
-      
-      console.log('☁️ Subiendo a Cloudinary...');
-      console.log(`   📁 Archivo: ${path.basename(filePath)}`);
-      console.log(`   🔧 resource_type: ${resourceType}`);
-      
-      const uploadOptions = {
-        folder: 'documentos_cbtis051',
-        resource_type: resourceType,
-        use_filename: true,
-        unique_filename: true,
-        overwrite: false,
-        timeout: 60000 // 60 segundos máximo
+      const fileContent = fs.readFileSync(filePath);
+      const safeFileName = path.basename(filePath).replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileKey = `documentos/${Date.now()}-${safeFileName}`;
+
+      let contentType = 'application/octet-stream';
+      const mimeTypes = {
+        'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+        'gif': 'image/gif', 'webp': 'image/webp', 'pdf': 'application/pdf',
+        'txt': 'text/plain', 'csv': 'text/csv', 'json': 'application/json',
       };
-      
-      const result = await cloudinary.uploader.upload(filePath, uploadOptions);
-      
-      console.log('✅ Subida exitosa a Cloudinary:', {
-        public_id: result.public_id,
-        format: result.format,
-        resource_type: result.resource_type,
-        bytes: result.bytes,
-        url: result.secure_url ? result.secure_url.substring(0, 80) + '...' : 'N/A'
+      contentType = mimeTypes[fileExtension] || contentType;
+
+      console.log('☁️ Subiendo a DigitalOcean Spaces...');
+      console.log(`   📁 Archivo: ${path.basename(filePath)}`);
+      console.log(`   📝 ContentType: ${contentType}`);
+
+      const command = new PutObjectCommand({
+        Bucket: SPACES_CONFIG.bucket,
+        Key: fileKey,
+        Body: fileContent,
+        ContentType: contentType,
+        ACL: 'public-read',
       });
-      
-      return result;
-      
+
+      const result = await s3Client.send(command);
+
+      const fileUrl = `${SPACES_CONFIG.cdnUrl}/${fileKey}`;
+
+      console.log('✅ Subida exitosa a Spaces:', fileUrl);
+
+      return {
+        secure_url: fileUrl,
+        public_id: fileKey,
+        resource_type: contentType,
+        format: fileExtension,
+        bytes: fileContent.length,
+      };
+
     } catch (error) {
-      console.error('❌ Error subiendo a Cloudinary:', {
-        message: error.message,
-        http_code: error.http_code,
-        name: error.name
-      });
-      
-      // Errores específicos con mensajes claros para el usuario
-      if (error.http_code === 400) {
-        if (error.message.includes('Unsupported ZIP')) {
-          throw new Error('Error al procesar el archivo. Los archivos de Office (.xlsx, .docx) requieren configuración especial. Contacta al administrador.');
-        }
-        throw new Error('Formato de archivo no soportado por el servicio de almacenamiento.');
-      } else if (error.http_code === 401) {
-        throw new Error('Error de autenticación con el servicio de almacenamiento.');
-      } else if (error.http_code === 413) {
-        throw new Error('El archivo es demasiado grande. Máximo permitido: 10 MB.');
-      } else if (error.http_code === 429) {
-        throw new Error('Se ha excedido el límite de subidas. Intenta de nuevo en unos minutos.');
-      }
-      
+      console.error('❌ Error subiendo a Spaces:', error.message);
       throw error;
     }
   }
@@ -171,14 +138,15 @@ class FileService {
   // ===========================================================================
   static async deleteFromCloudinary(publicId, resourceType = 'raw') {
     try {
-      console.log(`🗑️ Eliminando de Cloudinary: ${publicId} (tipo: ${resourceType})`);
-      const result = await cloudinary.uploader.destroy(publicId, {
-        resource_type: resourceType
-      });
-      console.log('✅ Resultado eliminación:', result);
-      return result;
+      console.log(`🗑️ Eliminando de Spaces: ${publicId}`);
+      await s3Client.send(new DeleteObjectCommand({
+        Bucket: SPACES_CONFIG.bucket,
+        Key: publicId,
+      }));
+      console.log('✅ Archivo eliminado de Spaces');
+      return { result: 'ok' };
     } catch (error) {
-      console.warn('⚠️ No se pudo eliminar de Cloudinary:', error.message);
+      console.warn('⚠️ No se pudo eliminar de Spaces:', error.message);
       return null;
     }
   }
