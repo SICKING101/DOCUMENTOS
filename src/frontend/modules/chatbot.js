@@ -1508,7 +1508,7 @@ class ChatbotAssistant {
 
     // ─── INICIALIZACIÓN ────────────────────────────────────────
     async _init() {
-        log.info('Inicializando ARIA v3.0...');
+        log.info('Inicializando ARIA v1.0...');
         this._loadUserContext();
         this._createUI();
         this._bindEvents();
@@ -1518,7 +1518,7 @@ class ChatbotAssistant {
         this._wasHidden = false;
         this._accessPollInterval = null;
         this._startAccessPolling();
-        log.info('ARIA v3.0 lista ✅');
+        log.info('ARIA v1.0 lista ✅');
         setInterval(() => {
             if (this.isOpen && Date.now() - this._lastStatsLoad > 300000) this._loadStats(true);
         }, 60000);
@@ -3223,7 +3223,7 @@ async _saveToServer() {
         const s = stats.stats || {};
         const t = stats.tareas || {};
         const lines = [
-            `${saludo}, **${nombre}** 👋 Soy **ARIA v3.0**`,
+            `${saludo}, **${nombre}** 👋 Soy **ARIA v1.0**`,
             '',
             `📊 **Estado actual:**`,
             `• ${s.totalDocs ?? 0} documentos`,
@@ -3311,7 +3311,7 @@ async _saveToServer() {
                 <div class="aria-fullscreen-header-left">
                     <div class="aria-fullscreen-avatar"><i class="fas fa-robot"></i></div>
                     <div class="aria-fullscreen-title">
-                        <h2>ARIA <span class="aria-fullscreen-version">v3.0</span></h2>
+                        <h2>ARIA <span class="aria-fullscreen-version">v1.0</span></h2>
                         <p>Asistente Inteligente · Gestacks
                             <span class="aria-fullscreen-status">
                                 <span class="aria-fullscreen-status-dot"></span>
@@ -3900,7 +3900,7 @@ async _processMessageFullscreen(text) {
             <span class="aria-badge" id="ariaBadge" style="display:none">3.0</span>
         </button>
 
-        <div class="aria-window aria-window--closed" id="ariaWindow" role="dialog" aria-label="Asistente ARIA v3.0">
+        <div class="aria-window aria-window--closed" id="ariaWindow" role="dialog" aria-label="Asistente ARIA v1.0">
             <div class="aria-header">
                 <div class="aria-header__identity">
                     <div class="aria-avatar">
@@ -3908,7 +3908,7 @@ async _processMessageFullscreen(text) {
                         <span class="aria-avatar__dot"></span>
                     </div>
                     <div class="aria-header__info">
-                        <span class="aria-header__name">ARIA <span class="aria-version-tag">v3.0</span></span>
+                        <span class="aria-header__name">ARIA <span class="aria-version-tag">v1.0</span></span>
                         <span class="aria-header__sub" id="ariaStatus">Cargando...</span>
                     </div>
                 </div>
@@ -4022,13 +4022,13 @@ export function initChatbot() {
 
     if (ARIA_DEBUG) {
         window.__ariaDebug = () => {
-            console.group('%c[ARIA v3.0] Debug', 'color:#818cf8');
+            console.group('%c[ARIA v1.0] Debug', 'color:#818cf8');
             console.log('Abierto:', _instance.isOpen);
             console.log('Fullscreen:', _instance._inChatbotTab);
             console.log('Mensajes:', _instance.messages.length);
             console.groupEnd();
         };
-        console.log('%c[ARIA v3.0] Debug: window.__ariaDebug()', 'color:#818cf8');
+        console.log('%c[ARIA v1.0] Debug: window.__ariaDebug()', 'color:#818cf8');
     }
 
     return _instance;

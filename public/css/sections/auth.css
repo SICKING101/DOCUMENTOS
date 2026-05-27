@@ -952,12 +952,16 @@
 }
 
 .info-value {
-    color: var(--dark);
+    color: var(--light);
     font-weight: 600;
     text-align: right;
     max-width: 60%;
     word-break: break-word;
     margin-left: 15px;
+}
+
+.info-value__black {
+    color: var(--dark);
 }
 
 /* Advertencia de administrador */
