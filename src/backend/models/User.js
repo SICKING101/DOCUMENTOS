@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'El correo es requerido'],
       unique: true,
+      sparse: true,
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'Formato de correo inválido'],
