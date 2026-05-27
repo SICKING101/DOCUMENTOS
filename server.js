@@ -211,6 +211,16 @@ app.get('/landing', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'Landing', 'index.html'));
 });
 
+// Página de contacto
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'Landing', 'contact.html'));
+});
+
+// Login
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
 // Ruta de prueba
 app.get('/api/health', (req, res) => {
   res.json({
