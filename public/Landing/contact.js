@@ -5,12 +5,12 @@
  * IMPORTANTE: Cambia 'tu-email@ejemplo.com' por tu correo real en la línea 15
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const contactForm = document.getElementById('contactForm');
     const statusMessage = document.getElementById('statusMessage');
 
     if (contactForm) {
-        contactForm.addEventListener('submit', async function(e) {
+        contactForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
             // 🔴 CAMBIAR ESTO: Reemplaza 'contacto@gestacks.com' con tu correo
@@ -48,10 +48,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Success
                     statusMessage.className = 'status-message success';
                     statusMessage.textContent = '✓ ¡Gracias! Hemos recibido tu información. Te contactaremos pronto.';
-                    
+
                     // Reset form
                     contactForm.reset();
-                    
+
                     // Clear message after 5 seconds
                     setTimeout(() => {
                         statusMessage.className = 'status-message';
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);
                 statusMessage.className = 'status-message error';
                 statusMessage.textContent = '✗ Hubo un error al enviar tu información. Por favor, intenta de nuevo.';
-                
+
                 // Clear message after 5 seconds
                 setTimeout(() => {
                     statusMessage.className = 'status-message';
