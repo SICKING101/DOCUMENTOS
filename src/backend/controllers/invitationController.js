@@ -331,23 +331,27 @@ export const registerWithInvitation = async (req, res) => {
     }
 
     // ── Verificar unicidad de usuario ─────────────────────────────────────────
-    const existingByUsername = await User.findOne({ usuario: cleanUsuario });
-    if (existingByUsername) {
-      return res.status(400).json({
-        success: false,
-        message: 'El nombre de usuario ya está en uso',
-        field: 'usuario',
-      });
-    }
+const existingByUsername = await User.findOne({ usuario: cleanUsuario });
+if (existingByUsername) {
+  return res.status(400).json({
+    success: false,
+    message: 'El nombre de usuario ya está en uso',
+    field: 'usuario',
+  });
+}
 
-    const existingByEmail = await User.findOne({ correo: invitation.email });
-    if (existingByEmail) {
-      return res.status(400).json({
-        success: false,
-        message: 'Ya existe una cuenta con este email',
-        field: 'correo',
-      });
-    }
+// Verificar si el email ya está registrado como admin de ESCUELA
+const existingByEmail = await User.findOne({ 
+  correo: invitation.email,
+  schoolId: { $ne: null } // Solo admins de escuela, no superadmin
+});
+if (existingByEmail) {
+  return res.status(400).json({
+    success: false,
+    message: 'Ya existe un administrador registrado con este email para otra escuela',
+    field: 'correo',
+  });
+}
 
     // ── Crear el nuevo administrador ──────────────────────────────────────────
     ilog(`Creando admin: ${cleanUsuario} | email: ${invitation.email} | schoolId: ${invitation.schoolId}`);

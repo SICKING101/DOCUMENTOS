@@ -1,161 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Gestacks ayuda a escuelas y empresas a organizar, almacenar y acceder a sus documentos con eficiencia." />
-    <title>Gestacks | Gestión Documental Inteligente</title>
-    <link rel="icon" href="/assets/favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="/Landing/styles.css">
-  </head>
-  <body>
-    <!-- ===== NAVBAR ===== -->
-    <!-- Top navigation bar with logo, menu, and login button -->
-    <nav class="navbar">
-      <div class="navbar-container">
-        <!-- Logo and Company Name -->
-        <div class="navbar-brand">
-          <img src="/Landing/assets/logo.png" alt="Gestacks Logo" class="navbar-logo">
-          <span class="navbar-company-name">Gestacks</span>
-        </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Gestacks ayuda a escuelas y empresas a organizar, almacenar y acceder a sus documentos con eficiencia profesional." />
+  <title>Gestacks | Gestión Documental Inteligente</title>
+  <link rel="icon" href="/assets/favicon.ico" type="image/x-icon" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
 
-        <!-- Navigation Links -->
-        <ul class="navbar-menu">
-          <li><a href="/landing#about">Sobre Gestacks</a></li>
-          <li><a href="/landing#benefits">Beneficios</a></li>
-          <li><a href="/landing#stats">Estadísticas</a></li>
-          <li><a href="/contact" class="navbar-link">Contacto</a></li>
-        </ul>
+<nav class="navbar">
+  <div class="navbar-container">
+    <div class="navbar-brand">
+      <img src="assets/logo.png" alt="Gestacks Logo" class="navbar-logo">
+      <span class="navbar-company-name">Gestacks</span>
+    </div>
+    <ul class="navbar-menu" id="navbarMenu">
+      <li><a href="#about">Sobre</a></li>
+      <li><a href="#benefits">Beneficios</a></li>
+      <li><a href="#stats">Resultados</a></li>
+      <li><a href="#contact">Contacto</a></li>
+    </ul>
+    <a href="/login" class="navbar-login-btn">Acceder</a>
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+  </div>
+</nav>
 
-        <!-- Login Button -->
-        <a href="/login" class="navbar-login-btn">Iniciar Sesión</a>
-      </div>
-    </nav>
-
-    <!-- ===== HERO SECTION ===== -->
-    <!-- Full-width hero with background image, overlay, and main call-to-action -->
-    <section class="hero">
-      <div class="hero-background"></div>
-      <div class="hero-overlay"></div>
-      
-      <div class="hero-content">
-        <div class="hero-inner">
-          <h1 class="hero-title">Gestión Documental Inteligente</h1>
-          <p class="hero-description">
-            Ayudamos a escuelas y empresas a transformar su caos documental en un flujo de trabajo organizado, seguro y eficiente.
-          </p>
-          <a href="/Landing/contact.html" class="button button-primary">Conocer Más</a>
+<!-- HERO - CON IMAGEN ORIGINAL Y NUEVA ESTRUCTURA -->
+<section class="hero">
+  <div class="hero-background"></div>
+  <div class="hero-overlay"></div>
+  <div class="container">
+    <div class="hero-layout">
+      <div class="hero-content fade-up">
+        <span class="hero-badge">Gestión documental inteligente</span>
+        <h1 class="hero-title">Tu información,<br/>sin límites</h1>
+        <p class="hero-desc">Ayudamos a escuelas y empresas a transformar su caos documental en un flujo de trabajo organizado, seguro y eficiente.</p>
+        <div class="hero-buttons">
+          <a href="/contact" class="btn btn-primary">Comenzar ahora</a>
+          <a href="#about" class="btn btn-outline">Conocer más</a>
         </div>
       </div>
-    </section>
-
-    <!-- ===== ABOUT GESTACKS SECTION ===== -->
-    <!-- Introduces what Gestacks is and its core value proposition -->
-    <section class="about" id="about">
-      <div class="container">
-        <div class="about-content">
-          <h2 class="section-title">¿Qué es Gestacks?</h2>
-          <p class="about-description">
-            Gestacks es una plataforma integral diseñada para simplificar el ciclo de vida de tus documentos. 
-            Desde la digitalización hasta el archivo seguro, proporcionamos las herramientas necesarias para que 
-            tu organización opere sin papel, reduciendo costos y aumentando la productividad.
-          </p>
+      <div class="hero-card-right fade-up">
+        <div class="hero-card-title">Búsqueda inteligente</div>
+        <div class="hero-card-text">Encuentra cualquier documento en segundos con nuestro motor de búsqueda avanzado e indexación automática.</div>
+        <div class="hero-metrics">
+          <div><div class="metric-value">99.9%</div><div class="metric-label">Uptime</div></div>
+          <div><div class="metric-value">+500</div><div class="metric-label">Clientes</div></div>
+          <div><div class="metric-value">2.4M</div><div class="metric-label">Documentos</div></div>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
-    <!-- ===== BENEFITS SECTION ===== -->
-    <!-- Grid of four main benefit cards highlighting key features -->
-    <section class="benefits" id="benefits">
-      <div class="container">
-        <div class="benefits-header">
-          <h2 class="section-title">Beneficios principales</h2>
-          <p class="section-subtitle">Por qué las organizaciones eligen Gestacks</p>
-        </div>
+<!-- FEATURE ROW - ICONOS SIN EMOJIS -->
+<section class="feature-row">
+  <div class="container">
+    <div class="feature-flex">
+      <div class="feature-item fade-up">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <h4>Organización total</h4>
+        <p>Estructura lógica y accesible</p>
+      </div>
+      <div class="feature-item fade-up">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+        <h4>Búsqueda rápida</h4>
+        <p>Resultados en segundos</p>
+      </div>
+      <div class="feature-item fade-up">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h4>Seguridad pro</h4>
+        <p>Cifrado empresarial</p>
+      </div>
+      <div class="feature-item fade-up">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4h16v16H4z"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="8" y1="16" x2="16" y2="8"/></svg></div>
+        <h4>Colaboración</h4>
+        <p>Trabajo en equipo real</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <div class="benefits-grid">
-          <!-- Benefit Card 1 -->
-          <div class="benefit-card fade-in-on-scroll">
-            <h3 class="benefit-title">Organización eficiente</h3>
-            <p class="benefit-description">
-              Estructura tus archivos de manera lógica y accesible para todo tu equipo.
-            </p>
-          </div>
-
-          <!-- Benefit Card 2 -->
-          <div class="benefit-card fade-in-on-scroll">
-            <h3 class="benefit-title">Acceso rápido</h3>
-            <p class="benefit-description">
-              Encuentra lo que necesitas en segundos con nuestra búsqueda avanzada.
-            </p>
-          </div>
-
-          <!-- Benefit Card 3 -->
-          <div class="benefit-card fade-in-on-scroll">
-            <h3 class="benefit-title">Seguridad avanzada</h3>
-            <p class="benefit-description">
-              Protege tu información con cifrado de grado empresarial y controles de acceso.
-            </p>
-          </div>
-
-          <!-- Benefit Card 4 -->
-          <div class="benefit-card fade-in-on-scroll">
-            <h3 class="benefit-title">Trabajo moderno</h3>
-            <p class="benefit-description">
-              Colabora sin fricciones desde cualquier dispositivo y lugar.
-            </p>
-          </div>
+<!-- ABOUT SECTION -->
+<section id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-text fade-up">
+        <h2 class="about-title">¿Qué es Gestacks?</h2>
+        <p class="about-desc">Gestacks es una plataforma integral diseñada para simplificar el ciclo de vida de tus documentos. Desde la digitalización hasta el archivo seguro, proporcionamos las herramientas necesarias para que tu organización opere sin papel, reduciendo costos y aumentando la productividad.</p>
+        <div class="about-stats-mini">
+          <div class="about-stat"><div class="about-stat-number">99.9%</div><div class="about-stat-label">Disponibilidad</div></div>
+          <div class="about-stat"><div class="about-stat-number">24/7</div><div class="about-stat-label">Soporte</div></div>
         </div>
       </div>
-    </section>
-
-    <!-- ===== STATS SECTION ===== -->
-    <!-- Displays key statistics and social proof metrics -->
-    <section class="stats" id="stats">
-      <div class="container">
-        <div class="stats-grid">
-          <!-- Stat 1: Uptime -->
-          <div class="stat-item scale-in-on-scroll">
-            <div class="stat-value">99.9%</div>
-            <div class="stat-label">Uptime garantizado</div>
-          </div>
-
-          <!-- Stat 2: Customers -->
-          <div class="stat-item scale-in-on-scroll">
-            <div class="stat-value">+500</div>
-            <div class="stat-label">Escuelas y empresas</div>
-          </div>
-
-          <!-- Stat 3: Documents -->
-          <div class="stat-item scale-in-on-scroll">
-            <div class="stat-value">2M+</div>
-            <div class="stat-label">Documentos gestionados</div>
-          </div>
-
-          <!-- Stat 4: Support -->
-          <div class="stat-item scale-in-on-scroll">
-            <div class="stat-value">24/7</div>
-            <div class="stat-label">Soporte técnico</div>
-          </div>
-        </div>
+      <div class="about-visual fade-up">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5"><path d="M4 4h16v16H4z"/><path d="M8 8h8v8H8z"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <p style="margin-top: 1rem; font-weight: 500; color: var(--primary);">+10.000 usuarios activos</p>
+        <small style="color: var(--gray-500);">sin papel, con propósito</small>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
-    <!-- ===== FINAL CTA SECTION ===== -->
-    <!-- Final call-to-action to encourage user conversion -->
-    <section class="cta-final" id="cta-final">
-      <div class="container">
-        <div class="cta-content">
-          <h2 class="cta-title">¿Listo para modernizar tu gestión?</h2>
-          <p class="cta-description">
-            Únete a las organizaciones que ya confían en Gestacks.
-          </p>
-          <a href="contact.html" class="button button-primary">Comenzar ahora</a>
-        </div>
+<!-- BENEFITS SECTION -->
+<section id="benefits" style="background: var(--gray-50);">
+  <div class="container">
+    <div class="benefits-header fade-up">
+      <h2>Beneficios principales</h2>
+      <p class="section-subtitle">Por qué las organizaciones eligen Gestacks</p>
+    </div>
+    <div class="benefits-grid">
+      <div class="benefit-card fade-up"><div class="benefit-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h3 class="benefit-title">Organización eficiente</h3><p class="benefit-description">Estructura tus archivos de manera lógica y accesible para todo tu equipo.</p></div>
+      <div class="benefit-card fade-up"><div class="benefit-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><h3 class="benefit-title">Acceso rápido</h3><p class="benefit-description">Encuentra lo que necesitas en segundos con nuestra búsqueda avanzada.</p></div>
+      <div class="benefit-card fade-up"><div class="benefit-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3 class="benefit-title">Seguridad avanzada</h3><p class="benefit-description">Protege tu información con cifrado de grado empresarial y controles de acceso.</p></div>
+      <div class="benefit-card fade-up"><div class="benefit-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M4 4h16v16H4z"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="8" y1="16" x2="16" y2="8"/></svg></div><h3 class="benefit-title">Trabajo moderno</h3><p class="benefit-description">Colabora sin fricciones desde cualquier dispositivo y lugar.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS SECTION -->
+<section id="stats">
+  <div class="container">
+    <div class="stats-premium fade-up">
+      <div class="stats-grid-premium">
+        <div><div class="stat-premium-value">99.9%</div><div class="stat-premium-label">Uptime garantizado</div></div>
+        <div><div class="stat-premium-value">+500</div><div class="stat-premium-label">Organizaciones</div></div>
+        <div><div class="stat-premium-value">2M+</div><div class="stat-premium-label">Documentos gestionados</div></div>
+        <div><div class="stat-premium-value">24/7</div><div class="stat-premium-label">Soporte técnico</div></div>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
-    <!-- JavaScript for scroll animations -->
-    <script src="/Landing/script.js"></script>
-  </body>
+<!-- CTA FINAL -->
+<section id="contact">
+  <div class="container">
+    <div class="cta-block fade-up">
+      <h2>¿Listo para modernizar tu gestión?</h2>
+      <p style="opacity: 0.9; margin-bottom: 1rem;">Únete a las organizaciones que ya confían en Gestacks.</p>
+      <a href="contact.html" class="btn">Comenzar ahora</a>
+      <p style="margin-top: 1.5rem; font-size: 0.7rem; opacity: 0.7;">Implementación ágil · Soporte dedicado · Sin complicaciones</p>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <p>© 2025 Gestacks · Gestión Documental Inteligente · <a href="#" style="color: var(--primary); text-decoration: none;">Privacidad</a> · <a href="#" style="color: var(--primary); text-decoration: none;">Términos</a></p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
 </html>

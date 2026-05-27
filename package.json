@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node --max-old-space-size=1024 server.js",
     "dev": "nodemon --exec \"node --max-old-space-size=1024\" server.js",
+     "fix-emails": "node scripts/fixNullEmails.js",
     "bitacora:pdf": "node scripts/generate-bitacora-pdf.js"
   },
   "dependencies": {
