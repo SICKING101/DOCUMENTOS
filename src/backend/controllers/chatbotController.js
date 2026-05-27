@@ -419,7 +419,7 @@ function buildSystemPrompt(ctx, userInfo) {
         ? ctx.categoriasObj.filter(c => !c.parent_id).map(c => `  • 📁 ${c.nombre}`).join('\n')
         : '  • (sin carpetas)';
 
-    return `Eres ARIA v3.0, asistente IA del Sistema de Gestión Documental de Gestacks.
+    return `Eres ARIA v1.0, asistente IA del Sistema de Gestión Documental de Gestacks.
 
 ════════════════════════════════════════════
 🧠 PERSONALIDAD Y MODO DE RESPUESTA
@@ -434,7 +434,7 @@ TIPOS DE INTERACCIÓN:
 3. COMANDOS: Si dice "navega a X", "ir a X", "crea una carpeta...", "sube un documento..." → indica la acción con JSON.
 
 ⚠️ REGLA CRÍTICA: USA EXACTAMENTE LOS DATOS REALES. NUNCA INVENTES NÚMEROS.
-⚠️ REGLA CRÍTICA: Si preguntan "¿quién eres?" → Responde que eres ARIA v3.0, asistente de Gestacks.
+⚠️ REGLA CRÍTICA: Si preguntan "¿quién eres?" → Responde que eres ARIA v1.0, asistente de Gestacks.
 ⚠️ REGLA CRÍTICA: NO DIGAS que no puedes tener conversaciones. SÍ PUEDES.
 
 Usuario: ${userInfo?.nombre || 'Usuario'} | Rol: ${userInfo?.rol || 'usuario'}
@@ -518,13 +518,13 @@ function buildConversationalResponse(type, ctx, userInfo) {
         case 'greeting': {
             const alertCount = (s.docsPorVencer7 || 0) + (s.docsVencidos || 0) + (t.vencidas || 0);
             return {
-                message: `${saludo} 👋 ¡Hola, **${nombre}**! Soy **ARIA v3.0**, tu asistente inteligente.\n\n📊 **Estado rápido:**\n• **${s.totalDocs || 0}** documentos | **${t.pendientes || 0}** tareas pendientes\n${alertCount > 0 ? `\n🔔 Tienes **${alertCount} alertas** que requieren atención.` : '\n✅ Todo en orden, sin alertas urgentes.'}\n\n¿En qué te puedo ayudar hoy?`,
+                message: `${saludo} 👋 ¡Hola, **${nombre}**! Soy **ARIA v1.0**, tu asistente inteligente.\n\n📊 **Estado rápido:**\n• **${s.totalDocs || 0}** documentos | **${t.pendientes || 0}** tareas pendientes\n${alertCount > 0 ? `\n🔔 Tienes **${alertCount} alertas** que requieren atención.` : '\n✅ Todo en orden, sin alertas urgentes.'}\n\n¿En qué te puedo ayudar hoy?`,
                 suggestions: ['Mis tareas', 'Resumen del sistema', 'Documentos urgentes', '¿Qué puedes hacer?'],
             };
         }
         case 'identity':
             return {
-                message: `¡Claro! Soy **ARIA v3.0** 🤖 — Asistente de Recursos e Inteligencia Administrativa del **Gestacks**.\n\nEstoy aquí para ayudarte con:\n• 📋 Gestión de tareas y documentos\n• 📊 Estadísticas y reportes del sistema\n• 🗺️ Navegación rápida entre secciones\n• 👤 Alta y gestión de personas\n• 📁 Creación de carpetas y subcarpetas\n• ⚙️ Ajustes de la interfaz\n\n...y también puedo tener una conversación normal 😊 ¿En qué te ayudo?`,
+                message: `¡Claro! Soy **ARIA v1.0** 🤖 — Asistente de Recursos e Inteligencia Administrativa del **Gestacks**.\n\nEstoy aquí para ayudarte con:\n• 📋 Gestión de tareas y documentos\n• 📊 Estadísticas y reportes del sistema\n• 🗺️ Navegación rápida entre secciones\n• 👤 Alta y gestión de personas\n• 📁 Creación de carpetas y subcarpetas\n• ⚙️ Ajustes de la interfaz\n\n...y también puedo tener una conversación normal 😊 ¿En qué te ayudo?`,
                 suggestions: ['¿Qué puedes hacer?', 'Mis tareas', 'Resumen del sistema'],
             };
         case 'howAreYou':
