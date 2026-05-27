@@ -207,6 +207,10 @@ mongoose.connect(MONGO_URI)
 // Rutas de la API
 // -----------------------------
 
+app.get('/landing', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'Landing', 'index.html'));
+});
+
 // Ruta de prueba
 app.get('/api/health', (req, res) => {
   res.json({
