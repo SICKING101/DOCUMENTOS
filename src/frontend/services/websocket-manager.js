@@ -56,7 +56,7 @@ class WebSocketManager {
      */
     _doConnect(resolve) {
         const token = localStorage.getItem('token');
-        
+
         if (!token) {
             console.warn('⚠️ No hay token JWT, WebSocket se conectará como anónimo');
         }
@@ -64,9 +64,9 @@ class WebSocketManager {
         console.log('🔌 Conectando a WebSocket...');
 
         // Obtener URL base de la API
-        const apiUrl = window.CONFIG?.API_BASE_URL || 
-                       localStorage.getItem('apiUrl') || 
-                       window.location.origin;
+        const apiUrl = window.CONFIG?.API_BASE_URL ||
+            localStorage.getItem('apiUrl') ||
+            window.location.origin;
 
         this.socket = io(apiUrl, {
             auth: { token },
@@ -160,8 +160,23 @@ class WebSocketManager {
                     } else if (action === 'deleted' && data.categoryId) {
                         window.appState.categories = window.appState.categories.filter(c => c._id !== data.categoryId);
                     }
-                    break;
 
+                    // ✅ NUEVO: Forzar actualización de UI de categorías
+                    if (typeof window.renderCategories === 'function') {
+                        window.renderCategories();
+                    }
+                    if (typeof window.populateCategorySelects === 'function') {
+                        window.populateCategorySelects();
+                    }
+                    if (typeof window.refreshCategoryTree === 'function') {
+                        window.refreshCategoryTree();
+                    }
+                    // También recargar documentos si estamos en vista de categoría
+                    if (typeof window.loadDocuments === 'function') {
+                        window.loadDocuments();
+                    }
+                    break;
+                    
                 case 'documents':
                     if (action === 'created' && data.document) {
                         window.appState.documents.unshift(data.document);
@@ -182,6 +197,11 @@ class WebSocketManager {
                     } else if (action === 'deleted' && data.personId) {
                         window.appState.persons = window.appState.persons.filter(p => p._id !== data.personId);
                     }
+
+                    // ✅ NUEVO: Forzar actualización de UI
+                    if (typeof window.renderPersonsTable === 'function') {
+                        window.renderPersonsTable();
+                    }
                     break;
 
                 case 'departments':
@@ -192,6 +212,14 @@ class WebSocketManager {
                         if (idx !== -1) window.appState.departments[idx] = data.department;
                     } else if (action === 'deleted' && data.departmentId) {
                         window.appState.departments = window.appState.departments.filter(d => d._id !== data.departmentId);
+                    }
+
+                    // ✅ NUEVO: Forzar actualización de UI
+                    if (typeof window.renderDepartments === 'function') {
+                        window.renderDepartments();
+                    }
+                    if (typeof window.populateDepartmentSelects === 'function') {
+                        window.populateDepartmentSelects();
                     }
                     break;
 
