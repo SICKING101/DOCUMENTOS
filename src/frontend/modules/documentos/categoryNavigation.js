@@ -6,6 +6,17 @@
 
 const LOG_PREFIX = '🗂️ [CategoryNav]';
 
+// ✅ NUEVO: Importar wsManager (desde documentos/ → 2 niveles arriba → services/)
+let wsManager = null;
+(async () => {
+    try {
+        const mod = await import('../../services/websocket-manager.js');
+        wsManager = mod.default || mod.wsManager;
+    } catch (e) {
+        console.warn(`${LOG_PREFIX} wsManager no disponible:`, e.message);
+    }
+})();
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADO GLOBAL DE NAVEGACIÓN
 // ─────────────────────────────────────────────────────────────────────────────
