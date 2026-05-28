@@ -368,8 +368,17 @@ app.options('*', cors());
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+    index: false  // Deshabilitar index automático porque ya tenemos la ruta /
+}));
 app.use('/src', express.static(path.join(__dirname, 'src')));
+
+// ✅ NUEVO: Ruta raíz - Enviar al sistema (index.html)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Rutas de autenticación
 app.use('/api/auth', authRoutes);
@@ -470,11 +479,6 @@ app.get('/contact', (req, res) => {
 // Login
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// ✅ NUEVO: Ruta raíz - Enviar al sistema (index.html)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Ruta de prueba

@@ -321,7 +321,7 @@
             window.location.href = '/superadmin-dashboard.html';
           } else {
             console.log('✅ Login exitoso → redirigiendo al dashboard principal');
-            window.location.href = '/';
+            window.location.href = '/index.html';
           }
         } else {
           showAlert('alertContainerLogin', data.message || 'Credenciales incorrectas');
