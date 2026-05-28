@@ -2,6 +2,7 @@ import { DOM } from '../dom.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, showConfirmModal, showActionModal, getIconName } from '../utils.js';
 import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
+import wsManager from '../services/websocket-manager.js';
 
 // =============================================================================
 // 0. FUNCIONES DE PRELOADER MEJORADAS
