@@ -152,16 +152,14 @@ class WebSocketManager {
         if (window.appState) {
             switch (entityType) {
                 case 'categories':
-                    if (action === 'created' && data.category) {
-                        window.appState.categories.push(data.category);
-                    } else if (action === 'updated' && data.category) {
-                        const idx = window.appState.categories.findIndex(c => c._id === data.category._id);
-                        if (idx !== -1) window.appState.categories[idx] = data.category;
-                    } else if (action === 'deleted' && data.categoryId) {
-                        window.appState.categories = window.appState.categories.filter(c => c._id !== data.categoryId);
+                    // ✅ NO actualizar appState manualmente - recargar desde la API
+                    // Así obtenemos los documentCount actualizados
+                    if (typeof window.loadCategories === 'function') {
+                        window.loadCategories();
                     }
-
-                    // ✅ NUEVO: Forzar actualización de UI de categorías
+                    if (typeof window.loadDocuments === 'function') {
+                        window.loadDocuments();
+                    }
                     if (typeof window.renderCategories === 'function') {
                         window.renderCategories();
                     }
@@ -171,12 +169,11 @@ class WebSocketManager {
                     if (typeof window.refreshCategoryTree === 'function') {
                         window.refreshCategoryTree();
                     }
-                    // También recargar documentos si estamos en vista de categoría
-                    if (typeof window.loadDocuments === 'function') {
-                        window.loadDocuments();
+                    if (typeof window.renderCategoryGrid === 'function') {
+                        window.renderCategoryGrid();
                     }
                     break;
-                    
+
                 case 'documents':
                     if (action === 'created' && data.document) {
                         window.appState.documents.unshift(data.document);
@@ -185,6 +182,17 @@ class WebSocketManager {
                         if (idx !== -1) window.appState.documents[idx] = data.document;
                     } else if (action === 'deleted' && data.documentId) {
                         window.appState.documents = window.appState.documents.filter(d => d._id !== data.documentId);
+                    }
+
+                    // ✅ También refrescar categorías para actualizar contadores
+                    if (typeof window.loadCategories === 'function') {
+                        window.loadCategories();
+                    }
+                    if (typeof window.refreshCategoryTree === 'function') {
+                        window.refreshCategoryTree();
+                    }
+                    if (typeof window.renderCategories === 'function') {
+                        window.renderCategories();
                     }
                     break;
 
