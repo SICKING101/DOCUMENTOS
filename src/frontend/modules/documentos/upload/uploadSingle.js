@@ -1,6 +1,7 @@
 import { DOM } from '../../../dom.js';
 import { CONFIG } from '../../../config.js';
 import { setLoadingState, showAlert, formatFileSize } from '../../../utils.js';
+import wsManager from '../../../services/websocket-manager.js';
 
 /**
  * Maneja la selección de un archivo individual.
@@ -238,6 +239,11 @@ export async function handleUploadDocument() {
                             
                             hideSingleUploadPreloader();
                             showAlert(data.message, 'success');
+                            
+                            // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+                            wsManager.emit('document:created', {
+                                document: data.document || data
+                            });
                             
                             try {
                                 window.dispatchEvent(new CustomEvent('documentCreated', { detail: { document: data.document || data } }));
