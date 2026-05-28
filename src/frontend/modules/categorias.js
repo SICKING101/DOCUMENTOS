@@ -365,7 +365,7 @@ function editCategory(id) {
 }
 
 /**
- * 2.5 Eliminar categoría con modal de confirmación - CORREGIDO
+ * 2.5 Eliminar categoría con modal de confirmación - CORREGIDO CON WEBSOCKET
  */
 async function deleteCategory(id) {
     if (!canAction('categorias')) {
@@ -412,6 +412,9 @@ async function deleteCategory(id) {
                 if (preloader) preloader.hide();
 
                 if (data.success) {
+                    // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+                    wsManager.emit('category:deleted', { categoryId: id });
+                    
                     showActionModal({
                         type: 'success',
                         title: '¡Eliminado!',
