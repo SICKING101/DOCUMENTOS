@@ -204,6 +204,9 @@
 
                 <div class="topbar__right">
                     <div class="topbar__actions">
+                        <!-- Indicador de estado WebSocket -->
+                        <span data-ws-status="disconnected" title="Estado de conexión en tiempo real"
+                            style="font-size: 0.75rem; opacity: 0.7; transform: translateY(8px);"></span>
                         <button class="topbar__action" id="avisosBtn" title="Avisos"
                             onclick="if(window.switchTab) window.switchTab('avisos')">
                             <i class="fas fa-bullhorn"></i>
@@ -1849,13 +1852,16 @@
                                     <label class="form__label">Información del documento</label>
                                     <div class="document-info-grid">
                                         <div class="info-item"><span class="info-label">Fecha de subida:</span><span
-                                                id="editDocumentUploadDate" class="info-value info-value__black"></span></div>
+                                                id="editDocumentUploadDate" class="info-value info-value__black"></span>
+                                        </div>
                                         <div class="info-item"><span class="info-label">Tipo:</span><span
                                                 id="editDocumentType" class="info-value info-value__black"></span></div>
                                         <div class="info-item"><span class="info-label">Tamaño:</span><span
-                                                id="editDocumentFileSize" class="info-value info-value__black"></span></div>
+                                                id="editDocumentFileSize" class="info-value info-value__black"></span>
+                                        </div>
                                         <div class="info-item"><span class="info-label">Subido por:</span><span
-                                                id="editDocumentUploadedBy" class="info-value info-value__black">Sistema</span></div>
+                                                id="editDocumentUploadedBy"
+                                                class="info-value info-value__black">Sistema</span></div>
                                     </div>
                                 </div>
                             </form>
@@ -4295,7 +4301,7 @@
 
     <!-- SECCIÓN 6: SCRIPTS DE JAVASCRIPT -->
     <!-- SCRIPTS PARA AJUSTES -->
-     <script type="module" src="/src/frontend/modules/responsive.js"></script>
+    <script type="module" src="/src/frontend/modules/responsive.js"></script>
     <script type="module" src="/src/frontend/modules/ajustes.js"></script>
     <script type="module" src="/src/frontend/modules/calendario.js"></script>
     <script type="module" src="/src/frontend/authGuard.js"></script>

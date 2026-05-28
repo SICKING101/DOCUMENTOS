@@ -6,16 +6,10 @@
 
 const LOG_PREFIX = '🗂️ [CategoryNav]';
 
-// ✅ NUEVO: Importar wsManager (desde documentos/ → 2 niveles arriba → services/)
-let wsManager = null;
-(async () => {
-    try {
-        const mod = await import('../../services/websocket-manager.js');
-        wsManager = mod.default || mod.wsManager;
-    } catch (e) {
-        console.warn(`${LOG_PREFIX} wsManager no disponible:`, e.message);
-    }
-})();
+// ✅ Obtener wsManager del singleton global (ya inicializado por app.js)
+function getWsManager() {
+    return window.wsManager || null;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADO GLOBAL DE NAVEGACIÓN
@@ -1256,9 +1250,10 @@ export async function saveCategory() {
         // ═══════════════════════════════════════════════════════
         // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
         // ═══════════════════════════════════════════════════════
-        if (wsManager) {
+        const ws = getWsManager();
+        if (ws) {
             const eventName = catId ? 'category:updated' : 'category:created';
-            wsManager.emit(eventName, {
+            ws.emit(eventName, {
                 category: result.category || result.data || { _id: catId, nombre }
             });
         }
@@ -1446,8 +1441,9 @@ function _confirmDeleteCategory(cat) {
             }
 
             // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
-            if (wsManager) {
-                wsManager.emit('category:deleted', { categoryId: cat._id });
+            const ws = getWsManager();
+            if (ws) {
+                ws.emit('category:deleted', { categoryId: cat._id });
             }
 
             if (typeof window.loadCategories === 'function') {
