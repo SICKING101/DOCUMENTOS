@@ -8,6 +8,7 @@ import { showAlert, formatFileSize } from '../../../utils.js';
 import { MultipleUploadState } from '../core/MultipleUploadState.js';
 import { updateMultipleUploadUI } from '../index.js';
 import { MULTIPLE_UPLOAD_CONFIG } from '../core/constants.js';
+import wsManager from '../../../services/websocket-manager.js';
 
 // Instancia global del estado de subida múltiple
 export let multipleUploadState = null;
@@ -1485,8 +1486,16 @@ async function uploadSingleFileWithProgress(preparedFile, fileObj, state) {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         const response = JSON.parse(xhr.responseText);
-                        if (response.success) { console.log(`✅ ${preparedFile.fileName} - EXITOSA`); resolve(true); }
-                        else {
+                        if (response.success) {
+                            console.log(`✅ ${preparedFile.fileName} - EXITOSA`);
+                            
+                            // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+                            wsManager.emit('document:created', {
+                                document: response.document || { nombre_original: preparedFile.fileName }
+                            });
+                            
+                            resolve(true);
+                        } else {
                             if (fileObj) fileObj.error = response.message || 'Error del servidor';
                             resolve(false);
                         }

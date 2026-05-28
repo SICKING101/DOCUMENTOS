@@ -4,6 +4,7 @@
 
 import { api } from '../../../services/api.js';
 import { showAlert, formatFileSize, formatDate } from '../../../utils.js';
+import wsManager from '../../../services/websocket-manager.js';
 
 let editModal, editForm;
 let replaceFileCheck, newFileContainer, editFileInput;
@@ -544,7 +545,7 @@ export function closeEditModal() {
 }
 
 /**
- * Guardar cambios del documento - VERSIÓN CORREGIDA CON TEXTO FIJO
+ * Guardar cambios del documento - VERSIÓN CORREGIDA CON TEXTO FIJO Y WEBSOCKET
  */
 async function saveDocumentChanges() {
     const documentId = document.getElementById('editDocumentId').value;
@@ -639,6 +640,12 @@ async function saveDocumentChanges() {
             throw new Error(response.message || 'Error al actualizar documento');
         }
 
+        // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+        wsManager.emit('document:updated', {
+            documentId: documentId,
+            document: response.document
+        });
+
         // 5. MOSTRAR ÉXITO
         removeEditPreloader();
         showSuccessOverlay(
@@ -704,6 +711,7 @@ async function saveDocumentChanges() {
         }, 100);
     }
 }
+
 /**
  * Cargar categorías en el select del modal de edición
  */
@@ -785,9 +793,6 @@ export async function testDocumentUpdate(documentId) {
         } catch (error) {
             console.error('❌ PUT falló:', error.message);
         }
-        
-        // Nota: patchDocument no existe en tu api.js, por eso comenté esta prueba
-        // Si necesitas PATCH, debes agregarlo a tu api.js primero
         
         // Prueba 2: Verificar CORS
         console.log('\n2️⃣ Verificando CORS...');

@@ -13,6 +13,9 @@ import multer from 'multer';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import dotenv from 'dotenv';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import jwt from 'jsonwebtoken';
 
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
@@ -80,12 +83,8 @@ const UPLOADS_DIR = path.join(__dirname, 'uploads');
 // Configuración
 // -----------------------------
 const app = express();
-const PORT = process.env.PORT || 4000;
-const MONGO_URI = process.env.MONGO_URI;
+const server = http.createServer(app);
 
-// -----------------------------
-// Middlewares
-// -----------------------------
 const allowedOrigins = [
   'http://localhost:4000',
   'https://documentos-kj6t.onrender.com',
@@ -95,6 +94,258 @@ const allowedOrigins = [
   "http://www.gestacks.com",
   "https://www.gestacks.com"
 ];
+
+// Configuración de Socket.io
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: ['websocket', 'polling']
+});
+
+// Hacer io accesible a los controladores vía app
+app.set('io', io);
+
+console.log('🔌 Socket.io inicializado');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIDDLEWARE DE AUTENTICACIÓN PARA WEBSOCKETS
+// ═══════════════════════════════════════════════════════════════════════════
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || 
+                  socket.handshake.query.token;
+    
+    if (!token) {
+      console.log('⚠️ WebSocket: Token no proporcionado, permitiendo conexión limitada');
+      socket.userId = 'anonymous';
+      socket.schoolId = 'unknown';
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.userId || decoded._id || decoded.id;
+    socket.userRole = decoded.role || 'user';
+    socket.schoolId = decoded.schoolId || 'superadmin';
+    socket.userName = decoded.nombre || decoded.name || decoded.usuario || 'Usuario';
+    
+    console.log(`✅ WebSocket autenticado: ${socket.userName} (${socket.userRole}) [School: ${socket.schoolId}]`);
+    next();
+  } catch (error) {
+    console.error('❌ Error autenticación WebSocket:', error.message);
+    // Permitir conexión como anónimo en lugar de rechazar
+    socket.userId = 'anonymous';
+    socket.schoolId = 'unknown';
+    next();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MANEJO DE CONEXIONES WEBSOCKET
+// ═══════════════════════════════════════════════════════════════════════════
+io.on('connection', (socket) => {
+  console.log(`🟢 Usuario conectado: ${socket.userName || 'Anónimo'} [${socket.schoolId}]`);
+  
+  // Unir al usuario a su sala de escuela
+  if (socket.schoolId && socket.schoolId !== 'unknown') {
+    socket.join(`school:${socket.schoolId}`);
+    console.log(`📌 Unido a sala: school:${socket.schoolId}`);
+  }
+  
+  // Unir a sala personal
+  socket.join(`user:${socket.userId}`);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CATEGORÍAS
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('category:created', (data) => {
+    console.log(`📢 [WS] Categoría creada: ${data.category?.nombre}`);
+    socket.to(`school:${socket.schoolId}`).emit('category:created', {
+      category: data.category,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('category:updated', (data) => {
+    console.log(`📢 [WS] Categoría actualizada: ${data.category?.nombre}`);
+    socket.to(`school:${socket.schoolId}`).emit('category:updated', {
+      category: data.category,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('category:deleted', (data) => {
+    console.log(`📢 [WS] Categoría eliminada: ${data.categoryId}`);
+    socket.to(`school:${socket.schoolId}`).emit('category:deleted', {
+      categoryId: data.categoryId,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DOCUMENTOS
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('document:created', (data) => {
+    console.log(`📢 [WS] Documento creado: ${data.document?.nombre_original}`);
+    socket.to(`school:${socket.schoolId}`).emit('document:created', {
+      document: data.document,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('document:updated', (data) => {
+    console.log(`📢 [WS] Documento actualizado: ${data.documentId}`);
+    socket.to(`school:${socket.schoolId}`).emit('document:updated', {
+      documentId: data.documentId,
+      document: data.document,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('document:deleted', (data) => {
+    console.log(`📢 [WS] Documento eliminado: ${data.documentId}`);
+    socket.to(`school:${socket.schoolId}`).emit('document:deleted', {
+      documentId: data.documentId,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PERSONAS
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('person:created', (data) => {
+    console.log(`📢 [WS] Persona creada: ${data.person?.nombre}`);
+    socket.to(`school:${socket.schoolId}`).emit('person:created', {
+      person: data.person,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('person:updated', (data) => {
+    console.log(`📢 [WS] Persona actualizada: ${data.personId}`);
+    socket.to(`school:${socket.schoolId}`).emit('person:updated', {
+      personId: data.personId,
+      person: data.person,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('person:deleted', (data) => {
+    console.log(`📢 [WS] Persona eliminada: ${data.personId}`);
+    socket.to(`school:${socket.schoolId}`).emit('person:deleted', {
+      personId: data.personId,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DEPARTAMENTOS
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('department:created', (data) => {
+    console.log(`📢 [WS] Departamento creado: ${data.department?.nombre}`);
+    socket.to(`school:${socket.schoolId}`).emit('department:created', {
+      department: data.department,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('department:updated', (data) => {
+    console.log(`📢 [WS] Departamento actualizado: ${data.departmentId}`);
+    socket.to(`school:${socket.schoolId}`).emit('department:updated', {
+      departmentId: data.departmentId,
+      department: data.department,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('department:deleted', (data) => {
+    console.log(`📢 [WS] Departamento eliminado: ${data.departmentId}`);
+    socket.to(`school:${socket.schoolId}`).emit('department:deleted', {
+      departmentId: data.departmentId,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TAREAS
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('task:created', (data) => {
+    console.log(`📢 [WS] Tarea creada: ${data.task?.title}`);
+    socket.to(`school:${socket.schoolId}`).emit('task:created', {
+      task: data.task,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('task:updated', (data) => {
+    console.log(`📢 [WS] Tarea actualizada: ${data.taskId}`);
+    socket.to(`school:${socket.schoolId}`).emit('task:updated', {
+      taskId: data.taskId,
+      task: data.task,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('task:deleted', (data) => {
+    console.log(`📢 [WS] Tarea eliminada: ${data.taskId}`);
+    socket.to(`school:${socket.schoolId}`).emit('task:deleted', {
+      taskId: data.taskId,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DESCONEXIÓN
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('disconnect', (reason) => {
+    console.log(`🔴 Usuario desconectado: ${socket.userName || 'Anónimo'} [Razón: ${reason}]`);
+  });
+
+  socket.on('error', (error) => {
+    console.error(`❌ Error en socket de ${socket.userName || 'Anónimo'}:`, error.message);
+  });
+});
+
+const PORT = process.env.PORT || 4000;
+const MONGO_URI = process.env.MONGO_URI;
+
+// -----------------------------
+// Middlewares
+// -----------------------------
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -219,6 +470,11 @@ app.get('/contact', (req, res) => {
 // Login
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// ✅ NUEVO: Ruta raíz - Enviar al sistema (index.html)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Ruta de prueba
@@ -3871,8 +4127,9 @@ if (process.env.NODE_ENV === 'development') {
 // Iniciar servidor
 // -----------------------------
 const serverPort = process.env.PORT || 4000;
-const server = app.listen(serverPort, '0.0.0.0', () => {
+server.listen(serverPort, '0.0.0.0', () => {
   console.log(`🚀 Servidor ejecutándose en puerto ${serverPort}`);
+  console.log(`🔌 WebSockets habilitados en ws://0.0.0.0:${serverPort}`);
   console.log(`📊 Sistema de Gestión de Documentos - CBTIS051`);
   console.log(`🗄️ Base de datos: ${MONGO_URI}`);
   console.log(`☁️ Spaces: ${SPACES_CONFIG.bucket}`);

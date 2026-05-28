@@ -4,6 +4,7 @@
 
 import { api } from '../../services/api.js';
 import { showAlert, formatFileSize, withDocumentLoadControl } from '../../utils.js';
+import wsManager from '../../services/websocket-manager.js';
 import { updateTrashBadge } from '../papelera.js';
 import { hasPermission, PERMISSIONS } from '../../permissions.js';
 import { showDocumentNotification, shouldNotify } from './notificationConfig.js';
@@ -237,6 +238,11 @@ export async function deleteDocument(id) {
             console.log('📦 Respuesta del servidor:', data);
 
             if (data.success) {
+                // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+                wsManager.emit('document:deleted', {
+                    documentId: id
+                });
+                
                 // Mostrar mensaje de éxito en el modal
                 const modalBody = modal.querySelector('.modal__body');
                 modalBody.innerHTML = `
