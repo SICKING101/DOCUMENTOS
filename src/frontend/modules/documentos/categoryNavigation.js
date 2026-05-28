@@ -1171,6 +1171,7 @@ let _isSaving = false;
 /**
  * Valida y guarda la categoría (crear o editar).
  * PROTECCIÓN: Solo una ejecución a la vez.
+ * CON WEBSOCKET: Emite evento al guardar exitosamente.
  */
 export async function saveCategory() {
     // ═══════════════════════════════════════════════════════════
@@ -1239,6 +1240,16 @@ export async function saveCategory() {
 
         if (!result || !result.success) {
             throw new Error(result?.message || 'Error desconocido al guardar');
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+        // ═══════════════════════════════════════════════════════
+        if (wsManager) {
+            const eventName = catId ? 'category:updated' : 'category:created';
+            wsManager.emit(eventName, {
+                category: result.category || result.data || { _id: catId, nombre }
+            });
         }
 
         // ═══════════════════════════════════════════════════════
@@ -1339,6 +1350,7 @@ async function _hidePreloaderOverlay() {
 
 /**
  * Confirma y elimina una categoría.
+ * CON WEBSOCKET: Emite evento al eliminar exitosamente.
  * @param {CategoryNode} cat
  */
 function _confirmDeleteCategory(cat) {
@@ -1420,6 +1432,11 @@ function _confirmDeleteCategory(cat) {
                     });
                 }, 300);
                 return;
+            }
+
+            // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+            if (wsManager) {
+                wsManager.emit('category:deleted', { categoryId: cat._id });
             }
 
             if (typeof window.loadCategories === 'function') {
