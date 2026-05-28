@@ -8,6 +8,7 @@ import { DOM } from './dom.js';
 import { showAlert, setupModalBackdropClose, showActionModal } from './utils.js';
 export { refreshCategoryTree } from './modules/documentos/categoryNavigation.js';
 import './modules/responsive.js';
+import wsManager from './services/websocket-manager.js';
 import {
   applyVisibilityRules,
   hasPermission,
@@ -262,6 +263,17 @@ function _initializeAppComponents() {
   // Task Manager - VERSIÓN CORREGIDA
   _initTaskManager();
 
+  // ────────────────────────────────────────────────────────────
+    // NUEVO: Iniciar conexión WebSocket
+    // ────────────────────────────────────────────────────────────
+    wsManager.connect().then(connected => {
+        if (connected) {
+            console.log('🔌 WebSocket listo');
+        } else {
+            console.warn('⚠️ WebSocket no disponible — modo offline');
+        }
+    });
+
   appState.logState?.();
   console.log('✅ Componentes inicializados');
 }
@@ -414,6 +426,21 @@ function _setupEventListeners() {
       }
     });
   }
+
+  window.addEventListener('ws:state-change', ({ detail }) => {
+    const { state } = detail;
+    if (state === 'RECONNECTING') {
+        console.warn('🔄 WebSocket reconectando...');
+    }
+    if (state === 'CONNECTED' && detail.previous === 'RECONNECTING') {
+        // Reconexión exitosa: recargar datos para sincronizar lo que se perdió
+        Promise.allSettled([
+            canView('documentos') && documentos.loadDocuments(),
+            canView('categorias') && loadCategories(),
+            canView('personas')   && loadPersons(),
+        ]);
+    }
+});
 
   console.log('✅ Event listeners configurados');
 }

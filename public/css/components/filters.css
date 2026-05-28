@@ -142,3 +142,10 @@
     gap: 1rem;
     margin-top: 1.5rem;
 }
+
+/* Estado del indicador WebSocket */
+[data-ws-status="connected"]    { color: var(--success); }
+[data-ws-status="reconnecting"] { color: var(--warning); }
+[data-ws-status="disconnected"],
+[data-ws-status="failed"]       { color: var(--danger);  }
+[data-ws-status="connecting"]   { color: var(--info);    }
