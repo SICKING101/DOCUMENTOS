@@ -125,6 +125,7 @@ router.get('/documents/:id/info', protegerRuta, verificarAccesoSistema, inyectar
 router.delete('/documents/:id', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.delete);
 router.patch('/documents/:id/approve', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.approve);
 router.patch('/documents/:id/reject', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.APPROVE_DOCUMENTS), DocumentController.reject);
+router.patch('/documents/:id/move-folder', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_DOCUMENTS), DocumentController.moveToFolder);
 
 // ─── TAREAS ──────────────────────────────────────────────────
 router.get('/tasks/assignable-users', protegerRuta, verificarAccesoSistema, inyectarSchoolId, TaskController.getAssignableUsers);
