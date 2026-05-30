@@ -15,54 +15,54 @@
 
 // ─── Estados de conexión ─────────────────────────────────────────────────────
 const WS_STATES = Object.freeze({
-    DISCONNECTED : 'DISCONNECTED',
-    CONNECTING   : 'CONNECTING',
-    CONNECTED    : 'CONNECTED',
-    RECONNECTING : 'RECONNECTING',
-    FAILED       : 'FAILED',
+    DISCONNECTED: 'DISCONNECTED',
+    CONNECTING: 'CONNECTING',
+    CONNECTED: 'CONNECTED',
+    RECONNECTING: 'RECONNECTING',
+    FAILED: 'FAILED',
 });
 
 // ─── Nombres de eventos ───────────────────────────────────────────────────────
 const WS_EVENTS = Object.freeze({
     // Estado interno
-    STATE_CHANGE        : 'ws:state-change',
+    STATE_CHANGE: 'ws:state-change',
 
     // Categorías
-    CATEGORY_CREATED    : 'category:created',
-    CATEGORY_UPDATED    : 'category:updated',
-    CATEGORY_DELETED    : 'category:deleted',
+    CATEGORY_CREATED: 'category:created',
+    CATEGORY_UPDATED: 'category:updated',
+    CATEGORY_DELETED: 'category:deleted',
 
     // Documentos
-    DOCUMENT_CREATED    : 'document:created',
-    DOCUMENT_UPDATED    : 'document:updated',
-    DOCUMENT_DELETED    : 'document:deleted',
+    DOCUMENT_CREATED: 'document:created',
+    DOCUMENT_UPDATED: 'document:updated',
+    DOCUMENT_DELETED: 'document:deleted',
 
     // Personas
-    PERSON_CREATED      : 'person:created',
-    PERSON_UPDATED      : 'person:updated',
-    PERSON_DELETED      : 'person:deleted',
+    PERSON_CREATED: 'person:created',
+    PERSON_UPDATED: 'person:updated',
+    PERSON_DELETED: 'person:deleted',
 
     // Departamentos
-    DEPARTMENT_CREATED  : 'department:created',
-    DEPARTMENT_UPDATED  : 'department:updated',
-    DEPARTMENT_DELETED  : 'department:deleted',
+    DEPARTMENT_CREATED: 'department:created',
+    DEPARTMENT_UPDATED: 'department:updated',
+    DEPARTMENT_DELETED: 'department:deleted',
 
     // Tareas
-    TASK_CREATED        : 'task:created',
-    TASK_UPDATED        : 'task:updated',
-    TASK_DELETED        : 'task:deleted',
+    TASK_CREATED: 'task:created',
+    TASK_UPDATED: 'task:updated',
+    TASK_DELETED: 'task:deleted',
 
     // Notificaciones
-    NOTIFICATION_NEW    : 'notification:new',
+    NOTIFICATION_NEW: 'notification:new',
 });
 
 // ─── Mapeo entidad → clave en appState ───────────────────────────────────────
 const ENTITY_STATE_MAP = Object.freeze({
-    category   : 'categories',
-    document   : 'documents',
-    person     : 'persons',
-    department : 'departments',
-    task       : 'tasks',
+    category: 'categories',
+    document: 'documents',
+    person: 'persons',
+    department: 'departments',
+    task: 'tasks',
 });
 
 // =============================================================================
@@ -71,51 +71,51 @@ const ENTITY_STATE_MAP = Object.freeze({
 class WebSocketManager {
     constructor() {
         // ── Estado de conexión ─────────────────────────────────────────────
-        this.socket       = null;
-        this.state        = WS_STATES.DISCONNECTED;
+        this.socket = null;
+        this.state = WS_STATES.DISCONNECTED;
         this._connectPromise = null;   // Garantiza una sola promesa de conexión
 
         // ── Reconexión ─────────────────────────────────────────────────────
-        this._reconnectAttempts    = 0;
+        this._reconnectAttempts = 0;
         this._maxReconnectAttempts = 12;          // Intentos antes de FAILED
-        this._baseDelay            = 1_000;       // ms
-        this._maxDelay             = 30_000;      // ms
-        this._reconnectTimer       = null;
+        this._baseDelay = 1_000;       // ms
+        this._maxDelay = 30_000;      // ms
+        this._reconnectTimer = null;
 
         // ── Listeners personalizados ───────────────────────────────────────
         // eventName → Set<callback>
         this._listeners = new Map();
 
         // ── Cola de eventos salientes (mientras desconectado) ──────────────
-        this._outboundQueue  = [];
+        this._outboundQueue = [];
         this._MAX_QUEUE_SIZE = 50;
-        this._MAX_EVENT_AGE  = 30_000;  // ms — descartar eventos muy viejos
+        this._MAX_EVENT_AGE = 30_000;  // ms — descartar eventos muy viejos
 
         // ── Supresión de eco propio ────────────────────────────────────────
         // Cuando nosotros emitimos un evento, el servidor lo re-emite a OTROS
         // (socket.to(room)), por lo que NO nos llega a nosotros mismos.
         // Sin embargo, si hay varias pestañas o el servidor cambia, el _eid
         // actúa como defensa en profundidad.
-        this._ownEventIds   = new Set();
-        this._EID_TTL       = 8_000;    // ms — tiempo de vida del ID propio
+        this._ownEventIds = new Set();
+        this._EID_TTL = 8_000;    // ms — tiempo de vida del ID propio
 
         // ── Deduplicación de eventos entrantes ────────────────────────────
-        this._seenEvents         = new Map();   // clave → timestamp
-        this._DEDUPE_WINDOW      = 350;         // ms
+        this._seenEvents = new Map();   // clave → timestamp
+        this._DEDUPE_WINDOW = 350;         // ms
         this._dedupeCleanupTimer = null;
 
         // ── Batching de actualizaciones de UI ─────────────────────────────
         // entityType → [ { action, data } ]
-        this._pendingBatch    = new Map();
-        this._batchTimer      = null;
-        this._BATCH_DELAY     = 80;     // ms — coalescencia de eventos
+        this._pendingBatch = new Map();
+        this._batchTimer = null;
+        this._BATCH_DELAY = 80;     // ms — coalescencia de eventos
 
         // ── Timers de actualización diferida ──────────────────────────────
-        this._dashboardTimer  = null;
-        this._catCountTimer   = null;
+        this._dashboardTimer = null;
+        this._catCountTimer = null;
 
         // ── Socket.IO ─────────────────────────────────────────────────────
-        this._socketIOLoaded  = (typeof io !== 'undefined');
+        this._socketIOLoaded = (typeof io !== 'undefined');
 
         // ── Debug ─────────────────────────────────────────────────────────
         this._debug = localStorage.getItem('ws_debug') === 'true';
@@ -165,7 +165,7 @@ class WebSocketManager {
      * @param {object} data       Payload del evento
      */
     emit(eventName, data = {}) {
-        const eid     = this._genEID();
+        const eid = this._genEID();
         const payload = { ...data, _eid: eid };
 
         // Registrar como evento propio para supresión de eco
@@ -236,7 +236,7 @@ class WebSocketManager {
     setDebug(enabled) {
         this._debug = enabled;
         if (enabled) localStorage.setItem('ws_debug', 'true');
-        else         localStorage.removeItem('ws_debug');
+        else localStorage.removeItem('ws_debug');
         this._log('info', `Debug ${enabled ? 'activado' : 'desactivado'}`);
     }
 
@@ -249,9 +249,9 @@ class WebSocketManager {
      * @param {Function} connectResolve  Resuelve la promesa externa de connect()
      */
     _initSocket(connectResolve) {
-        const token     = localStorage.getItem('token') ?? '';
+        const token = localStorage.getItem('token') ?? '';
         const serverUrl = this._getServerUrl();
-        let   resolved  = false;
+        let resolved = false;
 
         const resolve = (val) => {
             if (resolved) return;
@@ -262,12 +262,12 @@ class WebSocketManager {
         this._log('info', `Conectando a ${serverUrl}`);
 
         this.socket = io(serverUrl, {
-            auth            : { token },
-            query           : { token },
-            reconnection    : false,      // Reconexión manual con backoff
-            timeout         : 12_000,
-            transports      : ['websocket', 'polling'],
-            forceNew        : false,
+            auth: { token },
+            query: { token },
+            reconnection: false,      // Reconexión manual con backoff
+            timeout: 12_000,
+            transports: ['websocket', 'polling'],
+            forceNew: false,
         });
 
         // ── Conectado ──────────────────────────────────────────────────────
@@ -324,9 +324,9 @@ class WebSocketManager {
             return;
         }
 
-        const base   = Math.min(this._baseDelay * (2 ** this._reconnectAttempts), this._maxDelay);
+        const base = Math.min(this._baseDelay * (2 ** this._reconnectAttempts), this._maxDelay);
         const jitter = base * 0.25 * Math.random();
-        const delay  = Math.floor(base + jitter);
+        const delay = Math.floor(base + jitter);
 
         this._reconnectAttempts++;
         this._log('info', `Reconectando en ${delay}ms (intento ${this._reconnectAttempts})`);
@@ -367,64 +367,122 @@ class WebSocketManager {
     // PRIVADO — MANEJO DE EVENTOS ENTRANTES
     // =========================================================================
 
-/**
- * Registra un listener Socket.IO por cada combinación entidad+acción.
- */
-_registerEntityListeners() {
-    if (!this.socket) return;
+    /**
+     * Registra un listener Socket.IO por cada combinación entidad+acción.
+     */
+    _registerEntityListeners() {
+        if (!this.socket) return;
 
-    const entities = Object.keys(ENTITY_STATE_MAP);   // category, document, …
-    const actions  = ['created', 'updated', 'deleted'];
+        const entities = Object.keys(ENTITY_STATE_MAP);   // category, document, …
+        const actions = ['created', 'updated', 'deleted'];
 
-    entities.forEach(entity => {
-        actions.forEach(action => {
-            const eventName = `${entity}:${action}`;
-            this.socket.on(eventName, data =>
-                this._handleIncoming(eventName, data)
-            );
+        entities.forEach(entity => {
+            actions.forEach(action => {
+                const eventName = `${entity}:${action}`;
+                this.socket.on(eventName, data =>
+                    this._handleIncoming(eventName, data)
+                );
+            });
         });
-    });
 
-    // Notificaciones del sistema
-    this.socket.on(WS_EVENTS.NOTIFICATION_NEW, data =>
-        this._handleIncoming(WS_EVENTS.NOTIFICATION_NEW, data)
-    );
+        // Notificaciones del sistema
+        this.socket.on(WS_EVENTS.NOTIFICATION_NEW, data =>
+            this._handleIncoming(WS_EVENTS.NOTIFICATION_NEW, data)
+        );
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // CALENDARIO
-    // ═══════════════════════════════════════════════════════════════════════
-    this.socket.on('calendar:event-created', (data) => {
-        console.log('📥 [WS] Evento calendario creado:', data.event?.title);
-        this._log('recv', '← calendar:event-created', data);
-        window.dispatchEvent(new CustomEvent('calendar:refresh', {
-            detail: { action: 'created', event: data.event }
-        }));
-    });
+        // ═══════════════════════════════════════════════════════════════════════
+        // CALENDARIO
+        // ═══════════════════════════════════════════════════════════════════════
+        this.socket.on('calendar:event-created', (data) => {
+            console.log('📥 [WS] Evento calendario creado:', data.event?.title);
+            this._log('recv', '← calendar:event-created', data);
+            window.dispatchEvent(new CustomEvent('calendar:refresh', {
+                detail: { action: 'created', event: data.event }
+            }));
+        });
 
-    this.socket.on('calendar:event-updated', (data) => {
-        console.log('📥 [WS] Evento calendario actualizado:', data.eventId);
-        this._log('recv', '← calendar:event-updated', data);
-        window.dispatchEvent(new CustomEvent('calendar:refresh', {
-            detail: { action: 'updated', eventId: data.eventId }
-        }));
-    });
+        this.socket.on('calendar:event-updated', (data) => {
+            console.log('📥 [WS] Evento calendario actualizado:', data.eventId);
+            this._log('recv', '← calendar:event-updated', data);
+            window.dispatchEvent(new CustomEvent('calendar:refresh', {
+                detail: { action: 'updated', eventId: data.eventId }
+            }));
+        });
 
-    this.socket.on('calendar:event-deleted', (data) => {
-        console.log('📥 [WS] Evento calendario eliminado:', data.eventId);
-        this._log('recv', '← calendar:event-deleted', data);
-        window.dispatchEvent(new CustomEvent('calendar:refresh', {
-            detail: { action: 'deleted', eventId: data.eventId }
-        }));
-    });
+        this.socket.on('calendar:event-deleted', (data) => {
+            console.log('📥 [WS] Evento calendario eliminado:', data.eventId);
+            this._log('recv', '← calendar:event-deleted', data);
+            window.dispatchEvent(new CustomEvent('calendar:refresh', {
+                detail: { action: 'deleted', eventId: data.eventId }
+            }));
+        });
 
-    this.socket.on('calendar:events-deleted', (data) => {
-        console.log('📥 [WS] Eventos calendario eliminados (serie):', data.seriesId);
-        this._log('recv', '← calendar:events-deleted', data);
-        window.dispatchEvent(new CustomEvent('calendar:refresh', {
-            detail: { action: 'series-deleted', seriesId: data.seriesId }
-        }));
-    });
-}
+        this.socket.on('calendar:events-deleted', (data) => {
+            console.log('📥 [WS] Eventos calendario eliminados (serie):', data.seriesId);
+            this._log('recv', '← calendar:events-deleted', data);
+            window.dispatchEvent(new CustomEvent('calendar:refresh', {
+                detail: { action: 'series-deleted', seriesId: data.seriesId }
+            }));
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SUPERADMIN - Versiones
+        // ═══════════════════════════════════════════════════════════════════════
+        this.socket.on('superadmin:version-updated', (data) => {
+            this._log('recv', '← superadmin:version-updated', data);
+            window.dispatchEvent(new CustomEvent('ws:superadmin-version-updated', {
+                detail: data
+            }));
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SUPERADMIN - Avisos
+        // ═══════════════════════════════════════════════════════════════════════
+        this.socket.on('superadmin:aviso-updated', (data) => {
+            this._log('recv', '← superadmin:aviso-updated', data);
+            window.dispatchEvent(new CustomEvent('ws:superadmin-aviso-updated', {
+                detail: data
+            }));
+            // También disparar evento para que el módulo de avisos recargue
+            window.dispatchEvent(new CustomEvent('avisos:refresh'));
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SUPERADMIN - Invitaciones
+        // ═══════════════════════════════════════════════════════════════════════
+        this.socket.on('superadmin:invitation-updated', (data) => {
+            this._log('recv', '← superadmin:invitation-updated', data);
+            window.dispatchEvent(new CustomEvent('ws:superadmin-invitation-updated', {
+                detail: data
+            }));
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SUPERADMIN - Sugerencias
+        // ═══════════════════════════════════════════════════════════════════════
+        this.socket.on('superadmin:suggestion-updated', (data) => {
+            this._log('recv', '← superadmin:suggestion-updated', data);
+            window.dispatchEvent(new CustomEvent('ws:superadmin-suggestion-updated', {
+                detail: data
+            }));
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // SUPERADMIN - Estado del Sistema
+        // ═══════════════════════════════════════════════════════════════════════
+        this.socket.on('superadmin:system-status-changed', (data) => {
+            this._log('recv', '← superadmin:system-status-changed', data);
+            window.dispatchEvent(new CustomEvent('ws:superadmin-system-status-changed', {
+                detail: data
+            }));
+            // Si el sistema se cerró, mostrar modal de sistema cerrado
+            if (data.action === 'closed-global' || data.action === 'closed-school') {
+                window.dispatchEvent(new CustomEvent('system:access-denied', {
+                    detail: { reason: data.reason }
+                }));
+            }
+        });
+    }
 
     /**
      * Punto de entrada para TODOS los eventos entrantes.
@@ -502,7 +560,7 @@ _registerEntityListeners() {
     _applyLocalStateUpdate(entityType, action, data) {
         if (!window.appState) return;
 
-        const stateKey   = ENTITY_STATE_MAP[entityType];
+        const stateKey = ENTITY_STATE_MAP[entityType];
         if (!stateKey) return;
 
         // Asegurar que el array existe
@@ -530,7 +588,7 @@ _registerEntityListeners() {
             }
 
             case 'updated': {
-                const entity   = data[entityType] ?? data.entity;
+                const entity = data[entityType] ?? data.entity;
                 const entityId = entity?._id ?? data[`${entityType}Id`] ?? data.entityId;
                 if (!entityId) return;
 
@@ -662,7 +720,7 @@ _registerEntityListeners() {
         this._dashboardTimer = setTimeout(() => {
             const loader = window.dashboard?.loadDashboardData ?? window.loadDashboardData;
             if (typeof loader === 'function') {
-                loader(window.appState).catch(() => {});
+                loader(window.appState).catch(() => { });
             }
         }, 600);
     }
@@ -731,7 +789,7 @@ _registerEntityListeners() {
         this._log('info', `Vaciando cola: ${this._outboundQueue.length} evento(s)`);
 
         const cutoff = Date.now() - this._MAX_EVENT_AGE;
-        const fresh  = this._outboundQueue.filter(e => e.ts > cutoff);
+        const fresh = this._outboundQueue.filter(e => e.ts > cutoff);
         this._outboundQueue = [];
 
         fresh.forEach(({ eventName, data }) => {
@@ -764,11 +822,11 @@ _registerEntityListeners() {
         document.querySelectorAll('[data-ws-status]').forEach(el => {
             el.setAttribute('data-ws-status', state.toLowerCase());
             const labels = {
-                [WS_STATES.CONNECTED]    : '● En línea',
-                [WS_STATES.RECONNECTING] : '◌ Reconectando…',
-                [WS_STATES.DISCONNECTED] : '○ Sin conexión',
-                [WS_STATES.CONNECTING]   : '◌ Conectando…',
-                [WS_STATES.FAILED]       : '✕ Error de conexión',
+                [WS_STATES.CONNECTED]: '● En línea',
+                [WS_STATES.RECONNECTING]: '◌ Reconectando…',
+                [WS_STATES.DISCONNECTED]: '○ Sin conexión',
+                [WS_STATES.CONNECTING]: '◌ Conectando…',
+                [WS_STATES.FAILED]: '✕ Error de conexión',
             };
             if (el.tagName !== 'INPUT') el.textContent = labels[state] ?? state;
         });
@@ -792,7 +850,7 @@ _registerEntityListeners() {
             const script = document.createElement('script');
             script.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
             script.crossOrigin = 'anonymous';
-            script.onload  = () => { this._socketIOLoaded = true; resolve(); };
+            script.onload = () => { this._socketIOLoaded = true; resolve(); };
             script.onerror = () => reject(new Error('No se pudo cargar Socket.IO'));
             document.head.appendChild(script);
         });
@@ -835,15 +893,15 @@ _registerEntityListeners() {
     _log(level, ...args) {
         if (!this._debug && level !== 'error') return;
         const prefix = {
-            info  : '🔵 [WS]',
-            warn  : '🟡 [WS]',
-            error : '🔴 [WS]',
-            state : '🔄 [WS]',
-            emit  : '📤 [WS]',
-            recv  : '📥 [WS]',
-            skip  : '⏭️  [WS]',
-            queue : '📋 [WS]',
-            batch : '📦 [WS]',
+            info: '🔵 [WS]',
+            warn: '🟡 [WS]',
+            error: '🔴 [WS]',
+            state: '🔄 [WS]',
+            emit: '📤 [WS]',
+            recv: '📥 [WS]',
+            skip: '⏭️  [WS]',
+            queue: '📋 [WS]',
+            batch: '📦 [WS]',
         }[level] ?? '[WS]';
 
         const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
@@ -860,15 +918,15 @@ _registerEntityListeners() {
      */
     getStatus() {
         return {
-            state           : this.state,
-            connected       : this.isConnected,
-            socketId        : this.socket?.id ?? null,
-            reconnectAttempts : this._reconnectAttempts,
-            queuedOutbound  : this._outboundQueue.length,
-            pendingBatch    : this._pendingBatch.size,
-            dedupeEntries   : this._seenEvents.size,
-            ownEventIds     : this._ownEventIds.size,
-            listenerCount   : [...this._listeners.values()]
+            state: this.state,
+            connected: this.isConnected,
+            socketId: this.socket?.id ?? null,
+            reconnectAttempts: this._reconnectAttempts,
+            queuedOutbound: this._outboundQueue.length,
+            pendingBatch: this._pendingBatch.size,
+            dedupeEntries: this._seenEvents.size,
+            ownEventIds: this._ownEventIds.size,
+            listenerCount: [...this._listeners.values()]
                 .reduce((s, set) => s + set.size, 0),
         };
     }
@@ -893,9 +951,9 @@ if (typeof window !== 'undefined') {
     window.wsManager = wsManager;
 
     // Atajos de debug
-    window.wsDebug  = () => wsManager.printStatus();
-    window.wsOn     = () => wsManager.setDebug(true);
-    window.wsOff    = () => wsManager.setDebug(false);
+    window.wsDebug = () => wsManager.printStatus();
+    window.wsOn = () => wsManager.setDebug(true);
+    window.wsOff = () => wsManager.setDebug(false);
 }
 
 export { WebSocketManager, WS_EVENTS, WS_STATES, ENTITY_STATE_MAP };

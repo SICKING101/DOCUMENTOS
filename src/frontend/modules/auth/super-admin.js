@@ -4,6 +4,7 @@
 //       los modales ahora tienen scroll interno correcto.
 
 import avisoService from '../../services/avisoService.js';
+import wsManager from '../../services/websocket-manager.js';
 window.avisoService = avisoService;
 let currentAvisos = [], currentAvisosPage = 1, totalAvisosPages = 1, editingAvisoId = null;
 
@@ -46,7 +47,7 @@ updateClock();
 setInterval(updateClock, 1000);
 
 // Canvas background particles
-(function() {
+(function () {
     const canvas = document.getElementById('bgCanvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -107,7 +108,7 @@ setInterval(updateClock, 1000);
 })();
 
 // Mobile menu toggle
-document.getElementById('menuToggle')?.addEventListener('click', function() {
+document.getElementById('menuToggle')?.addEventListener('click', function () {
     document.getElementById('sidebar').classList.toggle('sa-sidebar--open');
     document.getElementById('saMain').classList.toggle('sa-main--pushed');
 });
@@ -182,7 +183,7 @@ function showToast(message, type = 'success') {
 
     const icons = {
         success: 'fa-circle-check',
-        error:   'fa-circle-xmark',
+        error: 'fa-circle-xmark',
         warning: 'fa-triangle-exclamation'
     };
 
@@ -191,7 +192,7 @@ function showToast(message, type = 'success') {
 
     const borderColors = {
         success: 'var(--col-green)',
-        error:   'var(--col-red)',
+        error: 'var(--col-red)',
         warning: 'var(--col-amber)'
     };
     toast.style.borderLeftColor = borderColors[type] || borderColors.success;
@@ -244,7 +245,7 @@ function showConfirmModal({
 
         document.getElementById('confirmModalTitle').textContent = title;
         document.getElementById('confirmModalMessage').textContent = message;
-        
+
         const subtextEl = document.getElementById('confirmModalSubtext');
         subtextEl.textContent = subtext;
         subtextEl.style.display = subtext ? 'block' : 'none';
@@ -319,7 +320,7 @@ function closeConfirmModal(result) {
     }
 }
 
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         const modal = document.getElementById('confirmModal');
         if (modal && modal.style.display === 'flex') {
@@ -341,16 +342,16 @@ async function loadAvisos(page = 1) {
 
     try {
         const activo = document.getElementById('filterAvisoActivo')?.value || '';
-        const tipo   = document.getElementById('filterAvisoTipo')?.value || '';
+        const tipo = document.getElementById('filterAvisoTipo')?.value || '';
         const filters = {};
         if (activo !== '') filters.activo = activo;
-        if (tipo !== '')   filters.tipo   = tipo;
+        if (tipo !== '') filters.tipo = tipo;
 
         const result = await avisoService.getAllAvisos(page, filters);
         if (result.success) {
-            currentAvisos      = result.avisos || [];
-            currentAvisosPage  = result.pagination?.page  || 1;
-            totalAvisosPages   = result.pagination?.pages || 1;
+            currentAvisos = result.avisos || [];
+            currentAvisosPage = result.pagination?.page || 1;
+            totalAvisosPages = result.pagination?.pages || 1;
             renderAvisosList();
             renderAvisosPagination();
         } else {
@@ -384,10 +385,10 @@ function renderAvisosList() {
 
     container.innerHTML = currentAvisos.map(a => {
         const fechaInicioStr = a.fechaInicio
-            ? new Date(a.fechaInicio).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric', timeZone:'UTC' })
+            ? new Date(a.fechaInicio).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
             : '—';
         const fechaFinStr = a.fechaFin
-            ? new Date(a.fechaFin).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric', timeZone:'UTC' })
+            ? new Date(a.fechaFin).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
             : '—';
 
         return `
@@ -448,34 +449,34 @@ function openAvisoModal(aviso = null) {
 
     if (aviso) {
         title.innerHTML = '<i class="fas fa-pen-to-square"></i> Editar Aviso';
-        document.getElementById('avisoTitulo').value       = aviso.titulo || '';
-        document.getElementById('avisoDescripcion').value  = aviso.descripcion || '';
-        document.getElementById('avisoTipo').value         = aviso.tipo || 'general';
-        document.getElementById('avisoPrioridad').value    = aviso.prioridad || 'media';
-        document.getElementById('avisoActivo').checked     = aviso.activo !== false;
+        document.getElementById('avisoTitulo').value = aviso.titulo || '';
+        document.getElementById('avisoDescripcion').value = aviso.descripcion || '';
+        document.getElementById('avisoTipo').value = aviso.tipo || 'general';
+        document.getElementById('avisoPrioridad').value = aviso.prioridad || 'media';
+        document.getElementById('avisoActivo').checked = aviso.activo !== false;
 
         if (aviso.fechaInicio) {
             const f = new Date(aviso.fechaInicio);
             document.getElementById('avisoFechaInicio').value =
-                `${f.getUTCFullYear()}-${String(f.getUTCMonth()+1).padStart(2,'0')}-${String(f.getUTCDate()).padStart(2,'0')}`;
+                `${f.getUTCFullYear()}-${String(f.getUTCMonth() + 1).padStart(2, '0')}-${String(f.getUTCDate()).padStart(2, '0')}`;
         }
         if (aviso.fechaFin) {
             const f = new Date(aviso.fechaFin);
             document.getElementById('avisoFechaFin').value =
-                `${f.getUTCFullYear()}-${String(f.getUTCMonth()+1).padStart(2,'0')}-${String(f.getUTCDate()).padStart(2,'0')}`;
+                `${f.getUTCFullYear()}-${String(f.getUTCMonth() + 1).padStart(2, '0')}-${String(f.getUTCDate()).padStart(2, '0')}`;
         }
         editingAvisoId = aviso._id;
     } else {
         title.innerHTML = '<i class="fas fa-bullhorn"></i> Nuevo Aviso';
-        document.getElementById('avisoTitulo').value      = '';
+        document.getElementById('avisoTitulo').value = '';
         document.getElementById('avisoDescripcion').value = '';
-        document.getElementById('avisoTipo').value        = 'general';
-        document.getElementById('avisoPrioridad').value   = 'media';
-        document.getElementById('avisoActivo').checked    = true;
-        const now   = new Date();
+        document.getElementById('avisoTipo').value = 'general';
+        document.getElementById('avisoPrioridad').value = 'media';
+        document.getElementById('avisoActivo').checked = true;
+        const now = new Date();
         const later = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         document.getElementById('avisoFechaInicio').value = now.toISOString().split('T')[0];
-        document.getElementById('avisoFechaFin').value    = later.toISOString().split('T')[0];
+        document.getElementById('avisoFechaFin').value = later.toISOString().split('T')[0];
         editingAvisoId = null;
     }
 
@@ -493,21 +494,21 @@ function closeAvisoModal() {
 }
 
 async function saveAviso() {
-    const titulo      = document.getElementById('avisoTitulo')?.value?.trim();
+    const titulo = document.getElementById('avisoTitulo')?.value?.trim();
     const descripcion = document.getElementById('avisoDescripcion')?.value?.trim();
-    const tipo        = document.getElementById('avisoTipo')?.value;
-    const prioridad   = document.getElementById('avisoPrioridad')?.value;
+    const tipo = document.getElementById('avisoTipo')?.value;
+    const prioridad = document.getElementById('avisoPrioridad')?.value;
     const fechaInicio = document.getElementById('avisoFechaInicio')?.value;
-    const fechaFin    = document.getElementById('avisoFechaFin')?.value;
-    const activo      = document.getElementById('avisoActivo')?.checked;
+    const fechaFin = document.getElementById('avisoFechaFin')?.value;
+    const activo = document.getElementById('avisoActivo')?.checked;
 
-    if (!titulo)      { showToast('El título es obligatorio', 'error'); return; }
+    if (!titulo) { showToast('El título es obligatorio', 'error'); return; }
     if (!descripcion) { showToast('La descripción es obligatoria', 'error'); return; }
     if (!fechaInicio) { showToast('La fecha de inicio es obligatoria', 'error'); return; }
-    if (!fechaFin)    { showToast('La fecha de fin es obligatoria', 'error'); return; }
+    if (!fechaFin) { showToast('La fecha de fin es obligatoria', 'error'); return; }
 
-    const hoy    = new Date();
-    const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+    const hoy = new Date();
+    const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
 
     if (fechaInicio < hoyStr) {
         showToast('La fecha de inicio no puede ser anterior a hoy', 'error'); return;
@@ -524,6 +525,11 @@ async function saveAviso() {
             : await avisoService.createAviso(data);
 
         if (result.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:aviso-updated', {
+                action: editingAvisoId ? 'updated' : 'created'
+            });
+
             showToast(editingAvisoId ? '✓ Aviso actualizado' : '✓ Aviso creado', 'success');
             closeAvisoModal();
             loadAvisos(currentAvisosPage);
@@ -551,7 +557,6 @@ async function editAviso(id) {
 }
 
 async function deleteAviso(id, titulo) {
-    // ===== REEMPLAZO DE confirm() POR MODAL PERSONALIZADO =====
     const confirmed = await showConfirmModal({
         message: `¿Eliminar el aviso "${titulo}"?`,
         subtext: 'Esta acción no se puede deshacer.',
@@ -560,11 +565,16 @@ async function deleteAviso(id, titulo) {
         confirmType: 'danger'
     });
     if (!confirmed) return;
-    // ===== FIN REEMPLAZO =====
 
     try {
         const result = await avisoService.deleteAviso(id);
-        if (result.success) { showToast('Aviso eliminado', 'success'); loadAvisos(currentAvisosPage); }
+        if (result.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:aviso-updated', { action: 'deleted' });
+
+            showToast('Aviso eliminado', 'success');
+            loadAvisos(currentAvisosPage);
+        }
         else showToast(result.message || 'Error al eliminar', 'error');
     } catch (error) {
         console.error('Error eliminando aviso:', error);
@@ -572,22 +582,22 @@ async function deleteAviso(id, titulo) {
     }
 }
 
-window.loadAvisos       = loadAvisos;
-window.openAvisoModal   = () => openAvisoModal(null);
-window.closeAvisoModal  = closeAvisoModal;
-window.saveAviso        = saveAviso;
-window.editAviso        = editAviso;
-window.deleteAviso      = deleteAviso;
+window.loadAvisos = loadAvisos;
+window.openAvisoModal = () => openAvisoModal(null);
+window.closeAvisoModal = closeAvisoModal;
+window.saveAviso = saveAviso;
+window.editAviso = editAviso;
+window.deleteAviso = deleteAviso;
 
 // =============================================================
 // NAVEGACIÓN
 // =============================================================
 const SECTION_META = {
-    versions:    { title: 'Panel de Versiones',    desc: 'Gestiona las versiones del sistema y publica actualizaciones', icon: 'fa-code-branch' },
-    avisos:      { title: 'Gestión de Avisos',     desc: 'Administra los avisos que se mostrarán a los usuarios',        icon: 'fa-bullhorn' },
-    sugerencias: { title: 'Bandeja de Sugerencias', desc: 'Gestiona las sugerencias enviadas por los usuarios',          icon: 'fa-lightbulb' },
-    invitations: { title: 'Invitaciones',           desc: 'Envía invitaciones para nuevos administradores',              icon: 'fa-envelope-open-text' },
-    shutdown:    { title: 'Control de Acceso',      desc: 'Controla la disponibilidad del sistema para los usuarios',    icon: 'fa-power-off' }
+    versions: { title: 'Panel de Versiones', desc: 'Gestiona las versiones del sistema y publica actualizaciones', icon: 'fa-code-branch' },
+    avisos: { title: 'Gestión de Avisos', desc: 'Administra los avisos que se mostrarán a los usuarios', icon: 'fa-bullhorn' },
+    sugerencias: { title: 'Bandeja de Sugerencias', desc: 'Gestiona las sugerencias enviadas por los usuarios', icon: 'fa-lightbulb' },
+    invitations: { title: 'Invitaciones', desc: 'Envía invitaciones para nuevos administradores', icon: 'fa-envelope-open-text' },
+    shutdown: { title: 'Control de Acceso', desc: 'Controla la disponibilidad del sistema para los usuarios', icon: 'fa-power-off' }
 };
 
 function switchSection(section) {
@@ -598,30 +608,30 @@ function switchSection(section) {
     });
 
     const meta = SECTION_META[section] || {};
-    const pageTitle    = document.getElementById('pageTitle');
-    const heroTitle    = document.getElementById('heroTitle');
-    const pageDesc     = document.getElementById('pageDescription');
-    const heroIcon     = document.getElementById('heroIcon');
+    const pageTitle = document.getElementById('pageTitle');
+    const heroTitle = document.getElementById('heroTitle');
+    const pageDesc = document.getElementById('pageDescription');
+    const heroIcon = document.getElementById('heroIcon');
 
-    if (pageTitle)  pageTitle.textContent  = meta.title || section;
-    if (heroTitle)  heroTitle.textContent  = meta.title || section;
-    if (pageDesc)   pageDesc.textContent   = meta.desc  || '';
+    if (pageTitle) pageTitle.textContent = meta.title || section;
+    if (heroTitle) heroTitle.textContent = meta.title || section;
+    if (pageDesc) pageDesc.textContent = meta.desc || '';
     if (heroIcon) {
         heroIcon.className = `fas ${meta.icon || 'fa-circle'} sa-page-hero__deco-icon`;
     }
 
-    const sections = ['versionsSection','avisosSection','sugerenciasSection','invitationsSection','shutdownSection'];
+    const sections = ['versionsSection', 'avisosSection', 'sugerenciasSection', 'invitationsSection', 'shutdownSection'];
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('sa-section--hidden', 'hidden');
     });
 
     const targets = {
-        versions:    'versionsSection',
-        avisos:      'avisosSection',
+        versions: 'versionsSection',
+        avisos: 'avisosSection',
         sugerencias: 'sugerenciasSection',
         invitations: 'invitationsSection',
-        shutdown:    'shutdownSection'
+        shutdown: 'shutdownSection'
     };
 
     const targetId = targets[section];
@@ -636,11 +646,11 @@ function switchSection(section) {
     }
 
     const loaders = {
-        versions:    loadVersions,
-        avisos:      () => loadAvisos(),
+        versions: loadVersions,
+        avisos: () => loadAvisos(),
         sugerencias: () => { loadSuggestionsPage(); loadSuggestionsStats(); },
         invitations: loadInvitations,
-        shutdown:    loadSystemStatus
+        shutdown: loadSystemStatus
     };
 
     if (loaders[section]) loaders[section]();
@@ -691,12 +701,12 @@ function renderVersions(versions) {
 }
 
 function renderVersionCard(v) {
-    const isCurrent  = v.esActual;
+    const isCurrent = v.esActual;
     const estadoClass = { estable: 'badge-estable', beta: 'badge-beta', desarrollo: 'badge-desarrollo', deprecada: 'badge-deprecada' }[v.estado] || 'badge-estable';
-    const estadoText  = { estable: 'Estable', beta: 'Beta', desarrollo: 'Desarrollo', deprecada: 'Deprecada' }[v.estado] || v.estado;
-    const tagClass    = { nuevo:'tag-nuevo', mejora:'tag-mejora', correccion:'tag-correccion', eliminado:'tag-eliminado', seguridad:'tag-seguridad', rendimiento:'tag-rendimiento' };
-    const tagText     = { nuevo:'Nuevo', mejora:'Mejora', correccion:'Corrección', eliminado:'Eliminado', seguridad:'Seguridad', rendimiento:'Rendimiento' };
-    const descFmt     = v.descripcion ? v.descripcion.replace(/\n/g, '<br>') : '';
+    const estadoText = { estable: 'Estable', beta: 'Beta', desarrollo: 'Desarrollo', deprecada: 'Deprecada' }[v.estado] || v.estado;
+    const tagClass = { nuevo: 'tag-nuevo', mejora: 'tag-mejora', correccion: 'tag-correccion', eliminado: 'tag-eliminado', seguridad: 'tag-seguridad', rendimiento: 'tag-rendimiento' };
+    const tagText = { nuevo: 'Nuevo', mejora: 'Mejora', correccion: 'Corrección', eliminado: 'Eliminado', seguridad: 'Seguridad', rendimiento: 'Rendimiento' };
+    const descFmt = v.descripcion ? v.descripcion.replace(/\n/g, '<br>') : '';
 
     return `
         <div class="version-card ${isCurrent ? 'current' : ''}">
@@ -783,10 +793,10 @@ function showVersionModal(version) {
                     <div style="margin-bottom:1rem;">
                         <label>Estado</label>
                         <select id="modalVersionEstado">
-                            <option value="estable"   ${version.estado==='estable'   ?'selected':''}>Estable</option>
-                            <option value="beta"      ${version.estado==='beta'      ?'selected':''}>Beta</option>
-                            <option value="desarrollo"${version.estado==='desarrollo'?'selected':''}>Desarrollo</option>
-                            <option value="deprecada" ${version.estado==='deprecada' ?'selected':''}>Deprecada</option>
+                            <option value="estable"   ${version.estado === 'estable' ? 'selected' : ''}>Estable</option>
+                            <option value="beta"      ${version.estado === 'beta' ? 'selected' : ''}>Beta</option>
+                            <option value="desarrollo"${version.estado === 'desarrollo' ? 'selected' : ''}>Desarrollo</option>
+                            <option value="deprecada" ${version.estado === 'deprecada' ? 'selected' : ''}>Deprecada</option>
                         </select>
                     </div>
                     <div style="margin-bottom:1rem;">
@@ -795,12 +805,12 @@ function showVersionModal(version) {
                             ${(version.cambios || []).map((c, idx) => `
                                 <div class="cambio-item" style="margin-bottom:.5rem;">
                                     <select class="cambio-tipo">
-                                        <option value="nuevo"      ${c.tipo==='nuevo'      ?'selected':''}>Nuevo</option>
-                                        <option value="mejora"     ${c.tipo==='mejora'     ?'selected':''}>Mejora</option>
-                                        <option value="correccion" ${c.tipo==='correccion' ?'selected':''}>Corrección</option>
-                                        <option value="eliminado"  ${c.tipo==='eliminado'  ?'selected':''}>Eliminado</option>
-                                        <option value="seguridad"  ${c.tipo==='seguridad'  ?'selected':''}>Seguridad</option>
-                                        <option value="rendimiento"${c.tipo==='rendimiento'?'selected':''}>Rendimiento</option>
+                                        <option value="nuevo"      ${c.tipo === 'nuevo' ? 'selected' : ''}>Nuevo</option>
+                                        <option value="mejora"     ${c.tipo === 'mejora' ? 'selected' : ''}>Mejora</option>
+                                        <option value="correccion" ${c.tipo === 'correccion' ? 'selected' : ''}>Corrección</option>
+                                        <option value="eliminado"  ${c.tipo === 'eliminado' ? 'selected' : ''}>Eliminado</option>
+                                        <option value="seguridad"  ${c.tipo === 'seguridad' ? 'selected' : ''}>Seguridad</option>
+                                        <option value="rendimiento"${c.tipo === 'rendimiento' ? 'selected' : ''}>Rendimiento</option>
                                     </select>
                                     <input type="text" class="cambio-desc-input" value="${escapeHtml(c.descripcion)}" placeholder="Descripción del cambio">
                                     <button onclick="window.removeCambio(${idx})" style="background:var(--col-red-dim);color:var(--col-red);border:1px solid rgba(248,113,113,.3);padding:.4rem .6rem;border-radius:6px;cursor:pointer;font-size:.8rem;flex-shrink:0;">✕</button>
@@ -859,10 +869,10 @@ function closeVersionModal() {
 }
 
 async function saveVersion() {
-    const numero      = document.getElementById('modalVersionNumero')?.value;
-    const titulo      = document.getElementById('modalVersionTitulo')?.value;
+    const numero = document.getElementById('modalVersionNumero')?.value;
+    const titulo = document.getElementById('modalVersionTitulo')?.value;
     const descripcion = document.getElementById('modalVersionDescripcion')?.value;
-    const estado      = document.getElementById('modalVersionEstado')?.value;
+    const estado = document.getElementById('modalVersionEstado')?.value;
 
     if (descripcion && descripcion.length > 10000) {
         showToast(`La descripción es demasiado larga (${descripcion.length} chars). Máximo 10000.`, 'error'); return;
@@ -881,7 +891,7 @@ async function saveVersion() {
         }
     });
 
-    const url    = editingVersionId ? `${API_URL}/api/superadmin/versions/${editingVersionId}` : `${API_URL}/api/superadmin/versions`;
+    const url = editingVersionId ? `${API_URL}/api/superadmin/versions/${editingVersionId}` : `${API_URL}/api/superadmin/versions`;
     const method = editingVersionId ? 'PUT' : 'POST';
 
     try {
@@ -892,6 +902,11 @@ async function saveVersion() {
         });
         const data = await response.json();
         if (data.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:version-updated', {
+                action: editingVersionId ? 'updated' : 'created'
+            });
+
             showToast(editingVersionId ? '✓ Versión actualizada' : '✓ Versión publicada', 'success');
             closeVersionModal();
             loadVersions();
@@ -905,7 +920,6 @@ async function saveVersion() {
 }
 
 async function setCurrentVersion(id, numero) {
-    // ===== REEMPLAZO DE confirm() POR MODAL PERSONALIZADO =====
     const confirmed = await showConfirmModal({
         message: `¿Marcar v${numero} como la versión actual del sistema?`,
         subtext: 'Esta versión será la que vean todos los usuarios.',
@@ -914,18 +928,22 @@ async function setCurrentVersion(id, numero) {
         confirmType: 'warning'
     });
     if (!confirmed) return;
-    // ===== FIN REEMPLAZO =====
 
     try {
         const response = await fetchWithAuth(`${API_URL}/api/superadmin/versions/${id}/set-current`, { method: 'PATCH' });
         const data = await response.json();
-        if (data.success) { showToast(`v${numero} es ahora la versión actual`); loadVersions(); }
+        if (data.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:version-updated', { action: 'set-current' });
+
+            showToast(`v${numero} es ahora la versión actual`);
+            loadVersions();
+        }
         else showToast(data.message || 'Error', 'error');
     } catch (error) { showToast('Error al marcar versión actual', 'error'); }
 }
 
 async function deleteVersion(id, numero) {
-    // ===== REEMPLAZO DE confirm() POR MODAL PERSONALIZADO =====
     const confirmed = await showConfirmModal({
         message: `¿Eliminar permanentemente la versión v${numero}?`,
         subtext: 'Esta acción no se puede deshacer y se perderán todos los datos asociados.',
@@ -934,12 +952,17 @@ async function deleteVersion(id, numero) {
         confirmType: 'danger'
     });
     if (!confirmed) return;
-    // ===== FIN REEMPLAZO =====
 
     try {
         const response = await fetchWithAuth(`${API_URL}/api/superadmin/versions/${id}`, { method: 'DELETE' });
         const data = await response.json();
-        if (data.success) { showToast(`Versión v${numero} eliminada`); loadVersions(); }
+        if (data.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:version-updated', { action: 'deleted' });
+
+            showToast(`Versión v${numero} eliminada`);
+            loadVersions();
+        }
         else showToast(data.message || 'Error al eliminar', 'error');
     } catch (error) { showToast('Error al eliminar versión', 'error'); }
 }
@@ -994,7 +1017,7 @@ function populateSchoolSelect() {
         return;
     }
 
-    const sorted = [...schoolsList].sort((a, b) => 
+    const sorted = [...schoolsList].sort((a, b) =>
         a.displayName.localeCompare(b.displayName, 'es')
     );
 
@@ -1010,10 +1033,10 @@ function populateSchoolSelect() {
         select.appendChild(option);
     });
 
-    select.addEventListener('change', function() {
+    select.addEventListener('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         const infoDiv = document.getElementById('schoolSelectInfo');
-        
+
         if (!infoDiv) return;
         if (!this.value) { infoDiv.style.display = 'none'; return; }
 
@@ -1138,16 +1161,19 @@ async function closeSystemGlobal() {
         });
         const data = await response.json();
         if (data.success) {
-            // ═══════════════════════════════════════════════════
-            // GUARDAR EN localStorage PARA QUE ARIA LO LEA
-            // ═══════════════════════════════════════════════════
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:system-status-changed', {
+                action: 'closed-global',
+                reason: reason
+            });
+
             localStorage.setItem('system_closed', JSON.stringify({
                 closed: true,
                 type: 'global',
                 reason: reason,
                 timestamp: Date.now()
             }));
-            
+
             showToast('🔒 Sistema cerrado GLOBALMENTE', 'warning');
             document.getElementById('shutdownReason').value = '';
             await loadSystemStatus();
@@ -1174,11 +1200,13 @@ async function openSystemGlobal() {
         const response = await fetchWithAuth(`${API_URL}/api/superadmin/system/open`, { method: 'POST' });
         const data = await response.json();
         if (data.success) {
-            // ═══════════════════════════════════════════════════
-            // LIMPIAR localStorage
-            // ═══════════════════════════════════════════════════
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:system-status-changed', {
+                action: 'opened-global'
+            });
+
             localStorage.removeItem('system_closed');
-            
+
             showToast('🔓 Sistema reabierto GLOBALMENTE', 'success');
             await loadSystemStatus();
         } else {
@@ -1222,9 +1250,13 @@ async function closeSchoolSystem() {
         });
         const data = await response.json();
         if (data.success) {
-            // ═══════════════════════════════════════════════════
-            // GUARDAR EN localStorage PARA QUE ARIA LO LEA
-            // ═══════════════════════════════════════════════════
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:system-status-changed', {
+                action: 'closed-school',
+                schoolId: schoolId,
+                reason: reason
+            });
+
             const existing = JSON.parse(localStorage.getItem('system_closed') || '{}');
             const closedSchools = existing.closedSchools || [];
             if (!closedSchools.includes(schoolId)) {
@@ -1237,7 +1269,7 @@ async function closeSchoolSystem() {
                 reason: reason,
                 timestamp: Date.now()
             }));
-            
+
             showToast(`🔒 Escuela cerrada`, 'warning');
             document.getElementById('schoolShutdownReason').value = '';
             await loadSystemStatus();
@@ -1276,9 +1308,12 @@ async function openSchoolSystem() {
         });
         const data = await response.json();
         if (data.success) {
-            // ═══════════════════════════════════════════════════
-            // ACTUALIZAR localStorage
-            // ═══════════════════════════════════════════════════
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:system-status-changed', {
+                action: 'opened-school',
+                schoolId: schoolId
+            });
+
             const existing = JSON.parse(localStorage.getItem('system_closed') || '{}');
             if (existing.closedSchools) {
                 existing.closedSchools = existing.closedSchools.filter(id => id !== schoolId);
@@ -1290,7 +1325,7 @@ async function openSchoolSystem() {
             } else {
                 localStorage.removeItem('system_closed');
             }
-            
+
             showToast(`🔓 Escuela reabierta`, 'success');
             await loadSystemStatus();
         } else {
@@ -1323,7 +1358,12 @@ async function reopenSingleSchool(schoolId) {
         });
         const data = await response.json();
         if (data.success) {
-            // Actualizar localStorage
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:system-status-changed', {
+                action: 'opened-school',
+                schoolId: schoolId
+            });
+
             const existing = JSON.parse(localStorage.getItem('system_closed') || '{}');
             if (existing.closedSchools) {
                 existing.closedSchools = existing.closedSchools.filter(id => id !== schoolId);
@@ -1333,7 +1373,7 @@ async function reopenSingleSchool(schoolId) {
                     localStorage.setItem('system_closed', JSON.stringify(existing));
                 }
             }
-            
+
             showToast(`🔓 Escuela reabierta`, 'success');
             await loadSystemStatus();
         } else {
@@ -1409,14 +1449,14 @@ function renderShutdownHistory() {
 }
 
 // ── Exponer globalmente ─────────────────────────────────────
-window.loadSystemStatus     = loadSystemStatus;
-window.closeSystemGlobal    = closeSystemGlobal;
-window.openSystemGlobal     = openSystemGlobal;
-window.closeSchoolSystem    = closeSchoolSystem;
-window.openSchoolSystem     = openSchoolSystem;
-window.reopenSingleSchool   = reopenSingleSchool;
-window.closeSystem          = closeSystemGlobal;
-window.openSystem           = openSystemGlobal;
+window.loadSystemStatus = loadSystemStatus;
+window.closeSystemGlobal = closeSystemGlobal;
+window.openSystemGlobal = openSystemGlobal;
+window.closeSchoolSystem = closeSchoolSystem;
+window.openSchoolSystem = openSchoolSystem;
+window.reopenSingleSchool = reopenSingleSchool;
+window.closeSystem = closeSystemGlobal;
+window.openSystem = openSystemGlobal;
 
 // =============================================================
 // SUGERENCIAS
@@ -1426,7 +1466,7 @@ function createSugerenciasSection() {
 }
 
 function setupSugerenciasFilters() {
-    const filterEstado    = document.getElementById('filterEstado');
+    const filterEstado = document.getElementById('filterEstado');
     const filterCategoria = document.getElementById('filterCategoria');
     if (filterEstado) {
         filterEstado.addEventListener('change', () => {
@@ -1452,9 +1492,9 @@ async function loadSuggestionsPage(page = 1) {
         const response = await fetchWithAuth(url, {});
         const data = await response.json();
         if (data.success) {
-            currentSuggestions     = data.suggestions;
+            currentSuggestions = data.suggestions;
             currentSuggestionsPage = data.pagination.page;
-            totalSuggestionsPages  = data.pagination.pages;
+            totalSuggestionsPages = data.pagination.pages;
             renderSuggestionsList();
             renderSuggestionsPagination();
             loadSuggestionsStats();
@@ -1472,8 +1512,8 @@ async function loadSuggestionsStats() {
         const response = await fetchWithAuth(`${API_URL}/api/suggestions/admin/stats`, {});
         const data = await response.json();
         if (data.success) {
-            ['Total','Pendientes','Vistas','Implementadas'].forEach((k, i) => {
-                const ids = ['statTotal','statPendientes','statVistas','statImplementadas'];
+            ['Total', 'Pendientes', 'Vistas', 'Implementadas'].forEach((k, i) => {
+                const ids = ['statTotal', 'statPendientes', 'statVistas', 'statImplementadas'];
                 const el = document.getElementById(ids[i]);
                 const vals = [data.stats.total, data.stats.pendientes, data.stats.vistas, data.stats.implementadas];
                 if (el) el.textContent = vals[i];
@@ -1573,7 +1613,7 @@ window.viewSuggestionDetail = async (id) => {
                                     <img src="${a.cloudinary_url}" alt="${a.originalname}">
                                     <div>
                                         <div style="font-weight:600;font-size:.82rem;">${escapeHtml(a.originalname)}</div>
-                                        <small style="color:var(--col-text-3);">${(a.size/1024).toFixed(1)} KB</small><br>
+                                        <small style="color:var(--col-text-3);">${(a.size / 1024).toFixed(1)} KB</small><br>
                                         <a href="${a.cloudinary_url}" target="_blank">Ver imagen →</a>
                                     </div>
                                 </div>
@@ -1601,11 +1641,11 @@ window.viewSuggestionDetail = async (id) => {
                     ${attachmentsHtml}
                     <div class="sugerencia-detail__actions">
                         <select id="detailStatusSelect" class="sa-select" style="max-width:220px;">
-                            <option value="pendiente"   ${s.estado==='pendiente'   ?'selected':''}>⏳ Pendiente</option>
-                            <option value="vista"       ${s.estado==='vista'       ?'selected':''}>👁 Vista</option>
-                            <option value="considerando"${s.estado==='considerando'?'selected':''}>🤔 En consideración</option>
-                            <option value="implementada"${s.estado==='implementada'?'selected':''}>✅ Implementada</option>
-                            <option value="rechazada"   ${s.estado==='rechazada'   ?'selected':''}>❌ Rechazada</option>
+                            <option value="pendiente"   ${s.estado === 'pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
+                            <option value="vista"       ${s.estado === 'vista' ? 'selected' : ''}>👁 Vista</option>
+                            <option value="considerando"${s.estado === 'considerando' ? 'selected' : ''}>🤔 En consideración</option>
+                            <option value="implementada"${s.estado === 'implementada' ? 'selected' : ''}>✅ Implementada</option>
+                            <option value="rechazada"   ${s.estado === 'rechazada' ? 'selected' : ''}>❌ Rechazada</option>
                         </select>
                         <button class="sa-btn sa-btn--primary sa-btn--sm" onclick="updateSuggestionStatus()">
                             <i class="fas fa-floppy-disk"></i> Actualizar
@@ -1655,6 +1695,13 @@ window.updateSuggestionStatus = async () => {
         });
         const data = await response.json();
         if (data.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:suggestion-updated', {
+                action: 'status-changed',
+                suggestionId: id,
+                newStatus: select.value
+            });
+
             showToast('Estado actualizado', 'success');
             closeSuggestionDetailModal();
             loadSuggestionsPage(currentSuggestionsPage);
@@ -1667,7 +1714,6 @@ window.deleteSuggestion = async (number) => {
     const id = currentSuggestionId;
     if (!id) { showToast('ID no válido', 'error'); return; }
 
-    // ===== REEMPLAZO DE confirm() POR MODAL PERSONALIZADO =====
     const confirmed = await showConfirmModal({
         message: `¿Eliminar la sugerencia ${number}?`,
         subtext: 'Esta acción no se puede deshacer.',
@@ -1676,12 +1722,17 @@ window.deleteSuggestion = async (number) => {
         confirmType: 'danger'
     });
     if (!confirmed) return;
-    // ===== FIN REEMPLAZO =====
 
     try {
         const response = await fetchWithAuth(`${API_URL}/api/suggestions/admin/${id}`, { method: 'DELETE' });
         const data = await response.json();
         if (data.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:suggestion-updated', {
+                action: 'deleted',
+                suggestionId: id
+            });
+
             showToast('Sugerencia eliminada', 'success');
             closeSuggestionDetailModal();
             loadSuggestionsPage(currentSuggestionsPage);
@@ -1699,13 +1750,13 @@ window.closeSuggestionDetailModal = () => {
 
 function getCategoriaTexto(categoria) {
     const textos = {
-        mejora:              '✨ Mejora',
+        mejora: '✨ Mejora',
         nueva_funcionalidad: '🚀 Nueva func.',
-        reporte_error:       '🐛 Error',
+        reporte_error: '🐛 Error',
         experiencia_usuario: '🎨 UX',
-        rendimiento:         '⚡ Rendimiento',
-        seguridad:           '🔒 Seguridad',
-        otros:               '📌 Otros'
+        rendimiento: '⚡ Rendimiento',
+        seguridad: '🔒 Seguridad',
+        otros: '📌 Otros'
     };
     return textos[categoria] || categoria;
 }
@@ -1718,7 +1769,7 @@ const API_INVITATIONS = '/api/superadmin/invitations';
 function openInvitationModal() {
     const modal = document.getElementById('invitationModal');
     if (modal) {
-        document.getElementById('inviteEmail').value      = '';
+        document.getElementById('inviteEmail').value = '';
         document.getElementById('inviteSchoolName').value = '';
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -1733,10 +1784,10 @@ function closeInvitationModal() {
 }
 
 async function sendInvitation() {
-    const email      = document.getElementById('inviteEmail')?.value?.trim();
+    const email = document.getElementById('inviteEmail')?.value?.trim();
     const schoolName = document.getElementById('inviteSchoolName')?.value?.trim();
 
-    if (!email)      { showToast('El email es obligatorio', 'error'); return; }
+    if (!email) { showToast('El email es obligatorio', 'error'); return; }
     if (!schoolName) { showToast('El nombre de la escuela es obligatorio', 'error'); return; }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1750,6 +1801,9 @@ async function sendInvitation() {
         });
         const data = await response.json();
         if (data.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:invitation-updated', { action: 'created' });
+
             showToast(`✓ Invitación enviada a ${email}`, 'success');
             closeInvitationModal();
             loadInvitations();
@@ -1767,7 +1821,7 @@ async function loadInvitations() {
 
     try {
         const status = document.getElementById('filterInvitationStatus')?.value || '';
-        const url    = status ? `${API_URL}${API_INVITATIONS}?status=${status}` : `${API_URL}${API_INVITATIONS}`;
+        const url = status ? `${API_URL}${API_INVITATIONS}?status=${status}` : `${API_URL}${API_INVITATIONS}`;
         const response = await fetchWithAuth(url, {});
         const data = await response.json();
         if (data.success) renderInvitations(data.invitations || []);
@@ -1795,9 +1849,9 @@ function renderInvitations(invitations) {
         return;
     }
 
-    const statusColors = { pending:'#fbbf24', used:'#34d399', expired:'#64748b', revoked:'#f87171' };
-    const statusIcons  = { pending:'⏳', used:'✅', expired:'⏰', revoked:'🚫' };
-    const statusText   = { pending:'Pendiente', used:'Usada', expired:'Expirada', revoked:'Revocada' };
+    const statusColors = { pending: '#fbbf24', used: '#34d399', expired: '#64748b', revoked: '#f87171' };
+    const statusIcons = { pending: '⏳', used: '✅', expired: '⏰', revoked: '🚫' };
+    const statusText = { pending: 'Pendiente', used: 'Usada', expired: 'Expirada', revoked: 'Revocada' };
 
     container.innerHTML = invitations.map(inv => `
         <div class="version-card ${(inv.status === 'revoked' || inv.status === 'expired') ? 'inactive' : ''}">
@@ -1820,7 +1874,7 @@ function renderInvitations(invitations) {
                 <p><strong style="color:var(--col-text-2);">Creada:</strong> ${formatDate(inv.createdAt)}</p>
                 <p><strong style="color:var(--col-text-2);">Expira:</strong> ${formatDate(inv.expiresAt)}</p>
                 ${inv.createdUserId ? `<p><strong style="color:var(--col-text-2);">Usuario:</strong> ${escapeHtml(inv.createdUserId.usuario || 'N/A')}</p>` : ''}
-                ${inv.usedAt       ? `<p><strong style="color:var(--col-text-2);">Usada el:</strong> ${formatDate(inv.usedAt)}</p>` : ''}
+                ${inv.usedAt ? `<p><strong style="color:var(--col-text-2);">Usada el:</strong> ${formatDate(inv.usedAt)}</p>` : ''}
             </div>
             ${inv.status === 'pending' ? `
             <div class="version-actions">
@@ -1833,7 +1887,6 @@ function renderInvitations(invitations) {
 }
 
 async function revokeInvitation(id, email) {
-    // ===== REEMPLAZO DE confirm() POR MODAL PERSONALIZADO =====
     const confirmed = await showConfirmModal({
         message: `¿Revocar la invitación de ${email}?`,
         subtext: 'El token dejará de ser válido inmediatamente.',
@@ -1842,12 +1895,17 @@ async function revokeInvitation(id, email) {
         confirmType: 'danger'
     });
     if (!confirmed) return;
-    // ===== FIN REEMPLAZO =====
 
     try {
         const response = await fetchWithAuth(`${API_URL}${API_INVITATIONS}/${id}`, { method: 'DELETE' });
         const data = await response.json();
-        if (data.success) { showToast('Invitación revocada', 'success'); loadInvitations(); }
+        if (data.success) {
+            // ✅ Emitir evento WebSocket
+            wsManager.emit('superadmin:invitation-updated', { action: 'revoked' });
+
+            showToast('Invitación revocada', 'success');
+            loadInvitations();
+        }
         else showToast(data.message || 'Error al revocar', 'error');
     } catch (error) {
         console.error('Error revocando invitación:', error);
@@ -1861,35 +1919,35 @@ async function revokeInvitation(id, email) {
 async function logout() {
     if (refreshTimeout) clearTimeout(refreshTimeout);
     try {
-        await fetch(`${API_URL}/api/auth/logout`,      { method: 'POST', credentials: 'include' });
+        await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
         await fetch(`${API_URL}/api/superadmin/logout`, { method: 'POST', credentials: 'include' });
-    } catch (e) {}
+    } catch (e) { }
 
-    ['token','superAdminToken','user','userRole'].forEach(k => localStorage.removeItem(k));
+    ['token', 'superAdminToken', 'user', 'userRole'].forEach(k => localStorage.removeItem(k));
     window.location.href = '/login.html';
 }
 
 // =============================================================
 // EXPONER FUNCIONES GLOBALMENTE
 // =============================================================
-window.logout              = logout;
-window.loadVersions        = loadVersions;
+window.logout = logout;
+window.loadVersions = loadVersions;
 window.openCreateVersionModal = openCreateVersionModal;
-window.editVersion         = editVersion;
-window.setCurrentVersion   = setCurrentVersion;
-window.deleteVersion       = deleteVersion;
-window.closeVersionModal   = closeVersionModal;
-window.saveVersion         = saveVersion;
-window.addCambio           = addCambio;
-window.removeCambio        = removeCambio;
-window.closeSystem         = closeSystem;
-window.openSystem          = openSystem;
+window.editVersion = editVersion;
+window.setCurrentVersion = setCurrentVersion;
+window.deleteVersion = deleteVersion;
+window.closeVersionModal = closeVersionModal;
+window.saveVersion = saveVersion;
+window.addCambio = addCambio;
+window.removeCambio = removeCambio;
+window.closeSystem = closeSystem;
+window.openSystem = openSystem;
 
-window.openInvitationModal  = openInvitationModal;
+window.openInvitationModal = openInvitationModal;
 window.closeInvitationModal = closeInvitationModal;
-window.sendInvitation       = sendInvitation;
-window.loadInvitations      = loadInvitations;
-window.revokeInvitation     = revokeInvitation;
+window.sendInvitation = sendInvitation;
+window.loadInvitations = loadInvitations;
+window.revokeInvitation = revokeInvitation;
 
 // =============================================================
 // INICIALIZACIÓN
@@ -1901,12 +1959,12 @@ document.addEventListener('DOMContentLoaded', () => {
     createSugerenciasSection();
 
     try {
-        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
         if (payload.exp) {
             const expiresIn = (payload.exp * 1000) - Date.now();
             if (expiresIn > 0) {
                 scheduleTokenRefresh(expiresIn);
-                console.log(`⏰ Token válido por ${Math.floor(expiresIn/60000)} min`);
+                console.log(`⏰ Token válido por ${Math.floor(expiresIn / 60000)} min`);
             }
         }
     } catch (e) { console.warn('No se pudo decodificar token:', e); }
@@ -1917,14 +1975,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = document.getElementById('userName');
             if (el) el.textContent = user.usuario;
         }
-    } catch (e) {}
+    } catch (e) { }
 
     document.querySelectorAll('.sa-nav__item, .nav-item').forEach(item => {
         item.addEventListener('click', () => switchSection(item.dataset.section));
     });
 
     document.addEventListener('click', (e) => {
-        const sidebar    = document.getElementById('sidebar');
+        const sidebar = document.getElementById('sidebar');
         const menuToggle = document.getElementById('menuToggle');
         if (sidebar?.classList.contains('sa-sidebar--open') &&
             !sidebar.contains(e.target) &&
@@ -1934,6 +1992,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     switchSection('versions');
+
+    // ✅ Listeners WebSocket para refrescar en tiempo real entre SuperAdmins
+    window.addEventListener('ws:superadmin-version-updated', () => {
+        console.log('🔄 [SuperAdmin] Versiones actualizadas vía WebSocket');
+        if (currentSection === 'versions') loadVersions();
+    });
+
+    window.addEventListener('ws:superadmin-aviso-updated', () => {
+        console.log('🔄 [SuperAdmin] Avisos actualizados vía WebSocket');
+        if (currentSection === 'avisos') loadAvisos(currentAvisosPage);
+    });
+
+    window.addEventListener('ws:superadmin-invitation-updated', () => {
+        console.log('🔄 [SuperAdmin] Invitaciones actualizadas vía WebSocket');
+        if (currentSection === 'invitations') loadInvitations();
+    });
+
+    window.addEventListener('ws:superadmin-suggestion-updated', () => {
+        console.log('🔄 [SuperAdmin] Sugerencias actualizadas vía WebSocket');
+        if (currentSection === 'sugerencias') {
+            loadSuggestionsPage(currentSuggestionsPage);
+            loadSuggestionsStats();
+        }
+    });
+
+    window.addEventListener('ws:superadmin-system-status-changed', () => {
+        console.log('🔄 [SuperAdmin] Estado del sistema cambiado vía WebSocket');
+        if (currentSection === 'shutdown') loadSystemStatus();
+    });
 
     setInterval(async () => {
         try {
