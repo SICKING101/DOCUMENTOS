@@ -800,4 +800,63 @@ if (typeof window !== 'undefined') {
     });
 }
 
+// =============================================================================
+// 8. LISTENERS DE WEBSOCKET PARA ACTUALIZACIÓN EN TIEMPO REAL
+// =============================================================================
+
+// Escuchar cambios de categorías vía WebSocket
+window.addEventListener('ws:category-changed', async () => {
+    console.log('🔄 [Dashboard] Categorías cambiadas vía WebSocket - actualizando stats...');
+    try { 
+        await loadDashboardData(window.appState); 
+    } catch (e) { 
+        console.warn('Error actualizando dashboard (ws:category):', e?.message || e); 
+    }
+});
+
+// Escuchar cambios de departamentos vía WebSocket
+window.addEventListener('ws:department-changed', async () => {
+    console.log('🔄 [Dashboard] Departamentos cambiados vía WebSocket - actualizando stats...');
+    try { 
+        await loadDashboardData(window.appState); 
+    } catch (e) { 
+        console.warn('Error actualizando dashboard (ws:department):', e?.message || e); 
+    }
+});
+
+// Escuchar cambios de personas vía WebSocket
+window.addEventListener('ws:person-changed', async () => {
+    console.log('🔄 [Dashboard] Personas cambiadas vía WebSocket - actualizando stats...');
+    try { 
+        await loadDashboardData(window.appState);
+        // También recargar departamentos porque afecta contadores
+        if (typeof window.loadDepartments === 'function') {
+            await window.loadDepartments();
+        }
+    } catch (e) { 
+        console.warn('Error actualizando dashboard (ws:person):', e?.message || e); 
+    }
+});
+
+// Escuchar cambios de tareas vía WebSocket
+window.addEventListener('ws:task-changed', async () => {
+    console.log('🔄 [Dashboard] Tareas cambiadas vía WebSocket - actualizando...');
+    try { 
+        await updateDashboardTasks();
+        await loadDashboardData(window.appState);
+    } catch (e) { 
+        console.warn('Error actualizando dashboard (ws:task):', e?.message || e); 
+    }
+});
+
+// Escuchar cambios de documentos vía WebSocket
+window.addEventListener('ws:document-changed', async () => {
+    console.log('🔄 [Dashboard] Documentos cambiados vía WebSocket - actualizando stats...');
+    try { 
+        await loadDashboardData(window.appState); 
+    } catch (e) { 
+        console.warn('Error actualizando dashboard (ws:document):', e?.message || e); 
+    }
+});
+
 export { loadDashboardData, updateDashboardStats, loadRecentDocuments, handleRefreshDashboard, updateDashboardTasks };

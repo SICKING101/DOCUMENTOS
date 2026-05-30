@@ -677,6 +677,9 @@ window.editDepartment = editDepartment;
 window.deleteDepartment = deleteDepartment;
 window.loadDepartments = loadDepartments;
 window.openDepartmentModal = openDepartmentModal;
+window.renderDepartments = renderDepartments;
+window.populateDepartmentSelects = populateDepartmentSelects;
+window.populateDepartmentSelect = populateDepartmentSelect;
 
 export { 
     openDepartmentModal, 

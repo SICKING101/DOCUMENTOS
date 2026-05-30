@@ -117,9 +117,9 @@ console.log('🔌 Socket.io inicializado');
 // ═══════════════════════════════════════════════════════════════════════════
 io.use(async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token || 
-                  socket.handshake.query.token;
-    
+    const token = socket.handshake.auth.token ||
+      socket.handshake.query.token;
+
     if (!token) {
       console.log('⚠️ WebSocket: Token no proporcionado, permitiendo conexión limitada');
       socket.userId = 'anonymous';
@@ -132,7 +132,7 @@ io.use(async (socket, next) => {
     socket.userRole = decoded.role || 'user';
     socket.schoolId = decoded.schoolId || 'superadmin';
     socket.userName = decoded.nombre || decoded.name || decoded.usuario || 'Usuario';
-    
+
     console.log(`✅ WebSocket autenticado: ${socket.userName} (${socket.userRole}) [School: ${socket.schoolId}]`);
     next();
   } catch (error) {
@@ -149,60 +149,68 @@ io.use(async (socket, next) => {
 // ═══════════════════════════════════════════════════════════════════════════
 io.on('connection', (socket) => {
   console.log(`🟢 Usuario conectado: ${socket.userName || 'Anónimo'} [${socket.schoolId}]`);
-  
+
   // Unir al usuario a su sala de escuela
   if (socket.schoolId && socket.schoolId !== 'unknown') {
     socket.join(`school:${socket.schoolId}`);
     console.log(`📌 Unido a sala: school:${socket.schoolId}`);
   }
-  
+
   // Unir a sala personal
   socket.join(`user:${socket.userId}`);
 
   // ═══════════════════════════════════════════════════════════════════════
-// CALENDARIO
-// ═══════════════════════════════════════════════════════════════════════
-socket.on('calendar:event-created', (data) => {
+  // CALENDARIO
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('calendar:event-created', (data) => {
     console.log(`📢 [WS] Evento de calendario creado: ${data.event?.title}`);
     socket.to(`school:${socket.schoolId}`).emit('calendar:event-created', {
-        event: data.event,
-        userId: socket.userId,
-        userName: socket.userName,
-        timestamp: new Date().toISOString()
+      event: data.event,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
     });
-});
+  });
 
-socket.on('calendar:event-updated', (data) => {
+  socket.on('calendar:event-updated', (data) => {
     console.log(`📢 [WS] Evento de calendario actualizado: ${data.eventId}`);
     socket.to(`school:${socket.schoolId}`).emit('calendar:event-updated', {
-        eventId: data.eventId,
-        event: data.event,
-        userId: socket.userId,
-        userName: socket.userName,
-        timestamp: new Date().toISOString()
+      eventId: data.eventId,
+      event: data.event,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
     });
-});
+  });
 
-socket.on('calendar:event-deleted', (data) => {
+  socket.on('calendar:event-deleted', (data) => {
     console.log(`📢 [WS] Evento de calendario eliminado: ${data.eventId}`);
     socket.to(`school:${socket.schoolId}`).emit('calendar:event-deleted', {
-        eventId: data.eventId,
-        userId: socket.userId,
-        userName: socket.userName,
-        timestamp: new Date().toISOString()
+      eventId: data.eventId,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
     });
-});
+  });
 
-socket.on('calendar:events-deleted', (data) => {
+  socket.on('calendar:events-deleted', (data) => {
     console.log(`📢 [WS] Eventos de calendario eliminados: ${data.seriesId}`);
     socket.to(`school:${socket.schoolId}`).emit('calendar:events-deleted', {
-        seriesId: data.seriesId,
-        fromDate: data.fromDate,
-        userId: socket.userId,
-        userName: socket.userName,
-        timestamp: new Date().toISOString()
+      seriesId: data.seriesId,
+      fromDate: data.fromDate,
+      userId: socket.userId,
+      userName: socket.userName,
+      timestamp: new Date().toISOString()
     });
-});
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // UNIR SUPERADMINS A SU SALA
+  // ═══════════════════════════════════════════════════════════════════════
+  if (socket.userRole === 'superadmin' || socket.userId === 'superadmin') {
+    socket.join('superadmins');
+    console.log(`👑 SuperAdmin unido a sala superadmins`);
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
   // CATEGORÍAS
@@ -374,6 +382,50 @@ socket.on('calendar:events-deleted', (data) => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
+  // SUPERADMIN - VERSIONES
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('superadmin:version-updated', (data) => {
+    console.log(`📢 [WS] Versión ${data.action}: superadmin`);
+    socket.to('superadmins').emit('superadmin:version-updated', data);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SUPERADMIN - AVISOS
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('superadmin:aviso-updated', (data) => {
+    console.log(`📢 [WS] Aviso ${data.action}: superadmin`);
+    // Notificar a otros superadmins
+    socket.to('superadmins').emit('superadmin:aviso-updated', data);
+    // También notificar a todas las escuelas para que recarguen avisos
+    socket.broadcast.emit('superadmin:aviso-updated', data);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SUPERADMIN - INVITACIONES
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('superadmin:invitation-updated', (data) => {
+    console.log(`📢 [WS] Invitación ${data.action}: superadmin`);
+    socket.to('superadmins').emit('superadmin:invitation-updated', data);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SUPERADMIN - SUGERENCIAS
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('superadmin:suggestion-updated', (data) => {
+    console.log(`📢 [WS] Sugerencia ${data.action}: superadmin`);
+    socket.to('superadmins').emit('superadmin:suggestion-updated', data);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SUPERADMIN - ESTADO DEL SISTEMA
+  // ═══════════════════════════════════════════════════════════════════════
+  socket.on('superadmin:system-status-changed', (data) => {
+    console.log(`📢 [WS] Sistema ${data.action}: superadmin`);
+    // Notificar a TODOS (superadmins + escuelas)
+    socket.broadcast.emit('superadmin:system-status-changed', data);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
   // DESCONEXIÓN
   // ═══════════════════════════════════════════════════════════════════════
   socket.on('disconnect', (reason) => {
@@ -416,13 +468,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public'), {
-    index: false  // Deshabilitar index automático porque ya tenemos la ruta /
+  index: false  // Deshabilitar index automático porque ya tenemos la ruta /
 }));
 app.use('/src', express.static(path.join(__dirname, 'src')));
 
 // ✅ NUEVO: Ruta raíz - Enviar al sistema (index.html)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Rutas de autenticación
@@ -518,12 +570,12 @@ app.get('/landing', (req, res) => {
 
 // Página de contacto
 app.get('/contact', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'Landing', 'contact.html'));
+  res.sendFile(path.join(__dirname, 'public', 'Landing', 'contact.html'));
 });
 
 // Login
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Ruta de prueba
@@ -1776,227 +1828,227 @@ app.post('/api/documents', protegerRuta, inyectarSchoolId, upload.single('file')
 // =============================================================================
 
 app.put('/api/documents/:id', upload.single('file'), async (req, res) => {
-    try {
-        console.log('📝 ========== ACTUALIZACIÓN DOCUMENTO ==========');
-        const { id } = req.params;
+  try {
+    console.log('📝 ========== ACTUALIZACIÓN DOCUMENTO ==========');
+    const { id } = req.params;
 
-        // Validar ID
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: 'ID de documento inválido'
-            });
-        }
-
-        // Buscar documento existente
-        const documentoExistente = await Document.findOne({
-            _id: id,
-            $or: [
-                { isDeleted: false },
-                { isDeleted: { $exists: false } }
-            ]
-        });
-
-        if (!documentoExistente) {
-            return res.status(404).json({
-                success: false,
-                message: 'Documento no encontrado'
-            });
-        }
-
-        console.log('📄 Documento encontrado:', {
-            nombre: documentoExistente.nombre_original,
-            categoria: documentoExistente.categoria
-        });
-
-        // Preparar datos para actualizar
-        const updateData = {};
-
-        const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
-
-        // Validar categoría
-        if (categoria !== undefined) {
-            if (!categoria || categoria.trim() === '') {
-                return res.status(400).json({
-                    success: false,
-                    message: 'La categoría es obligatoria'
-                });
-            }
-            updateData.categoria = categoria;
-        }
-
-        // Procesar descripción
-        if (descripcion !== undefined) {
-            updateData.descripcion = descripcion;
-        }
-
-        // Procesar fecha de vencimiento
-        if (fecha_vencimiento !== undefined) {
-            if (fecha_vencimiento === '' || fecha_vencimiento === 'null' || fecha_vencimiento === 'undefined') {
-                updateData.fecha_vencimiento = null;
-            } else {
-                try {
-                    const fecha = new Date(fecha_vencimiento);
-                    if (!isNaN(fecha.getTime())) {
-                        updateData.fecha_vencimiento = fecha;
-                    } else {
-                        updateData.fecha_vencimiento = null;
-                    }
-                } catch (error) {
-                    updateData.fecha_vencimiento = null;
-                }
-            }
-        }
-
-        // Procesar persona_id
-        if (persona_id !== undefined) {
-            if (persona_id === '' || persona_id === 'null' || persona_id === 'undefined') {
-                updateData.persona_id = null;
-            } else if (mongoose.Types.ObjectId.isValid(persona_id)) {
-                updateData.persona_id = persona_id;
-            } else {
-                updateData.persona_id = null;
-            }
-        }
-
-        let public_id_antiguo = null;
-
-        // =========================================================================
-        // SI HAY ARCHIVO NUEVO (REEMPLAZAR)
-        // =========================================================================
-        if (req.file) {
-            console.log('🔄 Reemplazando archivo en Spaces...');
-            console.log('📁 Archivo nuevo:', req.file.originalname);
-            console.log('📊 Tamaño:', req.file.size, 'bytes');
-
-            // Guardar info del archivo antiguo
-            public_id_antiguo = documentoExistente.public_id;
-
-            try {
-                // Subir nuevo archivo a DigitalOcean Spaces
-                const fileContent = fs.readFileSync(req.file.path);
-                const safeFileName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-                const fileKey = `documentos/${Date.now()}-${safeFileName}`;
-
-                const uploadToSpaces = new Upload({
-                    client: s3Client,
-                    params: {
-                        Bucket: SPACES_CONFIG.bucket,
-                        Key: fileKey,
-                        Body: fileContent,
-                        ContentType: req.file.mimetype,
-                        ACL: 'public-read',
-                    },
-                });
-
-                const spacesResult = await uploadToSpaces.done();
-
-                console.log('✅ Nuevo archivo subido a Spaces:', spacesResult.Location);
-
-                // Actualizar datos con nuevo archivo
-                updateData.nombre_original = req.file.originalname;
-                updateData.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
-                updateData.tamano_archivo = req.file.size;
-                updateData.cloudinary_url = spacesResult.Location;
-                updateData.public_id = fileKey;
-                updateData.resource_type = req.file.mimetype;
-
-            } catch (spacesError) {
-                console.error('❌ Error subiendo archivo nuevo:', spacesError);
-                if (fs.existsSync(req.file.path)) {
-                    fs.unlinkSync(req.file.path);
-                }
-                return res.status(500).json({
-                    success: false,
-                    message: 'Error al subir nuevo archivo: ' + spacesError.message
-                });
-            }
-        }
-
-        console.log('📋 Campos finales a actualizar:', updateData);
-
-        // Actualizar en base de datos
-        console.log('💾 Actualizando en base de datos...');
-
-        const documentoActualizado = await Document.findByIdAndUpdate(
-            id,
-            updateData,
-            { new: true, runValidators: true }
-        ).populate('persona_id', 'nombre email departamento');
-
-        if (!documentoActualizado) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error al actualizar en base de datos'
-            });
-        }
-
-        console.log('✅ Documento actualizado en BD:', documentoActualizado.nombre_original);
-
-        // Limpiar archivo temporal si existe
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-            console.log('🧹 Archivo temporal eliminado');
-        }
-
-        // Eliminar archivo antiguo de Spaces si se reemplazó
-        if (req.file && public_id_antiguo) {
-            try {
-                await s3Client.send(new DeleteObjectCommand({
-                    Bucket: SPACES_CONFIG.bucket,
-                    Key: public_id_antiguo,
-                }));
-                console.log('🗑️ Archivo antiguo eliminado de Spaces');
-            } catch (deleteError) {
-                console.warn('⚠️ No se pudo eliminar archivo antiguo:', deleteError.message);
-            }
-        }
-
-        // Crear notificación
-        try {
-            await NotificationService.documentoActualizado(
-                documentoActualizado,
-                documentoActualizado.persona_id
-            );
-            console.log('✅ Notificación creada');
-        } catch (notifError) {
-            console.error('⚠️ Error creando notificación:', notifError.message);
-        }
-
-        console.log('📝 ========== FIN ACTUALIZACIÓN ==========');
-
-        res.json({
-            success: true,
-            message: req.file ? 'Documento y archivo actualizados' : 'Documento actualizado',
-            document: documentoActualizado
-        });
-
-    } catch (error) {
-        console.error('❌ Error general actualizando documento:', error);
-
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
-            });
-        }
-
-        if (error.name === 'CastError') {
-            return res.status(400).json({
-                success: false,
-                message: 'ID inválido: ' + error.message
-            });
-        }
-
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Error al actualizar documento: ' + error.message
-        });
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de documento inválido'
+      });
     }
+
+    // Buscar documento existente
+    const documentoExistente = await Document.findOne({
+      _id: id,
+      $or: [
+        { isDeleted: false },
+        { isDeleted: { $exists: false } }
+      ]
+    });
+
+    if (!documentoExistente) {
+      return res.status(404).json({
+        success: false,
+        message: 'Documento no encontrado'
+      });
+    }
+
+    console.log('📄 Documento encontrado:', {
+      nombre: documentoExistente.nombre_original,
+      categoria: documentoExistente.categoria
+    });
+
+    // Preparar datos para actualizar
+    const updateData = {};
+
+    const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
+
+    // Validar categoría
+    if (categoria !== undefined) {
+      if (!categoria || categoria.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'La categoría es obligatoria'
+        });
+      }
+      updateData.categoria = categoria;
+    }
+
+    // Procesar descripción
+    if (descripcion !== undefined) {
+      updateData.descripcion = descripcion;
+    }
+
+    // Procesar fecha de vencimiento
+    if (fecha_vencimiento !== undefined) {
+      if (fecha_vencimiento === '' || fecha_vencimiento === 'null' || fecha_vencimiento === 'undefined') {
+        updateData.fecha_vencimiento = null;
+      } else {
+        try {
+          const fecha = new Date(fecha_vencimiento);
+          if (!isNaN(fecha.getTime())) {
+            updateData.fecha_vencimiento = fecha;
+          } else {
+            updateData.fecha_vencimiento = null;
+          }
+        } catch (error) {
+          updateData.fecha_vencimiento = null;
+        }
+      }
+    }
+
+    // Procesar persona_id
+    if (persona_id !== undefined) {
+      if (persona_id === '' || persona_id === 'null' || persona_id === 'undefined') {
+        updateData.persona_id = null;
+      } else if (mongoose.Types.ObjectId.isValid(persona_id)) {
+        updateData.persona_id = persona_id;
+      } else {
+        updateData.persona_id = null;
+      }
+    }
+
+    let public_id_antiguo = null;
+
+    // =========================================================================
+    // SI HAY ARCHIVO NUEVO (REEMPLAZAR)
+    // =========================================================================
+    if (req.file) {
+      console.log('🔄 Reemplazando archivo en Spaces...');
+      console.log('📁 Archivo nuevo:', req.file.originalname);
+      console.log('📊 Tamaño:', req.file.size, 'bytes');
+
+      // Guardar info del archivo antiguo
+      public_id_antiguo = documentoExistente.public_id;
+
+      try {
+        // Subir nuevo archivo a DigitalOcean Spaces
+        const fileContent = fs.readFileSync(req.file.path);
+        const safeFileName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileKey = `documentos/${Date.now()}-${safeFileName}`;
+
+        const uploadToSpaces = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: SPACES_CONFIG.bucket,
+            Key: fileKey,
+            Body: fileContent,
+            ContentType: req.file.mimetype,
+            ACL: 'public-read',
+          },
+        });
+
+        const spacesResult = await uploadToSpaces.done();
+
+        console.log('✅ Nuevo archivo subido a Spaces:', spacesResult.Location);
+
+        // Actualizar datos con nuevo archivo
+        updateData.nombre_original = req.file.originalname;
+        updateData.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
+        updateData.tamano_archivo = req.file.size;
+        updateData.cloudinary_url = spacesResult.Location;
+        updateData.public_id = fileKey;
+        updateData.resource_type = req.file.mimetype;
+
+      } catch (spacesError) {
+        console.error('❌ Error subiendo archivo nuevo:', spacesError);
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(500).json({
+          success: false,
+          message: 'Error al subir nuevo archivo: ' + spacesError.message
+        });
+      }
+    }
+
+    console.log('📋 Campos finales a actualizar:', updateData);
+
+    // Actualizar en base de datos
+    console.log('💾 Actualizando en base de datos...');
+
+    const documentoActualizado = await Document.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('persona_id', 'nombre email departamento');
+
+    if (!documentoActualizado) {
+      return res.status(500).json({
+        success: false,
+        message: 'Error al actualizar en base de datos'
+      });
+    }
+
+    console.log('✅ Documento actualizado en BD:', documentoActualizado.nombre_original);
+
+    // Limpiar archivo temporal si existe
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+      console.log('🧹 Archivo temporal eliminado');
+    }
+
+    // Eliminar archivo antiguo de Spaces si se reemplazó
+    if (req.file && public_id_antiguo) {
+      try {
+        await s3Client.send(new DeleteObjectCommand({
+          Bucket: SPACES_CONFIG.bucket,
+          Key: public_id_antiguo,
+        }));
+        console.log('🗑️ Archivo antiguo eliminado de Spaces');
+      } catch (deleteError) {
+        console.warn('⚠️ No se pudo eliminar archivo antiguo:', deleteError.message);
+      }
+    }
+
+    // Crear notificación
+    try {
+      await NotificationService.documentoActualizado(
+        documentoActualizado,
+        documentoActualizado.persona_id
+      );
+      console.log('✅ Notificación creada');
+    } catch (notifError) {
+      console.error('⚠️ Error creando notificación:', notifError.message);
+    }
+
+    console.log('📝 ========== FIN ACTUALIZACIÓN ==========');
+
+    res.json({
+      success: true,
+      message: req.file ? 'Documento y archivo actualizados' : 'Documento actualizado',
+      document: documentoActualizado
+    });
+
+  } catch (error) {
+    console.error('❌ Error general actualizando documento:', error);
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Error de validación: ' + Object.values(error.errors).map(e => e.message).join(', ')
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido: ' + error.message
+      });
+    }
+
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar documento: ' + error.message
+    });
+  }
 });
 
 app.delete('/documents/bulk-delete', async (req, res) => {

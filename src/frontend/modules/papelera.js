@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { api } from '../services/api.js';
 import { setLoadingState, showAlert, formatFileSize, getFileIcon, formatDate } from '../utils.js';
 import { canView, canAction, showNoPermissionAlert } from '../permissions.js';
+import wsManager from '../services/websocket-manager.js';
 
 // =============================================================================
 // ESTADO DE LA PAPELERA
@@ -738,6 +739,12 @@ async function handleRestoreDocument(docId) {
         }
 
         if (response.success) {
+            // ✅ NUEVO: Emitir evento WebSocket - documento restaurado
+            wsManager.emit('document:updated', {
+                documentId: docId,
+                document: response.document || { _id: docId, isDeleted: false }
+            });
+            
             showAlert(`"${doc.nombre_original}" restaurado exitosamente`, 'success', 3000);
             await loadTrashDocuments();
             
@@ -798,6 +805,9 @@ async function handleDeleteDocument(docId) {
         }
 
         if (response.success) {
+            // ✅ NUEVO: Emitir evento WebSocket - documento eliminado permanentemente
+            wsManager.emit('document:deleted', { documentId: docId });
+            
             showAlert(response.message, 'success', 3000);
             await loadTrashDocuments();
             animateDocumentRemoval(docId);
@@ -864,6 +874,11 @@ async function handleRestoreSelected() {
                 const response = await api.call(`/trash/${docId}/restore`, { method: 'POST' });
                 if (response.success) {
                     restoredCount++;
+                    // ✅ NUEVO: Emitir evento WebSocket por cada documento restaurado
+                    wsManager.emit('document:updated', {
+                        documentId: docId,
+                        document: response.document || { _id: docId, isDeleted: false }
+                    });
                 } else {
                     errorCount++;
                     errors.push(`${doc?.nombre_original || 'Documento'}: ${response.message}`);
@@ -950,6 +965,8 @@ async function handleDeleteSelected() {
                 const response = await api.call(`/trash/${docId}`, { method: 'DELETE' });
                 if (response.success) {
                     deletedCount++;
+                    // ✅ NUEVO: Emitir evento WebSocket por cada documento eliminado permanentemente
+                    wsManager.emit('document:deleted', { documentId: docId });
                 } else {
                     errorCount++;
                     errors.push(`${doc?.nombre_original || 'Documento'}: ${response.message}`);
@@ -984,9 +1001,6 @@ async function handleDeleteSelected() {
     }
 }
 
-// =============================================================================
-// ESTADÍSTICAS Y UI
-// =============================================================================
 // =============================================================================
 // ESTADÍSTICAS Y UI
 // =============================================================================
