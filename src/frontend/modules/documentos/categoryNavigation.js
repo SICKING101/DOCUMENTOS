@@ -4,12 +4,9 @@
 // Soporte completo de subcategorías en árbol N-niveles
 // =============================================================================
 
-const LOG_PREFIX = '🗂️ [CategoryNav]';
+import { reinitializeDragDrop, initializeDocumentDragDrop } from './dragdrop/documentDragDrop.js';
 
-// ✅ Obtener wsManager del singleton global (ya inicializado por app.js)
-function getWsManager() {
-    return window.wsManager || null;
-}
+const LOG_PREFIX = '🗂️ [CategoryNav]';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADO GLOBAL DE NAVEGACIÓN
@@ -165,6 +162,15 @@ export function renderCategoryGrid(override) {
             emptyState.style.display = 'flex';
             _updateEmptyState(override != null);
         }
+        // Inicializar drag & drop incluso sin items (para breadcrumbs)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                console.log(`${LOG_PREFIX} Initializing drag & drop (empty grid)`);
+                if (typeof initializeDocumentDragDrop === 'function') {
+                    initializeDocumentDragDrop();
+                }
+            });
+        });
         return;
     }
 
@@ -177,6 +183,18 @@ export function renderCategoryGrid(override) {
     });
 
     console.log(`${LOG_PREFIX} Grid renderizado: ${items.length} tarjetas`);
+    
+    // Doble requestAnimationFrame para asegurar que el DOM está completamente renderizado
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            console.log(`${LOG_PREFIX} Initializing drag & drop after categories render (${items.length} cards)`);
+            if (typeof initializeDocumentDragDrop === 'function') {
+                initializeDocumentDragDrop();
+            } else {
+                console.warn(`${LOG_PREFIX} initializeDocumentDragDrop no está disponible`);
+            }
+        });
+    });
 }
 
 /**
@@ -484,6 +502,11 @@ function _updateUI() {
     _renderBreadcrumb();
     _updateLevelBanner();
     _updateNewCategoryButton();
+    
+    // Emitir evento de que la UI se actualizó (para reinicializar drag & drop)
+    setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('categories:rendered'));
+    }, 100);
 }
 
 /**
@@ -1176,7 +1199,6 @@ let _isSaving = false;
 /**
  * Valida y guarda la categoría (crear o editar).
  * PROTECCIÓN: Solo una ejecución a la vez.
- * CON WEBSOCKET: Emite evento al guardar exitosamente.
  */
 export async function saveCategory() {
     // ═══════════════════════════════════════════════════════════
@@ -1245,17 +1267,6 @@ export async function saveCategory() {
 
         if (!result || !result.success) {
             throw new Error(result?.message || 'Error desconocido al guardar');
-        }
-
-        // ═══════════════════════════════════════════════════════
-        // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
-        // ═══════════════════════════════════════════════════════
-        const ws = getWsManager();
-        if (ws) {
-            const eventName = catId ? 'category:updated' : 'category:created';
-            ws.emit(eventName, {
-                category: result.category || result.data || { _id: catId, nombre }
-            });
         }
 
         // ═══════════════════════════════════════════════════════
@@ -1356,7 +1367,6 @@ async function _hidePreloaderOverlay() {
 
 /**
  * Confirma y elimina una categoría.
- * CON WEBSOCKET: Emite evento al eliminar exitosamente.
  * @param {CategoryNode} cat
  */
 function _confirmDeleteCategory(cat) {
@@ -1438,12 +1448,6 @@ function _confirmDeleteCategory(cat) {
                     });
                 }, 300);
                 return;
-            }
-
-            // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
-            const ws = getWsManager();
-            if (ws) {
-                ws.emit('category:deleted', { categoryId: cat._id });
             }
 
             if (typeof window.loadCategories === 'function') {

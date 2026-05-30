@@ -950,12 +950,20 @@
                             </nav>
                         </div>
                         <div class="category--toolbar-right">
-                            <!-- Los 3 botones siempre visibles -->
+                            <!-- Los 4 botones siempre visibles -->
                             <button class="category--btn category--btn--ghost" id="advancedSearchBtn"
                                 onclick="showAdvancedSearch && showAdvancedSearch()" title="Búsqueda avanzada">
                                 <i class="fas fa-search"></i>
                                 <span>Búsqueda Avanzada</span>
                             </button>
+
+                            <button class="category--btn category--btn--info" id="bulkMoveTriggerBtn"
+                                title="Mover múltiples documentos a otra carpeta"
+                                onclick="console.log('onclick disparado'); if(window.bulkMoveManager)window.bulkMoveManager.openMoveModal();">
+                                <i class="fas fa-folder-open"></i>
+                                <span>Mover Múltiple</span>
+                            </button>
+
                             <button class="category--btn category--btn--danger" id="bulkDeleteTriggerBtn"
                                 title="Eliminar múltiples documentos">
                                 <i class="fas fa-trash-alt"></i>

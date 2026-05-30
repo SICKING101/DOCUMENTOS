@@ -1,5 +1,6 @@
 /**
  * Sistema de Validación de Seguridad
+ * src/frontend/securityValidation.js
  * Validaciones para usuario, contraseña y correo con mensajes dinámicos
  */
 

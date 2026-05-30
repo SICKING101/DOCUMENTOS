@@ -3,7 +3,7 @@
 // =============================================================================
 
 // IMPORTAR las funciones que se usan en initializeDocumentosModule
-import { setupFileDragAndDrop } from './upload/dragAndDrop.js';
+
 import { loadFilterState } from './table/tableFilters.js';
 import { initializeTableFilters } from './table/tableFilters.js';
 import { MultipleUploadState } from './core/MultipleUploadState.js';
@@ -12,9 +12,14 @@ import { formatFileSize, getFileIcon, showAlert } from '../../utils.js';
 import { showDocumentNotification } from './notificationConfig.js';
 import { withDocumentLoadControl, setupDocumentNotificationControl } from '../../utils.js';
 
+
 // IMPORTAR NUEVO MODAL DE ELIMINACIÓN MÚLTIPLE
 import { bulkDeleteModal } from './modals/bulkDeleteModal.js';
 import { bulkDeleteState } from './core/BulkDeleteState.js';
+
+import { bulkMoveModal } from './modals/bulkMoveModal.js';
+import { bulkMoveState } from './core/BulkMoveState.js';
+import { bulkMoveManager } from './core/bulkMoveManager.js';
 
 // IMPORTAR NAVEGACIÓN POR CATEGORÍAS
 import {
@@ -25,6 +30,26 @@ import {
     saveCategory,
     refreshCategoryTree 
 } from './categoryNavigation.js';
+
+
+
+// IMPORTAR MANEJADOR DE MOVIMIENTO DE DOCUMENTOS
+import {
+    initializeDocumentMoveHandler,
+    injectDocumentMoveStyles,
+    removeDocumentMoveHandler,
+    getPendingMoves,
+    cancelDocumentMove
+} from './dragdrop/documentMoveHandler.js';
+
+import { setupFileDragAndDrop } from './upload/dragAndDrop.js';
+
+// IMPORTAR DRAG & DROP PARA DOCUMENTOS
+import {
+    initializeDocumentDragDrop,
+    reinitializeDragDrop,
+    injectDragDropStyles
+} from './dragdrop/documentDragDrop.js';
 
 // =============================================================================
 // Re-exportaciones
@@ -97,6 +122,16 @@ export {
     populatePersonSelect,
     populateAllPersonSelects
 } from './modals/modalHelpers.js';
+
+// Drag & Drop
+export { initializeDocumentDragDrop, reinitializeDragDrop, injectDragDropStyles } from './dragdrop/documentDragDrop.js';
+export {
+    initializeDocumentMoveHandler,
+    injectDocumentMoveStyles,
+    removeDocumentMoveHandler,
+    getPendingMoves,
+    cancelDocumentMove
+} from './dragdrop/documentMoveHandler.js';
 
 // Funciones que necesitan ser expuestas globalmente para compatibilidad
 export {
@@ -420,25 +455,51 @@ export function renderExpiredDocuments() {
 
 /**
  * Inicializa el módulo de documentos con todas las funcionalidades.
+ * Incluye sistema reactivo de actualización en tiempo real.
  */
 export function initializeDocumentosModule() {
     console.group('🚀 INICIALIZANDO MÓDULO DE DOCUMENTOS');
 
     try {
+        // ===================================================================
         // 0. CONFIGURAR CONTROL DE NOTIFICACIONES
+        // ===================================================================
         setupDocumentNotificationControl();
         console.log('✅ Control de notificaciones configurado');
 
-        // 1. Inicializar estado de subida múltiple si no existe
+        // ===================================================================
+        // 0.5 INYECTAR ESTILOS DRAG & DROP
+        // ===================================================================
+        if (typeof injectDragDropStyles === 'function') {
+            injectDragDropStyles();
+            console.log('✅ Estilos Drag & Drop inyectados');
+        }
+        
+        // ===================================================================
+        // 0.6 INYECTAR ESTILOS DE MOVIMIENTO DE DOCUMENTOS
+        // ===================================================================
+        if (typeof injectDocumentMoveStyles === 'function') {
+            injectDocumentMoveStyles();
+            console.log('✅ Estilos de movimiento de documentos inyectados');
+        }
+
+        // ===================================================================
+        // 1. INICIALIZAR ESTADO DE SUBIDA MÚLTIPLE
+        // ===================================================================
         if (!window.multipleUploadState) {
             window.multipleUploadState = new MultipleUploadState();
             console.log('✅ Estado de subida múltiple inicializado');
         }
 
-        // 2. Configurar drag and drop
+        // ===================================================================
+        // 2. CONFIGURAR DRAG AND DROP DE ARCHIVOS
+        // ===================================================================
         setupFileDragAndDrop();
+        console.log('✅ Drag & drop de archivos configurado');
 
-        // 3. LIMPIAR localStorage si tiene filtros corruptos
+        // ===================================================================
+        // 3. LIMPIAR LOCALSTORAGE SI TIENE FILTROS CORRUPTOS
+        // ===================================================================
         try {
             const savedFilters = localStorage.getItem('documentFilters');
             if (savedFilters) {
@@ -455,7 +516,9 @@ export function initializeDocumentosModule() {
             localStorage.removeItem('documentSearchQuery');
         }
 
-        // 4. Inicializar appState con filtros LIMPIOS
+        // ===================================================================
+        // 4. INICIALIZAR APPSTATE CON FILTROS LIMPIOS
+        // ===================================================================
         if (!window.appState) {
             window.appState = {};
         }
@@ -473,10 +536,17 @@ export function initializeDocumentosModule() {
 
         console.log('📊 Estado inicial de filtros:', window.appState.filters);
 
-        // 5. Inicializar filtros de tabla
-        initializeTableFilters();
+        // ===================================================================
+        // 5. INICIALIZAR FILTROS DE TABLA
+        // ===================================================================
+        if (typeof initializeTableFilters === 'function') {
+            initializeTableFilters();
+            console.log('✅ Filtros de tabla inicializados');
+        }
 
-        // 6. Establecer selects a vacío
+        // ===================================================================
+        // 6. ESTABLECER SELECTS A VACÍO
+        // ===================================================================
         const filterStatus = document.getElementById('filterStatus');
         if (filterStatus) {
             filterStatus.value = '';
@@ -492,15 +562,55 @@ export function initializeDocumentosModule() {
             searchInput.value = '';
         }
 
-        // 7. Cargar estado guardado
-        loadFilterState();
+        // ===================================================================
+        // 7. CARGAR ESTADO GUARDADO DE FILTROS
+        // ===================================================================
+        if (typeof loadFilterState === 'function') {
+            loadFilterState();
+            console.log('✅ Estado de filtros cargado');
+        }
 
-        // 8. Inicializar navegación por categorías
+        // ===================================================================
+        // 8. INICIALIZAR NAVEGACIÓN POR CATEGORÍAS
+        // ===================================================================
         console.log('🗂️ Llamando a initCategoryNavigation...');
-        initCategoryNavigation();
-        console.log('✅ Navegación por categorías inicializada');
+        if (typeof initCategoryNavigation === 'function') {
+            initCategoryNavigation();
+            console.log('✅ Navegación por categorías inicializada');
+        } else {
+            console.warn('⚠️ initCategoryNavigation no está disponible');
+        }
 
-        // 9. Verificar filtros corruptos después de loadFilterState
+        // ===================================================================
+        // 9. INICIALIZAR DRAG & DROP DE DOCUMENTOS
+        // ===================================================================
+        console.log('🎯 Programando inicialización de drag & drop...');
+        setTimeout(() => {
+            if (typeof initializeDocumentDragDrop === 'function') {
+                initializeDocumentDragDrop();
+                console.log('✅ Drag & drop de documentos inicializado');
+            } else {
+                console.warn('⚠️ initializeDocumentDragDrop no está disponible');
+            }
+        }, 600);
+
+        // ===================================================================
+        // 9.5 INICIALIZAR MANEJADOR DE MOVIMIENTO DE DOCUMENTOS
+        // ===================================================================
+        if (typeof initializeDocumentMoveHandler === 'function') {
+            initializeDocumentMoveHandler();
+            console.log('✅ Manejador de movimiento de documentos inicializado');
+        }
+
+        // ===================================================================
+        // 9.6 CONFIGURAR EVENTOS DE ACTUALIZACIÓN EN TIEMPO REAL
+        // ===================================================================
+        _setupRealtimeUpdateEvents();
+        console.log('✅ Eventos de actualización en tiempo real configurados');
+
+        // ===================================================================
+        // 10. VERIFICAR FILTROS CORRUPTOS DESPUÉS DE LOADFILTERSTATE
+        // ===================================================================
         if (window.appState.filters && window.appState.filters.status === 'active' &&
             !window.appState.filters.category && !window.appState.filters.type && !window.appState.filters.date) {
             console.log('🧹 loadFilterState restauró filtro corrupto, limpiando de nuevo...');
@@ -509,76 +619,505 @@ export function initializeDocumentosModule() {
             localStorage.removeItem('documentFilters');
         }
 
-        // 10. Inicializar modal de eliminación múltiple
-        bulkDeleteModal.init();
+        // ===================================================================
+        // 11. INICIALIZAR MODAL DE ELIMINACIÓN MÚLTIPLE
+        // ===================================================================
+        if (typeof bulkDeleteModal?.init === 'function') {
+            bulkDeleteModal.init();
+            console.log('✅ Modal de eliminación múltiple inicializado');
+        }
 
-        // 11. Inicializar modal de edición de documentos
+        // ===================================================================
+        // 11.5 INICIALIZAR MODAL DE MOVIMIENTO MÚLTIPLE
+        // ===================================================================
+        if (typeof bulkMoveModal?.init === 'function') {
+            bulkMoveModal.init();
+            console.log('✅ Modal de movimiento múltiple inicializado');
+        }
+
+        // Inicializar el manager de movimiento múltiple
+        if (typeof bulkMoveManager?.init === 'function') {
+            bulkMoveManager.init();
+            console.log('✅ Manager de movimiento múltiple inicializado');
+        }
+
+        // ===================================================================
+        // 12. INICIALIZAR MODAL DE EDICIÓN DE DOCUMENTOS
+        // ===================================================================
         import('./modals/editDocumentModal.js').then(module => {
-            module.initEditDocumentModal();
-            console.log('✅ Modal de edición inicializado');
+            if (typeof module.initEditDocumentModal === 'function') {
+                module.initEditDocumentModal();
+                console.log('✅ Modal de edición inicializado');
+            }
         }).catch(err => {
             console.error('❌ Error cargando modal de edición:', err);
         });
 
-        // 12. Configurar funciones globales
-        setupGlobalFunctions();
+        // ===================================================================
+        // 13. CONFIGURAR FUNCIONES GLOBALES
+        // ===================================================================
+        _setupGlobalFunctions();
+        console.log('✅ Funciones globales configuradas');
 
-        // 13. Inicializar panel de documentos vencidos
-        const viewAllBtn = document.getElementById('viewAllExpiredBtn');
-        const modeSelect = document.getElementById('expiredViewMode');
+        // ===================================================================
+        // 14. INICIALIZAR PANEL DE DOCUMENTOS VENCIDOS
+        // ===================================================================
+        _initExpiredDocumentsPanel();
+        console.log('✅ Panel de documentos vencidos inicializado');
 
-        if (modeSelect) {
-            modeSelect.addEventListener('change', () => {
-                try { renderExpiredDocuments(); } catch (e) { console.error('Error re-renderizando panel vencidos:', e); }
-            });
+        // ===================================================================
+        // 15. CONFIGURAR OBSERVER DE PESTAÑAS
+        // ===================================================================
+        _setupTabObserver();
+        console.log('✅ Observer de pestañas configurado');
+
+        // ===================================================================
+        // 16. CONFIGURAR BOTONES Y EVENTOS ADICIONALES
+        // ===================================================================
+        _setupAdditionalEventListeners();
+        console.log('✅ Eventos adicionales configurados');
+
+        // ===================================================================
+        // 17. FORZAR PRIMER RENDER SI ES NECESARIO
+        // ===================================================================
+        if (typeof window.renderDocumentsTable === 'function') {
+            const hasDocuments = window.appState?.documents?.length > 0;
+            if (hasDocuments) {
+                console.log('📊 Forzando render inicial de tabla de documentos');
+                window.renderDocumentsTable();
+            }
         }
 
-        if (viewAllBtn) {
-            viewAllBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const statusSelect = document.getElementById('filterStatus');
-                const currentMode = modeSelect ? modeSelect.value : 'expired';
-                let statusValue = '';
-                if (currentMode === 'expired') statusValue = 'expired';
-                else if (currentMode === 'expiring') statusValue = 'expiring';
-                else statusValue = '';
-
-                if (statusSelect) {
-                    statusSelect.value = statusValue;
-                    statusSelect.dispatchEvent(new Event('change'));
-                    const table = document.getElementById('documentosTableBody');
-                    if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        }
-
-        window.renderExpiredDocuments = renderExpiredDocuments;
-        try {
-            renderExpiredDocuments();
-        } catch (e) {
-            console.error('Error inicializando panel vencidos:', e);
-        }
-
+        // ===================================================================
+        // LOG FINAL DE FUNCIONALIDADES DISPONIBLES
+        // ===================================================================
         console.log('✅ Módulo de documentos inicializado correctamente');
         console.log('📋 Funcionalidades disponibles:');
         console.table({
             'Subida múltiple': '✓',
             'Eliminación múltiple': '✓',
+            'Movimiento múltiple': '✓',
             'Vista previa': '✓',
             'Descargas': '✓',
             'Filtros': '✓',
             'Edición': '✓',
             'Navegación categorías': '✓',
-            'Control notificaciones': '✓'
+            'Drag & drop documentos': '✓',
+            'Movimiento documentos': '✓',
+            'Actualización tiempo real': '✓',
+            'Control notificaciones': '✓',
+            'Panel vencidos': '✓'
         });
 
     } catch (error) {
         console.error('❌ Error crítico inicializando módulo de documentos:', error);
-        showAlert('Error inicializando módulo de documentos. Revisa la consola.', 'error');
+        console.error('Stack:', error.stack);
+        if (typeof showAlert === 'function') {
+            showAlert('Error inicializando módulo de documentos. Revisa la consola.', 'error');
+        }
         throw error;
     }
 
     console.groupEnd();
+}
+
+/**
+ * Configura eventos de actualización en tiempo real
+ * @private
+ */
+function _setupRealtimeUpdateEvents() {
+    // Evento cuando un documento se mueve en el DOM
+    window.addEventListener('document:moved-in-dom', (event) => {
+        const { documentId, folderId, folderName } = event.detail;
+        console.log(`📢 [Realtime] Documento ${documentId} movido a "${folderName}"`);
+        
+        // Actualizar contadores en las tarjetas de categoría
+        _updateCategoryCardCounts();
+        
+        // Actualizar panel de vencidos si es visible
+        if (typeof window.renderExpiredDocuments === 'function') {
+            try {
+                window.renderExpiredDocuments();
+            } catch (e) {
+                console.warn('Error actualizando panel de vencidos:', e);
+            }
+        }
+    });
+
+    // Evento cuando se completa un movimiento (éxito)
+    window.addEventListener('document:move-completed', async (event) => {
+        const { documentId, folderId, folderName } = event.detail;
+        console.log(`✅ [Realtime] Movimiento completado: ${documentId} → "${folderName}"`);
+        
+        // Refrescar datos silenciosamente
+        await _silentRefreshData();
+        
+        // Navegar a la carpeta destino si es necesario
+        if (folderId && typeof window.navigateCategoryInto === 'function') {
+            setTimeout(() => {
+                window.navigateCategoryInto(folderId);
+            }, 200);
+        }
+    });
+
+    // Evento cuando falla un movimiento
+    window.addEventListener('document:move-failed', async (event) => {
+        const { documentId, error } = event.detail;
+        console.error(`❌ [Realtime] Movimiento fallido: ${documentId}`, error);
+        
+        // Refrescar datos para asegurar consistencia
+        await _silentRefreshData();
+        
+        // Mostrar notificación de error
+        if (typeof showAlert === 'function') {
+            showAlert(`Error al mover documento: ${error}`, 'error');
+        }
+    });
+
+    // Evento cuando se renderizan documentos
+    window.addEventListener('documents:rendered', () => {
+        console.log('📢 [Realtime] Documentos renderizados - reinicializando drag & drop');
+        setTimeout(() => {
+            if (typeof initializeDocumentDragDrop === 'function') {
+                initializeDocumentDragDrop();
+            }
+        }, 100);
+    });
+
+    // Evento cuando se renderizan categorías
+    window.addEventListener('categories:rendered', () => {
+        console.log('📢 [Realtime] Categorías renderizadas - reinicializando drag & drop');
+        setTimeout(() => {
+            if (typeof initializeDocumentDragDrop === 'function') {
+                initializeDocumentDragDrop();
+            }
+        }, 100);
+    });
+
+    // Evento cuando cambia el estado de las categorías
+    window.addEventListener('categories:updated', () => {
+        console.log('📢 [Realtime] Categorías actualizadas');
+        _updateCategoryCardCounts();
+    });
+
+    // Evento cuando se crea un nuevo documento
+    window.addEventListener('document:created', async () => {
+        console.log('📢 [Realtime] Nuevo documento creado');
+        await _silentRefreshData();
+    });
+
+    // Evento cuando se elimina un documento
+    window.addEventListener('document:deleted', async () => {
+        console.log('📢 [Realtime] Documento eliminado');
+        await _silentRefreshData();
+    });
+
+    // Evento cuando se actualiza un documento
+    window.addEventListener('document:updated', async () => {
+        console.log('📢 [Realtime] Documento actualizado');
+        await _silentRefreshData();
+    });
+}
+
+/**
+ * Actualiza los contadores en las tarjetas de categoría
+ * @private
+ */
+function _updateCategoryCardCounts() {
+    const categoryCards = document.querySelectorAll('[data-category-id]');
+    if (categoryCards.length === 0) return;
+    
+    const categories = window.appState?.categories || [];
+    if (categories.length === 0) return;
+    
+    categoryCards.forEach(card => {
+        const categoryId = card.getAttribute('data-category-id');
+        const countElement = card.querySelector('.category--card-count');
+        
+        if (countElement && categoryId) {
+            const category = categories.find(c => c._id === categoryId);
+            if (category) {
+                const docCount = category.documentCount || 0;
+                const childCount = category.children?.length || 0;
+                
+                if (childCount > 0) {
+                    countElement.innerHTML = `<i class="fas fa-folder"></i> ${childCount} subcarp.`;
+                } else {
+                    countElement.innerHTML = `<i class="fas fa-file-alt"></i> ${docCount} doc${docCount !== 1 ? 's' : ''}`;
+                }
+                
+                // Animar el cambio
+                countElement.classList.add('count-updated');
+                setTimeout(() => countElement.classList.remove('count-updated'), 1000);
+            }
+        }
+    });
+}
+
+/**
+ * Refresca los datos silenciosamente sin mostrar notificaciones
+ * @private
+ */
+async function _silentRefreshData() {
+    console.log('🔄 [SilentRefresh] Actualizando datos en segundo plano...');
+    
+    try {
+        // Suprimir notificaciones durante la actualización silenciosa
+        const wasSuppressed = window.__SUPPRESS_NOTIFICATIONS;
+        window.__SUPPRESS_NOTIFICATIONS = true;
+        
+        const refreshPromises = [];
+        
+        // Recargar documentos
+        if (typeof window.loadDocuments === 'function') {
+            refreshPromises.push(
+                window.loadDocuments().catch(err => {
+                    console.warn('⚠️ Error recargando documentos:', err);
+                })
+            );
+        }
+        
+        // Recargar categorías
+        if (typeof window.loadCategories === 'function') {
+            refreshPromises.push(
+                window.loadCategories().catch(err => {
+                    console.warn('⚠️ Error recargando categorías:', err);
+                })
+            );
+        }
+        
+        await Promise.allSettled(refreshPromises);
+        
+        // Refrescar árbol de categorías
+        if (typeof window.refreshCategoryTree === 'function') {
+            try {
+                window.refreshCategoryTree();
+            } catch (e) {
+                console.warn('Error refrescando árbol:', e);
+            }
+        }
+        
+        // Re-renderizar tabla
+        if (typeof window.renderDocumentsTable === 'function') {
+            try {
+                window.renderDocumentsTable();
+            } catch (e) {
+                console.warn('Error renderizando tabla:', e);
+            }
+        }
+        
+        // Re-inicializar drag & drop
+        if (typeof initializeDocumentDragDrop === 'function') {
+            setTimeout(() => {
+                initializeDocumentDragDrop();
+            }, 200);
+        }
+        
+        // Restaurar estado de supresión
+        window.__SUPPRESS_NOTIFICATIONS = wasSuppressed;
+        
+        console.log('✅ [SilentRefresh] Datos actualizados');
+        
+    } catch (error) {
+        console.error('❌ [SilentRefresh] Error:', error);
+        window.__SUPPRESS_NOTIFICATIONS = false;
+    }
+}
+
+/**
+ * Configura funciones globales necesarias
+ * @private
+ */
+function _setupGlobalFunctions() {
+    console.log('🔧 Configurando funciones globales...');
+
+    // Modal de eliminación múltiple
+    window.bulkDeleteModal = bulkDeleteModal;
+    window.bulkDeleteState = bulkDeleteState;
+
+    // Funciones de debugging
+    window.debugBulkDelete = () => bulkDeleteModal?.debug?.();
+    window.testBulkDelete = () => bulkDeleteModal?.test?.();
+
+    // Funciones de utilidad
+    window.openBulkDelete = () => bulkDeleteModal?.open?.();
+    window.closeBulkDelete = () => bulkDeleteModal?.close?.();
+
+    // Modal de movimiento múltiple
+    window.bulkMoveModal = bulkMoveModal;
+    window.bulkMoveState = bulkMoveState;
+    window.bulkMoveManager = bulkMoveManager;
+
+    // Funciones de movimiento múltiple
+    window.openBulkMove = () => bulkMoveModal?.open?.();
+    window.closeBulkMove = () => bulkMoveModal?.close?.();
+    window.toggleMoveSelectionMode = () => {
+        if (bulkMoveState.isSelectionMode) {
+            bulkMoveManager.disableMoveSelectionMode();
+        } else {
+            bulkMoveManager.enableMoveSelectionMode();
+        }
+    };
+    window.executeBulkMove = () => bulkMoveModal?.executeMove?.();
+    window.selectAllForMove = () => bulkMoveManager.selectAllVisible();
+    window.deselectAllForMove = () => bulkMoveManager.deselectAll();
+
+    // Exponer globalmente para que los onclick del HTML funcionen
+    window.openCategoryModal = openCategoryModal;
+    window.closeCategoryModal = closeCategoryModal;
+    window.saveCategory = saveCategory;
+    
+    // Funciones de notificación
+    window.showDocumentNotification = showDocumentNotification;
+    
+    // Funciones de movimiento de documentos (debug)
+    window.getPendingMoves = getPendingMoves;
+    window.cancelDocumentMove = cancelDocumentMove;
+    
+    // Funciones de actualización en tiempo real
+    window.silentRefreshData = _silentRefreshData;
+    window.updateCategoryCardCounts = _updateCategoryCardCounts;
+    
+    // Funciones de renderizado
+    window.renderExpiredDocuments = renderExpiredDocuments;
+    
+    // Funciones de drag & drop
+    window.reinitializeDragDrop = reinitializeDragDrop;
+    window.initializeDocumentDragDrop = initializeDocumentDragDrop;
+
+    console.log('✅ Funciones globales configuradas');
+}
+
+/**
+ * Inicializa el panel de documentos vencidos
+ * @private
+ */
+function _initExpiredDocumentsPanel() {
+    const viewAllBtn = document.getElementById('viewAllExpiredBtn');
+    const modeSelect = document.getElementById('expiredViewMode');
+
+    if (modeSelect) {
+        modeSelect.addEventListener('change', () => {
+            try { 
+                renderExpiredDocuments(); 
+            } catch (e) { 
+                console.error('Error re-renderizando panel vencidos:', e); 
+            }
+        });
+    }
+
+    if (viewAllBtn) {
+        viewAllBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const statusSelect = document.getElementById('filterStatus');
+            const currentMode = modeSelect ? modeSelect.value : 'expired';
+            let statusValue = '';
+            if (currentMode === 'expired') statusValue = 'expired';
+            else if (currentMode === 'expiring') statusValue = 'expiring';
+            else statusValue = '';
+
+            if (statusSelect) {
+                statusSelect.value = statusValue;
+                statusSelect.dispatchEvent(new Event('change'));
+                const table = document.getElementById('documentosTableBody');
+                if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    // Renderizar panel inicial
+    try {
+        renderExpiredDocuments();
+    } catch (e) {
+        console.error('Error inicializando panel vencidos:', e);
+    }
+}
+
+/**
+ * Configura el observer para detectar cuando la pestaña de documentos está activa
+ * @private
+ */
+function _setupTabObserver() {
+    const documentosTab = document.getElementById('documentos');
+    if (!documentosTab) return;
+
+    const tabObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && 
+                mutation.attributeName === 'class' &&
+                documentosTab.classList.contains('active')) {
+                console.log('🔄 Pestaña de documentos activada');
+                
+                // Refrescar datos y reinicializar
+                setTimeout(async () => {
+                    await _silentRefreshData();
+                    
+                    if (typeof initializeDocumentDragDrop === 'function') {
+                        initializeDocumentDragDrop();
+                    }
+                }, 200);
+            }
+        });
+    });
+    
+    tabObserver.observe(documentosTab, { 
+        attributes: true, 
+        attributeFilter: ['class'] 
+    });
+}
+
+/**
+ * Configura event listeners adicionales
+ * @private
+ */
+function _setupAdditionalEventListeners() {
+    // Botón de refrescar
+    const refreshBtn = document.getElementById('refreshDocumentsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            refreshBtn.classList.add('spinning');
+            await _silentRefreshData();
+            setTimeout(() => refreshBtn.classList.remove('spinning'), 1000);
+            
+            if (typeof showAlert === 'function') {
+                showAlert('Documentos actualizados', 'success');
+            }
+        });
+    }
+
+    // Botón de nueva carpeta
+    const newFolderBtn = document.getElementById('newRootCategoryBtn');
+    if (newFolderBtn) {
+        newFolderBtn.addEventListener('click', () => {
+            if (typeof openCategoryModal === 'function') {
+                openCategoryModal();
+            }
+        });
+    }
+
+    // Tecla F5 para refrescar sin recargar la página
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F5' && document.getElementById('documentos')?.classList.contains('active')) {
+            e.preventDefault();
+            _silentRefreshData().then(() => {
+                if (typeof showAlert === 'function') {
+                    showAlert('Vista actualizada (F5)', 'info');
+                }
+            });
+        }
+    });
+}
+
+/**
+ * Obtiene el ID de la categoría actual desde el estado de navegación
+ * @returns {string|null}
+ * @private
+ */
+function _getCurrentCategoryId() {
+    if (window.categoryNavState && window.categoryNavState.stack.length > 0) {
+        return window.categoryNavState.stack[window.categoryNavState.stack.length - 1]._id;
+    }
+    return null;
 }
 
 /**
@@ -606,6 +1145,10 @@ function setupGlobalFunctions() {
     
     // Funciones de notificación
     window.showDocumentNotification = showDocumentNotification;
+    
+    // Funciones de movimiento de documentos (debug)
+    window.getPendingMoves = getPendingMoves;
+    window.cancelDocumentMove = cancelDocumentMove;
 
     console.log('✅ Funciones globales configuradas');
 }
@@ -617,6 +1160,7 @@ export function getAllDocumentosFunctions() {
     return {
         MultipleUploadState,
         bulkDeleteState,
+        bulkMoveState,
 
         handleFile,
         handleFileSelect,
@@ -658,6 +1202,8 @@ export function getAllDocumentosFunctions() {
         exportFilteredToCSV,
 
         bulkDeleteModal,
+        bulkMoveModal,
+        bulkMoveManager,
 
         openDocumentModal,
         closeDocumentModal,
@@ -679,6 +1225,12 @@ export function getAllDocumentosFunctions() {
         openCategoryModal,
         closeCategoryModal,
         saveCategory,
+        
+        initializeDocumentMoveHandler,
+        injectDocumentMoveStyles,
+        removeDocumentMoveHandler,
+        getPendingMoves,
+        cancelDocumentMove,
 
         initializeDocumentosModule
     };
@@ -712,5 +1264,69 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(documentosTab, { attributes: true });
     }
 });
+
+// =============================================================================
+// 🚨 HOTFIX v3: Abrir modal SIEMPRE al hacer clic en Mover Múltiple
+// =============================================================================
+(function() {
+    console.log('🔧 Instalando HOTFIX v3 - Modal siempre se abre...');
+    
+    const setupMoveButton = () => {
+        const btn = document.getElementById('bulkMoveTriggerBtn');
+        if (!btn) {
+            setTimeout(setupMoveButton, 500);
+            return;
+        }
+        
+        // Clonar para limpiar listeners
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+newBtn.addEventListener('click', async function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.group('🟢 MOVER MÚLTIPLE - ABRIENDO MODAL DIRECTO');
+    
+    // DESACTIVAR modo selección en la tabla (no es necesario)
+    if (window.bulkDeleteState) {
+        window.bulkDeleteState.isSelectionMode = false;
+        if (window.bulkDeleteState.disableSelectionMode) {
+            window.bulkDeleteState.disableSelectionMode();
+        }
+    }
+    
+    // Renderizar tabla SIN checkboxes
+    if (typeof window.renderDocumentsTable === 'function') {
+        window.renderDocumentsTable();
+    }
+    
+    // Ocultar barra de selección
+    const selectionBar = document.getElementById('selectionInfoBar');
+    if (selectionBar) selectionBar.style.display = 'none';
+    
+    // ABRIR EL MODAL DIRECTAMENTE
+    console.log('📦 Abriendo modal...');
+    
+    try {
+        if (window.bulkMoveModal && typeof window.bulkMoveModal.open === 'function') {
+            await window.bulkMoveModal.open();
+            console.log('✅ Modal abierto');
+        }
+    } catch (err) {
+        console.error('❌ Error:', err);
+        if (typeof showAlert === 'function') {
+            showAlert('Error al abrir el modal: ' + err.message, 'error');
+        }
+    }
+    
+    console.groupEnd();
+});
+        
+        console.log('✅ HOTFIX v3 instalado - El modal se abrirá siempre');
+    };
+    
+    setTimeout(setupMoveButton, 1000);
+})();
 
 export default initializeDocumentosModule;

@@ -3,6 +3,8 @@
 // CORREGIDO - Compatible con el nuevo CSS category--*
 // =============================================================================
 
+
+import { reinitializeDragDrop } from '../dragdrop/documentDragDrop.js';
 import { DOM } from '../../../dom.js';
 import { formatFileSize, formatDate, getFileIcon } from '../../../utils.js';
 import { canPreviewDocument } from '../preview/previewManager.js';
@@ -80,6 +82,7 @@ export function changeDocumentsPage(page) {
     if (!Number.isFinite(nextPage)) return;
     pagination.currentPage = Math.max(1, Math.floor(nextPage));
     renderDocumentsTable();
+    console.log(`📄 Cambiando a página ${pagination.currentPage}`);
 }
 
 function syncDocumentsTableHeader() {
@@ -210,6 +213,10 @@ export function renderDocumentsTable() {
         }
         updateBulkSelectionUI();
         renderDocumentsPagination(0, 1);
+        
+        // Emitir evento de renderizado completado
+        window.dispatchEvent(new CustomEvent('documents:rendered'));
+        
         return;
     }
     
@@ -233,6 +240,19 @@ export function renderDocumentsTable() {
     }
     
     console.log('✅ Tabla renderizada correctamente');
+    
+    // Emitir evento de renderizado completado
+    window.dispatchEvent(new CustomEvent('documents:rendered'));
+    
+    // Inicializar drag & drop después de renderizar
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (typeof reinitializeDragDrop === 'function') {
+                reinitializeDragDrop();
+                console.log('🔄 Drag & drop re-inicializado después de renderizar tabla');
+            }
+        });
+    });
 }
 
 /**
@@ -476,6 +496,7 @@ function createActionButtons(doc, canPreview) {
 
 /**
  * CONFIGURAR EVENT LISTENERS PARA CHECKBOXES
+ * Versión sincronizada con bulkDeleteState Y bulkMoveState
  */
 function setupCheckboxEventListeners() {
     const checkboxes = document.querySelectorAll('.document-select-checkbox');
@@ -492,20 +513,35 @@ function setupCheckboxEventListeners() {
             const isChecked = this.checked;
             
             if (isChecked) {
+                // Sincronizar con bulkDeleteState
                 if (bulkDeleteState.addDocument) {
                     bulkDeleteState.addDocument(documentId);
+                }
+                // También sincronizar con bulkMoveState
+                if (window.bulkMoveState?.addDocument) {
+                    window.bulkMoveState.addDocument(documentId);
                 }
                 this.closest('tr').classList.add('doc-row--selected');
             } else {
                 if (bulkDeleteState.removeDocument) {
                     bulkDeleteState.removeDocument(documentId);
                 }
+                if (window.bulkMoveState?.removeDocument) {
+                    window.bulkMoveState.removeDocument(documentId);
+                }
                 this.closest('tr').classList.remove('doc-row--selected');
             }
             
             updateBulkSelectionUI();
+            
+            // También actualizar UI de movimiento
+            if (window.bulkMoveManager?.updateUI) {
+                window.bulkMoveManager.updateUI();
+            }
         });
     });
+    
+    console.log(`✅ ${newCheckboxes.length} checkboxes configurados (sync con ambos estados)`);
 }
 
 /**

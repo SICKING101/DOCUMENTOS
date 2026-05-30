@@ -8,17 +8,47 @@ import NotificationService from '../services/notificationService.js';
 import { PERMISSIONS, hasPermission } from '../config/permissions.js';
 import AuditService from '../services/auditService.js';
 
+// =============================================================================
+// FUNCIONES AUXILIARES (fuera de la clase)
+// =============================================================================
+
 function canBypassApprovalGate(role) {
   return hasPermission(role, PERMISSIONS.APPROVE_DOCUMENTS) || hasPermission(role, PERMISSIONS.UPLOAD_DOCUMENTS);
 }
 
 function canAccessDocumentByStatus(role, status) {
-  // La visibilidad del documento se controla por permisos de ruta (VIEW/DOWNLOAD).
-  // No bloquear por status aquí; el flujo de aprobación sigue existiendo para acciones.
   return true;
 }
 
+/**
+ * Actualiza los contadores de categorías padre recursivamente
+ * @param {string} categoryId - ID de la categoría
+ * @param {number} delta - Cambio en el contador (+1 o -1)
+ */
+async function updateParentCategoryCounts(categoryId, delta) {
+  try {
+    const Category = mongoose.model('Category');
+    const category = await Category.findById(categoryId);
+    
+    if (category && category.parent_id) {
+      await Category.findByIdAndUpdate(category.parent_id, {
+        $inc: { documentCount: delta }
+      });
+      
+      // Recursivamente actualizar padres
+      await updateParentCategoryCounts(category.parent_id, delta);
+    }
+  } catch (error) {
+    console.warn('⚠️ Error actualizando contadores padre:', error.message);
+  }
+}
+
+// =============================================================================
+// CLASE PRINCIPAL
+// =============================================================================
+
 class DocumentController {
+  
   // ===========================================================================
   // OBTENER TODOS LOS DOCUMENTOS
   // ===========================================================================
@@ -61,7 +91,6 @@ class DocumentController {
     console.log('📏 Tamaño:', req.file?.size ? FileService.formatFileSize(req.file.size) : 'N/A');
 
     try {
-      // Validar que hay archivo
       if (!req.file) {
         return res.status(400).json({
           success: false,
@@ -71,7 +100,6 @@ class DocumentController {
 
       const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
 
-      // Validar tamaño máximo (10MB para Cloudinary free)
       const MAX_SIZE = 10 * 1024 * 1024;
       if (req.file.size > MAX_SIZE) {
         FileService.cleanTempFile(req.file.path);
@@ -82,7 +110,6 @@ class DocumentController {
         });
       }
 
-      // Determinar resource_type correcto para Cloudinary
       const fileExtension = req.file.originalname.split('.').pop().toLowerCase();
       const officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
@@ -90,19 +117,14 @@ class DocumentController {
       let resourceType = 'auto';
       if (officeExtensions.includes(fileExtension)) {
         resourceType = 'raw';
-        console.log(`📎 Office (${fileExtension}) → resource_type: raw`);
       } else if (imageExtensions.includes(fileExtension)) {
         resourceType = 'image';
-        console.log(`🖼️ Imagen (${fileExtension}) → resource_type: image`);
       } else if (fileExtension === 'pdf') {
         resourceType = 'auto';
-        console.log(`📄 PDF → resource_type: auto`);
       } else {
         resourceType = 'raw';
-        console.log(`📝 Otro (${fileExtension}) → resource_type: raw`);
       }
 
-      // Subir a Cloudinary con el resource_type correcto
       let cloudinaryResult;
       try {
         cloudinaryResult = await FileService.uploadToCloudinary(req.file.path, {
@@ -121,7 +143,6 @@ class DocumentController {
         });
       }
 
-      // Crear documento en MongoDB
       const nuevoDocumento = new Document({
         nombre_original: req.file.originalname,
         tipo_archivo: fileExtension,
@@ -141,18 +162,12 @@ class DocumentController {
       await nuevoDocumento.save();
       console.log('✅ Documento guardado en MongoDB:', nuevoDocumento._id);
 
-      // Limpiar archivo temporal
       FileService.cleanTempFile(req.file.path);
 
-      // Poblar datos de persona
       const documentoConPersona = await Document.findById(nuevoDocumento._id)
         .populate('persona_id', 'nombre email departamento puesto');
 
-      // =======================================================================
-      // NOTIFICACIÓN ÚNICA (CORREGIDO - SIN DUPLICADOS)
-      // =======================================================================
       try {
-        // SOLO UNA notificación, no dos
         await NotificationService.documentoSubido(
           documentoConPersona,
           documentoConPersona.persona_id,
@@ -163,9 +178,6 @@ class DocumentController {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
 
-      // =======================================================================
-      // AUDITORÍA (sin generar notificación adicional)
-      // =======================================================================
       try {
         await AuditService.logDocumentUpload(req, nuevoDocumento, documentoConPersona?.persona_id);
         console.log('✅ Auditoría registrada');
@@ -218,29 +230,13 @@ class DocumentController {
       const { comment } = req.body || {};
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        console.log('❌ ID inválido:', id);
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
+        return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
       const documento = await Document.findOne({ _id: id, activo: true });
       if (!documento) {
-        console.log('❌ Documento no encontrado:', id);
-        return res.status(404).json({
-          success: false,
-          message: 'Documento no encontrado'
-        });
+        return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
-
-      // Guardar estado anterior
-      const beforeState = {
-        status: documento.status,
-        reviewedAt: documento.reviewedAt,
-        reviewedBy: documento.reviewedBy,
-        reviewComment: documento.reviewComment
-      };
 
       documento.status = 'approved';
       documento.reviewedAt = new Date();
@@ -250,19 +246,12 @@ class DocumentController {
 
       console.log('✅ Documento aprobado:', documento.nombre_original);
 
-      // =======================================================================
-      // REGISTRAR APROBACIÓN EN AUDITORÍA
-      // =======================================================================
-
       try {
         await AuditService.logDocumentApprove(req, documento, comment);
         console.log('✅✅✅ APROBACIÓN REGISTRADA');
       } catch (auditError) {
         console.error('❌ Error registrando aprobación:', auditError.message);
       }
-
-      console.log('✅✅✅ APROBACIÓN COMPLETADA');
-      console.log('🔍 ========== FIN ==========\n');
 
       return res.json({
         success: true,
@@ -291,39 +280,18 @@ class DocumentController {
       const { comment } = req.body || {};
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        console.log('❌ ID inválido:', id);
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
+        return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
       const documento = await Document.findOne({ _id: id, activo: true });
       if (!documento) {
-        console.log('❌ Documento no encontrado:', id);
-        return res.status(404).json({
-          success: false,
-          message: 'Documento no encontrado'
-        });
+        return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
-
-      // Guardar estado anterior
-      const beforeState = {
-        status: documento.status,
-        reviewedAt: documento.reviewedAt,
-        reviewedBy: documento.reviewedBy,
-        reviewComment: documento.reviewComment,
-        isDeleted: documento.isDeleted,
-        deletedAt: documento.deletedAt,
-        deletedBy: documento.deletedBy
-      };
 
       documento.status = 'rejected';
       documento.reviewedAt = new Date();
       documento.reviewedBy = req.user?.usuario || req.user?.correo || 'Revisor';
       documento.reviewComment = comment ? String(comment) : '';
-
-      // Enviar a papelera
       documento.isDeleted = true;
       documento.deletedAt = new Date();
       documento.deletedBy = req.user?.usuario || req.user?.correo || 'Sistema';
@@ -331,19 +299,12 @@ class DocumentController {
 
       console.log('✅ Documento rechazado:', documento.nombre_original);
 
-      // =======================================================================
-      // REGISTRAR RECHAZO EN AUDITORÍA
-      // =======================================================================
-
       try {
         await AuditService.logDocumentReject(req, documento, comment);
         console.log('✅✅✅ RECHAZO REGISTRADO');
       } catch (auditError) {
         console.error('❌ Error registrando rechazo:', auditError.message);
       }
-
-      console.log('✅✅✅ RECHAZO COMPLETADO');
-      console.log('🔍 ========== FIN ==========\n');
 
       return res.json({
         success: true,
@@ -367,19 +328,13 @@ class DocumentController {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
+        return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
       const documento = await Document.findOne({ _id: id, activo: true });
 
       if (!documento) {
-        return res.status(404).json({
-          success: false,
-          message: 'Documento no encontrado'
-        });
+        return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
 
       const role = req.user?.rol;
@@ -398,7 +353,6 @@ class DocumentController {
       }
 
       console.log('👁️ Vista previa para:', documento.nombre_original);
-
       res.redirect(documento.cloudinary_url);
 
     } catch (error) {
@@ -433,7 +387,6 @@ class DocumentController {
       documento.deletedBy = req.user?.usuario || 'Usuario';
       await documento.save();
 
-      // ✅ Notificación con schoolId
       try {
         await NotificationService.documentoEliminado(
           documento.nombre_original,
@@ -441,7 +394,6 @@ class DocumentController {
           req.user?.usuario || 'Usuario',
           req.schoolId
         );
-        console.log('✅ Notificación de eliminación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
@@ -463,25 +415,15 @@ class DocumentController {
       const { id } = req.params;
       const { filename } = req.query;
 
-      console.log('📋 Parámetros recibidos:', { id, filename });
-
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID de documento inválido'
-        });
+        return res.status(400).json({ success: false, message: 'ID de documento inválido' });
       }
 
-      const documento = await Document.findOne({
-        _id: id,
-        activo: true
-      }).populate('persona_id', 'nombre');
+      const documento = await Document.findOne({ _id: id, activo: true })
+        .populate('persona_id', 'nombre');
 
       if (!documento) {
-        return res.status(404).json({
-          success: false,
-          message: 'Documento no encontrado'
-        });
+        return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
 
       const role = req.user?.rol;
@@ -496,51 +438,27 @@ class DocumentController {
       const cloudinaryUrl = documento.cloudinary_url || documento.url_cloudinary;
       const fileExtension = fileName.split('.').pop().toLowerCase();
 
-      console.log('📄 Documento encontrado:', {
-        fileName,
-        extension: fileExtension,
-        url: cloudinaryUrl
-      });
-
       if (!cloudinaryUrl) {
-        return res.status(404).json({
-          success: false,
-          message: 'URL de archivo no disponible'
-        });
+        return res.status(404).json({ success: false, message: 'URL de archivo no disponible' });
       }
-
-      // =======================================================================
-      // REGISTRAR DESCARGA EN AUDITORÍA (ASÍNCRONO)
-      // =======================================================================
 
       AuditService.logDocumentDownload(req, documento)
         .catch(err => console.error('❌ Error registrando descarga:', err.message));
 
-      // Tipos de archivo
       const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(fileExtension);
-      const isPDF = fileExtension === 'pdf';
 
       if (isImage) {
-        console.log('🖼️ Imagen detectada → redirección directa');
         let finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
         return res.redirect(finalUrl);
       }
 
-      console.log('📄 Documento → usando servidor proxy');
-
       let response = await DocumentController.tryFetch(cloudinaryUrl);
 
       if (!response.ok) {
-        console.log('⚠️ Intento 1 falló, probando URL mejorada para Cloudinary...');
-
         const modifiedUrl = FileService.buildCloudinaryDownloadURL(cloudinaryUrl, fileExtension);
-        console.log('🔗 URL modificada final:', modifiedUrl);
-
         response = await DocumentController.tryFetch(modifiedUrl);
 
         if (!response.ok) {
-          console.log('❌ Intento 2 también falló. Haciendo redirección como último recurso.');
-
           res.setHeader('Content-Type', FileService.getContentType(fileExtension));
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
           return res.redirect(cloudinaryUrl);
@@ -569,9 +487,7 @@ class DocumentController {
       const { default: fetch } = await import('node-fetch');
       return await fetch(url, {
         method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0'
-        },
+        headers: { 'User-Agent': 'Mozilla/5.0' },
         timeout: 30000
       });
     } catch (err) {
@@ -584,23 +500,17 @@ class DocumentController {
     const buffer = await fetchResponse.arrayBuffer();
     const nodeBuffer = Buffer.from(buffer);
 
-    if (nodeBuffer.length === 0) {
-      throw new Error('Buffer vacío');
-    }
+    if (nodeBuffer.length === 0) throw new Error('Buffer vacío');
 
     if (fileExtension === 'pdf') {
       const firstBytes = nodeBuffer.slice(0, 5).toString();
-      if (!firstBytes.includes('%PDF')) {
-        console.log('⚠️ El archivo no empieza con %PDF, Cloudinary devolvió HTML');
-        throw new Error('Respuesta inválida para PDF');
-      }
+      if (!firstBytes.includes('%PDF')) throw new Error('Respuesta inválida para PDF');
     }
 
     const contentType = FileService.getContentType(fileExtension);
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', nodeBuffer.length);
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-
     return res.end(nodeBuffer);
   }
 
@@ -608,29 +518,17 @@ class DocumentController {
   // OBTENER CONTENIDO DE ARCHIVO DE TEXTO
   // ===========================================================================
   static async getContent(req, res) {
-    console.log('📝 Obteniendo contenido para vista previa de texto');
-
     try {
       const { id } = req.params;
       const { limit = 50000 } = req.query;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID de documento inválido'
-        });
+        return res.status(400).json({ success: false, message: 'ID de documento inválido' });
       }
 
-      const documento = await Document.findOne({
-        _id: id,
-        activo: true
-      });
-
+      const documento = await Document.findOne({ _id: id, activo: true });
       if (!documento) {
-        return res.status(404).json({
-          success: false,
-          message: 'Documento no encontrado'
-        });
+        return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
 
       const role = req.user?.rol;
@@ -652,41 +550,25 @@ class DocumentController {
       }
 
       const cloudinaryUrl = documento.cloudinary_url;
-
       if (!cloudinaryUrl) {
-        return res.status(500).json({
-          success: false,
-          message: 'URL del archivo no disponible'
-        });
+        return res.status(500).json({ success: false, message: 'URL del archivo no disponible' });
       }
 
-      console.log('📥 Descargando contenido desde Cloudinary...');
-
       let finalUrl = cloudinaryUrl;
-      if (cloudinaryUrl.includes('cloudinary.com')) {
-        if (!cloudinaryUrl.includes('/raw/')) {
-          finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
-        }
+      if (cloudinaryUrl.includes('cloudinary.com') && !cloudinaryUrl.includes('/raw/')) {
+        finalUrl = cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/');
       }
 
       const { default: fetch } = await import('node-fetch');
       const response = await fetch(finalUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0'
-        }
+        headers: { 'User-Agent': 'Mozilla/5.0' }
       });
 
-      if (!response.ok) {
-        throw new Error(`Error al descargar desde Cloudinary: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Error al descargar desde Cloudinary: ${response.status}`);
 
       const buffer = await response.arrayBuffer();
-
       if (buffer.byteLength === 0) {
-        return res.status(500).json({
-          success: false,
-          message: 'El archivo está vacío'
-        });
+        return res.status(500).json({ success: false, message: 'El archivo está vacío' });
       }
 
       let textContent;
@@ -705,7 +587,6 @@ class DocumentController {
 
       const maxLength = parseInt(limit);
       let isTruncated = false;
-
       if (textContent.length > maxLength) {
         textContent = textContent.substring(0, maxLength);
         isTruncated = true;
@@ -730,7 +611,6 @@ class DocumentController {
       }
 
       res.send(textContent);
-
       console.log(`✅ Contenido enviado: ${textContent.length} caracteres`);
 
     } catch (error) {
@@ -754,10 +634,7 @@ class DocumentController {
         .populate('persona_id', 'nombre email departamento puesto');
 
       if (!documento) {
-        return res.status(404).json({
-          success: false,
-          message: 'Documento no encontrado'
-        });
+        return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
 
       const role = req.user?.rol;
@@ -804,38 +681,20 @@ class DocumentController {
   static async update(req, res) {
     console.log('\n🔍 ========== ACTUALIZANDO DOCUMENTO ==========');
     console.log('📝 ID:', req.params.id);
-    console.log('📝 Body:', req.body);
-    console.log('📋 File:', req.file ? 'Nuevo archivo recibido' : 'Sin nuevo archivo');
     console.log('👤 Usuario:', req.user?.usuario);
 
     try {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        console.log('❌ ID inválido:', id);
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
+        return res.status(400).json({ success: false, message: 'ID inválido' });
       }
 
       const documentoOriginal = await Document.findOne({ _id: id, activo: true });
-
       if (!documentoOriginal) {
-        console.log('❌ Documento no encontrado:', id);
-        return res.status(404).json({
-          success: false,
-          message: 'Documento no encontrado'
-        });
+        return res.status(404).json({ success: false, message: 'Documento no encontrado' });
       }
 
-      console.log('📋 Documento original:', {
-        nombre: documentoOriginal.nombre_original,
-        categoria: documentoOriginal.categoria,
-        status: documentoOriginal.status
-      });
-
-      // Guardar estado anterior
       const beforeState = {
         nombre_original: documentoOriginal.nombre_original,
         tipo_archivo: documentoOriginal.tipo_archivo,
@@ -843,7 +702,7 @@ class DocumentController {
         descripcion: documentoOriginal.descripcion,
         categoria: documentoOriginal.categoria,
         fecha_vencimiento: documentoOriginal.fecha_vencimiento,
-        persona_id: documentoOriginal.persona_id ? documentoOriginal.persona_id.toString() : null,
+        persona_id: documentoOriginal.persona_id?.toString() || null,
         cloudinary_url: documentoOriginal.cloudinary_url,
         public_id: documentoOriginal.public_id,
         status: documentoOriginal.status
@@ -851,26 +710,17 @@ class DocumentController {
 
       let archivoReemplazado = false;
 
-      // Si se envió un nuevo archivo, reemplazar en Cloudinary
       if (req.file) {
-        console.log('📤 Nuevo archivo detectado, reemplazando en Cloudinary...');
         archivoReemplazado = true;
-
         try {
-          // Eliminar archivo anterior de Cloudinary
           if (documentoOriginal.public_id) {
             await s3Client.send(new DeleteObjectCommand({
               Bucket: SPACES_CONFIG.bucket,
               Key: documentoOriginal.public_id,
             }));
-            console.log('🗑️ Archivo anterior eliminado de Spaces');
           }
 
-          // Subir nuevo archivo
           const cloudinaryResult = await FileService.uploadToCloudinary(req.file.path);
-          console.log('✅ Nuevo archivo subido a Cloudinary');
-
-          // Actualizar campos relacionados con el archivo
           documentoOriginal.nombre_original = req.file.originalname;
           documentoOriginal.tipo_archivo = req.file.originalname.split('.').pop().toLowerCase();
           documentoOriginal.tamano_archivo = req.file.size;
@@ -878,13 +728,9 @@ class DocumentController {
           documentoOriginal.public_id = cloudinaryResult.public_id;
           documentoOriginal.resource_type = cloudinaryResult.resource_type;
 
-          // Limpiar archivo temporal
           FileService.cleanTempFile(req.file.path);
         } catch (uploadError) {
-          console.error('❌ Error subiendo nuevo archivo:', uploadError);
-          if (req.file && req.file.path) {
-            FileService.cleanTempFile(req.file.path);
-          }
+          if (req.file?.path) FileService.cleanTempFile(req.file.path);
           return res.status(500).json({
             success: false,
             message: 'Error al subir el nuevo archivo: ' + uploadError.message
@@ -892,59 +738,42 @@ class DocumentController {
         }
       }
 
-      // Actualizar campos permitidos (excepto fecha_subida)
       const { descripcion, categoria, fecha_vencimiento, persona_id } = req.body;
-
       if (descripcion !== undefined) documentoOriginal.descripcion = descripcion;
       if (categoria !== undefined) documentoOriginal.categoria = categoria;
       if (fecha_vencimiento !== undefined) documentoOriginal.fecha_vencimiento = fecha_vencimiento || null;
       if (persona_id !== undefined) documentoOriginal.persona_id = persona_id || null;
 
       await documentoOriginal.save();
-      console.log('✅ Documento actualizado exitosamente');
 
-      // Obtener documento con datos de persona
       const documentoActualizado = await Document.findById(documentoOriginal._id)
         .populate('persona_id', 'nombre');
 
-      // Estado después
-      const afterState = {
-        nombre_original: documentoOriginal.nombre_original,
-        tipo_archivo: documentoOriginal.tipo_archivo,
-        tamano_archivo: documentoOriginal.tamano_archivo,
-        descripcion: documentoOriginal.descripcion,
-        categoria: documentoOriginal.categoria,
-        fecha_vencimiento: documentoOriginal.fecha_vencimiento,
-        persona_id: documentoOriginal.persona_id ? documentoOriginal.persona_id.toString() : null,
-        cloudinary_url: documentoOriginal.cloudinary_url,
-        public_id: documentoOriginal.public_id,
-        status: documentoOriginal.status
-      };
-
-      // Calcular qué campos cambiaron
-      const camposModificados = [];
-      for (const key in beforeState) {
-        if (beforeState[key] !== afterState[key]) {
-          camposModificados.push(key);
-        }
-      }
-
-      if (archivoReemplazado) {
-        camposModificados.push('archivo');
-      }
-
-      // =======================================================================
-      // REGISTRAR ACTUALIZACIÓN EN AUDITORÍA
-      // =======================================================================
-
       try {
+        const afterState = {
+          nombre_original: documentoOriginal.nombre_original,
+          tipo_archivo: documentoOriginal.tipo_archivo,
+          tamano_archivo: documentoOriginal.tamano_archivo,
+          descripcion: documentoOriginal.descripcion,
+          categoria: documentoOriginal.categoria,
+          fecha_vencimiento: documentoOriginal.fecha_vencimiento,
+          persona_id: documentoOriginal.persona_id?.toString() || null,
+          cloudinary_url: documentoOriginal.cloudinary_url,
+          public_id: documentoOriginal.public_id,
+          status: documentoOriginal.status
+        };
+
+        const camposModificados = [];
+        for (const key in beforeState) {
+          if (beforeState[key] !== afterState[key]) camposModificados.push(key);
+        }
+        if (archivoReemplazado) camposModificados.push('archivo');
+
         await AuditService.logDocumentUpdate(req, documentoActualizado, beforeState, afterState, camposModificados);
-        console.log('✅✅✅ ACTUALIZACIÓN REGISTRADA EN AUDITORÍA');
       } catch (auditError) {
         console.error('❌ Error registrando actualización:', auditError.message);
       }
 
-      // Crear notificación
       try {
         await NotificationService.create({
           titulo: 'Documento actualizado',
@@ -952,14 +781,11 @@ class DocumentController {
           tipo: 'info',
           categoria: 'documento'
         });
-        console.log('✅ Notificación creada');
       } catch (notifError) {
         console.error('⚠️ Error creando notificación:', notifError.message);
       }
 
-      console.log('✅✅✅ ACTUALIZACIÓN COMPLETADA');
-      console.log('🔍 ========== FIN ==========\n');
-
+      console.log('✅✅✅ ACTUALIZACIÓN COMPLETADA\n');
       res.json({
         success: true,
         message: 'Documento actualizado correctamente',
@@ -968,12 +794,260 @@ class DocumentController {
 
     } catch (error) {
       console.error('🔥 Error actualizando documento:', error);
-      if (req.file && req.file.path) {
-        FileService.cleanTempFile(req.file.path);
-      }
+      if (req.file?.path) FileService.cleanTempFile(req.file.path);
       res.status(500).json({
         success: false,
         message: 'Error al actualizar documento: ' + error.message
+      });
+    }
+  }
+
+  // ===========================================================================
+  // MOVER DOCUMENTO A OTRA CARPETA
+  // ===========================================================================
+  static async moveToFolder(req, res) {
+    console.log('\n🚀 ========== MOVIENDO DOCUMENTO A CARPETA ==========');
+    console.log('📝 Document ID:', req.params.id);
+    console.log('📁 Folder ID:', req.body.folder_id);
+    console.log('👤 Usuario:', req.user?.usuario);
+    console.log('🏫 School ID:', req.schoolId);
+
+    try {
+      const { id } = req.params;
+      const { folder_id } = req.body;
+
+      // ── 1. VALIDACIONES INICIALES ─────────────────────────────────────────
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de documento es requerido'
+        });
+      }
+
+      // folder_id debe estar presente en el body (puede ser null para raíz)
+      if (folder_id === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: 'folder_id es requerido (puede ser null para mover a raíz)'
+        });
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de documento inválido'
+        });
+      }
+
+      if (folder_id && !mongoose.Types.ObjectId.isValid(folder_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de carpeta inválido'
+        });
+      }
+
+      // ── 2. BUSCAR EL DOCUMENTO ────────────────────────────────────────────
+      const documento = await Document.findOne({
+        _id: id,
+        activo: true,
+        schoolId: req.schoolId
+      });
+
+      if (!documento) {
+        return res.status(404).json({
+          success: false,
+          message: 'Documento no encontrado o no pertenece a esta escuela'
+        });
+      }
+
+      console.log('📄 Documento encontrado:', {
+        id: documento._id,
+        nombre: documento.nombre_original,
+        folderActual: documento.folder_id || 'raíz',
+        categoria: documento.categoria
+      });
+
+      // ── 3. VALIDAR CARPETA DESTINO ────────────────────────────────────────
+      let folderDestino = null;
+      const Category = mongoose.model('Category');
+
+      if (folder_id) {
+        folderDestino = await Category.findOne({
+          _id: folder_id,
+          activo: true,
+          schoolId: req.schoolId
+        });
+
+        if (!folderDestino) {
+          return res.status(404).json({
+            success: false,
+            message: 'Carpeta destino no encontrada o no pertenece a esta escuela'
+          });
+        }
+
+        console.log('📁 Carpeta destino:', {
+          id: folderDestino._id,
+          nombre: folderDestino.nombre
+        });
+
+        // Verificar que no sea la misma carpeta
+        if (documento.folder_id?.toString() === folder_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'El documento ya se encuentra en esta carpeta'
+          });
+        }
+      } else {
+        console.log('📁 Moviendo a raíz (sin carpeta)');
+        
+        // Verificar que no esté ya en la raíz
+        if (!documento.folder_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'El documento ya se encuentra en la raíz'
+          });
+        }
+      }
+
+      // ── 4. GUARDAR ESTADO ANTERIOR ────────────────────────────────────────
+      const folderAnterior = documento.folder_id;
+      const categoriaAnterior = documento.categoria;
+
+      let nombreFolderAnterior = 'Raíz';
+      if (folderAnterior) {
+        try {
+          const folderAnt = await Category.findById(folderAnterior);
+          if (folderAnt) nombreFolderAnterior = folderAnt.nombre;
+        } catch (e) {
+          console.warn('⚠️ No se pudo obtener nombre de carpeta anterior:', e.message);
+        }
+      }
+
+      // ── 5. ACTUALIZAR DOCUMENTO ───────────────────────────────────────────
+      if (folder_id) {
+        documento.folder_id = folder_id;
+        documento.categoria = folderDestino.nombre;
+      } else {
+        documento.folder_id = null;
+        documento.categoria = 'General';
+      }
+
+      documento.updatedAt = new Date();
+      await documento.save();
+
+      console.log('✅ Documento actualizado:', {
+        folderAnterior: nombreFolderAnterior,
+        folderNuevo: folderDestino?.nombre || 'Raíz',
+        categoriaAnterior,
+        categoriaNueva: documento.categoria
+      });
+
+      // ── 6. ACTUALIZAR CONTADORES ──────────────────────────────────────────
+      try {
+        // Decrementar carpeta anterior
+        if (folderAnterior) {
+          await Category.findByIdAndUpdate(folderAnterior, {
+            $inc: { documentCount: -1 }
+          });
+        }
+
+        // Incrementar carpeta nueva
+        if (folder_id) {
+          await Category.findByIdAndUpdate(folder_id, {
+            $inc: { documentCount: 1 }
+          });
+          
+          // Actualizar padres recursivamente
+          await updateParentCategoryCounts(folder_id, 1);
+        }
+      } catch (countError) {
+        console.warn('⚠️ Error actualizando contadores:', countError.message);
+      }
+
+      // ── 7. DATOS PARA RESPUESTA ───────────────────────────────────────────
+      const documentoActualizado = await Document.findById(id)
+        .populate('persona_id', 'nombre email departamento puesto')
+        .lean();
+
+      const categoriasActualizadas = await Category.find({
+        activo: true,
+        schoolId: req.schoolId
+      })
+        .select('nombre descripcion color icon parent_id documentCount')
+        .lean();
+
+      // ── 8. AUDITORÍA ──────────────────────────────────────────────────────
+      try {
+        if (typeof AuditService?.logDocumentMove === 'function') {
+          await AuditService.logDocumentMove(
+            req,
+            documentoActualizado,
+            {
+              folder_id: folderAnterior,
+              categoria: categoriaAnterior,
+              nombreFolder: nombreFolderAnterior
+            },
+            {
+              folder_id: folder_id || null,
+              categoria: documento.categoria,
+              nombreFolder: folderDestino?.nombre || 'Raíz'
+            }
+          );
+          console.log('✅ Auditoría registrada');
+        }
+      } catch (auditError) {
+        console.warn('⚠️ Error registrando auditoría:', auditError.message);
+      }
+
+      // ── 9. RESPUESTA EXITOSA ──────────────────────────────────────────────
+      console.log('✅ ========== MOVIMIENTO COMPLETADO ==========\n');
+
+      const nombreDestino = folderDestino?.nombre || 'Raíz';
+
+      return res.json({
+        success: true,
+        message: `Documento movido exitosamente a "${nombreDestino}"`,
+        document: documentoActualizado,
+        categories: categoriasActualizadas,
+        movement: {
+          from: {
+            folder_id: folderAnterior || null,
+            folder_name: nombreFolderAnterior,
+            category: categoriaAnterior
+          },
+          to: {
+            folder_id: folder_id || null,
+            folder_name: nombreDestino,
+            category: documento.categoria
+          },
+          movedBy: req.user?.usuario || 'Sistema',
+          movedAt: new Date().toISOString()
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('🔥 ERROR CRÍTICO en moveToFolder:', error.message);
+      console.error('📌 Stack:', error.stack);
+
+      if (error.name === 'CastError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Error en el formato de los datos proporcionados'
+        });
+      }
+
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map(e => e.message).join(', ');
+        return res.status(400).json({
+          success: false,
+          message: 'Error de validación: ' + messages
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: 'Error interno al mover el documento: ' + error.message
       });
     }
   }
@@ -983,72 +1057,32 @@ class DocumentController {
   // ===========================================================================
   static async bulkDelete(req, res) {
     console.log('\n🔍 ========== ELIMINACIÓN MÚLTIPLE DE DOCUMENTOS ==========');
-    console.log('📝 IDs a eliminar:', req.body.document_ids);
     console.log('👤 Usuario:', req.user?.usuario);
 
     try {
       const { document_ids } = req.body;
 
-      // 🔥 LOGS DE DEBUG - VERIFICACIÓN DE IDs 🔥
-      console.log('🔍 VERIFICANDO IDs RECIBIDOS:');
-      if (!document_ids || !Array.isArray(document_ids)) {
-        console.log('❌ document_ids no es un array o es null/undefined');
-      } else {
-        document_ids.forEach((id, index) => {
-          const isValid = mongoose.Types.ObjectId.isValid(id);
-          console.log(`   ID ${index + 1}: ${id} - Válido: ${isValid}`);
-        });
-      }
-
-      // 🔥 VERIFICAR SI LOS IDs EXISTEN EN LA BD 🔥
-      if (document_ids && Array.isArray(document_ids) && document_ids.length > 0) {
-        const existingDocs = await Document.find({
-          _id: { $in: document_ids }
-        }).select('_id nombre_original isDeleted activo');
-
-        console.log('📊 Documentos encontrados en BD:', existingDocs.length);
-        if (existingDocs.length > 0) {
-          existingDocs.forEach(doc => {
-            console.log(`   ✅ ${doc._id}: ${doc.nombre_original} (activo: ${doc.activo}, isDeleted: ${doc.isDeleted})`);
-          });
-        } else {
-          console.log('   ❌ Ningún documento encontrado con esos IDs');
-        }
-      }
-
       if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
-        console.log('❌ No se proporcionaron IDs válidos');
         return res.status(400).json({
           success: false,
           message: 'Se requiere un array de IDs de documentos'
         });
       }
 
-      console.log(`📋 Procesando ${document_ids.length} documentos para eliminar...`);
-
-      // Validar que todos los IDs sean ObjectId válidos
       const validIds = document_ids.filter(id => mongoose.Types.ObjectId.isValid(id));
 
       if (validIds.length === 0) {
-        console.log('❌ Ningún ID válido proporcionado');
         return res.status(400).json({
           success: false,
           message: 'No se proporcionaron IDs válidos'
         });
       }
 
-      if (validIds.length !== document_ids.length) {
-        console.log(`⚠️ ${document_ids.length - validIds.length} IDs inválidos fueron filtrados`);
-      }
-
-      // Buscar todos los documentos que existen y están activos
       const documentos = await Document.find({
         _id: { $in: validIds },
         activo: true,
         isDeleted: { $ne: true }
       });
-
-      console.log(`✅ ${documentos.length} documentos encontrados para eliminar`);
 
       if (documentos.length === 0) {
         return res.status(404).json({
@@ -1057,20 +1091,13 @@ class DocumentController {
         });
       }
 
-      // Preparar array de IDs encontrados
       const foundIds = documentos.map(doc => doc._id.toString());
       const notFoundIds = validIds.filter(id => !foundIds.includes(id));
 
-      if (notFoundIds.length > 0) {
-        console.log(`⚠️ ${notFoundIds.length} documentos no encontrados:`, notFoundIds);
-      }
-
-      // Realizar soft delete de todos los documentos encontrados
       const now = new Date();
       const deletedBy = req.user?.usuario || req.user?.correo || 'Usuario';
 
-      // Actualizar todos los documentos en una sola operación
-      const updateResult = await Document.updateMany(
+      await Document.updateMany(
         { _id: { $in: foundIds } },
         {
           $set: {
@@ -1081,56 +1108,15 @@ class DocumentController {
         }
       );
 
-      console.log(`📊 Resultado de la actualización:`, {
-        matched: updateResult.matchedCount,
-        modified: updateResult.modifiedCount
-      });
-
-      // =======================================================================
-      // REGISTRAR EN AUDITORÍA (para cada documento)
-      // =======================================================================
-
       try {
-        // Registrar cada eliminación individualmente en auditoría
         for (const doc of documentos) {
           await AuditService.logDocumentDelete(req, doc, true);
         }
-        console.log(`✅✅✅ ${documentos.length} ELIMINACIONES REGISTRADAS EN AUDITORÍA`);
       } catch (auditError) {
-        console.error('❌ Error registrando eliminaciones en auditoría:', auditError.message);
+        console.error('❌ Error registrando auditoría:', auditError.message);
       }
 
-      // Crear una sola notificación para la eliminación múltiple
-      try {
-        if (documentos.length === 1) {
-          await NotificationService.documentoEliminado(
-            documentos[0].nombre_original,
-            documentos[0].categoria
-          );
-        } else {
-          // Crear notificación consolidada
-          await NotificationService.create({
-            titulo: 'Eliminación múltiple completada',
-            mensaje: `${documentos.length} documentos han sido movidos a la papelera`,
-            tipo: 'info',
-            categoria: 'documento',
-            metadata: {
-              count: documentos.length,
-              documents: documentos.map(d => ({
-                id: d._id,
-                nombre: d.nombre_original,
-                categoria: d.categoria
-              }))
-            }
-          });
-        }
-        console.log('✅ Notificación creada');
-      } catch (notifError) {
-        console.error('⚠️ Error creando notificación:', notifError.message);
-      }
-
-      console.log('✅✅✅ ELIMINACIÓN MÚLTIPLE COMPLETADA');
-      console.log('🔍 ========== FIN ==========\n');
+      console.log('✅✅✅ ELIMINACIÓN MÚLTIPLE COMPLETADA\n');
 
       return res.json({
         success: true,
@@ -1146,14 +1132,224 @@ class DocumentController {
 
     } catch (error) {
       console.error('🔥 Error en eliminación múltiple:', error);
-      console.error('📌 Stack:', error.stack);
-
       return res.status(500).json({
         success: false,
         message: 'Error al eliminar documentos: ' + error.message
       });
     }
   }
+
+  // ===========================================================================
+// MOVIMIENTO MÚLTIPLE DE DOCUMENTOS A CARPETA
+// ===========================================================================
+static async bulkMoveToFolder(req, res) {
+  console.log('\n📦 ========== MOVIMIENTO MÚLTIPLE DE DOCUMENTOS ==========');
+  console.log('👤 Usuario:', req.user?.usuario);
+  console.log('📁 Folder destino:', req.body.folder_id || 'Raíz');
+  console.log('🏫 School ID:', req.schoolId);
+
+  try {
+    const { document_ids, folder_id } = req.body;
+
+    // ── 1. VALIDACIONES INICIALES ─────────────────────────────────────────
+    if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere un array de IDs de documentos'
+      });
+    }
+
+    if (folder_id === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'folder_id es requerido (puede ser null para mover a raíz)'
+      });
+    }
+
+    const validIds = document_ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+
+    if (validIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se proporcionaron IDs válidos'
+      });
+    }
+
+    // ── 2. VALIDAR CARPETA DESTINO ────────────────────────────────────────
+    let folderDestino = null;
+    let nombreDestino = 'Raíz';
+    let categoriaDestino = 'General';
+    const Category = mongoose.model('Category');
+
+    if (folder_id) {
+      if (!mongoose.Types.ObjectId.isValid(folder_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de carpeta destino inválido'
+        });
+      }
+
+      folderDestino = await Category.findOne({
+        _id: folder_id,
+        activo: true,
+        schoolId: req.schoolId
+      });
+
+      if (!folderDestino) {
+        return res.status(404).json({
+          success: false,
+          message: 'Carpeta destino no encontrada o no pertenece a esta escuela'
+        });
+      }
+
+      nombreDestino = folderDestino.nombre;
+      categoriaDestino = folderDestino.nombre;
+      
+      console.log('📁 Carpeta destino:', {
+        id: folderDestino._id,
+        nombre: folderDestino.nombre
+      });
+    } else {
+      console.log('📁 Moviendo a raíz (sin carpeta)');
+    }
+
+    // ── 3. BUSCAR DOCUMENTOS ──────────────────────────────────────────────
+    const documentos = await Document.find({
+      _id: { $in: validIds },
+      activo: true,
+      schoolId: req.schoolId,
+      isDeleted: { $ne: true }
+    });
+
+    if (documentos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontraron documentos para mover'
+      });
+    }
+
+    const foundIds = documentos.map(doc => doc._id.toString());
+    const notFoundIds = validIds.filter(id => !foundIds.includes(id));
+
+    console.log(`📄 ${documentos.length} documentos encontrados de ${validIds.length}`);
+
+    // ── 4. GUARDAR ESTADOS ANTERIORES PARA AUDITORÍA ───────────────────────
+    const previousStates = documentos.map(doc => ({
+      docId: doc._id,
+      folderIdAnterior: doc.folder_id,
+      categoriaAnterior: doc.categoria
+    }));
+
+    // ── 5. ACTUALIZAR DOCUMENTOS ──────────────────────────────────────────
+    const updateData = {
+      updatedAt: new Date()
+    };
+
+    if (folder_id) {
+      updateData.folder_id = folder_id;
+      updateData.categoria = categoriaDestino;
+    } else {
+      updateData.folder_id = null;
+      updateData.categoria = 'General';
+    }
+
+    await Document.updateMany(
+      { _id: { $in: foundIds } },
+      { $set: updateData }
+    );
+
+    console.log(`✅ ${foundIds.length} documentos actualizados`);
+
+    // ── 6. ACTUALIZAR CONTADORES DE CATEGORÍAS ────────────────────────────
+    try {
+      // Procesar cada documento para actualizar contadores
+      for (const prev of previousStates) {
+        // Decrementar carpeta anterior
+        if (prev.folderIdAnterior) {
+          await Category.findByIdAndUpdate(prev.folderIdAnterior, {
+            $inc: { documentCount: -1 }
+          });
+          await updateParentCategoryCounts(prev.folderIdAnterior, -1);
+        }
+
+        // Incrementar carpeta nueva
+        if (folder_id) {
+          await Category.findByIdAndUpdate(folder_id, {
+            $inc: { documentCount: 1 }
+          });
+          await updateParentCategoryCounts(folder_id, 1);
+        }
+      }
+      console.log('✅ Contadores de categorías actualizados');
+    } catch (countError) {
+      console.warn('⚠️ Error actualizando contadores:', countError.message);
+    }
+
+    // ── 7. CATEGORÍAS ACTUALIZADAS PARA RESPUESTA ─────────────────────────
+    const categoriasActualizadas = await Category.find({
+      activo: true,
+      schoolId: req.schoolId
+    }).select('nombre descripcion color icon parent_id documentCount').lean();
+
+    // ── 8. AUDITORÍA ──────────────────────────────────────────────────────
+    try {
+      for (const doc of documentos) {
+        const prevState = previousStates.find(p => p.docId.toString() === doc._id.toString());
+        
+        if (typeof AuditService?.logDocumentMove === 'function') {
+          await AuditService.logDocumentMove(
+            req,
+            doc,
+            {
+              folder_id: prevState?.folderIdAnterior || null,
+              categoria: prevState?.categoriaAnterior || 'General',
+              nombreFolder: 'Anterior'
+            },
+            {
+              folder_id: folder_id || null,
+              categoria: categoriaDestino,
+              nombreFolder: nombreDestino
+            }
+          );
+        }
+      }
+      console.log('✅ Auditoría registrada');
+    } catch (auditError) {
+      console.warn('⚠️ Error registrando auditoría:', auditError.message);
+    }
+
+    // ── 9. RESPUESTA EXITOSA ──────────────────────────────────────────────
+    console.log('✅✅✅ MOVIMIENTO MÚLTIPLE COMPLETADO\n');
+
+    return res.json({
+      success: true,
+      message: `${documentos.length} de ${document_ids.length} documentos movidos a "${nombreDestino}"`,
+      moved: documentos.length,
+      total: document_ids.length,
+      notFound: notFoundIds,
+      target: {
+        folder_id: folder_id || null,
+        folder_name: nombreDestino,
+        category: categoriaDestino
+      },
+      categories: categoriasActualizadas,
+      results: {
+        successful: foundIds,
+        failed: notFoundIds
+      },
+      movedBy: req.user?.usuario || 'Sistema',
+      movedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('🔥 ERROR CRÍTICO en bulkMoveToFolder:', error.message);
+    console.error('📌 Stack:', error.stack);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al mover documentos: ' + error.message
+    });
+  }
+}
 }
 
 export default DocumentController;

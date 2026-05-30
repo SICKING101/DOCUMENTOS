@@ -8,9 +8,21 @@ const documentSchema = new mongoose.Schema({
   tamano_archivo: { type: Number, required: true },
   descripcion: String,
   categoria: String,
+  // Referencia a la carpeta (categoría) donde se ubica el documento
+  folder_id: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Category',
+    default: null 
+  },
   fecha_subida: { type: Date, default: Date.now },
   fecha_vencimiento: Date,
   persona_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Person' },
+  // Referencia a la carpeta (categoría) donde se ubica el documento
+  folder_id: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    default: null
+  },
   cloudinary_url: { type: String, required: true },
   public_id: { type: String, required: true },
   resource_type: { type: String, required: true },

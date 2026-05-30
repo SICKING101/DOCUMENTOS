@@ -3,7 +3,7 @@
 
 import { api } from '../../services/api.js';
 import { showAlert } from '../../utils.js';
-import { validateUsername, validatePassword, initSecurityValidation } from '../../securityValidation.js';
+import { validateUsername, validateEmail, validatePassword, displayPasswordStrength, initSecurityValidation } from '../../securityValidation.js';
 
 // =============================================================================
 // CLASE PARA GESTIONAR CAMBIO DE ADMINISTRADOR - CORREGIDA
@@ -49,6 +49,8 @@ class AdminChangeManager {
         // Agregar data-validate para usar validadores globales
         if (this.newAdminUserInput) this.newAdminUserInput.setAttribute('data-validate', 'username');
         if (this.newAdminPasswordInput) this.newAdminPasswordInput.setAttribute('data-validate', 'password');
+        if (this.newAdminEmailInput) this.newAdminEmailInput.setAttribute('data-validate', 'email');
+        if (this.confirmAdminPasswordInput) this.confirmAdminPasswordInput.setAttribute('data-validate', 'confirm-password');
         
         // Obtener botones
         this.submitBtn = document.getElementById('confirmChangeAdmin');
@@ -60,10 +62,45 @@ class AdminChangeManager {
         // Agregar campo de contraseña actual si no existe
         this.addCurrentPasswordField();
 
+        // Arreglar los ojos de contraseña
+        this.fixPasswordToggles();
+
         // Inicializar validación de seguridad visual y lógica
         initSecurityValidation('#changeAdminForm');
         
         console.log('✅ AdminChangeManager inicializado');
+    }
+    
+    // =========================================================================
+    // ARREGLAR OJOS DE CONTRASEÑA
+    // =========================================================================
+    
+    fixPasswordToggles() {
+        // Eliminar el onclick inline y poner evento real
+        this.form.querySelectorAll('.form__password-toggle, .password-toggle').forEach(btn => {
+            const newBtn = btn.cloneNode(true);
+            btn.replaceWith(newBtn);
+            
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Buscar el input dentro del mismo wrapper
+                const wrapper = newBtn.closest('.form__password-wrapper, .password-wrapper');
+                const input = wrapper ? wrapper.querySelector('input') : null;
+                
+                if (!input) return;
+                
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                
+                const icon = newBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-eye', !isPassword);
+                    icon.classList.toggle('fa-eye-slash', isPassword);
+                }
+            });
+        });
     }
     
     // =========================================================================
@@ -84,8 +121,7 @@ class AdminChangeManager {
             <div class="form__password-wrapper">
                 <input type="password" id="currentPassword" class="form__input" 
                        placeholder="Confirma tu identidad" required>
-                <button type="button" class="form__password-toggle" 
-                        onclick="window.togglePasswordVisibility('currentPassword')">
+                <button type="button" class="form__password-toggle">
                     <i class="fas fa-eye"></i>
                 </button>
             </div>
@@ -102,6 +138,23 @@ class AdminChangeManager {
         }
         
         this.currentPasswordInput = document.getElementById('currentPassword');
+        
+        // Arreglar el ojo del campo recién creado
+        const toggleBtn = currentPasswordGroup.querySelector('.form__password-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const input = document.getElementById('currentPassword');
+                if (!input) return;
+                const isPass = input.type === 'password';
+                input.type = isPass ? 'text' : 'password';
+                const icon = toggleBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-eye', !isPass);
+                    icon.classList.toggle('fa-eye-slash', isPass);
+                }
+            });
+        }
     }
     
     // =========================================================================
@@ -123,6 +176,9 @@ class AdminChangeManager {
                 this.closeModal();
             }
         });
+        
+        // Cerrar con X
+        document.getElementById('closeChangeAdminModal')?.addEventListener('click', () => this.closeModal());
         
         this.setupRealTimeValidation();
     }
@@ -162,7 +218,7 @@ class AdminChangeManager {
         const value = input.value.trim();
         let isValid = true;
         let errorMessage = '';
-        // Validación especial para contraseña actual
+        
         if (input.id === 'currentPassword') {
             if (!value) {
                 isValid = false;
@@ -175,10 +231,16 @@ class AdminChangeManager {
             const result = validateUsername(value);
             isValid = result.isValid;
             errorMessage = result.errors[0] || '';
+        } else if (input.getAttribute('data-validate') === 'email') {
+            const result = validateEmail(value);
+            isValid = result.isValid;
+            errorMessage = result.errors[0] || '';
         } else if (input.getAttribute('data-validate') === 'password') {
             const result = validatePassword(value);
             isValid = result.isValid;
             errorMessage = result.errors[0] || '';
+            // Mostrar fortaleza
+            displayPasswordStrength(input, result.strength);
         } else if (input.id === 'confirmAdminPassword') {
             if (!value) {
                 isValid = false;
@@ -187,15 +249,8 @@ class AdminChangeManager {
                 isValid = false;
                 errorMessage = 'Las contraseñas no coinciden';
             }
-        } else if (input.id === 'newAdminEmail') {
-            if (!value) {
-                isValid = false;
-                errorMessage = 'El correo electrónico es requerido';
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                isValid = false;
-                errorMessage = 'Correo electrónico inválido';
-            }
         }
+        
         this.updateFieldStatus(input, isValid, errorMessage);
         return isValid;
     }
@@ -243,11 +298,10 @@ class AdminChangeManager {
     }
     
     updateFieldStatus(input, isValid, errorMessage = '') {
-        const group = input.closest('.form-group');
+        const group = input.closest('.form-group, .form__group');
         if (!group) return;
 
         group.classList.remove('form__group--error', 'form__group--success', 'form-group--error', 'form-group--success');
-        group.classList.remove('form-group--error', 'form-group--success');
 
         // Eliminar errores previos
         let existingError = group.querySelector('.error-container');
@@ -261,7 +315,6 @@ class AdminChangeManager {
         if (!isValid && errorMessage) {
             group.classList.add('form-group--error');
             input.classList.add('input-error');
-            // Crear contenedor de error avanzado
             const errorContainer = document.createElement('div');
             errorContainer.className = 'error-container';
             const errorMsg = document.createElement('div');
@@ -282,13 +335,11 @@ class AdminChangeManager {
     async handleSubmit() {
         console.log('🔐 Enviando solicitud de cambio de administrador...');
         
-        // Validar formulario
         if (!this.validateForm()) {
             showAlert('Por favor corrige los errores en el formulario', 'error');
             return;
         }
         
-        // Obtener valores
         const formData = {
             nuevoUsuario: this.newAdminUserInput.value.trim(),
             nuevoCorreo: this.newAdminEmailInput.value.trim(),
@@ -303,7 +354,6 @@ class AdminChangeManager {
             confirmarPasswordLength: formData.confirmarPassword.length
         });
         
-        // Confirmación adicional por seguridad
         const confirmation = confirm(
             '⚠️ CONFIRMACIÓN DE SEGURIDAD\n\n' +
             'Estás a punto de solicitar un cambio de administrador. Esto:\n\n' +
@@ -313,23 +363,17 @@ class AdminChangeManager {
             '¿Continuar?'
         );
         
-        if (!confirmation) {
-            return;
-        }
+        if (!confirmation) return;
         
-        // Deshabilitar botón de envío
         const originalText = this.submitBtn.innerHTML;
         this.submitBtn.disabled = true;
         this.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
         
         try {
-            // Verificar contraseña actual primero
             console.log('🔐 Verificando contraseña actual...');
             const verifyResponse = await api.call('/auth/verify-password', {
                 method: 'POST',
-                body: {
-                    password: this.currentPasswordInput.value
-                }
+                body: { password: this.currentPasswordInput.value }
             });
             
             if (!verifyResponse.success) {
@@ -338,7 +382,6 @@ class AdminChangeManager {
             
             console.log('✅ Contraseña verificada, enviando solicitud...');
             
-            // Enviar solicitud de cambio
             const response = await api.call('/admin/request-change', {
                 method: 'POST',
                 body: formData
@@ -350,13 +393,11 @@ class AdminChangeManager {
                 throw new Error(response.message || 'Error al enviar solicitud');
             }
             
-            // Éxito
             this.showSuccessMessage(response);
             
         } catch (error) {
             console.error('❌ Error en cambio de administrador:', error);
             
-            // Mostrar error específico
             let errorMessage = error.message;
             
             if (errorMessage.includes('Contraseña actual incorrecta')) {
@@ -376,7 +417,6 @@ class AdminChangeManager {
             showAlert(`Error: ${errorMessage}`, 'error');
             
         } finally {
-            // Restaurar botón
             this.submitBtn.disabled = false;
             this.submitBtn.innerHTML = originalText;
         }
@@ -447,6 +487,9 @@ class AdminChangeManager {
         }
         
         this.modal.style.display = 'flex';
+        
+        // Re-arreglar los ojos al abrir
+        this.fixPasswordToggles();
         
         if (this.currentPasswordInput) {
             this.currentPasswordInput.focus();

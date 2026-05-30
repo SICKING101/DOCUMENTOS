@@ -951,6 +951,192 @@
     font-size: 0.9rem;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   VALIDACIONES DE REGISTRO - VERSIÓN CORREGIDA
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* El feedback va FUERA del input-group, como hermano siguiente */
+.validation-feedback {
+    width: 100%;
+    margin-bottom: 5px;
+    animation: fadeInFeedback 0.2s ease;
+}
+
+@keyframes fadeInFeedback {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.field-error-msg {
+    color: #dc3545;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    line-height: 1.4;
+}
+
+.field-success-msg {
+    color: #28a745;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    font-weight: 500;
+}
+
+.field-strength {
+    margin-top: 4px;
+}
+
+.field-strength-bar {
+    width: 100%;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+.field-strength-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.4s ease, background 0.4s ease;
+}
+
+.field-strength-text {
+    font-size: 0.72rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+/* Estados del input (sin afectar iconos) */
+#registerUsuario.input-error,
+#registerPassword.input-error,
+#registerPasswordConfirm.input-error {
+    border-color: #dc3545 !important;
+}
+
+#registerUsuario.input-valid,
+#registerPassword.input-valid,
+#registerPasswordConfirm.input-valid {
+    border-color: #28a745 !important;
+}
+
+/* Botón */
+#registerBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(30%);
+}
+
+#registerBtn.btn-enabled {
+    opacity: 1;
+    cursor: pointer;
+    filter: none;
+    animation: pulseReady 0.6s ease;
+}
+
+@keyframes pulseReady {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+    70%  { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VALIDACIONES - MODAL CAMBIAR ADMINISTRADOR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#changeAdminModal .validation-feedback {
+    width: 100%;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    animation: fadeInFeedback 0.2s ease;
+}
+
+#changeAdminModal .field-error-msg {
+    color: #dc3545;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    line-height: 1.4;
+}
+
+#changeAdminModal .field-success-msg {
+    color: #28a745;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    font-weight: 500;
+}
+
+#changeAdminModal .field-strength {
+    margin-top: 4px;
+}
+
+#changeAdminModal .field-strength-bar {
+    width: 100%;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+#changeAdminModal .field-strength-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.4s ease, background 0.4s ease;
+}
+
+#changeAdminModal .field-strength-text {
+    font-size: 0.72rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+#changeAdminModal .form-input-admin.input-error {
+    border-color: #dc3545 !important;
+}
+
+#changeAdminModal .form-input-admin.input-valid {
+    border-color: #28a745 !important;
+}
+
+#changeAdminModal #confirmChangeAdmin:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(30%);
+}
+
+#changeAdminModal #confirmChangeAdmin.btn-enabled {
+    opacity: 1;
+    cursor: pointer;
+    filter: none;
+    animation: pulseReady 0.6s ease;
+}
+
+@keyframes pulseReady {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+    70%  { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes fadeInFeedback {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .info-value {
     color: var(--light);
     font-weight: 600;

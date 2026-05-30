@@ -787,6 +787,9 @@ window.loadDocuments = documentos.loadDocuments;
 window.renderDocumentsTable = documentos.renderDocumentsTable;
 window.changeDocumentsPage = documentos.changeDocumentsPage;
 window.populateDocumentCategorySelect = documentos.populateDocumentCategorySelect;
+window.reinitializeDragDrop = documentos.reinitializeDragDrop;
+window.getPendingMoves = documentos.getPendingMoves;
+window.cancelDocumentMove = documentos.cancelDocumentMove;
 
 // ── Personas ──
 window.editPerson = editPerson;
