@@ -1138,6 +1138,218 @@ class DocumentController {
       });
     }
   }
+
+  // ===========================================================================
+// MOVIMIENTO MÚLTIPLE DE DOCUMENTOS A CARPETA
+// ===========================================================================
+static async bulkMoveToFolder(req, res) {
+  console.log('\n📦 ========== MOVIMIENTO MÚLTIPLE DE DOCUMENTOS ==========');
+  console.log('👤 Usuario:', req.user?.usuario);
+  console.log('📁 Folder destino:', req.body.folder_id || 'Raíz');
+  console.log('🏫 School ID:', req.schoolId);
+
+  try {
+    const { document_ids, folder_id } = req.body;
+
+    // ── 1. VALIDACIONES INICIALES ─────────────────────────────────────────
+    if (!document_ids || !Array.isArray(document_ids) || document_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere un array de IDs de documentos'
+      });
+    }
+
+    if (folder_id === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'folder_id es requerido (puede ser null para mover a raíz)'
+      });
+    }
+
+    const validIds = document_ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+
+    if (validIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se proporcionaron IDs válidos'
+      });
+    }
+
+    // ── 2. VALIDAR CARPETA DESTINO ────────────────────────────────────────
+    let folderDestino = null;
+    let nombreDestino = 'Raíz';
+    let categoriaDestino = 'General';
+    const Category = mongoose.model('Category');
+
+    if (folder_id) {
+      if (!mongoose.Types.ObjectId.isValid(folder_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de carpeta destino inválido'
+        });
+      }
+
+      folderDestino = await Category.findOne({
+        _id: folder_id,
+        activo: true,
+        schoolId: req.schoolId
+      });
+
+      if (!folderDestino) {
+        return res.status(404).json({
+          success: false,
+          message: 'Carpeta destino no encontrada o no pertenece a esta escuela'
+        });
+      }
+
+      nombreDestino = folderDestino.nombre;
+      categoriaDestino = folderDestino.nombre;
+      
+      console.log('📁 Carpeta destino:', {
+        id: folderDestino._id,
+        nombre: folderDestino.nombre
+      });
+    } else {
+      console.log('📁 Moviendo a raíz (sin carpeta)');
+    }
+
+    // ── 3. BUSCAR DOCUMENTOS ──────────────────────────────────────────────
+    const documentos = await Document.find({
+      _id: { $in: validIds },
+      activo: true,
+      schoolId: req.schoolId,
+      isDeleted: { $ne: true }
+    });
+
+    if (documentos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontraron documentos para mover'
+      });
+    }
+
+    const foundIds = documentos.map(doc => doc._id.toString());
+    const notFoundIds = validIds.filter(id => !foundIds.includes(id));
+
+    console.log(`📄 ${documentos.length} documentos encontrados de ${validIds.length}`);
+
+    // ── 4. GUARDAR ESTADOS ANTERIORES PARA AUDITORÍA ───────────────────────
+    const previousStates = documentos.map(doc => ({
+      docId: doc._id,
+      folderIdAnterior: doc.folder_id,
+      categoriaAnterior: doc.categoria
+    }));
+
+    // ── 5. ACTUALIZAR DOCUMENTOS ──────────────────────────────────────────
+    const updateData = {
+      updatedAt: new Date()
+    };
+
+    if (folder_id) {
+      updateData.folder_id = folder_id;
+      updateData.categoria = categoriaDestino;
+    } else {
+      updateData.folder_id = null;
+      updateData.categoria = 'General';
+    }
+
+    await Document.updateMany(
+      { _id: { $in: foundIds } },
+      { $set: updateData }
+    );
+
+    console.log(`✅ ${foundIds.length} documentos actualizados`);
+
+    // ── 6. ACTUALIZAR CONTADORES DE CATEGORÍAS ────────────────────────────
+    try {
+      // Procesar cada documento para actualizar contadores
+      for (const prev of previousStates) {
+        // Decrementar carpeta anterior
+        if (prev.folderIdAnterior) {
+          await Category.findByIdAndUpdate(prev.folderIdAnterior, {
+            $inc: { documentCount: -1 }
+          });
+          await updateParentCategoryCounts(prev.folderIdAnterior, -1);
+        }
+
+        // Incrementar carpeta nueva
+        if (folder_id) {
+          await Category.findByIdAndUpdate(folder_id, {
+            $inc: { documentCount: 1 }
+          });
+          await updateParentCategoryCounts(folder_id, 1);
+        }
+      }
+      console.log('✅ Contadores de categorías actualizados');
+    } catch (countError) {
+      console.warn('⚠️ Error actualizando contadores:', countError.message);
+    }
+
+    // ── 7. CATEGORÍAS ACTUALIZADAS PARA RESPUESTA ─────────────────────────
+    const categoriasActualizadas = await Category.find({
+      activo: true,
+      schoolId: req.schoolId
+    }).select('nombre descripcion color icon parent_id documentCount').lean();
+
+    // ── 8. AUDITORÍA ──────────────────────────────────────────────────────
+    try {
+      for (const doc of documentos) {
+        const prevState = previousStates.find(p => p.docId.toString() === doc._id.toString());
+        
+        if (typeof AuditService?.logDocumentMove === 'function') {
+          await AuditService.logDocumentMove(
+            req,
+            doc,
+            {
+              folder_id: prevState?.folderIdAnterior || null,
+              categoria: prevState?.categoriaAnterior || 'General',
+              nombreFolder: 'Anterior'
+            },
+            {
+              folder_id: folder_id || null,
+              categoria: categoriaDestino,
+              nombreFolder: nombreDestino
+            }
+          );
+        }
+      }
+      console.log('✅ Auditoría registrada');
+    } catch (auditError) {
+      console.warn('⚠️ Error registrando auditoría:', auditError.message);
+    }
+
+    // ── 9. RESPUESTA EXITOSA ──────────────────────────────────────────────
+    console.log('✅✅✅ MOVIMIENTO MÚLTIPLE COMPLETADO\n');
+
+    return res.json({
+      success: true,
+      message: `${documentos.length} de ${document_ids.length} documentos movidos a "${nombreDestino}"`,
+      moved: documentos.length,
+      total: document_ids.length,
+      notFound: notFoundIds,
+      target: {
+        folder_id: folder_id || null,
+        folder_name: nombreDestino,
+        category: categoriaDestino
+      },
+      categories: categoriasActualizadas,
+      results: {
+        successful: foundIds,
+        failed: notFoundIds
+      },
+      movedBy: req.user?.usuario || 'Sistema',
+      movedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('🔥 ERROR CRÍTICO en bulkMoveToFolder:', error.message);
+    console.error('📌 Stack:', error.stack);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al mover documentos: ' + error.message
+    });
+  }
+}
 }
 
 export default DocumentController;

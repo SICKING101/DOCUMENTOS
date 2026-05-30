@@ -23,6 +23,7 @@
 @import url('components/sidebar.css');
 @import url('components/admin-tabs.css');
 @import url('components/dragdrop.css');
+@import url('components/bulk-move.css');
 
 @import url('components/preloader/bulk-delete.css');
 @import url('components/preloader/login-preloader.css');

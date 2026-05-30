@@ -117,6 +117,7 @@ router.delete('/departments/:id', protegerRuta, verificarAccesoSistema, inyectar
 router.get('/documents', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.getAll);
 router.post('/documents', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.UPLOAD_DOCUMENTS), upload.single('file'), DocumentController.create);
 router.delete('/documents/bulk-delete', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.DELETE_DOCUMENTS), DocumentController.bulkDelete);
+router.patch('/documents/bulk-move', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_DOCUMENTS), DocumentController.bulkMoveToFolder);
 router.put('/documents/:id', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.EDIT_DOCUMENTS), upload.single('file'), DocumentController.update);
 router.get('/documents/:id/preview', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.VIEW_DOCUMENTS), DocumentController.preview);
 router.get('/documents/:id/download', protegerRuta, verificarAccesoSistema, inyectarSchoolId, requirePermission(PERMISSIONS.DOWNLOAD_DOCUMENTS), DocumentController.download);

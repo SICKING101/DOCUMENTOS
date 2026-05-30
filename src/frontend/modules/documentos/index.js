@@ -17,6 +17,10 @@ import { withDocumentLoadControl, setupDocumentNotificationControl } from '../..
 import { bulkDeleteModal } from './modals/bulkDeleteModal.js';
 import { bulkDeleteState } from './core/BulkDeleteState.js';
 
+import { bulkMoveModal } from './modals/bulkMoveModal.js';
+import { bulkMoveState } from './core/BulkMoveState.js';
+import { bulkMoveManager } from './core/bulkMoveManager.js';
+
 // IMPORTAR NAVEGACIÓN POR CATEGORÍAS
 import {
     initCategoryNavigation,
@@ -588,7 +592,7 @@ export function initializeDocumentosModule() {
             } else {
                 console.warn('⚠️ initializeDocumentDragDrop no está disponible');
             }
-        }, 600); // Tiempo suficiente para que las categorías se rendericen
+        }, 600);
 
         // ===================================================================
         // 9.5 INICIALIZAR MANEJADOR DE MOVIMIENTO DE DOCUMENTOS
@@ -621,6 +625,20 @@ export function initializeDocumentosModule() {
         if (typeof bulkDeleteModal?.init === 'function') {
             bulkDeleteModal.init();
             console.log('✅ Modal de eliminación múltiple inicializado');
+        }
+
+        // ===================================================================
+        // 11.5 INICIALIZAR MODAL DE MOVIMIENTO MÚLTIPLE
+        // ===================================================================
+        if (typeof bulkMoveModal?.init === 'function') {
+            bulkMoveModal.init();
+            console.log('✅ Modal de movimiento múltiple inicializado');
+        }
+
+        // Inicializar el manager de movimiento múltiple
+        if (typeof bulkMoveManager?.init === 'function') {
+            bulkMoveManager.init();
+            console.log('✅ Manager de movimiento múltiple inicializado');
         }
 
         // ===================================================================
@@ -663,7 +681,6 @@ export function initializeDocumentosModule() {
         // 17. FORZAR PRIMER RENDER SI ES NECESARIO
         // ===================================================================
         if (typeof window.renderDocumentsTable === 'function') {
-            // Verificar si hay documentos en el estado
             const hasDocuments = window.appState?.documents?.length > 0;
             if (hasDocuments) {
                 console.log('📊 Forzando render inicial de tabla de documentos');
@@ -679,6 +696,7 @@ export function initializeDocumentosModule() {
         console.table({
             'Subida múltiple': '✓',
             'Eliminación múltiple': '✓',
+            'Movimiento múltiple': '✓',
             'Vista previa': '✓',
             'Descargas': '✓',
             'Filtros': '✓',
@@ -925,6 +943,25 @@ function _setupGlobalFunctions() {
     window.openBulkDelete = () => bulkDeleteModal?.open?.();
     window.closeBulkDelete = () => bulkDeleteModal?.close?.();
 
+    // Modal de movimiento múltiple
+    window.bulkMoveModal = bulkMoveModal;
+    window.bulkMoveState = bulkMoveState;
+    window.bulkMoveManager = bulkMoveManager;
+
+    // Funciones de movimiento múltiple
+    window.openBulkMove = () => bulkMoveModal?.open?.();
+    window.closeBulkMove = () => bulkMoveModal?.close?.();
+    window.toggleMoveSelectionMode = () => {
+        if (bulkMoveState.isSelectionMode) {
+            bulkMoveManager.disableMoveSelectionMode();
+        } else {
+            bulkMoveManager.enableMoveSelectionMode();
+        }
+    };
+    window.executeBulkMove = () => bulkMoveModal?.executeMove?.();
+    window.selectAllForMove = () => bulkMoveManager.selectAllVisible();
+    window.deselectAllForMove = () => bulkMoveManager.deselectAll();
+
     // Exponer globalmente para que los onclick del HTML funcionen
     window.openCategoryModal = openCategoryModal;
     window.closeCategoryModal = closeCategoryModal;
@@ -1123,6 +1160,7 @@ export function getAllDocumentosFunctions() {
     return {
         MultipleUploadState,
         bulkDeleteState,
+        bulkMoveState,
 
         handleFile,
         handleFileSelect,
@@ -1164,6 +1202,8 @@ export function getAllDocumentosFunctions() {
         exportFilteredToCSV,
 
         bulkDeleteModal,
+        bulkMoveModal,
+        bulkMoveManager,
 
         openDocumentModal,
         closeDocumentModal,
@@ -1224,5 +1264,69 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(documentosTab, { attributes: true });
     }
 });
+
+// =============================================================================
+// 🚨 HOTFIX v3: Abrir modal SIEMPRE al hacer clic en Mover Múltiple
+// =============================================================================
+(function() {
+    console.log('🔧 Instalando HOTFIX v3 - Modal siempre se abre...');
+    
+    const setupMoveButton = () => {
+        const btn = document.getElementById('bulkMoveTriggerBtn');
+        if (!btn) {
+            setTimeout(setupMoveButton, 500);
+            return;
+        }
+        
+        // Clonar para limpiar listeners
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+newBtn.addEventListener('click', async function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.group('🟢 MOVER MÚLTIPLE - ABRIENDO MODAL DIRECTO');
+    
+    // DESACTIVAR modo selección en la tabla (no es necesario)
+    if (window.bulkDeleteState) {
+        window.bulkDeleteState.isSelectionMode = false;
+        if (window.bulkDeleteState.disableSelectionMode) {
+            window.bulkDeleteState.disableSelectionMode();
+        }
+    }
+    
+    // Renderizar tabla SIN checkboxes
+    if (typeof window.renderDocumentsTable === 'function') {
+        window.renderDocumentsTable();
+    }
+    
+    // Ocultar barra de selección
+    const selectionBar = document.getElementById('selectionInfoBar');
+    if (selectionBar) selectionBar.style.display = 'none';
+    
+    // ABRIR EL MODAL DIRECTAMENTE
+    console.log('📦 Abriendo modal...');
+    
+    try {
+        if (window.bulkMoveModal && typeof window.bulkMoveModal.open === 'function') {
+            await window.bulkMoveModal.open();
+            console.log('✅ Modal abierto');
+        }
+    } catch (err) {
+        console.error('❌ Error:', err);
+        if (typeof showAlert === 'function') {
+            showAlert('Error al abrir el modal: ' + err.message, 'error');
+        }
+    }
+    
+    console.groupEnd();
+});
+        
+        console.log('✅ HOTFIX v3 instalado - El modal se abrirá siempre');
+    };
+    
+    setTimeout(setupMoveButton, 1000);
+})();
 
 export default initializeDocumentosModule;
