@@ -1,14 +1,8 @@
 /* =============================================================================
-   BULK MOVE MODAL — Estilos para el modal de movimiento múltiple
+   BULK MOVE MODAL — Estilos completos con responsive
    ============================================================================= */
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   OVERLAY Y CONTENEDOR PRINCIPAL
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-#bulkMoveModal {
-    z-index: 10000;
-}
+#bulkMoveModal { z-index: 10000; }
 
 #bulkMoveModal .modal__content--lg {
     max-width: 900px;
@@ -22,18 +16,16 @@
     flex-direction: column;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   HEADER DEL MODAL
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Header */
 #bulkMoveModal .modal__header {
     padding: var(--spacing-lg) var(--spacing-xl);
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: #ffffff;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 2px solid var(--primary-dark);
+    flex-shrink: 0;
 }
 
 #bulkMoveModal .modal__title {
@@ -43,18 +35,15 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    color: #ffffff;
+    color: #fff;
 }
 
-#bulkMoveModal .modal__title i {
-    font-size: 1.3rem;
-    opacity: 0.9;
-}
+#bulkMoveModal .modal__title i { font-size: 1.3rem; opacity: 0.9; }
 
 #bulkMoveModal .modal__close {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: #ffffff;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -64,19 +53,14 @@
     align-items: center;
     justify-content: center;
     transition: var(--transition);
-    backdrop-filter: blur(4px);
 }
 
 #bulkMoveModal .modal__close:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255,255,255,0.3);
     transform: rotate(90deg);
-    border-color: rgba(255, 255, 255, 0.5);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   BODY DEL MODAL — Layout de 2 columnas
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Body */
 #bulkMoveModal .modal__body {
     padding: var(--spacing-lg);
     display: flex;
@@ -86,10 +70,7 @@
     background: var(--bg-secondary);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PANEL IZQUIERDO: Documentos seleccionados
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Panel */
 .bulk-move-section {
     background: var(--bg-primary);
     border-radius: var(--radius-lg);
@@ -113,10 +94,7 @@
     gap: var(--spacing-sm);
 }
 
-.bulk-move-section__title i {
-    color: var(--primary);
-    font-size: 1rem;
-}
+.bulk-move-section__title i { color: var(--primary); font-size: 1rem; }
 
 .bulk-move-section__title .badge {
     margin-left: auto;
@@ -128,10 +106,7 @@
     font-weight: 600;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   LISTA DE DOCUMENTOS SELECCIONADOS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Lista documentos */
 .bulk-move-docs-list {
     flex: 1;
     overflow-y: auto;
@@ -142,26 +117,10 @@
     padding-right: 4px;
 }
 
-/* Scrollbar personalizado */
-.bulk-move-docs-list::-webkit-scrollbar {
-    width: 6px;
-}
+.bulk-move-docs-list::-webkit-scrollbar { width: 6px; }
+.bulk-move-docs-list::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: var(--radius-pill); }
+.bulk-move-docs-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-pill); }
 
-.bulk-move-docs-list::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
-    border-radius: var(--radius-pill);
-}
-
-.bulk-move-docs-list::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: var(--radius-pill);
-}
-
-.bulk-move-docs-list::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
-}
-
-/* Item de documento */
 .bulk-move-doc-item {
     display: flex;
     align-items: center;
@@ -173,6 +132,7 @@
     cursor: pointer;
     transition: var(--transition);
     user-select: none;
+    position: relative;
 }
 
 .bulk-move-doc-item:hover {
@@ -188,16 +148,6 @@
     box-shadow: 0 0 0 1px var(--primary);
 }
 
-.bulk-move-doc-item.selected::before {
-    content: '✓';
-    position: absolute;
-    top: 4px;
-    right: 8px;
-    color: var(--primary);
-    font-weight: bold;
-    font-size: 0.7rem;
-}
-
 .bulk-move-doc-item__icon {
     width: 36px;
     height: 36px;
@@ -210,12 +160,10 @@
     color: #fff;
     font-size: 0.95rem;
     box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
 }
 
-.bulk-move-doc-item__info {
-    flex: 1;
-    min-width: 0;
-}
+.bulk-move-doc-item__info { flex: 1; min-width: 0; }
 
 .bulk-move-doc-item__name {
     font-size: 0.85rem;
@@ -234,7 +182,6 @@
     margin-top: 1px;
 }
 
-/* Estado vacío */
 .bulk-move-docs-list .no-documents {
     text-align: center;
     padding: var(--spacing-xl);
@@ -248,57 +195,32 @@
     opacity: 0.3;
 }
 
-.bulk-move-docs-list .no-documents p {
-    margin: 0;
-    font-size: 0.85rem;
-}
+.bulk-move-docs-list .no-documents p { margin: 0; font-size: 0.85rem; }
+.bulk-move-docs-list .no-documents small { font-size: 0.75rem; opacity: 0.7; }
 
-.bulk-move-docs-list .no-documents small {
-    font-size: 0.75rem;
-    opacity: 0.7;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CHECKBOX DENTRO DEL MODAL
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.document-modal-checkbox-container {
-    display: flex !important;
-    align-items: center;
-    gap: var(--spacing-sm);
-    width: 100%;
-    cursor: pointer;
-}
-
+/* Checkbox */
 .bulk-move-checkbox {
     width: 18px;
     height: 18px;
     min-width: 18px;
     accent-color: var(--primary);
     cursor: pointer;
-    border-radius: 3px;
-    border: 2px solid var(--border);
-    transition: var(--transition);
+    flex-shrink: 0;
 }
 
-.bulk-move-checkbox:checked {
-    border-color: var(--primary);
-    background-color: var(--primary);
+.bulk-move-doc-check {
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 0.8rem;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   PANEL DERECHO: Selector de carpeta destino
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Panel derecho */
+#bulkMoveModal .bulk-move-section:last-child { flex: 1.5; }
 
-#bulkMoveModal .bulk-move-section:last-child {
-    flex: 1.5;
-}
-
-/* Buscador de carpetas */
-#bulkMoveModal .input-with-icon {
-    position: relative;
-    margin-bottom: var(--spacing-md);
-}
+/* Buscador */
+#bulkMoveModal .input-with-icon { position: relative; margin-bottom: var(--spacing-md); }
 
 #bulkMoveModal .input-with-icon i {
     position: absolute;
@@ -313,7 +235,7 @@
 
 #bulkMoveSearchFolder {
     width: 100%;
-    padding: 10px 35px 10px 35px;
+    padding: 10px 35px;
     border: 2px solid var(--border);
     border-radius: var(--radius-lg);
     font-size: 0.9rem;
@@ -327,10 +249,6 @@
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--primary-alpha);
-}
-
-#bulkMoveSearchFolder::placeholder {
-    color: var(--text-tertiary);
 }
 
 .input-clear-btn {
@@ -353,18 +271,10 @@
     z-index: 2;
 }
 
-.input-clear-btn:hover {
-    background: var(--danger);
-    color: #fff;
-}
+.input-clear-btn:hover { background: var(--danger); color: #fff; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   BREADCRUMB DEL SELECTOR DE CARPETAS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-#bulkMoveBreadcrumb {
-    margin-bottom: var(--spacing-md);
-}
+/* Breadcrumb */
+#bulkMoveBreadcrumb { margin-bottom: var(--spacing-md); }
 
 #bulkMoveBreadcrumb .category--breadcrumb-list {
     display: flex;
@@ -405,23 +315,17 @@
     cursor: default;
 }
 
-#bulkMoveBreadcrumb .category--breadcrumb-icon {
-    font-size: 0.75rem;
-}
+#bulkMoveBreadcrumb .category--breadcrumb-icon { font-size: 0.75rem; }
 
-/* Separador entre breadcrumbs */
 #bulkMoveBreadcrumb .category--breadcrumb-list li + li::before {
-    content: '›';
+    content: '\203A';
     color: var(--text-tertiary);
     font-weight: bold;
     margin: 0 2px;
     font-size: 1rem;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   GRID DE CARPETAS - CORREGIDO
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Grid carpetas */
 #bulkMoveFolderGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -432,26 +336,10 @@
     align-content: start;
 }
 
-/* Scrollbar del grid */
-#bulkMoveFolderGrid::-webkit-scrollbar {
-    width: 6px;
-}
+#bulkMoveFolderGrid::-webkit-scrollbar { width: 6px; }
+#bulkMoveFolderGrid::-webkit-scrollbar-track { background: transparent; border-radius: var(--radius-pill); }
+#bulkMoveFolderGrid::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-pill); }
 
-#bulkMoveFolderGrid::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: var(--radius-pill);
-}
-
-#bulkMoveFolderGrid::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: var(--radius-pill);
-}
-
-#bulkMoveFolderGrid::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
-}
-
-/* Tarjeta de carpeta */
 #bulkMoveFolderGrid .category--card {
     display: flex;
     flex-direction: column;
@@ -478,11 +366,8 @@
     z-index: 2;
 }
 
-#bulkMoveFolderGrid .category--card:active {
-    transform: scale(0.95);
-}
+#bulkMoveFolderGrid .category--card:active { transform: scale(0.95); }
 
-/* Icono de carpeta */
 #bulkMoveFolderGrid .category--card-folder-icon {
     width: 44px;
     height: 44px;
@@ -504,7 +389,6 @@
     box-shadow: var(--shadow-md);
 }
 
-/* Cuerpo de la tarjeta */
 #bulkMoveFolderGrid .category--card-body {
     flex: 1;
     min-width: 0;
@@ -544,7 +428,6 @@
     word-break: break-word;
 }
 
-/* Footer de la tarjeta - CORREGIDO: no se rompe */
 #bulkMoveFolderGrid .category--card-footer {
     width: 100%;
     display: flex;
@@ -557,7 +440,6 @@
     flex-wrap: wrap;
 }
 
-/* Contador de documentos y badge - UNIFICADOS en una sola línea */
 #bulkMoveFolderGrid .category--card-count {
     display: inline-flex;
     align-items: center;
@@ -570,11 +452,8 @@
     white-space: nowrap;
 }
 
-#bulkMoveFolderGrid .category--card-count i {
-    font-size: 0.6rem;
-}
+#bulkMoveFolderGrid .category--card-count i { font-size: 0.6rem; }
 
-/* Badge de subcarpetas - CORREGIDO: compacto, no sobresale */
 #bulkMoveFolderGrid .category--card-sub-badge {
     display: inline-flex;
     align-items: center;
@@ -586,116 +465,13 @@
     border-radius: var(--radius-pill);
     font-weight: 700;
     white-space: nowrap;
-    border: 1px solid rgba(220, 38, 38, 0.12);
+    border: 1px solid rgba(220,38,38,0.12);
     margin-left: 4px;
 }
 
-#bulkMoveFolderGrid .category--card-sub-badge i {
-    font-size: 0.5rem;
-}
+#bulkMoveFolderGrid .category--card-sub-badge i { font-size: 0.5rem; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   SKELETON LOADING
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-#bulkMoveFolderGrid .category--skeleton-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: var(--spacing-md);
-    background: var(--bg-secondary);
-    border: 2px dashed var(--border);
-    border-radius: var(--radius-lg);
-    gap: 8px;
-    animation: skeletonPulse 1.5s ease-in-out infinite;
-}
-
-#bulkMoveFolderGrid .category--skeleton-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    background: var(--bg-tertiary);
-}
-
-#bulkMoveFolderGrid .category--skeleton-line {
-    height: 12px;
-    border-radius: var(--radius-pill);
-    background: var(--bg-tertiary);
-    width: 80%;
-}
-
-#bulkMoveFolderGrid .category--skeleton-line--name {
-    width: 60%;
-    height: 14px;
-}
-
-@keyframes skeletonPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CARPETA DESTINO SELECCIONADA
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.bulk-move-selected-folder {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: linear-gradient(135deg, var(--success-light), #d1fae5);
-    border: 2px solid var(--success);
-    border-radius: var(--radius-lg);
-    margin-top: var(--spacing-md);
-    animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.bulk-move-selected-folder__info {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    font-weight: 600;
-    color: var(--success-dark);
-    font-size: 0.9rem;
-}
-
-.bulk-move-selected-folder__info i {
-    font-size: 1.1rem;
-}
-
-#bulkMoveSelectedFolderName {
-    max-width: 200px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Botón quitar destino */
-#clearBulkMoveFolder {
-    color: var(--text-tertiary);
-    font-size: 0.8rem;
-}
-
-#clearBulkMoveFolder:hover {
-    color: var(--danger);
-    background: var(--danger-light);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ESTADO VACÍO EN EL GRID
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Estado vacío grid */
 #bulkMoveFolderGrid > div[style*="grid-column"] {
     text-align: center;
     padding: var(--spacing-xl);
@@ -705,27 +481,7 @@
     border: 2px dashed var(--border);
 }
 
-#bulkMoveFolderGrid > div[style*="grid-column"] i {
-    font-size: 2rem;
-    display: block;
-    margin-bottom: var(--spacing-sm);
-    opacity: 0.4;
-}
-
-#bulkMoveFolderGrid > div[style*="grid-column"] p {
-    margin: 4px 0;
-    font-size: 0.85rem;
-}
-
-#bulkMoveFolderGrid > div[style*="grid-column"] small {
-    font-size: 0.75rem;
-    opacity: 0.7;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   FOOTER DEL MODAL
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Footer */
 #bulkMoveModal .modal__footer {
     padding: var(--spacing-lg) var(--spacing-xl);
     background: var(--bg-primary);
@@ -734,13 +490,11 @@
     align-items: center;
     gap: var(--spacing-md);
     flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
-#bulkMoveModal .modal__footer--centered {
-    justify-content: space-between;
-}
+#bulkMoveModal .modal__footer--centered { justify-content: space-between; }
 
-/* Checkbox de confirmación */
 #bulkMoveModal .checkbox-label {
     display: flex;
     align-items: center;
@@ -758,7 +512,6 @@
     cursor: pointer;
 }
 
-/* Botones del footer */
 #bulkMoveModal .modal__footer .btn {
     padding: 10px 20px;
     font-size: 0.9rem;
@@ -770,62 +523,18 @@
     gap: var(--spacing-sm);
 }
 
-#bulkMoveModal .btn--outline {
-    background: transparent;
-    border: 2px solid var(--border);
-    color: var(--text-secondary);
-}
+#bulkMoveModal .btn--outline { background: transparent; border: 2px solid var(--border); color: var(--text-secondary); }
+#bulkMoveModal .btn--outline:hover { border-color: var(--text-tertiary); background: var(--bg-secondary); color: var(--text-primary); }
+#bulkMoveModal .btn--primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; color: #fff; box-shadow: var(--shadow-sm); }
+#bulkMoveModal .btn--primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+#bulkMoveModal .btn--primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(30%); }
 
-#bulkMoveModal .btn--outline:hover {
-    border-color: var(--text-tertiary);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-#bulkMoveModal .btn--primary {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    border: none;
-    color: #fff;
-    box-shadow: var(--shadow-sm);
-}
-
-#bulkMoveModal .btn--primary:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-    background: linear-gradient(135deg, var(--primary-light), var(--primary));
-}
-
-#bulkMoveModal .btn--primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: grayscale(30%);
-}
-
-#bulkMoveModal .btn--text {
-    background: transparent;
-    border: none;
-    color: var(--text-tertiary);
-    font-size: 0.8rem;
-    padding: 6px 10px;
-}
-
-#bulkMoveModal .btn--text:hover {
-    color: var(--danger);
-    background: var(--danger-light);
-    border-radius: var(--radius-sm);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PRELOADER OVERLAY
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Preloader externo */
 .bulk-delete-preloader {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
@@ -835,9 +544,7 @@
     transition: opacity 0.3s ease;
 }
 
-.bulk-delete-preloader.active {
-    opacity: 1;
-}
+.bulk-delete-preloader.active { opacity: 1; }
 
 .preloader-container {
     background: var(--bg-primary);
@@ -848,16 +555,10 @@
     min-width: 320px;
 }
 
-.preloader-spinner {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: var(--spacing-lg);
-}
+.preloader-spinner { display: flex; gap: 8px; justify-content: center; margin-bottom: var(--spacing-lg); }
 
 .spinner-circle {
-    width: 12px;
-    height: 12px;
+    width: 12px; height: 12px;
     border-radius: 50%;
     background: var(--primary);
     animation: spinnerBounce 1.4s ease-in-out infinite both;
@@ -866,153 +567,24 @@
 .spinner-circle:nth-child(1) { animation-delay: -0.32s; }
 .spinner-circle:nth-child(2) { animation-delay: -0.16s; }
 .spinner-circle:nth-child(3) { animation-delay: 0s; }
-.spinner-circle:nth-child(4) { 
-    animation-delay: 0.16s;
-    background: var(--primary-light);
-}
+.spinner-circle:nth-child(4) { animation-delay: 0.16s; background: var(--primary-light); }
 
 @keyframes spinnerBounce {
     0%, 80%, 100% { transform: scale(0); }
     40% { transform: scale(1); }
 }
 
-.preloader-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 var(--spacing-sm) 0;
-}
+.preloader-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin: 0 0 var(--spacing-sm) 0; }
+.preloader-message { font-size: 0.9rem; color: var(--text-secondary); margin: 0 0 var(--spacing-lg) 0; }
+.count-highlight { color: var(--primary); font-weight: 700; font-size: 1.1em; }
+.preloader-hint { font-size: 0.75rem; color: var(--text-tertiary); margin: var(--spacing-md) 0 0 0; display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.7; }
 
-.preloader-message {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin: 0 0 var(--spacing-lg) 0;
-}
-
-.count-highlight {
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 1.1em;
-}
-
-.preloader-progress {
-    margin-bottom: var(--spacing-md);
-}
-
-.progress-bar {
-    width: 100%;
-    height: 6px;
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-pill);
-    overflow: hidden;
-    margin-bottom: var(--spacing-sm);
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--primary-light));
-    border-radius: var(--radius-pill);
-    width: 0%;
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-}
-
-.preloader-hint {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    margin: var(--spacing-md) 0 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    opacity: 0.7;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ANIMACIONES
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 var(--primary-alpha); }
-    70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@media (max-width: 768px) {
-    #bulkMoveModal .modal__content--lg {
-        max-width: 100%;
-        width: 100%;
-        max-height: 100vh;
-        border-radius: 0;
-        margin: 0;
-    }
-
-    #bulkMoveModal .modal__body {
-        flex-direction: column;
-        gap: var(--spacing-md);
-        padding: var(--spacing-md);
-    }
-
-    #bulkMoveFolderGrid {
-        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-        max-height: 200px;
-    }
-
-    #bulkMoveModal .modal__footer {
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
-
-    #bulkMoveModal .checkbox-label {
-        order: -1;
-        width: 100%;
-    }
-
-    #bulkMoveModal .modal__footer .btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 480px) {
-    #bulkMoveModal .modal__header {
-        padding: var(--spacing-md);
-    }
-
-    #bulkMoveModal .modal__title {
-        font-size: 1rem;
-    }
-
-    #bulkMoveFolderGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .bulk-move-section {
-        padding: var(--spacing-md);
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PRELOADER INTERNO DEL MODAL (mientras carga)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
+/* Preloader interno */
 .bulk-move-loading-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.92);
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(255,255,255,0.92);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -1021,23 +593,12 @@
     border-radius: var(--radius-xl);
 }
 
-.bulk-move-loading-content {
-    text-align: center;
-    padding: var(--spacing-xl);
-    max-width: 320px;
-}
+.bulk-move-loading-content { text-align: center; padding: var(--spacing-xl); max-width: 320px; }
 
-/* Spinner de 3 puntos */
-.bulk-move-loading-spinner {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: var(--spacing-lg);
-}
+.bulk-move-loading-spinner { display: flex; gap: 8px; justify-content: center; margin-bottom: var(--spacing-lg); }
 
 .bulk-move-spinner-dot {
-    width: 10px;
-    height: 10px;
+    width: 10px; height: 10px;
     border-radius: 50%;
     background: var(--primary);
     animation: moveDotBounce 1.2s ease-in-out infinite both;
@@ -1048,67 +609,31 @@
 .bulk-move-spinner-dot:nth-child(3) { animation-delay: 0s; }
 
 @keyframes moveDotBounce {
-    0%, 80%, 100% { 
-        transform: scale(0.6);
-        opacity: 0.4;
-    }
-    40% { 
-        transform: scale(1.3);
-        opacity: 1;
-    }
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1.3); opacity: 1; }
 }
 
-.bulk-move-loading-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 var(--spacing-sm) 0;
-}
+.bulk-move-loading-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0 0 var(--spacing-sm) 0; }
+.bulk-move-loading-subtitle { font-size: 0.82rem; color: var(--text-tertiary); margin: 0 0 var(--spacing-lg) 0; }
 
-.bulk-move-loading-subtitle {
-    font-size: 0.82rem;
-    color: var(--text-tertiary);
-    margin: 0 0 var(--spacing-lg) 0;
-}
-
-/* Barra de progreso */
-.bulk-move-loading-progress {
-    width: 100%;
-    height: 4px;
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-pill);
-    overflow: hidden;
-}
+.bulk-move-loading-progress { width: 100%; height: 4px; background: var(--bg-tertiary); border-radius: var(--radius-pill); overflow: hidden; }
 
 .bulk-move-loading-bar {
     height: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--primary), var(--primary-light));
     border-radius: var(--radius-pill);
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   FILTROS DE DOCUMENTOS DENTRO DEL MODAL
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Filtros */
+.bulk-move-doc-filters { display: flex; gap: 6px; margin-bottom: var(--spacing-sm); flex-wrap: wrap; }
 
-.bulk-move-doc-filters {
-    display: flex;
-    gap: 6px;
-    margin-bottom: var(--spacing-sm);
-    flex-wrap: wrap;
-}
-
-.bulk-move-doc-search {
-    position: relative;
-    flex: 1;
-    min-width: 120px;
-}
+.bulk-move-doc-search { position: relative; flex: 1; min-width: 120px; }
 
 .bulk-move-doc-search i {
     position: absolute;
-    left: 8px;
-    top: 50%;
+    left: 8px; top: 50%;
     transform: translateY(-50%);
     color: var(--text-tertiary);
     font-size: 0.75rem;
@@ -1126,11 +651,7 @@
     box-sizing: border-box;
 }
 
-.bulk-move-doc-search input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-alpha);
-}
+.bulk-move-doc-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-alpha); }
 
 .form__select--sm {
     padding: 6px 10px;
@@ -1142,19 +663,9 @@
     min-width: 100px;
 }
 
-.form__select--sm:focus {
-    outline: none;
-    border-color: var(--primary);
-}
+.form__select--sm:focus { outline: none; border-color: var(--primary); }
 
-/* Botones de selección */
-.bulk-move-doc-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: var(--spacing-sm);
-    flex-wrap: wrap;
-}
+.bulk-move-doc-actions { display: flex; align-items: center; gap: 6px; margin-bottom: var(--spacing-sm); flex-wrap: wrap; }
 
 .bulk-move-doc-actions .btn--ghost {
     background: transparent;
@@ -1168,23 +679,223 @@
     white-space: nowrap;
 }
 
-.bulk-move-doc-actions .btn--ghost:hover {
-    background: var(--primary-alpha);
-    border-color: var(--primary-light);
-    color: var(--primary);
+.bulk-move-doc-actions .btn--ghost:hover { background: var(--primary-alpha); border-color: var(--primary-light); color: var(--primary); }
+.bulk-move-doc-count { font-size: 0.72rem; color: var(--text-tertiary); margin-left: auto; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE - REEMPLAZA COMPLETO desde @media (max-width: 768px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    #bulkMoveModal .modal__content--lg {
+        max-width: 100%;
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #bulkMoveModal .modal__header {
+        padding: 12px 16px;
+        flex-shrink: 0;
+    }
+
+    #bulkMoveModal .modal__title {
+        font-size: 1rem;
+    }
+
+    #bulkMoveModal .modal__body {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Ambos paneles full width */
+    #bulkMoveModal .modal__body > div {
+        flex: none !important;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .bulk-move-section {
+        padding: 12px;
+        max-height: none;
+        flex: none;
+    }
+
+    /* Panel izquierdo: lista de documentos */
+    .bulk-move-docs-list {
+        max-height: 200px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Filtros: columna en móvil */
+    .bulk-move-doc-filters {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .bulk-move-doc-search {
+        min-width: 100%;
+        flex: none;
+    }
+
+    .form__select--sm {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .bulk-move-doc-actions {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    /* Panel derecho: grid de carpetas */
+    #bulkMoveFolderGrid {
+        grid-template-columns: repeat(2, 1fr);
+        max-height: 250px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+        padding: 4px;
+    }
+
+    #bulkMoveFolderGrid .category--card {
+        min-height: 100px;
+        padding: 10px 8px;
+        gap: 4px;
+        border-radius: var(--radius-md);
+    }
+
+    #bulkMoveFolderGrid .category--card-folder-icon {
+        width: 36px;
+        height: 36px;
+        min-height: 36px;
+        font-size: 1.1rem;
+    }
+
+    #bulkMoveFolderGrid .category--card-name {
+        font-size: 0.72rem;
+        line-clamp: 2;
+    }
+
+    #bulkMoveFolderGrid .category--card-meta {
+        display: none;
+    }
+
+    #bulkMoveFolderGrid .category--card-footer {
+        min-height: 18px;
+    }
+
+    #bulkMoveFolderGrid .category--card-count {
+        font-size: 0.6rem;
+        padding: 1px 6px;
+    }
+
+    #bulkMoveFolderGrid .category--card-sub-badge {
+        font-size: 0.55rem;
+        padding: 1px 5px;
+    }
+
+    /* Breadcrumb scrollable */
+    #bulkMoveBreadcrumb {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+        margin-bottom: 8px;
+    }
+
+    #bulkMoveBreadcrumb .category--breadcrumb-list {
+        flex-wrap: nowrap;
+    }
+
+    #bulkMoveBreadcrumb .category--breadcrumb-item {
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        flex-shrink: 0;
+    }
+
+    /* Footer */
+    #bulkMoveModal .modal__footer {
+        padding: 10px 12px;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    #bulkMoveModal .checkbox-label {
+        order: -1;
+        width: 100%;
+        font-size: 0.78rem;
+        justify-content: center;
+    }
+
+    #bulkMoveModal .modal__footer .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+    }
 }
 
-.bulk-move-doc-count {
-    font-size: 0.72rem;
-    color: var(--text-tertiary);
-    margin-left: auto;
-}
+/* Móvil pequeño */
+@media (max-width: 480px) {
+    #bulkMoveModal .modal__header {
+        padding: 10px 12px;
+    }
 
-/* Check de selección */
-.bulk-move-doc-check {
-    color: var(--primary);
-    font-weight: bold;
-    font-size: 0.8rem;
-    margin-left: auto;
-    flex-shrink: 0;
+    #bulkMoveModal .modal__title {
+        font-size: 0.9rem;
+    }
+
+    #bulkMoveModal .modal__body {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .bulk-move-section {
+        padding: 10px;
+    }
+
+    .bulk-move-docs-list {
+        max-height: 160px;
+    }
+
+    #bulkMoveFolderGrid {
+        grid-template-columns: repeat(2, 1fr);
+        max-height: 200px;
+        gap: 6px;
+    }
+
+    #bulkMoveFolderGrid .category--card {
+        min-height: 85px;
+        padding: 8px 5px;
+    }
+
+    #bulkMoveFolderGrid .category--card-folder-icon {
+        width: 30px;
+        height: 30px;
+        min-height: 30px;
+        font-size: 1rem;
+    }
+
+    #bulkMoveFolderGrid .category--card-name {
+        font-size: 0.68rem;
+    }
+
+    #bulkMoveModal .modal__footer {
+        padding: 8px;
+        gap: 6px;
+    }
+
+    #bulkMoveModal .modal__footer .btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
 }
