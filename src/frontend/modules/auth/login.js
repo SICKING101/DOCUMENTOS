@@ -406,84 +406,332 @@
       }
     });
 
+        // =========================================================================
+    // FORMULARIO 3: REGISTRO DE ADMINISTRADOR (VALIDACIONES PERSISTENTES)
     // =========================================================================
-    // FORMULARIO 3: REGISTRO DE ADMINISTRADOR (post-validación de token)
-    // =========================================================================
 
-    registerAdminForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearAlert('alertContainerRegister');
+    // ── Referencias a los inputs de registro ──────────────────────────────
+    const registerUsuarioInput  = document.getElementById('registerUsuario');
+    const registerPasswordInput = document.getElementById('registerPassword');
+    const registerConfirmInput  = document.getElementById('registerPasswordConfirm');
+    const registerBtn           = document.getElementById('registerBtn');
 
-      if (!validatedToken || !invitationData) {
-        showAlert('alertContainerRegister', 'Error: token no validado. Regresa al paso anterior.');
-        return;
-      }
+    // ── Funciones de validación inline ────────────────────────────────────
 
-      const usuario         = document.getElementById('registerUsuario').value.trim();
-      const password        = document.getElementById('registerPassword').value;
-      const confirmPassword = document.getElementById('registerPasswordConfirm').value;
+    const COMMON_PASSWORDS = [
+        '123456', 'password', 'qwerty', '123456789', 'abc123', 'letmein',
+        'welcome', 'monkey', 'dragon', 'master', '111111', '123123',
+        'admin123', 'pass123', 'iloveyou', 'sunshine', 'princess',
+        'football', 'shadow', 'superman'
+    ];
 
-      // ── Validaciones cliente ──────────────────────────────────────────────
-      if (!usuario) {
-        showAlert('alertContainerRegister', 'El nombre de usuario es obligatorio');
-        document.getElementById('registerUsuario').focus();
-        return;
-      }
-      if (usuario.length < 3 || usuario.length > 30) {
-        showAlert('alertContainerRegister', 'El nombre de usuario debe tener entre 3 y 30 caracteres');
-        return;
-      }
-      if (!password || password.length < 6) {
-        showAlert('alertContainerRegister', 'La contraseña debe tener al menos 6 caracteres');
-        document.getElementById('registerPassword').focus();
-        return;
-      }
-      if (password !== confirmPassword) {
-        showAlert('alertContainerRegister', 'Las contraseñas no coinciden');
-        document.getElementById('registerPasswordConfirm').focus();
-        return;
-      }
+    function validateUsernameLocal(username) {
+        const errors = [];
+        if (!username || username.trim() === '') {
+            errors.push('El usuario no puede estar vacío');
+            return { isValid: false, errors };
+        }
+        if (username.length < 3) {
+            errors.push('El usuario debe tener al menos 3 caracteres');
+        }
+        if (username.length > 30) {
+            errors.push('Máximo 30 caracteres');
+        }
+        if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+            errors.push('Solo letras, números, guiones y guiones bajos');
+        }
+        if (/^\d+$/.test(username)) {
+            errors.push('El usuario no puede ser solo números');
+        }
+        return { isValid: errors.length === 0, errors };
+    }
 
-      const btn = document.getElementById('registerBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
-      setLoading(true);
+    function validatePasswordLocal(password) {
+        const errors = [];
+        let strengthScore = 0;
 
-      try {
-        const response = await fetch(`${API_URL}/api/superadmin/invitations/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            token: validatedToken,
-            usuario,
-            password,
-            confirmPassword,
-          }),
+        if (!password || password.trim() === '') {
+            errors.push('La contraseña no puede estar vacía');
+            return { isValid: false, errors, strength: 'debil' };
+        }
+
+        if (password.length < 8) {
+            errors.push('Mínimo 8 caracteres');
+        } else {
+            strengthScore += 1;
+            if (password.length >= 12) strengthScore += 1;
+        }
+
+        const hasUpper   = /[A-Z]/.test(password);
+        const hasLower   = /[a-z]/.test(password);
+        const hasNumber  = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};:'"\\|,.<>\/?]/.test(password);
+
+        const complexity = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+
+        if (complexity < 3) {
+            const missing = [];
+            if (!hasUpper)   missing.push('mayúscula');
+            if (!hasLower)   missing.push('minúscula');
+            if (!hasNumber)  missing.push('número');
+            if (!hasSpecial) missing.push('carácter especial (!@#$...)');
+            errors.push(`Falta: ${missing.join(', ')}`);
+        }
+
+        strengthScore += complexity;
+
+        if (COMMON_PASSWORDS.some(cp => password.toLowerCase().includes(cp))) {
+            errors.push('Contraseña muy común o débil');
+            strengthScore = Math.max(0, strengthScore - 2);
+        }
+
+        let strength = 'debil';
+        if (strengthScore >= 5 && errors.length === 0) {
+            strength = 'fuerte';
+        } else if (strengthScore >= 3) {
+            strength = 'media';
+        }
+
+        return { isValid: errors.length === 0, errors, strength };
+    }
+
+    function validateConfirmPasswordLocal(password, confirmPassword) {
+        const errors = [];
+        if (!confirmPassword || confirmPassword.trim() === '') {
+            errors.push('Confirma tu contraseña');
+            return { isValid: false, errors };
+        }
+        if (password !== confirmPassword) {
+            errors.push('Las contraseñas no coinciden');
+            return { isValid: false, errors };
+        }
+        return { isValid: true, errors: [] };
+    }
+
+    function getStrengthColor(strength) {
+        return { debil: '#dc3545', media: '#ffc107', fuerte: '#28a745' }[strength] || '#dc3545';
+    }
+
+    function getStrengthText(strength) {
+        return { debil: 'Débil', media: 'Media', fuerte: 'Fuerte' }[strength] || 'Débil';
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    // FUNCIÓN CLAVE: Actualizar UI de validación (NUNCA DESAPARECE)
+    // ═════════════════════════════════════════════════════════════════════
+
+function updateFieldUI(inputElement, validation, fieldType) {
+    const inputGroup = inputElement.closest('.input-group');
+    if (!inputGroup) return;
+
+    // ── 1. Actualizar clases del input ──────────────────────────────
+    inputElement.classList.remove('input-error', 'input-valid');
+    if (validation.errors.length > 0) {
+        inputElement.classList.add('input-error');
+    } else if (inputElement.value.trim()) {
+        inputElement.classList.add('input-valid');
+    }
+
+    // ── 2. Buscar o crear el contenedor de feedback ─────────────────
+    // El feedback va DESPUÉS del input-group, como hermano siguiente
+    let feedbackContainer = inputGroup.nextElementSibling;
+    if (!feedbackContainer || !feedbackContainer.classList.contains('validation-feedback')) {
+        feedbackContainer = document.createElement('div');
+        feedbackContainer.className = 'validation-feedback';
+        inputGroup.parentNode.insertBefore(feedbackContainer, inputGroup.nextSibling);
+    }
+
+    // ── 3. Limpiar contenido anterior ───────────────────────────────
+    feedbackContainer.innerHTML = '';
+
+    // ── 4. Renderizar errores ───────────────────────────────────────
+    if (validation.errors.length > 0) {
+        validation.errors.slice(0, 3).forEach(err => {
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'field-error-msg';
+            errorMsg.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${err}`;
+            feedbackContainer.appendChild(errorMsg);
+        });
+    }
+
+    // ── 5. Renderizar fortaleza (solo para contraseña) ──────────────
+    if (fieldType === 'password' && validation.strength && inputElement.value) {
+        const color = getStrengthColor(validation.strength);
+        const text  = getStrengthText(validation.strength);
+        const widthMap = { debil: '33%', media: '66%', fuerte: '100%' };
+        const width = widthMap[validation.strength] || '33%';
+
+        const strengthDiv = document.createElement('div');
+        strengthDiv.className = 'field-strength';
+        strengthDiv.innerHTML = `
+            <div class="field-strength-bar">
+                <div class="field-strength-fill" style="width:${width};background:${color};"></div>
+            </div>
+            <span class="field-strength-text" style="color:${color};">🔒 ${text}</span>
+        `;
+        feedbackContainer.appendChild(strengthDiv);
+    }
+
+    // ── 6. Mensaje de éxito cuando está todo bien ───────────────────
+    if (validation.errors.length === 0 && inputElement.value.trim()) {
+        const successMsg = fieldType === 'confirm-password' ? 'Las contraseñas coinciden' : '✓ Válido';
+        const icon = fieldType === 'confirm-password' ? 'fa-check-circle' : 'fa-check';
+
+        const successDiv = document.createElement('div');
+        successDiv.className = 'field-success-msg';
+        successDiv.innerHTML = `<i class="fas ${icon}"></i> ${successMsg}`;
+        feedbackContainer.appendChild(successDiv);
+    }
+}
+
+    // ═════════════════════════════════════════════════════════════════════
+    // ACTUALIZAR ESTADO DEL BOTÓN DE REGISTRO
+    // ═════════════════════════════════════════════════════════════════════
+
+    function updateRegisterButton() {
+        if (!registerBtn) return;
+
+        const userVal    = registerUsuarioInput?.value.trim() || '';
+        const passVal    = registerPasswordInput?.value || '';
+        const confirmVal = registerConfirmInput?.value || '';
+
+        const userOk    = userVal && validateUsernameLocal(userVal).isValid;
+        const passOk    = passVal && validatePasswordLocal(passVal).isValid;
+        const confirmOk = confirmVal && validateConfirmPasswordLocal(passVal, confirmVal).isValid;
+
+        const allValid = userOk && passOk && confirmOk;
+
+        registerBtn.disabled = !allValid;
+        if (allValid) {
+            registerBtn.classList.add('btn-enabled');
+        } else {
+            registerBtn.classList.remove('btn-enabled');
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    // EVENT LISTENERS: Validación en tiempo real SIEMPRE visible
+    // ═════════════════════════════════════════════════════════════════════
+
+    if (registerUsuarioInput) {
+        registerUsuarioInput.addEventListener('input', function() {
+            const validation = validateUsernameLocal(this.value);
+            updateFieldUI(this, validation, 'username');
+            updateRegisterButton();
         });
 
-        const data = await response.json();
+        registerUsuarioInput.addEventListener('blur', function() {
+            const validation = validateUsernameLocal(this.value);
+            updateFieldUI(this, validation, 'username');
+            updateRegisterButton();
+        });
+    }
 
-        if (data.success) {
-          showAlert('alertContainerRegister',
-            '✅ Cuenta creada exitosamente. Redirigiendo al login...', 'success');
-          console.log('✅ Admin registrado:', data.user);
+    if (registerPasswordInput) {
+        registerPasswordInput.addEventListener('input', function() {
+            const validation = validatePasswordLocal(this.value);
+            updateFieldUI(this, validation, 'password');
+            updateRegisterButton();
 
-          setTimeout(() => {
-            window.location.href = data.loginUrl || '/login.html';
-          }, 2500);
-        } else {
-          showAlert('alertContainerRegister', data.message || 'Error al crear la cuenta');
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-user-check"></i> Crear cuenta de Administrador';
+            // Re-validar confirmación si ya tiene texto
+            if (registerConfirmInput && registerConfirmInput.value) {
+                const confirmValidation = validateConfirmPasswordLocal(this.value, registerConfirmInput.value);
+                updateFieldUI(registerConfirmInput, confirmValidation, 'confirm-password');
+            }
+        });
+
+        registerPasswordInput.addEventListener('blur', function() {
+            const validation = validatePasswordLocal(this.value);
+            updateFieldUI(this, validation, 'password');
+        });
+    }
+
+    if (registerConfirmInput && registerPasswordInput) {
+        registerConfirmInput.addEventListener('input', function() {
+            const validation = validateConfirmPasswordLocal(registerPasswordInput.value, this.value);
+            updateFieldUI(this, validation, 'confirm-password');
+            updateRegisterButton();
+        });
+
+        registerConfirmInput.addEventListener('blur', function() {
+            const validation = validateConfirmPasswordLocal(registerPasswordInput.value, this.value);
+            updateFieldUI(this, validation, 'confirm-password');
+        });
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    // SUBMIT DEL FORMULARIO
+    // ═════════════════════════════════════════════════════════════════════
+
+    registerAdminForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert('alertContainerRegister');
+
+        if (!validatedToken || !invitationData) {
+            showAlert('alertContainerRegister', 'Error: token no validado. Regresa al paso anterior.');
+            return;
         }
-      } catch (err) {
-        console.error('Error en registro:', err);
-        showAlert('alertContainerRegister', 'Error al conectar con el servidor. Intenta de nuevo.');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-user-check"></i> Crear cuenta de Administrador';
-      } finally {
-        setLoading(false);
-      }
+
+        const usuario         = registerUsuarioInput.value.trim();
+        const password        = registerPasswordInput.value;
+        const confirmPassword = registerConfirmInput.value;
+
+        // ── Validaciones finales ──────────────────────────────────────
+        let hasErrors = false;
+
+        const userValidation = validateUsernameLocal(usuario);
+        updateFieldUI(registerUsuarioInput, userValidation, 'username');
+        if (!userValidation.isValid) hasErrors = true;
+
+        const passValidation = validatePasswordLocal(password);
+        updateFieldUI(registerPasswordInput, passValidation, 'password');
+        if (!passValidation.isValid) hasErrors = true;
+
+        const confirmValidation = validateConfirmPasswordLocal(password, confirmPassword);
+        updateFieldUI(registerConfirmInput, confirmValidation, 'confirm-password');
+        if (!confirmValidation.isValid) hasErrors = true;
+
+        if (hasErrors) {
+            if (!userValidation.isValid) registerUsuarioInput.focus();
+            else if (!passValidation.isValid) registerPasswordInput.focus();
+            else registerConfirmInput.focus();
+            return;
+        }
+
+        // ── Enviar al servidor ───────────────────────────────────────
+        const btn = document.getElementById('registerBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
+        setLoading(true);
+
+        try {
+            const response = await fetch(`${API_URL}/api/superadmin/invitations/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: validatedToken, usuario, password, confirmPassword }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showAlert('alertContainerRegister',
+                    '✅ Cuenta creada exitosamente. Redirigiendo al login...', 'success');
+                setTimeout(() => {
+                    window.location.href = data.loginUrl || '/login.html';
+                }, 2500);
+            } else {
+                showAlert('alertContainerRegister', data.message || 'Error al crear la cuenta');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-check"></i> Crear cuenta de Administrador';
+            }
+        } catch (err) {
+            console.error('Error en registro:', err);
+            showAlert('alertContainerRegister', 'Error al conectar con el servidor. Intenta de nuevo.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-check"></i> Crear cuenta de Administrador';
+        } finally {
+            setLoading(false);
+        }
     });
 
     // =========================================================================

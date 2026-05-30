@@ -75,9 +75,6 @@ class BulkMoveManager {
                 this.enableMoveSelectionMode();
             }
             
-            if (typeof window.showAlert === 'function') {
-                window.showAlert('Selecciona los documentos que deseas mover', 'info');
-            }
             return;
         }
         
