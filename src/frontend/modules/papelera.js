@@ -1367,5 +1367,31 @@ window.selectAllVisible = function() {
     updateSelectionControls();
 };
 
-// Exportar para acceso global
+// Exportar funciones para uso global
+window.loadTrashDocuments = loadTrashDocuments;
+window.updateTrashUI = updateTrashUI;
+window.updateTrashStats = updateTrashStats;
+window.updateTrashBadge = updateTrashBadge;
+window.handleRestoreSelected = handleRestoreSelected;
+window.handleDeleteSelected = handleDeleteSelected;
 window.trashState = trashState;
+
+// ✅ Listener WebSocket para actualizar papelera en tiempo real
+window.addEventListener('ws:document-changed', async () => {
+    console.log('🔄 [Papelera] Documentos cambiados vía WebSocket - actualizando...');
+    await loadTrashDocuments();
+    updateTrashBadge();
+});
+
+// También escuchar eventos específicos de documentos
+window.addEventListener('document:updated', async () => {
+    console.log('🔄 [Papelera] Documento actualizado - refrescando...');
+    await loadTrashDocuments();
+    updateTrashBadge();
+});
+
+window.addEventListener('document:deleted', async () => {
+    console.log('🔄 [Papelera] Documento eliminado - refrescando...');
+    await loadTrashDocuments();
+    updateTrashBadge();
+});
