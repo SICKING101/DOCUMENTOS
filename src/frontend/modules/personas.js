@@ -10,6 +10,7 @@ import {
     hasPermission,
     PERMISSIONS
 } from '../permissions.js';
+import wsManager from '../services/websocket-manager.js';
 
 // Variables globales para filtros
 let currentFilters = {
@@ -1415,6 +1416,12 @@ async function savePerson() {
         }
         
         if (data.success) {
+            // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+            const wsEventName = DOM.personId.value ? 'person:updated' : 'person:created';
+            wsManager.emit(wsEventName, {
+                person: data.person || data
+            });
+            
             // Mostrar alerta de éxito dentro del modal
             showFormAlert(`✅ ${data.message}`, 'success');
             
@@ -1455,6 +1462,7 @@ async function savePerson() {
             }
             const action = DOM.personId.value ? 'actualizado' : 'creado';
             showAlert(`Se ha ${action} correctamente la persona`, 'success');
+            
             // Disparar evento global para que otros módulos puedan reaccionar
             try {
                 const eventName = DOM.personId.value ? 'personUpdated' : 'personCreated';
@@ -1868,6 +1876,9 @@ async function deletePerson(id) {
     
     if (data.success) {
       
+      // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+      wsManager.emit('person:deleted', { personId: id });
+      
       // Mostrar animación de éxito
       if (tableRow) {
         tableRow.style.animation = '';
@@ -1947,7 +1958,7 @@ async function deletePerson(id) {
           }, 500);
         }, 1000);
         } else {
-          // Si no se encontró la fila, recargar normalmente (suprimir notificaciones para evitar duplicados)
+          // Si no se encontró la fila, recargar normalmente
           try {
             if (typeof window !== 'undefined') window.__SUPPRESS_NOTIFICATIONS = true;
             await loadPersons();
@@ -1990,7 +2001,6 @@ async function deletePerson(id) {
       let errorMessage = error.message || 'Error desconocido';
       let detailedMessage = '';
       
-      // Analizar el mensaje de error para dar más detalles
       if (errorMessage.includes('dependencia') || errorMessage.includes('asociado') || 
           errorMessage.includes('documentos asociados') || errorMessage.includes('tiene documentos')) {
         detailedMessage = 'La persona tiene documentos vinculados. Primero elimina o reasigna los documentos asociados.';
@@ -2006,10 +2016,7 @@ async function deletePerson(id) {
         detailedMessage = errorMessage;
       }
       
-      // Mostrar alerta de error con detalles usando showFormAlert (visible en todo el modal)
       showFormAlert(`Error al eliminar: ${detailedMessage}`, 'error');
-      
-      // También mostrar alerta global
       showAlert(`Error al eliminar a ${person.nombre}: ${detailedMessage}`, 'error');
     }
     
@@ -2019,19 +2026,16 @@ async function deletePerson(id) {
       tableRow.style.animation = '';
       tableRow.classList.remove('table__row--deleting');
       
-      // Limpiar completamente el overlay de eliminación
       const deleteOverlay = tableRow.querySelector('.delete-overlay');
       if (deleteOverlay) {
         deleteOverlay.remove();
       }
       
-      // Restaurar contenido original
       const cells = tableRow.querySelectorAll('td');
       cells.forEach(cell => {
         cell.style.opacity = '1';
       });
       
-      // Restaurar altura
       tableRow.style.height = '';
     }
   }

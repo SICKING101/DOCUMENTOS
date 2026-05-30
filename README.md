@@ -33,6 +33,7 @@ DOCUMENTOS/
 │   ├── forgot-password-step1.html
 │   ├── verify-admin-change.html
 |   ├── superadmin-dashboard.html
+|   ├── verify-invitation.html
 |   |                  
 |   ├── locales/                   # Traducciones (proximamente)
 |   │   ├── es.json
@@ -141,6 +142,7 @@ DOCUMENTOS/
 │   │   ├── modules/               # Modulos por funcionalidad
 │   │   │   ├── ajustes.js
 │   │   │   ├── auditoria.js
+│   │   │   ├── avisos.js
 |   │   │   ├── calendario.js
 │   │   │   ├── categorias.js
 │   │   │   ├── chatbot.js
@@ -158,10 +160,15 @@ DOCUMENTOS/
 │   │   │   ├── search.js
 |   │   │   ├── versiones.js
 │   │   │   ├── systemStatus.js
+│   │   │   ├── chartsManager.js
+│   │   │   ├── responsive.js
 │   │   │   │
 │   │   │   ├── auth/              # Autenticacion
 │   │   │   │   ├── forgot.js
 │   │   │   │   ├── resetPassword.js
+│   │   │   │   ├── login.js
+│   │   │   │   ├── super-admin.js
+│   │   │   │   ├── verify-admin-change.js
 │   │   │   │   └── verification.js
 │   │   │   │
 |   │   │   ├── admin/             # Módulo de administración
@@ -172,6 +179,8 @@ DOCUMENTOS/
 │   │   │   |    │
 │   │   │   |    ├── core/
 │   │   │   |    │   ├── BulkDeleteState.js
+│   │   │   |    │   ├── bulkMoveManager.js
+│   │   │   |    │   ├── BulkMoveState.js
 │   │   │   |    │   ├── constants.js
 │   │   │   |    │   └── MultipleUploadState.js
 │   │   │   |    │
@@ -180,9 +189,17 @@ DOCUMENTOS/
 │   │   │   |    │   ├── downloadManager.js
 │   │   │   |    │   └── downloadMethods.js
 │   │   │   |    │
+│   │   │   |    ├── dragdrop/
+│   │   │   |    │   ├── documentDragDrop.js
+│   │   │   |    │   └── documentMoveHandler.js
+│   │   │   |    │
 │   │   │   |    ├── modals/
 │   │   │   |    │   ├── bulkDeleteModal.js
+│   │   │   |    │   ├── bulkMoveModal.js
+│   │   │   |    │   ├── categoriesChips.js
 │   │   │   |    │   ├── editDocumentModal.js
+│   │   │   |    │   ├── sizeValidator.js
+│   │   │   |    │   ├── personAutocomplete.js
 │   │   │   |    │   ├── documentModal.js
 │   │   │   |    │   └── modalHelpers.js
 │   │   │   |    │
@@ -204,21 +221,43 @@ DOCUMENTOS/
 │   │   │   |    │   └── uploadSingle.js
 │   │   │   |    │
 │   │   │   |    ├── index.js
+│   │   │   |    ├── notificationConfig.js
+│   │   │   |    ├── categoryNavigation.js
 │   │   │   |    └── compatibility.js
 │   │   │
+|   │   ├── state/
+|   │   │   └── reactiveState.js
+│   │   │
+|   │   ├── api/
+|   │   │   └── reactiveHooks.js
+│   │   │
+|   │   ├── events/
+|   │   │   └── eventBus.js
+│   │   │
+|   │   ├── render/
+|   │   │   └── autoRenderer.js
+|   │   │
+|   │   ├── utils.js                # Utilidades
+|   │   │   └── alertSystem.js
+|   │   ├               
 |   │   ├── services/
+|   │   │   ├── avisoService.js
+|   │   │   ├── websocket-manager.js
 |   │   │   └── api.js              # Cliente API
+|   │ 
 │   │   ├── app.js                  # Inicializacion global
 │   │   ├── auth.js                 # Auth general
 │   │   ├── authGuard.js            # Proteccion rutas
 │   │   ├── config.js               # Config frontend
 │   │   ├── debugTasks.js           # Debug tareas
 │   │   ├── dom.js                  # Selectores DOM
+│   │   ├── chatbot-slide.js       # Boton de chatbot
 │   │   ├── securityValidation.js   # Validacion de formularios
 │   │   ├── navigation.js           # Router SPA
 │   │   ├── simpleTaskDebug.js      # Debug tareas simple
 │   │   ├── state.js                # Estado global
 │   │   ├── task.js                 # Manejo tareas
+│   │   ├── permissions.js          # Permisos
 │   │   ├── ui.js                   # Render UI
 │   │   ├── userMenu.js             # Menu usuario
 │   │   └── utils.js                # Utilidades
@@ -227,6 +266,7 @@ DOCUMENTOS/
 │       │
 │       ├── config/
 │       │   ├── cloudinaryConfig.js
+│       │   ├── env.js
 │       │   ├── permissions.js
 │       │   └── multerConfig.js
 │       │
@@ -234,15 +274,21 @@ DOCUMENTOS/
 │       │   ├── authController.js
 │       │   ├── auditController.js.js
 |       │   ├── adminController.js
+│       │   ├── avisoController.js
+│       │   ├── calendarController.js
 │       │   ├── categoryController.js
 |       │   ├── chatbotController.js
 │       │   ├── dashboardController.js
 │       │   ├── departmentController.js
 │       │   ├── documentController.js
+│       │   ├── invitationController.js
 │       │   ├── notificationController.js
 |       │   ├── roleController.js
 │       │   ├── personController.js
 │       │   ├── reportController.js
+│       │   ├── schoolController.js
+│       │   ├── settingsController.js
+│       │   ├── suggestionController.js
 │       │   ├── trashController.js
 │       │   ├── supportController.js
 |       │   ├── systemStateController.js
@@ -257,6 +303,10 @@ DOCUMENTOS/
 │       │
 │       ├── models/                 # Modelos MongoDB
 │       │   ├── User.js
+│       │   ├── AuditLog.js
+│       │   ├── Aviso.js
+│       │   ├── CalendarEvent.js
+│       │   ├── Invitation.js
 │       │   ├── Person.js
 │       │   ├── Task.js
 │       │   ├── Department.js
@@ -267,6 +317,8 @@ DOCUMENTOS/
 │       │   ├── Document.js
 │       │   ├── AdminChangeRequest.js
 │       │   ├── SystemState.js
+│       │   ├── Suggestion.js
+│       │   ├── Version.js
 │       │   ├── Ticket.js
 │       │   └── Notification.js
 │       │
@@ -274,11 +326,18 @@ DOCUMENTOS/
 │       │   ├── auditService.js 
 │       │   ├── emailService.js 
 │       │   ├── fileService.js
+│       │   ├── reminderService.js
 │       │   └── notificationService.js
 │       │
 │       ├── routes/
 │       │    ├── apiRoutes.js
 │       │    ├── adminRoutes.js
+│       │    ├── auditRoutes.js
+│       │    ├── authRoutes.js
+│       │    ├── avisoRoutes.js
+│       │    ├── calendarRoutes.js
+│       │    ├── settingsRoutes.js
+│       │    ├── suggestionRoutes.js
 │       │    ├── roleRoutes.js
 |       │    ├── chatbotRoutes.js
 |       │    ├── superAdminRoutes.js

@@ -9,36 +9,37 @@ import {
     loadCurrentPermissions
 } from '../permissions.js';
 import { showAlert } from '../utils.js';
+import wsManager from '../services/websocket-manager.js';
 
 // ─── CONSTANTES ──────────────────────────────────────────────────────────────
 
-const STORAGE_KEY   = 'cal_events_v2';
-const SETTINGS_KEY  = 'cal_settings_v2';
-const UNDO_LIMIT    = 50;
+const STORAGE_KEY = 'cal_events_v2';
+const SETTINGS_KEY = 'cal_settings_v2';
+const UNDO_LIMIT = 50;
 
 const MONTH_NAMES = [
-    'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
-const DAY_NAMES_SHORT  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const DAY_NAMES_LONG   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DAY_NAMES_LONG = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 const EVENT_TYPES = {
-    academic:  { label: 'Académico',  color: '#6366f1', icon: '📚' },
-    meetings:  { label: 'Reunión',    color: '#10b981', icon: '🤝' },
-    deadlines: { label: 'Plazo',      color: '#f59e0b', icon: '⏰' },
-    holidays:  { label: 'Festivo',    color: '#ef4444', icon: '🎉' },
-    exam:      { label: 'Examen',     color: '#8b5cf6', icon: '📝' },
-    personal:  { label: 'Personal',   color: '#06b6d4', icon: '👤' },
+    academic: { label: 'Académico', color: '#6366f1', icon: '📚' },
+    meetings: { label: 'Reunión', color: '#10b981', icon: '🤝' },
+    deadlines: { label: 'Plazo', color: '#f59e0b', icon: '⏰' },
+    holidays: { label: 'Festivo', color: '#ef4444', icon: '🎉' },
+    exam: { label: 'Examen', color: '#8b5cf6', icon: '📝' },
+    personal: { label: 'Personal', color: '#06b6d4', icon: '👤' },
 };
 
 const RECURRENCE_OPTIONS = [
-    { value: 'none',    label: 'Sin repetición' },
-    { value: 'daily',   label: 'Cada día' },
-    { value: 'weekly',  label: 'Cada semana' },
-    { value: 'biweekly',label: 'Cada 2 semanas' },
+    { value: 'none', label: 'Sin repetición' },
+    { value: 'daily', label: 'Cada día' },
+    { value: 'weekly', label: 'Cada semana' },
+    { value: 'biweekly', label: 'Cada 2 semanas' },
     { value: 'monthly', label: 'Cada mes' },
-    { value: 'yearly',  label: 'Cada año' },
+    { value: 'yearly', label: 'Cada año' },
 ];
 
 // ─── UTILIDADES PURAS (sin efectos secundarios) ──────────────────────────────
@@ -46,31 +47,31 @@ const RECURRENCE_OPTIONS = [
 const uid = () => `e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 const sid = () => `s_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-const dateToStr  = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const strToDate  = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
-const addDays    = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
-const addMonths  = (d, n) => { const r = new Date(d); r.setMonth(r.getMonth()+n); return r; };
-const addYears   = (d, n) => { const r = new Date(d); r.setFullYear(r.getFullYear()+n); return r; };
-const isSameDay  = (a,b)  => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
-const daysBetween = (a,b) => Math.round((b-a)/(1000*60*60*24));
+const dateToStr = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const strToDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+const addMonths = (d, n) => { const r = new Date(d); r.setMonth(r.getMonth() + n); return r; };
+const addYears = (d, n) => { const r = new Date(d); r.setFullYear(r.getFullYear() + n); return r; };
+const isSameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const daysBetween = (a, b) => Math.round((b - a) / (1000 * 60 * 60 * 24));
 
-function hexToRgba(hex, alpha=1) {
-    const r = parseInt(hex.slice(1,3),16);
-    const g = parseInt(hex.slice(3,5),16);
-    const b = parseInt(hex.slice(5,7),16);
+function hexToRgba(hex, alpha = 1) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function formatTime(t) {
     if (!t) return '';
-    const [h,m] = t.split(':').map(Number);
-    const ampm  = h >= 12 ? 'PM' : 'AM';
-    const hh    = h % 12 || 12;
-    return `${hh}:${String(m).padStart(2,'0')} ${ampm}`;
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hh = h % 12 || 12;
+    return `${hh}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 function formatDateShort(d) {
-    return `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0,3)}`;
+    return `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 3)}`;
 }
 
 function formatDateLong(d) {
@@ -80,19 +81,19 @@ function formatDateLong(d) {
 // ─── MOTOR DE RECURRENCIA ────────────────────────────────────────────────────
 
 function generateRecurringDates(startStr, recurrence, limitDate) {
-    const dates   = [];
-    const start   = strToDate(startStr);
-    const limit   = limitDate || addYears(new Date(), 2);
-    let   current = new Date(start);
+    const dates = [];
+    const start = strToDate(startStr);
+    const limit = limitDate || addYears(new Date(), 2);
+    let current = new Date(start);
 
     while (current <= limit) {
         dates.push(dateToStr(current));
         switch (recurrence) {
-            case 'daily':     current = addDays(current, 1);    break;
-            case 'weekly':    current = addDays(current, 7);    break;
-            case 'biweekly':  current = addDays(current, 14);   break;
-            case 'monthly':   current = addMonths(current, 1);  break;
-            case 'yearly':    current = addYears(current, 1);   break;
+            case 'daily': current = addDays(current, 1); break;
+            case 'weekly': current = addDays(current, 7); break;
+            case 'biweekly': current = addDays(current, 14); break;
+            case 'monthly': current = addMonths(current, 1); break;
+            case 'yearly': current = addYears(current, 1); break;
             default: return dates;
         }
         if (dates.length > 500) break; // seguro
@@ -110,19 +111,19 @@ function expandEventToInstances(eventTemplate) {
     }
 
     const startD = strToDate(eventTemplate.startDate);
-    const endD   = eventTemplate.endDate ? strToDate(eventTemplate.endDate) : startD;
+    const endD = eventTemplate.endDate ? strToDate(eventTemplate.endDate) : startD;
     const duration = daysBetween(startD, endD);
 
     return generateRecurringDates(eventTemplate.startDate, eventTemplate.recurrence)
         .map(dateStr => {
             const iStart = strToDate(dateStr);
-            const iEnd   = addDays(iStart, duration);
+            const iEnd = addDays(iStart, duration);
             return {
                 ...eventTemplate,
-                instanceId:    `${eventTemplate.id}_${dateStr}`,
-                startDate:     dateStr,
-                endDate:       dateToStr(iEnd),
-                isSingle:      false,
+                instanceId: `${eventTemplate.id}_${dateStr}`,
+                startDate: dateStr,
+                endDate: dateToStr(iEnd),
+                isSingle: false,
                 originalStart: eventTemplate.startDate,
             };
         });
@@ -133,9 +134,9 @@ function expandEventToInstances(eventTemplate) {
 function eventsConflict(a, b) {
     if (a.id === b.id) return false;
     const aStart = strToDate(a.startDate);
-    const aEnd   = a.endDate   ? strToDate(a.endDate)   : aStart;
+    const aEnd = a.endDate ? strToDate(a.endDate) : aStart;
     const bStart = strToDate(b.startDate);
-    const bEnd   = b.endDate   ? strToDate(b.endDate)   : bStart;
+    const bEnd = b.endDate ? strToDate(b.endDate) : bStart;
 
     // Solapamiento de fechas
     if (aEnd < bStart || bEnd < aStart) return false;
@@ -157,7 +158,7 @@ function detectConflicts(events, candidate) {
 
 class EventStore {
     constructor() {
-        this._events    = [];   // eventos "plantilla" (master)
+        this._events = [];   // eventos "plantilla" (master)
         this._undoStack = [];
         this._redoStack = [];
         this._listeners = new Set();
@@ -165,80 +166,80 @@ class EventStore {
     }
 
     get _storageKey() {
-    try {
-        const user = JSON.parse(localStorage.getItem('user'));
-        return `cal_events_v2_${user?.schoolId || 'global'}`;
-    } catch {
-        return 'cal_events_v2_global';
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            return `cal_events_v2_${user?.schoolId || 'global'}`;
+        } catch {
+            return 'cal_events_v2_global';
+        }
     }
-}
 
-load() {
-    try {
-        const raw = localStorage.getItem(this._storageKey);
-        this._events = raw ? JSON.parse(raw) : [];
-    } catch { this._events = []; }
-}
-
-save() {
-    try { 
-        localStorage.setItem(this._storageKey, JSON.stringify(this._events)); 
+    load() {
+        try {
+            const raw = localStorage.getItem(this._storageKey);
+            this._events = raw ? JSON.parse(raw) : [];
+        } catch { this._events = []; }
     }
-    catch(e) { console.error('Cal: error guardando', e); }
-    
-    // 🆕 Forzar sync inmediato (sin esperar 30s)
-    this._syncToBackend(true);
-}
 
-_syncToBackend(force = false) {
-    const now = Date.now();
-    if (!force && this._lastSync && now - this._lastSync < 30000) return;
-    this._lastSync = now;
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
-        console.warn('Cal: No hay token para sincronizar');
-        return;
+    save() {
+        try {
+            localStorage.setItem(this._storageKey, JSON.stringify(this._events));
+        }
+        catch (e) { console.error('Cal: error guardando', e); }
+
+        // 🆕 Forzar sync inmediato (sin esperar 30s)
+        this._syncToBackend(true);
     }
-    
-    const eventos = this._events.map(ev => ({
-        id: ev.id,
-        title: ev.title,
-        type: ev.type,
-        priority: ev.priority,
-        color: ev.color,
-        startDate: ev.startDate,
-        endDate: ev.endDate,
-        startTime: ev.startTime,
-        endTime: ev.endTime,
-        location: ev.location,
-        description: ev.description,
-        recurrence: ev.recurrence,
-        reminder: ev.reminder
-    }));
-    
-    console.log('📅 Sincronizando', eventos.length, 'eventos...');
-    
-    fetch('/api/calendar/sync', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ eventos })
-    })
-    .then(r => r.json())
-    .then(d => {
-        console.log('📅 Sync OK:', d);
-        document.dispatchEvent(new CustomEvent('notifications:refresh'));
-    })
-    .catch(err => console.error('📅 Sync error:', err));
-}
+
+    _syncToBackend(force = false) {
+        const now = Date.now();
+        if (!force && this._lastSync && now - this._lastSync < 30000) return;
+        this._lastSync = now;
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.warn('Cal: No hay token para sincronizar');
+            return;
+        }
+
+        const eventos = this._events.map(ev => ({
+            id: ev.id,
+            title: ev.title,
+            type: ev.type,
+            priority: ev.priority,
+            color: ev.color,
+            startDate: ev.startDate,
+            endDate: ev.endDate,
+            startTime: ev.startTime,
+            endTime: ev.endTime,
+            location: ev.location,
+            description: ev.description,
+            recurrence: ev.recurrence,
+            reminder: ev.reminder
+        }));
+
+        console.log('📅 Sincronizando', eventos.length, 'eventos...');
+
+        fetch('/api/calendar/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ eventos })
+        })
+            .then(r => r.json())
+            .then(d => {
+                console.log('📅 Sync OK:', d);
+                document.dispatchEvent(new CustomEvent('notifications:refresh'));
+            })
+            .catch(err => console.error('📅 Sync error:', err));
+    }
 
     // — Suscriptores (reactivo) —
-    subscribe(fn)   { this._listeners.add(fn); }
+    subscribe(fn) { this._listeners.add(fn); }
     unsubscribe(fn) { this._listeners.delete(fn); }
-    _notify()       { this._listeners.forEach(fn => fn(this._events)); }
+    _notify() { this._listeners.forEach(fn => fn(this._events)); }
 
     // — Snapshot para undo/redo —
     _snapshot() { return JSON.parse(JSON.stringify(this._events)); }
@@ -281,6 +282,10 @@ _syncToBackend(force = false) {
         this._events.push(event);
         this.save();
         this._notify();
+
+        // ✅ Emitir evento WebSocket
+        wsManager.emit('calendar:event-created', { event });
+
         return event;
     }
 
@@ -291,6 +296,10 @@ _syncToBackend(force = false) {
         this._events[idx] = { ...this._events[idx], ...changes, updatedAt: new Date().toISOString() };
         this.save();
         this._notify();
+
+        // ✅ Emitir evento WebSocket
+        wsManager.emit('calendar:event-updated', { eventId: id, event: this._events[idx] });
+
         return this._events[idx];
     }
 
@@ -322,6 +331,9 @@ _syncToBackend(force = false) {
         this._events = this._events.filter(e => e.id !== id);
         this.save();
         this._notify();
+
+        // ✅ Emitir evento WebSocket
+        wsManager.emit('calendar:event-deleted', { eventId: id });
     }
 
     deleteSeries(seriesId) {
@@ -329,6 +341,9 @@ _syncToBackend(force = false) {
         this._events = this._events.filter(e => e.seriesId !== seriesId);
         this.save();
         this._notify();
+
+        // ✅ Emitir evento WebSocket
+        wsManager.emit('calendar:events-deleted', { seriesId });
     }
 
     deleteSeriesFrom(id) {
@@ -341,6 +356,9 @@ _syncToBackend(force = false) {
         );
         this.save();
         this._notify();
+
+        // ✅ Emitir evento WebSocket
+        wsManager.emit('calendar:events-deleted', { seriesId: ev.seriesId, fromDate: threshold });
     }
 
     clear() {
@@ -355,14 +373,14 @@ _syncToBackend(force = false) {
     // Obtiene instancias expandidas para un rango de fechas
     getInstancesInRange(startStr, endStr) {
         const rangeStart = strToDate(startStr);
-        const rangeEnd   = strToDate(endStr);
+        const rangeEnd = strToDate(endStr);
 
         const instances = [];
         for (const ev of this._events) {
             const evs = expandEventToInstances(ev);
             for (const inst of evs) {
                 const iStart = strToDate(inst.startDate);
-                const iEnd   = inst.endDate ? strToDate(inst.endDate) : iStart;
+                const iEnd = inst.endDate ? strToDate(inst.endDate) : iStart;
                 // Dentro del rango
                 if (iStart <= rangeEnd && iEnd >= rangeStart) {
                     instances.push(inst);
@@ -378,7 +396,7 @@ _syncToBackend(force = false) {
 
     getInstancesForMonth(year, month) {
         const first = dateToStr(new Date(year, month, 1));
-        const last  = dateToStr(new Date(year, month+1, 0));
+        const last = dateToStr(new Date(year, month + 1, 0));
         return this.getInstancesInRange(first, last);
     }
 
@@ -387,14 +405,14 @@ _syncToBackend(force = false) {
         const today = dateToStr(new Date());
         const limit = dateToStr(addDays(new Date(), days));
         return this.getInstancesInRange(today, limit)
-            .sort((a,b) => a.startDate.localeCompare(b.startDate));
+            .sort((a, b) => a.startDate.localeCompare(b.startDate));
     }
 
     // Estadísticas rápidas
     getStats() {
         const total = this._events.length;
         const byType = {};
-        this._events.forEach(e => { byType[e.type] = (byType[e.type]||0) + 1; });
+        this._events.forEach(e => { byType[e.type] = (byType[e.type] || 0) + 1; });
         const thisMonth = this.getInstancesForMonth(new Date().getFullYear(), new Date().getMonth()).length;
         return { total, byType, thisMonth };
     }
@@ -408,27 +426,27 @@ class Settings {
         this.load();
     }
     get _storageKey() {
-    try {
-        const user = JSON.parse(localStorage.getItem('user'));
-        return `cal_settings_v2_${user?.schoolId || 'global'}`;
-    } catch {
-        return 'cal_settings_v2_global';
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            return `cal_settings_v2_${user?.schoolId || 'global'}`;
+        } catch {
+            return 'cal_settings_v2_global';
+        }
     }
-}
 
-load() {
-    try {
-        const raw = localStorage.getItem(this._storageKey);
-        if (raw) this._data = { ...this._data, ...JSON.parse(raw) };
-    } catch {}
-}
+    load() {
+        try {
+            const raw = localStorage.getItem(this._storageKey);
+            if (raw) this._data = { ...this._data, ...JSON.parse(raw) };
+        } catch { }
+    }
 
-save() {
-    try { 
-        localStorage.setItem(this._storageKey, JSON.stringify(this._data)); 
-    } catch {}
-}
-    get(key)      { return this._data[key]; }
+    save() {
+        try {
+            localStorage.setItem(this._storageKey, JSON.stringify(this._data));
+        } catch { }
+    }
+    get(key) { return this._data[key]; }
     set(key, val) { this._data[key] = val; this.save(); }
 }
 
@@ -465,7 +483,7 @@ class Modal {
             padding: 1rem;
         `;
 
-        const sizeMap = { sm:'400px', md:'560px', lg:'720px', xl:'900px' };
+        const sizeMap = { sm: '400px', md: '560px', lg: '720px', xl: '900px' };
         const panel = document.createElement('div');
         panel.className = 'cal-modal-panel';
         panel.style.cssText = `
@@ -473,7 +491,7 @@ class Modal {
             border:1px solid rgba(99,102,241,0.2);
             border-radius:20px;
             width:100%;
-            max-width:${sizeMap[config.size||'md']};
+            max-width:${sizeMap[config.size || 'md']};
             max-height:90vh;
             overflow-y:auto;
             padding:2rem;
@@ -516,9 +534,9 @@ class Modal {
             btn.textContent = action.label;
             const styles = {
                 cancel: `background:rgba(255,255,255,0.06);color:#fffffe;border:1px solid rgba(255,255,255,0.1);`,
-                primary:`background:#6366f1;color:#fff;border:none;`,
+                primary: `background:#6366f1;color:#fff;border:none;`,
                 danger: `background:#ef4444;color:#fff;border:none;`,
-                success:`background:#10b981;color:#fff;border:none;`,
+                success: `background:#10b981;color:#fff;border:none;`,
             };
             btn.style.cssText = `
                 padding:0.6rem 1.2rem;
@@ -528,12 +546,12 @@ class Modal {
                 font-weight:600;
                 cursor:pointer;
                 transition:filter 0.15s,transform 0.1s;
-                ${styles[action.variant||'cancel']}
+                ${styles[action.variant || 'cancel']}
             `;
             btn.addEventListener('mouseenter', () => btn.style.filter = 'brightness(1.15)');
             btn.addEventListener('mouseleave', () => btn.style.filter = '');
-            btn.addEventListener('mousedown',  () => btn.style.transform = 'scale(0.97)');
-            btn.addEventListener('mouseup',    () => btn.style.transform = '');
+            btn.addEventListener('mousedown', () => btn.style.transform = 'scale(0.97)');
+            btn.addEventListener('mouseup', () => btn.style.transform = '');
             btn.addEventListener('click', () => {
                 if (action.onClick) action.onClick();
                 if (action.close !== false) Modal.close(overlay);
@@ -558,12 +576,12 @@ class Modal {
 
         requestAnimationFrame(() => {
             overlay.style.opacity = '1';
-            panel.style.opacity   = '1';
+            panel.style.opacity = '1';
             panel.style.transform = 'translateY(0) scale(1)';
         });
 
         // Esc para cerrar
-        const escHandler = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }};
+        const escHandler = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); } };
         document.addEventListener('keydown', escHandler);
 
         return { overlay, panel, body, close };
@@ -585,9 +603,9 @@ class Modal {
 
 class EventForm {
     constructor(store, onSaved) {
-        this._store   = store;
+        this._store = store;
         this._onSaved = onSaved;
-        this._editId  = null;
+        this._editId = null;
     }
 
     _buildForm(defaults = {}) {
@@ -599,16 +617,16 @@ class EventForm {
             <div class="cf-row" style="display:grid;grid-template-columns:1fr auto;gap:0.75rem;align-items:start;">
                 <div class="cf-field">
                     <label class="cf-label">Título del evento *</label>
-                    <input id="cf-title" type="text" class="cf-input" placeholder="Nombre del evento..." value="${defaults.title||''}" maxlength="100" autocomplete="off">
+                    <input id="cf-title" type="text" class="cf-input" placeholder="Nombre del evento..." value="${defaults.title || ''}" maxlength="100" autocomplete="off">
                     <span class="cf-err" id="cf-err-title"></span>
                 </div>
                 <div class="cf-field">
                     <label class="cf-label">Color</label>
                     <div style="position:relative;width:50px;">
-                        <input id="cf-color" type="color" class="cf-color-input" value="${defaults.color||'#6366f1'}">
+                        <input id="cf-color" type="color" class="cf-color-input" value="${defaults.color || '#6366f1'}">
                         <div id="cf-color-preview" style="
                             width:48px;height:48px;border-radius:12px;
-                            background:${defaults.color||'#6366f1'};
+                            background:${defaults.color || '#6366f1'};
                             cursor:pointer;border:2px solid rgba(255,255,255,0.1);
                             position:absolute;top:0;left:0;pointer-events:none;
                         "></div>
@@ -620,18 +638,18 @@ class EventForm {
                 <div class="cf-field">
                     <label class="cf-label">Tipo</label>
                     <select id="cf-type" class="cf-input">
-                        ${Object.entries(EVENT_TYPES).map(([k,v]) =>
-                            `<option value="${k}" ${(defaults.type||'academic')===k?'selected':''}>${v.icon} ${v.label}</option>`
-                        ).join('')}
+                        ${Object.entries(EVENT_TYPES).map(([k, v]) =>
+            `<option value="${k}" ${(defaults.type || 'academic') === k ? 'selected' : ''}>${v.icon} ${v.label}</option>`
+        ).join('')}
                     </select>
                 </div>
                 <div class="cf-field">
                     <label class="cf-label">Prioridad</label>
                     <select id="cf-priority" class="cf-input">
-                        <option value="normal"  ${(defaults.priority||'normal')==='normal'?'selected':''}>Normal</option>
-                        <option value="high"    ${defaults.priority==='high'?'selected':''}>Alta</option>
-                        <option value="urgent"  ${defaults.priority==='urgent'?'selected':''}>Urgente</option>
-                        <option value="low"     ${defaults.priority==='low'?'selected':''}>Baja</option>
+                        <option value="normal"  ${(defaults.priority || 'normal') === 'normal' ? 'selected' : ''}>Normal</option>
+                        <option value="high"    ${defaults.priority === 'high' ? 'selected' : ''}>Alta</option>
+                        <option value="urgent"  ${defaults.priority === 'urgent' ? 'selected' : ''}>Urgente</option>
+                        <option value="low"     ${defaults.priority === 'low' ? 'selected' : ''}>Baja</option>
                     </select>
                 </div>
             </div>
@@ -639,31 +657,31 @@ class EventForm {
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.75rem;">
                 <div class="cf-field">
                     <label class="cf-label">Fecha inicio *</label>
-                    <input id="cf-start-date" type="date" class="cf-input" value="${defaults.startDate||now}">
+                    <input id="cf-start-date" type="date" class="cf-input" value="${defaults.startDate || now}">
                     <span class="cf-err" id="cf-err-date"></span>
                 </div>
                 <div class="cf-field">
                     <label class="cf-label">Hora inicio</label>
-                    <input id="cf-start-time" type="time" class="cf-input" value="${defaults.startTime||'09:00'}">
+                    <input id="cf-start-time" type="time" class="cf-input" value="${defaults.startTime || '09:00'}">
                 </div>
                 <div class="cf-field">
                     <label class="cf-label">Fecha fin</label>
-                    <input id="cf-end-date" type="date" class="cf-input" value="${defaults.endDate||defaults.startDate||now}">
+                    <input id="cf-end-date" type="date" class="cf-input" value="${defaults.endDate || defaults.startDate || now}">
                 </div>
                 <div class="cf-field">
                     <label class="cf-label">Hora fin</label>
-                    <input id="cf-end-time" type="time" class="cf-input" value="${defaults.endTime||'10:00'}">
+                    <input id="cf-end-time" type="time" class="cf-input" value="${defaults.endTime || '10:00'}">
                 </div>
             </div>
 
             <div class="cf-field">
                 <label class="cf-label">Ubicación</label>
-                <input id="cf-location" type="text" class="cf-input" placeholder="Aula, sala, plataforma..." value="${defaults.location||''}" maxlength="150">
+                <input id="cf-location" type="text" class="cf-input" placeholder="Aula, sala, plataforma..." value="${defaults.location || ''}" maxlength="150">
             </div>
 
             <div class="cf-field">
                 <label class="cf-label">Descripción</label>
-                <textarea id="cf-desc" class="cf-input" rows="3" placeholder="Detalles del evento..." style="resize:vertical;min-height:72px;">${defaults.description||''}</textarea>
+                <textarea id="cf-desc" class="cf-input" rows="3" placeholder="Detalles del evento..." style="resize:vertical;min-height:72px;">${defaults.description || ''}</textarea>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
@@ -671,16 +689,16 @@ class EventForm {
                     <label class="cf-label">Recordatorio</label>
                     <select id="cf-reminder" class="cf-input">
                         <option value="">Sin recordatorio</option>
-                        <option value="1d"   ${defaults.reminder==='1d'?'selected':''}>1 día antes</option>
-                        <option value="3d"   ${defaults.reminder==='3d'?'selected':''}>3 días antes</option>
+                        <option value="1d"   ${defaults.reminder === '1d' ? 'selected' : ''}>1 día antes</option>
+                        <option value="3d"   ${defaults.reminder === '3d' ? 'selected' : ''}>3 días antes</option>
                     </select>
                 </div>
                 <div class="cf-field">
                     <label class="cf-label">Repetir</label>
                     <select id="cf-recurrence" class="cf-input">
                         ${RECURRENCE_OPTIONS.map(o =>
-                            `<option value="${o.value}" ${(defaults.recurrence||'none')===o.value?'selected':''}>${o.label}</option>`
-                        ).join('')}
+            `<option value="${o.value}" ${(defaults.recurrence || 'none') === o.value ? 'selected' : ''}>${o.label}</option>`
+        ).join('')}
                     </select>
                 </div>
             </div>
@@ -743,7 +761,7 @@ class EventForm {
 
         // — Lógica reactiva del formulario —
 
-        const colorInput   = form.querySelector('#cf-color');
+        const colorInput = form.querySelector('#cf-color');
         const colorPreview = form.querySelector('#cf-color-preview');
         colorInput.addEventListener('input', () => {
             colorPreview.style.background = colorInput.value;
@@ -752,24 +770,24 @@ class EventForm {
 
         // Auto-rellenar fecha fin al cambiar inicio
         const startDateInput = form.querySelector('#cf-start-date');
-        const endDateInput   = form.querySelector('#cf-end-date');
+        const endDateInput = form.querySelector('#cf-end-date');
         startDateInput.addEventListener('change', () => {
             if (!endDateInput.value || endDateInput.value < startDateInput.value) {
                 endDateInput.value = startDateInput.value;
             }
             this._checkConflicts(form);
         });
-        endDateInput.addEventListener('change',        () => this._checkConflicts(form));
+        endDateInput.addEventListener('change', () => this._checkConflicts(form));
         form.querySelector('#cf-start-time').addEventListener('change', () => this._checkConflicts(form));
-        form.querySelector('#cf-end-time').addEventListener('change',   () => this._checkConflicts(form));
+        form.querySelector('#cf-end-time').addEventListener('change', () => this._checkConflicts(form));
 
         // Autocompletar hora fin (+1h)
         form.querySelector('#cf-start-time').addEventListener('change', e => {
-            const [h,m] = e.target.value.split(':').map(Number);
+            const [h, m] = e.target.value.split(':').map(Number);
             const endTime = form.querySelector('#cf-end-time');
             if (!endTime.value || endTime.value <= e.target.value) {
-                const nh = (h+1) % 24;
-                endTime.value = `${String(nh).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                const nh = (h + 1) % 24;
+                endTime.value = `${String(nh).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
             }
         });
 
@@ -777,7 +795,7 @@ class EventForm {
         form.querySelector('#cf-type').addEventListener('change', e => {
             const typeColor = EVENT_TYPES[e.target.value]?.color;
             if (typeColor && !defaults.color) {
-                colorInput.value           = typeColor;
+                colorInput.value = typeColor;
                 colorPreview.style.background = typeColor;
             }
         });
@@ -812,7 +830,7 @@ class EventForm {
         let valid = true;
         const title = form.querySelector('#cf-title');
         const start = form.querySelector('#cf-start-date');
-        const end   = form.querySelector('#cf-end-date');
+        const end = form.querySelector('#cf-end-date');
 
         form.querySelectorAll('.cf-err').forEach(e => e.textContent = '');
 
@@ -835,17 +853,17 @@ class EventForm {
 
     _getData(form) {
         return {
-            title:      form.querySelector('#cf-title').value.trim(),
-            type:       form.querySelector('#cf-type').value,
-            priority:   form.querySelector('#cf-priority').value,
-            color:      form.querySelector('#cf-color').value,
-            startDate:  form.querySelector('#cf-start-date').value,
-            startTime:  form.querySelector('#cf-start-time').value,
-            endDate:    form.querySelector('#cf-end-date').value || form.querySelector('#cf-start-date').value,
-            endTime:    form.querySelector('#cf-end-time').value,
-            location:   form.querySelector('#cf-location').value.trim(),
-            description:form.querySelector('#cf-desc').value.trim(),
-            reminder:   form.querySelector('#cf-reminder').value,
+            title: form.querySelector('#cf-title').value.trim(),
+            type: form.querySelector('#cf-type').value,
+            priority: form.querySelector('#cf-priority').value,
+            color: form.querySelector('#cf-color').value,
+            startDate: form.querySelector('#cf-start-date').value,
+            startTime: form.querySelector('#cf-start-time').value,
+            endDate: form.querySelector('#cf-end-date').value || form.querySelector('#cf-start-date').value,
+            endTime: form.querySelector('#cf-end-time').value,
+            location: form.querySelector('#cf-location').value.trim(),
+            description: form.querySelector('#cf-desc').value.trim(),
+            reminder: form.querySelector('#cf-reminder').value,
             recurrence: form.querySelector('#cf-recurrence').value,
         };
     }
@@ -954,11 +972,13 @@ class EventForm {
                 body: `<p style="color:#a8a8b3;font-size:0.95rem;">¿Eliminar "<strong style="color:#fffffe;">${event.title}</strong>"? Esta acción no se puede deshacer.</p>`,
                 actions: [
                     { label: 'Cancelar', variant: 'cancel' },
-                    { label: 'Eliminar', variant: 'danger', onClick: () => {
-                        this._store.delete(eventId);
-                        Toast.show('Evento eliminado', 'error');
-                        if (this._onSaved) this._onSaved();
-                    }}
+                    {
+                        label: 'Eliminar', variant: 'danger', onClick: () => {
+                            this._store.delete(eventId);
+                            Toast.show('Evento eliminado', 'error');
+                            if (this._onSaved) this._onSaved();
+                        }
+                    }
                 ]
             });
             return;
@@ -970,9 +990,9 @@ class EventForm {
 
         const seriesCount = this._store.getAll().filter(e => e.seriesId === event.seriesId).length;
         const opts = [
-            { action: 'single',  label: 'Solo este evento', sub: '1 evento', color: '#6366f1' },
+            { action: 'single', label: 'Solo este evento', sub: '1 evento', color: '#6366f1' },
             { action: 'forward', label: 'Este y siguientes', sub: 'Desde esta fecha', color: '#f59e0b' },
-            { action: 'series',  label: 'Toda la serie', sub: `${seriesCount} eventos`, color: '#ef4444' },
+            { action: 'series', label: 'Toda la serie', sub: `${seriesCount} eventos`, color: '#ef4444' },
         ];
 
         opts.forEach(opt => {
@@ -995,9 +1015,9 @@ class EventForm {
             card.addEventListener('mouseenter', () => { card.style.background = 'rgba(255,255,255,0.04)'; card.style.borderColor = opt.color; });
             card.addEventListener('mouseleave', () => { card.style.background = ''; card.style.borderColor = 'rgba(255,255,255,0.08)'; });
             card.addEventListener('click', () => {
-                if (opt.action === 'single')  this._store.delete(eventId);
+                if (opt.action === 'single') this._store.delete(eventId);
                 if (opt.action === 'forward') this._store.deleteSeriesFrom(eventId);
-                if (opt.action === 'series')  this._store.deleteSeries(event.seriesId);
+                if (opt.action === 'series') this._store.deleteSeries(event.seriesId);
                 Toast.show('Evento(s) eliminado(s)', 'error');
                 Modal.closeAll();
                 if (this._onSaved) this._onSaved();
@@ -1017,18 +1037,18 @@ class EventForm {
 
 class CalendarRenderer {
     constructor(store, settings, form, canEdit) {
-        this._store    = store;
+        this._store = store;
         this._settings = settings;
-        this._form     = form;
-        this._canEdit  = canEdit;
-        this._year     = new Date().getFullYear();
-        this._month    = new Date().getMonth();
-        this._filter   = 'all';
-        this._view     = 'month'; // month | week | agenda
+        this._form = form;
+        this._canEdit = canEdit;
+        this._year = new Date().getFullYear();
+        this._month = new Date().getMonth();
+        this._filter = 'all';
+        this._view = 'month'; // month | week | agenda
         this._selected = null;
 
         this._dragState = null;
-        this._root      = null;
+        this._root = null;
     }
 
     mount(container) {
@@ -1084,16 +1104,16 @@ class CalendarRenderer {
     refresh() {
         this._renderToolbar();
         this._renderSidebar();
-        if (this._view === 'month')  this._renderMonthView();
-        if (this._view === 'week')   this._renderWeekView();
+        if (this._view === 'month') this._renderMonthView();
+        if (this._view === 'week') this._renderWeekView();
         if (this._view === 'agenda') this._renderAgendaView();
     }
 
     _navigate(dir) {
         if (this._view === 'month') {
             this._month += dir;
-            if (this._month > 11) { this._month = 0;  this._year++; }
-            if (this._month < 0)  { this._month = 11; this._year--; }
+            if (this._month > 11) { this._month = 0; this._year++; }
+            if (this._month < 0) { this._month = 11; this._year--; }
         } else if (this._view === 'week') {
             this._weekOffset = (this._weekOffset || 0) + dir;
         }
@@ -1102,7 +1122,7 @@ class CalendarRenderer {
 
     _goToday() {
         const t = new Date();
-        this._year  = t.getFullYear();
+        this._year = t.getFullYear();
         this._month = t.getMonth();
         this._weekOffset = 0;
         this.refresh();
@@ -1153,7 +1173,7 @@ class CalendarRenderer {
         const filterGroup = document.createElement('div');
         filterGroup.style.cssText = `display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;`;
 
-        [{ k: 'all', label: 'Todos' }, ...Object.entries(EVENT_TYPES).map(([k,v]) => ({ k, label: v.label }))].forEach(({ k, label }) => {
+        [{ k: 'all', label: 'Todos' }, ...Object.entries(EVENT_TYPES).map(([k, v]) => ({ k, label: v.label }))].forEach(({ k, label }) => {
             const btn = document.createElement('button');
             const isActive = this._filter === k;
             btn.textContent = label;
@@ -1165,9 +1185,9 @@ class CalendarRenderer {
                 font-weight:600;
                 cursor:pointer;
                 transition:all 0.15s;
-                border:1px solid ${isActive ? (EVENT_TYPES[k]?.color||'#6366f1') : 'rgba(255,255,255,0.1)'};
-                background:${isActive ? (EVENT_TYPES[k]?.color||'#6366f1')+'22' : 'transparent'};
-                color:${isActive ? (EVENT_TYPES[k]?.color||'#6366f1') : '#7b7b8a'};
+                border:1px solid ${isActive ? (EVENT_TYPES[k]?.color || '#6366f1') : 'rgba(255,255,255,0.1)'};
+                background:${isActive ? (EVENT_TYPES[k]?.color || '#6366f1') + '22' : 'transparent'};
+                color:${isActive ? (EVENT_TYPES[k]?.color || '#6366f1') : '#7b7b8a'};
             `;
             btn.addEventListener('click', () => this._setFilter(k));
             filterGroup.appendChild(btn);
@@ -1179,8 +1199,8 @@ class CalendarRenderer {
         viewGroup.style.cssText = `display:flex;align-items:center;gap:0.25rem;background:rgba(255,255,255,0.04);border-radius:10px;padding:3px;`;
         [
             { v: 'month', label: 'Mes' },
-            { v: 'week',  label: 'Semana' },
-            { v: 'agenda',label: 'Lista' },
+            { v: 'week', label: 'Semana' },
+            { v: 'agenda', label: 'Lista' },
         ].forEach(({ v, label }) => {
             const btn = document.createElement('button');
             btn.textContent = label;
@@ -1222,20 +1242,20 @@ class CalendarRenderer {
         const btn = document.createElement('button');
         btn.textContent = label;
         const styles = {
-            ghost:    `background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#a8a8b3;`,
-            secondary:`background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;`,
-            primary:  `background:#6366f1;border:none;color:#fff;`,
+            ghost: `background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#a8a8b3;`,
+            secondary: `background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;`,
+            primary: `background:#6366f1;border:none;color:#fff;`,
         };
         btn.style.cssText = `
             padding:0.45rem 0.875rem;border-radius:10px;
             font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;
             cursor:pointer;transition:filter 0.15s,transform 0.1s;
-            ${styles[variant]||styles.ghost}
+            ${styles[variant] || styles.ghost}
         `;
         btn.addEventListener('mouseenter', () => btn.style.filter = 'brightness(1.2)');
         btn.addEventListener('mouseleave', () => btn.style.filter = '');
-        btn.addEventListener('mousedown',  () => btn.style.transform = 'scale(0.96)');
-        btn.addEventListener('mouseup',    () => btn.style.transform = '');
+        btn.addEventListener('mousedown', () => btn.style.transform = 'scale(0.96)');
+        btn.addEventListener('mouseup', () => btn.style.transform = '');
         btn.addEventListener('click', onClick);
         return btn;
     }
@@ -1264,7 +1284,7 @@ class CalendarRenderer {
         header.style.cssText = `display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;`;
         header.innerHTML = `
             <span style="font-size:0.8rem;font-weight:700;color:#fffffe;text-transform:uppercase;letter-spacing:0.05em;">
-                ${MONTH_NAMES[this._month].slice(0,3)} ${this._year}
+                ${MONTH_NAMES[this._month].slice(0, 3)} ${this._year}
             </span>
         `;
         const navRow = document.createElement('div');
@@ -1281,7 +1301,7 @@ class CalendarRenderer {
 
         // Encabezados
         const startDay = 1; // Lunes
-        const dayLabels = ['L','M','X','J','V','S','D'];
+        const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
         dayLabels.forEach(d => {
             const cell = document.createElement('div');
             cell.textContent = d;
@@ -1291,7 +1311,7 @@ class CalendarRenderer {
 
         const firstDay = new Date(this._year, this._month, 1);
         let startOffset = (firstDay.getDay() + 6) % 7; // Lunes=0
-        const daysInMonth = new Date(this._year, this._month+1, 0).getDate();
+        const daysInMonth = new Date(this._year, this._month + 1, 0).getDate();
         const today = new Date();
 
         for (let i = 0; i < startOffset; i++) {
@@ -1313,7 +1333,7 @@ class CalendarRenderer {
                 display:flex;align-items:center;justify-content:center;
                 border-radius:50%;font-size:0.75rem;cursor:pointer;
                 transition:background 0.15s;margin:0 auto;
-                font-weight:${isToday?'800':'400'};
+                font-weight:${isToday ? '800' : '400'};
                 background:${isToday ? '#6366f1' : 'transparent'};
                 color:${isToday ? '#fff' : '#a8a8b3'};
                 position:relative;
@@ -1357,7 +1377,7 @@ class CalendarRenderer {
             const item = document.createElement('div');
             const d = strToDate(ev.startDate);
             const isToday = isSameDay(d, new Date());
-            const diffDays = daysBetween(new Date().setHours(0,0,0,0), d.setHours(0,0,0,0));
+            const diffDays = daysBetween(new Date().setHours(0, 0, 0, 0), d.setHours(0, 0, 0, 0));
 
             item.style.cssText = `
                 padding:0.5rem 0.625rem;
@@ -1456,7 +1476,7 @@ class CalendarRenderer {
         // Encabezados días
         const headerRow = document.createElement('div');
         headerRow.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid rgba(99,102,241,0.12);`;
-        const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+        const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         days.forEach((d, i) => {
             const cell = document.createElement('div');
             cell.textContent = d;
@@ -1465,7 +1485,7 @@ class CalendarRenderer {
                 font-size:0.7rem;font-weight:700;letter-spacing:0.08em;
                 color:${i >= 5 ? '#6366f1' : '#4a4a5a'};
                 text-transform:uppercase;
-                border-right:${i<6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
+                border-right:${i < 6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
             `;
             headerRow.appendChild(cell);
         });
@@ -1476,14 +1496,14 @@ class CalendarRenderer {
         grid.style.cssText = `display:grid;grid-template-columns:repeat(7,1fr);flex:1;`;
 
         const firstDay = new Date(this._year, this._month, 1);
-        const daysInMonth = new Date(this._year, this._month+1, 0).getDate();
+        const daysInMonth = new Date(this._year, this._month + 1, 0).getDate();
         const startOffset = (firstDay.getDay() + 6) % 7; // Lunes=0
         const prevMonthDays = new Date(this._year, this._month, 0).getDate();
         const today = new Date();
 
         // Instancias del mes + algo de margen para eventos multi-día
         const rangeStart = dateToStr(addDays(new Date(this._year, this._month, 1), -7));
-        const rangeEnd   = dateToStr(addDays(new Date(this._year, this._month+1, 0), 7));
+        const rangeEnd = dateToStr(addDays(new Date(this._year, this._month + 1, 0), 7));
         const allInstances = this._store.getInstancesInRange(rangeStart, rangeEnd)
             .filter(e => this._matchesFilter(e));
 
@@ -1492,27 +1512,27 @@ class CalendarRenderer {
         for (let i = 0; i < totalCells; i++) {
             let date, isCurrentMonth;
             if (i < startOffset) {
-                date = new Date(this._year, this._month-1, prevMonthDays - startOffset + i + 1);
+                date = new Date(this._year, this._month - 1, prevMonthDays - startOffset + i + 1);
                 isCurrentMonth = false;
             } else if (i - startOffset < daysInMonth) {
                 date = new Date(this._year, this._month, i - startOffset + 1);
                 isCurrentMonth = true;
             } else {
-                date = new Date(this._year, this._month+1, i - startOffset - daysInMonth + 1);
+                date = new Date(this._year, this._month + 1, i - startOffset - daysInMonth + 1);
                 isCurrentMonth = false;
             }
 
-            const dateStr    = dateToStr(date);
-            const isToday    = isSameDay(date, today);
-            const isWeekend  = date.getDay() === 0 || date.getDay() === 6;
-            const colIndex   = i % 7;
+            const dateStr = dateToStr(date);
+            const isToday = isSameDay(date, today);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const colIndex = i % 7;
 
             const cell = document.createElement('div');
             cell.dataset.date = dateStr;
             cell.style.cssText = `
                 min-height:110px;
                 padding:0.4rem 0.5rem;
-                border-right:${colIndex<6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
+                border-right:${colIndex < 6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
                 border-bottom:1px solid rgba(99,102,241,0.08);
                 position:relative;
                 cursor:${this._canEdit ? 'pointer' : 'default'};
@@ -1529,7 +1549,7 @@ class CalendarRenderer {
                 width:28px;height:28px;
                 display:flex;align-items:center;justify-content:center;
                 border-radius:50%;
-                font-size:0.82rem;font-weight:${isToday?'800':'600'};
+                font-size:0.82rem;font-weight:${isToday ? '800' : '600'};
                 background:${isToday ? '#6366f1' : 'transparent'};
                 color:${isToday ? '#fff' : !isCurrentMonth ? '#3a3a4a' : isWeekend ? '#8b8bff' : '#fffffe'};
                 align-self:flex-end;
@@ -1543,14 +1563,14 @@ class CalendarRenderer {
             });
 
             const MAX_VISIBLE = 3;
-            const visible  = dayInstances.slice(0, MAX_VISIBLE);
+            const visible = dayInstances.slice(0, MAX_VISIBLE);
             const overflow = dayInstances.length - MAX_VISIBLE;
 
             visible.forEach(ev => {
                 const chip = document.createElement('div');
-                const isStart  = ev.startDate === dateStr;
-                const isEnd    = ev.endDate === dateStr;
-                const isMulti  = ev.startDate !== ev.endDate;
+                const isStart = ev.startDate === dateStr;
+                const isEnd = ev.endDate === dateStr;
+                const isMulti = ev.startDate !== ev.endDate;
 
                 chip.textContent = isStart || !isMulti ? ev.title : '';
                 chip.style.cssText = `
@@ -1626,7 +1646,7 @@ class CalendarRenderer {
                 const ev = this._store.getById(eventId);
                 if (!ev) return;
                 const newStart = dateToStr(addDays(strToDate(ev.startDate), diff));
-                const newEnd   = ev.endDate ? dateToStr(addDays(strToDate(ev.endDate), diff)) : newStart;
+                const newEnd = ev.endDate ? dateToStr(addDays(strToDate(ev.endDate), diff)) : newStart;
                 this._store.update(eventId, { startDate: newStart, endDate: newEnd });
                 Toast.show(`"${ev.title}" movido a ${formatDateShort(strToDate(newStart))}`, 'success');
                 this._dragState = null;
@@ -1654,7 +1674,7 @@ class CalendarRenderer {
         main.innerHTML = '';
 
         const offset = this._weekOffset || 0;
-        const today  = new Date();
+        const today = new Date();
         const startOfWeek = addDays(today, (1 - (today.getDay() || 7) + offset * 7));
 
         const wrap = document.createElement('div');
@@ -1670,11 +1690,11 @@ class CalendarRenderer {
 
         for (let d = 0; d < 7; d++) {
             const date = addDays(startOfWeek, d);
-            const isT  = isSameDay(date, new Date());
+            const isT = isSameDay(date, new Date());
             const cell = document.createElement('div');
             cell.style.cssText = `
                 padding:0.625rem;text-align:center;
-                border-right:${d<6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
+                border-right:${d < 6 ? '1px solid rgba(99,102,241,0.08)' : 'none'};
             `;
             cell.innerHTML = `
                 <div style="font-size:0.68rem;font-weight:700;color:#4a4a5a;text-transform:uppercase;letter-spacing:0.06em;">${DAY_NAMES_SHORT[date.getDay()]}</div>
@@ -1706,7 +1726,7 @@ class CalendarRenderer {
                 border-bottom:1px solid rgba(99,102,241,0.05);
                 border-right:1px solid rgba(99,102,241,0.12);
             `;
-            timeLabel.textContent = h === 0 ? '' : `${String(h).padStart(2,'0')}:00`;
+            timeLabel.textContent = h === 0 ? '' : `${String(h).padStart(2, '0')}:00`;
             timeGrid.appendChild(timeLabel);
 
             for (let d = 0; d < 7; d++) {
@@ -1715,18 +1735,18 @@ class CalendarRenderer {
                 cell.style.cssText = `
                     height:56px;
                     border-bottom:1px solid rgba(99,102,241,0.05);
-                    border-right:${d<6 ? '1px solid rgba(99,102,241,0.05)' : 'none'};
-                    position:relative;cursor:${this._canEdit?'pointer':'default'};
+                    border-right:${d < 6 ? '1px solid rgba(99,102,241,0.05)' : 'none'};
+                    position:relative;cursor:${this._canEdit ? 'pointer' : 'default'};
                     transition:background 0.1s;
                 `;
                 cell.dataset.date = dateToStr(date);
-                cell.dataset.hour  = h;
+                cell.dataset.hour = h;
 
                 cell.addEventListener('mouseenter', () => cell.style.background = 'rgba(99,102,241,0.04)');
                 cell.addEventListener('mouseleave', () => cell.style.background = '');
                 cell.addEventListener('click', () => {
                     if (this._canEdit) {
-                        const t = `${String(h).padStart(2,'0')}:00`;
+                        const t = `${String(h).padStart(2, '0')}:00`;
                         this._form.openNew(cell.dataset.date);
                     }
                 });
@@ -1738,12 +1758,12 @@ class CalendarRenderer {
         for (let d = 0; d < 7; d++) {
             const date = addDays(startOfWeek, d);
             const dateStr = dateToStr(date);
-            const dayEvs  = this._store.getInstancesForDate(dateStr).filter(e => this._matchesFilter(e) && e.startTime);
+            const dayEvs = this._store.getInstancesForDate(dateStr).filter(e => this._matchesFilter(e) && e.startTime);
 
             dayEvs.forEach(ev => {
                 const [sh, sm] = ev.startTime.split(':').map(Number);
-                const [eh, em] = (ev.endTime || `${sh+1}:00`).split(':').map(Number);
-                const top    = (sh * 60 + sm) / 60 * 56;
+                const [eh, em] = (ev.endTime || `${sh + 1}:00`).split(':').map(Number);
+                const top = (sh * 60 + sm) / 60 * 56;
                 const height = Math.max(((eh * 60 + em) - (sh * 60 + sm)) / 60 * 56, 28);
 
                 const slot = timeGrid.querySelector(`[data-date="${dateStr}"][data-hour="${sh}"]`);
@@ -1808,10 +1828,10 @@ class CalendarRenderer {
 
         // Obtener próximos 90 días
         const from = dateToStr(new Date(this._year, this._month, 1));
-        const to   = dateToStr(new Date(this._year, this._month+1, 0));
+        const to = dateToStr(new Date(this._year, this._month + 1, 0));
         const instances = this._store.getInstancesInRange(from, to)
             .filter(e => this._matchesFilter(e))
-            .sort((a,b) => a.startDate.localeCompare(b.startDate) || a.startTime?.localeCompare(b.startTime||''));
+            .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.startTime?.localeCompare(b.startTime || ''));
 
         if (!instances.length) {
             const empty = document.createElement('div');
@@ -1838,13 +1858,13 @@ class CalendarRenderer {
 
         const today = dateToStr(new Date());
         const yesterday = dateToStr(addDays(new Date(), -1));
-        const tomorrow  = dateToStr(addDays(new Date(), 1));
+        const tomorrow = dateToStr(addDays(new Date(), 1));
 
         Object.entries(groups).forEach(([dateStr, evs]) => {
             const date = strToDate(dateStr);
             let dateLabel = formatDateLong(date);
-            if (dateStr === today)     dateLabel = 'Hoy — ' + dateLabel;
-            if (dateStr === tomorrow)  dateLabel = 'Mañana — ' + dateLabel;
+            if (dateStr === today) dateLabel = 'Hoy — ' + dateLabel;
+            if (dateStr === tomorrow) dateLabel = 'Mañana — ' + dateLabel;
 
             // Separador de fecha
             const sep = document.createElement('div');
@@ -1880,17 +1900,17 @@ class CalendarRenderer {
                         <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                             <span style="font-size:0.95rem;font-weight:700;color:#fffffe;">${ev.title}</span>
                             ${ev.priority === 'urgent' ? `<span style="font-size:0.68rem;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:4px;">URGENTE</span>` : ''}
-                            ${ev.recurrence && ev.recurrence !== 'none' ? `<span style="font-size:0.68rem;color:#6366f1;background:rgba(99,102,241,0.1);padding:1px 6px;border-radius:4px;">↺ ${RECURRENCE_OPTIONS.find(r=>r.value===ev.recurrence)?.label||''}</span>` : ''}
+                            ${ev.recurrence && ev.recurrence !== 'none' ? `<span style="font-size:0.68rem;color:#6366f1;background:rgba(99,102,241,0.1);padding:1px 6px;border-radius:4px;">↺ ${RECURRENCE_OPTIONS.find(r => r.value === ev.recurrence)?.label || ''}</span>` : ''}
                         </div>
                         <div style="display:flex;gap:1rem;margin-top:3px;flex-wrap:wrap;">
                             ${ev.startTime ? `<span style="font-size:0.78rem;color:#6b6b7a;">${formatTime(ev.startTime)}${ev.endTime ? ` – ${formatTime(ev.endTime)}` : ''}</span>` : ''}
-                            ${ev.location  ? `<span style="font-size:0.78rem;color:#6b6b7a;">📍 ${ev.location}</span>` : ''}
+                            ${ev.location ? `<span style="font-size:0.78rem;color:#6b6b7a;">📍 ${ev.location}</span>` : ''}
                         </div>
                         ${ev.description ? `<div style="font-size:0.8rem;color:#5a5a6a;margin-top:4px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ev.description}</div>` : ''}
                     </div>
                     <div style="display:flex;flex-direction:column;gap:0.35rem;flex-shrink:0;">
-                        <span style="font-size:0.68rem;font-weight:700;color:${ev.color};background:${hexToRgba(ev.color,0.1)};padding:2px 8px;border-radius:6px;white-space:nowrap;">
-                            ${EVENT_TYPES[ev.type]?.icon||'•'} ${EVENT_TYPES[ev.type]?.label||ev.type}
+                        <span style="font-size:0.68rem;font-weight:700;color:${ev.color};background:${hexToRgba(ev.color, 0.1)};padding:2px 8px;border-radius:6px;white-space:nowrap;">
+                            ${EVENT_TYPES[ev.type]?.icon || '•'} ${EVENT_TYPES[ev.type]?.label || ev.type}
                         </span>
                     </div>
                 `;
@@ -1918,7 +1938,7 @@ class CalendarRenderer {
         if (!master) return;
 
         const { close } = Modal.open({
-            title: `${EVENT_TYPES[master.type]?.icon||'•'} ${master.title}`,
+            title: `${EVENT_TYPES[master.type]?.icon || '•'} ${master.title}`,
             size: 'sm',
             body: `
                 <div style="display:flex;flex-direction:column;gap:0.625rem;">
@@ -1943,7 +1963,7 @@ class CalendarRenderer {
                     ${master.recurrence && master.recurrence !== 'none' ? `
                     <div style="display:flex;gap:0.5rem;align-items:center;">
                         <span style="color:#4a4a5a;font-size:0.875rem;">↺</span>
-                        <span style="color:#6366f1;font-size:0.875rem;">${RECURRENCE_OPTIONS.find(r=>r.value===master.recurrence)?.label||''}</span>
+                        <span style="color:#6366f1;font-size:0.875rem;">${RECURRENCE_OPTIONS.find(r => r.value === master.recurrence)?.label || ''}</span>
                     </div>` : ''}
                     ${master.description ? `
                     <div style="margin-top:0.25rem;padding:0.625rem;background:rgba(255,255,255,0.03);border-radius:8px;font-size:0.85rem;color:#a8a8b3;line-height:1.5;">${master.description}</div>
@@ -1953,8 +1973,8 @@ class CalendarRenderer {
             actions: [
                 { label: 'Cerrar', variant: 'cancel' },
                 ...(this._canEdit ? [
-                    { label: 'Editar', variant: 'primary', onClick: () => { close(); this._form.openEdit(master.id); }},
-                    { label: 'Eliminar', variant: 'danger', onClick: () => { close(); this._form.openDelete(master.id); }},
+                    { label: 'Editar', variant: 'primary', onClick: () => { close(); this._form.openEdit(master.id); } },
+                    { label: 'Eliminar', variant: 'danger', onClick: () => { close(); this._form.openDelete(master.id); } },
                 ] : [])
             ]
         });
@@ -1991,7 +2011,7 @@ class CalendarRenderer {
             body: container,
             actions: [
                 { label: 'Cerrar', variant: 'cancel' },
-                ...(this._canEdit ? [{ label: '+ Nuevo evento este día', variant: 'primary', onClick: () => { Modal.closeAll(); this._form.openNew(dateToStr(date)); }}] : [])
+                ...(this._canEdit ? [{ label: '+ Nuevo evento este día', variant: 'primary', onClick: () => { Modal.closeAll(); this._form.openNew(dateToStr(date)); } }] : [])
             ]
         });
     }
@@ -2005,9 +2025,9 @@ class CalendarRenderer {
         const instances = this._store.getInstancesForMonth(this._year, this._month)
             .filter(e => this._matchesFilter(e));
 
-        const firstDay   = new Date(this._year, this._month, 1);
-        const daysInMonth= new Date(this._year, this._month+1, 0).getDate();
-        const startOffset= (firstDay.getDay() + 6) % 7;
+        const firstDay = new Date(this._year, this._month, 1);
+        const daysInMonth = new Date(this._year, this._month + 1, 0).getDate();
+        const startOffset = (firstDay.getDay() + 6) % 7;
 
         let rows = '';
         let day = 0;
@@ -2061,10 +2081,12 @@ class CalendarRenderer {
             body: `<p style="color:#a8a8b3;">Esta acción eliminará <strong style="color:#ef4444;">todos los eventos</strong> permanentemente. No se puede deshacer después de confirmado.</p>`,
             actions: [
                 { label: 'Cancelar', variant: 'cancel' },
-                { label: 'Reiniciar todo', variant: 'danger', onClick: () => {
-                    this._store.clear();
-                    Toast.show('Calendario reiniciado', 'info');
-                }}
+                {
+                    label: 'Reiniciar todo', variant: 'danger', onClick: () => {
+                        this._store.clear();
+                        Toast.show('Calendario reiniciado', 'info');
+                    }
+                }
             ]
         });
     }
@@ -2139,11 +2161,11 @@ class CalendarRenderer {
 
 class CalendarManager {
     constructor() {
-        this._store    = new EventStore();
+        this._store = new EventStore();
         this._settings = new Settings();
-        this._canEdit  = false;
+        this._canEdit = false;
         this._renderer = null;
-        this._form     = null;
+        this._form = null;
         this._unloaded = false;
     }
 
@@ -2170,20 +2192,27 @@ class CalendarManager {
                 container = document.createElement('div');
                 container.className = 'cal-container';
                 container.style.cssText = `
-                    width:100%;height:100%;
-                    background:#0f0e17;
-                    border-radius:20px;
-                    overflow:hidden;
-                    display:flex;flex-direction:column;
-                    border:1px solid rgba(99,102,241,0.15);
-                    min-height:680px;
-                `;
+                width:100%;height:100%;
+                background:#0f0e17;
+                border-radius:20px;
+                overflow:hidden;
+                display:flex;flex-direction:column;
+                border:1px solid rgba(99,102,241,0.15);
+                min-height:680px;
+            `;
                 section.appendChild(container);
             }
 
             this._renderer.mount(container);
             this._setupKeyboard();
             this._setupExternalButton();
+
+            // ✅ Escuchar eventos de WebSocket para refrescar calendario en tiempo real
+            window.addEventListener('calendar:refresh', () => {
+                console.log('🔄 [Cal] Refrescando calendario por WebSocket...');
+                this._store.load(); // Recargar desde localStorage (el otro dispositivo ya sincronizó)
+                this._renderer?.refresh(); // Re-renderizar la vista
+            });
 
             console.debug('Cal: inicializado correctamente');
         } catch (e) {
@@ -2196,9 +2225,9 @@ class CalendarManager {
             if (e.target.matches('input,textarea,select')) return;
             if (e.ctrlKey && e.key === 'z') { e.preventDefault(); if (this._store.undo()) Toast.show('Deshecho', 'undo'); }
             if (e.ctrlKey && e.key === 'y') { e.preventDefault(); if (this._store.redo()) Toast.show('Rehecho', 'undo'); }
-            if (e.key === 'ArrowLeft')       this._renderer?._navigate(-1);
-            if (e.key === 'ArrowRight')      this._renderer?._navigate(1);
-            if (e.key === 'Home' || e.key==='t') this._renderer?._goToday();
+            if (e.key === 'ArrowLeft') this._renderer?._navigate(-1);
+            if (e.key === 'ArrowRight') this._renderer?._navigate(1);
+            if (e.key === 'Home' || e.key === 't') this._renderer?._goToday();
             if ((e.key === 'f' || e.key === '/') && e.ctrlKey) { e.preventDefault(); this._renderer?.openSearch(); }
             if (e.key === 'n' && this._canEdit) this._form?.openNew();
             if (e.key === 'p' && e.ctrlKey) { e.preventDefault(); this._renderer?.print(); }
@@ -2209,16 +2238,16 @@ class CalendarManager {
 
     _setupExternalButton() {
         // Botones externos que llamen acciones del calendario
-        document.getElementById('printCalendar')  ?.addEventListener('click', () => this._renderer?.print());
-        document.getElementById('resetCalendar')  ?.addEventListener('click', () => {
+        document.getElementById('printCalendar')?.addEventListener('click', () => this._renderer?.print());
+        document.getElementById('resetCalendar')?.addEventListener('click', () => {
             if (!this._canEdit) { showNoPermissionAlert('calendario'); return; }
             this._renderer?.confirmReset();
         });
-        document.getElementById('addEvent')       ?.addEventListener('click', () => {
+        document.getElementById('addEvent')?.addEventListener('click', () => {
             if (!this._canEdit) { showNoPermissionAlert('calendario'); return; }
             this._form?.openNew();
         });
-        document.getElementById('searchCalendar') ?.addEventListener('click', () => this._renderer?.openSearch());
+        document.getElementById('searchCalendar')?.addEventListener('click', () => this._renderer?.openSearch());
     }
 
     destroy() {
@@ -2252,7 +2281,7 @@ function _tryInit() {
         _managerInstance = new CalendarManager();
         _managerInstance.init().then(() => {
             window.calendarManager = _managerInstance;
-            window.debugCalendar   = () => _managerInstance?.debug();
+            window.debugCalendar = () => _managerInstance?.debug();
             console.debug('📅 Calendario listo. Usa debugCalendar() para inspección.');
         });
         return;

@@ -367,29 +367,64 @@ class WebSocketManager {
     // PRIVADO — MANEJO DE EVENTOS ENTRANTES
     // =========================================================================
 
-    /**
-     * Registra un listener Socket.IO por cada combinación entidad+acción.
-     */
-    _registerEntityListeners() {
-        if (!this.socket) return;
+/**
+ * Registra un listener Socket.IO por cada combinación entidad+acción.
+ */
+_registerEntityListeners() {
+    if (!this.socket) return;
 
-        const entities = Object.keys(ENTITY_STATE_MAP);   // category, document, …
-        const actions  = ['created', 'updated', 'deleted'];
+    const entities = Object.keys(ENTITY_STATE_MAP);   // category, document, …
+    const actions  = ['created', 'updated', 'deleted'];
 
-        entities.forEach(entity => {
-            actions.forEach(action => {
-                const eventName = `${entity}:${action}`;
-                this.socket.on(eventName, data =>
-                    this._handleIncoming(eventName, data)
-                );
-            });
+    entities.forEach(entity => {
+        actions.forEach(action => {
+            const eventName = `${entity}:${action}`;
+            this.socket.on(eventName, data =>
+                this._handleIncoming(eventName, data)
+            );
         });
+    });
 
-        // Notificaciones del sistema
-        this.socket.on(WS_EVENTS.NOTIFICATION_NEW, data =>
-            this._handleIncoming(WS_EVENTS.NOTIFICATION_NEW, data)
-        );
-    }
+    // Notificaciones del sistema
+    this.socket.on(WS_EVENTS.NOTIFICATION_NEW, data =>
+        this._handleIncoming(WS_EVENTS.NOTIFICATION_NEW, data)
+    );
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CALENDARIO
+    // ═══════════════════════════════════════════════════════════════════════
+    this.socket.on('calendar:event-created', (data) => {
+        console.log('📥 [WS] Evento calendario creado:', data.event?.title);
+        this._log('recv', '← calendar:event-created', data);
+        window.dispatchEvent(new CustomEvent('calendar:refresh', {
+            detail: { action: 'created', event: data.event }
+        }));
+    });
+
+    this.socket.on('calendar:event-updated', (data) => {
+        console.log('📥 [WS] Evento calendario actualizado:', data.eventId);
+        this._log('recv', '← calendar:event-updated', data);
+        window.dispatchEvent(new CustomEvent('calendar:refresh', {
+            detail: { action: 'updated', eventId: data.eventId }
+        }));
+    });
+
+    this.socket.on('calendar:event-deleted', (data) => {
+        console.log('📥 [WS] Evento calendario eliminado:', data.eventId);
+        this._log('recv', '← calendar:event-deleted', data);
+        window.dispatchEvent(new CustomEvent('calendar:refresh', {
+            detail: { action: 'deleted', eventId: data.eventId }
+        }));
+    });
+
+    this.socket.on('calendar:events-deleted', (data) => {
+        console.log('📥 [WS] Eventos calendario eliminados (serie):', data.seriesId);
+        this._log('recv', '← calendar:events-deleted', data);
+        window.dispatchEvent(new CustomEvent('calendar:refresh', {
+            detail: { action: 'series-deleted', seriesId: data.seriesId }
+        }));
+    });
+}
 
     /**
      * Punto de entrada para TODOS los eventos entrantes.
