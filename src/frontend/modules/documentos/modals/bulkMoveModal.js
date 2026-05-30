@@ -6,6 +6,7 @@
 import { api } from '../../../services/api.js';
 import { showAlert, getFileIcon, formatFileSize } from '../../../utils.js';
 import { bulkMoveState } from '../core/BulkMoveState.js';
+import wsManager from '../../../services/websocket-manager.js';
 
 class BulkMoveModal {
     constructor() {

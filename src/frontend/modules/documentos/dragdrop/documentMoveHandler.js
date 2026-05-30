@@ -7,7 +7,7 @@
 
 import { api } from '../../../services/api.js';
 import { showAlert } from '../../../utils.js';
-
+import wsManager from '../../../services/websocket-manager.js';
 // Track pending requests to prevent duplicate submissions
 const pendingMoves = new Map();
 
@@ -17,13 +17,13 @@ const pendingMoves = new Map();
  */
 export function initializeDocumentMoveHandler() {
     console.log('🎯 Initializing document move handler');
-    
+
     // Remove existing listener to prevent duplicates
     window.removeEventListener('document:dropped', handleDocumentDrop);
-    
+
     // Listen for the custom event fired by documentDragDrop.js
     window.addEventListener('document:dropped', handleDocumentDrop);
-    
+
     console.log('✅ Document move handler initialized');
 }
 
@@ -35,47 +35,57 @@ export function initializeDocumentMoveHandler() {
  */
 async function handleDocumentDrop(event) {
     const { documentId, folderId, folderName } = event.detail;
-    
+
     console.log(`🚀 Handling document drop:`, { documentId, folderId, folderName });
-    
+
     // Prevent duplicate moves if already in progress
     if (pendingMoves.has(documentId)) {
         console.warn(`⚠️ Move already in progress for document ${documentId}`);
         showAlert('⏳ Este documento ya se está moviendo...', 'warning');
         return;
     }
-    
+
     try {
         // Mark move as pending
         pendingMoves.set(documentId, true);
-        
+
         // ✅ INSTANT DOM UPDATE: Mover visualmente antes de la API
         const wasMovedInDOM = moveDocumentInDOM(documentId, folderId, folderName);
-        
+
         // Find the document row in the DOM
         const docRow = document.querySelector(`[data-document-id="${documentId}"]`);
-        
+
         // Show loading indicator on the row
         showDocumentLoadingState(docRow, true);
-        
+
         // If folderId is null or empty, move to root
         const targetFolderId = folderId || null;
-        
+
         // Make the API call to move the document
         const response = await moveDocumentToFolder(documentId, targetFolderId);
-        
+
         if (response && response.success) {
             console.log(`✅ Document moved successfully: ${documentId} → ${folderId || 'root'}`);
-            
+
+            // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+            wsManager.emit('document:updated', {
+                documentId: documentId,
+                document: {
+                    _id: documentId,
+                    categoria: folderName,
+                    folder_id: folderId || null
+                }
+            });
+
             // Show success toast
             showAlert(
                 `✅ Documento movido a "${folderName}" exitosamente`,
                 'success'
             );
-            
+
             // ✅ ACTUALIZAR DATOS SIN RECARGAR LA PÁGINA
             await refreshDocumentData();
-            
+
             // ✅ Navegar a la carpeta destino si se movió a una carpeta específica
             if (folderId && window.navigateCategoryInto) {
                 // Pequeño delay para que se complete la actualización de datos
@@ -88,31 +98,31 @@ async function handleDocumentDrop(event) {
                     window.navigateCategoryRoot();
                 }, 300);
             }
-            
+
         } else {
             // ❌ API falló: revertir el movimiento en el DOM
             throw new Error(response?.message || 'Failed to move document');
         }
-        
+
     } catch (error) {
         console.error(`❌ Error moving document:`, error);
-        
+
         // Show error toast
         showAlert(
             `❌ Error al mover documento: ${error.message}`,
             'error'
         );
-        
+
         // ✅ REVERTIR CAMBIOS EN EL DOM si la API falló
         revertDocumentMove(documentId);
-        
+
         // Find and remove loading state
         const docRow = document.querySelector(`[data-document-id="${documentId}"]`);
         showDocumentLoadingState(docRow, false);
-        
+
         // Recargar datos para asegurar consistencia
         await refreshDocumentData();
-        
+
     } finally {
         // Remove from pending moves
         pendingMoves.delete(documentId);
@@ -128,32 +138,32 @@ async function handleDocumentDrop(event) {
  */
 function moveDocumentInDOM(documentId, folderId, folderName) {
     console.log(`🔄 Moving document ${documentId} in DOM to "${folderName}" (${folderId || 'root'})`);
-    
+
     const docRow = document.querySelector(`[data-document-id="${documentId}"]`);
     if (!docRow) {
         console.warn(`⚠️ Document row not found in DOM for instant move`);
         return false;
     }
-    
+
     // Guardar posición original para posible reversión
     const parentTable = docRow.closest('tbody');
     const originalNextSibling = docRow.nextSibling;
     const originalParent = docRow.parentNode;
-    
+
     // Guardar en el elemento para posible reversión
     docRow.setAttribute('data-original-parent', originalParent ? 'true' : 'false');
     docRow.setAttribute('data-original-sibling', originalNextSibling ? originalNextSibling.getAttribute('data-document-id') || '' : '');
-    
+
     // Si estamos en la misma vista (misma carpeta), no mover
     const currentCategoryId = getCurrentCategoryId();
     if (currentCategoryId === folderId) {
         console.log(`📌 Document already in target folder, no DOM move needed`);
         return false;
     }
-    
+
     // Añadir clase de animación
     docRow.classList.add('document--moving-out');
-    
+
     // Después de la animación, remover del DOM
     setTimeout(() => {
         if (docRow.parentNode) {
@@ -161,15 +171,15 @@ function moveDocumentInDOM(documentId, folderId, folderName) {
             docRow.style.transition = 'all 0.3s ease';
             docRow.style.opacity = '0';
             docRow.style.transform = 'translateX(-50px)';
-            
+
             setTimeout(() => {
                 if (docRow.parentNode) {
                     docRow.parentNode.removeChild(docRow);
                     console.log(`📤 Document ${documentId} removed from current view`);
-                    
+
                     // Actualizar contador de documentos en la carpeta actual
                     updateDocumentCountInCurrentView(-1);
-                    
+
                     // Disparar evento para actualizar la UI
                     window.dispatchEvent(new CustomEvent('document:moved-in-dom', {
                         detail: { documentId, folderId, folderName }
@@ -178,7 +188,7 @@ function moveDocumentInDOM(documentId, folderId, folderName) {
             }, 300);
         }
     }, 150);
-    
+
     return true;
 }
 
@@ -188,17 +198,17 @@ function moveDocumentInDOM(documentId, folderId, folderName) {
  */
 function revertDocumentMove(documentId) {
     console.log(`⏪ Reverting DOM move for document ${documentId}`);
-    
+
     // Recargar la tabla completa para asegurar consistencia
     if (typeof window.renderDocumentsTable === 'function') {
         window.renderDocumentsTable();
     }
-    
+
     // También refrescar las categorías
     if (typeof window.refreshCategoryTree === 'function') {
         window.refreshCategoryTree();
     }
-    
+
     showAlert('🔄 Movimiento revertido debido a un error', 'warning');
 }
 
@@ -207,47 +217,47 @@ function revertDocumentMove(documentId) {
  */
 async function refreshDocumentData() {
     console.log('🔄 Refrescando datos sin recargar la página...');
-    
+
     try {
         // Recargar documentos
         if (typeof window.loadDocuments === 'function') {
             await window.loadDocuments();
             console.log('📄 Documentos recargados');
         }
-        
+
         // Recargar categorías
         if (typeof window.loadCategories === 'function') {
             await window.loadCategories();
             console.log('📁 Categorías recargadas');
         }
-        
+
         // Refrescar el árbol de categorías
         if (typeof window.refreshCategoryTree === 'function') {
             window.refreshCategoryTree();
             console.log('🌳 Árbol de categorías refrescado');
         }
-        
+
         // Re-renderizar la tabla de documentos
         if (typeof window.renderDocumentsTable === 'function') {
             window.renderDocumentsTable();
             console.log('📊 Tabla de documentos re-renderizada');
         }
-        
+
         // Actualizar panel de vencidos si existe
         if (typeof window.renderExpiredDocuments === 'function') {
             window.renderExpiredDocuments();
             console.log('⏰ Panel de vencidos actualizado');
         }
-        
+
         // Actualizar dashboard si existe
         if (typeof window.loadDashboardData === 'function') {
             window.loadDashboardData(window.appState).catch(err => {
                 console.warn('⚠️ Error actualizando dashboard:', err);
             });
         }
-        
+
         console.log('✅ Datos refrescados exitosamente');
-        
+
     } catch (error) {
         console.error('❌ Error refrescando datos:', error);
         // Si falla la recarga suave, hacer recarga completa
@@ -279,7 +289,7 @@ function updateDocumentCountInCurrentView(delta) {
         const currentCount = parseInt(docCountElement.textContent) || 0;
         const newCount = Math.max(0, currentCount + delta);
         docCountElement.textContent = newCount;
-        
+
         // Animar el cambio
         docCountElement.classList.add('count-updated');
         setTimeout(() => docCountElement.classList.remove('count-updated'), 1000);
@@ -294,7 +304,7 @@ function updateDocumentCountInCurrentView(delta) {
  */
 async function moveDocumentToFolder(documentId, folderId) {
     console.log(`📤 Sending PATCH request: /api/documents/${documentId}/move-folder`);
-    
+
     try {
         const response = await api.call(
             `/documents/${documentId}/move-folder`,
@@ -305,10 +315,10 @@ async function moveDocumentToFolder(documentId, folderId) {
                 }
             }
         );
-        
+
         console.log('📥 API Response:', response);
         return response;
-        
+
     } catch (error) {
         console.error('❌ API call failed:', error);
         throw error;
@@ -325,18 +335,18 @@ function showDocumentLoadingState(docRow, isLoading) {
         console.warn('⚠️ Document row not found in DOM');
         return;
     }
-    
+
     if (isLoading) {
         // Add loading class and opacity
         docRow.classList.add('document--loading');
         docRow.style.position = 'relative';
-        
+
         // Remove existing spinner if any
         const existingSpinner = docRow.querySelector('.document-move-spinner');
         if (existingSpinner) {
             existingSpinner.remove();
         }
-        
+
         // Show loading spinner overlay
         const spinner = document.createElement('div');
         spinner.className = 'document-move-spinner';
@@ -349,13 +359,13 @@ function showDocumentLoadingState(docRow, isLoading) {
             </div>
         `;
         docRow.appendChild(spinner);
-        
+
         console.log(`⏳ Loading state shown for document row`);
     } else {
         // Remove loading class and opacity
         docRow.classList.remove('document--loading');
         docRow.style.position = '';
-        
+
         // Remove spinner if it exists
         const spinner = docRow.querySelector('.document-move-spinner');
         if (spinner) {
@@ -367,7 +377,7 @@ function showDocumentLoadingState(docRow, isLoading) {
                 }
             }, 300);
         }
-        
+
         console.log(`🛑 Loading state removed from document row`);
     }
 }
@@ -378,12 +388,12 @@ function showDocumentLoadingState(docRow, isLoading) {
  */
 export function injectDocumentMoveStyles() {
     const styleId = 'document-move-styles';
-    
+
     // Check if styles already injected
     if (document.getElementById(styleId)) {
         return;
     }
-    
+
     const styles = `
         /* Document move loading styles */
         
@@ -493,12 +503,12 @@ export function injectDocumentMoveStyles() {
             color: #60a5fa;
         }
     `;
-    
+
     const styleElement = document.createElement('style');
     styleElement.id = styleId;
     styleElement.textContent = styles;
     document.head.appendChild(styleElement);
-    
+
     console.log('✅ Document move styles injected');
 }
 

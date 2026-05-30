@@ -160,6 +160,51 @@ io.on('connection', (socket) => {
   socket.join(`user:${socket.userId}`);
 
   // ═══════════════════════════════════════════════════════════════════════
+// CALENDARIO
+// ═══════════════════════════════════════════════════════════════════════
+socket.on('calendar:event-created', (data) => {
+    console.log(`📢 [WS] Evento de calendario creado: ${data.event?.title}`);
+    socket.to(`school:${socket.schoolId}`).emit('calendar:event-created', {
+        event: data.event,
+        userId: socket.userId,
+        userName: socket.userName,
+        timestamp: new Date().toISOString()
+    });
+});
+
+socket.on('calendar:event-updated', (data) => {
+    console.log(`📢 [WS] Evento de calendario actualizado: ${data.eventId}`);
+    socket.to(`school:${socket.schoolId}`).emit('calendar:event-updated', {
+        eventId: data.eventId,
+        event: data.event,
+        userId: socket.userId,
+        userName: socket.userName,
+        timestamp: new Date().toISOString()
+    });
+});
+
+socket.on('calendar:event-deleted', (data) => {
+    console.log(`📢 [WS] Evento de calendario eliminado: ${data.eventId}`);
+    socket.to(`school:${socket.schoolId}`).emit('calendar:event-deleted', {
+        eventId: data.eventId,
+        userId: socket.userId,
+        userName: socket.userName,
+        timestamp: new Date().toISOString()
+    });
+});
+
+socket.on('calendar:events-deleted', (data) => {
+    console.log(`📢 [WS] Eventos de calendario eliminados: ${data.seriesId}`);
+    socket.to(`school:${socket.schoolId}`).emit('calendar:events-deleted', {
+        seriesId: data.seriesId,
+        fromDate: data.fromDate,
+        userId: socket.userId,
+        userName: socket.userName,
+        timestamp: new Date().toISOString()
+    });
+});
+
+  // ═══════════════════════════════════════════════════════════════════════
   // CATEGORÍAS
   // ═══════════════════════════════════════════════════════════════════════
   socket.on('category:created', (data) => {

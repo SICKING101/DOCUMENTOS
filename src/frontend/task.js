@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { canView, canAction, showNoPermissionAlert, loadCurrentPermissions } from './permissions.js';
+import wsManager from './services/websocket-manager.js';
 
 const DEBUG = true;
 function tlog(...args) { if (DEBUG) console.log('📋 [TasksModule v3.1]', ...args); }
@@ -773,6 +774,12 @@ async _saveTask(mode) {
 
       if (!res.ok || !data.success) throw new Error(data.message || 'Error al guardar');
 
+      // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+      const wsEventName = taskData._id ? 'task:updated' : 'task:created';
+      wsManager.emit(wsEventName, {
+        task: data.task || data
+      });
+
       tlog('✅ Tarea guardada correctamente:', data.task?._id);
       this._showModalSuccess(preloader, taskData._id ? 'Tarea actualizada ✓' : 'Tarea creada ✓');
 
@@ -987,7 +994,7 @@ _handleTaskAction(action, taskId) {
     this._openModal('confirmModal');
   }
 
-  async _executePendingAction() {
+async _executePendingAction() {
     if (!this.pendingAction || this.isSaving) return;
 
     const { type, taskId } = this.pendingAction;
@@ -1017,6 +1024,16 @@ _handleTaskAction(action, taskId) {
       if (!res) throw new Error('Sin respuesta');
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Error');
+
+      // ✅ NUEVO: Emitir evento WebSocket para sincronización en tiempo real
+      if (type === 'delete') {
+        wsManager.emit('task:deleted', { taskId: taskId });
+      } else if (type === 'complete') {
+        wsManager.emit('task:updated', {
+          taskId: taskId,
+          task: data.task || { _id: taskId, estado: 'completada' }
+        });
+      }
 
       const msg = type === 'delete' ? 'Tarea eliminada ✓' : 'Tarea completada ✓';
       this._showModalSuccess(preloader, msg);
